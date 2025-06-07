@@ -1,6 +1,7 @@
 import React from 'react';
 import { Plus } from 'lucide-react';
 import { Category } from '../types';
+import { motion } from 'framer-motion';
 
 interface CategoryTabsProps {
   categories: Category[];
@@ -10,15 +11,38 @@ interface CategoryTabsProps {
 }
 
 export function CategoryTabs({ categories, activeCategory, onCategoryChange, onAddCategory }: CategoryTabsProps) {
+  const tabVariants = {
+    active: {
+      scale: 1.05,
+      boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.25)",
+      transition: { type: "spring", stiffness: 400, damping: 15 }
+    },
+    inactive: {
+      scale: 1,
+      boxShadow: "none",
+      transition: { duration: 0.2 }
+    }
+  };
+
   return (
-    <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+    <motion.div 
+      className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: 0.1 }}
+    >
       {categories.map((category) => (
-        <button
+        <motion.button
           key={category.id}
           onClick={() => onCategoryChange(category.id)}
-          className={`px-6 py-3 rounded-lg font-medium whitespace-nowrap transition-all duration-200 ${
+          variants={tabVariants}
+          initial="inactive"
+          animate={activeCategory === category.id ? "active" : "inactive"}
+          whileHover={{ y: -2 }}
+          whileTap={{ scale: 0.98 }}
+          className={`px-6 py-3 rounded-lg font-medium whitespace-nowrap ${
             activeCategory === category.id
-              ? 'text-white shadow-lg transform scale-105'
+              ? 'text-white'
               : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-white'
           }`}
           style={{
@@ -26,15 +50,17 @@ export function CategoryTabs({ categories, activeCategory, onCategoryChange, onA
           }}
         >
           {category.name}
-        </button>
+        </motion.button>
       ))}
-      <button
+      <motion.button
         onClick={onAddCategory}
-        className="flex items-center gap-2 px-4 py-3 bg-gray-800 text-gray-300 rounded-lg font-medium hover:bg-gray-700 hover:text-white transition-all duration-200 whitespace-nowrap"
+        whileHover={{ scale: 1.05, y: -2 }}
+        whileTap={{ scale: 0.95 }}
+        className="flex items-center gap-2 px-4 py-3 bg-gray-800 text-gray-300 rounded-lg font-medium hover:bg-gray-700 hover:text-white whitespace-nowrap"
       >
         <Plus size={20} />
-        Ajouter
-      </button>
-    </div>
+        <span>Ajouter</span>
+      </motion.button>
+    </motion.div>
   );
 }

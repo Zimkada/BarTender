@@ -10,17 +10,26 @@ import { Inventory } from './components/Inventory';
 import { Settings } from './components/Settings';
 import { ServerInterface } from './components/ServerInterface';
 import { RoleSelector } from './components/RoleSelector';
-import { useCategories } from './hooks/useCategories';
-import { useProducts } from './hooks/useProducts';
-import { useSales } from './hooks/useSales';
-import { useSettings } from './hooks/useSettings';
+import { NotificationsProvider, useNotifications } from './components/Notifications';
+import { useAppContext } from './context/AppContext';
 import { CartItem, Product } from './types';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ServerManagement } from './components/ServerManagement';
 
-function App() {
-  const { categories, addCategory } = useCategories();
-  const { getProductsByCategory, addProduct, updateProduct, decreaseStock } = useProducts();
-  const { addSale } = useSales();
-  const { settings, updateSettings } = useSettings();
+function AppContent() {
+  const { 
+    categories, 
+    addCategory,
+    products,
+    addProduct, 
+    updateProduct, 
+    decreaseStock,
+    getProductsByCategory,
+    addSale,
+    settings, 
+    updateSettings 
+  } = useAppContext();
+  const { showNotification } = useNotifications();
   
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id || '');
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -30,6 +39,7 @@ function App() {
   const [showSalesHistory, setShowSalesHistory] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showServers, setShowServers] = useState(false);
   const [currentInterface, setCurrentInterface] = useState<'selector' | 'manager' | 'server'>('selector');
 
   const currentProducts = getProductsByCategory(activeCategory);
@@ -45,6 +55,11 @@ function App() {
       ));
     } else {
       setCart([...cart, { product, quantity: 1 }]);
+    }
+    
+    // Ne pas montrer la notification si la carte est déjà ouverte
+    if (!isCartOpen) {
+      showNotification('info', `${product.name} ajouté au panier`);
     }
   };
 
@@ -73,16 +88,13 @@ function App() {
 
     const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
     
-    // Decrease stock for each item
-    cart.forEach(item => {
-      decreaseStock(item.product.id, item.quantity);
-    });
-
-    // Add sale to history
+    // Add sale to history - decreaseStock is handled in the context
     addSale({
       items: cart,
       total,
       currency: settings.currency,
+      serverId: 'manager',        // ← Ajoutez
+      serverName: 'Gérant',      // ← Ajoutez
     });
 
     // Clear cart
@@ -90,7 +102,7 @@ function App() {
     setIsCartOpen(false);
     
     // Show success message
-    alert('Vente enregistrée avec succès !');
+    showNotification('success', 'Vente enregistrée avec succès !');
   };
 
   const handleRoleSelection = (role: 'manager' | 'server') => {
@@ -111,27 +123,54 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <motion.div 
+      className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+    >
       <Header
         onShowSales={() => setShowSalesHistory(true)}
         onShowSettings={() => setShowSettings(true)}
         onShowInventory={() => setShowInventory(true)}
+        onShowServers={() => setShowServers(true)}
         onSwitchToServer={() => setCurrentInterface('server')}
       />
       
-      <main className="container mx-auto px-4 py-6 space-y-6">
+      <motion.main 
+        className="container mx-auto px-4 py-6 space-y-6"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+      >
         <CategoryTabs
           categories={categories}
           activeCategory={activeCategory}
-          onCategoryChange={setActiveCategory}
+          onCategoryChange={(id) => {
+            setActiveCategory(id);
+            const category = categories.find(c => c.id === id);
+            if (category) {
+              showNotification('info', `Catégorie: ${category.name}`);
+            }
+          }}
           onAddCategory={() => setShowCategoryModal(true)}
         />
         
-        <ProductGrid
-          products={currentProducts}
-          onAddToCart={addToCart}
-        />
-      </main>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeCategory}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ProductGrid
+              products={currentProducts}
+              onAddToCart={addToCart}
+            />
+          </motion.div>
+        </AnimatePresence>
+      </motion.main>
 
       <Cart
         items={cart}
@@ -142,6 +181,11 @@ function App() {
         onCheckout={checkout}
         onClear={clearCart}
       />
+      
+      <ServerManagement
+        isOpen={showServers}
+        onClose={() => setShowServers(false)}
+      />
 
       <ProductModal
         isOpen={showProductModal}
@@ -149,6 +193,7 @@ function App() {
         onSave={(productData) => {
           addProduct(productData);
           setShowProductModal(false);
+          showNotification('success', `Produit "${productData.name}" ajouté`);
         }}
         categories={categories}
       />
@@ -160,6 +205,7 @@ function App() {
           const newCategory = addCategory(categoryData);
           setActiveCategory(newCategory.id);
           setShowCategoryModal(false);
+          showNotification('success', `Catégorie "${categoryData.name}" créée`);
         }}
       />
 
@@ -177,7 +223,15 @@ function App() {
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
       />
-    </div>
+    </motion.div>
+  );
+}
+
+function App() {
+  return (
+    <NotificationsProvider>
+      <AppContent />
+    </NotificationsProvider>
   );
 }
 

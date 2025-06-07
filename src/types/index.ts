@@ -31,6 +31,7 @@ export interface Supply {
 export interface CartItem {
   product: Product;
   quantity: number;
+  returned?: number;
 }
 
 export interface OrderItem {
@@ -46,9 +47,11 @@ export interface Order {
   currency: string;
   status: 'pending' | 'completed' | 'cancelled';
   tableNumber?: string;
-  serverName?: string;
+  serverId: string;      
+  serverName: string;     
   date: Date;
   completedAt?: Date;
+  modifiedBy?: string;     
 }
 
 export interface Sale {
@@ -57,7 +60,10 @@ export interface Sale {
   total: number;
   currency: string;
   date: Date;
-  orderId?: string; // Lien avec la commande si applicable
+  orderId?: string;
+  serverId: string;   
+  serverName: string;      
+  processedBy?: string;   
 }
 
 export interface AppSettings {
@@ -66,3 +72,19 @@ export interface AppSettings {
   userRole: 'manager' | 'server';
   serverName?: string;
 }
+
+export interface Server {
+  id: string;
+  name: string;
+  email: string;
+  isActive: boolean;
+  createdAt: Date;
+  lastActiveAt?: Date;
+}
+
+export interface ServerSession {
+  serverId: string;
+  serverName: string;
+  loginTime: Date;
+}
+

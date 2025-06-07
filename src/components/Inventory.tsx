@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
 import { X, Package, AlertTriangle, Plus, Edit, Trash2, ShoppingCart } from 'lucide-react';
-import { useProducts } from '../hooks/useProducts';
-import { useCategories } from '../hooks/useCategories';
-import { useSettings } from '../hooks/useSettings';
-import { useSupplies } from '../hooks/useSupplies';
+import { useAppContext } from '../context/AppContext';
 import { ProductModal } from './ProductModal';
 import { SupplyModal } from './SupplyModal';
 import { Product } from '../types';
@@ -14,10 +11,17 @@ interface InventoryProps {
 }
 
 export function Inventory({ isOpen, onClose }: InventoryProps) {
-  const { products, getLowStockProducts, deleteProduct, increaseStock } = useProducts();
-  const { categories } = useCategories();
-  const { formatPrice } = useSettings();
-  const { addSupply, getAverageCostPerUnit } = useSupplies();
+  const { 
+    products, 
+    categories,
+    getLowStockProducts, 
+    deleteProduct, 
+    addProduct,
+    updateProduct,
+    addSupply, 
+    getAverageCostPerUnit,
+    formatPrice
+  } = useAppContext();
   const [showProductModal, setShowProductModal] = useState(false);
   const [showSupplyModal, setShowSupplyModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
@@ -41,12 +45,8 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
     lotPrice: number;
     supplier: string;
   }) => {
-    // Ajouter l'approvisionnement
+    // L'augmentation de stock est gérée directement dans le contexte
     addSupply(supplyData);
-    
-    // Augmenter le stock
-    increaseStock(supplyData.productId, supplyData.quantity);
-    
     setShowSupplyModal(false);
   };
 
@@ -197,6 +197,11 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
         isOpen={showProductModal}
         onClose={() => setShowProductModal(false)}
         onSave={(productData) => {
+          if (editingProduct) {
+            updateProduct(editingProduct.id, productData);
+          } else {
+            addProduct(productData);
+          }
           setShowProductModal(false);
         }}
         categories={categories}

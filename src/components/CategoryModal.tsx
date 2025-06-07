@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Category } from '../types';
+import { useAppContext } from '../context/AppContext';
+import { motion, AnimatePresence } from 'framer-motion';
+import { modalVariants } from './Animations';
 
 interface CategoryModalProps {
   isOpen: boolean;
@@ -46,21 +49,34 @@ export function CategoryModal({ isOpen, onClose, onSave, category }: CategoryMod
     onClose();
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-lg w-full max-w-md">
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        >
+          <motion.div 
+            variants={modalVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="bg-gray-900 rounded-lg w-full max-w-md"
+          >
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <h2 className="text-xl font-semibold text-white">
             {category ? 'Modifier la catégorie' : 'Ajouter une catégorie'}
           </h2>
-          <button
+          <motion.button
             onClick={onClose}
-            className="text-gray-400 hover:text-white transition-colors"
+            whileHover={{ scale: 1.1, rotate: 90 }}
+            whileTap={{ scale: 0.9 }}
+            className="text-gray-400 hover:text-white"
           >
             <X size={24} />
-          </button>
+          </motion.button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
@@ -101,22 +117,28 @@ export function CategoryModal({ isOpen, onClose, onSave, category }: CategoryMod
           </div>
 
           <div className="flex gap-3 pt-4">
-            <button
+            <motion.button
               type="button"
               onClick={onClose}
-              className="flex-1 py-3 bg-gray-700 text-white rounded-lg font-medium hover:bg-gray-600 transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex-1 py-3 bg-gray-700 text-white rounded-lg font-medium hover:bg-gray-600"
             >
               Annuler
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="submit"
-              className="flex-1 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-500 transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="flex-1 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-500"
             >
               {category ? 'Modifier' : 'Ajouter'}
-            </button>
+            </motion.button>
           </div>
         </form>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

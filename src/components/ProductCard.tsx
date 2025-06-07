@@ -1,7 +1,9 @@
-import React from 'react';
-import { Package, AlertTriangle } from 'lucide-react';
+import React, { useState } from 'react';
+import { Package, AlertTriangle, Check } from 'lucide-react';
 import { Product } from '../types';
 import { useSettings } from '../hooks/useSettings';
+import { motion } from 'framer-motion';
+import { itemVariants } from './Animations';
 
 interface ProductCardProps {
   product: Product;
@@ -12,11 +14,37 @@ interface ProductCardProps {
 export function ProductCard({ product, onAddToCart, compact = false }: ProductCardProps) {
   const { formatPrice } = useSettings();
   const isLowStock = product.stock <= product.alertThreshold;
+  const [isAdding, setIsAdding] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+
+  const handleAddToCart = () => {
+    if (product.stock === 0) return;
+    
+    setIsAdding(true);
+    
+    // Simuler un délai pour montrer l'animation
+    setTimeout(() => {
+      onAddToCart(product);
+      setIsAdding(false);
+      setShowFeedback(true);
+      
+      // Masquer le feedback après 1.5s
+      setTimeout(() => {
+        setShowFeedback(false);
+      }, 1500);
+    }, 300);
+  };
 
   return (
-    <div className={`bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-3 hover:bg-gray-800/70 transition-all duration-200 hover:transform hover:scale-[1.02] ${
-      compact ? 'min-h-[200px]' : 'min-h-[240px]'
-    }`}>
+    <motion.div 
+      variants={itemVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      whileHover={{ y: -5 }}
+      className={`bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-3 ${
+        compact ? 'min-h-[200px]' : 'min-h-[240px]'
+      }`}>
       <div className={`${compact ? 'aspect-[4/3]' : 'aspect-square'} bg-gray-700 rounded-lg mb-3 flex items-center justify-center overflow-hidden`}>
         {product.image ? (
           <img
@@ -47,18 +75,43 @@ export function ProductCard({ product, onAddToCart, compact = false }: ProductCa
           </div>
         </div>
         
-        <button
-          onClick={() => onAddToCart(product)}
+        <motion.button
+          onClick={handleAddToCart}
           disabled={product.stock === 0}
-          className={`w-full ${compact ? 'py-2 text-sm' : 'py-3'} rounded-lg font-medium transition-all duration-200 ${
+          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.02 }}
+          className={`w-full ${compact ? 'py-2 text-sm' : 'py-3'} rounded-lg font-medium relative overflow-hidden ${
             product.stock === 0
               ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              : 'bg-teal-600 text-white hover:bg-teal-500 active:transform active:scale-95'
+              : 'bg-teal-600 text-white hover:bg-teal-500'
           }`}
         >
-          {product.stock === 0 ? 'Rupture' : 'Ajouter'}
-        </button>
+          {showFeedback ? (
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }}
+              className="flex items-center justify-center gap-1"
+            >
+              <Check size={16} /> Ajouté
+            </motion.div>
+          ) : isAdding ? (
+            <motion.div 
+              animate={{ 
+                opacity: [0.5, 1, 0.5], 
+                scale: [0.98, 1.02, 0.98]
+              }}
+              transition={{ 
+                repeat: Infinity, 
+                duration: 1 
+              }}
+            >
+              Ajout...
+            </motion.div>
+          ) : (
+            product.stock === 0 ? 'Rupture' : 'Ajouter'
+          )}
+        </motion.button>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -1,6 +1,8 @@
 import React from 'react';
 import { ProductCard } from './ProductCard';
 import { Product } from '../types';
+import { motion } from 'framer-motion';
+import { containerVariants } from './Animations';
 
 interface ProductGridProps {
   products: Product[];
@@ -19,7 +21,13 @@ export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <motion.div 
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+    >
       {products.map((product) => (
         <ProductCard
           key={product.id}
@@ -27,6 +35,6 @@ export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
           onAddToCart={onAddToCart}
         />
       ))}
-    </div>
+    </motion.div>
   );
 }

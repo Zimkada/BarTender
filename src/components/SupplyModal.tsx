@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Package } from 'lucide-react';
 import { Product } from '../types';
-import { useSettings } from '../hooks/useSettings';
+import { useAppContext } from '../context/AppContext';
 
 interface SupplyModalProps {
   isOpen: boolean;
@@ -17,7 +17,7 @@ interface SupplyModalProps {
 }
 
 export function SupplyModal({ isOpen, onClose, onSave, products }: SupplyModalProps) {
-  const { formatPrice } = useSettings();
+  const { formatPrice } = useAppContext();
   const [formData, setFormData] = useState({
     productId: '',
     quantity: '',

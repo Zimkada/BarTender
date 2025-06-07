@@ -1,9 +1,10 @@
 import React from 'react';
 import { X, Clock, CheckCircle, XCircle, RotateCcw } from 'lucide-react';
-import { useOrders } from '../hooks/useOrders';
-import { useProducts } from '../hooks/useProducts';
-import { useSales } from '../hooks/useSales';
-import { useSettings } from '../hooks/useSettings';
+import { useAppContext } from '../context/AppContext';
+//import { motion, AnimatePresence } from 'framer-motion';
+//import { containerVariants, itemVariants } from './Animations';
+//import { useRealTimeSync } from '../hooks/useRealTimeSync';
+import { CartItem, Order, OrderItem } from '../types';
 
 interface PendingOrdersProps {
   isOpen: boolean;
@@ -11,16 +12,23 @@ interface PendingOrdersProps {
 }
 
 export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
-  const { getPendingOrders, updateOrderStatus, returnOrderItem } = useOrders();
-  const { decreaseStock, increaseStock } = useProducts();
-  const { addSale } = useSales();
-  const { formatPrice } = useSettings();
+  const { 
+    getPendingOrders, 
+    updateOrderStatus, 
+    returnOrderItem,
+    addSale,
+    formatPrice,
+    increaseStock,
+    decreaseStock
+  } = useAppContext();
   
   const pendingOrders = getPendingOrders();
 
-  const completeOrder = (order: any) => {
+  const completeOrder = (order: Order) => {
     // Décompter le stock pour chaque item (en tenant compte des retours)
-    order.items.forEach((item: any) => {
+  order.items.forEach((item: CartItem) => {
+   
+    
       const effectiveQuantity = item.quantity - (item.returned || 0);
       if (effectiveQuantity > 0) {
         decreaseStock(item.product.id, effectiveQuantity);
@@ -29,8 +37,8 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
 
     // Ajouter la vente
     const saleItems = order.items
-      .filter((item: any) => (item.quantity - (item.returned || 0)) > 0)
-      .map((item: any) => ({
+      .filter((item: CartItem) => (item.quantity - (item.returned || 0)) > 0)
+      .map((item: CartItem) => ({
         product: item.product,
         quantity: item.quantity - (item.returned || 0),
       }));
@@ -48,8 +56,8 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
     updateOrderStatus(order.id, 'completed');
   };
 
-  const cancelOrder = (order: any) => {
-    updateOrderStatus(order.id, 'cancelled');
+  const cancelOrder = (order: Order) => {
+  updateOrderStatus(order.id, 'cancelled');
   };
 
   const handleReturn = (orderId: string, productId: string) => {
@@ -125,7 +133,7 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
                   </div>
                   
                   <div className="space-y-2 mb-4">
-                    {order.items.map((item: any, index: number) => {
+                    {order.items.map((item: OrderItem, index: number) => {
                       const effectiveQuantity = item.quantity - (item.returned || 0);
                       return (
                         <div key={index} className="flex items-center justify-between text-sm bg-gray-700 rounded p-2">
@@ -133,9 +141,9 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
                             <span className="text-gray-300">
                               {effectiveQuantity}x {item.product.name} ({item.product.volume})
                             </span>
-                            {item.returned > 0 && (
+                            {(item.returned ?? 0) > 0 && (
                               <span className="text-red-400 ml-2">
-                                ({item.returned} retourné{item.returned > 1 ? 's' : ''})
+                                ({item.returned} retourné{(item.returned ?? 0) > 1 ? 's' : ''})
                               </span>
                             )}
                           </div>
