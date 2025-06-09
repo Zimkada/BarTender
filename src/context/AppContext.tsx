@@ -116,7 +116,7 @@ const defaultServers: Server[] = [
 
 const defaultSettings: AppSettings = {
   currency: 'FCFA',
-  currencySymbol: '₣',
+  currencySymbol: ' FCFA',
   userRole: 'manager',
 };
 
@@ -416,20 +416,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   }, [orders]);
 
-  const addSale = useCallback((saleData: { items: CartItem[]; total: number; currency: string; serverId: string; serverName: string; orderId?: string }) => {
-    const newSale: Sale = {
-      ...saleData,
-      id: Date.now().toString(),
-      date: new Date(),
-    };
-    setSales(prev => [newSale, ...prev]);
-    
-    saleData.items.forEach(item => {
-      decreaseStock(item.product.id, item.quantity);
-    });
-    
-    return newSale;
-  }, [setSales, decreaseStock]);
+const addSale = useCallback((saleData: { items: CartItem[]; total: number; currency: string; serverId: string; serverName: string; orderId?: string }) => {
+  // Vérifier stock avant vente
+  for (const item of saleData.items) {
+    const product = getProductById(item.product.id);
+    if (!product || product.stock < item.quantity) {
+      throw new Error(`Stock insuffisant pour ${item.product.name}`);
+    }
+  }
+  
+  const newSale: Sale = {
+    ...saleData,
+    id: Date.now().toString(),
+    date: new Date(),
+  };
+  setSales(prev => [newSale, ...prev]);
+  
+  saleData.items.forEach(item => {
+    decreaseStock(item.product.id, item.quantity);
+  });
+  
+  return newSale;
+}, [setSales, decreaseStock, getProductById]);
 
   const getSalesByDate = useCallback((startDate: Date, endDate: Date) => {
     return sales.filter(sale => {
@@ -455,9 +463,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSettings(prev => ({ ...prev, ...updates }));
   }, [setSettings]);
 
-  const formatPrice = useCallback((price: number) => {
-    return `${settings.currencySymbol}${price.toLocaleString('fr-FR')}`;
-  }, [settings.currencySymbol]);
+  const formatPrice = (price: number) => {
+  return `${price.toLocaleString('fr-FR')} ${settings.currencySymbol}`;
+ };
 
   const value: AppContextType = {
     // État

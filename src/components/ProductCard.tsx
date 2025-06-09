@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Package, AlertTriangle, Check } from 'lucide-react';
+import { Package, AlertTriangle, Check, Plus } from 'lucide-react';
 import { Product } from '../types';
 import { useSettings } from '../hooks/useSettings';
 import { motion } from 'framer-motion';
-import { itemVariants } from './Animations';
+import { useFeedback } from '../hooks/useFeedback';
+import { FeedbackButton } from './FeedbackButton';
 
 interface ProductCardProps {
   product: Product;
@@ -11,41 +12,66 @@ interface ProductCardProps {
   compact?: boolean;
 }
 
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: 'spring', stiffness: 300, damping: 24 }
+  }
+};
+
 export function ProductCard({ product, onAddToCart, compact = false }: ProductCardProps) {
   const { formatPrice } = useSettings();
   const isLowStock = product.stock <= product.alertThreshold;
   const [isAdding, setIsAdding] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const { itemAddedToCart, setLoading, isLoading, showError } = useFeedback();
 
-  const handleAddToCart = () => {
-    if (product.stock === 0) return;
+  const handleAddToCart = async () => {
+    if (product.stock === 0) {
+      showError('❌ Stock épuisé');
+      return;
+    }
     
-    setIsAdding(true);
+    if (product.stock <= product.alertThreshold && product.stock > 0) {
+      if (!confirm(`⚠️ Stock critique (${product.stock} restants). Continuer ?`)) {
+        return;
+      }
+    }
     
-    // Simuler un délai pour montrer l'animation
-    setTimeout(() => {
-      onAddToCart(product);
-      setIsAdding(false);
+    try {
+      setLoading('addToCart', true);
+      await onAddToCart(product);
+      itemAddedToCart(product.name);
       setShowFeedback(true);
-      
-      // Masquer le feedback après 1.5s
-      setTimeout(() => {
-        setShowFeedback(false);
-      }, 1500);
-    }, 300);
+      setTimeout(() => setShowFeedback(false), 1000);
+    } finally {
+      setLoading('addToCart', false);
+    }
+  };
+
+  const getStockBadgeColor = () => {
+    if (product.stock === 0) return 'bg-red-500';
+    if (isLowStock) return 'bg-orange-500';
+    return 'bg-green-500';
   };
 
   return (
     <motion.div 
       variants={itemVariants}
-      initial="hidden"
-      animate="visible"
-      exit="exit"
-      whileHover={{ y: -5 }}
-      className={`bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-3 ${
-        compact ? 'min-h-[200px]' : 'min-h-[240px]'
-      }`}>
-      <div className={`${compact ? 'aspect-[4/3]' : 'aspect-square'} bg-gray-700 rounded-lg mb-3 flex items-center justify-center overflow-hidden`}>
+      whileHover={{ y: -3, scale: 1.02 }}
+      className="bg-gradient-to-br from-yellow-100 to-amber-100 rounded-2xl p-3 shadow-sm border border-orange-100 relative"
+    >
+
+      
+      {/* Stock Badge */}
+      <div className={`absolute top-2 right-2 ${getStockBadgeColor()} text-white text-xs px-2 py-1 rounded-full z-10`}>
+        {product.stock}
+      </div>
+
+      {/* Image Container */}
+      <div className="aspect-square bg-gradient-to-br from-orange-100 to-amber-100 rounded-xl mb-3 flex items-center justify-center overflow-hidden">
         {product.image ? (
           <img
             src={product.image}
@@ -53,64 +79,31 @@ export function ProductCard({ product, onAddToCart, compact = false }: ProductCa
             className="w-full h-full object-cover"
           />
         ) : (
-          <Package size={compact ? 32 : 40} className="text-gray-500" />
+          <Package size={32} className="text-orange-400" />
         )}
       </div>
       
       <div className="space-y-2">
-        <h3 className={`font-semibold text-white leading-tight ${compact ? 'text-sm' : 'text-base'}`}>
+        <h3 className="font-semibold text-gray-800 leading-tight text-sm">
           {product.name}
         </h3>
-        <p className={`text-gray-400 ${compact ? 'text-xs' : 'text-sm'}`}>{product.volume}</p>
+        <p className="text-gray-500 text-xs">{product.volume}</p>
         
         <div className="flex items-center justify-between">
-          <span className={`text-teal-400 font-bold ${compact ? 'text-sm' : 'text-base'}`}>
+          <span className="text-orange-600 font-bold text-sm">
             {formatPrice(product.price)}
           </span>
-          <div className={`flex items-center gap-1 ${compact ? 'text-xs' : 'text-sm'} ${
-            isLowStock ? 'text-red-400' : 'text-gray-400'
-          }`}>
-            {isLowStock && <AlertTriangle size={compact ? 12 : 16} />}
-            <span>Stock: {product.stock}</span>
-          </div>
+          
+          <FeedbackButton
+            onClick={handleAddToCart}
+            isLoading={isLoading('addToCart')}
+            disabled={product.stock === 0}
+            successAnimation={showFeedback}
+            className={`w-7 h-7 rounded-full ${product.stock === 0 ? 'bg-gray-300 text-gray-500' : 'bg-orange-500 text-white hover:bg-orange-600'}`}
+          >
+            {showFeedback ? <Check size={14} /> : <Plus size={14} />}
+          </FeedbackButton>
         </div>
-        
-        <motion.button
-          onClick={handleAddToCart}
-          disabled={product.stock === 0}
-          whileTap={{ scale: 0.95 }}
-          whileHover={{ scale: 1.02 }}
-          className={`w-full ${compact ? 'py-2 text-sm' : 'py-3'} rounded-lg font-medium relative overflow-hidden ${
-            product.stock === 0
-              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              : 'bg-teal-600 text-white hover:bg-teal-500'
-          }`}
-        >
-          {showFeedback ? (
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }}
-              className="flex items-center justify-center gap-1"
-            >
-              <Check size={16} /> Ajouté
-            </motion.div>
-          ) : isAdding ? (
-            <motion.div 
-              animate={{ 
-                opacity: [0.5, 1, 0.5], 
-                scale: [0.98, 1.02, 0.98]
-              }}
-              transition={{ 
-                repeat: Infinity, 
-                duration: 1 
-              }}
-            >
-              Ajout...
-            </motion.div>
-          ) : (
-            product.stock === 0 ? 'Rupture' : 'Ajouter'
-          )}
-        </motion.button>
       </div>
     </motion.div>
   );

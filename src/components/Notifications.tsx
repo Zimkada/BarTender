@@ -94,12 +94,12 @@ const NotificationItem: React.FC<{
         };
       case 'info':
         return {
-          bgColor: 'bg-blue-500',
+          bgColor: 'bg-orange-500',
           icon: <Info size={18} className="text-white" />,
         };
       default:
         return {
-          bgColor: 'bg-gray-700',
+          bgColor: 'bg-gray-500',
           icon: <Info size={18} className="text-white" />,
         };
     }
@@ -108,14 +108,22 @@ const NotificationItem: React.FC<{
   const { bgColor, icon } = getTypeStyles();
 
   return (
-    <div className={`${bgColor} text-white px-4 py-3 rounded-lg shadow-lg min-w-[300px] max-w-md flex items-center justify-between`}>
+    <motion.div 
+      whileHover={{ scale: 1.02 }}
+      className={`${bgColor} text-white px-4 py-3 rounded-xl shadow-lg min-w-[300px] max-w-md flex items-center justify-between backdrop-blur-sm`}
+    >
       <div className="flex items-center gap-3">
         {icon}
-        <p>{message}</p>
+        <p className="font-medium">{message}</p>
       </div>
-      <button onClick={onClose} className="text-white/70 hover:text-white">
+      <motion.button 
+        onClick={onClose} 
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        className="text-white/70 hover:text-white transition-colors"
+      >
         <X size={16} />
-      </button>
-    </div>
+      </motion.button>
+    </motion.div>
   );
 };

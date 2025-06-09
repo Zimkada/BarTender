@@ -8,6 +8,7 @@ import { useProducts } from '../hooks/useProducts';
 import { useOrders } from '../hooks/useOrders';
 import { useSettings } from '../hooks/useSettings';
 import { CartItem, Product } from '../types';
+import { Users } from 'lucide-react';
 
 interface ServerInterfaceProps {
   onSwitchToManager: () => void;
@@ -84,27 +85,27 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br fbg-gradient-to-br from-yellow-200 to-amber-200">
       {/* Header */}
-      <header className="bg-gray-900/95 backdrop-blur-sm border-b border-gray-700 p-4">
+      <header className="bg-white/80 backdrop-blur-md border-b border-orange-100 p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-white">Interface Serveur</h1>
-            <p className="text-gray-400 text-sm">
-              Serveur: <span className="text-teal-400 font-semibold">{settings.serverName || 'Non défini'}</span>
+            <h1 className="text-2xl font-bold text-gray-800">Interface Serveur</h1>
+            <p className="text-gray-600 text-sm">
+              Serveur: <span className="text-orange-600 font-semibold">{settings.serverName || 'Non défini'}</span>
             </p>
           </div>
           
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowPendingOrders(true)}
-              className="px-4 py-2 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-500 transition-colors"
+              className="px-4 py-2 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 transition-colors"
             >
               Commandes en attente
             </button>
             <button
               onClick={onSwitchToManager}
-              className="px-4 py-2 bg-gray-700 text-white rounded-lg font-medium hover:bg-gray-600 transition-colors"
+              className="px-4 py-2 bg-amber-100 text-amber-700 rounded-xl font-medium hover:bg-amber-200 transition-colors"
             >
               Mode Gérant
             </button>
@@ -114,15 +115,16 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
       
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Table Number Input */}
-        <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-4">
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+        <div className="bg-white/60 backdrop-blur-sm border border-orange-100 rounded-2xl p-4 shadow-sm">
+          <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+            <Users size={16} className="text-orange-500" />
             Numéro de table (optionnel)
           </label>
           <input
             type="text"
             value={tableNumber}
             onChange={(e) => setTableNumber(e.target.value)}
-            className="w-full max-w-xs px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-teal-500 focus:outline-none"
+            className="w-full max-w-xs px-3 py-2 bg-white border border-orange-200 rounded-xl text-gray-800 focus:border-orange-400 focus:outline-none"
             placeholder="ex: Table 5"
           />
         </div>
@@ -131,7 +133,6 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
           categories={categories}
           activeCategory={activeCategory}
           onCategoryChange={setActiveCategory}
-          onAddCategory={() => {}} // Disabled for server interface
         />
         
         <ProductGrid

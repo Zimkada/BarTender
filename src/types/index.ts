@@ -76,7 +76,11 @@ export interface AppSettings {
 export interface Server {
   id: string;
   name: string;
-  email: string;
+  phone: string;
+  email?: string;
+  age: number;
+  parentContact: string;
+  startDate: string;
   isActive: boolean;
   createdAt: Date;
   lastActiveAt?: Date;

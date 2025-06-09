@@ -56,11 +56,6 @@ function AppContent() {
     } else {
       setCart([...cart, { product, quantity: 1 }]);
     }
-    
-    // Ne pas montrer la notification si la carte est déjà ouverte
-    if (!isCartOpen) {
-      showNotification('info', `${product.name} ajouté au panier`);
-    }
   };
 
   const updateCartQuantity = (productId: string, quantity: number) => {
@@ -93,8 +88,8 @@ function AppContent() {
       items: cart,
       total,
       currency: settings.currency,
-      serverId: 'manager',        // ← Ajoutez
-      serverName: 'Gérant',      // ← Ajoutez
+      serverId: 'manager',
+      serverName: 'Gérant',
     });
 
     // Clear cart
@@ -124,7 +119,7 @@ function AppContent() {
 
   return (
     <motion.div 
-      className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
+      className="min-h-screen bg-gradient-to-br from-yellow-200 to-amber-200"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
