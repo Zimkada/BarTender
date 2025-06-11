@@ -1,5 +1,5 @@
 // hooks/useFeedback.ts
-import { useNotifications } from '../components/Notifications';
+import { useNotifications } from '../hooks/useNotifications';
 import { useState } from 'react';
 
 export const useFeedback = () => {

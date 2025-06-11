@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface CategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (category: Omit<Category, 'id' | 'createdAt'>) => void;
+  onSave: (category: Omit<Category, 'id' | 'createdAt' | 'barId'>) => void;
   category?: Category;
 }
 

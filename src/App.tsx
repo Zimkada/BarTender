@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+//import React, from 'react';
 import { Header } from './components/Header';
 import { CategoryTabs } from './components/CategoryTabs';
 import { ProductGrid } from './components/ProductGrid';
@@ -9,26 +10,27 @@ import { SalesHistory } from './components/SalesHistory';
 import { Inventory } from './components/Inventory';
 import { Settings } from './components/Settings';
 import { ServerInterface } from './components/ServerInterface';
-import { RoleSelector } from './components/RoleSelector';
-import { NotificationsProvider, useNotifications } from './components/Notifications';
+import { LoginScreen } from './components/LoginScreen';
+import { UserManagement } from './components/UserManagement';
+import { RoleBasedComponent } from './components/RoleBasedComponent';
+import { NotificationsProvider} from './components/Notifications';
+import { useNotifications } from './hooks/useNotifications';
 import { useAppContext } from './context/AppContext';
 import { CartItem, Product } from './types';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ServerManagement } from './components/ServerManagement';
+import { useAuth } from './context/AuthContext';
 
 function AppContent() {
   const { 
     categories, 
     addCategory,
-    products,
     addProduct, 
-    updateProduct, 
-    decreaseStock,
     getProductsByCategory,
     addSale,
-    settings, 
-    updateSettings 
+    settings 
   } = useAppContext();
+  
+  const { isAuthenticated } = useAuth();
   const { showNotification } = useNotifications();
   
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id || '');
@@ -40,7 +42,7 @@ function AppContent() {
   const [showInventory, setShowInventory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showServers, setShowServers] = useState(false);
-  const [currentInterface, setCurrentInterface] = useState<'selector' | 'manager' | 'server'>('selector');
+  const [currentInterface, setCurrentInterface] = useState<'manager' | 'server'>('manager');
 
   const currentProducts = getProductsByCategory(activeCategory);
 
@@ -83,32 +85,27 @@ function AppContent() {
 
     const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
     
-    // Add sale to history - decreaseStock is handled in the context
-    addSale({
-      items: cart,
-      total,
-      currency: settings.currency,
-      serverId: 'manager',
-      serverName: 'Gérant',
-    });
+    try {
+      addSale({
+        items: cart,
+        total,
+        currency: settings.currency,
+      });
 
-    // Clear cart
-    clearCart();
-    setIsCartOpen(false);
-    
-    // Show success message
-    showNotification('success', 'Vente enregistrée avec succès !');
+      clearCart();
+      setIsCartOpen(false);
+      showNotification('success', 'Vente enregistrée avec succès !');
+    } catch (error) {
+      showNotification('error', error instanceof Error ? error.message : 'Erreur lors de la vente');
+    }
   };
 
-  const handleRoleSelection = (role: 'manager' | 'server') => {
-    updateSettings({ userRole: role });
-    setCurrentInterface(role);
-  };
-
-  if (currentInterface === 'selector') {
-    return <RoleSelector onSelectRole={handleRoleSelection} />;
+  // Écran de connexion si pas authentifié
+  if (!isAuthenticated) {
+    return <LoginScreen />;
   }
 
+  // Interface serveur simplifiée
   if (currentInterface === 'server') {
     return (
       <ServerInterface 
@@ -177,47 +174,61 @@ function AppContent() {
         onClear={clearCart}
       />
       
-      <ServerManagement
-        isOpen={showServers}
-        onClose={() => setShowServers(false)}
-      />
+      <RoleBasedComponent requiredPermission="canManageUsers">
+        {showServers && (
+          <UserManagement
+          />
+        )}
+      </RoleBasedComponent>
 
-      <ProductModal
-        isOpen={showProductModal}
-        onClose={() => setShowProductModal(false)}
-        onSave={(productData) => {
-          addProduct(productData);
-          setShowProductModal(false);
-          showNotification('success', `Produit "${productData.name}" ajouté`);
-        }}
-        categories={categories}
-      />
+      <RoleBasedComponent requiredPermission="canAddProducts">
+        <ProductModal
+          isOpen={showProductModal}
+          onClose={() => setShowProductModal(false)}
+          onSave={(productData) => {
+            addProduct(productData);
+            setShowProductModal(false);
+            showNotification('success', `Produit "${productData.name}" ajouté`);
+          }}
+          categories={categories}
+        />
+      </RoleBasedComponent>
 
-      <CategoryModal
-        isOpen={showCategoryModal}
-        onClose={() => setShowCategoryModal(false)}
-        onSave={(categoryData) => {
-          const newCategory = addCategory(categoryData);
-          setActiveCategory(newCategory.id);
-          setShowCategoryModal(false);
-          showNotification('success', `Catégorie "${categoryData.name}" créée`);
-        }}
-      />
+      <RoleBasedComponent requiredPermission="canAddProducts">
+        <CategoryModal
+          isOpen={showCategoryModal}
+          onClose={() => setShowCategoryModal(false)}
+          onSave={(categoryData) => {
+            const newCategory = addCategory(categoryData);
+            if (newCategory) {
+              setActiveCategory(newCategory.id);
+              setShowCategoryModal(false);
+              showNotification('success', `Catégorie "${categoryData.name}" créée`);
+            }
+          }}
+        />
+      </RoleBasedComponent>
 
-      <SalesHistory
-        isOpen={showSalesHistory}
-        onClose={() => setShowSalesHistory(false)}
-      />
+      <RoleBasedComponent requiredPermission="canViewAllSales">
+        <SalesHistory
+          isOpen={showSalesHistory}
+          onClose={() => setShowSalesHistory(false)}
+        />
+      </RoleBasedComponent>
 
-      <Inventory
-        isOpen={showInventory}
-        onClose={() => setShowInventory(false)}
-      />
+      <RoleBasedComponent requiredPermission="canManageInventory">
+        <Inventory
+          isOpen={showInventory}
+          onClose={() => setShowInventory(false)}
+        />
+      </RoleBasedComponent>
 
-      <Settings
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
-      />
+      <RoleBasedComponent requiredPermission="canManageSettings">
+        <Settings
+          isOpen={showSettings}
+          onClose={() => setShowSettings(false)}
+        />
+      </RoleBasedComponent>
     </motion.div>
   );
 }

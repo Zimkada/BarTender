@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import React from 'react';
 
+// @refresh reset
 // Variantes d'animation pour les conteneurs
 export const containerVariants = {
   hidden: { opacity: 0 },
@@ -54,12 +55,18 @@ export const PageTransition: React.FC<{ children: React.ReactNode }> = ({ childr
   </motion.div>
 );
 
+
+interface AnimatedButtonProps {
+  children: React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+  type?: 'button' | 'submit' | 'reset';
+  disabled?: boolean;
+}
+
 // Composant pour les boutons avec feedback
-export const AnimatedButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({ 
-  children, 
-  className, 
-  ...props 
-}) => (
+
+export const AnimatedButton = ({ children, className = '', ...props }: AnimatedButtonProps) => (
   <motion.button
     whileHover={{ scale: 1.03 }}
     whileTap={{ scale: 0.97 }}

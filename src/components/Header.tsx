@@ -1,97 +1,186 @@
 import React from 'react';
-import { BarChart3, Cog, Clock, Warehouse, UserCheck, Users, ArrowLeft, Share } from 'lucide-react';
+import { 
+  BarChart3, 
+  Settings, 
+  Package, 
+  Users, 
+  UserCog, 
+  LogOut,
+  Crown,
+  Building2
+} from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
+import { useAuth } from "../context/AuthContext";
+import { useBarContext } from '../context/BarContext';
+import { RoleBasedComponent } from './RoleBasedComponent';
+import { BarSelector } from './BarSelector';
 
 interface HeaderProps {
-  onShowSales?: () => void;
-  onShowSettings?: () => void;
-  onShowInventory?: () => void;
-  onShowServers?: () => void;
+  onShowSales: () => void;
+  onShowSettings: () => void;
+  onShowInventory: () => void;
+  onShowServers: () => void;
+  onShowCreateBar?: () => void;
   onSwitchToServer?: () => void;
-  isServerMode?: boolean;
 }
 
-export function Header({ onShowSales, onShowSettings, onShowInventory, onSwitchToServer, onShowServers, isServerMode = false }: HeaderProps) {
-  const { getTodayTotal, formatPrice, getLowStockProducts } = useAppContext();
+export function Header({ 
+  onShowSales, 
+  onShowSettings, 
+  onShowInventory, 
+  onShowServers,
+  onShowCreateBar,
+  onSwitchToServer 
+}: HeaderProps) {
+  const { getTodayTotal, formatPrice } = useAppContext();
+  const { currentSession, logout } = useAuth();
+  const { currentBar } = useBarContext();
   
   const todayTotal = getTodayTotal();
-  const lowStockCount = getLowStockProducts().length;
+
+  const getRoleIcon = () => {
+    switch (currentSession?.role) {
+      case 'promoteur': return <Crown size={16} className="text-purple-600" />;
+      case 'gerant': return <Settings size={16} className="text-orange-600" />;
+      case 'serveur': return <Users size={16} className="text-amber-600" />;
+      default: return null;
+    }
+  };
+
+  const getRoleLabel = () => {
+    switch (currentSession?.role) {
+      case 'promoteur': return 'Promoteur';
+      case 'gerant': return 'Gérant';
+      case 'serveur': return 'Serveur';
+      default: return '';
+    }
+  };
 
   return (
-    <header className="bg-white/80 backdrop-blur-md border-b border-orange-100 p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-700 hover:bg-amber-200 transition-colors">
-            <ArrowLeft size={20} />
-          </button>
-          
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">BarTender App</h1>
-            <p className="text-gray-600 text-sm">
-              Ventes du jour: <span className="text-orange-600 font-semibold">{formatPrice(todayTotal)}</span>
-            </p>
+    <header className="bg-gradient-to-r from-yellow-400 to-amber-400 shadow-lg">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-white">BarTender Pro</h1>
+            
+            {/* Sélecteur de bar pour promoteur */}
+            {currentSession?.role === 'promoteur' && (
+              <BarSelector onCreateNew={onShowCreateBar} />
+            )}
+            
+            {/* Nom du bar pour gérants/serveurs */}
+            {currentSession?.role !== 'promoteur' && currentBar && (
+              <div className="flex items-center gap-2 bg-white/20 rounded-lg px-3 py-1">
+                <Building2 size={16} className="text-white" />
+                <span className="text-white font-medium">{currentBar.name}</span>
+              </div>
+            )}
           </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {onSwitchToServer && (
-  <button
-    onClick={onSwitchToServer}
-      className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-700 hover:bg-amber-200 transition-colors"
-      title="Mode Serveur"
-    >
-      <UserCheck size={20} />
-    </button>
-  )}
 
-  {!isServerMode && onShowServers && (
-    <button
-      onClick={onShowServers}
-      className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-700 hover:bg-amber-200 transition-colors"
-      title="Gestion des serveurs"
-    >
-      <Users size={20} />
-    </button>
-  )}
+          <div className="flex items-center gap-6">
+            {/* Ventes du jour */}
+            <motion.div 
+              className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2"
+              whileHover={{ scale: 1.02 }}
+            >
+              <p className="text-white/80 text-sm">Ventes du jour</p>
+              <p className="text-white text-xl font-bold">{formatPrice(todayTotal)}</p>
+            </motion.div>
 
-  {!isServerMode && onShowInventory && (
-    <button
-      onClick={onShowInventory}
-      className="relative w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-700 hover:bg-amber-200 transition-colors"
-      title="Inventaire & Stock"
-    >
-      <Warehouse size={20} />
-      {lowStockCount > 0 && (
-        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-          {lowStockCount}
-        </span>
-      )}
-    </button>
-  )}
+            {/* User info & Actions */}
+            <div className="flex items-center gap-4">
+              {/* User info */}
+              <div className="text-right">
+                <p className="text-white font-medium">{currentSession?.userName}</p>
+                <p className="text-white/80 text-sm flex items-center justify-end gap-1">
+                  {getRoleIcon()}
+                  {getRoleLabel()}
+                </p>
+              </div>
 
-  {!isServerMode && onShowSales && (
-    <button
-      onClick={onShowSales}
-      className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-700 hover:bg-amber-200 transition-colors"
-      title="Historique des ventes"
-    >
-      <BarChart3 size={20} />
-    </button>
-  )}
+              {/* Action buttons */}
+              <div className="flex items-center gap-2">
+                {/* Historique des ventes - pas pour serveurs */}
+                <RoleBasedComponent requiredPermission="canViewAllSales">
+                  <motion.button
+                    onClick={onShowSales}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
+                    title="Historique des ventes"
+                  >
+                    <BarChart3 size={20} />
+                  </motion.button>
+                </RoleBasedComponent>
 
-  {!isServerMode && onShowSettings && (
-    <button
-      onClick={onShowSettings}
-      className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-700 hover:bg-amber-200 transition-colors"
-      title="Paramètres"
-    >
-      <Cog size={20} />
-    </button>
-  )}
+                {/* Inventaire - gérants et promoteurs */}
+                <RoleBasedComponent requiredPermission="canViewInventory">
+                  <motion.button
+                    onClick={onShowInventory}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
+                    title="Inventaire"
+                  >
+                    <Package size={20} />
+                  </motion.button>
+                </RoleBasedComponent>
 
-  <button className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-700 hover:bg-amber-200 transition-colors">
-    <Share size={20} />
-  </button>
+                {/* Gestion équipe - gérants et promoteurs */}
+                <RoleBasedComponent requiredPermission="canCreateServers">
+                  <motion.button
+                    onClick={onShowServers}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
+                    title="Gestion de l'équipe"
+                  >
+                    <UserCog size={20} />
+                  </motion.button>
+                </RoleBasedComponent>
+
+                {/* Paramètres - promoteurs uniquement */}
+                <RoleBasedComponent requiredPermission="canManageSettings">
+                  <motion.button
+                    onClick={onShowSettings}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
+                    title="Paramètres"
+                  >
+                    <Settings size={20} />
+                  </motion.button>
+                </RoleBasedComponent>
+
+                {/* Switch mode - pas pour serveurs */}
+                <RoleBasedComponent requiredPermission="canSwitchBars">
+                  {onSwitchToServer && (
+                    <motion.button
+                      onClick={onSwitchToServer}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
+                      title="Mode Serveur"
+                    >
+                      <Users size={20} />
+                    </motion.button>
+                  )}
+                </RoleBasedComponent>
+
+                {/* Déconnexion */}
+                <motion.button
+                  onClick={logout}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="p-2 bg-red-500/80 rounded-lg text-white hover:bg-red-600/80 transition-colors"
+                  title="Déconnexion"
+                >
+                  <LogOut size={20} />
+                </motion.button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </header>

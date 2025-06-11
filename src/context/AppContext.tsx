@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useCallback } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useBarContext } from '../context/BarContext';
+import { useAuth } from '../context/AuthContext';
 import { 
   Category, 
   Product, 
@@ -8,123 +10,30 @@ import {
   Sale, 
   CartItem,
   AppSettings,
-  Server,
-  ServerSession
 } from '../types';
 
-
-// Données par défaut
-const defaultCategories: Category[] = [
-  {
-    id: '1',
-    name: 'Bières',
-    color: '#f59e0b',
-    createdAt: new Date(),
-  },
-  {
-    id: '2',
-    name: 'Sucreries',
-    color: '#ef4444',
-    createdAt: new Date(),
-  },
-  {
-    id: '3',
-    name: 'Liqueurs',
-    color: '#8b5cf6',
-    createdAt: new Date(),
-  },
-  {
-    id: '4',
-    name: 'Vins',
-    color: '#dc2626',
-    createdAt: new Date(),
-  },
+// Données par défaut pour un nouveau bar
+const getDefaultCategories = (barId: string): Category[] => [
+  { id: `${barId}_cat_1`, barId, name: 'Bières', color: '#f59e0b', createdAt: new Date() },
+  { id: `${barId}_cat_2`, barId, name: 'Sucreries', color: '#ef4444', createdAt: new Date() },
+  { id: `${barId}_cat_3`, barId, name: 'Liqueurs', color: '#8b5cf6', createdAt: new Date() },
+  { id: `${barId}_cat_4`, barId, name: 'Vins', color: '#dc2626', createdAt: new Date() },
 ];
 
-const defaultProducts: Product[] = [
-  {
-    id: '1',
-    name: 'Beaufort',
-    volume: '33cl',
-    price: 500,
-    stock: 24,
-    categoryId: '1',
-    alertThreshold: 10,
-    createdAt: new Date(),
-  },
-  {
-    id: '2',
-    name: 'Beaufort',
-    volume: '50cl',
-    price: 650,
-    stock: 12,
-    categoryId: '1',
-    alertThreshold: 8,
-    createdAt: new Date(),
-  },
-  {
-    id: '3',
-    name: 'Coca Cola',
-    volume: '33cl',
-    price: 300,
-    stock: 48,
-    categoryId: '2',
-    alertThreshold: 15,
-    createdAt: new Date(),
-  },
-  {
-    id: '4',
-    name: 'Castel',
-    volume: '50cl',
-    price: 600,
-    stock: 18,
-    categoryId: '1',
-    alertThreshold: 10,
-    createdAt: new Date(),
-  },
-  {
-    id: '5',
-    name: 'Johnny Walker',
-    volume: '75cl',
-    price: 10000,
-    stock: 3,
-    categoryId: '3',
-    alertThreshold: 2,
-    createdAt: new Date(),
-  },
-  {
-    id: '6',
-    name: 'Mouton Cadet',
-    volume: '75cl',
-    price: 12000,
-    stock: 5,
-    categoryId: '4',
-    alertThreshold: 2,
-    createdAt: new Date(),
-  },
-];
-
-const defaultServers: Server[] = [
-  {
-    id: '1',
-    name: 'Prenom1 Nom1',
-    email: 'prenom1n@bar.com',
-    isActive: true,
-    createdAt: new Date(),
-  },
+const getDefaultProducts = (barId: string): Product[] => [
+  { id: `${barId}_prod_1`, barId, name: 'Beaufort', volume: '33cl', price: 500, stock: 24, categoryId: `${barId}_cat_1`, alertThreshold: 10, createdAt: new Date() },
+  { id: `${barId}_prod_2`, barId, name: 'Beaufort', volume: '50cl', price: 650, stock: 12, categoryId: `${barId}_cat_1`, alertThreshold: 8, createdAt: new Date() },
+  { id: `${barId}_prod_3`, barId, name: 'Coca Cola', volume: '33cl', price: 300, stock: 48, categoryId: `${barId}_cat_2`, alertThreshold: 15, createdAt: new Date() },
 ];
 
 const defaultSettings: AppSettings = {
   currency: 'FCFA',
   currencySymbol: ' FCFA',
-  userRole: 'manager',
+  currentSession: null,
 };
 
-// Interface du contexte
 interface AppContextType {
   // État
-  servers: Server[];
-  currentServer: ServerSession | null;
   categories: Category[];
   products: Product[];
   supplies: Supply[];
@@ -132,21 +41,13 @@ interface AppContextType {
   sales: Sale[];
   settings: AppSettings;
   
-  // Serveurs
-  addServer: (server: Omit<Server, 'id' | 'createdAt'>) => Server;
-  updateServer: (id: string, updates: Partial<Server>) => void;
-  deleteServer: (id: string) => void;
-  loginServer: (serverId: string) => void;
-  logoutServer: () => void;
-  getActiveServers: () => Server[];
-
   // Catégories
-  addCategory: (category: Omit<Category, 'id' | 'createdAt'>) => Category;
+  addCategory: (category: Omit<Category, 'id' | 'createdAt' | 'barId'>) => Category | null;
   updateCategory: (id: string, updates: Partial<Category>) => void;
   deleteCategory: (id: string) => void;
   
   // Produits
-  addProduct: (product: Omit<Product, 'id' | 'createdAt'>) => Product;
+  addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'barId'>) => Product | null;
   updateProduct: (id: string, updates: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
   decreaseStock: (id: string, quantity: number) => void;
@@ -156,33 +57,36 @@ interface AppContextType {
   getProductById: (id: string) => Product | undefined;
   
   // Approvisionnements
-  addSupply: (supply: Omit<Supply, 'id' | 'date' | 'totalCost'>) => Supply;
+  addSupply: (supply: Omit<Supply, 'id' | 'date' | 'totalCost' | 'barId'>) => Supply | null;
   getSuppliesByProduct: (productId: string) => Supply[];
   getTotalCostByProduct: (productId: string) => number;
   getAverageCostPerUnit: (productId: string) => number;
   
   // Commandes
-  addOrder: (order: Omit<Order, 'id' | 'date' | 'status'>) => Order;
+  addOrder: (order: Omit<Order, 'id' | 'date' | 'status' | 'createdBy' | 'barId'>) => Order | null;
   updateOrderStatus: (orderId: string, status: Order['status']) => void;
   returnOrderItem: (orderId: string, productId: string, returnQuantity: number) => void;
   getPendingOrders: () => Order[];
   getTodayOrders: () => Order[];
+  getOrdersByUser: (userId: string) => Order[];
   
   // Ventes
-  addSale: (saleData: { items: CartItem[]; total: number; currency: string; serverId: string; serverName: string; orderId?: string }) => Sale;
+  addSale: (saleData: { items: CartItem[]; total: number; currency: string; orderId?: string }) => Sale | null;
   getSalesByDate: (startDate: Date, endDate: Date) => Sale[];
   getTodaySales: () => Sale[];
   getTodayTotal: () => number;
+  getSalesByUser: (userId: string) => Sale[];
   
   // Paramètres
   updateSettings: (updates: Partial<AppSettings>) => void;
   formatPrice: (price: number) => string;
+  
+  // Initialisation
+  initializeBarData: (barId: string) => void;
 }
 
-// Création du contexte
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-// Hook pour utiliser le contexte
 export const useAppContext = () => {
   const context = useContext(AppContext);
   if (!context) {
@@ -191,120 +95,100 @@ export const useAppContext = () => {
   return context;
 };
 
-// Provider du contexte
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // États locaux avec persistance
-  const [servers, setServers] = useLocalStorage<Server[]>('bar-servers', defaultServers);
-  const [currentServer, setCurrentServer] = useLocalStorage<ServerSession | null>('bar-current-server', null);
-  const [categories, setCategories] = useLocalStorage<Category[]>('bar-categories', defaultCategories);
-  const [products, setProducts] = useLocalStorage<Product[]>('bar-products', defaultProducts);
-  const [supplies, setSupplies] = useLocalStorage<Supply[]>('bar-supplies', []);
-  const [orders, setOrders] = useLocalStorage<Order[]>('bar-orders', []);
-  const [sales, setSales] = useLocalStorage<Sale[]>('bar-sales', []);
-  const [settings, setSettings] = useLocalStorage<AppSettings>('bar-settings', defaultSettings);
+  const { currentSession, hasPermission } = useAuth();
+  const { currentBar } = useBarContext();
+  
+  // États avec tous les bars
+  const [allCategories, setAllCategories] = useLocalStorage<Category[]>('categories-v3', []);
+  const [allProducts, setAllProducts] = useLocalStorage<Product[]>('products-v3', []);
+  const [allSupplies, setAllSupplies] = useLocalStorage<Supply[]>('supplies-v3', []);
+  const [allOrders, setAllOrders] = useLocalStorage<Order[]>('orders-v3', []);
+  const [allSales, setAllSales] = useLocalStorage<Sale[]>('sales-v3', []);
+  const [settings, setSettings] = useLocalStorage<AppSettings>('app-settings-v3', defaultSettings);
 
-  // Optimisation : Mémoriser les fonctions pour éviter les re-renders inutiles
+  // Filtrage automatique par bar actuel
+  const categories = allCategories.filter(c => c.barId === currentBar?.id);
+  const products = allProducts.filter(p => p.barId === currentBar?.id);
+  const supplies = allSupplies.filter(s => s.barId === currentBar?.id);
+  const sales = allSales.filter(s => s.barId === currentBar?.id);
+  const orders = allOrders.filter(o => o.barId === currentBar?.id);
 
-  // Gestion serveurs
-  const addServer = useCallback((server: Omit<Server, 'id' | 'createdAt'>) => {
-    const newServer: Server = {
-      ...server,
-      id: Date.now().toString(),
-      createdAt: new Date(),
-    };
-    setServers(prev => [...prev, newServer]);
-    return newServer;
-  }, [setServers]);
-
-  const updateServer = useCallback((id: string, updates: Partial<Server>) => {
-    setServers(prev => prev.map(server => 
-      server.id === id ? { ...server, ...updates } : server
-    ));
-  }, [setServers]);
-
-  const deleteServer = useCallback((id: string) => {
-    setServers(prev => prev.filter(server => server.id !== id));
-  }, [setServers]);
-
-  const loginServer = useCallback((serverId: string) => {
-    const server = servers.find(s => s.id === serverId);
-    if (server && server.isActive) {
-      setCurrentServer({
-        serverId: server.id,
-        serverName: server.name,
-        loginTime: new Date(),
-      });
-      updateServer(serverId, { lastActiveAt: new Date() });
+  // Initialisation des données par défaut pour un nouveau bar
+  const initializeBarData = useCallback((barId: string) => {
+    const existingCategories = allCategories.some(c => c.barId === barId);
+    if (!existingCategories) {
+      const defaultCategories = getDefaultCategories(barId);
+      const defaultProducts = getDefaultProducts(barId);
+      
+      setAllCategories(prev => [...prev, ...defaultCategories]);
+      setAllProducts(prev => [...prev, ...defaultProducts]);
     }
-  }, [servers, setCurrentServer, updateServer]);
+  }, [allCategories, setAllCategories, setAllProducts]);
 
-  const logoutServer = useCallback(() => {
-    setCurrentServer(null);
-  }, [setCurrentServer]);
-
-  const getActiveServers = useCallback(() => {
-    return servers.filter(server => server.isActive);
-  }, [servers]);
-
-
-  // Fonctions de gestion des catégories
-  const addCategory = useCallback((category: Omit<Category, 'id' | 'createdAt'>) => {
-    const newCategory: Category = {
-      ...category,
-      id: Date.now().toString(),
-      createdAt: new Date(),
+  // Catégories
+  const addCategory = useCallback((category: Omit<Category, 'id' | 'createdAt' | 'barId'>) => {
+    if (!hasPermission('canAddProducts') || !currentBar) return null;
+    
+    const newCategory: Category = { 
+      ...category, 
+      id: Date.now().toString(), 
+      barId: currentBar.id,
+      createdAt: new Date() 
     };
-    setCategories(prev => [...prev, newCategory]);
+    setAllCategories(prev => [...prev, newCategory]);
     return newCategory;
-  }, [setCategories]);
+  }, [setAllCategories, hasPermission, currentBar]);
 
   const updateCategory = useCallback((id: string, updates: Partial<Category>) => {
-    setCategories(prev => prev.map(cat => 
-      cat.id === id ? { ...cat, ...updates } : cat
-    ));
-  }, [setCategories]);
+    if (!hasPermission('canEditProducts')) return;
+    setAllCategories(prev => prev.map(cat => cat.id === id ? { ...cat, ...updates } : cat));
+  }, [setAllCategories, hasPermission]);
 
   const deleteCategory = useCallback((id: string) => {
-    setCategories(prev => prev.filter(cat => cat.id !== id));
-  }, [setCategories]);
+    if (!hasPermission('canDeleteProducts')) return;
+    setAllCategories(prev => prev.filter(cat => cat.id !== id));
+  }, [setAllCategories, hasPermission]);
   
-  const addProduct = useCallback((product: Omit<Product, 'id' | 'createdAt'>) => {
-    const newProduct: Product = {
-      ...product,
-      id: Date.now().toString(),
-      createdAt: new Date(),
+  // Produits
+  const addProduct = useCallback((product: Omit<Product, 'id' | 'createdAt' | 'barId'>) => {
+    if (!hasPermission('canAddProducts') || !currentBar) return null;
+    
+    const newProduct: Product = { 
+      ...product, 
+      id: Date.now().toString(), 
+      barId: currentBar.id,
+      createdAt: new Date() 
     };
-    setProducts(prev => [...prev, newProduct]);
+    setAllProducts(prev => [...prev, newProduct]);
     return newProduct;
-  }, [setProducts]);
-
+  }, [setAllProducts, hasPermission, currentBar]);
 
   const updateProduct = useCallback((id: string, updates: Partial<Product>) => {
-    setProducts(prev => prev.map(product => 
-      product.id === id ? { ...product, ...updates } : product
-    ));
-  }, [setProducts]);
+    if (!hasPermission('canEditProducts')) return;
+    setAllProducts(prev => prev.map(product => product.id === id ? { ...product, ...updates } : product));
+  }, [setAllProducts, hasPermission]);
 
   const deleteProduct = useCallback((id: string) => {
-    setProducts(prev => prev.filter(product => product.id !== id));
-  }, [setProducts]);
+    if (!hasPermission('canDeleteProducts')) return;
+    setAllProducts(prev => prev.filter(product => product.id !== id));
+  }, [setAllProducts, hasPermission]);
 
   const decreaseStock = useCallback((id: string, quantity: number) => {
-    setProducts(prev => prev.map(product => 
+    setAllProducts(prev => prev.map(product => 
       product.id === id ? { ...product, stock: Math.max(0, product.stock - quantity) } : product
     ));
-  }, [setProducts]);
+  }, [setAllProducts]);
 
   const increaseStock = useCallback((id: string, quantity: number) => {
-    setProducts(prev => prev.map(product => 
+    if (!hasPermission('canManageInventory')) return;
+    setAllProducts(prev => prev.map(product => 
       product.id === id ? { ...product, stock: product.stock + quantity } : product
     ));
-  }, [setProducts]);
+  }, [setAllProducts, hasPermission]);
 
   const getProductsByCategory = useCallback((categoryId: string) => {
-    return products
-      .filter(product => product.categoryId === categoryId)
-      .sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
+    return products.filter(product => product.categoryId === categoryId);
   }, [products]);
 
   const getLowStockProducts = useCallback(() => {
@@ -315,79 +199,79 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return products.find(product => product.id === id);
   }, [products]);
 
-  const addSupply = useCallback((supply: Omit<Supply, 'id' | 'date' | 'totalCost'>) => {
+  // Approvisionnements
+  const addSupply = useCallback((supply: Omit<Supply, 'id' | 'date' | 'totalCost' | 'barId'>) => {
+    if (!hasPermission('canManageInventory') || !currentBar) return null;
+    
     const totalCost = (supply.quantity / supply.lotSize) * supply.lotPrice;
     const newSupply: Supply = {
       ...supply,
       id: Date.now().toString(),
+      barId: currentBar.id,
       date: new Date(),
       totalCost,
     };
-    setSupplies(prev => [newSupply, ...prev]);
-    
-    // Mettre à jour le stock du produit
+    setAllSupplies(prev => [newSupply, ...prev]);
     increaseStock(supply.productId, supply.quantity);
-    
     return newSupply;
-  }, [setSupplies, increaseStock]);
+  }, [setAllSupplies, increaseStock, hasPermission, currentBar]);
 
   const getSuppliesByProduct = useCallback((productId: string) => {
     return supplies.filter(supply => supply.productId === productId);
   }, [supplies]);
 
   const getTotalCostByProduct = useCallback((productId: string) => {
-    return supplies
-      .filter(supply => supply.productId === productId)
-      .reduce((total, supply) => total + supply.totalCost, 0);
-  }, [supplies]);
+    return getSuppliesByProduct(productId).reduce((sum, supply) => sum + supply.totalCost, 0);
+  }, [getSuppliesByProduct]);
 
   const getAverageCostPerUnit = useCallback((productId: string) => {
     const productSupplies = getSuppliesByProduct(productId);
-    if (productSupplies.length === 0) return 0;
-    
-    const totalQuantity = productSupplies.reduce((sum, supply) => sum + supply.quantity, 0);
     const totalCost = productSupplies.reduce((sum, supply) => sum + supply.totalCost, 0);
-    
+    const totalQuantity = productSupplies.reduce((sum, supply) => sum + supply.quantity, 0);
     return totalQuantity > 0 ? totalCost / totalQuantity : 0;
   }, [getSuppliesByProduct]);
 
-  const addOrder = useCallback((order: Omit<Order, 'id' | 'date' | 'status'>) => {
+  // Commandes
+  const addOrder = useCallback((order: Omit<Order, 'id' | 'date' | 'status' | 'createdBy' | 'barId'>) => {
+    if (!hasPermission('canSell') || !currentBar || !currentSession) return null;
+    
     const newOrder: Order = {
       ...order,
       id: Date.now().toString(),
+      barId: currentBar.id,
       date: new Date(),
-      status: 'pending',
+      status: 'en attente',
+      createdBy: currentSession.userId,
     };
-    setOrders(prev => [newOrder, ...prev]);
+    setAllOrders(prev => [newOrder, ...prev]);
     return newOrder;
-  }, [setOrders]);
+  }, [setAllOrders, hasPermission, currentBar, currentSession]);
 
   const updateOrderStatus = useCallback((orderId: string, status: Order['status']) => {
-    setOrders(prev => prev.map(order => 
+    if (!hasPermission('canSell')) return;
+    setAllOrders(prev => prev.map(order => 
       order.id === orderId 
         ? { 
             ...order, 
             status,
-            completedAt: status === 'completed' ? new Date() : order.completedAt
+            completedAt: status === 'servi' ? new Date() : order.completedAt,
           }
         : order
     ));
-  }, [setOrders]);
+  }, [setAllOrders, hasPermission]);
 
   const returnOrderItem = useCallback((orderId: string, productId: string, returnQuantity: number) => {
-    setOrders(prev => prev.map(order => {
+    if (!hasPermission('canSell')) return;
+    setAllOrders(prev => prev.map(order => {
       if (order.id !== orderId) return order;
       
       const updatedItems = order.items.map(item => {
         if (item.product.id !== productId) return item;
-        
         const currentReturned = item.returned || 0;
         const newReturned = Math.min(currentReturned + returnQuantity, item.quantity);
-        
         return { ...item, returned: newReturned };
       });
       
-      // Recalculer le total
       const newTotal = updatedItems.reduce((sum, item) => {
         const effectiveQuantity = item.quantity - (item.returned || 0);
         return sum + (item.product.price * effectiveQuantity);
@@ -396,13 +280,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return { ...order, items: updatedItems, total: newTotal };
     }));
     
-    // Restituer le stock du produit
     increaseStock(productId, returnQuantity);
-  }, [setOrders, increaseStock]);
+  }, [setAllOrders, increaseStock, hasPermission]);
 
   const getPendingOrders = useCallback(() => {
-    return orders.filter(order => order.status === 'pending');
-  }, [orders]);
+    const pendingOrders = orders.filter(order => order.status === 'en attente');
+    
+    if (currentSession?.role === 'serveur') {
+      return pendingOrders.filter(order => order.createdBy === currentSession.userId);
+    }
+    
+    return pendingOrders;
+  }, [orders, currentSession]);
 
   const getTodayOrders = useCallback(() => {
     const today = new Date();
@@ -410,41 +299,63 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    return orders.filter(order => {
+    const todayOrders = orders.filter(order => {
       const orderDate = new Date(order.date);
       return orderDate >= today && orderDate < tomorrow;
     });
-  }, [orders]);
 
-const addSale = useCallback((saleData: { items: CartItem[]; total: number; currency: string; serverId: string; serverName: string; orderId?: string }) => {
-  // Vérifier stock avant vente
-  for (const item of saleData.items) {
-    const product = getProductById(item.product.id);
-    if (!product || product.stock < item.quantity) {
-      throw new Error(`Stock insuffisant pour ${item.product.name}`);
+    if (currentSession?.role === 'serveur') {
+      return todayOrders.filter(order => order.createdBy === currentSession.userId);
     }
-  }
-  
-  const newSale: Sale = {
-    ...saleData,
-    id: Date.now().toString(),
-    date: new Date(),
-  };
-  setSales(prev => [newSale, ...prev]);
-  
-  saleData.items.forEach(item => {
-    decreaseStock(item.product.id, item.quantity);
-  });
-  
-  return newSale;
-}, [setSales, decreaseStock, getProductById]);
+
+    return todayOrders;
+  }, [orders, currentSession]);
+
+  const getOrdersByUser = useCallback((userId: string) => {
+    if (!hasPermission('canViewAllSales')) return [];
+    return orders.filter(order => order.createdBy === userId);
+  }, [orders, hasPermission]);
+
+  // Ventes
+  const addSale = useCallback((saleData: { items: CartItem[]; total: number; currency: string; orderId?: string }) => {
+    if (!hasPermission('canSell') || !currentBar || !currentSession) return null;
+    
+    // Vérifier stock
+    for (const item of saleData.items) {
+      const product = getProductById(item.product.id);
+      if (!product || product.stock < item.quantity) {
+        throw new Error(`Stock insuffisant pour ${item.product.name}`);
+      }
+    }
+    
+    const newSale: Sale = {
+      ...saleData,
+      id: Date.now().toString(),
+      barId: currentBar.id,
+      date: new Date(),
+      processedBy: currentSession.userId,
+    };
+    setAllSales(prev => [newSale, ...prev]);
+    
+    saleData.items.forEach(item => {
+      decreaseStock(item.product.id, item.quantity);
+    });
+    
+    return newSale;
+  }, [setAllSales, decreaseStock, getProductById, hasPermission, currentBar, currentSession]);
 
   const getSalesByDate = useCallback((startDate: Date, endDate: Date) => {
-    return sales.filter(sale => {
+    const filteredSales = sales.filter(sale => {
       const saleDate = new Date(sale.date);
       return saleDate >= startDate && saleDate <= endDate;
     });
-  }, [sales]);
+
+    if (currentSession?.role === 'serveur') {
+      return filteredSales.filter(sale => sale.processedBy === currentSession.userId);
+    }
+
+    return filteredSales;
+  }, [sales, currentSession]);
 
   const getTodaySales = useCallback(() => {
     const today = new Date();
@@ -459,77 +370,46 @@ const addSale = useCallback((saleData: { items: CartItem[]; total: number; curre
     return getTodaySales().reduce((sum, sale) => sum + sale.total, 0);
   }, [getTodaySales]);
 
+  const getSalesByUser = useCallback((userId: string) => {
+    if (!hasPermission('canViewAllSales')) return [];
+    return sales.filter(sale => sale.processedBy === userId);
+  }, [sales, hasPermission]);
+
   const updateSettings = useCallback((updates: Partial<AppSettings>) => {
+    if (!hasPermission('canManageSettings')) return;
     setSettings(prev => ({ ...prev, ...updates }));
-  }, [setSettings]);
+  }, [setSettings, hasPermission]);
 
   const formatPrice = (price: number) => {
-  return `${price.toLocaleString('fr-FR')} ${settings.currencySymbol}`;
- };
+    return `${price.toLocaleString('fr-FR')} ${settings.currencySymbol}`;
+  };
 
   const value: AppContextType = {
     // État
-    servers,           
-    currentServer,     
-    categories,
-    products,
-    supplies,
-    orders,
-    sales,
-    settings,
+    categories, products, supplies, orders, sales, settings,
     
-    // Serveurs
-    addServer,
-    updateServer, 
-    deleteServer,
-    loginServer,
-    logoutServer,
-    getActiveServers,
-
-
-
     // Catégories
-    addCategory,
-    updateCategory,
-    deleteCategory,
+    addCategory, updateCategory, deleteCategory,
     
     // Produits
-    addProduct,
-    updateProduct,
-    deleteProduct,
-    decreaseStock,
-    increaseStock,
-    getProductsByCategory,
-    getLowStockProducts,
-    getProductById,
+    addProduct, updateProduct, deleteProduct, decreaseStock, increaseStock,
+    getProductsByCategory, getLowStockProducts, getProductById,
     
     // Approvisionnements
-    addSupply,
-    getSuppliesByProduct,
-    getTotalCostByProduct,
-    getAverageCostPerUnit,
+    addSupply, getSuppliesByProduct, getTotalCostByProduct, getAverageCostPerUnit,
     
     // Commandes
-    addOrder,
-    updateOrderStatus,
-    returnOrderItem,
-    getPendingOrders,
-    getTodayOrders,
+    addOrder, updateOrderStatus, returnOrderItem, getPendingOrders, getTodayOrders, getOrdersByUser,
     
     // Ventes
-    addSale,
-    getSalesByDate,
-    getTodaySales,
-    getTodayTotal,
+    addSale, getSalesByDate, getTodaySales, getTodayTotal, getSalesByUser,
     
     // Paramètres
-    updateSettings,
-    formatPrice,
+    updateSettings, formatPrice,
+    
+    // Initialisation
+    initializeBarData,
   };
 
-  return (
-    <AppContext.Provider value={value}>
-      {children}
-    </AppContext.Provider>
-  );
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

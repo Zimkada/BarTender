@@ -2,8 +2,9 @@ import React, { useState, useEffect, createContext, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, AlertCircle, Info } from 'lucide-react';
 
-type NotificationType = 'success' | 'error' | 'info';
 
+
+type NotificationType = 'success' | 'error' | 'info';
 interface Notification {
   id: string;
   type: NotificationType;
@@ -15,16 +16,16 @@ interface NotificationsContextType {
   showNotification: (type: NotificationType, message: string) => void;
   hideNotification: (id: string) => void;
 }
-
-const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
-
-export const useNotifications = () => {
+const useNotifications = () => {
   const context = useContext(NotificationsContext);
   if (!context) {
     throw new Error('useNotifications must be used within a NotificationsProvider');
   }
   return context;
 };
+
+const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
+
 
 export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -127,3 +128,6 @@ const NotificationItem: React.FC<{
     </motion.div>
   );
 };
+
+// Ajoutez cette ligne à la fin du fichier
+export { useNotifications };

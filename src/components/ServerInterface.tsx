@@ -3,10 +3,8 @@ import { CategoryTabs } from './CategoryTabs';
 import { ProductGrid } from './ProductGrid';
 import { ServerCart } from './ServerCart';
 import { PendingOrders } from './PendingOrders';
-import { useCategories } from '../hooks/useCategories';
-import { useProducts } from '../hooks/useProducts';
-import { useOrders } from '../hooks/useOrders';
-import { useSettings } from '../hooks/useSettings';
+import { useAppContext } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { CartItem, Product } from '../types';
 import { Users } from 'lucide-react';
 
@@ -15,11 +13,12 @@ interface ServerInterfaceProps {
 }
 
 export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
-  const { categories } = useCategories();
-  const { getProductsByCategory } = useProducts();
-  const { addOrder } = useOrders();
-  const { settings } = useSettings();
-  
+  const { categories, getProductsByCategory, addOrder, settings } = useAppContext();
+  const { currentSession } = useAuth();
+
+
+
+
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id || '');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [tableNumber, setTableNumber] = useState('');
@@ -28,18 +27,29 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
   const currentProducts = getProductsByCategory(activeCategory);
 
   const addToCart = (product: Product) => {
-    const existingItem = cart.find(item => item.product.id === product.id);
-    
-    if (existingItem) {
-      setCart(cart.map(item =>
-        item.product.id === product.id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      ));
-    } else {
-      setCart([...cart, { product, quantity: 1 }]);
-    }
-  };
+ if (product.stock === 0) {
+   alert('❌ Stock épuisé');
+   return;
+ }
+ 
+ if (product.stock <= product.alertThreshold && product.stock > 0) {
+   if (!confirm(`⚠️ Stock critique (${product.stock} restants). Continuer ?`)) {
+     return;
+   }
+ }
+ 
+ const existingItem = cart.find(item => item.product.id === product.id);
+ 
+ if (existingItem) {
+   setCart(cart.map(item =>
+     item.product.id === product.id
+       ? { ...item, quantity: item.quantity + 1 }
+       : item
+   ));
+ } else {
+   setCart([...cart, { product, quantity: 1 }]);
+ }
+};
 
   const updateCartQuantity = (productId: string, quantity: number) => {
     if (quantity === 0) {
@@ -67,7 +77,7 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
 
     const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
     
-    const orderItems = cart.map(item => ({
+    const orderItems: CartItem[] = cart.map(item => ({
       product: item.product,
       quantity: item.quantity,
     }));
@@ -77,7 +87,6 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
       total,
       currency: settings.currency,
       tableNumber: tableNumber || undefined,
-      serverName: settings.serverName,
     });
 
     clearCart();
@@ -92,7 +101,7 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Interface Serveur</h1>
             <p className="text-gray-600 text-sm">
-              Serveur: <span className="text-orange-600 font-semibold">{settings.serverName || 'Non défini'}</span>
+              Serveur: <span className="text-orange-600 font-semibold">{currentSession?.userName || 'Non défini'}</span>
             </p>
           </div>
           

@@ -1,7 +1,7 @@
-import React from 'react';
+//import React from 'react';
 import { X, Clock, CheckCircle, XCircle, RotateCcw } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import { CartItem, Order, OrderItem } from '../types';
+import { CartItem, Order} from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface PendingOrdersProps {
@@ -46,11 +46,11 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
       });
     }
 
-    updateOrderStatus(order.id, 'completed');
+    updateOrderStatus(order.id, 'servi');
   };
 
   const cancelOrder = (order: Order) => {
-    updateOrderStatus(order.id, 'cancelled');
+    updateOrderStatus(order.id, 'annulé');
   };
 
   const handleReturn = (orderId: string, productId: string) => {
@@ -121,7 +121,7 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
                                 minute: '2-digit',
                               })}
                               {order.tableNumber && ` • ${order.tableNumber}`}
-                              {order.serverName && ` • ${order.serverName}`}
+                              {order.createdBy && ` • ${order.createdBy}`}
                             </p>
                           </div>
                         </div>
@@ -148,7 +148,7 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
                       </div>
                       
                       <div className="space-y-2 mb-4">
-                        {order.items.map((item: OrderItem, index: number) => {
+                        {order.items.map((item: CartItem, index: number) => {
                           const effectiveQuantity = item.quantity - (item.returned || 0);
                           return (
                             <div key={index} className="flex items-center justify-between text-sm bg-orange-50 rounded-lg p-2">

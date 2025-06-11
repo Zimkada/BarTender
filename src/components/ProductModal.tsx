@@ -7,7 +7,7 @@ import { useRealTimeSync } from '../hooks/useRealTimeSync';
 interface ProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (product: Omit<Product, 'id' | 'createdAt'>) => void;
+  onSave: (product: Omit<Product, 'id' | 'createdAt' | 'barId'>) => void;
   categories: Category[];
   product?: Product;
 }
