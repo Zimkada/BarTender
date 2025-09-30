@@ -1,0 +1,154 @@
+/* Touch-Optimized Utilities for Benin Mobile Users */
+
+/* Minimum touch target 44px (Apple/Google recommendation) */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.touch-target-lg {
+  min-width: 56px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.touch-target-xl {
+  min-width: 64px;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Mobile-first spacing for African fingers (slightly larger) */
+.touch-spacing {
+  gap: 12px;
+}
+
+.touch-spacing-lg {
+  gap: 16px;
+}
+
+/* Easy tap zones for quick service */
+.tap-zone {
+  padding: 12px;
+  border-radius: 12px;
+  transition: all 0.15s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tap-zone:active {
+  transform: scale(0.96);
+  background-color: rgba(245, 158, 11, 0.1);
+}
+
+/* High contrast for outdoor visibility */
+.high-contrast-btn {
+  border: 2px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Thumb-friendly corners */
+.thumb-friendly {
+  border-radius: 16px;
+}
+
+.thumb-friendly-lg {
+  border-radius: 20px;
+}
+
+/* Cart and critical actions - extra large */
+.critical-action {
+  min-width: 64px;
+  min-height: 64px;
+  font-weight: 600;
+  font-size: 1.125rem;
+}
+
+/* Quick access patterns for bar environment */
+.quick-access {
+  min-width: 80px;
+  min-height: 56px;
+  font-weight: 500;
+}
+
+/* Price display - easy to read */
+.price-display {
+  font-family: ui-monospace, 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  font-weight: 700;
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+.price-display-sm {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Loading states for slow connections */
+.loading-pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Accessibility improvements */
+.focus-visible {
+  outline: 3px solid #f59e0b;
+  outline-offset: 2px;
+}
+
+/* Network-aware optimizations */
+.network-optimized {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Dark mode readiness */
+@media (prefers-color-scheme: dark) {
+  .tap-zone:active {
+    background-color: rgba(245, 158, 11, 0.2);
+  }
+
+  .high-contrast-btn {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Landscape mode optimizations for tablets */
+@media (orientation: landscape) and (max-height: 500px) {
+  .touch-target {
+    min-height: 40px;
+  }
+
+  .touch-target-lg {
+    min-height: 48px;
+  }
+}
+
+/* Very small screens (older Android) */
+@media (max-width: 320px) {
+  .critical-action {
+    min-width: 56px;
+    min-height: 56px;
+    font-size: 1rem;
+  }
+
+  .quick-access {
+    min-width: 72px;
+    min-height: 48px;
+  }
+}

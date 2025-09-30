@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BarTender - Mode Hors Ligne</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #fef3c7 0%, #f59e0b 100%);
+            color: #1f2937;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .offline-container {
+            text-align: center;
+            max-width: 400px;
+            padding: 2rem;
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            margin: 1rem;
+        }
+
+        .offline-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            background: #fef3c7;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #1f2937;
+        }
+
+        p {
+            font-size: 1rem;
+            line-height: 1.5;
+            color: #6b7280;
+            margin-bottom: 1.5rem;
+        }
+
+        .features {
+            text-align: left;
+            margin-bottom: 2rem;
+        }
+
+        .feature {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            color: #374151;
+        }
+
+        .feature::before {
+            content: "✓";
+            background: #10b981;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 0.75rem;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .retry-btn {
+            background: #f59e0b;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            width: 100%;
+        }
+
+        .retry-btn:hover {
+            background: #d97706;
+        }
+
+        .retry-btn:active {
+            transform: translateY(1px);
+        }
+
+        .connection-status {
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .offline .status-indicator {
+            background: #ef4444;
+        }
+
+        .online .status-indicator {
+            background: #10b981;
+        }
+
+        @media (max-width: 480px) {
+            .offline-container {
+                margin: 0.5rem;
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-icon">
+            📱
+        </div>
+
+        <h1>Mode Hors Ligne</h1>
+
+        <p>
+            Pas de connexion internet ? Aucun problème ! BarTender fonctionne parfaitement hors ligne.
+        </p>
+
+        <div class="features">
+            <div class="feature">Continuer les ventes normalement</div>
+            <div class="feature">Gérer l'inventaire local</div>
+            <div class="feature">Consulter l'historique</div>
+            <div class="feature">Sync automatique au retour</div>
+        </div>
+
+        <button class="retry-btn" onclick="retryConnection()">
+            Réessayer la connexion
+        </button>
+
+        <div class="connection-status offline" id="connectionStatus">
+            <span class="status-indicator"></span>
+            Hors ligne - Autonomie 7 jours
+        </div>
+    </div>
+
+    <script>
+        // Détection du statut de connexion
+        function updateConnectionStatus() {
+            const statusElement = document.getElementById('connectionStatus');
+
+            if (navigator.onLine) {
+                statusElement.className = 'connection-status online';
+                statusElement.innerHTML = '<span class="status-indicator"></span>En ligne - Synchronisation...';
+
+                // Tenter de rediriger vers l'app principale
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            } else {
+                statusElement.className = 'connection-status offline';
+                statusElement.innerHTML = '<span class="status-indicator"></span>Hors ligne - Autonomie 7 jours';
+            }
+        }
+
+        // Écouter les changements de connexion
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+
+        // Fonction de retry
+        function retryConnection() {
+            const button = document.querySelector('.retry-btn');
+            button.textContent = 'Vérification...';
+            button.disabled = true;
+
+            // Tester la connexion avec une requête simple
+            fetch('/', { method: 'HEAD', cache: 'no-cache' })
+                .then(() => {
+                    button.textContent = 'Connexion rétablie !';
+                    button.style.background = '#10b981';
+
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1000);
+                })
+                .catch(() => {
+                    button.textContent = 'Toujours hors ligne';
+                    button.disabled = false;
+
+                    setTimeout(() => {
+                        button.textContent = 'Réessayer la connexion';
+                    }, 2000);
+                });
+        }
+
+        // Mise à jour initiale
+        updateConnectionStatus();
+
+        // Vérification périodique (toutes les 30 secondes)
+        setInterval(() => {
+            if (!navigator.onLine) {
+                // Tenter une requête pour vérifier la vraie connectivité
+                fetch('/', { method: 'HEAD', cache: 'no-cache' })
+                    .then(() => {
+                        // Connexion rétablie mais navigator.onLine pas encore mis à jour
+                        updateConnectionStatus();
+                    })
+                    .catch(() => {
+                        // Toujours hors ligne
+                    });
+            }
+        }, 30000);
+    </script>
+</body>
+</html>

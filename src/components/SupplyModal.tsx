@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Package } from 'lucide-react';
 import { Product } from '../types';
 import { useAppContext } from '../context/AppContext';
+import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface SupplyModalProps {
@@ -18,7 +19,7 @@ interface SupplyModalProps {
 }
 
 export function SupplyModal({ isOpen, onClose, onSave, products }: SupplyModalProps) {
-  const { formatPrice } = useAppContext();
+  const formatPrice = useCurrencyFormatter();
   const [formData, setFormData] = useState({
     productId: '',
     quantity: '',
@@ -72,7 +73,7 @@ export function SupplyModal({ isOpen, onClose, onSave, products }: SupplyModalPr
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className="bg-gradient-to-br bg-gradient-to-br from-yellow-200 to-amber-200 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+            className="bg-gradient-to-br bg-gradient-to-br from-yellow-200 to-amber-200 rounded-lg w-full max-w-4xl max-h-[85vh] md:max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between p-6 border-b border-orange-100">
               <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">

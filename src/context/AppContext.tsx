@@ -2,6 +2,8 @@ import React, { createContext, useContext, useCallback } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
+import { offlineQueue } from '../services/offlineQueue';
+import { useNotifications } from '../hooks/useNotifications';
 import { 
   Category, 
   Product, 
@@ -79,7 +81,6 @@ interface AppContextType {
   
   // Paramètres
   updateSettings: (updates: Partial<AppSettings>) => void;
-  formatPrice: (price: number) => string;
   
   // Initialisation
   initializeBarData: (barId: string) => void;
@@ -98,6 +99,7 @@ export const useAppContext = () => {
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentSession, hasPermission } = useAuth();
   const { currentBar } = useBarContext();
+  const { showNotification } = useNotifications();
   
   // États avec tous les bars
   const [allCategories, setAllCategories] = useLocalStorage<Category[]>('categories-v3', []);
@@ -335,6 +337,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       date: new Date(),
       processedBy: currentSession.userId,
     };
+
+    // Si hors ligne, ajouter à la queue
+    if (!navigator.onLine) {
+      offlineQueue.add({
+        type: 'CREATE_SALE',
+        payload: newSale,
+        barId: currentBar.id
+      });
+      
+      // Quand même sauvegarder localement
+      setAllSales(prev => [newSale, ...prev]);
+      
+      // Diminuer le stock localement
+      saleData.items.forEach(item => {
+        decreaseStock(item.product.id, item.quantity);
+      });
+      
+      showNotification('info', '📵 Vente enregistrée localement');
+      return newSale;
+    }
+    
+    // Si en ligne, procéder normalement
     setAllSales(prev => [newSale, ...prev]);
     
     saleData.items.forEach(item => {
@@ -342,7 +366,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
     
     return newSale;
-  }, [setAllSales, decreaseStock, getProductById, hasPermission, currentBar, currentSession]);
+  }, [setAllSales, decreaseStock, getProductById, hasPermission, currentBar, currentSession, showNotification]);
+    
 
   const getSalesByDate = useCallback((startDate: Date, endDate: Date) => {
     const filteredSales = sales.filter(sale => {
@@ -380,9 +405,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSettings(prev => ({ ...prev, ...updates }));
   }, [setSettings, hasPermission]);
 
-  const formatPrice = (price: number) => {
-    return `${price.toLocaleString('fr-FR')} ${settings.currencySymbol}`;
-  };
 
   const value: AppContextType = {
     // État
@@ -405,7 +427,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addSale, getSalesByDate, getTodaySales, getTodayTotal, getSalesByUser,
     
     // Paramètres
-    updateSettings, formatPrice,
+    updateSettings,
     
     // Initialisation
     initializeBarData,

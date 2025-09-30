@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 //import React, from 'react';
 import { Header } from './components/Header';
 import { CategoryTabs } from './components/CategoryTabs';
@@ -6,7 +6,7 @@ import { ProductGrid } from './components/ProductGrid';
 import { Cart } from './components/Cart';
 import { ProductModal } from './components/ProductModal';
 import { CategoryModal } from './components/CategoryModal';
-import { SalesHistory } from './components/SalesHistory';
+import { EnhancedSalesHistory } from './components/SalesHistory';
 import { Inventory } from './components/Inventory';
 import { Settings } from './components/Settings';
 import { ServerInterface } from './components/ServerInterface';
@@ -19,10 +19,20 @@ import { useAppContext } from './context/AppContext';
 import { CartItem, Product } from './types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from './context/AuthContext';
+import { syncService } from './services/syncService';
+import { DailyDashboard } from './components/DailyDashboard';
+import { ExcelImportExport } from './components/ExcelImportExport';
+import { ReturnsSystem } from './components/ReturnsSystem';
+import { QuickSaleFlow } from './components/QuickSaleFlow';
+import { StockAlertsSystem } from './components/StockAlertsSystem';
+import { MobileNavigation } from './components/MobileNavigation';
+import { useNetworkOptimization } from './hooks/useNetworkOptimization';
+
+
 
 function AppContent() {
-  const { 
-    categories, 
+  const {
+    categories,
     addCategory,
     addProduct, 
     getProductsByCategory,
@@ -32,7 +42,8 @@ function AppContent() {
   
   const { isAuthenticated } = useAuth();
   const { showNotification } = useNotifications();
-  
+  const { performanceSettings, shouldReduceAnimations } = useNetworkOptimization();
+  const [showDailyDashboard, setShowDailyDashboard] = useState(false);
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id || '');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -43,8 +54,29 @@ function AppContent() {
   const [showSettings, setShowSettings] = useState(false);
   const [showServers, setShowServers] = useState(false);
   const [currentInterface, setCurrentInterface] = useState<'manager' | 'server'>('manager');
-
+  const [showExcel, setShowExcel] = useState(false);
   const currentProducts = getProductsByCategory(activeCategory);
+  const [showReturns, setShowReturns] = useState(false);
+  const [showQuickSale, setShowQuickSale] = useState(false);
+  const [showStockAlerts, setShowStockAlerts] = useState(false);
+
+
+  useEffect(() => {
+    // Démarrer la sync automatique
+    syncService.startAutoSync();
+
+    // Écouter l'événement de sync requise
+    const handleSyncRequired = () => {
+      syncService.syncPendingOperations();
+    };
+
+    window.addEventListener('sync-required', handleSyncRequired);
+
+    return () => {
+      syncService.stopAutoSync();
+      window.removeEventListener('sync-required', handleSyncRequired);
+    };
+    }, []);
 
   const addToCart = (product: Product) => {
     const existingItem = cart.find(item => item.product.id === product.id);
@@ -115,8 +147,8 @@ function AppContent() {
   }
 
   return (
-    <motion.div 
-      className="min-h-screen bg-gradient-to-br from-yellow-200 to-amber-200"
+    <motion.div
+      className="min-h-screen bg-gradient-to-br from-yellow-200 to-amber-200 pb-16 md:pb-0"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
@@ -127,10 +159,15 @@ function AppContent() {
         onShowInventory={() => setShowInventory(true)}
         onShowServers={() => setShowServers(true)}
         onSwitchToServer={() => setCurrentInterface('server')}
+        onShowDailyDashboard={() => setShowDailyDashboard(true)}
+        onShowExcel={() => setShowExcel(true)}
+        onShowReturns={() => setShowReturns(true)}
+        onShowQuickSale={() => setShowQuickSale(true)}
+        onShowStockAlerts={() => setShowStockAlerts(true)}
       />
       
-      <motion.main 
-        className="container mx-auto px-4 py-6 space-y-6"
+      <motion.main
+        className="container mx-auto px-3 md:px-4 py-4 md:py-6 space-y-4 md:space-y-6"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
@@ -159,10 +196,40 @@ function AppContent() {
             <ProductGrid
               products={currentProducts}
               onAddToCart={addToCart}
-            />
+          />
           </motion.div>
         </AnimatePresence>
       </motion.main>
+
+      <RoleBasedComponent requiredPermission="canViewInventory">
+        <StockAlertsSystem 
+          isOpen={showStockAlerts} 
+          onClose={() => setShowStockAlerts(false)} />
+      </RoleBasedComponent>
+
+      <DailyDashboard
+        isOpen={showDailyDashboard}
+        onClose={() => setShowDailyDashboard(false)}
+      />
+      
+      <RoleBasedComponent requiredPermission="canViewInventory">
+        <ExcelImportExport
+          isOpen={showExcel}
+          onClose={() => setShowExcel(false)}
+        />
+      </RoleBasedComponent>
+
+      <RoleBasedComponent requiredPermission="canManageInventory">
+        <ReturnsSystem
+          isOpen={showReturns}
+          onClose={() => setShowReturns(false)}
+        />
+      </RoleBasedComponent>
+
+      <QuickSaleFlow
+        isOpen={showQuickSale}
+        onClose={() => setShowQuickSale(false)}
+      />
 
       <Cart
         items={cart}
@@ -210,7 +277,7 @@ function AppContent() {
       </RoleBasedComponent>
 
       <RoleBasedComponent requiredPermission="canViewAllSales">
-        <SalesHistory
+        <EnhancedSalesHistory
           isOpen={showSalesHistory}
           onClose={() => setShowSalesHistory(false)}
         />
@@ -229,6 +296,16 @@ function AppContent() {
           onClose={() => setShowSettings(false)}
         />
       </RoleBasedComponent>
+
+      {/* Mobile Navigation */}
+      <MobileNavigation
+        onShowSales={() => setShowSalesHistory(true)}
+        onShowInventory={() => setShowInventory(true)}
+        onShowQuickSale={() => setShowQuickSale(true)}
+        onShowReturns={() => setShowReturns(true)}
+        onShowStockAlerts={() => setShowStockAlerts(true)}
+        onShowExcel={() => setShowExcel(true)}
+      />
     </motion.div>
   );
 }

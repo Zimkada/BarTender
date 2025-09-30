@@ -1,6 +1,7 @@
 //import React from 'react';
 import { X, Clock, CheckCircle, XCircle, RotateCcw } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { CartItem, Order} from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -10,16 +11,16 @@ interface PendingOrdersProps {
 }
 
 export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
-  const { 
-    getPendingOrders, 
-    updateOrderStatus, 
+  const {
+    getPendingOrders,
+    updateOrderStatus,
     returnOrderItem,
     addSale,
-    formatPrice,
     increaseStock,
     decreaseStock
   } = useAppContext();
-  
+  const formatPrice = useCurrencyFormatter();
+
   const pendingOrders = getPendingOrders();
 
   const completeOrder = (order: Order) => {
@@ -77,7 +78,7 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className="bg-gradient-to-br from-yellow-100 to-amber-100 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+            className="bg-gradient-to-br from-yellow-100 to-amber-100 rounded-lg w-full max-w-4xl max-h-[85vh] md:max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between p-6 border-b border-orange-100">
               <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">

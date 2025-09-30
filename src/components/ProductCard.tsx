@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
-import { Package, AlertTriangle, Check, Plus } from 'lucide-react';
+import { Package,
+  //AlertTriangle,
+  Check,
+  Plus } from 'lucide-react';
 import { Product } from '../types';
-import { useSettings } from '../hooks/useSettings';
+import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { motion } from 'framer-motion';
 import { useFeedback } from '../hooks/useFeedback';
 import { FeedbackButton } from './FeedbackButton';
+import { EnhancedButton } from './EnhancedButton';
 
 interface ProductCardProps {
   product: Product;
@@ -22,7 +26,7 @@ const itemVariants = {
 };
 
 export function ProductCard({ product, onAddToCart, compact = false }: ProductCardProps) {
-  const { formatPrice } = useSettings();
+  const formatPrice = useCurrencyFormatter();
   const isLowStock = product.stock <= product.alertThreshold;
   const [isAdding, setIsAdding] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -90,19 +94,21 @@ export function ProductCard({ product, onAddToCart, compact = false }: ProductCa
         <p className="text-gray-500 text-xs">{product.volume}</p>
         
         <div className="flex items-center justify-between">
-          <span className="text-orange-600 font-bold text-sm">
+          <span className="text-orange-600 price-display-sm">
             {formatPrice(product.price)}
           </span>
           
-          <FeedbackButton
+          <EnhancedButton
             onClick={handleAddToCart}
-            isLoading={isLoading('addToCart')}
+            loading={isLoading('addToCart')}
             disabled={product.stock === 0}
-            successAnimation={showFeedback}
-            className={`w-7 h-7 rounded-full ${product.stock === 0 ? 'bg-gray-300 text-gray-500' : 'bg-orange-500 text-white hover:bg-orange-600'}`}
+            success={showFeedback}
+            size="sm"
+            variant={product.stock === 0 ? 'secondary' : 'primary'}
+            className="rounded-full critical-action"
           >
-            {showFeedback ? <Check size={14} /> : <Plus size={14} />}
-          </FeedbackButton>
+            <Plus size={16} />
+          </EnhancedButton>
         </div>
       </div>
     </motion.div>

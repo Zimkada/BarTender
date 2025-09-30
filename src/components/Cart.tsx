@@ -1,9 +1,10 @@
 import React from 'react';
 import { ShoppingCart, Plus, Minus, Trash2, X } from 'lucide-react';
 import { CartItem } from '../types';
-import { useSettings } from '../hooks/useSettings';
+import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { FeedbackButton } from './FeedbackButton';
+import { EnhancedButton } from './EnhancedButton';
 import { AnimatedCounter } from './AnimatedCounter';
 
 
@@ -26,7 +27,7 @@ export function Cart({
   onCheckout,
   onClear 
 }: CartProps) {
-  const { formatPrice } = useSettings();
+  const formatPrice = useCurrencyFormatter();
   const { setLoading, isLoading, showSuccess, cartCleared } = useFeedback();
   const total = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -38,7 +39,7 @@ export function Cart({
       <div className="fixed bottom-4 right-4 z-50">
         <button
           onClick={onToggle}
-          className="bg-orange-500 text-white p-4 rounded-full shadow-lg hover:bg-orange-600 transition-all duration-200 hover:transform hover:scale-110"
+          className="bg-orange-500 text-white rounded-full shadow-lg hover:bg-orange-600 transition-all duration-200 hover:transform hover:scale-110 critical-action touch-target-xl"
         >
           <div className="relative">
             <ShoppingCart size={24} />
@@ -95,22 +96,22 @@ export function Cart({
                     </div>
                     
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center touch-spacing">
                         <button
                           onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
-                          className="w-8 h-8 bg-orange-200 text-orange-700 rounded-full flex items-center justify-center hover:bg-orange-300 transition-colors"
+                          className="bg-orange-200 text-orange-700 rounded-full hover:bg-orange-300 transition-colors touch-target thumb-friendly tap-zone"
                         >
                           <Minus size={16} />
                         </button>
-                        <span className="text-gray-800 font-medium w-8 text-center">{item.quantity}</span>
+                        <span className="text-gray-800 font-medium min-w-[32px] text-center">{item.quantity}</span>
                         <button
                           onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                          className="w-8 h-8 bg-orange-200 text-orange-700 rounded-full flex items-center justify-center hover:bg-orange-300 transition-colors"
+                          className="bg-orange-200 text-orange-700 rounded-full hover:bg-orange-300 transition-colors touch-target thumb-friendly tap-zone"
                         >
                           <Plus size={16} />
                         </button>
                       </div>
-                      <span className="text-orange-600 font-semibold">
+                      <span className="text-orange-600 price-display-sm">
                         {formatPrice(item.product.price * item.quantity)}
                       </span>
                     </div>
@@ -123,42 +124,43 @@ export function Cart({
           {/* Footer */}
           {items.length > 0 && (
             <div className="p-4 border-t border-orange-200 space-y-3">
-              <div className="flex justify-between items-center text-lg font-semibold">
-                <span className="text-gray-800">Total:</span>
-                <AnimatedCounter 
-                  value={total} 
-                  prefix="FCFA " 
-                  className="text-orange-600"
-                />
+              <div className="flex justify-between items-center">
+                <span className="text-gray-800 text-lg font-semibold">Total:</span>
+                <span className="text-orange-600 price-display">
+                  {formatPrice(total)}
+                </span>
               </div>
               
-              <div className="flex gap-2">
-                <FeedbackButton
+              <div className="flex touch-spacing-lg">
+                <EnhancedButton
                   onClick={async () => {
                     setLoading('checkout', true);
                     await onCheckout();
                     showSuccess('🎉 Vente finalisée !');
                     setLoading('checkout', false);
                   }}
-                  isLoading={isLoading('checkout')}
-                  loadingText="Finalisation..."
-                  className="flex-1 py-3 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600"
+                  loading={isLoading('checkout')}
+                  size="lg"
+                  variant="primary"
+                  className="flex-1 critical-action"
                 >
                   Valider la vente
-                </FeedbackButton>
+                </EnhancedButton>
                 
                 
-                <FeedbackButton
+                <EnhancedButton
                   onClick={() => {
                     if (confirm('Vider le panier ?')) {
                       onClear();
                       cartCleared();
                     }
                   }}
-                  className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300"
+                  size="lg"
+                  variant="secondary"
+                  className="flex-1 quick-access"
                 >
                   Vider
-                </FeedbackButton>
+                </EnhancedButton>
                 
 
               </div>

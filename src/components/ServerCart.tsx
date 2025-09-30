@@ -1,9 +1,10 @@
 import React from 'react';
 import { ShoppingCart, Plus, Minus, Trash2, Send } from 'lucide-react';
 import { CartItem } from '../types';
-import { useSettings } from '../hooks/useSettings';
+import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { FeedbackButton } from './FeedbackButton';
+import { EnhancedButton } from './EnhancedButton';
 import { AnimatedCounter } from './AnimatedCounter';
 
 interface ServerCartProps {
@@ -21,9 +22,9 @@ export function ServerCart({
   onUpdateQuantity, 
   onRemoveItem, 
   onLaunchOrder,
-  onClear 
+  onClear
 }: ServerCartProps) {
-  const { formatPrice } = useSettings();
+  const formatPrice = useCurrencyFormatter();
   const { setLoading, isLoading, showSuccess } = useFeedback();
   const total = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -99,20 +100,19 @@ export function ServerCart({
         
         {/* Actions */}
         <div className="flex gap-2">
-          <FeedbackButton
+          <EnhancedButton
             onClick={async () => {
               setLoading('launchOrder', true);
               await onLaunchOrder();
               showSuccess('🚀 Commande lancée !');
               setLoading('launchOrder', false);
             }}
-            isLoading={isLoading('launchOrder')}
-            loadingText="Envoi..."
+            loading={isLoading('launchOrder')}
             className="flex-1 py-3 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 flex items-center justify-center gap-2"
           >
             <Send size={16} />
             Lancer la commande
-          </FeedbackButton>
+          </EnhancedButton>
 
           <FeedbackButton
             onClick={() => {

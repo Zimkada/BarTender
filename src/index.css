@@ -1,3 +1,9 @@
+/* Touch-optimized utilities for Benin mobile users */
+@import './styles/touch-utilities.css';
+
+/* Responsive utilities for African mobile market */
+@import './styles/responsive-utilities.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

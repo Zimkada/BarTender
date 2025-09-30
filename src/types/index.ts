@@ -206,7 +206,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canEditProducts: false,
     canDeleteProducts: false,
     canManageInventory: false,
-    canViewInventory: true,
+    canViewInventory: false,
     canSell: true,
     canCancelSales: false,
     canViewAllSales: false,
@@ -217,7 +217,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canManageBarInfo: false,
     canCreateBars: false,
     canSwitchBars: false,
-  },
+    
+  }
 };
 
 // ===== PARAMÈTRES APPLICATION =====

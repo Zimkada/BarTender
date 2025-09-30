@@ -1,0 +1,248 @@
+/* Responsive Utilities for Benin Mobile Market */
+
+/* Mobile-first breakpoints optimized for African market */
+/* Base: 320px+ (entry-level smartphones) */
+/* xs: 375px+ (standard smartphones) */
+/* sm: 480px+ (large smartphones, landscape) */
+/* md: 768px+ (tablets, small laptops) */
+/* lg: 1024px+ (laptops, desktop) */
+/* xl: 1280px+ (large screens) */
+
+/* Extra small devices (very small smartphones) */
+@media (min-width: 375px) {
+  .xs\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .xs\:text-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  .xs\:p-4 {
+    padding: 1rem;
+  }
+}
+
+/* Mobile layout optimizations */
+@media (max-width: 480px) {
+  /* Header mobile compact */
+  .mobile-header {
+    padding: 0.75rem 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* Cart mobile optimization */
+  .mobile-cart {
+    width: 100vw;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+
+  /* Product cards mobile */
+  .mobile-product-card {
+    padding: 0.75rem;
+    min-height: 180px;
+  }
+
+  /* Touch-friendly spacing */
+  .mobile-touch-spacing {
+    gap: 1rem;
+    padding: 1rem;
+  }
+}
+
+/* Landscape mobile (common in Benin for video) */
+@media (max-height: 500px) and (orientation: landscape) {
+  .landscape-compact {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .landscape-header {
+    height: 3rem;
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .tablet-layout {
+    max-width: 100%;
+    padding: 1.5rem;
+  }
+
+  .tablet-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+}
+
+/* Power-saving mode styles (common in Africa) */
+@media (prefers-reduced-motion: reduce) {
+  .power-save * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast for outdoor usage */
+@media (prefers-contrast: high) {
+  .high-contrast {
+    border-width: 2px;
+    border-color: rgba(0, 0, 0, 0.3);
+  }
+
+  .high-contrast-text {
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Dark mode adaptations */
+@media (prefers-color-scheme: dark) {
+  .dark-adapt {
+    background-color: #1f2937;
+    color: #f9fafb;
+  }
+
+  .dark-adapt-card {
+    background-color: #374151;
+    border-color: #4b5563;
+  }
+}
+
+/* Print optimizations for receipts */
+@media print {
+  .print-hide {
+    display: none !important;
+  }
+
+  .print-optimize {
+    background: white !important;
+    color: black !important;
+    font-size: 12px;
+    line-height: 1.2;
+  }
+}
+
+/* Network-aware optimizations */
+.slow-connection {
+  /* Reduce animations on slow networks */
+  animation: none !important;
+  transition: none !important;
+}
+
+.slow-connection img {
+  /* Lazy load images on slow connections */
+  loading: lazy;
+}
+
+/* Offline mode styles */
+.offline-mode {
+  position: relative;
+}
+
+.offline-mode::before {
+  content: "📱 Mode hors ligne";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: #f59e0b;
+  color: white;
+  padding: 0.25rem;
+  text-align: center;
+  font-size: 0.75rem;
+  z-index: 9999;
+}
+
+/* Battery-saving mode */
+.battery-save {
+  filter: brightness(0.8);
+}
+
+.battery-save * {
+  animation-play-state: paused !important;
+}
+
+/* Price display responsive */
+.responsive-price {
+  font-size: clamp(0.875rem, 2vw, 1.25rem);
+  font-weight: 700;
+  font-family: ui-monospace, 'SF Mono', monospace;
+}
+
+/* Touch-optimized modals */
+.mobile-modal {
+  border-radius: 1rem 1rem 0 0;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* Tablet modal */
+@media (min-width: 768px) {
+  .mobile-modal {
+    border-radius: 1rem;
+    max-height: 80vh;
+    max-width: 600px;
+    margin: auto;
+  }
+}
+
+/* Compact navigation for small screens */
+.compact-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  padding: 0.5rem;
+  display: flex;
+  justify-content: space-around;
+  z-index: 50;
+}
+
+.compact-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 0.5rem;
+  color: #6b7280;
+  transition: all 0.2s;
+}
+
+.compact-nav-item:hover,
+.compact-nav-item.active {
+  background: #fef3c7;
+  color: #f59e0b;
+}
+
+/* Utility classes for African context */
+.sun-readable {
+  /* High contrast for outdoor sunlight */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  font-weight: 600;
+}
+
+.dust-resistant {
+  /* Rounded corners to avoid dust accumulation on touch */
+  border-radius: 1rem;
+}
+
+.power-efficient {
+  /* Reduce GPU usage */
+  transform: translateZ(0);
+  will-change: auto;
+}

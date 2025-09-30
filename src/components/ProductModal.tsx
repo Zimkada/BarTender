@@ -92,14 +92,14 @@ export function ProductModal({ isOpen, onClose, onSave, product }: ProductModalP
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
         >
           <motion.div 
             variants={modalVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-xl border border-orange-200"
+            className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] md:max-h-[90vh] overflow-y-auto shadow-xl border border-orange-200"
           >
             <div className="flex items-center justify-between p-4 border-b border-orange-200">
               <h2 className="text-xl font-semibold text-gray-800">

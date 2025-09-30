@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { X, Package, AlertTriangle, Plus, Edit, Trash2, ShoppingCart } from 'lucide-react';
+import { X, Package, AlertTriangle, Plus, Edit, Trash2 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { ProductModal } from './ProductModal';
 import { SupplyModal } from './SupplyModal';
 import { Product } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFeedback } from '../hooks/useFeedback';
 import { FeedbackButton } from './FeedbackButton';
+import { EnhancedButton } from './EnhancedButton';
 
 interface InventoryProps {
   isOpen: boolean;
@@ -21,10 +23,10 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
     deleteProduct, 
     addProduct,
     updateProduct,
-    addSupply, 
-    getAverageCostPerUnit,
-    formatPrice
+    addSupply,
+    getAverageCostPerUnit
   } = useAppContext();
+  const formatPrice = useCurrencyFormatter();
   const [showProductModal, setShowProductModal] = useState(false);
   const [showSupplyModal, setShowSupplyModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
@@ -80,7 +82,7 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              className="bg-gradient-to-br from-yellow-100 to-amber-100 rounded-lg w-full max-w-6xl max-h-[90vh] overflow-y-auto"
+              className="bg-gradient-to-br from-yellow-100 to-amber-100 rounded-lg w-full max-w-6xl max-h-[85vh] md:max-h-[90vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between p-6 border-b border-orange-100">
                 <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
@@ -88,13 +90,12 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                   Inventaire
                 </h2>
                 <div className="flex items-center gap-2">
-                  <FeedbackButton
+                  <EnhancedButton
                     onClick={() => setShowSupplyModal(true)}
-                    loadingText="Chargement..."
                     className="px-4 py-2 bg-blue-500 text-white rounded-xl"
                   >
                     Approvisionnement
-                  </FeedbackButton>
+                  </EnhancedButton>
                   <motion.button
                     onClick={handleAddProduct}
                     whileHover={{ scale: 1.02 }}
