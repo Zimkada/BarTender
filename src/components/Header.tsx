@@ -11,7 +11,8 @@ import {
   DollarSign,
   RotateCcw,
   Zap,
-  AlertTriangle
+  AlertTriangle,
+  FileSpreadsheet
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
@@ -23,8 +24,7 @@ import { BarSelector } from './BarSelector';
 import { OfflineIndicator } from './OfflineIndicator';
 import { NetworkIndicator } from './NetworkIndicator';
 import { SyncButton } from './SyncButton';
-import { FileSpreadsheet } from 'lucide-react';
-
+import { useViewport } from '../hooks/useViewport';
 
 interface HeaderProps {
   onShowSales: () => void;
@@ -40,10 +40,10 @@ interface HeaderProps {
   onShowStockAlerts?: () => void;
 }
 
-export function Header({ 
-  onShowSales, 
-  onShowSettings, 
-  onShowInventory, 
+export function Header({
+  onShowSales,
+  onShowSettings,
+  onShowInventory,
   onShowServers,
   onShowCreateBar,
   onSwitchToServer,
@@ -51,17 +51,16 @@ export function Header({
   onShowExcel,
   onShowReturns,
   onShowQuickSale,
-  onShowStockAlerts = () => {} // Provide a default no-op function
+  onShowStockAlerts = () => {}
 }: HeaderProps) {
   const { getTodayTotal } = useAppContext();
   const formatPrice = useCurrencyFormatter();
   const { currentSession, logout } = useAuth();
   const { currentBar } = useBarContext();
-  
-  const todayTotal = getTodayTotal();
+  const { isMobile } = useViewport();
 
-  // TODO: Replace this with actual alert count logic
-  const alertCount = 0;
+  const todayTotal = getTodayTotal();
+  const alertCount = 0; // TODO: Implémenter compteur alertes réel
 
   const getRoleIcon = () => {
     switch (currentSession?.role) {
@@ -81,88 +80,119 @@ export function Header({
     }
   };
 
-  return (
-    <header className="bg-gradient-to-r from-yellow-400 to-amber-400 shadow-lg">
-      <div className="container mx-auto px-2 md:px-4 py-2 md:py-4">
-        {/* Version mobile ultra-compacte */}
-        <div className="block md:hidden">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              <h1 className="text-sm font-bold text-white">BarTender</h1>
-              <OfflineIndicator />
-              <NetworkIndicator />
+  // ==================== VERSION MOBILE (99% utilisateurs Bénin) ====================
+  if (isMobile) {
+    return (
+      <header className="bg-gradient-to-r from-yellow-400 to-amber-400 shadow-lg sticky top-0 z-50">
+        <div className="px-3 py-2">
+          {/* Ligne 1: Identité + Indicateurs + Actions rapides */}
+          <div className="flex items-center justify-between mb-2">
+            {/* Logo + Nom bar + Indicateurs */}
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <h1 className="text-base font-bold text-white truncate">
+                🍺 {currentBar?.name || 'BarTender'}
+              </h1>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <OfflineIndicator />
+                <NetworkIndicator />
+              </div>
             </div>
 
-            <div className="flex items-center gap-1">
+            {/* Actions critiques */}
+            <div className="flex items-center gap-2 flex-shrink-0">
               <SyncButton />
-              <motion.button
-                onClick={onShowQuickSale}
-                className="p-1.5 bg-white/20 rounded text-white"
-                title="Vente rapide"
-              >
-                <Zap size={16} />
-              </motion.button>
-              <motion.button
+              <button
                 onClick={logout}
-                className="p-1.5 bg-red-500/80 rounded text-white"
-                title="Déconnexion"
+                className="p-2 bg-red-500/80 rounded-lg text-white active:scale-95 transition-transform touch-target"
+                aria-label="Déconnexion"
               >
-                <LogOut size={16} />
-              </motion.button>
+                <LogOut size={18} />
+              </button>
             </div>
           </div>
-        </div>
 
-        {/* Version desktop */}
-        <div className="hidden md:flex items-center justify-between mobile-header flex-wrap md:flex-nowrap">
-          <div className="flex items-center gap-2 md:gap-4">
-            <h1 className="text-lg md:text-2xl font-bold text-white">BarTender Pro</h1>
+          {/* Ligne 2: Ventes du jour (info principale) */}
+          <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <p className="text-white/80 text-xs font-medium">Ventes du jour</p>
+                <p className="text-white text-lg font-bold tracking-tight">
+                  {formatPrice(todayTotal)}
+                </p>
+              </div>
+
+              {/* Badge rôle */}
+              <div className="flex items-center gap-1 bg-white/20 rounded-full px-3 py-1">
+                {getRoleIcon()}
+                <span className="text-white text-xs font-medium">{getRoleLabel()}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Ligne 3: Nom utilisateur (si espace) */}
+          {currentSession?.userName && (
+            <p className="text-white/90 text-xs mt-1 text-center font-medium">
+              {currentSession.userName}
+            </p>
+          )}
+        </div>
+      </header>
+    );
+  }
+
+  // ==================== VERSION DESKTOP (1% promoteurs avec PC) ====================
+  return (
+    <header className="bg-gradient-to-r from-yellow-400 to-amber-400 shadow-lg">
+      <div className="container mx-auto px-6 py-4">
+        <div className="flex items-center justify-between">
+          {/* Gauche: Logo + Indicateurs + Bar selector */}
+          <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold text-white">🍺 BarTender Pro</h1>
+
             <div className="flex items-center gap-2">
               <OfflineIndicator />
               <NetworkIndicator />
               <SyncButton />
             </div>
-            
+
             {/* Sélecteur de bar pour promoteur */}
             {currentSession?.role === 'promoteur' && (
               <BarSelector onCreateNew={onShowCreateBar} />
             )}
-            
+
             {/* Nom du bar pour gérants/serveurs */}
             {currentSession?.role !== 'promoteur' && currentBar && (
-              <div className="flex items-center gap-2 bg-white/20 rounded-lg px-3 py-1">
-                <Building2 size={16} className="text-white" />
+              <div className="flex items-center gap-2 bg-white/20 rounded-lg px-3 py-1.5">
+                <Building2 size={18} className="text-white" />
                 <span className="text-white font-medium">{currentBar.name}</span>
               </div>
             )}
           </div>
 
-          <div className="flex items-center gap-3 md:gap-6">
+          {/* Droite: Stats + User + Actions */}
+          <div className="flex items-center gap-6">
             {/* Ventes du jour */}
-            <motion.div
-              className="bg-white/20 backdrop-blur-sm rounded-lg px-2 md:px-4 py-1 md:py-2 hidden sm:block"
-              whileHover={{ scale: 1.02 }}
-            >
+            <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
               <p className="text-white/80 text-sm">Ventes du jour</p>
-              <p className="text-white text-xl font-bold">{formatPrice(todayTotal)}</p>
-            </motion.div>
+              <p className="text-white text-2xl font-bold">{formatPrice(todayTotal)}</p>
+            </div>
 
-            {/* User info & Actions */}
-            <div className="flex items-center gap-4">
-              {/* User info */}
-              <div className="text-right">
-                <p className="text-white font-medium">{currentSession?.userName}</p>
-                <p className="text-white/80 text-sm flex items-center justify-end gap-1">
-                  {getRoleIcon()}
-                  {getRoleLabel()}
-                </p>
-              </div>
-              
-              {/* Systeme alertes stock */}
+            {/* User info */}
+            <div className="text-right">
+              <p className="text-white font-medium">{currentSession?.userName}</p>
+              <p className="text-white/80 text-sm flex items-center justify-end gap-1">
+                {getRoleIcon()}
+                {getRoleLabel()}
+              </p>
+            </div>
+
+            {/* Actions toolbar */}
+            <div className="flex items-center gap-2">
+              {/* Alertes stock */}
               <RoleBasedComponent requiredPermission="canViewInventory">
-                <motion.button
+                <button
                   onClick={onShowStockAlerts}
-                  className="bg-white/20 rounded-lg text-white hover:bg-white/30 relative touch-target thumb-friendly tap-zone"
+                  className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors relative"
                   title="Alertes stock"
                 >
                   <AlertTriangle size={20} />
@@ -171,133 +201,114 @@ export function Header({
                       {alertCount}
                     </span>
                   )}
-                </motion.button>
+                </button>
               </RoleBasedComponent>
 
-              <motion.button
+              {/* Vente rapide */}
+              <button
                 onClick={onShowQuickSale}
-                className="bg-white/20 rounded-lg text-white hover:bg-white/30 touch-target thumb-friendly tap-zone"
+                className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
                 title="Vente rapide"
               >
                 <Zap size={20} />
-              </motion.button>
+              </button>
 
-              {/* Action buttons */}
-              <div className="flex items-center gap-1 md:gap-2">
-                {/* Point du jour - visible pour tous */}
-                <motion.button
-                  onClick={onShowDailyDashboard}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+              {/* Point du jour */}
+              <button
+                onClick={onShowDailyDashboard}
+                className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
+                title="Point du jour"
+              >
+                <DollarSign size={20} />
+              </button>
+
+              {/* Historique ventes */}
+              <RoleBasedComponent requiredPermission="canViewAllSales">
+                <button
+                  onClick={onShowSales}
                   className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                  title="Point du jour"
+                  title="Historique des ventes"
                 >
-                  <DollarSign size={20} />
-                </motion.button>
+                  <BarChart3 size={20} />
+                </button>
+              </RoleBasedComponent>
 
-
-                {/* Historique des ventes - pas pour serveurs */}
-                <RoleBasedComponent requiredPermission="canViewAllSales">
-                  <motion.button
-                    onClick={onShowSales}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                    title="Historique des ventes"
-                  >
-                    <BarChart3 size={20} />
-                  </motion.button>
-                </RoleBasedComponent>
-
-                {/* Import/Export Excel - visible pour tous */}
-                <RoleBasedComponent requiredPermission="canManageInventory">
-                  <motion.button
-                    onClick={onShowExcel}
-                    className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30"
-                    title="Import/Export Excel"
-                  >
-                    <FileSpreadsheet size={20} />
-                  </motion.button>
-                </RoleBasedComponent>
-
-                {/* Inventaire - gérants et promoteurs */}
-                <RoleBasedComponent requiredPermission="canViewInventory">
-                  <motion.button
-                    onClick={onShowInventory}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                    title="Inventaire"
-                  >
-                    <Package size={20} />
-                  </motion.button>
-                </RoleBasedComponent>
-
-                <RoleBasedComponent requiredPermission="canManageInventory">
-                  <motion.button
-                    onClick={onShowReturns}
-                    className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30"
-                    title="Retours"
-                  >
-                    <RotateCcw size={20} />
-                  </motion.button>
-                </RoleBasedComponent>
-
-
-
-                {/* Gestion équipe - gérants et promoteurs */}
-                <RoleBasedComponent requiredPermission="canCreateServers">
-                  <motion.button
-                    onClick={onShowServers}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                    title="Gestion de l'équipe"
-                  >
-                    <UserCog size={20} />
-                  </motion.button>
-                </RoleBasedComponent>
-
-                {/* Paramètres - promoteurs uniquement */}
-                <RoleBasedComponent requiredPermission="canManageSettings">
-                  <motion.button
-                    onClick={onShowSettings}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                    title="Paramètres"
-                  >
-                    <Settings size={20} />
-                  </motion.button>
-                </RoleBasedComponent>
-
-                {/* Switch mode - pas pour serveurs */}
-                <RoleBasedComponent requiredPermission="canSwitchBars">
-                  {onSwitchToServer && (
-                    <motion.button
-                      onClick={onSwitchToServer}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                      title="Mode Serveur"
-                    >
-                      <Users size={20} />
-                    </motion.button>
-                  )}
-                </RoleBasedComponent>
-
-
-                {/* Déconnexion */}
-                <motion.button
-                  onClick={logout}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="bg-red-500/80 rounded-lg text-white hover:bg-red-600/80 transition-colors touch-target thumb-friendly tap-zone"
-                  title="Déconnexion"
+              {/* Excel */}
+              <RoleBasedComponent requiredPermission="canManageInventory">
+                <button
+                  onClick={onShowExcel}
+                  className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
+                  title="Import/Export Excel"
                 >
-                  <LogOut size={20} />
-                </motion.button>
-              </div>
+                  <FileSpreadsheet size={20} />
+                </button>
+              </RoleBasedComponent>
+
+              {/* Inventaire */}
+              <RoleBasedComponent requiredPermission="canViewInventory">
+                <button
+                  onClick={onShowInventory}
+                  className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
+                  title="Inventaire"
+                >
+                  <Package size={20} />
+                </button>
+              </RoleBasedComponent>
+
+              {/* Retours */}
+              <RoleBasedComponent requiredPermission="canManageInventory">
+                <button
+                  onClick={onShowReturns}
+                  className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
+                  title="Retours"
+                >
+                  <RotateCcw size={20} />
+                </button>
+              </RoleBasedComponent>
+
+              {/* Gestion équipe */}
+              <RoleBasedComponent requiredPermission="canCreateServers">
+                <button
+                  onClick={onShowServers}
+                  className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
+                  title="Gestion de l'équipe"
+                >
+                  <UserCog size={20} />
+                </button>
+              </RoleBasedComponent>
+
+              {/* Paramètres */}
+              <RoleBasedComponent requiredPermission="canManageSettings">
+                <button
+                  onClick={onShowSettings}
+                  className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
+                  title="Paramètres"
+                >
+                  <Settings size={20} />
+                </button>
+              </RoleBasedComponent>
+
+              {/* Mode serveur */}
+              <RoleBasedComponent requiredPermission="canSwitchBars">
+                {onSwitchToServer && (
+                  <button
+                    onClick={onSwitchToServer}
+                    className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
+                    title="Mode Serveur"
+                  >
+                    <Users size={20} />
+                  </button>
+                )}
+              </RoleBasedComponent>
+
+              {/* Déconnexion */}
+              <button
+                onClick={logout}
+                className="p-2 bg-red-500/80 rounded-lg text-white hover:bg-red-600/80 transition-colors"
+                title="Déconnexion"
+              >
+                <LogOut size={20} />
+              </button>
             </div>
           </div>
         </div>

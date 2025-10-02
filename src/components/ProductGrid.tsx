@@ -1,42 +1,50 @@
 import React from 'react';
 import { ProductCard } from './ProductCard';
 import { Product } from '../types';
-import { motion } from 'framer-motion';
+import { useViewport } from '../hooks/useViewport';
 
 interface ProductGridProps {
   products: Product[];
   onAddToCart: (product: Product) => void;
 }
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.05,
-      when: "beforeChildren"
-    }
-  }
-};
-
 export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
+  const { isMobile } = useViewport();
+
   if (products.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <div className="text-6xl mb-4">🍺</div>
-        <h3 className="text-xl font-semibold text-gray-600 mb-2">Aucun produit dans cette catégorie</h3>
-        <p className="text-gray-500">Ajoutez des produits pour commencer à vendre</p>
+        <h3 className="text-xl font-semibold text-gray-600 mb-2">
+          Aucun produit dans cette catégorie
+        </h3>
+        <p className="text-gray-500">
+          Ajoutez des produits pour commencer à vendre
+        </p>
       </div>
     );
   }
 
+  // ==================== VERSION MOBILE (99% utilisateurs Bénin) ====================
+  // Liste verticale 1 colonne, cards XXL pour lisibilité soleil africain
+  if (isMobile) {
+    return (
+      <div className="space-y-3">
+        {products.map((product) => (
+          <ProductCard
+            key={product.id}
+            product={product}
+            onAddToCart={onAddToCart}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  // ==================== VERSION DESKTOP (1% promoteurs avec PC) ====================
+  // Grid 3 colonnes pour utiliser l'espace disponible
   return (
-    <motion.div
-      className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 md:gap-4"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
+    <div className="grid grid-cols-3 gap-4">
       {products.map((product) => (
         <ProductCard
           key={product.id}
@@ -44,6 +52,6 @@ export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
           onAddToCart={onAddToCart}
         />
       ))}
-    </motion.div>
+    </div>
   );
 }
