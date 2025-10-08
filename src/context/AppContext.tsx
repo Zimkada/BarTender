@@ -4,15 +4,18 @@ import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { offlineQueue } from '../services/offlineQueue';
 import { useNotifications } from '../hooks/useNotifications';
-import { 
-  Category, 
-  Product, 
-  Supply, 
-  Order, 
-  Sale, 
+import {
+  Category,
+  Product,
+  Supply,
+  Order,
+  Sale,
   CartItem,
   AppSettings,
+  Return,
+  ReturnReason,
 } from '../types';
+import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
 
 // Données par défaut pour un nouveau bar
 const getDefaultCategories = (barId: string): Category[] => [
@@ -59,7 +62,7 @@ interface AppContextType {
   getProductById: (id: string) => Product | undefined;
   
   // Approvisionnements
-  addSupply: (supply: Omit<Supply, 'id' | 'date' | 'totalCost' | 'barId'>) => Supply | null;
+  addSupply: (supply: Omit<Supply, 'id' | 'date' | 'totalCost' | 'barId' | 'createdBy'>) => Supply | null;
   getSuppliesByProduct: (productId: string) => Supply[];
   getTotalCostByProduct: (productId: string) => number;
   getAverageCostPerUnit: (productId: string) => number;
@@ -73,15 +76,23 @@ interface AppContextType {
   getOrdersByUser: (userId: string) => Order[];
   
   // Ventes
-  addSale: (saleData: { items: CartItem[]; total: number; currency: string; orderId?: string }) => Sale | null;
+  addSale: (saleData: { items: CartItem[]; total: number; currency: string; orderId?: string; assignedTo?: string }) => Sale | null;
   getSalesByDate: (startDate: Date, endDate: Date) => Sale[];
   getTodaySales: () => Sale[];
   getTodayTotal: () => number;
   getSalesByUser: (userId: string) => Sale[];
-  
+
+  // Retours
+  returns: Return[];
+  addReturn: (returnData: Omit<Return, 'id' | 'barId'>) => Return | null;
+  updateReturn: (returnId: string, updates: Partial<Return>) => void;
+  deleteReturn: (returnId: string) => void;
+  getReturnsBySale: (saleId: string) => Return[];
+  getPendingReturns: () => Return[];
+
   // Paramètres
   updateSettings: (updates: Partial<AppSettings>) => void;
-  
+
   // Initialisation
   initializeBarData: (barId: string) => void;
 }
@@ -107,6 +118,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [allSupplies, setAllSupplies] = useLocalStorage<Supply[]>('supplies-v3', []);
   const [allOrders, setAllOrders] = useLocalStorage<Order[]>('orders-v3', []);
   const [allSales, setAllSales] = useLocalStorage<Sale[]>('sales-v3', []);
+  const [allReturns, setAllReturns] = useLocalStorage<Return[]>('returns-v1', []);
   const [settings, setSettings] = useLocalStorage<AppSettings>('app-settings-v3', defaultSettings);
 
   // Filtrage automatique par bar actuel
@@ -115,6 +127,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const supplies = allSupplies.filter(s => s.barId === currentBar?.id);
   const sales = allSales.filter(s => s.barId === currentBar?.id);
   const orders = allOrders.filter(o => o.barId === currentBar?.id);
+  const returns = allReturns.filter(r => r.barId === currentBar?.id);
 
   // Initialisation des données par défaut pour un nouveau bar
   const initializeBarData = useCallback((barId: string) => {
@@ -202,9 +215,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [products]);
 
   // Approvisionnements
-  const addSupply = useCallback((supply: Omit<Supply, 'id' | 'date' | 'totalCost' | 'barId'>) => {
-    if (!hasPermission('canManageInventory') || !currentBar) return null;
-    
+  const addSupply = useCallback((supply: Omit<Supply, 'id' | 'date' | 'totalCost' | 'barId' | 'createdBy'>) => {
+    if (!hasPermission('canManageInventory') || !currentBar || !currentSession) return null;
+
     const totalCost = (supply.quantity / supply.lotSize) * supply.lotPrice;
     const newSupply: Supply = {
       ...supply,
@@ -212,11 +225,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       barId: currentBar.id,
       date: new Date(),
       totalCost,
+      createdBy: currentSession.userId,
     };
     setAllSupplies(prev => [newSupply, ...prev]);
     increaseStock(supply.productId, supply.quantity);
     return newSupply;
-  }, [setAllSupplies, increaseStock, hasPermission, currentBar]);
+  }, [setAllSupplies, increaseStock, hasPermission, currentBar, currentSession]);
 
   const getSuppliesByProduct = useCallback((productId: string) => {
     return supplies.filter(supply => supply.productId === productId);
@@ -296,14 +310,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [orders, currentSession]);
 
   const getTodayOrders = useCallback(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    // Utiliser la journée commerciale
+    const closeHour = currentBar?.settings?.businessDayCloseHour ?? 6;
+    const currentBusinessDay = getCurrentBusinessDay(closeHour);
 
     const todayOrders = orders.filter(order => {
       const orderDate = new Date(order.date);
-      return orderDate >= today && orderDate < tomorrow;
+      const orderBusinessDay = getBusinessDay(orderDate, closeHour);
+      return isSameDay(orderBusinessDay, currentBusinessDay);
     });
 
     if (currentSession?.role === 'serveur') {
@@ -311,7 +325,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     return todayOrders;
-  }, [orders, currentSession]);
+  }, [orders, currentSession, currentBar]);
 
   const getOrdersByUser = useCallback((userId: string) => {
     if (!hasPermission('canViewAllSales')) return [];
@@ -319,9 +333,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [orders, hasPermission]);
 
   // Ventes
-  const addSale = useCallback((saleData: { items: CartItem[]; total: number; currency: string; orderId?: string }) => {
+  const addSale = useCallback((saleData: { items: CartItem[]; total: number; currency: string; orderId?: string; assignedTo?: string }) => {
     if (!hasPermission('canSell') || !currentBar || !currentSession) return null;
-    
+
     // Vérifier stock
     for (const item of saleData.items) {
       const product = getProductById(item.product.id);
@@ -329,13 +343,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         throw new Error(`Stock insuffisant pour ${item.product.name}`);
       }
     }
-    
+
     const newSale: Sale = {
       ...saleData,
       id: Date.now().toString(),
       barId: currentBar.id,
       date: new Date(),
       processedBy: currentSession.userId,
+      assignedTo: saleData.assignedTo, // En mode simplifié: nom du serveur
     };
 
     // Si hors ligne, ajouter à la queue
@@ -383,17 +398,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [sales, currentSession]);
 
   const getTodaySales = useCallback(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    return getSalesByDate(today, tomorrow);
-  }, [getSalesByDate]);
+    // Utiliser la journée commerciale
+    const closeHour = currentBar?.settings?.businessDayCloseHour ?? 6;
+    const currentBusinessDay = getCurrentBusinessDay(closeHour);
+
+    return sales.filter(sale => {
+      const saleDate = new Date(sale.date);
+      const saleBusinessDay = getBusinessDay(saleDate, closeHour);
+      return isSameDay(saleBusinessDay, currentBusinessDay);
+    });
+  }, [sales, currentBar]);
 
   const getTodayTotal = useCallback(() => {
-    return getTodaySales().reduce((sum, sale) => sum + sale.total, 0);
-  }, [getTodaySales]);
+    // Total des ventes du jour
+    const salesTotal = getTodaySales().reduce((sum, sale) => sum + sale.total, 0);
+
+    // Déduire les retours remboursés du jour commercial actuel
+    const closeHour = currentBar?.settings?.businessDayCloseHour ?? 6;
+    const currentBusinessDay = getCurrentBusinessDay(closeHour);
+
+    const returnsTotal = returns
+      .filter(r => {
+        // Seulement les retours approuvés ou restockés (pas pending ni rejected)
+        if (r.status !== 'approved' && r.status !== 'restocked') return false;
+
+        // Seulement les retours qui ont été remboursés
+        if (!r.isRefunded) return false;
+
+        // Seulement les retours du jour commercial actuel
+        const returnDate = new Date(r.returnedAt);
+        const returnBusinessDay = getBusinessDay(returnDate, closeHour);
+        return isSameDay(returnBusinessDay, currentBusinessDay);
+      })
+      .reduce((sum, r) => sum + r.refundAmount, 0);
+
+    // CA NET = Ventes - Retours remboursés
+    return salesTotal - returnsTotal;
+  }, [getTodaySales, returns, currentBar]);
 
   const getSalesByUser = useCallback((userId: string) => {
     if (!hasPermission('canViewAllSales')) return [];
@@ -405,10 +446,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSettings(prev => ({ ...prev, ...updates }));
   }, [setSettings, hasPermission]);
 
+  // Retours
+  const addReturn = useCallback((returnData: Omit<Return, 'id' | 'barId'>) => {
+    if (!hasPermission('canManageInventory') || !currentBar) return null;
+
+    const newReturn: Return = {
+      ...returnData,
+      id: `return_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      barId: currentBar.id,
+    };
+
+    setAllReturns(prev => [newReturn, ...prev]);
+    return newReturn;
+  }, [setAllReturns, hasPermission, currentBar]);
+
+  const updateReturn = useCallback((returnId: string, updates: Partial<Return>) => {
+    if (!hasPermission('canManageInventory')) return;
+    setAllReturns(prev => prev.map(r =>
+      r.id === returnId ? { ...r, ...updates } : r
+    ));
+  }, [setAllReturns, hasPermission]);
+
+  const deleteReturn = useCallback((returnId: string) => {
+    if (!hasPermission('canManageInventory')) return;
+    setAllReturns(prev => prev.filter(r => r.id !== returnId));
+  }, [setAllReturns, hasPermission]);
+
+  const getReturnsBySale = useCallback((saleId: string) => {
+    return returns.filter(r => r.saleId === saleId);
+  }, [returns]);
+
+  const getPendingReturns = useCallback(() => {
+    return returns.filter(r => r.status === 'pending');
+  }, [returns]);
 
   const value: AppContextType = {
     // État
-    categories, products, supplies, orders, sales, settings,
+    categories, products, supplies, orders, sales, returns, settings,
     
     // Catégories
     addCategory, updateCategory, deleteCategory,
@@ -425,10 +499,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     
     // Ventes
     addSale, getSalesByDate, getTodaySales, getTodayTotal, getSalesByUser,
-    
+
+    // Retours
+    addReturn, updateReturn, deleteReturn, getReturnsBySale, getPendingReturns,
+
     // Paramètres
     updateSettings,
-    
+
     // Initialisation
     initializeBarData,
   };

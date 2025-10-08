@@ -6,7 +6,12 @@ import { useAuth } from "../context/AuthContext";
 import { useBarContext } from '../context/BarContext';
 import { UserRole } from '../types';
 
-export function UserManagement() {
+interface UserManagementProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export function UserManagement({ isOpen, onClose }: UserManagementProps) {
   const { createUser, hasPermission,  users } = useAuth();
   const { currentBar, getBarMembers, addBarMember, removeBarMember } = useBarContext();
   const [showAddUser, setShowAddUser] = useState(false);
@@ -110,25 +115,57 @@ export function UserManagement() {
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">Équipe du bar</h2>
-          <p className="text-gray-600">{currentBar.name}</p>
-        </div>
-        
-        {(hasPermission('canCreateManagers') || hasPermission('canCreateServers')) && (
-          <button
-            onClick={() => setShowAddUser(true)}
-            className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2"
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl"
           >
-            <UserPlus size={20} />
-            Ajouter un membre
-          </button>
-        )}
-      </div>
+            {/* Header avec bouton fermer */}
+            <div className="bg-gradient-to-r from-orange-500 to-amber-500 p-6 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <Users className="text-white" size={24} />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Équipe du bar</h2>
+                  <p className="text-orange-100">{currentBar?.name}</p>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+              >
+                <X className="text-white" size={24} />
+              </button>
+            </div>
+
+            {/* Content scrollable */}
+            <div className="overflow-y-auto max-h-[calc(90vh-88px)] p-6">
+              <div className="space-y-6">
+                {/* Action button */}
+                {(hasPermission('canCreateManagers') || hasPermission('canCreateServers')) && (
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setShowAddUser(true)}
+                      className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2 shadow-md"
+                    >
+                      <UserPlus size={20} />
+                      Ajouter un membre
+                    </button>
+                  </div>
+                )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -389,6 +426,11 @@ export function UserManagement() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

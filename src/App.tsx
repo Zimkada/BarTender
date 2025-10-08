@@ -26,7 +26,10 @@ import { ReturnsSystem } from './components/ReturnsSystem';
 import { QuickSaleFlow } from './components/QuickSaleFlow';
 import { StockAlertsSystem } from './components/StockAlertsSystem';
 import { MobileNavigation } from './components/MobileNavigation';
+import { MobileSidebar } from './components/MobileSidebar';
+import { Accounting } from './components/Accounting';
 import { useNetworkOptimization } from './hooks/useNetworkOptimization';
+import { useViewport } from './hooks/useViewport';
 
 
 
@@ -43,6 +46,7 @@ function AppContent() {
   const { isAuthenticated } = useAuth();
   const { showNotification } = useNotifications();
   const { performanceSettings, shouldReduceAnimations } = useNetworkOptimization();
+  const { isMobile } = useViewport();
   const [showDailyDashboard, setShowDailyDashboard] = useState(false);
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id || '');
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -59,6 +63,9 @@ function AppContent() {
   const [showReturns, setShowReturns] = useState(false);
   const [showQuickSale, setShowQuickSale] = useState(false);
   const [showStockAlerts, setShowStockAlerts] = useState(false);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [currentMenu, setCurrentMenu] = useState('home');
+  const [showAccounting, setShowAccounting] = useState(false);
 
 
   useEffect(() => {
@@ -112,16 +119,17 @@ function AppContent() {
     setCart([]);
   };
 
-  const checkout = () => {
+  const checkout = (assignedTo?: string) => {
     if (cart.length === 0) return;
 
     const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-    
+
     try {
       addSale({
         items: cart,
         total,
         currency: settings.currency,
+        assignedTo,
       });
 
       clearCart();
@@ -129,6 +137,55 @@ function AppContent() {
       showNotification('success', 'Vente enregistrée avec succès !');
     } catch (error) {
       showNotification('error', error instanceof Error ? error.message : 'Erreur lors de la vente');
+    }
+  };
+
+  const handleMobileNavigation = (menu: string) => {
+    setCurrentMenu(menu);
+
+    // Fermer toutes les modales pour éviter les conflits
+    setShowSalesHistory(false);
+    setShowInventory(false);
+    setShowSettings(false);
+    setShowDailyDashboard(false);
+    setShowQuickSale(false);
+    setShowStockAlerts(false);
+    setShowExcel(false);
+    setShowServers(false);
+    setShowAccounting(false); // S'assurer que la compta est aussi fermée
+
+    // Ouvrir la modale demandée
+    switch (menu) {
+      case 'quickSale':
+        setShowQuickSale(true);
+        break;
+      case 'dailyDashboard':
+        setShowDailyDashboard(true);
+        break;
+      case 'history':
+        setShowSalesHistory(true);
+        break;
+      case 'inventory':
+        setShowInventory(true);
+        break;
+      case 'stockAlerts':
+        setShowStockAlerts(true);
+        break;
+      case 'teamManagement':
+        setShowServers(true);
+        break;
+      case 'importExport':
+        setShowExcel(true);
+        break;
+      case 'settings':
+        setShowSettings(true);
+        break;
+      case 'accounting':
+        setShowAccounting(true);
+        break;
+      // Le cas 'home' ne fait plus rien, car tout est déjà fermé.
+      default:
+        break;
     }
   };
 
@@ -164,6 +221,8 @@ function AppContent() {
         onShowReturns={() => setShowReturns(true)}
         onShowQuickSale={() => setShowQuickSale(true)}
         onShowStockAlerts={() => setShowStockAlerts(true)}
+        onShowAccounting={() => setShowAccounting(true)}
+        onToggleMobileSidebar={() => setShowMobileSidebar(!showMobileSidebar)}
       />
       
       <motion.main
@@ -239,13 +298,14 @@ function AppContent() {
         onRemoveItem={removeFromCart}
         onCheckout={checkout}
         onClear={clearCart}
+        hideFloatingButton={showQuickSale || showStockAlerts || showDailyDashboard || showSalesHistory || showInventory || showSettings || showServers || showExcel || showReturns || showAccounting}
       />
       
       <RoleBasedComponent requiredPermission="canManageUsers">
-        {showServers && (
-          <UserManagement
-          />
-        )}
+        <UserManagement
+          isOpen={showServers}
+          onClose={() => setShowServers(false)}
+        />
       </RoleBasedComponent>
 
       <RoleBasedComponent requiredPermission="canAddProducts">
@@ -296,6 +356,23 @@ function AppContent() {
           onClose={() => setShowSettings(false)}
         />
       </RoleBasedComponent>
+
+      <RoleBasedComponent requiredPermission="canViewAccounting">
+        <Accounting
+          isOpen={showAccounting}
+          onClose={() => setShowAccounting(false)}
+        />
+      </RoleBasedComponent>
+
+      {/* Mobile Sidebar */}
+      {isMobile && (
+        <MobileSidebar
+          isOpen={showMobileSidebar}
+          onClose={() => setShowMobileSidebar(false)}
+          onNavigate={handleMobileNavigation}
+          currentMenu={currentMenu}
+        />
+      )}
 
       {/* Mobile Navigation */}
       <MobileNavigation

@@ -11,7 +11,8 @@ import {
   //ArrowUp,
   //ArrowDown,
   Eye,
-  EyeOff
+  EyeOff,
+  RotateCcw
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
@@ -32,7 +33,8 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
     getTodayTotal,
     getTodayOrders,
     //products,
-    getLowStockProducts
+    getLowStockProducts,
+    returns
   } = useAppContext();
   const formatPrice = useCurrencyFormatter();
   const { currentSession } = useAuth();
@@ -64,6 +66,19 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
   const topProductsList = Object.entries(topProducts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3);
+
+  // Statistiques des retours du jour
+  const todayReturns = returns.filter(r => {
+    const returnDate = new Date(r.returnedAt);
+    const today = new Date();
+    return returnDate.toDateString() === today.toDateString();
+  });
+
+  const todayReturnsCount = todayReturns.length;
+  const todayReturnsRefunded = todayReturns
+    .filter(r => r.isRefunded && (r.status === 'approved' || r.status === 'restocked'))
+    .reduce((sum, r) => sum + r.refundAmount, 0);
+  const todayReturnsPending = todayReturns.filter(r => r.status === 'pending').length;
 
   // Export WhatsApp
   const exportToWhatsApp = () => {
@@ -177,7 +192,7 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
             </div>
 
             {/* Main Stats Grid */}
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
               {/* Total des ventes */}
               <motion.div
                 whileHover={{ y: -2 }}
@@ -244,6 +259,31 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
                   className="text-2xl font-bold text-gray-800"
                 />
                 <p className="text-xs text-gray-600 mt-1">{formatPrice(avgSaleValue)}</p>
+              </motion.div>
+
+              {/* Retours */}
+              <motion.div
+                whileHover={{ y: -2 }}
+                className="bg-gradient-to-br from-red-100 to-pink-100 rounded-xl p-4 border border-red-200"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <RotateCcw className="w-8 h-8 text-red-600" />
+                  <span className="text-red-600 text-sm font-medium">Retours</span>
+                </div>
+                <AnimatedCounter
+                  value={todayReturnsCount}
+                  className="text-2xl font-bold text-gray-800"
+                />
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-xs text-gray-600">
+                    {todayReturnsPending > 0 && `${todayReturnsPending} en attente`}
+                  </p>
+                  {todayReturnsRefunded > 0 && (
+                    <p className="text-xs text-red-600 font-medium">
+                      -{formatPrice(todayReturnsRefunded).replace(/\s/g, '')}
+                    </p>
+                  )}
+                </div>
               </motion.div>
             </div>
 

@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
+import { useViewport } from '../hooks/useViewport';
 import { EnhancedButton } from './EnhancedButton';
 import { Product} from '../types';
 
@@ -48,7 +49,7 @@ interface OrderSuggestion {
 }
 
 export function StockAlertsSystem({ isOpen, onClose }: StockAlertsSystemProps) {
-  const { 
+  const {
     products,
     sales,
     getLowStockProducts,
@@ -56,6 +57,7 @@ export function StockAlertsSystem({ isOpen, onClose }: StockAlertsSystemProps) {
   } = useAppContext();
   const formatPrice = useCurrencyFormatter();
   const { hasPermission } = useAuth();
+  const { isMobile } = useViewport();
 
   const [alerts, setAlerts] = useState<StockAlert[]>([]);
   const [filterStatus, setFilterStatus] = useState<'all' | 'new' | 'read' | 'resolved'>('all');
@@ -242,72 +244,98 @@ export function StockAlertsSystem({ isOpen, onClose }: StockAlertsSystemProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 ${isMobile ? '' : 'p-4'}`}
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="bg-gradient-to-br from-yellow-100 to-amber-100 rounded-2xl w-full max-w-6xl max-h-[85vh] md:max-h-[90vh] overflow-hidden shadow-2xl"
+            className={`bg-gradient-to-br from-yellow-100 to-amber-100 w-full shadow-2xl ${
+              isMobile
+                ? 'h-full'
+                : 'rounded-2xl max-w-6xl max-h-[85vh] md:max-h-[90vh] overflow-hidden'
+            }`}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-orange-200">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="w-8 h-8 text-red-600" />
-                <div>
-                  <h2 className="text-xl font-bold text-gray-800">Alertes stock</h2>
-                  <p className="text-sm text-gray-600">
-                    {stats.new} nouvelles • {stats.critical} critiques
-                  </p>
+            {isMobile ? (
+              /* Header mobile avec bouton suggestions bien visible */
+              <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle size={20} />
+                    <h2 className="text-lg font-bold">Alertes stock</h2>
+                  </div>
+                  <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg">
+                    <X size={24} />
+                  </button>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <EnhancedButton
-                  variant="info"
-                  size="sm"
+                <p className="text-sm opacity-90 mb-3">
+                  {stats.new} nouvelles • {stats.critical} critiques
+                </p>
+                {/* Bouton toggle suggestions - TOUJOURS VISIBLE */}
+                <button
                   onClick={() => setShowOrderSuggestions(!showOrderSuggestions)}
-                  icon={<ShoppingCart size={16} />}
+                  className={`w-full px-4 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors ${
+                    showOrderSuggestions
+                      ? 'bg-white text-orange-600'
+                      : 'bg-white/20 backdrop-blur text-white'
+                  }`}
                 >
-                  Suggestions ({orderSuggestions.length})
-                </EnhancedButton>
-                <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600">
-                  <X size={24} />
+                  <ShoppingCart size={18} />
+                  {showOrderSuggestions ? 'Voir alertes' : `Suggestions de commande (${orderSuggestions.length})`}
                 </button>
               </div>
-            </div>
-
-            <div className="flex h-[calc(85vh-120px)] md:h-[calc(90vh-120px)]">
-              {/* Sidebar stats */}
-              <div className="w-80 border-r border-orange-200 p-6 overflow-y-auto pb-20 md:pb-6">
-                {/* Statistiques */}
-                <div className="mb-6">
-                  <h3 className="font-semibold text-gray-800 mb-3">Vue d'ensemble</h3>
-                  <div className="space-y-3">
-                    <div className="bg-red-100 rounded-lg p-3">
-                      <p className="text-red-600 text-sm font-medium">Alertes critiques</p>
-                      <p className="text-red-800 font-bold text-lg">{stats.critical}</p>
-                    </div>
-                    <div className="bg-yellow-100 rounded-lg p-3">
-                      <p className="text-yellow-600 text-sm font-medium">Nouvelles alertes</p>
-                      <p className="text-yellow-800 font-bold text-lg">{stats.new}</p>
-                    </div>
-                    <div className="bg-blue-100 rounded-lg p-3">
-                      <p className="text-blue-600 text-sm font-medium">Total alertes</p>
-                      <p className="text-blue-800 font-bold text-lg">{stats.total}</p>
-                    </div>
-                    {orderSuggestions.length > 0 && (
-                      <div className="bg-green-100 rounded-lg p-3">
-                        <p className="text-green-600 text-sm font-medium">Valeur commande</p>
-                        <p className="text-green-800 font-bold text-lg">{formatPrice(stats.totalOrderValue)}</p>
-                      </div>
-                    )}
+            ) : (
+              /* Header desktop */
+              <div className="flex items-center justify-between p-6 border-b border-orange-200">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-8 h-8 text-red-600" />
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-800">Alertes stock</h2>
+                    <p className="text-sm text-gray-600">
+                      {stats.new} nouvelles • {stats.critical} critiques
+                    </p>
                   </div>
                 </div>
+                <div className="flex items-center gap-2">
+                  <EnhancedButton
+                    variant="info"
+                    size="sm"
+                    onClick={() => setShowOrderSuggestions(!showOrderSuggestions)}
+                    icon={<ShoppingCart size={16} />}
+                  >
+                    Suggestions ({orderSuggestions.length})
+                  </EnhancedButton>
+                  <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600">
+                    <X size={24} />
+                  </button>
+                </div>
+              </div>
+            )}
 
-                {/* Filtres */}
-                <div className="mb-6">
-                  <h3 className="font-semibold text-gray-800 mb-3">Filtres</h3>
-                  <div className="space-y-2">
+            {/* ==================== VERSION MOBILE ==================== */}
+            {isMobile ? (
+              <div className="flex flex-col h-[calc(100vh-180px)]">
+                {/* Stats + Filtres compacts en haut */}
+                <div className="flex-shrink-0 bg-orange-50 p-3">
+                  {/* Stats en 3 colonnes */}
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    <div className="bg-red-100 rounded-lg p-2 text-center">
+                      <p className="text-red-600 text-xs font-medium mb-1">Critiques</p>
+                      <p className="text-red-800 font-bold text-sm">{stats.critical}</p>
+                    </div>
+                    <div className="bg-yellow-100 rounded-lg p-2 text-center">
+                      <p className="text-yellow-600 text-xs font-medium mb-1">Nouvelles</p>
+                      <p className="text-yellow-800 font-bold text-sm">{stats.new}</p>
+                    </div>
+                    <div className="bg-blue-100 rounded-lg p-2 text-center">
+                      <p className="text-blue-600 text-xs font-medium mb-1">Total</p>
+                      <p className="text-blue-800 font-bold text-sm">{stats.total}</p>
+                    </div>
+                  </div>
+
+                  {/* Filtres horizontaux */}
+                  <div className="flex gap-2 overflow-x-auto pb-2">
                     {[
                       { value: 'all', label: 'Toutes' },
                       { value: 'new', label: 'Nouvelles' },
@@ -317,10 +345,10 @@ export function StockAlertsSystem({ isOpen, onClose }: StockAlertsSystemProps) {
                       <button
                         key={filter.value}
                         onClick={() => setFilterStatus(filter.value as typeof filterStatus)}
-                        className={`w-full text-left p-2 rounded-lg transition-colors ${
+                        className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium transition-colors ${
                           filterStatus === filter.value
                             ? 'bg-orange-500 text-white'
-                            : 'bg-white text-gray-700 hover:bg-orange-50'
+                            : 'bg-white text-gray-700'
                         }`}
                       >
                         {filter.label}
@@ -329,77 +357,42 @@ export function StockAlertsSystem({ isOpen, onClose }: StockAlertsSystemProps) {
                   </div>
                 </div>
 
-                {/* Actions rapides */}
-                {hasPermission('canManageInventory') && (
-                  <div>
-                    <h3 className="font-semibold text-gray-800 mb-3">Actions</h3>
-                    <div className="space-y-2">
-                      <EnhancedButton
-                        variant="primary"
-                        size="sm"
-                        onClick={exportOrderList}
-                        disabled={orderSuggestions.length === 0}
-                        icon={<Download size={16} />}
-                        className="w-full"
-                      >
-                        Export commande
-                      </EnhancedButton>
-                      <EnhancedButton
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setAlerts([])}
-                        className="w-full"
-                      >
-                        Tout effacer
-                      </EnhancedButton>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Contenu principal */}
-              <div className="flex-1 overflow-y-auto p-6">
-                {!showOrderSuggestions ? (
-                  /* Liste des alertes */
-                  <div className="space-y-4">
-                    {filteredAlerts.length === 0 ? (
+                {/* Contenu scrollable */}
+                <div className="flex-1 overflow-y-auto p-3">
+                  {!showOrderSuggestions ? (
+                    /* Liste des alertes */
+                    filteredAlerts.length === 0 ? (
                       <div className="text-center py-12">
                         <Bell size={48} className="text-gray-300 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-600 mb-2">Aucune alerte</h3>
                         <p className="text-gray-500">Toutes vos alertes apparaîtront ici</p>
                       </div>
                     ) : (
-                      filteredAlerts.map(alert => (
-                        <AlertCard
-                          key={alert.id}
-                          alert={alert}
-                          onMarkAsRead={() => markAsRead(alert.id)}
-                          onMarkAsResolved={() => markAsResolved(alert.id)}
-                          onDelete={() => deleteAlert(alert.id)}
-                        />
-                      ))
-                    )}
-                  </div>
-                ) : (
-                  /* Suggestions de commande */
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-gray-800">
-                        Suggestions de commande intelligentes
-                      </h3>
-                      <span className="text-sm text-gray-600">
-                        Total estimé: {formatPrice(stats.totalOrderValue)}
-                      </span>
-                    </div>
-                    
-                    {orderSuggestions.length === 0 ? (
+                      <div className="space-y-3">
+                        {filteredAlerts.map(alert => (
+                          <AlertCard
+                            key={alert.id}
+                            alert={alert}
+                            onMarkAsRead={() => markAsRead(alert.id)}
+                            onMarkAsResolved={() => markAsResolved(alert.id)}
+                            onDelete={() => deleteAlert(alert.id)}
+                          />
+                        ))}
+                      </div>
+                    )
+                  ) : (
+                    /* Suggestions de commande */
+                    orderSuggestions.length === 0 ? (
                       <div className="text-center py-12">
                         <ShoppingCart size={48} className="text-gray-300 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-600 mb-2">Aucune suggestion</h3>
                         <p className="text-gray-500">Tous vos stocks sont corrects</p>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <div className="space-y-3">
+                        <p className="text-sm text-gray-600 mb-2">
+                          Total estimé: <span className="font-bold text-orange-600">{formatPrice(stats.totalOrderValue)}</span>
+                        </p>
                         {orderSuggestions.map(suggestion => (
                           <OrderSuggestionCard
                             key={suggestion.productId}
@@ -408,11 +401,150 @@ export function StockAlertsSystem({ isOpen, onClose }: StockAlertsSystemProps) {
                           />
                         ))}
                       </div>
-                    )}
-                  </div>
-                )}
+                    )
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              /* ==================== VERSION DESKTOP ==================== */
+              <div className="flex h-[calc(85vh-120px)] md:h-[calc(90vh-120px)]">
+                {/* Sidebar stats */}
+                <div className="w-80 border-r border-orange-200 p-6 overflow-y-auto pb-20 md:pb-6">
+                  {/* Statistiques */}
+                  <div className="mb-6">
+                    <h3 className="font-semibold text-gray-800 mb-3">Vue d'ensemble</h3>
+                    <div className="space-y-3">
+                      <div className="bg-red-100 rounded-lg p-3">
+                        <p className="text-red-600 text-sm font-medium">Alertes critiques</p>
+                        <p className="text-red-800 font-bold text-lg">{stats.critical}</p>
+                      </div>
+                      <div className="bg-yellow-100 rounded-lg p-3">
+                        <p className="text-yellow-600 text-sm font-medium">Nouvelles alertes</p>
+                        <p className="text-yellow-800 font-bold text-lg">{stats.new}</p>
+                      </div>
+                      <div className="bg-blue-100 rounded-lg p-3">
+                        <p className="text-blue-600 text-sm font-medium">Total alertes</p>
+                        <p className="text-blue-800 font-bold text-lg">{stats.total}</p>
+                      </div>
+                      {orderSuggestions.length > 0 && (
+                        <div className="bg-green-100 rounded-lg p-3">
+                          <p className="text-green-600 text-sm font-medium">Valeur commande</p>
+                          <p className="text-green-800 font-bold text-lg">{formatPrice(stats.totalOrderValue)}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Filtres */}
+                  <div className="mb-6">
+                    <h3 className="font-semibold text-gray-800 mb-3">Filtres</h3>
+                    <div className="space-y-2">
+                      {[
+                        { value: 'all', label: 'Toutes' },
+                        { value: 'new', label: 'Nouvelles' },
+                        { value: 'read', label: 'Lues' },
+                        { value: 'resolved', label: 'Résolues' }
+                      ].map(filter => (
+                        <button
+                          key={filter.value}
+                          onClick={() => setFilterStatus(filter.value as typeof filterStatus)}
+                          className={`w-full text-left p-2 rounded-lg transition-colors ${
+                            filterStatus === filter.value
+                              ? 'bg-orange-500 text-white'
+                              : 'bg-white text-gray-700 hover:bg-orange-50'
+                          }`}
+                        >
+                          {filter.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Actions rapides */}
+                  {hasPermission('canManageInventory') && (
+                    <div>
+                      <h3 className="font-semibold text-gray-800 mb-3">Actions</h3>
+                      <div className="space-y-2">
+                        <EnhancedButton
+                          variant="primary"
+                          size="sm"
+                          onClick={exportOrderList}
+                          disabled={orderSuggestions.length === 0}
+                          icon={<Download size={16} />}
+                          className="w-full"
+                        >
+                          Export commande
+                        </EnhancedButton>
+                        <EnhancedButton
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setAlerts([])}
+                          className="w-full"
+                        >
+                          Tout effacer
+                        </EnhancedButton>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Contenu principal */}
+                <div className="flex-1 overflow-y-auto p-6">
+                  {!showOrderSuggestions ? (
+                    /* Liste des alertes */
+                    <div className="space-y-4">
+                      {filteredAlerts.length === 0 ? (
+                        <div className="text-center py-12">
+                          <Bell size={48} className="text-gray-300 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-600 mb-2">Aucune alerte</h3>
+                          <p className="text-gray-500">Toutes vos alertes apparaîtront ici</p>
+                        </div>
+                      ) : (
+                        filteredAlerts.map(alert => (
+                          <AlertCard
+                            key={alert.id}
+                            alert={alert}
+                            onMarkAsRead={() => markAsRead(alert.id)}
+                            onMarkAsResolved={() => markAsResolved(alert.id)}
+                            onDelete={() => deleteAlert(alert.id)}
+                          />
+                        ))
+                      )}
+                    </div>
+                  ) : (
+                    /* Suggestions de commande */
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-800">
+                          Suggestions de commande intelligentes
+                        </h3>
+                        <span className="text-sm text-gray-600">
+                          Total estimé: {formatPrice(stats.totalOrderValue)}
+                        </span>
+                      </div>
+
+                      {orderSuggestions.length === 0 ? (
+                        <div className="text-center py-12">
+                          <ShoppingCart size={48} className="text-gray-300 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium text-gray-600 mb-2">Aucune suggestion</h3>
+                          <p className="text-gray-500">Tous vos stocks sont corrects</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                          {orderSuggestions.map(suggestion => (
+                            <OrderSuggestionCard
+                              key={suggestion.productId}
+                              suggestion={suggestion}
+                              formatPrice={formatPrice}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </motion.div>
         </motion.div>
       )}

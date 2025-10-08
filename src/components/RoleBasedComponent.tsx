@@ -1,16 +1,12 @@
 import React from 'react';
-import { usePermissions } from '../hooks/usePermissions';
+import { useAuth } from '../context/AuthContext';
 import { UserRole, RolePermissions } from '../types';
 
 interface RoleBasedComponentProps {
   children: React.ReactNode;
-  // Option 1: Par rôle
   allowedRoles?: UserRole[];
-  // Option 2: Par permission
   requiredPermission?: keyof RolePermissions;
-  // Option 3: Fonction custom
   condition?: () => boolean;
-  // Fallback si pas autorisé
   fallback?: React.ReactNode;
 }
 
@@ -21,26 +17,21 @@ export function RoleBasedComponent({
   condition,
   fallback = null 
 }: RoleBasedComponentProps) {
-  const { getCurrentRole, canAccess } = usePermissions();
+  const { currentSession, hasPermission } = useAuth(); // Utilisation directe de useAuth
 
   const isAllowed = (): boolean => {
-    // Condition custom prioritaire
     if (condition) {
       return condition();
     }
     
-    // Vérification par permission
     if (requiredPermission) {
-      return canAccess(requiredPermission);
+      return hasPermission(requiredPermission);
     }
     
-    // Vérification par rôle
     if (allowedRoles) {
-      const currentRole = getCurrentRole();
-      return currentRole ? allowedRoles.includes(currentRole) : false;
+      return currentSession ? allowedRoles.includes(currentSession.role) : false;
     }
     
-    // Par défaut, autorisé
     return true;
   };
 

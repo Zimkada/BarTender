@@ -70,6 +70,12 @@ self.addEventListener('activate', (event) => {
 // Fetch - Stratégie cache intelligente
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+
+  // Ignorer les requêtes non-http(s) (ex: extensions chrome)
+  if (!request.url.startsWith('http')) {
+    return;
+  }
+
   const url = new URL(request.url);
 
   // Stratégie selon type de ressource
@@ -139,22 +145,28 @@ self.addEventListener('push', (event) => {
 
 // Cache First - Pour assets statiques
 async function cacheFirst(request) {
-  try {
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-      return cachedResponse;
-    }
+  // D'abord, on cherche dans le cache.
+  const cachedResponse = await caches.match(request);
+  if (cachedResponse) {
+    return cachedResponse;
+  }
 
+  // Si absent du cache, on tente le réseau.
+  try {
     const networkResponse = await fetch(request);
     if (networkResponse.ok) {
+      // Si la réponse est valide, on la met en cache pour la prochaine fois.
       const cache = await caches.open(STATIC_CACHE);
       cache.put(request, networkResponse.clone());
     }
-
     return networkResponse;
   } catch (error) {
-    console.error('[SW] Cache first failed:', error);
-    return new Response('Asset not available offline', { status: 408 });
+    // Si le fetch échoue (hors ligne), on retourne une erreur claire.
+    console.error(`[SW] Cache first failed for ${request.url}:`, error);
+    return new Response(`Asset not found: ${request.url}`, {
+      status: 404,
+      statusText: 'Not Found'
+    });
   }
 }
 

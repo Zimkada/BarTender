@@ -45,6 +45,9 @@ export interface BarSettings {
   currencySymbol: string;
   timezone?: string;
   language?: string;
+  businessDayCloseHour?: number; // Heure de clôture de la journée commerciale (0-23, défaut: 6h)
+  operatingMode?: 'full' | 'simplified'; // Mode de fonctionnement : complet (avec comptes serveurs) ou simplifié (gérant attribue)
+  serversList?: string[]; // Liste des serveurs (mode simplifié uniquement)
 }
 
 export interface BarMember {
@@ -89,6 +92,65 @@ export interface Supply {
   supplier: string;
   date: Date;
   totalCost: number;
+  createdBy: string; // Qui a enregistré l'approv
+}
+
+// ===== COMPTABILITÉ =====
+export type TransactionType =
+  | 'sale'           // Vente
+  | 'return'         // Retour
+  | 'supply'         // Approvisionnement
+  | 'expense'        // Dépense
+  | 'salary';        // Salaire
+
+export type ExpenseCategory =
+  | 'water'          // 💧 Eau
+  | 'electricity'    // ⚡ Électricité
+  | 'maintenance'    // 🔧 Entretien/Réparations
+  | 'custom';        // Personnalisée
+
+export interface ExpenseCategoryCustom {
+  id: string;
+  barId: string;
+  name: string;
+  icon?: string;
+  createdAt: Date;
+  createdBy: string;
+}
+
+export interface Expense {
+  id: string;
+  barId: string;
+  amount: number;
+  category: ExpenseCategory;
+  customCategoryId?: string; // Si category === 'custom'
+  date: Date;
+  notes?: string;
+  createdBy: string;
+  createdAt: Date;
+}
+
+export interface Salary {
+  id: string;
+  barId: string;
+  memberId: string;     // Lié à BarMember
+  amount: number;
+  period: string;       // 'YYYY-MM' (ex: '2025-01')
+  paidAt: Date;
+  createdBy: string;
+  createdAt: Date;
+}
+
+export interface AccountingTransaction {
+  id: string;
+  barId: string;
+  type: TransactionType;
+  amount: number;       // Positif = entrée, Négatif = sortie
+  date: Date;
+  referenceId?: string; // ID de la vente/retour/approv/dépense/salaire
+  description: string;
+  createdBy: string;
+  createdAt: Date;
 }
 
 // ===== VENTES & COMMANDES =====
@@ -119,7 +181,43 @@ export interface Sale {
   currency: string;
   date: Date;
   orderId?: string;
-  processedBy: string;
+  processedBy: string; // Qui a enregistré la vente (userId)
+  assignedTo?: string; // En mode simplifié : nom du serveur qui a servi (ex: "Marie")
+}
+
+// ===== RETOURS =====
+export type ReturnReason = 'defective' | 'wrong_item' | 'customer_change' | 'expired' | 'other';
+
+export interface ReturnReasonConfig {
+  label: string;
+  color: string;
+  autoRestock: boolean; // Remise en stock automatique ?
+  autoRefund: boolean; // Remboursement automatique ?
+}
+
+export interface Return {
+  id: string;
+  barId: string; // ✅ Multi-tenant
+  saleId: string;
+  productId: string;
+  productName: string;
+  productVolume: string;
+  quantitySold: number;
+  quantityReturned: number;
+  reason: ReturnReason;
+  returnedBy: string; // userId
+  returnedAt: Date;
+  refundAmount: number;
+  isRefunded: boolean; // ✅ Le client a-t-il été remboursé ?
+  status: 'pending' | 'approved' | 'rejected' | 'restocked';
+  autoRestock: boolean;
+  manualRestockRequired: boolean;
+  restockedAt?: Date;
+  notes?: string;
+
+  // ✅ NOUVEAU : Choix custom pour motif "other"
+  customRefund?: boolean;   // Décision manuelle gérant : rembourser ?
+  customRestock?: boolean;  // Décision manuelle gérant : remettre en stock ?
 }
 
 // ===== PERMISSIONS =====
@@ -128,30 +226,35 @@ export interface RolePermissions {
   canManageUsers: boolean;
   canCreateManagers: boolean;
   canCreateServers: boolean;
-  
+
   // Gestion produits
   canAddProducts: boolean;
   canEditProducts: boolean;
   canDeleteProducts: boolean;
-  
+
   // Gestion inventaire
   canManageInventory: boolean;
   canViewInventory: boolean;
-  
+
   // Ventes
   canSell: boolean;
   canCancelSales: boolean;
   canViewAllSales: boolean;
   canViewOwnSales: boolean;
-  
+
   // Analytics
   canViewAnalytics: boolean;
   canExportData: boolean;
-  
+
+  // Comptabilité
+  canViewAccounting: boolean;
+  canManageExpenses: boolean;
+  canManageSalaries: boolean;
+
   // Paramètres
   canManageSettings: boolean;
   canManageBarInfo: boolean;
-  
+
   // Multi-bar
   canCreateBars: boolean;
   canSwitchBars: boolean;
@@ -173,6 +276,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewOwnSales: true,
     canViewAnalytics: true,
     canExportData: true,
+    canViewAccounting: true,
+    canManageExpenses: true,
+    canManageSalaries: true,
     canManageSettings: true,
     canManageBarInfo: true,
     canCreateBars: true,
@@ -193,6 +299,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewOwnSales: true,
     canViewAnalytics: true,
     canExportData: true,
+    canViewAccounting: false,
+    canManageExpenses: false,
+    canManageSalaries: false,
     canManageSettings: false,
     canManageBarInfo: false,
     canCreateBars: false,
@@ -213,11 +322,13 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewOwnSales: true,
     canViewAnalytics: false,
     canExportData: false,
+    canViewAccounting: false,
+    canManageExpenses: false,
+    canManageSalaries: false,
     canManageSettings: false,
     canManageBarInfo: false,
     canCreateBars: false,
     canSwitchBars: false,
-    
   }
 };
 

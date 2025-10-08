@@ -46,6 +46,7 @@ export function MobileNavigation({
   }
 
   // Navigation adaptée par rôle (mobile-first Bénin)
+  // Couleurs harmonisées: Orange monochrome professionnel
   const allNavItems: NavItem[] = [
     {
       icon: <Zap size={24} />,
@@ -56,37 +57,37 @@ export function MobileNavigation({
     },
     {
       icon: <BarChart3 size={24} />,
-      label: 'Ventes',
+      label: 'Historique',
       onClick: onShowSales,
-      color: 'text-green-600',
+      color: 'text-orange-600',
       roles: ['gerant', 'promoteur'] // Pas serveurs
     },
     {
       icon: <Package size={24} />,
       label: 'Stock',
       onClick: onShowInventory,
-      color: 'text-blue-600',
+      color: 'text-orange-600',
       roles: ['gerant', 'promoteur'] // Pas serveurs
     },
     {
       icon: <AlertTriangle size={24} />,
       label: 'Alertes',
       onClick: onShowStockAlerts,
-      color: 'text-red-600',
+      color: 'text-orange-600',
       roles: ['gerant', 'promoteur'] // Pas serveurs
     },
     {
       icon: <RotateCcw size={24} />,
       label: 'Retours',
       onClick: onShowReturns,
-      color: 'text-purple-600',
+      color: 'text-orange-600',
       roles: ['gerant', 'promoteur'] // Pas serveurs
     },
     {
       icon: <FileSpreadsheet size={24} />,
       label: 'Excel',
       onClick: onShowExcel,
-      color: 'text-indigo-600',
+      color: 'text-orange-600',
       roles: ['gerant', 'promoteur'] // Pas serveurs
     }
   ];

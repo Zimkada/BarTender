@@ -4,13 +4,14 @@ import { Supply } from '../types';
 export function useSupplies() {
   const [supplies, setSupplies] = useLocalStorage<Supply[]>('bar-supplies', []);
 
-  const addSupply = (supply: Omit<Supply, 'id' | 'date' | 'totalCost'>) => {
+  const addSupply = (supply: Omit<Supply, 'id' | 'date' | 'totalCost' | 'createdBy'>, createdBy: string) => {
     const totalCost = (supply.quantity / supply.lotSize) * supply.lotPrice;
     const newSupply: Supply = {
       ...supply,
       id: Date.now().toString(),
       date: new Date(),
       totalCost,
+      createdBy, // Qui a enregistré l'approv
     };
     setSupplies([newSupply, ...supplies]);
     return newSupply;

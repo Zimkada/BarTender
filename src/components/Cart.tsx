@@ -1,10 +1,12 @@
-import React from 'react';
-import { ShoppingCart, Plus, Minus, Trash2, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { ShoppingCart, Plus, Minus, Trash2, X, Users } from 'lucide-react';
 import { CartItem } from '../types';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
 import { useViewport } from '../hooks/useViewport';
+import { useBarContext } from '../context/BarContext';
+import { useAuth } from '../context/AuthContext';
 
 interface CartProps {
   items: CartItem[];
@@ -12,8 +14,9 @@ interface CartProps {
   onToggle: () => void;
   onUpdateQuantity: (productId: string, quantity: number) => void;
   onRemoveItem: (productId: string) => void;
-  onCheckout: () => void;
+  onCheckout: (assignedTo?: string) => void;
   onClear: () => void;
+  hideFloatingButton?: boolean; // Masquer le bouton quand QuickSale est ouvert
 }
 
 export function Cart({
@@ -23,33 +26,41 @@ export function Cart({
   onUpdateQuantity,
   onRemoveItem,
   onCheckout,
-  onClear
+  onClear,
+  hideFloatingButton = false
 }: CartProps) {
   const formatPrice = useCurrencyFormatter();
   const { setLoading, isLoading, showSuccess, cartCleared } = useFeedback();
   const { isMobile } = useViewport();
+  const { currentBar } = useBarContext();
+  const { currentSession } = useAuth();
   const total = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  const [selectedServer, setSelectedServer] = useState<string>('');
+  const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
 
   // ==================== VERSION MOBILE (99% utilisateurs Bénin) ====================
   if (isMobile) {
     return (
       <>
-        {/* Bouton panier flottant (toujours visible) */}
-        <button
-          onClick={onToggle}
-          className="fixed bottom-20 right-4 z-50 w-16 h-16 bg-orange-500 text-white rounded-full shadow-2xl active:scale-95 transition-transform flex items-center justify-center"
-          aria-label="Panier"
-        >
-          <div className="relative">
-            <ShoppingCart size={28} strokeWidth={2.5} />
-            {totalItems > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
-                {totalItems}
-              </span>
-            )}
-          </div>
-        </button>
+        {/* Bouton panier flottant - Masqué quand QuickSale est ouvert */}
+        {!hideFloatingButton && (
+          <button
+            onClick={onToggle}
+            className="fixed bottom-20 right-4 z-50 w-16 h-16 bg-orange-500 text-white rounded-full shadow-2xl active:scale-95 transition-transform flex items-center justify-center"
+            aria-label="Panier"
+          >
+            <div className="relative">
+              <ShoppingCart size={28} strokeWidth={2.5} />
+              {totalItems > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                  {totalItems}
+                </span>
+              )}
+            </div>
+          </button>
+        )}
 
         {/* Modal panier FULL-SCREEN Android natif */}
         {isOpen && (
@@ -139,6 +150,31 @@ export function Cart({
             {/* Footer fixe sticky - TOUJOURS VISIBLE */}
             {items.length > 0 && (
               <div className="flex-shrink-0 sticky bottom-0 bg-white border-t border-gray-200 px-4 py-4 shadow-lg">
+                {/* Sélecteur serveur (mode simplifié uniquement) */}
+                {isSimplifiedMode && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                      <Users size={16} className="text-orange-500" />
+                      Serveur qui a servi
+                    </label>
+                    <select
+                      value={selectedServer}
+                      onChange={(e) => setSelectedServer(e.target.value)}
+                      className="w-full px-4 py-3 border border-orange-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-base"
+                    >
+                      <option value="">Sélectionner un serveur...</option>
+                      <option value={`Moi (${currentSession?.userName})`}>
+                        Moi ({currentSession?.userName})
+                      </option>
+                      {currentBar?.settings?.serversList?.map((serverName) => (
+                        <option key={serverName} value={serverName}>
+                          {serverName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {/* Total */}
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-gray-900 text-lg font-semibold">Total:</span>
@@ -151,8 +187,13 @@ export function Cart({
                 <div className="flex gap-3">
                   <button
                     onClick={async () => {
+                      if (isSimplifiedMode && !selectedServer) {
+                        alert('Veuillez sélectionner le serveur qui a effectué la vente');
+                        return;
+                      }
                       setLoading('checkout', true);
-                      await onCheckout();
+                      await onCheckout(isSimplifiedMode ? selectedServer : undefined);
+                      setSelectedServer(''); // Reset
                       showSuccess('🎉 Vente finalisée !');
                       setLoading('checkout', false);
                     }}
@@ -287,6 +328,31 @@ export function Cart({
           {/* Footer */}
           {items.length > 0 && (
             <div className="p-4 border-t border-orange-200 space-y-3">
+              {/* Sélecteur serveur (mode simplifié uniquement) */}
+              {isSimplifiedMode && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5 flex items-center gap-1">
+                    <Users size={14} className="text-orange-500" />
+                    Serveur
+                  </label>
+                  <select
+                    value={selectedServer}
+                    onChange={(e) => setSelectedServer(e.target.value)}
+                    className="w-full px-3 py-2 border border-orange-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                  >
+                    <option value="">Sélectionner...</option>
+                    <option value={`Moi (${currentSession?.userName})`}>
+                      Moi ({currentSession?.userName})
+                    </option>
+                    {currentBar?.settings?.serversList?.map((serverName) => (
+                      <option key={serverName} value={serverName}>
+                        {serverName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="flex justify-between items-center">
                 <span className="text-gray-800 text-lg font-semibold">Total:</span>
                 <span className="text-orange-600 text-2xl font-bold font-mono">
@@ -297,8 +363,13 @@ export function Cart({
               <div className="flex gap-2">
                 <EnhancedButton
                   onClick={async () => {
+                    if (isSimplifiedMode && !selectedServer) {
+                      alert('Veuillez sélectionner le serveur qui a effectué la vente');
+                      return;
+                    }
                     setLoading('checkout', true);
-                    await onCheckout();
+                    await onCheckout(isSimplifiedMode ? selectedServer : undefined);
+                    setSelectedServer(''); // Reset
                     showSuccess('🎉 Vente finalisée !');
                     setLoading('checkout', false);
                   }}

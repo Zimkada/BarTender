@@ -12,7 +12,9 @@ import {
   RotateCcw,
   Zap,
   AlertTriangle,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Menu,
+  Calendar // Ajout de Calendar
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
@@ -38,6 +40,8 @@ interface HeaderProps {
   onShowReturns: () => void;
   onShowQuickSale: () => void;
   onShowStockAlerts?: () => void;
+  onToggleMobileSidebar?: () => void;
+  onShowAccounting?: () => void;
 }
 
 export function Header({
@@ -51,7 +55,9 @@ export function Header({
   onShowExcel,
   onShowReturns,
   onShowQuickSale,
-  onShowStockAlerts = () => {}
+  onShowStockAlerts = () => {},
+  onToggleMobileSidebar = () => {},
+  onShowAccounting = () => {}
 }: HeaderProps) {
   const { getTodayTotal } = useAppContext();
   const formatPrice = useCurrencyFormatter();
@@ -85,28 +91,35 @@ export function Header({
     return (
       <header className="bg-gradient-to-r from-yellow-400 to-amber-400 shadow-lg sticky top-0 z-50">
         <div className="px-3 py-2">
-          {/* Ligne 1: Identité + Indicateurs + Actions rapides */}
-          <div className="flex items-center justify-between mb-2">
-            {/* Logo + Nom bar + Indicateurs */}
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <h1 className="text-base font-bold text-white truncate">
+          {/* Ligne 1: Hamburger + Logo + Actions */}
+          <div className="flex items-center gap-2 mb-2">
+            {/* Bouton Menu Hamburger */}
+            <button
+              onClick={onToggleMobileSidebar}
+              className="p-1.5 bg-white/20 rounded-lg text-white active:scale-95 transition-transform flex-shrink-0"
+              aria-label="Menu"
+            >
+              <Menu size={18} />
+            </button>
+
+            {/* Logo + Nom bar */}
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              <h1 className="text-sm font-bold text-white truncate">
                 🍺 {currentBar?.name || 'BarTender'}
               </h1>
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <OfflineIndicator />
-                <NetworkIndicator />
-              </div>
             </div>
 
-            {/* Actions critiques */}
-            <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Indicateurs + Actions (compacts) */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <OfflineIndicator />
+              <NetworkIndicator />
               <SyncButton />
               <button
                 onClick={logout}
-                className="p-2 bg-red-500/80 rounded-lg text-white active:scale-95 transition-transform touch-target"
+                className="p-1.5 bg-red-500/80 rounded-lg text-white active:scale-95 transition-transform"
                 aria-label="Déconnexion"
               >
-                <LogOut size={18} />
+                <LogOut size={16} />
               </button>
             </div>
           </div>
@@ -219,7 +232,7 @@ export function Header({
                 className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
                 title="Point du jour"
               >
-                <DollarSign size={20} />
+                <Calendar size={20} />
               </button>
 
               {/* Historique ventes */}
@@ -285,6 +298,17 @@ export function Header({
                   title="Paramètres"
                 >
                   <Settings size={20} />
+                </button>
+              </RoleBasedComponent>
+
+              {/* Comptabilité */}
+              <RoleBasedComponent requiredPermission="canViewAccounting">
+                <button
+                  onClick={onShowAccounting}
+                  className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
+                  title="Comptabilité"
+                >
+                  <DollarSign size={20} />
                 </button>
               </RoleBasedComponent>
 
