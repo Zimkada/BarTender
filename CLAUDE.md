@@ -919,6 +919,117 @@ Voir section [Consignments System (Système de Consignes)](#consignments-system-
 
 ---
 
+### Session 4 - Consignment Analytics & Export
+
+**Status:** ✅ **COMPLÉTÉ**
+
+Voir section [Consignments System (Système de Consignes)](#consignments-system-système-de-consignes) pour les détails complets de l'implémentation de base (Session 3).
+
+**Résumé Session 4:**
+- ✅ Analytics consignations dans SalesHistory.tsx
+- ✅ Section dédiée consignations dans vue Analytics
+- ✅ Export unifié ventes + retours + consignations
+- ✅ Statistiques avancées (taux récupération, valeurs, etc.)
+
+#### ✅ Phase A: Consignment Analytics (COMPLETED)
+
+**Objectif:** Afficher statistiques consignations dans Analytics
+
+**Fichiers modifiés:**
+- [src/components/SalesHistory.tsx](src/components/SalesHistory.tsx) - Lignes 163-219, 1347-1377, 1798-1854
+
+**Implémentation:**
+
+1. ✅ **Filtrage consignations par période** (lignes 163-219)
+   ```typescript
+   const filteredConsignments = useMemo(() => {
+     // Filtrage identique aux ventes (today/week/month/custom)
+     // Business day aware pour "today"
+   }, [consignments, timeFilter, customDateRange, closeHour]);
+   ```
+
+2. ✅ **Calcul statistiques consignations** (lignes 1347-1377)
+   ```typescript
+   const consignmentStats = useMemo(() => ({
+     total: filteredConsignments.length,
+     active: activeConsignments.length,
+     claimed: claimedConsignments.length,
+     expired: expiredConsignments.length,
+     forfeited: forfeitedConsignments.length,
+     activeValue, claimedValue, totalValue,
+     totalQuantity, claimedQuantity,
+     claimRate: (claimed / total) * 100
+   }), [filteredConsignments]);
+   ```
+
+3. ✅ **Section Analytics dédiée** (lignes 1798-1854)
+   - Grid 5 cartes : Total, Actives, Récupérées, Expirées, Confisquées
+   - Taux de récupération avec barre de progression
+   - Design gradient indigo/purple cohérent
+   - Affichage conditionnel si consignations > 0
+
+4. ✅ **Props AnalyticsView** (ligne 1276)
+   - Ajout `filteredConsignments: any[]` aux props
+   - Passage aux deux appels AnalyticsView (lignes 718, 1028)
+
+**Résultat:**
+- ✅ Widget visuel statistiques consignations dans Analytics
+- ✅ Filtrage période identique aux ventes/retours
+- ✅ KPIs clés : taux récupération, valeurs totales, statuts
+- ✅ Design cohérent avec le reste de l'interface
+
+#### ✅ Phase B: Consignment Export (COMPLETED)
+
+**Objectif:** Inclure consignations dans export Excel/CSV
+
+**Fichier modifié:**
+- [src/components/SalesHistory.tsx](src/components/SalesHistory.tsx) - Lignes 454-506
+
+**Implémentation:**
+
+1. ✅ **Ajout consignations après retours** (ligne 454)
+   ```typescript
+   // 3. Ajouter toutes les consignations de la période filtrée
+   filteredConsignments.forEach(consignment => {
+     const product = products.find(p => p.id === consignment.productId);
+     // ...
+     exportData.push({
+       'Type': 'Consignation',
+       'Statut': statusLabel, // Active/Récupérée/Expirée/Confisquée
+       'Client': consignment.customerName,
+       'Expiration': new Date(consignment.expiresAt).toLocaleDateString('fr-FR'),
+       // + tous les champs standard (Date, Heure, ID, Produit, etc.)
+     });
+   });
+   ```
+
+2. ✅ **Nouvelles colonnes export**
+   - `Type` : Vente | Retour | **Consignation**
+   - `Statut` : Active | Récupérée | Expirée | Confisquée
+   - `Client` : Nom du client (consignations uniquement)
+   - `Expiration` : Date d'expiration (consignations uniquement)
+
+3. ✅ **Tri chronologique unifié**
+   - Tri décroissant par date/heure après ajout des 3 types
+   - Ventes + Retours + Consignations dans un seul fichier
+
+**Résultat:**
+- ✅ Export unique Excel/CSV avec colonnes Type, Statut, Client, Expiration
+- ✅ Consignations filtrées selon même période que ventes/retours
+- ✅ Fichier complet pour analyse business (BI tools, Excel pivot, etc.)
+
+**Cas d'usage:**
+```
+Export "Aujourd'hui" contient :
+- 45 Ventes
+- 3 Retours
+- 8 Consignations (5 actives, 2 récupérées, 1 expirée)
+
+Total : 56 lignes dans le fichier Excel
+```
+
+---
+
 ### Future Sessions
 
 #### 📦 Consignment System Enhancements (Priorité moyenne)
@@ -927,11 +1038,12 @@ Voir section [Consignments System (Système de Consignes)](#consignments-system-
 **Fonctionnalités à ajouter:**
 - Notifications SMS/WhatsApp rappel expiration (J-1)
 - QR Code unique par consignation (scan récupération)
-- Statistiques consignations dans Analytics
-- Export consignations dans historique ventes
+- ✅ ~~Statistiques consignations dans Analytics~~ (Session 4)
+- ✅ ~~Export consignations dans historique ventes~~ (Session 4)
 - Intégration comptabilité (suivi valeur immobilisée)
 - Recherche avancée (par client, produit, date)
 - Badges "Client fidèle" (X consignations récupérées)
+- Graphique évolution consignations (LineChart temporel)
 
 #### 📊 Accounting Enhancements (Après Consignment)
 **Objectifs:**
@@ -959,4 +1071,4 @@ Voir section [Consignments System (Système de Consignes)](#consignments-system-
 
 ---
 
-*Last updated: 10 Oct 2025 - Session 1, 2 & 3 Complete (Retours + Comptabilité + Consignations)*
+*Last updated: 10 Oct 2025 - Session 1, 2, 3 & 4 Complete (Retours + Comptabilité + Consignations + Analytics/Export)*

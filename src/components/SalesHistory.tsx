@@ -16,6 +16,7 @@ import {
   ArrowDown,
   Minus,
   RotateCcw,
+  Archive,
   //ChevronDown
 } from 'lucide-react';
 import {
@@ -42,6 +43,7 @@ import { useViewport } from '../hooks/useViewport';
 import { EnhancedButton } from './EnhancedButton';
 import { Sale, Category, Product, User, BarMember, Return } from '../types';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
+import { useConsignments } from '../hooks/useConsignments';
 
 interface EnhancedSalesHistoryProps {
   isOpen: boolean;
@@ -57,6 +59,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
   const formatPrice = useCurrencyFormatter();
   const { currentSession, users } = useAuth();
   const { isMobile } = useViewport();
+  const { consignments, getActiveConsignments } = useConsignments();
 
   // Récupérer l'heure de clôture (défaut: 6h)
   const closeHour = currentBar?.settings?.businessDayCloseHour ?? 6;
@@ -156,6 +159,65 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
 
     return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [sales, timeFilter, searchTerm, customDateRange, currentSession, closeHour]);
+
+  // Filtrage des consignations par période
+  const filteredConsignments = useMemo(() => {
+    let filtered = consignments;
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    switch (timeFilter) {
+      case 'today': {
+        const currentBusinessDay = getCurrentBusinessDay(closeHour);
+        filtered = consignments.filter(c => {
+          const consignDate = new Date(c.createdAt);
+          const consignBusinessDay = getBusinessDay(consignDate, closeHour);
+          return isSameDay(consignBusinessDay, currentBusinessDay);
+        });
+        break;
+      }
+      case 'week': {
+        const currentDay = today.getDay();
+        const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
+        const monday = new Date();
+        monday.setDate(monday.getDate() - daysFromMonday);
+        monday.setHours(0, 0, 0, 0);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        sunday.setHours(23, 59, 59, 999);
+        filtered = consignments.filter(c => {
+          const consignDate = new Date(c.createdAt);
+          return consignDate >= monday && consignDate <= sunday;
+        });
+        break;
+      }
+      case 'month': {
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        firstDay.setHours(0, 0, 0, 0);
+        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        lastDay.setHours(23, 59, 59, 999);
+        filtered = consignments.filter(c => {
+          const consignDate = new Date(c.createdAt);
+          return consignDate >= firstDay && consignDate <= lastDay;
+        });
+        break;
+      }
+      case 'custom': {
+        const startDate = new Date(customDateRange.start);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(customDateRange.end);
+        endDate.setDate(endDate.getDate() + 1);
+        filtered = consignments.filter(c => {
+          const consignDate = new Date(c.createdAt);
+          return consignDate >= startDate && consignDate < endDate;
+        });
+        break;
+      }
+    }
+
+    return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [consignments, timeFilter, customDateRange, closeHour]);
 
   // Statistiques
   const stats = useMemo(() => {
@@ -386,6 +448,60 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
         'Utilisateur': utilisateur,
         'Rôle': role,
         'Devise': 'XOF'
+      });
+    });
+
+    // 3. Ajouter toutes les consignations de la période filtrée
+    filteredConsignments.forEach(consignment => {
+      const product = products.find(p => p.id === consignment.productId);
+      if (!product) {
+        console.warn('⚠️ Consignation sans produit ignoré:', consignment.id);
+        return;
+      }
+
+      const user = safeUsers.find(u => u.id === consignment.createdBy);
+      const member = safeBarMembers.find(m => m.userId === user?.id);
+      const utilisateur = user?.name || 'Inconnu';
+      const role = member?.role || user?.role || 'serveur';
+
+      const category = categories.find(c => c.id === product.categoryId);
+
+      // Déterminer le statut pour affichage
+      let statusLabel = '';
+      switch (consignment.status) {
+        case 'active':
+          statusLabel = 'Active';
+          break;
+        case 'claimed':
+          statusLabel = 'Récupérée';
+          break;
+        case 'expired':
+          statusLabel = 'Expirée';
+          break;
+        case 'forfeited':
+          statusLabel = 'Confisquée';
+          break;
+      }
+
+      exportData.push({
+        'Type': 'Consignation',
+        'Date': new Date(consignment.createdAt).toLocaleDateString('fr-FR'),
+        'Heure': new Date(consignment.createdAt).toLocaleTimeString('fr-FR'),
+        'ID Transaction': consignment.id.slice(-6),
+        'Produit': product.name,
+        'Catégorie': category?.name || 'Non classé',
+        'Volume': product.volume || '',
+        'Quantité': consignment.quantity,
+        'Prix unitaire': product.price,
+        'Coût unitaire': 0, // Les produits n'ont pas de coût dans le modèle actuel
+        'Total': consignment.totalAmount,
+        'Bénéfice': 0, // Consignations = pas de bénéfice immédiat
+        'Utilisateur': utilisateur,
+        'Rôle': role,
+        'Devise': 'XOF',
+        'Statut': statusLabel,
+        'Client': consignment.customerName || '',
+        'Expiration': new Date(consignment.expiresAt).toLocaleDateString('fr-FR')
       });
     });
 
@@ -653,6 +769,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                       isMobile={isMobile}
                       returns={returns}
                       closeHour={closeHour}
+                      filteredConsignments={filteredConsignments}
                     />
                   )}
                 </div>
@@ -962,6 +1079,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                           isMobile={isMobile}
                           returns={returns}
                           closeHour={closeHour}
+                          filteredConsignments={filteredConsignments}
                         />
                       );
                     })()}
@@ -1197,7 +1315,8 @@ function AnalyticsView({
   timeFilter,
   isMobile,
   returns,
-  closeHour
+  closeHour,
+  filteredConsignments
 }: {
   sales: Sale[];
   stats: Stats;
@@ -1210,6 +1329,7 @@ function AnalyticsView({
   isMobile: boolean;
   returns: Return[];
   closeHour: number;
+  filteredConsignments: any[];
 }) {
   // Protection: s'assurer que tous les tableaux sont définis
   const safeUsers = users || [];
@@ -1282,6 +1402,38 @@ function AnalyticsView({
       items: { value: stats.totalItems, change: itemsChange }
     };
   }, [sales, stats, previousPeriodSales]);
+
+  // Statistiques consignations
+  const consignmentStats = useMemo(() => {
+    const activeConsignments = filteredConsignments.filter(c => c.status === 'active');
+    const claimedConsignments = filteredConsignments.filter(c => c.status === 'claimed');
+    const expiredConsignments = filteredConsignments.filter(c => c.status === 'expired');
+    const forfeitedConsignments = filteredConsignments.filter(c => c.status === 'forfeited');
+
+    const activeValue = activeConsignments.reduce((sum, c) => sum + c.totalAmount, 0);
+    const claimedValue = claimedConsignments.reduce((sum, c) => sum + c.totalAmount, 0);
+    const totalValue = filteredConsignments.reduce((sum, c) => sum + c.totalAmount, 0);
+
+    const totalQuantity = filteredConsignments.reduce((sum, c) => sum + c.quantity, 0);
+    const claimedQuantity = claimedConsignments.reduce((sum, c) => sum + c.quantity, 0);
+    const claimRate = filteredConsignments.length > 0
+      ? (claimedConsignments.length / filteredConsignments.length) * 100
+      : 0;
+
+    return {
+      total: filteredConsignments.length,
+      active: activeConsignments.length,
+      claimed: claimedConsignments.length,
+      expired: expiredConsignments.length,
+      forfeited: forfeitedConsignments.length,
+      activeValue,
+      claimedValue,
+      totalValue,
+      totalQuantity,
+      claimedQuantity,
+      claimRate
+    };
+  }, [filteredConsignments]);
 
   // Données pour graphique d'évolution - granularité adaptative
   const evolutionChartData = useMemo(() => {
@@ -1696,6 +1848,64 @@ function AnalyticsView({
           </ResponsiveContainer>
         </div>
       </div>
+
+      {/* Section Consignations */}
+      {consignmentStats.total > 0 && (
+        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-200">
+          <div className="flex items-center gap-2 mb-3">
+            <Archive className="w-5 h-5 text-indigo-600" />
+            <h4 className="text-sm font-semibold text-gray-800">Consignations</h4>
+          </div>
+
+          {/* Stats grid */}
+          <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-5'} gap-3 mb-3`}>
+            <div className="bg-white rounded-lg p-3 border border-indigo-100">
+              <p className="text-xs text-gray-600 mb-1">Total</p>
+              <p className="text-lg font-bold text-indigo-900">{consignmentStats.total}</p>
+              <p className="text-xs text-gray-500 mt-1">{formatPrice(consignmentStats.totalValue)}</p>
+            </div>
+
+            <div className="bg-white rounded-lg p-3 border border-blue-100">
+              <p className="text-xs text-gray-600 mb-1">Actives</p>
+              <p className="text-lg font-bold text-blue-900">{consignmentStats.active}</p>
+              <p className="text-xs text-gray-500 mt-1">{formatPrice(consignmentStats.activeValue)}</p>
+            </div>
+
+            <div className="bg-white rounded-lg p-3 border border-green-100">
+              <p className="text-xs text-gray-600 mb-1">Récupérées</p>
+              <p className="text-lg font-bold text-green-900">{consignmentStats.claimed}</p>
+              <p className="text-xs text-gray-500 mt-1">{formatPrice(consignmentStats.claimedValue)}</p>
+            </div>
+
+            <div className="bg-white rounded-lg p-3 border border-orange-100">
+              <p className="text-xs text-gray-600 mb-1">Expirées</p>
+              <p className="text-lg font-bold text-orange-900">{consignmentStats.expired}</p>
+            </div>
+
+            <div className="bg-white rounded-lg p-3 border border-red-100">
+              <p className="text-xs text-gray-600 mb-1">Confisquées</p>
+              <p className="text-lg font-bold text-red-900">{consignmentStats.forfeited}</p>
+            </div>
+          </div>
+
+          {/* Taux de récupération */}
+          <div className="bg-white rounded-lg p-3 border border-indigo-100">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-gray-700">Taux de récupération</span>
+              <span className="text-sm font-bold text-indigo-900">{consignmentStats.claimRate.toFixed(1)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${Math.min(consignmentStats.claimRate, 100)}%` }}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              {consignmentStats.claimedQuantity} articles sur {consignmentStats.totalQuantity} récupérés
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Performance équipe */}
       <div className="bg-white rounded-xl p-4 border border-orange-100">
