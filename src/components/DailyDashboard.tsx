@@ -12,11 +12,13 @@ import {
   //ArrowDown,
   Eye,
   EyeOff,
-  RotateCcw
+  RotateCcw,
+  Archive
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import { useConsignments } from '../hooks/useConsignments';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
@@ -36,6 +38,7 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
     getLowStockProducts,
     returns
   } = useAppContext();
+  const { getActiveConsignments } = useConsignments();
   const formatPrice = useCurrencyFormatter();
   const { currentSession } = useAuth();
   const { showSuccess, showError, setLoading, isLoading } = useFeedback();
@@ -78,6 +81,11 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
   const todayReturnsRefunded = todayReturns
     .filter(r => r.isRefunded && (r.status === 'approved' || r.status === 'restocked'))
     .reduce((sum, r) => sum + r.refundAmount, 0);
+
+  // Statistiques des consignations actives
+  const activeConsignments = getActiveConsignments();
+  const activeConsignmentsCount = activeConsignments.length;
+  const activeConsignmentsValue = activeConsignments.reduce((sum, c) => sum + c.totalAmount, 0);
   const todayReturnsPending = todayReturns.filter(r => r.status === 'pending').length;
 
   // Export WhatsApp
@@ -281,6 +289,31 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
                   {todayReturnsRefunded > 0 && (
                     <p className="text-xs text-red-600 font-medium">
                       -{formatPrice(todayReturnsRefunded).replace(/\s/g, '')}
+                    </p>
+                  )}
+                </div>
+              </motion.div>
+
+              {/* Consignations */}
+              <motion.div
+                whileHover={{ y: -2 }}
+                className="bg-gradient-to-br from-indigo-100 to-purple-100 rounded-xl p-4 border border-indigo-200"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <Archive className="w-8 h-8 text-indigo-600" />
+                  <span className="text-indigo-600 text-sm font-medium">Consignations</span>
+                </div>
+                <AnimatedCounter
+                  value={activeConsignmentsCount}
+                  className="text-2xl font-bold text-gray-800"
+                />
+                <div className="flex items-center justify-between mt-1">
+                  <p className="text-xs text-gray-600">
+                    {activeConsignmentsCount > 0 ? `actives` : `aucune`}
+                  </p>
+                  {activeConsignmentsValue > 0 && (
+                    <p className="text-xs text-indigo-600 font-medium">
+                      {formatPrice(activeConsignmentsValue).replace(/\s/g, '')}
                     </p>
                   )}
                 </div>

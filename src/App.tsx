@@ -28,6 +28,7 @@ import { StockAlertsSystem } from './components/StockAlertsSystem';
 import { MobileNavigation } from './components/MobileNavigation';
 import { MobileSidebar } from './components/MobileSidebar';
 import { Accounting } from './components/Accounting';
+import { ConsignmentSystem } from './components/ConsignmentSystem';
 import { useNetworkOptimization } from './hooks/useNetworkOptimization';
 import { useViewport } from './hooks/useViewport';
 
@@ -66,6 +67,7 @@ function AppContent() {
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [currentMenu, setCurrentMenu] = useState('home');
   const [showAccounting, setShowAccounting] = useState(false);
+  const [showConsignment, setShowConsignment] = useState(false);
 
 
   useEffect(() => {
@@ -222,6 +224,7 @@ function AppContent() {
         onShowQuickSale={() => setShowQuickSale(true)}
         onShowStockAlerts={() => setShowStockAlerts(true)}
         onShowAccounting={() => setShowAccounting(true)}
+        onShowConsignment={() => setShowConsignment(true)}
         onToggleMobileSidebar={() => setShowMobileSidebar(!showMobileSidebar)}
       />
       
@@ -361,6 +364,13 @@ function AppContent() {
         <Accounting
           isOpen={showAccounting}
           onClose={() => setShowAccounting(false)}
+        />
+      </RoleBasedComponent>
+
+      <RoleBasedComponent requiredPermission="canCreateConsignment">
+        <ConsignmentSystem
+          isOpen={showConsignment}
+          onClose={() => setShowConsignment(false)}
         />
       </RoleBasedComponent>
 

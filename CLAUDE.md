@@ -276,7 +276,21 @@ Scénario 2 : Changement d'avis
 
 ### Accounting System (Système de Comptabilité)
 
+**Statut:** ✅ **IMPLÉMENTÉ**
+
 **Concept:** Gestion comptable complète du bar au-delà des simples ventes
+
+**Fichiers principaux:**
+- [src/components/Accounting.tsx](src/components/Accounting.tsx) - Modal principal avec 3 tabs
+- [src/components/AccountingOverview.tsx](src/components/AccountingOverview.tsx) - Vue d'ensemble bilan financier
+- [src/components/ExpenseManager.tsx](src/components/ExpenseManager.tsx) - Gestion dépenses
+- [src/components/SalaryManager.tsx](src/components/SalaryManager.tsx) - Gestion salaires
+
+**Hooks custom:**
+- [src/hooks/useExpenses.ts](src/hooks/useExpenses.ts) - Gestion dépenses avec localStorage
+- [src/hooks/useSalaries.ts](src/hooks/useSalaries.ts) - Gestion salaires avec localStorage
+- [src/hooks/useSupplies.ts](src/hooks/useSupplies.ts) - Gestion approvisionnements
+- [src/hooks/useReturns.ts](src/hooks/useReturns.ts) - Gestion retours
 
 **Types de transactions :**
 ```typescript
@@ -284,34 +298,252 @@ export type TransactionType =
   | 'sale'           // Vente (entrée)
   | 'return'         // Retour (sortie si remboursé)
   | 'supply'         // Approvisionnement (sortie)
-  | 'salary'         // Salaire (sortie)
-  | 'rent'           // Loyer (sortie)
-  | 'electricity'    // Électricité (sortie)
-  | 'water'          // Eau (sortie)
-  | 'other_expense'  // Autre dépense (sortie)
-  | 'consignment'    // Consigne (neutre)
-  | 'investment';    // Apport capital (entrée)
+  | 'expense'        // Dépense (sortie)
+  | 'salary';        // Salaire (sortie)
+
+export type ExpenseCategory =
+  | 'water'          // 💧 Eau
+  | 'electricity'    // ⚡ Électricité
+  | 'maintenance'    // 🔧 Entretien/Réparations
+  | 'custom';        // Catégorie personnalisée
 ```
 
-**Fonctionnalités :**
-- Gestion dépenses complètes (loyer, électricité, salaires)
-- Suivi fournisseurs et paiements
-- Bilan financier (revenus - dépenses = résultat)
-- Export comptable unifié (toutes transactions)
-- Graphiques répartition dépenses
-- Calcul marges réelles
+**Fonctionnalités implémentées:**
+- ✅ Modal plein écran avec navigation tabs (Overview, Dépenses, Salaires)
+- ✅ Calcul automatique du bilan financier :
+  ```typescript
+  Revenus = Ventes - Retours remboursés
+  Coûts = Approvisionnements + Dépenses + Salaires + Retours
+  Bénéfice Net = Revenus - Coûts
+  Marge bénéficiaire = (Bénéfice Net / Revenus) * 100
+  ```
+- ✅ Gestion des catégories de dépenses (eau, électricité, entretien, custom)
+- ✅ Gestion des salaires par membre et par période (YYYY-MM)
+- ✅ Filtres période : **Semaine** (Lundi-Dimanche) ou **Mois** (1er-dernier jour)
+- ✅ Persistence localStorage pour expenses et salaries
+- ✅ Interface responsive mobile-first
+- ✅ Affichage des coûts par approvisionnement (totalCost = lotPrice × lotSize)
 
-**Statut:** 🔄 En cours d'implémentation (priorité haute)
+**Intégration dans App.tsx:**
+- Ligne 30 : Import du composant Accounting
+- Ligne 68 : State `showAccounting`
+- Ligne 362 : Rendu conditionnel du modal
 
-### Future: Consignments System (Système de Consignes)
+### Consignments System (Système de Consignes)
+
+**Statut:** ✅ **IMPLÉMENTÉ** (Session 3)
 
 **Concept:** Client paie mais laisse produits non consommés pour revenir plus tard
 
 **Différence Retour vs Consigne:**
 - **Retour** : Annulation vente, remboursement possible, immédiat
-- **Consigne** : Conservation vente, pas de remboursement, récupération différée (7-30j)
+- **Consigne** : Conservation vente, pas de remboursement, récupération différée (7-30j configurables)
 
-**Statut:** 🚧 À implémenter (après comptabilité)
+**Fichiers principaux:**
+- [src/types/index.ts](src/types/index.ts) - Types `Consignment`, `ConsignmentStatus`, `ConsignmentStock`, `ProductStockInfo`
+- [src/hooks/useConsignments.ts](src/hooks/useConsignments.ts) - Hook gestion consignations avec stock séparé
+- [src/components/ConsignmentSystem.tsx](src/components/ConsignmentSystem.tsx) - Modal 3 tabs (Créer, Actives, Historique)
+
+**Architecture Stock Séparé:**
+
+🚨 **RÈGLE CRITIQUE:** Stock consigné ≠ Stock vendable
+
+```typescript
+// Types
+interface Consignment {
+  quantity: number;               // Quantité consignée
+  status: 'active' | 'claimed' | 'expired' | 'forfeited';
+  expiresAt: Date;                // Expiration auto (défaut: 7j)
+}
+
+interface ProductStockInfo {
+  physicalStock: number;          // Stock physique total (Product.stock)
+  consignedStock: number;         // Stock consigné (RÉSERVÉ, non vendable)
+  availableStock: number;         // Stock vendable = physicalStock - consignedStock
+}
+```
+
+**Workflows:**
+
+#### **1. Création Consignation**
+```typescript
+// Scénario : Client paie 10 Heineken mais veut les récupérer plus tard
+
+AVANT :
+- Stock physique : 50
+- Stock consigné : 0
+- Stock vendable : 50
+
+APRÈS création consignation (quantity: 10) :
+- Stock physique : 50 (INCHANGÉ)
+- Stock consigné : 10 (AJOUTÉ)
+- Stock vendable : 40 (50 - 10) ✅ PROTECTION
+```
+
+**Règles :**
+- Créée uniquement depuis une vente existante du jour
+- Montant déjà payé (pas de double facturation)
+- Infos client obligatoires (nom + téléphone optionnel)
+- Expiration automatique après X jours (défaut: 7, configurable)
+
+#### **2. Récupération (Claimed)**
+```typescript
+// Client revient chercher ses produits
+
+AVANT :
+- Stock physique : 50
+- Stock consigné : 10
+- Stock vendable : 40
+
+APRÈS claim (claimConsignment(id)) :
+- Stock physique : 40 (50 - 10) ✅ Déduit
+- Stock consigné : 0 (10 - 10) ✅ Libéré
+- Stock vendable : 40 (inchangé)
+```
+
+**Impact :**
+- Stock physique déduit (produit part avec le client)
+- Stock consigné libéré
+- Statut → `'claimed'`
+
+#### **3. Expiration Automatique**
+```typescript
+// Après X jours sans récupération
+
+AVANT :
+- Stock physique : 50
+- Stock consigné : 10
+- Stock vendable : 40
+
+APRÈS expiration auto :
+- Stock physique : 50 (INCHANGÉ)
+- Stock consigné : 0 (libéré)
+- Stock vendable : 50 ✅ Retour à la vente
+```
+
+**Mécanisme :**
+- Vérification auto toutes les minutes (`checkAndExpireConsignments`)
+- Statut → `'expired'`
+- Stock redevient vendable automatiquement
+
+#### **4. Confiscation (Forfeited)**
+```typescript
+// Gérant décide de confisquer (client renonce)
+
+AVANT :
+- Stock physique : 50
+- Stock consigné : 10
+- Stock vendable : 40
+
+APRÈS forfeitConsignment(id) :
+- Stock physique : 50 (INCHANGÉ)
+- Stock consigné : 0 (libéré immédiatement)
+- Stock vendable : 50 ✅ Retour immédiat
+```
+
+**Règles métier :**
+
+✅ **Garanties Stock Séparé**
+- `getConsignedStockByProduct(productId)` : calcule quantité consignée (status='active')
+- `getProductStockInfo(productId, stock)` : retourne {physicalStock, consignedStock, availableStock}
+- Affichage vente : toujours `availableStock`, JAMAIS `physicalStock`
+- Impossible de vendre stock consigné
+
+✅ **Expiration Configurable**
+```typescript
+// Dans Settings (AppSettings)
+consignmentExpirationDays?: number; // Défaut: 7 jours
+
+// Calcul auto dans hook
+const expiresAt = new Date(createdAt);
+expiresAt.setDate(expiresAt.getDate() + expirationDays);
+```
+
+✅ **Permissions**
+```typescript
+// RolePermissions
+canCreateConsignment: boolean;  // Créer consignation
+canClaimConsignment: boolean;   // Valider récupération
+canViewConsignments: boolean;   // Voir liste
+
+// Par défaut :
+promoteur: true, true, true
+gerant: true, true, true
+serveur: false, false, false  // Serveurs ne gèrent pas les consignations
+```
+
+**UI Components:**
+
+#### **Tab 1: Créer Consignation**
+1. Sélection vente du jour
+2. Choix produit à consigner
+3. Quantité + Infos client (nom obligatoire, tél optionnel)
+4. Récapitulatif + Création
+
+#### **Tab 2: Consignations Actives**
+- Liste cards avec infos client
+- Compteur expiration (heures/jours restants)
+- Badge orange si < 24h
+- Actions : **Récupéré** (claim) | **Confisquer** (forfeit)
+
+#### **Tab 3: Historique**
+- Filtres : Tout | Récupérés | Expirés | Confisqués
+- Tri chronologique décroissant
+- Status badges colorés
+
+**Dashboard Widget:**
+```typescript
+// DailyDashboard.tsx - Nouveau widget
+{
+  icon: Archive,
+  label: "Consignations",
+  count: activeConsignmentsCount,
+  value: formatPrice(activeConsignmentsValue),
+  gradient: "from-indigo-100 to-purple-100"
+}
+```
+
+**Intégration Comptabilité:**
+
+⚠️ **Impact Trésorerie: NEUTRE**
+
+```typescript
+// Consignation ≠ Transaction financière
+TransactionType: 'consignment'  // Ajouté aux types
+
+// Comptabilité
+Revenus: Ventes - Retours remboursés  // Consignation déjà dans Ventes
+Coûts: Approvisionnements + Dépenses + Salaires
+```
+
+**Raison :** Montant déjà compté dans la vente originale (pas de double comptage)
+
+**Stockage:**
+```typescript
+// localStorage
+'consignments-v1': Consignment[]  // Persistence
+```
+
+**Cas d'usage typiques:**
+
+```
+Scénario 1 : Client régulier
+22h - Achète 20 Heineken, consigne 15 (récupération demain)
+→ Stock : 100 → vendable: 85 ✅
+→ Montant : déjà encaissé (dans CA du jour)
+
+23h - Autre client veut acheter 90 Heineken
+→ Stock affiché : 85 (impossible) ✅ PROTECTION
+
+Lendemain 19h - Client revient
+→ Claim consignation → stock physique: 100-15=85
+→ Stock consigné: 0, vendable: 85
+
+Scénario 2 : Client ne revient pas
+7 jours plus tard - Expiration auto
+→ Stock vendable : 100 (retour à la vente)
+→ Statut : 'expired'
+```
 
 ## 📚 Key Technical Documentation
 
@@ -454,7 +686,7 @@ npx tsc --noEmit
 
 ### Session 1 - Returns System Enhancements & UI Improvements
 
-**Status:** ✅ Phases 1A, 1B & 2 Complete | 🔄 Phase 3 In Progress
+**Status:** ✅ **TOUTES PHASES COMPLÈTES** (1A, 1B, 2, 3, 4A, 4B, 4C)
 
 #### ✅ Phase 1A: Flexible "Other Reason" Returns (COMPLETED)
 **Objectif:** Permettre au gérant de décider manuellement du remboursement et de la remise en stock pour le motif "Autre raison"
@@ -539,39 +771,192 @@ npx tsc --noEmit
 - ✅ Montant retours en rouge avec signe "-"
 - ✅ Montant net en vert (montant réellement encaissé)
 
-#### 📊 Phase 3: Returns Widget for Dashboard (À FAIRE)
+#### ✅ Phase 3: Returns Widget for Dashboard (COMPLETED)
 **Objectif:** Widget statistiques retours sur Dashboard
 
-#### 📈 Phase 4: Analytics Improvements (À FAIRE)
-- **4A:** Export unifié (Type: Vente/Retour/Approv)
-- **4B:** KPI CA/heure (aujourd'hui) ou CA/jour (semaine/mois)
-- **4C:** Filtres semaine calendaire et mois (avec business day awareness)
+**Fichier modifié:**
+- [src/components/DailyDashboard.tsx](src/components/DailyDashboard.tsx) (lignes 264-288)
+
+**Implémentation:**
+1. ✅ Widget retours avec gradient rouge/rose (from-red-100 to-pink-100)
+2. ✅ Icône `RotateCcw` pour identifier visuellement
+3. ✅ Compteur animé via `AnimatedCounter` pour nombre de retours
+4. ✅ Statistiques calculées :
+   - `todayReturnsCount` - Nombre total de retours du jour
+   - `todayReturnsPending` - Retours en attente d'approbation
+   - `todayReturnsRefunded` - Montant total remboursé (en rouge avec signe -)
+5. ✅ Affichage conditionnel : retours en attente et montant remboursé
+6. ✅ Filtrage par journée commerciale (business day aware)
+
+**Résultat:**
+- ✅ Widget visible sur DailyDashboard avec les ventes, commandes, et stock
+- ✅ Design cohérent avec les autres widgets (hover animation, bordures)
+- ✅ Format prix optimisé (espaces supprimés pour compacité)
+
+#### ✅ Phase 4A: Export Unifié (COMPLETED)
+**Objectif:** Export ventes + retours dans un seul fichier avec colonne "Type"
+
+**Fichier modifié:**
+- [src/components/SalesHistory.tsx](src/components/SalesHistory.tsx) (lignes 268-449)
+
+**Implémentation:**
+1. ✅ Fonction `exportSales()` mise à jour pour inclure retours
+2. ✅ Ajout colonne **"Type"** : `'Vente'` ou `'Retour'` (ligne 374)
+3. ✅ Filtrage retours selon même période que ventes (today/week/month/custom)
+4. ✅ Quantités négatives pour retours (ligne 381 : `-ret.quantity`)
+5. ✅ Montant total négatif si remboursé (ligne 370)
+6. ✅ Bénéfice négatif si remboursé (ligne 371)
+7. ✅ Tri chronologique décroissant unifié (lignes 393-397)
+8. ✅ Export Excel (.xlsx) avec largeurs colonnes optimisées (lignes 418-435)
+9. ✅ Export CSV avec headers corrects
+
+**Résultat:**
+- ✅ Fichier Excel/CSV contient ventes ET retours dans le même export
+- ✅ Distinction claire via colonne "Type"
+- ✅ Montants négatifs pour retours remboursés (comptabilité correcte)
+- ✅ Tous les champs inclus : Date, Heure, ID, Produit, Catégorie, Volume, Quantité, Prix, Coût, Total, Bénéfice, Utilisateur, Rôle, Devise
+
+#### ✅ Phase 4B: KPI CA/heure et CA/jour (COMPLETED)
+**Objectif:** Afficher CA/heure pour "Aujourd'hui", CA/jour pour "Semaine/Mois"
+
+**Fichier modifié:**
+- [src/components/SalesHistory.tsx](src/components/SalesHistory.tsx) (lignes 165-227)
+
+**Implémentation:**
+1. ✅ Calcul KPI adaptatif via `useMemo` basé sur `timeFilter`
+2. ✅ **Mode "Aujourd'hui" (today)** :
+   - Calcul revenus par heure (0-23h) : `hourlyRevenue[hour]`
+   - Déduction retours remboursés par heure
+   - KPI : `CA/heure moyen = totalRevenue / nombre d'heures avec ventes`
+   - Label : `"CA/heure moyen"`
+3. ✅ **Mode "Semaine/Mois" (week/month)** :
+   - Calcul revenus par jour calendaire : `dailyRevenue[day]`
+   - KPI : `CA/jour moyen = totalRevenue / nombre de jours avec ventes`
+   - Label : `"CA/jour moyen"`
+4. ✅ Affichage dans Analytics (lignes 1624-1631) :
+   - Card avec gradient orange
+   - Icône Clock
+   - Texte dynamique selon période
+5. ✅ Graphique évolution CA avec granularité adaptative (lignes 1647-1667) :
+   - "par heure" pour today
+   - "par jour" pour week
+   - "par semaine" pour month
+
+**Résultat:**
+- ✅ KPI contextuel affiché en haut de l'Analytics
+- ✅ Graphique LineChart avec axe X adapté (heures ou jours)
+- ✅ Label explicite indiquant l'unité de mesure
+- ✅ Déduction correcte des retours remboursés dans le calcul
+
+#### ✅ Phase 4C: Filtres Semaine/Mois Business Day (COMPLETED)
+**Objectif:** Filtres période avec business day awareness pour "Aujourd'hui"
+
+**Fichier modifié:**
+- [src/components/SalesHistory.tsx](src/components/SalesHistory.tsx) (lignes 78-140)
+
+**Implémentation:**
+1. ✅ **Filtre "Aujourd'hui"** (today) :
+   - Utilise `getCurrentBusinessDay(closeHour)` pour obtenir journée commerciale actuelle
+   - Filtre ventes avec `getBusinessDay(saleDate, closeHour)`
+   - Compare avec `isSameDay()` pour vérifier même journée commerciale
+   - **Business day aware** ✅
+2. ✅ **Filtre "Semaine"** (week) :
+   - Calcul du lundi de la semaine courante (ligne 104-108)
+   - Plage : Lundi 00:00 → Dimanche 23:59:59
+   - Gère correctement le cas Dimanche (day = 0)
+3. ✅ **Filtre "Mois"** (month) :
+   - Premier jour du mois : `new Date(year, month, 1)` à 00:00
+   - Dernier jour du mois : `new Date(year, month+1, 0)` à 23:59:59
+4. ✅ **Filtre "Custom"** (personnalisé) :
+   - Plage dates personnalisée avec `customDateRange.start` et `customDateRange.end`
+5. ✅ Même logique appliquée aux retours (lignes 309-354)
+
+**Résultat:**
+- ✅ Filtre "Aujourd'hui" respecte la journée commerciale (ventes de nuit incluses)
+- ✅ Filtres "Semaine" et "Mois" utilisent calendrier standard
+- ✅ Cohérence entre ventes et retours (même logique de filtrage)
+- ✅ Plage custom fonctionnelle pour analyses personnalisées
+
+---
+
+### Session 2 - Accounting System Implementation
+
+**Status:** ✅ **COMPLÉTÉ**
+
+Voir section [Accounting System (Système de Comptabilité)](#accounting-system-système-de-comptabilité) ci-dessus pour les détails complets de l'implémentation.
+
+**Résumé:**
+- ✅ Modal Accounting avec 3 tabs (Overview, Dépenses, Salaires)
+- ✅ 4 hooks custom (useExpenses, useSalaries, useSupplies, useReturns)
+- ✅ Calcul bilan automatique avec formules comptables
+- ✅ Gestion catégories dépenses (eau, électricité, entretien, custom)
+- ✅ Filtres période semaine/mois
+- ✅ Persistence localStorage
+
+---
+
+### Session 3 - Consignment System Implementation
+
+**Status:** ✅ **COMPLÉTÉ**
+
+Voir section [Consignments System (Système de Consignes)](#consignments-system-système-de-consignes) ci-dessus pour les détails complets de l'implémentation.
+
+**Résumé:**
+- ✅ Types `Consignment`, `ConsignmentStatus`, `ConsignmentStock`, `ProductStockInfo`
+- ✅ Hook `useConsignments` avec stock séparé garanti
+- ✅ Composant `ConsignmentSystem` avec 3 tabs (Créer, Actives, Historique)
+- ✅ Intégration App.tsx + Header (bouton Archive)
+- ✅ Widget Dashboard (compteur + valeur consignations actives)
+- ✅ Permissions système (promoteur/gérant: oui, serveur: non)
+- ✅ Expiration automatique (vérification 1 min)
+- ✅ Persistance localStorage `consignments-v1`
+
+**Garanties architecture:**
+- **Stock séparé:** `availableStock = physicalStock - consignedStock`
+- **Impossible vendre stock consigné:** Protection totale
+- **Expiration auto:** Retour stock vendable après X jours
+- **Traçabilité:** Historique complet (claimed/expired/forfeited)
 
 ---
 
 ### Future Sessions
 
-#### 💰 Accounting System (Priorité élevée)
-**Objectif:** Gestion comptabilité complète (dépenses, salaires, loyer, etc.)
+#### 📦 Consignment System Enhancements (Priorité moyenne)
+**Objectif:** Améliorations avancées système consignations
 
-**Types de transactions prévus:**
-```typescript
-export type TransactionType =
-  | 'sale'           // Vente (entrée)
-  | 'return'         // Retour (sortie si remboursé)
-  | 'supply'         // Approvisionnement (sortie)
-  | 'salary'         // Salaire (sortie)
-  | 'rent'           // Loyer (sortie)
-  | 'electricity'    // Électricité (sortie)
-  | 'water'          // Eau (sortie)
-  | 'other_expense'  // Autre dépense (sortie)
-  | 'consignment'    // Consigne (neutre)
-  | 'investment';    // Apport capital (entrée)
-```
+**Fonctionnalités à ajouter:**
+- Notifications SMS/WhatsApp rappel expiration (J-1)
+- QR Code unique par consignation (scan récupération)
+- Statistiques consignations dans Analytics
+- Export consignations dans historique ventes
+- Intégration comptabilité (suivi valeur immobilisée)
+- Recherche avancée (par client, produit, date)
+- Badges "Client fidèle" (X consignations récupérées)
 
-#### 📦 Consignment System (Après Accounting)
-**Objectif:** Gestion système consignes bouteilles/emballages
+#### 📊 Accounting Enhancements (Après Consignment)
+**Objectifs:**
+- Graphiques répartition dépenses (PieChart/BarChart)
+- Export comptable unifié PDF/Excel (toutes transactions)
+- Bilan financier mensuel automatique
+- Gestion fournisseurs et paiements
+- Tableaux de bord comptables avancés
+
+#### 🧪 Testing & Quality Assurance
+**Objectifs:**
+- Tests automatisés avec Vitest + React Testing Library
+- Tests unitaires hooks custom
+- Tests intégration composants critiques
+- Tests business day logic
+- Tests calculs comptables
+
+#### 🚀 Performance & Optimizations
+**Objectifs:**
+- Lazy loading composants lourds (Analytics, Accounting)
+- Optimisation bundle size (code splitting)
+- Service Worker optimisations
+- IndexedDB migrations system
+- Background sync améliorations
 
 ---
 
-*Last updated: 06 Oct 2025 - Phases 1A, 1B & 2 Complete*
+*Last updated: 10 Oct 2025 - Session 1, 2 & 3 Complete (Retours + Comptabilité + Consignations)*

@@ -14,7 +14,8 @@ import {
   AlertTriangle,
   FileSpreadsheet,
   Menu,
-  Calendar // Ajout de Calendar
+  Calendar,
+  Archive // Pour les consignations
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
@@ -42,6 +43,7 @@ interface HeaderProps {
   onShowStockAlerts?: () => void;
   onToggleMobileSidebar?: () => void;
   onShowAccounting?: () => void;
+  onShowConsignment?: () => void;
 }
 
 export function Header({
@@ -57,7 +59,8 @@ export function Header({
   onShowQuickSale,
   onShowStockAlerts = () => {},
   onToggleMobileSidebar = () => {},
-  onShowAccounting = () => {}
+  onShowAccounting = () => {},
+  onShowConsignment = () => {}
 }: HeaderProps) {
   const { getTodayTotal } = useAppContext();
   const formatPrice = useCurrencyFormatter();
@@ -276,6 +279,17 @@ export function Header({
                   title="Retours"
                 >
                   <RotateCcw size={20} />
+                </button>
+              </RoleBasedComponent>
+
+              {/* Consignations */}
+              <RoleBasedComponent requiredPermission="canCreateConsignment">
+                <button
+                  onClick={onShowConsignment}
+                  className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
+                  title="Consignations"
+                >
+                  <Archive size={20} />
                 </button>
               </RoleBasedComponent>
 

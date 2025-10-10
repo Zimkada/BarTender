@@ -101,7 +101,8 @@ export type TransactionType =
   | 'return'         // Retour
   | 'supply'         // Approvisionnement
   | 'expense'        // Dépense
-  | 'salary';        // Salaire
+  | 'salary'         // Salaire
+  | 'consignment';   // Consignation (neutre en trésorerie, déjà payé)
 
 export type ExpenseCategory =
   | 'water'          // 💧 Eau
@@ -220,6 +221,63 @@ export interface Return {
   customRestock?: boolean;  // Décision manuelle gérant : remettre en stock ?
 }
 
+// ===== CONSIGNATIONS =====
+export type ConsignmentStatus =
+  | 'active'      // En cours (produit consigné, client peut récupérer)
+  | 'claimed'     // Récupéré (client a récupéré ses produits)
+  | 'expired'     // Expiré (délai dépassé, produit retourne au stock vendable)
+  | 'forfeited';  // Confisqué (client a renoncé, stock retourne immédiatement)
+
+export interface Consignment {
+  id: string;
+  barId: string;
+
+  // Référence vente originale
+  saleId: string;
+  productId: string;
+  productName: string;
+  productVolume: string;
+
+  // Quantités
+  quantity: number;               // Quantité consignée
+
+  // Montant (déjà payé lors de la vente)
+  totalAmount: number;            // Montant total (quantity × prix vente)
+
+  // Dates
+  createdAt: Date;                // Date consignation
+  expiresAt: Date;                // Date expiration (7-30j configurable)
+  claimedAt?: Date;               // Date récupération
+
+  // Statut
+  status: ConsignmentStatus;
+
+  // Traçabilité
+  createdBy: string;              // userId qui a créé la consignation
+  claimedBy?: string;             // userId qui a validé la récupération
+
+  // Optionnel - Identification client
+  customerName?: string;          // Nom client (pour retrouver facilement)
+  customerPhone?: string;         // Téléphone client
+  notes?: string;                 // Notes additionnelles
+}
+
+// Stock consigné par produit (calculé dynamiquement)
+export interface ConsignmentStock {
+  productId: string;
+  barId: string;
+  quantityConsigned: number;      // Total produits actuellement consignés (status = 'active')
+  lastUpdated: Date;
+}
+
+// Informations stock enrichies (pour affichage)
+export interface ProductStockInfo {
+  productId: string;
+  physicalStock: number;          // Stock physique total (Product.stock)
+  consignedStock: number;         // Stock consigné (réservé, non vendable)
+  availableStock: number;         // Stock vendable = physicalStock - consignedStock
+}
+
 // ===== PERMISSIONS =====
 export interface RolePermissions {
   // Gestion utilisateurs
@@ -251,6 +309,11 @@ export interface RolePermissions {
   canManageExpenses: boolean;
   canManageSalaries: boolean;
 
+  // Consignations
+  canCreateConsignment: boolean;
+  canClaimConsignment: boolean;
+  canViewConsignments: boolean;
+
   // Paramètres
   canManageSettings: boolean;
   canManageBarInfo: boolean;
@@ -279,6 +342,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewAccounting: true,
     canManageExpenses: true,
     canManageSalaries: true,
+    canCreateConsignment: true,
+    canClaimConsignment: true,
+    canViewConsignments: true,
     canManageSettings: true,
     canManageBarInfo: true,
     canCreateBars: true,
@@ -302,6 +368,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewAccounting: false,
     canManageExpenses: false,
     canManageSalaries: false,
+    canCreateConsignment: true,
+    canClaimConsignment: true,
+    canViewConsignments: true,
     canManageSettings: false,
     canManageBarInfo: false,
     canCreateBars: false,
@@ -325,6 +394,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewAccounting: false,
     canManageExpenses: false,
     canManageSalaries: false,
+    canCreateConsignment: false,
+    canClaimConsignment: false,
+    canViewConsignments: false,
     canManageSettings: false,
     canManageBarInfo: false,
     canCreateBars: false,
@@ -337,6 +409,7 @@ export interface AppSettings {
   currency: string;
   currencySymbol: string;
   currentSession: UserSession | null;
+  consignmentExpirationDays?: number; // Nombre de jours avant expiration consignation (défaut: 7)
 }
 
 // ===== HELPERS =====
