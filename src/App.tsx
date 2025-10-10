@@ -154,7 +154,9 @@ function AppContent() {
     setShowStockAlerts(false);
     setShowExcel(false);
     setShowServers(false);
-    setShowAccounting(false); // S'assurer que la compta est aussi fermée
+    setShowAccounting(false);
+    setShowReturns(false);
+    setShowConsignment(false);
 
     // Ouvrir la modale demandée
     switch (menu) {
@@ -172,6 +174,12 @@ function AppContent() {
         break;
       case 'stockAlerts':
         setShowStockAlerts(true);
+        break;
+      case 'returns':
+        setShowReturns(true);
+        break;
+      case 'consignments':
+        setShowConsignment(true);
         break;
       case 'teamManagement':
         setShowServers(true);

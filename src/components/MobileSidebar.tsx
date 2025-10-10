@@ -13,7 +13,9 @@ import {
   Settings,
   LogOut,
   X,
-  DollarSign
+  DollarSign,
+  RotateCcw,
+  Archive
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -100,6 +102,26 @@ export function MobileSidebar({ isOpen, onClose, onNavigate, currentMenu }: Mobi
       roles: ['promoteur', 'gerant'],
       action: () => {
         onNavigate('stockAlerts');
+        onClose();
+      }
+    },
+    {
+      id: 'returns',
+      label: 'Retours',
+      icon: <RotateCcw size={20} />,
+      roles: ['promoteur', 'gerant'],
+      action: () => {
+        onNavigate('returns');
+        onClose();
+      }
+    },
+    {
+      id: 'consignments',
+      label: 'Consignations',
+      icon: <Archive size={20} />,
+      roles: ['promoteur', 'gerant'],
+      action: () => {
+        onNavigate('consignments');
         onClose();
       }
     },
