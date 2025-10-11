@@ -341,42 +341,43 @@ export function ExpenseManager() {
                     Catégorie
                   </label>
                   <select
-                    value={category}
-                    onChange={e => setCategory(e.target.value as ExpenseCategory)}
+                    value={category === 'custom' && customCategoryId ? `custom:${customCategoryId}` : category}
+                    onChange={e => {
+                      const value = e.target.value;
+                      if (value.startsWith('custom:')) {
+                        setCategory('custom');
+                        setCustomCategoryId(value.replace('custom:', ''));
+                      } else {
+                        setCategory(value as ExpenseCategory);
+                        setCustomCategoryId('');
+                      }
+                    }}
                     className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-orange-500 focus:outline-none ${
                       isMobile ? 'text-sm' : ''
                     }`}
                   >
-                    {Object.entries(EXPENSE_CATEGORY_LABELS).map(([key, data]) => (
-                      <option key={key} value={key}>
-                        {data.icon} {data.label}
+                    {/* Standard categories */}
+                    {Object.entries(EXPENSE_CATEGORY_LABELS)
+                      .filter(([key]) => key !== 'custom')
+                      .map(([key, data]) => (
+                        <option key={key} value={key}>
+                          {data.icon} {data.label}
+                        </option>
+                      ))}
+
+                    {/* Separator if custom categories exist */}
+                    {customCategories.length > 0 && (
+                      <option disabled>──────────────</option>
+                    )}
+
+                    {/* Custom categories */}
+                    {customCategories.map(cat => (
+                      <option key={cat.id} value={`custom:${cat.id}`}>
+                        {cat.icon} {cat.name}
                       </option>
                     ))}
                   </select>
                 </div>
-
-                {/* Custom category selector */}
-                {category === 'custom' && (
-                  <div>
-                    <label className={`block text-gray-700 font-medium mb-2 ${isMobile ? 'text-sm' : ''}`}>
-                      Catégorie personnalisée
-                    </label>
-                    <select
-                      value={customCategoryId}
-                      onChange={e => setCustomCategoryId(e.target.value)}
-                      className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-orange-500 focus:outline-none ${
-                        isMobile ? 'text-sm' : ''
-                      }`}
-                    >
-                      <option value="">Sélectionner...</option>
-                      {customCategories.map(cat => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.icon} {cat.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
 
                 {/* Date */}
                 <div>

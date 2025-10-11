@@ -5,12 +5,12 @@ import {
   TrendingDown,
   DollarSign,
   Calendar,
-  Package,
   Receipt,
   Users,
   Zap,
   RotateCcw,
-  ChevronRight
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { useSales } from '../hooks/useSales';
 import { useAuth } from '../context/AuthContext';
@@ -40,6 +40,7 @@ export function AccountingOverview() {
   const { returns } = useReturns();
 
   const [periodType, setPeriodType] = useState<PeriodType>('month');
+  const [expensesExpanded, setExpensesExpanded] = useState(false);
 
   // Calculate period range
   const { start: periodStart, end: periodEnd } = useMemo(() => {
@@ -66,32 +67,27 @@ export function AccountingOverview() {
       .reduce((sum, ret) => sum + ret.refundAmount, 0);
   }, [returns, periodStart, periodEnd]);
 
-  // Calculate supply costs
-  const supplyCosts = useMemo(() => {
-    return supplies
-      .filter(supply => {
-        const supplyDate = new Date(supply.date);
-        return supplyDate >= periodStart && supplyDate <= periodEnd;
-      })
-      .reduce((sum, supply) => sum + supply.totalCost, 0);
-  }, [supplies, periodStart, periodEnd]);
-
-  // Calculate expenses (EXCLUDING 'supply' since already counted in supplyCosts)
+  // Calculate expenses (ALL categories including 'supply')
   const expensesCosts = useMemo(() => {
     return expensesHook.expenses
       .filter(exp => {
         const expDate = new Date(exp.date);
-        return expDate >= periodStart && expDate <= periodEnd && exp.category !== 'supply';
+        return expDate >= periodStart && expDate <= periodEnd;
       })
       .reduce((sum, exp) => sum + exp.amount, 0);
   }, [expensesHook.expenses, periodStart, periodEnd]);
+
+  // Get expenses breakdown by category (for detailed view)
+  const expensesByCategory = useMemo(() => {
+    return expensesHook.getExpensesByCategory(periodStart, periodEnd);
+  }, [expensesHook, periodStart, periodEnd]);
 
   // Calculate salaries
   const salariesCosts = salariesHook.getTotalSalaries(periodStart, periodEnd);
 
   // CALCULATIONS
   const totalRevenue = salesRevenue - returnsRefunds; // CA NET = Ventes - Retours remboursés
-  const totalCosts = supplyCosts + expensesCosts + salariesCosts;
+  const totalCosts = expensesCosts + salariesCosts; // Coûts = Dépenses (incluant approvisionnements) + Salaires
   const netProfit = totalRevenue - totalCosts;
   const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
@@ -251,44 +247,60 @@ export function AccountingOverview() {
           </h3>
         </div>
         <div className="p-4 space-y-3">
-          {/* Supplies */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Package className="text-purple-600" size={20} />
+          {/* Expenses with sub-categories */}
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            {/* Main Expenses Row */}
+            <div
+              onClick={() => setExpensesExpanded(!expensesExpanded)}
+              className="flex items-center justify-between p-3 bg-red-50 hover:bg-red-100 cursor-pointer transition-colors"
+            >
+              <div className="flex items-center gap-3 flex-1">
+                <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                  <Receipt className="text-red-600" size={20} />
+                </div>
+                <div>
+                  <p className={`font-medium text-gray-800 ${isMobile ? 'text-sm' : ''}`}>
+                    Dépenses
+                  </p>
+                  <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    Approvisionnements, eau, électricité...
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className={`font-medium text-gray-800 ${isMobile ? 'text-sm' : ''}`}>
-                  Approvisionnements
-                </p>
-                <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  Achat de stock
-                </p>
+              <div className="flex items-center gap-2">
+                <span className={`font-bold text-red-600 ${isMobile ? 'text-sm' : ''}`}>
+                  -{formatPrice(expensesCosts)}
+                </span>
+                {expensesExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
               </div>
             </div>
-            <span className={`font-bold text-purple-600 ${isMobile ? 'text-sm' : ''}`}>
-              -{formatPrice(supplyCosts)}
-            </span>
-          </div>
 
-          {/* Expenses */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                <Receipt className="text-red-600" size={20} />
+            {/* Sub-categories (expandable) */}
+            {expensesExpanded && Object.keys(expensesByCategory).length > 0 && (
+              <div className="bg-white border-t border-gray-200">
+                {Object.entries(expensesByCategory).map(([key, data]) => (
+                  <div
+                    key={key}
+                    className="flex items-center justify-between p-3 border-b border-gray-100 last:border-b-0"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={isMobile ? 'text-base' : 'text-lg'}>{data.icon}</span>
+                      <div>
+                        <p className={`text-gray-700 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                          {data.label}
+                        </p>
+                        <p className={`text-gray-400 ${isMobile ? 'text-xs' : 'text-xs'}`}>
+                          {data.count} transaction{data.count > 1 ? 's' : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <span className={`text-red-600 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                      -{formatPrice(data.amount)}
+                    </span>
+                  </div>
+                ))}
               </div>
-              <div>
-                <p className={`font-medium text-gray-800 ${isMobile ? 'text-sm' : ''}`}>
-                  Dépenses
-                </p>
-                <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  Eau, électricité, etc.
-                </p>
-              </div>
-            </div>
-            <span className={`font-bold text-red-600 ${isMobile ? 'text-sm' : ''}`}>
-              -{formatPrice(expensesCosts)}
-            </span>
+            )}
           </div>
 
           {/* Salaries */}
@@ -310,28 +322,6 @@ export function AccountingOverview() {
               -{formatPrice(salariesCosts)}
             </span>
           </div>
-
-          {/* Returns */}
-          {returnsRefunds > 0 && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                  <RotateCcw className="text-amber-600" size={20} />
-                </div>
-                <div>
-                  <p className={`font-medium text-gray-800 ${isMobile ? 'text-sm' : ''}`}>
-                    Remboursements
-                  </p>
-                  <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                    Retours clients
-                  </p>
-                </div>
-              </div>
-              <span className={`font-bold text-amber-600 ${isMobile ? 'text-sm' : ''}`}>
-                -{formatPrice(returnsRefunds)}
-              </span>
-            </div>
-          )}
         </div>
       </div>
 
