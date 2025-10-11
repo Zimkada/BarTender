@@ -59,12 +59,30 @@ export function AccountingOverview() {
 
   // Calculate returns refunds
   const returnsRefunds = useMemo(() => {
-    return returns
-      .filter(ret => {
-        const retDate = new Date(ret.returnedAt);
-        return retDate >= periodStart && retDate <= periodEnd && ret.isRefunded;
-      })
-      .reduce((sum, ret) => sum + ret.refundAmount, 0);
+    const filtered = returns.filter(ret => {
+      const retDate = new Date(ret.returnedAt);
+      // Seulement retours approuvés/restockés (pas pending ni rejected)
+      if (ret.status !== 'approved' && ret.status !== 'restocked') return false;
+      // Seulement retours remboursés
+      if (!ret.isRefunded) return false;
+      // Dans la période
+      return retDate >= periodStart && retDate <= periodEnd;
+    });
+
+    console.log('🔍 [AccountingOverview] Returns Analysis:', {
+      totalReturns: returns.length,
+      filteredReturns: filtered.length,
+      returnsRefunds: filtered.reduce((sum, ret) => sum + ret.refundAmount, 0),
+      returns: filtered.map(r => ({
+        id: r.id.substring(0, 8),
+        status: r.status,
+        isRefunded: r.isRefunded,
+        refundAmount: r.refundAmount,
+        date: new Date(r.returnedAt).toLocaleDateString('fr-FR')
+      }))
+    });
+
+    return filtered.reduce((sum, ret) => sum + ret.refundAmount, 0);
   }, [returns, periodStart, periodEnd]);
 
   // Calculate expenses (ALL categories including 'supply')
