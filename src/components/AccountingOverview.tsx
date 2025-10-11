@@ -34,10 +34,10 @@ export function AccountingOverview() {
   if (!currentBar || !currentSession) return null;
 
   const { sales } = useSales(currentBar.id);
-  const { supplies } = useSupplies(currentBar.id);
+  const { supplies } = useSupplies();
   const expensesHook = useExpenses(currentBar.id);
   const salariesHook = useSalaries(currentBar.id);
-  const { returns } = useReturns(currentBar.id);
+  const { returns } = useReturns();
 
   const [periodType, setPeriodType] = useState<PeriodType>('month');
 
@@ -76,8 +76,15 @@ export function AccountingOverview() {
       .reduce((sum, supply) => sum + supply.totalCost, 0);
   }, [supplies, periodStart, periodEnd]);
 
-  // Calculate expenses
-  const expensesCosts = expensesHook.getTotalExpenses(periodStart, periodEnd);
+  // Calculate expenses (EXCLUDING 'supply' since already counted in supplyCosts)
+  const expensesCosts = useMemo(() => {
+    return expensesHook.expenses
+      .filter(exp => {
+        const expDate = new Date(exp.date);
+        return expDate >= periodStart && expDate <= periodEnd && exp.category !== 'supply';
+      })
+      .reduce((sum, exp) => sum + exp.amount, 0);
+  }, [expensesHook.expenses, periodStart, periodEnd]);
 
   // Calculate salaries
   const salariesCosts = salariesHook.getTotalSalaries(periodStart, periodEnd);
@@ -178,6 +185,7 @@ export function AccountingOverview() {
           </h3>
         </div>
         <div className="p-4 space-y-3">
+          {/* Sales Revenue */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -196,6 +204,42 @@ export function AccountingOverview() {
               +{formatPrice(salesRevenue)}
             </span>
           </div>
+
+          {/* Returns Refunds */}
+          {returnsRefunds > 0 && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                  <RotateCcw className="text-red-600" size={20} />
+                </div>
+                <div>
+                  <p className={`font-medium text-gray-800 ${isMobile ? 'text-sm' : ''}`}>
+                    Retours remboursés
+                  </p>
+                  <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    Déduction revenus
+                  </p>
+                </div>
+              </div>
+              <span className={`font-bold text-red-600 ${isMobile ? 'text-sm' : ''}`}>
+                -{formatPrice(returnsRefunds)}
+              </span>
+            </div>
+          )}
+
+          {/* Net Revenue Line */}
+          {returnsRefunds > 0 && (
+            <div className="pt-3 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <p className={`font-semibold text-gray-800 ${isMobile ? 'text-sm' : ''}`}>
+                  Revenus NET
+                </p>
+                <span className={`font-bold text-blue-600 ${isMobile ? 'text-base' : 'text-lg'}`}>
+                  {formatPrice(totalRevenue)}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
