@@ -229,8 +229,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setAllSupplies(prev => [newSupply, ...prev]);
     increaseStock(supply.productId, supply.quantity);
+
+    // Créer automatiquement une dépense "Approvisionnements"
+    try {
+      const product = products.find(p => p.id === supply.productId);
+      const productName = product ? `${product.name} ${product.volume}` : 'Produit inconnu';
+
+      const expensesKey = `expenses_${currentBar.id}`;
+      const existingExpenses = JSON.parse(localStorage.getItem(expensesKey) || '[]');
+
+      const newExpense = {
+        id: `exp_supply_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        barId: currentBar.id,
+        category: 'supply' as const,
+        amount: totalCost,
+        date: new Date(),
+        description: `Approv: ${productName} (${supply.quantity} unités × ${supply.lotPrice} FCFA)`,
+        createdBy: currentSession.userId,
+        createdAt: new Date(),
+        referenceId: newSupply.id, // Lien vers l'approv
+      };
+
+      localStorage.setItem(expensesKey, JSON.stringify([...existingExpenses, newExpense]));
+      console.log('✅ Dépense approvisionnement créée:', newExpense.amount, 'FCFA');
+    } catch (error) {
+      console.error('❌ Erreur création dépense approv:', error);
+    }
+
     return newSupply;
-  }, [setAllSupplies, increaseStock, hasPermission, currentBar, currentSession]);
+  }, [setAllSupplies, increaseStock, hasPermission, currentBar, currentSession, products]);
 
   const getSuppliesByProduct = useCallback((productId: string) => {
     return supplies.filter(supply => supply.productId === productId);

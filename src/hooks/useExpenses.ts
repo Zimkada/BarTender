@@ -3,6 +3,7 @@ import { Expense, ExpenseCategoryCustom } from '../types';
 import { useLocalStorage } from './useLocalStorage';
 
 export const EXPENSE_CATEGORY_LABELS = {
+  supply: { label: 'Approvisionnements', icon: '📦', color: 'green' },
   water: { label: 'Facture Eau', icon: '💧', color: 'blue' },
   electricity: { label: 'Facture Électricité', icon: '⚡', color: 'yellow' },
   maintenance: { label: 'Entretien/Réparations', icon: '🔧', color: 'gray' },

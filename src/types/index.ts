@@ -105,6 +105,7 @@ export type TransactionType =
   | 'consignment';   // Consignation (neutre en trésorerie, déjà payé)
 
 export type ExpenseCategory =
+  | 'supply'         // 📦 Approvisionnements (auto-généré)
   | 'water'          // 💧 Eau
   | 'electricity'    // ⚡ Électricité
   | 'maintenance'    // 🔧 Entretien/Réparations

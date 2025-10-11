@@ -35,8 +35,8 @@ export function AccountingOverview() {
 
   const { sales } = useSales(currentBar.id);
   const { supplies } = useSupplies(currentBar.id);
-  const { getTotalExpenses } = useExpenses(currentBar.id);
-  const { getTotalSalaries } = useSalaries(currentBar.id);
+  const expensesHook = useExpenses(currentBar.id);
+  const salariesHook = useSalaries(currentBar.id);
   const { returns } = useReturns(currentBar.id);
 
   const [periodType, setPeriodType] = useState<PeriodType>('month');
@@ -77,14 +77,14 @@ export function AccountingOverview() {
   }, [supplies, periodStart, periodEnd]);
 
   // Calculate expenses
-  const expensesCosts = getTotalExpenses(periodStart, periodEnd);
+  const expensesCosts = expensesHook.getTotalExpenses(periodStart, periodEnd);
 
   // Calculate salaries
-  const salariesCosts = getTotalSalaries(periodStart, periodEnd);
+  const salariesCosts = salariesHook.getTotalSalaries(periodStart, periodEnd);
 
   // CALCULATIONS
-  const totalRevenue = salesRevenue;
-  const totalCosts = supplyCosts + expensesCosts + salariesCosts + returnsRefunds;
+  const totalRevenue = salesRevenue - returnsRefunds; // CA NET = Ventes - Retours remboursés
+  const totalCosts = supplyCosts + expensesCosts + salariesCosts;
   const netProfit = totalRevenue - totalCosts;
   const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 

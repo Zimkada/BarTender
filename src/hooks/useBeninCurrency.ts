@@ -115,9 +115,11 @@ export function useBeninCurrency(): CurrencyState & CurrencyActions {
 export function useCurrencyFormatter() {
   const { formatPrice } = useBeninCurrency();
 
-  return useCallback((amount: number) => {
+  const formatter = useCallback((amount: number) => {
     return formatPrice(amount, { showSymbol: true, useThousandsSeparator: true });
   }, [formatPrice]);
+
+  return { formatPrice: formatter };
 }
 
 export function usePriceInput() {
