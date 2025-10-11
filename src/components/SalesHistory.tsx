@@ -56,7 +56,7 @@ type ViewMode = 'list' | 'cards' | 'analytics';
 export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryProps) {
   const { sales, categories, products, returns, getReturnsBySale } = useAppContext();
   const { barMembers, currentBar } = useBarContext();
-  const formatPrice = useCurrencyFormatter();
+  const { formatPrice } = useCurrencyFormatter();
   const { currentSession, users } = useAuth();
   const { isMobile } = useViewport();
   const { consignments, getActiveConsignments } = useConsignments();

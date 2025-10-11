@@ -19,7 +19,7 @@ interface SupplyModalProps {
 }
 
 export function SupplyModal({ isOpen, onClose, onSave, products }: SupplyModalProps) {
-  const formatPrice = useCurrencyFormatter();
+  const { formatPrice } = useCurrencyFormatter();
   const [formData, setFormData] = useState({
     productId: '',
     quantity: '',

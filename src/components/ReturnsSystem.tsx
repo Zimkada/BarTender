@@ -67,7 +67,7 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
     getReturnsBySale
   } = useAppContext();
   const { currentBar } = useBarContext();
-  const formatPrice = useCurrencyFormatter();
+  const { formatPrice } = useCurrencyFormatter();
   const { currentSession } = useAuth();
   const { showSuccess, showError, showWarning } = useFeedback();
 
@@ -643,7 +643,7 @@ function CreateReturnForm({
   closeHour: number;
 }) {
   const { returns, getReturnsBySale } = useAppContext();
-  const formatPrice = useCurrencyFormatter();
+  const { formatPrice } = useCurrencyFormatter();
   const [selectedProduct, setSelectedProduct] = useState<CartItem | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [reason, setReason] = useState<ReturnReason>('defective');

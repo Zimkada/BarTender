@@ -27,7 +27,7 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
     addSupply,
     getAverageCostPerUnit
   } = useAppContext();
-  const formatPrice = useCurrencyFormatter();
+  const { formatPrice } = useCurrencyFormatter();
   const { isMobile } = useViewport();
   const [showProductModal, setShowProductModal] = useState(false);
   const [showSupplyModal, setShowSupplyModal] = useState(false);

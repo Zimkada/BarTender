@@ -28,7 +28,7 @@ type PeriodType = 'week' | 'month';
 export function AccountingOverview() {
   const { currentSession } = useAuth();
   const { currentBar } = useBarContext();
-  const formatPrice = useCurrencyFormatter();
+  const { formatPrice } = useCurrencyFormatter();
   const { isMobile } = useViewport();
 
   if (!currentBar || !currentSession) return null;

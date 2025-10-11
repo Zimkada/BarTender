@@ -39,7 +39,7 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
     returns
   } = useAppContext();
   const { getActiveConsignments } = useConsignments();
-  const formatPrice = useCurrencyFormatter();
+  const { formatPrice } = useCurrencyFormatter();
   const { currentSession } = useAuth();
   const { showSuccess, showError, setLoading, isLoading } = useFeedback();
   

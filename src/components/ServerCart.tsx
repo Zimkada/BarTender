@@ -24,7 +24,7 @@ export function ServerCart({
   onLaunchOrder,
   onClear
 }: ServerCartProps) {
-  const formatPrice = useCurrencyFormatter();
+  const { formatPrice } = useCurrencyFormatter();
   const { setLoading, isLoading, showSuccess } = useFeedback();
   const total = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);

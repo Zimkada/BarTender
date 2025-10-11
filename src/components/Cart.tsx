@@ -29,7 +29,7 @@ export function Cart({
   onClear,
   hideFloatingButton = false
 }: CartProps) {
-  const formatPrice = useCurrencyFormatter();
+  const { formatPrice } = useCurrencyFormatter();
   const { setLoading, isLoading, showSuccess, cartCleared } = useFeedback();
   const { isMobile } = useViewport();
   const { currentBar } = useBarContext();

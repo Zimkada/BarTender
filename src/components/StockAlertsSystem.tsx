@@ -55,7 +55,7 @@ export function StockAlertsSystem({ isOpen, onClose }: StockAlertsSystemProps) {
     getLowStockProducts,
     getAverageCostPerUnit
   } = useAppContext();
-  const formatPrice = useCurrencyFormatter();
+  const { formatPrice } = useCurrencyFormatter();
   const { hasPermission } = useAuth();
   const { isMobile } = useViewport();
 

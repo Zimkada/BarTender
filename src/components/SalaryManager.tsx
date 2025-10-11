@@ -22,7 +22,7 @@ import { useViewport } from '../hooks/useViewport';
 export function SalaryManager() {
   const { currentSession } = useAuth();
   const { currentBar, getBarMembers } = useBarContext();
-  const formatPrice = useCurrencyFormatter();
+  const { formatPrice } = useCurrencyFormatter();
   const { isMobile } = useViewport();
 
   if (!currentBar || !currentSession) return null;

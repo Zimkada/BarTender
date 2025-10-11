@@ -12,7 +12,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onAddToCart, compact = false }: ProductCardProps) {
-  const formatPrice = useCurrencyFormatter();
+  const { formatPrice } = useCurrencyFormatter();
   const { isMobile } = useViewport();
   const isLowStock = product.stock <= product.alertThreshold;
   const [showFeedback, setShowFeedback] = useState(false);

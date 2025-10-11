@@ -35,7 +35,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   } = useAppContext();
   const { currentBar } = useBarContext();
   const { currentSession } = useAuth();
-  const formatPrice = useCurrencyFormatter();
+  const { formatPrice } = useCurrencyFormatter();
   const { isMobile } = useViewport();
 
   const [cart, setCart] = useState<CartItem[]>([]);

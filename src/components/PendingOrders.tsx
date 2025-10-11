@@ -19,7 +19,7 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
     increaseStock,
     decreaseStock
   } = useAppContext();
-  const formatPrice = useCurrencyFormatter();
+  const { formatPrice } = useCurrencyFormatter();
 
   const pendingOrders = getPendingOrders();
 

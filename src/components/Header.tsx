@@ -63,7 +63,7 @@ export function Header({
   onShowConsignment = () => {}
 }: HeaderProps) {
   const { getTodayTotal } = useAppContext();
-  const formatPrice = useCurrencyFormatter();
+  const { formatPrice } = useCurrencyFormatter();
   const { currentSession, logout } = useAuth();
   const { currentBar } = useBarContext();
   const { isMobile } = useViewport();
