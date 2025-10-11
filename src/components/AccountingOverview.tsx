@@ -37,7 +37,12 @@ export function AccountingOverview() {
   const { supplies } = useSupplies();
   const expensesHook = useExpenses(currentBar.id);
   const salariesHook = useSalaries(currentBar.id);
-  const { returns } = useReturns();
+  const { returns: allReturns, getReturnsByBar } = useReturns();
+
+  // Filter returns by current bar
+  const returns = useMemo(() => {
+    return getReturnsByBar(currentBar.id);
+  }, [allReturns, currentBar.id, getReturnsByBar]);
 
   const [periodType, setPeriodType] = useState<PeriodType>('month');
   const [expensesExpanded, setExpensesExpanded] = useState(false);
