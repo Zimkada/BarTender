@@ -23,6 +23,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
   const { currentSession } = useAuth();
   const [tempSettings, setTempSettings] = useState(settings);
   const [tempCloseHour, setTempCloseHour] = useState(currentBar?.settings?.businessDayCloseHour ?? 6);
+  const [tempConsignmentExpirationDays, setTempConsignmentExpirationDays] = useState(currentBar?.settings?.consignmentExpirationDays ?? 7);
   const [tempOperatingMode, setTempOperatingMode] = useState<'full' | 'simplified'>(
     currentBar?.settings?.operatingMode ?? 'full'
   );
@@ -51,6 +52,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
         settings: {
           ...currentBar.settings,
           businessDayCloseHour: tempCloseHour,
+          consignmentExpirationDays: tempConsignmentExpirationDays,
           operatingMode: tempOperatingMode,
           serversList: tempOperatingMode === 'simplified' ? tempServersList : undefined,
         }
@@ -155,6 +157,32 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                 <p className="text-xs text-gray-500 mt-2">
                   Exemple : Si vous fermez à {tempCloseHour}h, une vente à {tempCloseHour === 0 ? '23' : (tempCloseHour - 1).toString().padStart(2, '0')}h sera comptée dans la journée précédente.
                 </p>
+              </div>
+
+              {/* Durée d'expiration des consignations */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                  <Clock size={16} className="text-orange-500" />
+                  Durée d'expiration des consignations
+                </label>
+                <p className="text-xs text-gray-600 mb-3">
+                  Durée par défaut avant qu'un produit consigné non réclamé ne redevienne disponible à la vente.
+                </p>
+                <div className="flex items-center gap-3 p-4 bg-orange-50 rounded-xl border border-orange-100">
+                  <input
+                    type="range"
+                    min="1"
+                    max="30"
+                    value={tempConsignmentExpirationDays}
+                    onChange={(e) => setTempConsignmentExpirationDays(Number(e.target.value))}
+                    className="flex-1 h-2 bg-orange-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                  />
+                  <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-orange-200 min-w-[90px] justify-center">
+                    <span className="text-lg font-bold text-gray-800">
+                      {tempConsignmentExpirationDays} jour(s)
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {/* Mode de fonctionnement */}

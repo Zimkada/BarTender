@@ -8,17 +8,16 @@ import {
   Receipt,
   Users,
   Zap,
-  RotateCcw,
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
 import { useSales } from '../hooks/useSales';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
+import { useAppContext } from '../context/AppContext';
 import { useSupplies } from '../hooks/useSupplies';
 import { useExpenses } from '../hooks/useExpenses';
 import { useSalaries } from '../hooks/useSalaries';
-import { useReturns } from '../hooks/useReturns';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { getWeekRange, getMonthRange } from '../utils/accounting';
 import { useViewport } from '../hooks/useViewport';
@@ -37,12 +36,7 @@ export function AccountingOverview() {
   const { supplies } = useSupplies();
   const expensesHook = useExpenses(currentBar.id);
   const salariesHook = useSalaries(currentBar.id);
-  const { returns: allReturns, getReturnsByBar } = useReturns();
-
-  // Filter returns by current bar
-  const returns = useMemo(() => {
-    return getReturnsByBar(currentBar.id);
-  }, [allReturns, currentBar.id, getReturnsByBar]);
+  const { returns } = useAppContext(); // ✅ Use returns from AppContext (same source as ReturnsSystem)
 
   const [periodType, setPeriodType] = useState<PeriodType>('month');
   const [expensesExpanded, setExpensesExpanded] = useState(false);
@@ -64,30 +58,17 @@ export function AccountingOverview() {
 
   // Calculate returns refunds
   const returnsRefunds = useMemo(() => {
-    const filtered = returns.filter(ret => {
-      const retDate = new Date(ret.returnedAt);
-      // Seulement retours approuvés/restockés (pas pending ni rejected)
-      if (ret.status !== 'approved' && ret.status !== 'restocked') return false;
-      // Seulement retours remboursés
-      if (!ret.isRefunded) return false;
-      // Dans la période
-      return retDate >= periodStart && retDate <= periodEnd;
-    });
-
-    console.log('🔍 [AccountingOverview] Returns Analysis:', {
-      totalReturns: returns.length,
-      filteredReturns: filtered.length,
-      returnsRefunds: filtered.reduce((sum, ret) => sum + ret.refundAmount, 0),
-      returns: filtered.map(r => ({
-        id: r.id.substring(0, 8),
-        status: r.status,
-        isRefunded: r.isRefunded,
-        refundAmount: r.refundAmount,
-        date: new Date(r.returnedAt).toLocaleDateString('fr-FR')
-      }))
-    });
-
-    return filtered.reduce((sum, ret) => sum + ret.refundAmount, 0);
+    return returns
+      .filter(ret => {
+        const retDate = new Date(ret.returnedAt);
+        // Seulement retours approuvés/restockés (pas pending ni rejected)
+        if (ret.status !== 'approved' && ret.status !== 'restocked') return false;
+        // Seulement retours remboursés
+        if (!ret.isRefunded) return false;
+        // Dans la période
+        return retDate >= periodStart && retDate <= periodEnd;
+      })
+      .reduce((sum, ret) => sum + ret.refundAmount, 0);
   }, [returns, periodStart, periodEnd]);
 
   // Calculate expenses (ALL categories including 'supply')
@@ -204,7 +185,7 @@ export function AccountingOverview() {
           </h3>
         </div>
         <div className="p-4 space-y-3">
-          {/* Sales Revenue */}
+          {/* Sales Revenue (NET after returns) */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -215,50 +196,14 @@ export function AccountingOverview() {
                   Ventes
                 </p>
                 <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  Entrées de caisse
+                  Entrées de caisse nettes
                 </p>
               </div>
             </div>
             <span className={`font-bold text-green-600 ${isMobile ? 'text-sm' : ''}`}>
-              +{formatPrice(salesRevenue)}
+              +{formatPrice(totalRevenue)}
             </span>
           </div>
-
-          {/* Returns Refunds */}
-          {returnsRefunds > 0 && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                  <RotateCcw className="text-red-600" size={20} />
-                </div>
-                <div>
-                  <p className={`font-medium text-gray-800 ${isMobile ? 'text-sm' : ''}`}>
-                    Retours remboursés
-                  </p>
-                  <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                    Déduction revenus
-                  </p>
-                </div>
-              </div>
-              <span className={`font-bold text-red-600 ${isMobile ? 'text-sm' : ''}`}>
-                -{formatPrice(returnsRefunds)}
-              </span>
-            </div>
-          )}
-
-          {/* Net Revenue Line */}
-          {returnsRefunds > 0 && (
-            <div className="pt-3 border-t border-gray-200">
-              <div className="flex items-center justify-between">
-                <p className={`font-semibold text-gray-800 ${isMobile ? 'text-sm' : ''}`}>
-                  Revenus NET
-                </p>
-                <span className={`font-bold text-blue-600 ${isMobile ? 'text-base' : 'text-lg'}`}>
-                  {formatPrice(totalRevenue)}
-                </span>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 

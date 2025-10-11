@@ -37,7 +37,7 @@ const returnReasons: Record<ReturnReason, ReturnReasonConfig> = {
     autoRefund: true     // Remboursement (erreur du bar)
   },
   customer_change: {
-    label: 'Changement d\'avis client',
+    label: 'Produit non consommé',
     color: 'blue',
     autoRestock: true,   // Remettre en stock (produit OK)
     autoRefund: false    // PAS de remboursement (caprice client)
@@ -187,6 +187,7 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
 
     // Créer retour via AppContext (persistance)
     const newReturn = addReturn({
+      barId: currentBar!.id, // ✅ Multi-tenant support
       saleId,
       productId,
       productName: item.product.name,
@@ -903,7 +904,7 @@ function CreateReturnForm({
               />
             </div>
 
-            <div className={`border rounded-lg p-4 ${reasonConfig.autoRefund ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
+            <div className={`border rounded-lg p-4 ${reason === 'other' ? 'bg-yellow-50 border-yellow-200' : reasonConfig.autoRefund ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700">Montant retour:</span>
@@ -913,21 +914,25 @@ function CreateReturnForm({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {reasonConfig.autoRefund ? (
-                    <>
-                      <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
-                        💰 Client sera remboursé
-                      </span>
-                    </>
+                  {reason === 'other' ? (
+                    <span className="text-sm bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-medium">
+                      💰 Décision manuelle
+                    </span>
+                  ) : reasonConfig.autoRefund ? (
+                    <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
+                      💰 Client sera remboursé
+                    </span>
                   ) : (
-                    <>
-                      <span className="text-sm bg-gray-100 text-gray-700 px-2 py-1 rounded-full font-medium">
-                        ❌ Sans remboursement
-                      </span>
-                    </>
+                    <span className="text-sm bg-gray-100 text-gray-700 px-2 py-1 rounded-full font-medium">
+                      ❌ Sans remboursement
+                    </span>
                   )}
 
-                  {reasonConfig.autoRestock ? (
+                  {reason === 'other' ? (
+                    <span className="text-sm bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full font-medium">
+                      📦 Décision manuelle
+                    </span>
+                  ) : reasonConfig.autoRestock ? (
                     <span className="text-sm bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
                       📦 Stock auto
                     </span>
@@ -939,10 +944,15 @@ function CreateReturnForm({
                 </div>
 
                 <p className="text-xs text-gray-600 mt-2">
-                  {reasonConfig.autoRefund && reasonConfig.autoRestock && 'Client remboursé + Produit remis en stock automatiquement'}
-                  {reasonConfig.autoRefund && !reasonConfig.autoRestock && 'Client remboursé + Décision manuelle pour le stock'}
-                  {!reasonConfig.autoRefund && reasonConfig.autoRestock && 'Pas de remboursement + Produit remis en stock automatiquement'}
-                  {!reasonConfig.autoRefund && !reasonConfig.autoRestock && 'Pas de remboursement + Décision manuelle pour le stock'}
+                  {reason === 'other'
+                    ? 'Le remboursement et la remise en stock seront décidés manuellement.'
+                    : reasonConfig.autoRefund && reasonConfig.autoRestock
+                      ? 'Client remboursé + Produit remis en stock automatiquement'
+                      : reasonConfig.autoRefund && !reasonConfig.autoRestock
+                        ? 'Client remboursé + Décision manuelle pour le stock'
+                        : !reasonConfig.autoRefund && reasonConfig.autoRestock
+                          ? 'Pas de remboursement + Produit remis en stock automatiquement'
+                          : 'Pas de remboursement + Décision manuelle pour le stock'}
                 </p>
               </div>
             </div>

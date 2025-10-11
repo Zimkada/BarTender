@@ -1,6 +1,6 @@
 // components/ConsignmentSystem.tsx - Système de gestion des consignations
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Package,
   X,
@@ -100,7 +100,7 @@ export const ConsignmentSystem: React.FC<ConsignmentSystemProps> = ({ isOpen, on
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-6">
-            {activeTab === 'create' && <CreateConsignmentTab />}
+            {activeTab === 'create' && <CreateConsignmentTab onClose={onClose} />}
             {activeTab === 'active' && <ActiveConsignmentsTab />}
             {activeTab === 'history' && <HistoryTab />}
           </div>
@@ -133,11 +133,17 @@ const TabButton: React.FC<TabButtonProps> = ({ active, onClick, icon, label }) =
 );
 
 // ===== TAB 1: CRÉER CONSIGNATION =====
-const CreateConsignmentTab: React.FC = () => {
+interface CreateConsignmentTabProps {
+  onClose: () => void;
+}
+
+const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) => {
   const { getTodaySales, products } = useAppContext();
   const { createConsignment, getConsignedStockByProduct } = useConsignments();
   const { formatPrice } = useCurrencyFormatter();
   const { showSuccess, showError } = useFeedback();
+  const { currentBar } = useBarContext();
+  const { currentSession: session } = useAuth();
 
   const [selectedSaleId, setSelectedSaleId] = useState('');
   const [selectedProductId, setSelectedProductId] = useState('');
@@ -146,6 +152,30 @@ const CreateConsignmentTab: React.FC = () => {
   const [customerPhone, setCustomerPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [expirationDays, setExpirationDays] = useState(currentBar?.settings?.consignmentExpirationDays ?? 7);
+
+  useEffect(() => {
+    setExpirationDays(currentBar?.settings?.consignmentExpirationDays ?? 7);
+  }, [currentBar?.settings?.consignmentExpirationDays]);
+
+  if (!currentBar || !session) {
+    return (
+      <div className="flex flex-col items-center justify-center text-center p-8 bg-gray-50 rounded-lg h-full">
+        <AlertTriangle className="w-12 h-12 text-orange-400 mb-4" />
+        <h3 className="text-xl font-semibold text-gray-800">Accès non autorisé</h3>
+        <p className="text-gray-600 mt-2 max-w-md">
+          {!currentBar
+            ? "Veuillez d'abord sélectionner un bar pour pouvoir créer une consignation."
+            : "Votre session a expiré. Veuillez vous reconnecter."}
+        </p>
+        <EnhancedButton 
+          onClick={onClose} 
+          className="mt-6 bg-purple-600 hover:bg-purple-700 text-white">
+          Fermer
+        </EnhancedButton>
+      </div>
+    );
+  }
 
   const todaySales = getTodaySales();
   const filteredSales = useMemo(() => {
@@ -187,6 +217,7 @@ const CreateConsignmentTab: React.FC = () => {
       customerPhone: customerPhone.trim() || undefined,
       notes: notes.trim() || undefined,
       expiresAt: new Date(), // Sera calculé par le hook
+      expirationDays: expirationDays, // Passer la valeur de l'état
     });
 
     if (consignment) {
@@ -199,7 +230,7 @@ const CreateConsignmentTab: React.FC = () => {
       setCustomerPhone('');
       setNotes('');
     } else {
-      showError('Erreur lors de la création de la consignation');
+      showError('Erreur: Impossible de créer. Le bar est-il sélectionné et la session active ?');
     }
   };
 
@@ -365,6 +396,21 @@ const CreateConsignmentTab: React.FC = () => {
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Calendar className="inline w-4 h-4 mr-1" />
+              Durée d'expiration (jours)
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={expirationDays}
+              onChange={(e) => setExpirationDays(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            />
+            <p className="text-xs text-gray-500 mt-1">Modifiez pour définir une durée spécifique pour cette consigne uniquement.</p>
+          </div>
+
           {/* Récapitulatif */}
           <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
             <h4 className="font-semibold text-purple-900 mb-2">Récapitulatif</h4>
@@ -393,7 +439,7 @@ const ActiveConsignmentsTab: React.FC = () => {
   const { getActiveConsignments, claimConsignment, forfeitConsignment, checkAndExpireConsignments } = useConsignments();
   const { products, decreaseStock } = useAppContext();
   const { formatPrice } = useCurrencyFormatter();
-  const { showSuccess, showError, showConfirm } = useFeedback();
+  const { showSuccess, showError } = useFeedback();
   const [searchTerm, setSearchTerm] = useState('');
 
   const activeConsignments = getActiveConsignments();
@@ -409,28 +455,24 @@ const ActiveConsignmentsTab: React.FC = () => {
     );
   }, [activeConsignments, searchTerm]);
 
-  const handleClaim = async (consignment: Consignment) => {
-    const confirmed = await showConfirm(
-      `Valider la récupération de ${consignment.quantity} ${consignment.productName} par ${consignment.customerName} ?`,
-      'Le stock physique sera déduit.'
+  const handleClaim = (consignment: Consignment) => {
+    const confirmed = window.confirm(
+      `Valider la récupération de ${consignment.quantity} ${consignment.productName} par ${consignment.customerName} ?\n\nLe produit sera déduit du stock des consignes actives.`
     );
 
     if (!confirmed) return;
 
     const success = claimConsignment(consignment.id);
     if (success) {
-      // Déduire du stock physique
-      decreaseStock(consignment.productId, consignment.quantity);
       showSuccess(`Consignation récupérée: ${consignment.quantity} ${consignment.productName}`);
     } else {
       showError('Erreur lors de la récupération');
     }
   };
 
-  const handleForfeit = async (consignment: Consignment) => {
-    const confirmed = await showConfirm(
-      `Confisquer la consignation de ${consignment.customerName} ?`,
-      'Le stock redeviendra vendable immédiatement.'
+  const handleForfeit = (consignment: Consignment) => {
+    const confirmed = window.confirm(
+      `Confisquer la consignation de ${consignment.customerName} ?\n\nLe produit sera retiré du stock des consignes et redeviendra immédiatement vendable.`
     );
 
     if (!confirmed) return;

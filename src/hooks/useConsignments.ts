@@ -14,7 +14,7 @@ interface UseConsignmentsReturn {
   consignments: Consignment[];
 
   // CRUD
-  createConsignment: (data: Omit<Consignment, 'id' | 'barId' | 'createdAt' | 'createdBy' | 'status'>) => Consignment | null;
+  createConsignment: (data: Omit<Consignment, 'id' | 'barId' | 'createdAt' | 'createdBy' | 'status'> & { expirationDays?: number }) => Consignment | null;
   claimConsignment: (consignmentId: string) => boolean;
   forfeitConsignment: (consignmentId: string) => boolean;
   updateConsignment: (consignmentId: string, updates: Partial<Consignment>) => void;
@@ -40,7 +40,7 @@ interface UseConsignmentsReturn {
 export const useConsignments = (): UseConsignmentsReturn => {
   const [consignments, setConsignments] = useLocalStorage<Consignment[]>(STORAGE_KEY, []);
   const { currentBar } = useBarContext();
-  const { session } = useAuth();
+  const { currentSession: session } = useAuth();
 
   // Filtrer par bar actuel
   const barConsignments = useMemo(() => {
@@ -49,8 +49,8 @@ export const useConsignments = (): UseConsignmentsReturn => {
   }, [consignments, currentBar]);
 
   // Calculer date d'expiration
-  const getExpirationDate = useCallback((createdAt: Date): Date => {
-    const expirationDays = currentBar?.settings?.consignmentExpirationDays ?? DEFAULT_EXPIRATION_DAYS;
+  const getExpirationDate = useCallback((createdAt: Date, overrideDays?: number): Date => {
+    const expirationDays = overrideDays ?? currentBar?.settings?.consignmentExpirationDays ?? DEFAULT_EXPIRATION_DAYS;
     const expiresAt = new Date(createdAt);
     expiresAt.setDate(expiresAt.getDate() + expirationDays);
     return expiresAt;
@@ -58,7 +58,7 @@ export const useConsignments = (): UseConsignmentsReturn => {
 
   // Créer une consignation
   const createConsignment = useCallback((
-    data: Omit<Consignment, 'id' | 'barId' | 'createdAt' | 'createdBy' | 'status'>
+    data: Omit<Consignment, 'id' | 'barId' | 'createdAt' | 'createdBy' | 'status'> & { expirationDays?: number }
   ): Consignment | null => {
     if (!currentBar || !session) {
       console.error('❌ Impossible de créer consignation: bar ou session manquant');
@@ -66,12 +66,14 @@ export const useConsignments = (): UseConsignmentsReturn => {
     }
 
     const now = new Date();
+    const { expirationDays, ...consignmentData } = data;
+
     const newConsignment: Consignment = {
-      ...data,
+      ...consignmentData,
       id: `consignment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       barId: currentBar.id,
       createdAt: now,
-      expiresAt: getExpirationDate(now),
+      expiresAt: getExpirationDate(now, expirationDays),
       createdBy: session.userId,
       status: 'active',
     };
