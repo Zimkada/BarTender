@@ -11,7 +11,7 @@ import {
   DollarSign,
   RotateCcw,
   Zap,
-  AlertTriangle,
+  TrendingUp, // Pour les prévisions (anciennement AlertTriangle)
   FileSpreadsheet,
   Menu,
   Calendar,
@@ -204,14 +204,14 @@ export function Header({
 
             {/* Actions toolbar */}
             <div className="flex items-center gap-2">
-              {/* Alertes stock */}
+              {/* Prévisions */}
               <RoleBasedComponent requiredPermission="canViewInventory">
                 <button
                   onClick={onShowStockAlerts}
                   className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors relative"
-                  title="Alertes stock"
+                  title="Prévisions"
                 >
-                  <AlertTriangle size={20} />
+                  <TrendingUp size={20} />
                   {alertCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                       {alertCount}
@@ -221,40 +221,12 @@ export function Header({
               </RoleBasedComponent>
 
               {/* Vente rapide */}
-              <button
-                onClick={onShowQuickSale}
-                className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                title="Vente rapide"
-              >
-                <Zap size={20} />
-              </button>
-
-              {/* Point du jour */}
-              <button
-                onClick={onShowDailyDashboard}
-                className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                title="Point du jour"
-              >
-                <Calendar size={20} />
-              </button>
-
-              {/* Historique ventes */}
-              <RoleBasedComponent requiredPermission="canViewAllSales">
-                <button
-                  onClick={onShowSales}
-                  className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                  title="Historique des ventes"
-                >
-                  <BarChart3 size={20} />
-                </button>
-              </RoleBasedComponent>
-
-              {/* Excel */}
+// ...
               <RoleBasedComponent requiredPermission="canManageInventory">
                 <button
                   onClick={onShowExcel}
                   className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                  title="Import/Export Excel"
+                  title="Import/Export"
                 >
                   <FileSpreadsheet size={20} />
                 </button>
