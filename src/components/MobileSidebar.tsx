@@ -6,9 +6,8 @@ import {
   BarChart3,
   Calendar,
   Package,
-  Bell,
+  TrendingUp,
   Users,
-  Download,
   Upload,
   Settings,
   LogOut,
@@ -97,8 +96,8 @@ export function MobileSidebar({ isOpen, onClose, onNavigate, currentMenu }: Mobi
     },
     {
       id: 'stockAlerts',
-      label: 'Alertes stock',
-      icon: <Bell size={20} />,
+      label: 'Prévisions',
+      icon: <TrendingUp size={20} />,
       roles: ['promoteur', 'gerant'],
       action: () => {
         onNavigate('stockAlerts');
@@ -127,7 +126,7 @@ export function MobileSidebar({ isOpen, onClose, onNavigate, currentMenu }: Mobi
     },
     {
       id: 'teamManagement',
-      label: 'Gestion équipe',
+      label: "Gestion de l'Équipe",
       icon: <Users size={20} />,
       roles: ['promoteur', 'gerant'],
       action: () => {

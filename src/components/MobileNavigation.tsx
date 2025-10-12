@@ -4,7 +4,7 @@ import {
   Package,
   Zap,
   RotateCcw,
-  AlertTriangle,
+  TrendingUp,
   FileSpreadsheet,
   Home,
   User
@@ -40,64 +40,59 @@ export function MobileNavigation({
   const { currentSession } = useAuth();
   const { isMobile } = useViewport();
 
-  // Ne pas afficher sur desktop
   if (!isMobile) {
     return null;
   }
 
-  // Navigation adaptée par rôle (mobile-first Bénin)
-  // Couleurs harmonisées: Orange monochrome professionnel
   const allNavItems: NavItem[] = [
     {
       icon: <Zap size={24} />,
       label: 'Vente',
       onClick: onShowQuickSale,
       color: 'text-orange-600',
-      roles: ['serveur', 'gerant', 'promoteur'] // Tous
+      roles: ['serveur', 'gerant', 'promoteur']
     },
     {
       icon: <BarChart3 size={24} />,
       label: 'Historique',
       onClick: onShowSales,
       color: 'text-orange-600',
-      roles: ['gerant', 'promoteur'] // Pas serveurs
+      roles: ['gerant', 'promoteur']
     },
     {
       icon: <Package size={24} />,
-      label: 'Stock',
+      label: 'Inventaire',
       onClick: onShowInventory,
       color: 'text-orange-600',
-      roles: ['gerant', 'promoteur'] // Pas serveurs
+      roles: ['gerant', 'promoteur']
     },
     {
-      icon: <AlertTriangle size={24} />,
-      label: 'Alertes',
+      icon: <TrendingUp size={24} />,
+      label: 'Prévisions',
       onClick: onShowStockAlerts,
       color: 'text-orange-600',
-      roles: ['gerant', 'promoteur'] // Pas serveurs
+      roles: ['gerant', 'promoteur']
     },
     {
       icon: <RotateCcw size={24} />,
       label: 'Retours',
       onClick: onShowReturns,
       color: 'text-orange-600',
-      roles: ['gerant', 'promoteur'] // Pas serveurs
+      roles: ['gerant', 'promoteur']
     },
     {
       icon: <FileSpreadsheet size={24} />,
-      label: 'Excel',
+      label: 'Import/Export',
       onClick: onShowExcel,
       color: 'text-orange-600',
-      roles: ['gerant', 'promoteur'] // Pas serveurs
+      roles: ['gerant', 'promoteur']
     }
   ];
 
-  // Filtrer items selon rôle utilisateur
   const navItems = allNavItems.filter(item =>
     item.roles.includes(currentSession?.role as any)
   );
 
-  // Limiter à 5 items max pour éviter surcharge (UX mobile)
   const displayedItems = navItems.slice(0, 5);
 
   return (

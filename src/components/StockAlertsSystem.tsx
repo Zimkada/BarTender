@@ -5,6 +5,7 @@ import {
   Package,
   ShoppingCart,
   TrendingDown,
+  TrendingUp, // Importer la nouvelle icône
   Calendar,
   X,
   Check,
@@ -262,8 +263,8 @@ export function StockAlertsSystem({ isOpen, onClose }: StockAlertsSystemProps) {
               <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <AlertTriangle size={20} />
-                    <h2 className="text-lg font-bold">Alertes stock</h2>
+                    <TrendingUp size={20} />
+                    <h2 className="text-lg font-bold">Prévisions</h2>
                   </div>
                   <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg">
                     <X size={24} />
@@ -289,9 +290,9 @@ export function StockAlertsSystem({ isOpen, onClose }: StockAlertsSystemProps) {
               /* Header desktop */
               <div className="flex items-center justify-between p-6 border-b border-orange-200">
                 <div className="flex items-center gap-3">
-                  <AlertTriangle className="w-8 h-8 text-red-600" />
+                  <TrendingUp className="w-8 h-8 text-green-600" />
                   <div>
-                    <h2 className="text-xl font-bold text-gray-800">Alertes stock</h2>
+                    <h2 className="text-xl font-bold text-gray-800">Prévisions</h2>
                     <p className="text-sm text-gray-600">
                       {stats.new} nouvelles • {stats.critical} critiques
                     </p>
