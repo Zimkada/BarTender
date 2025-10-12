@@ -102,7 +102,8 @@ export type TransactionType =
   | 'supply'         // Approvisionnement
   | 'expense'        // Dépense
   | 'salary'         // Salaire
-  | 'consignment';   // Consignation (neutre en trésorerie, déjà payé)
+  | 'consignment'    // Consignation (neutre en trésorerie, déjà payé)
+  | 'initial_balance'; // Solde initial (point de départ comptabilité)
 
 export type ExpenseCategory =
   | 'supply'         // 📦 Approvisionnements (auto-généré)
@@ -141,6 +142,16 @@ export interface Salary {
   paidAt: Date;
   createdBy: string;
   createdAt: Date;
+}
+
+export interface InitialBalance {
+  id: string;
+  barId: string;
+  amount: number;           // Montant du solde initial (peut être négatif si dettes)
+  date: Date;               // Date de référence du solde
+  description: string;      // Ex: "Solde ouverture bar", "Solde début exercice 2025"
+  createdBy: string;        // Qui a saisi ce solde
+  createdAt: Date;          // Quand la saisie a été faite
 }
 
 export interface AccountingTransaction {

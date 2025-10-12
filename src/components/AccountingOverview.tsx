@@ -12,7 +12,9 @@ import {
   ChevronUp,
   ChevronLeft,
   ChevronRight,
-  CalendarDays
+  CalendarDays,
+  PlusCircle,
+  X
 } from 'lucide-react';
 import { useSales } from '../hooks/useSales';
 import { useAuth } from '../context/AuthContext';
@@ -21,6 +23,7 @@ import { useAppContext } from '../context/AppContext';
 import { useSupplies } from '../hooks/useSupplies';
 import { useExpenses } from '../hooks/useExpenses';
 import { useSalaries } from '../hooks/useSalaries';
+import { useInitialBalance } from '../hooks/useInitialBalance';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 
@@ -36,6 +39,7 @@ export function AccountingOverview() {
   const { supplies } = useSupplies();
   const expensesHook = useExpenses(currentBar?.id);
   const salariesHook = useSalaries(currentBar?.id);
+  const initialBalanceHook = useInitialBalance(currentBar?.id);
   const { returns } = useAppContext(); // ✅ Use returns from AppContext (same source as ReturnsSystem)
 
   const [periodType, setPeriodType] = useState<PeriodType>('month');
@@ -43,6 +47,12 @@ export function AccountingOverview() {
   const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
   const [expensesExpanded, setExpensesExpanded] = useState(false);
   const [viewMode, setViewMode] = useState<'tresorerie' | 'analytique'>('tresorerie');
+  const [showInitialBalanceModal, setShowInitialBalanceModal] = useState(false);
+  const [initialBalanceForm, setInitialBalanceForm] = useState({
+    amount: '',
+    date: new Date().toISOString().split('T')[0],
+    description: 'Solde initial',
+  });
 
   if (!currentBar || !currentSession) return null;
 
@@ -148,12 +158,15 @@ export function AccountingOverview() {
   const previousBalance = useMemo(() => {
     if (viewMode === 'tresorerie') return 0; // Not used in tresorerie view
 
-    // Sum all sales before period
+    // ✅ 1. Start with initial balance(s) before period
+    const initialBalanceTotal = initialBalanceHook.getTotalInitialBalance(periodStart);
+
+    // 2. Sum all sales before period
     const previousSales = sales
       .filter(sale => new Date(sale.date) < periodStart)
       .reduce((sum, sale) => sum + sale.total, 0);
 
-    // Sum all returns before period
+    // 3. Sum all returns before period
     const previousReturns = returns
       .filter(ret => {
         if (ret.status !== 'approved' && ret.status !== 'restocked') return false;
@@ -162,12 +175,12 @@ export function AccountingOverview() {
       })
       .reduce((sum, ret) => sum + ret.refundAmount, 0);
 
-    // Sum all expenses before period
+    // 4. Sum all expenses before period
     const previousExpenses = expensesHook.expenses
       .filter(exp => new Date(exp.date) < periodStart)
       .reduce((sum, exp) => sum + exp.amount, 0);
 
-    // Sum all salaries before period
+    // 5. Sum all salaries before period
     const previousSalaries = salariesHook.salaries
       .filter(sal => new Date(sal.paidAt) < periodStart)
       .reduce((sum, sal) => sum + sal.amount, 0);
@@ -175,8 +188,9 @@ export function AccountingOverview() {
     const previousRevenue = previousSales - previousReturns;
     const previousCosts = previousExpenses + previousSalaries;
 
-    return previousRevenue - previousCosts;
-  }, [viewMode, sales, returns, expensesHook.expenses, salariesHook.salaries, periodStart]);
+    // ✅ Total = Solde initial + (Revenus - Coûts) des périodes antérieures
+    return initialBalanceTotal + previousRevenue - previousCosts;
+  }, [viewMode, sales, returns, expensesHook.expenses, salariesHook.salaries, periodStart, initialBalanceHook]);
 
   // Final balance (for Vue Analytique)
   const finalBalance = previousBalance + netProfit;
@@ -230,6 +244,30 @@ export function AccountingOverview() {
     }
   };
 
+  // Initial Balance handlers
+  const handleCreateInitialBalance = () => {
+    if (!initialBalanceForm.amount || isNaN(parseFloat(initialBalanceForm.amount))) {
+      alert('Veuillez saisir un montant valide');
+      return;
+    }
+
+    initialBalanceHook.addInitialBalance({
+      barId: currentBar!.id,
+      amount: parseFloat(initialBalanceForm.amount),
+      date: new Date(initialBalanceForm.date),
+      description: initialBalanceForm.description || 'Solde initial',
+      createdBy: currentSession!.userId,
+    });
+
+    // Reset form and close modal
+    setInitialBalanceForm({
+      amount: '',
+      date: new Date().toISOString().split('T')[0],
+      description: 'Solde initial',
+    });
+    setShowInitialBalanceModal(false);
+  };
+
   return (
     <div className={`${isMobile ? 'p-3 space-y-3' : 'p-6 space-y-6'}`}>
       {/* Header */}
@@ -242,6 +280,16 @@ export function AccountingOverview() {
             {currentBar?.name}
           </p>
         </div>
+
+        {/* Button to define initial balance */}
+        <button
+          onClick={() => setShowInitialBalanceModal(true)}
+          className="flex items-center gap-2 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm"
+          title="Définir le solde initial"
+        >
+          <PlusCircle size={18} />
+          {!isMobile && <span>Solde initial</span>}
+        </button>
       </div>
 
       {/* View Mode Toggle */}
@@ -647,6 +695,119 @@ export function AccountingOverview() {
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Modal: Define Initial Balance */}
+      {showInitialBalanceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-xl shadow-2xl max-w-md w-full"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-purple-500 to-indigo-600">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <DollarSign size={22} />
+                Définir solde initial
+              </h3>
+              <button
+                onClick={() => setShowInitialBalanceModal(false)}
+                className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+              >
+                <X size={20} className="text-white" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-gray-600">
+                Définissez le solde initial de votre comptabilité (par exemple, le montant en caisse à l'ouverture du bar).
+              </p>
+
+              {/* Amount */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Montant (FCFA) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  value={initialBalanceForm.amount}
+                  onChange={(e) => setInitialBalanceForm(prev => ({ ...prev, amount: e.target.value }))}
+                  placeholder="Ex: 500000"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Peut être négatif si vous aviez des dettes
+                </p>
+              </div>
+
+              {/* Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date de référence <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={initialBalanceForm.date}
+                  onChange={(e) => setInitialBalanceForm(prev => ({ ...prev, date: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <input
+                  type="text"
+                  value={initialBalanceForm.description}
+                  onChange={(e) => setInitialBalanceForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Ex: Solde ouverture bar"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Existing initial balances */}
+              {initialBalanceHook.initialBalances.length > 0 && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <p className="text-xs font-medium text-yellow-800 mb-2">
+                    Soldes initiaux existants :
+                  </p>
+                  <div className="space-y-2">
+                    {initialBalanceHook.initialBalances.map(bal => (
+                      <div key={bal.id} className="flex items-center justify-between text-xs">
+                        <span className="text-gray-700">
+                          {new Date(bal.date).toLocaleDateString('fr-FR')} - {bal.description}
+                        </span>
+                        <span className={`font-medium ${bal.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {formatPrice(bal.amount)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center gap-3 p-4 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => setShowInitialBalanceModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleCreateInitialBalance}
+                className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+              >
+                Enregistrer
+              </button>
+            </div>
+          </motion.div>
         </div>
       )}
     </div>
