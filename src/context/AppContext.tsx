@@ -168,12 +168,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Produits
   const addProduct = useCallback((product: Omit<Product, 'id' | 'createdAt' | 'barId'>) => {
     if (!hasPermission('canAddProducts') || !currentBar) return null;
-    
-    const newProduct: Product = { 
-      ...product, 
-      id: Date.now().toString(), 
+
+    // Générer un ID unique avec timestamp + random pour éviter les collisions lors d'imports multiples
+    const uniqueId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    const newProduct: Product = {
+      ...product,
+      id: uniqueId,
       barId: currentBar.id,
-      createdAt: new Date() 
+      createdAt: new Date()
     };
     setAllProducts(prev => [...prev, newProduct]);
     return newProduct;

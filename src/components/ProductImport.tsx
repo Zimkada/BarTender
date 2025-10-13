@@ -50,6 +50,8 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
   });
 
   const handleImport = () => {
+    console.log('🔵 handleImport appelé', { productsCount: importedProducts.length });
+
     if (importedProducts.length === 0) {
       showError('Aucun produit à importer.');
       return;
@@ -59,28 +61,59 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
     let errorCount = 0;
 
     importedProducts.forEach((product, index) => {
+      console.log('🔷 Traitement produit ligne', index + 2, ':', product);
+
       try {
-        // Basic validation
-        if (!product.Nom || !product.Prix || !product.Stock) {
-          throw new Error(`Ligne ${index + 2}: Nom, Prix, et Stock sont requis.`);
+        // Normaliser les clés (gérer variations de casse et espaces)
+        const normalizedProduct: any = {};
+        Object.keys(product).forEach(key => {
+          const normalizedKey = key.toLowerCase().trim();
+          normalizedProduct[normalizedKey] = product[key];
+        });
+
+        // Extraire les valeurs avec différentes variations possibles
+        const nom = normalizedProduct['nom'] || normalizedProduct['name'] || normalizedProduct['produit'];
+        const prix = normalizedProduct['prix'] || normalizedProduct['price'];
+        const stock = normalizedProduct['stock'] || normalizedProduct['quantite'] || normalizedProduct['quantity'];
+        const volume = normalizedProduct['volume'] || normalizedProduct['taille'] || '';
+        const categorie = normalizedProduct['categorie'] || normalizedProduct['category'] || normalizedProduct['catégorie'];
+        const seuilAlerte = normalizedProduct['seuil alerte'] || normalizedProduct['seuil'] || normalizedProduct['alert'] || 10;
+
+        // Ignorer les lignes complètement vides
+        const isEmptyRow = !nom && !prix && !stock;
+        if (isEmptyRow) {
+          console.log('⚠️ Ligne vide ignorée:', index + 2);
+          return; // Skip empty rows
         }
 
-        const category = categories.find(c => c.name.toLowerCase() === (product.Categorie || '').toLowerCase());
+        // Validation stricte uniquement si la ligne contient des données
+        if (!nom || prix === undefined || prix === null || stock === undefined || stock === null) {
+          console.error('❌ Ligne invalide:', { ligne: index + 2, nom, prix, stock, produitBrut: product });
+          throw new Error(`Ligne ${index + 2}: Nom, Prix, et Stock sont requis. (Trouvé: Nom="${nom}", Prix="${prix}", Stock="${stock}")`);
+        }
 
-        addProduct({
-          name: String(product.Nom),
-          volume: String(product.Volume || ''),
-          price: Number(product.Prix),
-          stock: Number(product.Stock),
+        const category = categories.find(c => c.name.toLowerCase() === String(categorie || '').toLowerCase());
+
+        const productData = {
+          name: String(nom),
+          volume: String(volume),
+          price: Number(prix),
+          stock: Number(stock),
           categoryId: category ? category.id : categories[0]?.id || '',
-          alertThreshold: Number(product['Seuil Alerte'] || 10),
-        });
+          alertThreshold: Number(seuilAlerte),
+        };
+
+        console.log('✅ Ajout produit:', productData);
+        addProduct(productData);
         successCount++;
       } catch (e: any) {
+        console.error('❌ Erreur produit ligne', index + 2, ':', e);
         showError(e.message);
         errorCount++;
       }
     });
+
+    console.log('📊 Résultat import:', { successCount, errorCount });
 
     if (successCount > 0) {
       showSuccess(`${successCount} produit(s) importé(s) avec succès.`);
@@ -129,14 +162,18 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
                   <p className="font-semibold mb-2">Format du fichier Excel (.xlsx)</p>
                   <p>Votre fichier doit contenir les colonnes suivantes :</p>
                   <ul className="list-disc list-inside mt-1 font-mono text-xs bg-orange-100 p-2 rounded">
-                    <li>Nom (Requis)</li>
-                    <li>Volume</li>
-                    <li>Prix (Requis)</li>
-                    <li>Stock (Requis)</li>
-                    <li>Categorie</li>
-                    <li>Seuil Alerte</li>
+                    <li><strong>Nom</strong> (Requis) - Nom du produit</li>
+                    <li>Volume (Optionnel) - Ex: 33cl, 1L, etc.</li>
+                    <li><strong>Prix</strong> (Requis) - Prix de vente en FCFA</li>
+                    <li><strong>Stock</strong> (Requis) - Quantité en stock</li>
+                    <li>Categorie (Optionnel) - Nom de la catégorie</li>
+                    <li>Seuil Alerte (Optionnel, défaut: 10)</li>
                   </ul>
-                  <p className="mt-2">La première ligne doit être l'en-tête. Si la catégorie n'existe pas, le produit sera ajouté à la première catégorie disponible.</p>
+                  <p className="mt-2 text-xs">
+                    ℹ️ <strong>Notes:</strong> La première ligne doit être l'en-tête.
+                    Les lignes vides sont ignorées automatiquement.
+                    Si la catégorie n'existe pas, le produit sera ajouté à la première catégorie disponible.
+                  </p>
                 </div>
               </div>
             </div>
