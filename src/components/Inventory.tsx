@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Package, AlertTriangle, Plus, Edit, Trash2 } from 'lucide-react';
+import { X, Package, AlertTriangle, Plus, Edit, Trash2, UploadCloud, TruckIcon } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { ProductModal } from './ProductModal';
@@ -10,6 +10,7 @@ import { useFeedback } from '../hooks/useFeedback';
 import { FeedbackButton } from './FeedbackButton';
 import { EnhancedButton } from './EnhancedButton';
 import { useViewport } from '../hooks/useViewport';
+import { ProductImport } from './ProductImport';
 
 interface InventoryProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
   const { isMobile } = useViewport();
   const [showProductModal, setShowProductModal] = useState(false);
   const [showSupplyModal, setShowSupplyModal] = useState(false);
+  const [showProductImport, setShowProductImport] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
   const { showSuccess } = useFeedback();
 
@@ -94,16 +96,24 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                         <X size={24} />
                       </button>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setShowProductImport(true)}
+                        className="flex-1 min-w-[120px] px-3 py-2 bg-white/20 backdrop-blur rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-white/30"
+                      >
+                        <UploadCloud size={16} />
+                        Importer
+                      </button>
                       <button
                         onClick={() => setShowSupplyModal(true)}
-                        className="flex-1 px-3 py-2 bg-white/20 backdrop-blur rounded-lg text-sm font-medium active:bg-white/30"
+                        className="flex-1 min-w-[120px] px-3 py-2 bg-white/20 backdrop-blur rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-white/30"
                       >
+                        <TruckIcon size={16} />
                         Approvisionner
                       </button>
                       <button
                         onClick={handleAddProduct}
-                        className="flex-1 px-3 py-2 bg-white text-orange-600 rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-orange-50"
+                        className="flex-1 min-w-[120px] px-3 py-2 bg-white text-orange-600 rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-orange-50"
                       >
                         <Plus size={16} />
                         Ajouter
@@ -220,10 +230,18 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                     <Package size={20} className="text-orange-500" />
                     Inventaire
                   </h2>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <EnhancedButton
+                      onClick={() => setShowProductImport(true)}
+                      className="px-4 py-2 bg-green-500 text-white rounded-xl flex items-center gap-2"
+                      icon={<UploadCloud size={18} />}
+                    >
+                      Importer
+                    </EnhancedButton>
                     <EnhancedButton
                       onClick={() => setShowSupplyModal(true)}
-                      className="px-4 py-2 bg-orange-500 text-white rounded-xl"
+                      className="px-4 py-2 bg-orange-500 text-white rounded-xl flex items-center gap-2"
+                      icon={<TruckIcon size={18} />}
                     >
                       Approvisionnement
                     </EnhancedButton>
@@ -358,6 +376,11 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ProductImport
+        isOpen={showProductImport}
+        onClose={() => setShowProductImport(false)}
+      />
 
       <ProductModal
         isOpen={showProductModal}
