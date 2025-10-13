@@ -53,7 +53,10 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
         const item = window.localStorage.getItem(key);
         if (item) {
           const newValue = JSON.parse(item);
-          setStoredValue(newValue);
+          // Utiliser queueMicrotask pour éviter setState pendant render
+          queueMicrotask(() => {
+            setStoredValue(newValue);
+          });
         }
       } catch (error) {
         console.error(`Error syncing localStorage key "${key}":`, error);
