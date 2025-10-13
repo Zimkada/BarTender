@@ -26,6 +26,7 @@ import { useSupplies } from '../hooks/useSupplies';
 import { useExpenses } from '../hooks/useExpenses';
 import { useSalaries } from '../hooks/useSalaries';
 import { useInitialBalance } from '../hooks/useInitialBalance';
+import { useConsignments } from '../hooks/useConsignments';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 
@@ -44,6 +45,7 @@ export function AccountingOverview() {
   const expensesHook = useExpenses(currentBar?.id);
   const salariesHook = useSalaries(currentBar?.id);
   const initialBalanceHook = useInitialBalance(currentBar?.id);
+  const { consignments } = useConsignments(currentBar?.id);
   const { returns } = useAppContext(); // ✅ Use returns from AppContext (same source as ReturnsSystem)
 
   const [periodType, setPeriodType] = useState<PeriodType>('month');
@@ -527,7 +529,34 @@ export function AccountingOverview() {
       XLSX.utils.book_append_sheet(workbook, salariesSheet, 'Salaires');
     }
 
-    // 8. ONGLET SOLDES INITIAUX (si présents)
+    // 8. ONGLET CONSIGNATIONS
+    const consignmentsInPeriod = consignments.filter(cons => {
+      const consDate = new Date(cons.createdAt);
+      return consDate >= periodStart && consDate <= periodEnd;
+    });
+    if (consignmentsInPeriod.length > 0) {
+      const consignmentsData = consignmentsInPeriod.map(cons => ({
+        Date: new Date(cons.createdAt).toLocaleDateString('fr-FR'),
+        'ID Vente': cons.saleId.slice(0, 8),
+        Produit: cons.productName,
+        Quantité: cons.quantity,
+        'Valeur totale': cons.totalValue,
+        Client: cons.customerName,
+        Téléphone: cons.customerPhone || 'N/A',
+        Statut: cons.status === 'active' ? 'Active' :
+                cons.status === 'claimed' ? 'Récupérée' :
+                cons.status === 'expired' ? 'Expirée' :
+                'Confisquée',
+        'Date expiration': new Date(cons.expiresAt).toLocaleDateString('fr-FR'),
+        'Date récup./expir.': cons.claimedAt ? new Date(cons.claimedAt).toLocaleDateString('fr-FR') :
+                              cons.expiredAt ? new Date(cons.expiredAt).toLocaleDateString('fr-FR') :
+                              'N/A',
+      }));
+      const consignmentsSheet = XLSX.utils.json_to_sheet(consignmentsData);
+      XLSX.utils.book_append_sheet(workbook, consignmentsSheet, 'Consignations');
+    }
+
+    // 9. ONGLET SOLDES INITIAUX (si présents)
     const initialBalancesInPeriod = initialBalanceHook.initialBalances.filter(bal => {
       const balDate = new Date(bal.date);
       return balDate >= periodStart && balDate <= periodEnd;
