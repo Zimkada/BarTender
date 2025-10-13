@@ -183,7 +183,6 @@ export function AccountingOverview() {
     revenueGrowth,
     revenuePerServer,
     investmentRate,
-    cashRunway,
     chartData,
   } = useMemo(() => {
     // 1. Previous Period Calculation
@@ -217,10 +216,6 @@ export function AccountingOverview() {
     const revenuePerServer = totalRevenue / serverCount;
 
     const investmentRate = totalRevenue > 0 ? (investments / totalRevenue) * 100 : 0;
-
-    // Cash Runway (Fonds de roulement) - Nombre de mois de couverture
-    const averageMonthlyOperatingCosts = totalOperatingCosts > 0 ? totalOperatingCosts : 1;
-    const cashRunway = finalBalance / averageMonthlyOperatingCosts;
 
     // 3. Chart Data (last 12 months)
     const chartData = Array.from({ length: 12 }).map((_, i) => {
@@ -263,8 +258,8 @@ export function AccountingOverview() {
       };
     }).reverse();
 
-    return { revenueGrowth, revenuePerServer, investmentRate, cashRunway, chartData };
-  }, [totalRevenue, investments, operatingExpenses, sales, returns, expensesHook.expenses, salariesHook.salaries, periodStart, currentBar, totalOperatingCosts, finalBalance]);
+    return { revenueGrowth, revenuePerServer, investmentRate, chartData };
+  }, [totalRevenue, investments, operatingExpenses, sales, returns, expensesHook.expenses, salariesHook.salaries, periodStart, currentBar]);
 
 
   // CALCULATIONS - Cumulative Balance (for Vue Analytique)
@@ -308,6 +303,12 @@ export function AccountingOverview() {
 
   // Final balance (for Vue Analytique)
   const finalBalance = previousBalance + netProfit;
+
+  // Cash Runway (Fonds de roulement) - Nombre de mois de couverture
+  const cashRunway = useMemo(() => {
+    const averageMonthlyOperatingCosts = totalOperatingCosts > 0 ? totalOperatingCosts : 1;
+    return finalBalance / averageMonthlyOperatingCosts;
+  }, [finalBalance, totalOperatingCosts]);
 
   // Period label generation
   const periodLabel = useMemo(() => {
