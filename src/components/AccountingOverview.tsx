@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import * as XLSX from 'xlsx';
 import {
   TrendingUp,
   TrendingDown,
@@ -14,7 +15,8 @@ import {
   ChevronRight,
   CalendarDays,
   PlusCircle,
-  X
+  X,
+  Download
 } from 'lucide-react';
 import { useSales } from '../hooks/useSales';
 import { useAuth } from '../context/AuthContext';
@@ -383,6 +385,169 @@ export function AccountingOverview() {
     setShowInitialBalanceModal(false);
   };
 
+  // Export comptable complet
+  const handleExportAccounting = () => {
+    const workbook = XLSX.utils.book_new();
+
+    // 1. ONGLET RÉSUMÉ
+    const summaryData = [
+      ['RAPPORT COMPTABLE', currentBar?.name || ''],
+      ['Période', periodLabel],
+      ['Date export', new Date().toLocaleDateString('fr-FR')],
+      ['Exporté par', currentSession?.userName || ''],
+      [],
+      ['REVENUS'],
+      ['Ventes brutes', totalRevenue + refundedReturns],
+      ['Retours remboursés', -refundedReturns],
+      ['Revenus nets', totalRevenue],
+      [],
+      ['COÛTS OPÉRATIONNELS'],
+      ['Approvisionnements', suppliesCosts],
+      ['Dépenses opérationnelles', operatingExpenses],
+      ['Salaires', salariesCosts],
+      ['Total coûts opérationnels', totalOperatingCosts],
+      [],
+      ['RÉSULTAT OPÉRATIONNEL'],
+      ['Bénéfice opérationnel', operatingProfit],
+      ['Marge opérationnelle (%)', operatingMargin.toFixed(2)],
+      [],
+      ['INVESTISSEMENTS'],
+      ['Investissements', investments],
+      ['Taux investissement (%)', investmentRate.toFixed(2)],
+      [],
+      ['RÉSULTAT NET'],
+      ['Bénéfice net', netProfit],
+      [],
+      ['TRÉSORERIE (Vue Analytique)'],
+      ['Solde début période', previousBalance],
+      ['Solde fin période', finalBalance],
+      ['Fonds de roulement (mois)', cashRunway.toFixed(2)],
+    ];
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(workbook, summarySheet, 'Résumé');
+
+    // 2. ONGLET VENTES
+    const salesData = filteredSales.flatMap(sale =>
+      sale.items.map(item => ({
+        Date: new Date(sale.date).toLocaleDateString('fr-FR'),
+        Heure: new Date(sale.date).toLocaleTimeString('fr-FR'),
+        'ID Vente': sale.id.slice(0, 8),
+        Produit: item.product.name,
+        Volume: item.product.volume,
+        Quantité: item.quantity,
+        'Prix unitaire': item.product.price,
+        Total: item.product.price * item.quantity,
+        'Traité par': sale.processedBy,
+        'Assigné à': sale.assignedTo || sale.processedBy,
+      }))
+    );
+    if (salesData.length > 0) {
+      const salesSheet = XLSX.utils.json_to_sheet(salesData);
+      XLSX.utils.book_append_sheet(workbook, salesSheet, 'Ventes');
+    }
+
+    // 3. ONGLET RETOURS
+    const returnsData = filteredReturns.filter(r => r.isRefunded).map(ret => ({
+      Date: new Date(ret.returnedAt).toLocaleDateString('fr-FR'),
+      Heure: new Date(ret.returnedAt).toLocaleTimeString('fr-FR'),
+      'ID Retour': ret.id.slice(0, 8),
+      'ID Vente': ret.saleId.slice(0, 8),
+      Produit: ret.productName,
+      Quantité: ret.quantity,
+      'Montant remboursé': ret.refundAmount,
+      Motif: ret.reason,
+      Statut: ret.status,
+      'Remis en stock': ret.autoRestock ? 'Oui' : 'Non',
+    }));
+    if (returnsData.length > 0) {
+      const returnsSheet = XLSX.utils.json_to_sheet(returnsData);
+      XLSX.utils.book_append_sheet(workbook, returnsSheet, 'Retours');
+    }
+
+    // 4. ONGLET APPROVISIONNEMENTS
+    const suppliesData = filteredSupplies.map(supply => ({
+      Date: new Date(supply.date).toLocaleDateString('fr-FR'),
+      Produit: supply.productName,
+      Quantité: supply.quantity,
+      'Prix lot': supply.lotPrice,
+      'Taille lot': supply.lotSize,
+      'Coût total': supply.lotPrice * supply.lotSize,
+      Fournisseur: supply.supplierName || 'N/A',
+    }));
+    if (suppliesData.length > 0) {
+      const suppliesSheet = XLSX.utils.json_to_sheet(suppliesData);
+      XLSX.utils.book_append_sheet(workbook, suppliesSheet, 'Approvisionnements');
+    }
+
+    // 5. ONGLET DÉPENSES OPÉRATIONNELLES
+    const operatingExpensesData = expensesHook.expenses
+      .filter(exp => {
+        const expDate = new Date(exp.date);
+        return expDate >= periodStart && expDate <= periodEnd && exp.category !== 'investment';
+      })
+      .map(exp => ({
+        Date: new Date(exp.date).toLocaleDateString('fr-FR'),
+        Catégorie: exp.category === 'water' ? 'Eau' :
+                   exp.category === 'electricity' ? 'Électricité' :
+                   exp.category === 'maintenance' ? 'Entretien' :
+                   exp.customCategory || 'Autre',
+        Description: exp.description,
+        Montant: exp.amount,
+      }));
+    if (operatingExpensesData.length > 0) {
+      const expensesSheet = XLSX.utils.json_to_sheet(operatingExpensesData);
+      XLSX.utils.book_append_sheet(workbook, expensesSheet, 'Dépenses Opérationnelles');
+    }
+
+    // 6. ONGLET INVESTISSEMENTS
+    const investmentsData = expensesHook.expenses
+      .filter(exp => {
+        const expDate = new Date(exp.date);
+        return expDate >= periodStart && expDate <= periodEnd && exp.category === 'investment';
+      })
+      .map(exp => ({
+        Date: new Date(exp.date).toLocaleDateString('fr-FR'),
+        Description: exp.description,
+        Montant: exp.amount,
+      }));
+    if (investmentsData.length > 0) {
+      const investmentsSheet = XLSX.utils.json_to_sheet(investmentsData);
+      XLSX.utils.book_append_sheet(workbook, investmentsSheet, 'Investissements');
+    }
+
+    // 7. ONGLET SALAIRES
+    const salariesData = filteredSalaries.map(salary => ({
+      Période: salary.period,
+      Membre: salary.memberName,
+      Montant: salary.amount,
+      'Date paiement': new Date(salary.paidAt).toLocaleDateString('fr-FR'),
+    }));
+    if (salariesData.length > 0) {
+      const salariesSheet = XLSX.utils.json_to_sheet(salariesData);
+      XLSX.utils.book_append_sheet(workbook, salariesSheet, 'Salaires');
+    }
+
+    // 8. ONGLET SOLDES INITIAUX (si présents)
+    const initialBalancesInPeriod = initialBalanceHook.initialBalances.filter(bal => {
+      const balDate = new Date(bal.date);
+      return balDate >= periodStart && balDate <= periodEnd;
+    });
+    if (initialBalancesInPeriod.length > 0) {
+      const initialBalancesData = initialBalancesInPeriod.map(bal => ({
+        Date: new Date(bal.date).toLocaleDateString('fr-FR'),
+        Montant: bal.amount,
+        Description: bal.description,
+        'Créé par': bal.createdBy,
+      }));
+      const initialBalancesSheet = XLSX.utils.json_to_sheet(initialBalancesData);
+      XLSX.utils.book_append_sheet(workbook, initialBalancesSheet, 'Soldes Initiaux');
+    }
+
+    // Télécharger le fichier
+    const fileName = `Comptabilite_${currentBar?.name.replace(/\s+/g, '_')}_${periodLabel.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+  };
+
   return (
     <div className={`${isMobile ? 'p-3 space-y-3' : 'p-6 space-y-6'}`}>
       {/* Header */}
@@ -396,15 +561,26 @@ export function AccountingOverview() {
           </p>
         </div>
 
-        {/* Button to define initial balance */}
-        <button
-          onClick={() => setShowInitialBalanceModal(true)}
-          className="flex items-center gap-2 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm"
-          title="Définir le solde initial"
-        >
-          <PlusCircle size={18} />
-          {!isMobile && <span>Solde initial</span>}
-        </button>
+        {/* Actions: Export + Solde initial */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportAccounting}
+            className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
+            title="Exporter rapport comptable"
+          >
+            <Download size={18} />
+            {!isMobile && <span>Exporter</span>}
+          </button>
+
+          <button
+            onClick={() => setShowInitialBalanceModal(true)}
+            className="flex items-center gap-2 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm"
+            title="Définir le solde initial"
+          >
+            <PlusCircle size={18} />
+            {!isMobile && <span>Solde initial</span>}
+          </button>
+        </div>
       </div>
 
       {/* View Mode Toggle */}
