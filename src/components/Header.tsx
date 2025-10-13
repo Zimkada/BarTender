@@ -37,7 +37,6 @@ interface HeaderProps {
   onShowCreateBar?: () => void;
   onSwitchToServer?: () => void;
   onShowDailyDashboard: () => void;
-  onShowExcel: () => void;
   onShowReturns: () => void;
   onShowQuickSale: () => void;
   onShowStockAlerts?: () => void;
@@ -54,7 +53,6 @@ export function Header({
   onShowCreateBar,
   onSwitchToServer,
   onShowDailyDashboard,
-  onShowExcel,
   onShowReturns,
   onShowQuickSale,
   onShowStockAlerts = () => {},

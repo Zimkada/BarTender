@@ -8,7 +8,6 @@ import {
   Package,
   TrendingUp,
   Users,
-  Upload,
   Settings,
   LogOut,
   X,
@@ -131,16 +130,6 @@ export function MobileSidebar({ isOpen, onClose, onNavigate, currentMenu }: Mobi
       roles: ['promoteur', 'gerant'],
       action: () => {
         onNavigate('teamManagement');
-        onClose();
-      }
-    },
-    {
-      id: 'importExport',
-      label: 'Import/Export',
-      icon: <Upload size={20} />,
-      roles: ['promoteur', 'gerant'],
-      action: () => {
-        onNavigate('importExport');
         onClose();
       }
     },

@@ -21,7 +21,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from './context/AuthContext';
 import { syncService } from './services/syncService';
 import { DailyDashboard } from './components/DailyDashboard';
-import { ExcelImportExport } from './components/ExcelImportExport';
 import { ReturnsSystem } from './components/ReturnsSystem';
 import { QuickSaleFlow } from './components/QuickSaleFlow';
 import { StockAlertsSystem } from './components/StockAlertsSystem';
@@ -59,7 +58,6 @@ function AppContent() {
   const [showSettings, setShowSettings] = useState(false);
   const [showServers, setShowServers] = useState(false);
   const [currentInterface, setCurrentInterface] = useState<'manager' | 'server'>('manager');
-  const [showExcel, setShowExcel] = useState(false);
   const currentProducts = getProductsByCategory(activeCategory);
   const [showReturns, setShowReturns] = useState(false);
   const [showQuickSale, setShowQuickSale] = useState(false);
@@ -152,7 +150,6 @@ function AppContent() {
     setShowDailyDashboard(false);
     setShowQuickSale(false);
     setShowStockAlerts(false);
-    setShowExcel(false);
     setShowServers(false);
     setShowAccounting(false);
     setShowReturns(false);
@@ -183,9 +180,6 @@ function AppContent() {
         break;
       case 'teamManagement':
         setShowServers(true);
-        break;
-      case 'importExport':
-        setShowExcel(true);
         break;
       case 'settings':
         setShowSettings(true);
@@ -227,7 +221,6 @@ function AppContent() {
         onShowServers={() => setShowServers(true)}
         onSwitchToServer={() => setCurrentInterface('server')}
         onShowDailyDashboard={() => setShowDailyDashboard(true)}
-        onShowExcel={() => setShowExcel(true)}
         onShowReturns={() => setShowReturns(true)}
         onShowQuickSale={() => setShowQuickSale(true)}
         onShowStockAlerts={() => setShowStockAlerts(true)}
@@ -281,13 +274,6 @@ function AppContent() {
         isOpen={showDailyDashboard}
         onClose={() => setShowDailyDashboard(false)}
       />
-      
-      <RoleBasedComponent requiredPermission="canViewInventory">
-        <ExcelImportExport
-          isOpen={showExcel}
-          onClose={() => setShowExcel(false)}
-        />
-      </RoleBasedComponent>
 
       <RoleBasedComponent requiredPermission="canManageInventory">
         <ReturnsSystem
@@ -309,7 +295,7 @@ function AppContent() {
         onRemoveItem={removeFromCart}
         onCheckout={checkout}
         onClear={clearCart}
-        hideFloatingButton={showQuickSale || showStockAlerts || showDailyDashboard || showSalesHistory || showInventory || showSettings || showServers || showExcel || showReturns || showAccounting}
+        hideFloatingButton={showQuickSale || showStockAlerts || showDailyDashboard || showSalesHistory || showInventory || showSettings || showServers || showReturns || showAccounting}
       />
       
       <RoleBasedComponent requiredPermission="canManageUsers">
