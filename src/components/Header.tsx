@@ -158,11 +158,20 @@ export function Header({
 
   // ==================== VERSION DESKTOP (1% promoteurs avec PC) ====================
   return (
-    <header className="bg-gradient-to-r from-yellow-400 to-amber-400 shadow-lg">
+    <header className="bg-gradient-to-r from-yellow-400 to-amber-400 shadow-lg sticky top-0 z-50">
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
-          {/* Gauche: Logo + Indicateurs + Bar selector */}
+          {/* Gauche: Hamburger + Logo + Indicateurs + Bar selector */}
           <div className="flex items-center gap-4">
+            {/* Bouton Menu Hamburger */}
+            <button
+              onClick={onToggleMobileSidebar}
+              className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
+              aria-label="Menu"
+            >
+              <Menu size={24} />
+            </button>
+
             <h1 className="text-2xl font-bold text-white">🍺 BarTender Pro</h1>
 
             <div className="flex items-center gap-2">
@@ -185,7 +194,7 @@ export function Header({
             )}
           </div>
 
-          {/* Droite: Stats + User + Actions */}
+          {/* Droite: Stats + User + Déconnexion */}
           <div className="flex items-center gap-6">
             {/* Ventes du jour */}
             <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
@@ -202,124 +211,14 @@ export function Header({
               </p>
             </div>
 
-            {/* Actions toolbar */}
-            <div className="flex items-center gap-2">
-              {/* Prévisions */}
-              <RoleBasedComponent requiredPermission="canViewInventory">
-                <button
-                  onClick={onShowStockAlerts}
-                  className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors relative"
-                  title="Prévisions"
-                >
-                  <TrendingUp size={20} />
-                  {alertCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {alertCount}
-                    </span>
-                  )}
-                </button>
-              </RoleBasedComponent>
-
-              {/* Vente rapide */}
-// ...
-              <RoleBasedComponent requiredPermission="canManageInventory">
-                <button
-                  onClick={onShowExcel}
-                  className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                  title="Import/Export"
-                >
-                  <FileSpreadsheet size={20} />
-                </button>
-              </RoleBasedComponent>
-
-              {/* Inventaire */}
-              <RoleBasedComponent requiredPermission="canViewInventory">
-                <button
-                  onClick={onShowInventory}
-                  className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                  title="Inventaire"
-                >
-                  <Package size={20} />
-                </button>
-              </RoleBasedComponent>
-
-              {/* Retours */}
-              <RoleBasedComponent requiredPermission="canManageInventory">
-                <button
-                  onClick={onShowReturns}
-                  className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                  title="Retours"
-                >
-                  <RotateCcw size={20} />
-                </button>
-              </RoleBasedComponent>
-
-              {/* Consignations */}
-              <RoleBasedComponent requiredPermission="canCreateConsignment">
-                <button
-                  onClick={onShowConsignment}
-                  className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                  title="Consignations"
-                >
-                  <Archive size={20} />
-                </button>
-              </RoleBasedComponent>
-
-              {/* Gestion équipe */}
-              <RoleBasedComponent requiredPermission="canCreateServers">
-                <button
-                  onClick={onShowServers}
-                  className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                  title="Gestion de l'équipe"
-                >
-                  <UserCog size={20} />
-                </button>
-              </RoleBasedComponent>
-
-              {/* Paramètres */}
-              <RoleBasedComponent requiredPermission="canManageSettings">
-                <button
-                  onClick={onShowSettings}
-                  className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                  title="Paramètres"
-                >
-                  <Settings size={20} />
-                </button>
-              </RoleBasedComponent>
-
-              {/* Comptabilité */}
-              <RoleBasedComponent requiredPermission="canViewAccounting">
-                <button
-                  onClick={onShowAccounting}
-                  className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                  title="Comptabilité"
-                >
-                  <DollarSign size={20} />
-                </button>
-              </RoleBasedComponent>
-
-              {/* Mode serveur */}
-              <RoleBasedComponent requiredPermission="canSwitchBars">
-                {onSwitchToServer && (
-                  <button
-                    onClick={onSwitchToServer}
-                    className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
-                    title="Mode Serveur"
-                  >
-                    <Users size={20} />
-                  </button>
-                )}
-              </RoleBasedComponent>
-
-              {/* Déconnexion */}
-              <button
-                onClick={logout}
-                className="p-2 bg-red-500/80 rounded-lg text-white hover:bg-red-600/80 transition-colors"
-                title="Déconnexion"
-              >
-                <LogOut size={20} />
-              </button>
-            </div>
+            {/* Déconnexion */}
+            <button
+              onClick={logout}
+              className="p-2 bg-red-500/80 rounded-lg text-white hover:bg-red-600/80 transition-colors"
+              title="Déconnexion"
+            >
+              <LogOut size={20} />
+            </button>
           </div>
         </div>
       </div>

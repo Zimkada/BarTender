@@ -382,15 +382,13 @@ function AppContent() {
         />
       </RoleBasedComponent>
 
-      {/* Mobile Sidebar */}
-      {isMobile && (
-        <MobileSidebar
-          isOpen={showMobileSidebar}
-          onClose={() => setShowMobileSidebar(false)}
-          onNavigate={handleMobileNavigation}
-          currentMenu={currentMenu}
-        />
-      )}
+      {/* Sidebar - Mobile & Desktop */}
+      <MobileSidebar
+        isOpen={showMobileSidebar}
+        onClose={() => setShowMobileSidebar(false)}
+        onNavigate={handleMobileNavigation}
+        currentMenu={currentMenu}
+      />
 
       {/* Mobile Navigation */}
       <MobileNavigation
