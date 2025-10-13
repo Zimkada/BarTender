@@ -411,7 +411,7 @@ export function AccountingOverview() {
       [],
       ['RÉSULTAT OPÉRATIONNEL'],
       ['Bénéfice opérationnel', operatingProfit],
-      ['Marge opérationnelle (%)', operatingMargin.toFixed(2)],
+      ['Marge opérationnelle (%)', operatingProfitMargin.toFixed(2)],
       [],
       ['INVESTISSEMENTS'],
       ['Investissements', investments],
@@ -882,7 +882,7 @@ export function AccountingOverview() {
         </div>
       )}
 
-      {netProfit > 0 && profitMargin > 30 && (
+      {netProfit > 0 && operatingProfitMargin > 30 && (
         <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
           <div className="flex items-start gap-3">
             <TrendingUp className="text-green-500 flex-shrink-0" size={20} />
@@ -891,7 +891,7 @@ export function AccountingOverview() {
                 ✅ Excellente rentabilité
               </p>
               <p className={`mt-1 text-green-700 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                Votre marge bénéficiaire de {profitMargin.toFixed(1)}% est très bonne. Continuez ainsi!
+                Votre marge bénéficiaire de {operatingProfitMargin.toFixed(1)}% est très bonne. Continuez ainsi!
               </p>
             </div>
           </div>
