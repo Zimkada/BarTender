@@ -21,13 +21,11 @@ import { useViewport } from '../hooks/useViewport';
 
 type PeriodType = 'week' | 'month' | 'all';
 
-export function ExpenseManager() {
+function ExpenseManagerContent() {
   const { currentSession } = useAuth();
   const { currentBar } = useBarContext();
   const { formatPrice } = useCurrencyFormatter();
   const { isMobile } = useViewport();
-
-  if (!currentBar || !currentSession) return null;
 
   const {
     expenses,
@@ -39,7 +37,7 @@ export function ExpenseManager() {
     getCategoryIcon,
     getTotalExpenses,
     getExpensesByCategory
-  } = useExpenses(currentBar.id);
+  } = useExpenses(currentBar!.id);
 
   const [showForm, setShowForm] = useState(false);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
@@ -69,13 +67,13 @@ export function ExpenseManager() {
     }
 
     addExpense({
-      barId: currentBar.id,
+      barId: currentBar!.id,
       amount: parseFloat(amount),
       category,
       customCategoryId: category === 'custom' ? customCategoryId : undefined,
       date: new Date(date),
       notes: notes.trim() || undefined,
-      createdBy: currentSession.userId
+      createdBy: currentSession!.userId
     });
 
     // Reset form
@@ -91,7 +89,7 @@ export function ExpenseManager() {
       return;
     }
 
-    addCustomCategory(newCategoryName.trim(), newCategoryIcon, currentSession.userId);
+    addCustomCategory(newCategoryName.trim(), newCategoryIcon, currentSession!.userId);
     setNewCategoryName('');
     setNewCategoryIcon('📝');
     setShowCategoryForm(false);
@@ -141,7 +139,7 @@ export function ExpenseManager() {
             💸 Gestion des Dépenses
           </h2>
           <p className={`text-gray-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-            {currentBar.name}
+            {currentBar!.name}
           </p>
         </div>
         <button
@@ -522,4 +520,15 @@ export function ExpenseManager() {
       </AnimatePresence>
     </div>
   );
+}
+
+export function ExpenseManager() {
+  const { currentSession } = useAuth();
+  const { currentBar } = useBarContext();
+
+  if (!currentBar || !currentSession) {
+    return null;
+  }
+
+  return <ExpenseManagerContent />;
 }

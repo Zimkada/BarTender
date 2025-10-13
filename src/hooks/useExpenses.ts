@@ -7,6 +7,7 @@ export const EXPENSE_CATEGORY_LABELS = {
   water: { label: 'Facture Eau', icon: '💧', color: 'blue' },
   electricity: { label: 'Facture Électricité', icon: '⚡', color: 'yellow' },
   maintenance: { label: 'Entretien/Réparations', icon: '🔧', color: 'gray' },
+  investment: { label: 'Investissement', icon: '📈', color: 'purple' },
   custom: { label: 'Personnalisée', icon: '📝', color: 'purple' },
 };
 

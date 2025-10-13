@@ -138,7 +138,7 @@ interface CreateConsignmentTabProps {
 }
 
 const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) => {
-  const { getTodaySales, products } = useAppContext();
+  const { getTodaySales, getReturnsBySale } = useAppContext();
   const { createConsignment, getConsignedStockByProduct } = useConsignments();
   const { formatPrice } = useCurrencyFormatter();
   const { showSuccess, showError } = useFeedback();
@@ -186,12 +186,20 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
   }, [todaySales, searchTerm]);
 
   const selectedSale = todaySales.find(s => s.id === selectedSaleId);
-  const selectedProduct = selectedSale?.items.find(item => item.product.id === selectedProductId)?.product;
+  const selectedProductItem = selectedSale?.items.find(item => item.product.id === selectedProductId);
 
-  const maxQuantity = selectedSale?.items.find(item => item.product.id === selectedProductId)?.quantity || 0;
+  const getAlreadyReturned = (saleId: string, productId: string): number => {
+    return getReturnsBySale(saleId)
+      .filter(r => r.productId === productId && r.status !== 'rejected')
+      .reduce((sum, r) => sum + r.quantityReturned, 0);
+  };
+
+  const maxQuantity = selectedProductItem
+    ? selectedProductItem.quantity - getAlreadyReturned(selectedSale!.id, selectedProductItem.product.id)
+    : 0;
 
   const handleCreateConsignment = () => {
-    if (!selectedSale || !selectedProduct) {
+    if (!selectedSale || !selectedProductItem) {
       showError('Veuillez sélectionner une vente et un produit');
       return;
     }
@@ -208,11 +216,11 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
 
     const consignment = createConsignment({
       saleId: selectedSale.id,
-      productId: selectedProduct.id,
-      productName: selectedProduct.name,
-      productVolume: selectedProduct.volume,
+      productId: selectedProductItem.product.id,
+      productName: selectedProductItem.product.name,
+      productVolume: selectedProductItem.product.volume,
       quantity,
-      totalAmount: selectedProduct.price * quantity,
+      totalAmount: selectedProductItem.product.price * quantity,
       customerName: customerName.trim(),
       customerPhone: customerPhone.trim() || undefined,
       notes: notes.trim() || undefined,
@@ -221,7 +229,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
     });
 
     if (consignment) {
-      showSuccess(`Consignation créée: ${quantity} ${selectedProduct.name} ${selectedProduct.volume}`);
+      showSuccess(`Consignation créée: ${quantity} ${selectedProductItem.product.name} ${selectedProductItem.product.volume}`);
       // Reset form
       setSelectedSaleId('');
       setSelectedProductId('');
@@ -305,17 +313,26 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {selectedSale.items.map(item => {
               const consignedStock = getConsignedStockByProduct(item.product.id);
+              const returnedStock = getAlreadyReturned(selectedSale.id, item.product.id);
+              const available = item.quantity - consignedStock - returnedStock;
+              const isFullyUnavailable = available <= 0;
+
               return (
                 <button
                   key={item.product.id}
                   onClick={() => {
-                    setSelectedProductId(item.product.id);
-                    setQuantity(1);
+                    if (!isFullyUnavailable) {
+                      setSelectedProductId(item.product.id);
+                      setQuantity(1);
+                    }
                   }}
+                  disabled={isFullyUnavailable}
                   className={`p-4 rounded-lg border-2 text-left transition-all ${
-                    selectedProductId === item.product.id
-                      ? 'border-purple-500 bg-purple-50'
-                      : 'border-gray-200 hover:border-purple-300'
+                    isFullyUnavailable
+                      ? 'border-red-200 bg-red-50 opacity-60 cursor-not-allowed'
+                      : selectedProductId === item.product.id
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-gray-200 hover:border-purple-300'
                   }`}
                 >
                   <div className="font-medium text-gray-900">{item.product.name}</div>
@@ -323,11 +340,13 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
                   <div className="text-sm text-purple-600 font-medium mt-1">
                     {formatPrice(item.product.price)} × {item.quantity}
                   </div>
-                  {consignedStock > 0 && (
-                    <div className="text-xs text-orange-600 mt-1">
-                      ⚠️ {consignedStock} déjà consigné(s)
-                    </div>
-                  )}
+                  <div className="text-xs text-orange-600 mt-1 space-x-2">
+                    {consignedStock > 0 && <span>⚠️ {consignedStock} consigné(s)</span>}
+                    {returnedStock > 0 && <span>↩️ {returnedStock} retourné(s)</span>}
+                  </div>
+                  <div className={`text-sm font-medium mt-1 ${isFullyUnavailable ? 'text-red-600' : 'text-green-600'}`}>
+                    Disponible: {available}
+                  </div>
                 </button>
               );
             })}
@@ -336,7 +355,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
       )}
 
       {/* Quantité et infos client */}
-      {selectedProduct && (
+      {selectedProductItem && (
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -415,9 +434,9 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
           <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
             <h4 className="font-semibold text-purple-900 mb-2">Récapitulatif</h4>
             <div className="space-y-1 text-sm text-purple-800">
-              <p>• Produit: {selectedProduct.name} {selectedProduct.volume}</p>
+              <p>• Produit: {selectedProductItem.product.name} {selectedProductItem.product.volume}</p>
               <p>• Quantité: {quantity}</p>
-              <p>• Montant: {formatPrice(selectedProduct.price * quantity)} (déjà payé)</p>
+              <p>• Montant: {formatPrice(selectedProductItem.product.price * quantity)} (déjà payé)</p>
               <p>• Client: {customerName || '(non saisi)'}</p>
             </div>
           </div>

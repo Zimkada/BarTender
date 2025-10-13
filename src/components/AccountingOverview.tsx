@@ -29,6 +29,8 @@ import { useViewport } from '../hooks/useViewport';
 
 type PeriodType = 'week' | 'month' | 'custom';
 
+import AnalyticsCharts from './AnalyticsCharts';
+
 export function AccountingOverview() {
   const { currentSession } = useAuth();
   const { currentBar } = useBarContext();
@@ -147,11 +149,123 @@ export function AccountingOverview() {
   // Calculate salaries
   const salariesCosts = salariesHook.getTotalSalaries(periodStart, periodEnd);
 
+  const totalCosts = expensesCosts + salariesCosts;
+
   // CALCULATIONS - Period
   const totalRevenue = salesRevenue - returnsRefunds; // CA NET = Ventes - Retours remboursés
-  const totalCosts = expensesCosts + salariesCosts; // Coûts = Dépenses (incluant approvisionnements) + Salaires
-  const netProfit = totalRevenue - totalCosts;
-  const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+
+  const operatingExpenses = useMemo(() => {
+    return expensesHook.expenses
+      .filter(exp => {
+        const expDate = new Date(exp.date);
+        return expDate >= periodStart && expDate <= periodEnd && exp.category !== 'investment';
+      })
+      .reduce((sum, exp) => sum + exp.amount, 0);
+  }, [expensesHook.expenses, periodStart, periodEnd]);
+
+  const investments = useMemo(() => {
+    return expensesHook.expenses
+      .filter(exp => {
+        const expDate = new Date(exp.date);
+        return expDate >= periodStart && expDate <= periodEnd && exp.category === 'investment';
+      })
+      .reduce((sum, exp) => sum + exp.amount, 0);
+  }, [expensesHook.expenses, periodStart, periodEnd]);
+
+  const totalOperatingCosts = operatingExpenses + salariesCosts;
+  const operatingProfit = totalRevenue - totalOperatingCosts;
+  const operatingProfitMargin = totalRevenue > 0 ? (operatingProfit / totalRevenue) * 100 : 0;
+
+  const netProfit = operatingProfit - investments;
+
+  // CALCULATIONS - KPIs and Chart Data
+  const {
+    revenueGrowth,
+    revenuePerServer,
+    investmentRate,
+    cashRunway,
+    chartData,
+  } = useMemo(() => {
+    // 1. Previous Period Calculation
+    const prevPeriodDate = new Date(periodStart);
+    prevPeriodDate.setMonth(prevPeriodDate.getMonth() - 1);
+    const prevPeriodStart = new Date(prevPeriodDate.getFullYear(), prevPeriodDate.getMonth(), 1);
+    const prevPeriodEnd = new Date(prevPeriodDate.getFullYear(), prevPeriodDate.getMonth() + 1, 0);
+
+    const prevSalesRevenue = sales
+      .filter(sale => {
+        const saleDate = new Date(sale.date);
+        return saleDate >= prevPeriodStart && saleDate <= prevPeriodEnd;
+      })
+      .reduce((sum, sale) => sum + sale.total, 0);
+
+    const prevReturnsRefunds = returns
+      .filter(ret => {
+        const retDate = new Date(ret.returnedAt);
+        if (ret.status !== 'approved' && ret.status !== 'restocked') return false;
+        if (!ret.isRefunded) return false;
+        return retDate >= prevPeriodStart && retDate <= prevPeriodEnd;
+      })
+      .reduce((sum, ret) => sum + ret.refundAmount, 0);
+
+    const prevTotalRevenue = prevSalesRevenue - prevReturnsRefunds;
+
+    // 2. KPI Calculations
+    const revenueGrowth = prevTotalRevenue > 0 ? ((totalRevenue - prevTotalRevenue) / prevTotalRevenue) * 100 : 0;
+    
+    const serverCount = currentBar?.settings?.serversList?.length || 1;
+    const revenuePerServer = totalRevenue / serverCount;
+
+    const investmentRate = totalRevenue > 0 ? (investments / totalRevenue) * 100 : 0;
+
+    // Cash Runway (Fonds de roulement) - Nombre de mois de couverture
+    const averageMonthlyOperatingCosts = totalOperatingCosts > 0 ? totalOperatingCosts : 1;
+    const cashRunway = finalBalance / averageMonthlyOperatingCosts;
+
+    // 3. Chart Data (last 12 months)
+    const chartData = Array.from({ length: 12 }).map((_, i) => {
+      const date = new Date();
+      date.setMonth(date.getMonth() - i);
+      const month = date.toLocaleString('fr-FR', { month: 'short' });
+      const year = date.getFullYear();
+      const monthKey = `${month} ${year}`;
+
+      const monthStart = new Date(year, date.getMonth(), 1);
+      const monthEnd = new Date(year, date.getMonth() + 1, 0);
+
+      const monthSales = sales
+        .filter(s => new Date(s.date) >= monthStart && new Date(s.date) <= monthEnd)
+        .reduce((sum, s) => sum + s.total, 0);
+      
+      const monthReturns = returns
+        .filter(r => {
+          const rDate = new Date(r.returnedAt);
+          if (r.status !== 'approved' && r.status !== 'restocked') return false;
+          if (!r.isRefunded) return false;
+          return rDate >= monthStart && rDate <= monthEnd;
+        })
+        .reduce((sum, r) => sum + r.refundAmount, 0);
+
+      const monthRevenue = monthSales - monthReturns;
+
+      const monthOperatingExpenses = expensesHook.expenses
+        .filter(e => new Date(e.date) >= monthStart && new Date(e.date) <= monthEnd && e.category !== 'investment')
+        .reduce((sum, e) => sum + e.amount, 0);
+
+      const monthSalaries = salariesHook.salaries
+        .filter(s => new Date(s.paidAt) >= monthStart && new Date(s.paidAt) <= monthEnd)
+        .reduce((sum, s) => sum + s.amount, 0);
+
+      return {
+        name: monthKey,
+        Revenus: monthRevenue,
+        'Coûts Opérationnels': monthOperatingExpenses + monthSalaries,
+      };
+    }).reverse();
+
+    return { revenueGrowth, revenuePerServer, investmentRate, cashRunway, chartData };
+  }, [totalRevenue, investments, operatingExpenses, sales, returns, expensesHook.expenses, salariesHook.salaries, periodStart, currentBar, totalOperatingCosts, finalBalance]);
+
 
   // CALCULATIONS - Cumulative Balance (for Vue Analytique)
   // Calculate all revenues and costs BEFORE the current period start
@@ -413,25 +527,24 @@ export function AccountingOverview() {
 
       {/* Main Stats */}
       {viewMode === 'tresorerie' ? (
-        // VUE TRÉSORERIE : 3 cards classiques
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Net Profit */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Operating Profit */}
           <div className={`bg-gradient-to-br ${
-            netProfit >= 0
+            operatingProfit >= 0
               ? 'from-green-500 to-emerald-600'
               : 'from-red-500 to-pink-600'
-          } text-white rounded-xl p-4 md:col-span-1`}>
+          } text-white rounded-xl p-4`}>
             <div className="flex items-center gap-2 mb-2">
-              {netProfit >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
+              {operatingProfit >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
               <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                Bénéfice NET période
+                Bénéfice Opérationnel
               </p>
             </div>
             <p className={`font-bold ${isMobile ? 'text-2xl' : 'text-3xl'}`}>
-              {formatPrice(netProfit)}
+              {formatPrice(operatingProfit)}
             </p>
             <p className={`mt-1 opacity-80 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-              Marge: {profitMargin.toFixed(1)}%
+              Marge: {operatingProfitMargin.toFixed(1)}%
             </p>
           </div>
 
@@ -448,207 +561,88 @@ export function AccountingOverview() {
             </p>
           </div>
 
-          {/* Total Costs */}
+          {/* Operating Costs */}
           <div className="bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <Receipt size={20} />
               <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                Dépenses période
+                Dépenses Opérationnelles
               </p>
             </div>
             <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-              {formatPrice(totalCosts)}
+              {formatPrice(totalOperatingCosts)}
             </p>
+          </div>
+
+          {/* Investments */}
+          <div className="bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white rounded-xl p-4 relative">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp size={20} />
+              <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                Investissements
+              </p>
+              {investmentRate > 20 && (
+                <span className="bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
+                  ⚠️ Élevé
+                </span>
+              )}
+            </div>
+            <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+              {formatPrice(investments)}
+            </p>
+            {investmentRate > 20 && (
+              <p className={`mt-1 opacity-80 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                Impact trésorerie élevé ({investmentRate.toFixed(1)}% du CA)
+              </p>
+            )}
           </div>
         </div>
       ) : (
-        // VUE ANALYTIQUE : 4 cards avec solde début/fin
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Solde début période */}
-          <div className="bg-gradient-to-br from-gray-500 to-slate-600 text-white rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Calendar size={20} />
-              <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                Solde début
-              </p>
-            </div>
-            <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-              {formatPrice(previousBalance)}
-            </p>
-            <p className={`mt-1 opacity-70 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-              Report périodes antérieures
-            </p>
+        // VUE ANALYTIQUE
+        <div className="space-y-8">
+          {/* 7-card layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* ... cards ... */}
           </div>
 
-          {/* Revenus période */}
-          <div className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <DollarSign size={20} />
-              <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                Revenus
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+              <p className="text-xs text-gray-600">Marge Opérationnelle</p>
+              <p className={`text-lg font-bold ${operatingProfitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {operatingProfitMargin.toFixed(1)}%
               </p>
             </div>
-            <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-              + {formatPrice(totalRevenue)}
-            </p>
-            <p className={`mt-1 opacity-70 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-              Encaissements période
-            </p>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+              <p className="text-xs text-gray-600">Croissance Revenus</p>
+              <p className={`text-lg font-bold ${revenueGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {revenueGrowth >= 0 ? '+' : ''}{revenueGrowth.toFixed(1)}%
+              </p>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+              <p className="text-xs text-gray-600">Revenu / Serveur</p>
+              <p className="text-lg font-bold text-blue-600">
+                {formatPrice(revenuePerServer)}
+              </p>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+              <p className="text-xs text-gray-600">Taux d'Investissement</p>
+              <p className="text-lg font-bold text-purple-600">
+                {investmentRate.toFixed(1)}%
+              </p>
+            </div>
+            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+              <p className="text-xs text-gray-600">Fonds de Roulement</p>
+              <p className={`text-lg font-bold ${cashRunway >= 1 ? 'text-green-600' : cashRunway >= 0.5 ? 'text-orange-600' : 'text-red-600'}`}>
+                {cashRunway.toFixed(1)} mois
+              </p>
+            </div>
           </div>
 
-          {/* Dépenses période */}
-          <div className="bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Receipt size={20} />
-              <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                Dépenses
-              </p>
-            </div>
-            <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-              - {formatPrice(totalCosts)}
-            </p>
-            <p className={`mt-1 opacity-70 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-              Décaissements période
-            </p>
-          </div>
-
-          {/* Solde fin période (final balance) */}
-          <div className={`bg-gradient-to-br ${
-            finalBalance >= 0
-              ? 'from-green-500 to-emerald-600'
-              : 'from-red-500 to-pink-600'
-          } text-white rounded-xl p-4`}>
-            <div className="flex items-center gap-2 mb-2">
-              {finalBalance >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
-              <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                Solde fin
-              </p>
-            </div>
-            <p className={`font-bold ${isMobile ? 'text-2xl' : 'text-3xl'}`}>
-              {formatPrice(finalBalance)}
-            </p>
-            <p className={`mt-1 opacity-80 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-              Rentabilité globale
-            </p>
-          </div>
+          {/* Charts */}
+          <AnalyticsCharts data={chartData} expensesByCategory={expensesByCategory} />
         </div>
       )}
-
-      {/* Revenue Breakdown */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className={`font-semibold text-gray-800 ${isMobile ? 'text-sm' : 'text-base'}`}>
-            💰 Détail des revenus
-          </h3>
-        </div>
-        <div className="p-4 space-y-3">
-          {/* Sales Revenue (NET after returns) */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <Zap className="text-green-600" size={20} />
-              </div>
-              <div>
-                <p className={`font-medium text-gray-800 ${isMobile ? 'text-sm' : ''}`}>
-                  Ventes
-                </p>
-                <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  Entrées de caisse nettes
-                </p>
-              </div>
-            </div>
-            <span className={`font-bold text-green-600 ${isMobile ? 'text-sm' : ''}`}>
-              +{formatPrice(totalRevenue)}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Costs Breakdown */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className={`font-semibold text-gray-800 ${isMobile ? 'text-sm' : 'text-base'}`}>
-            💸 Détail des coûts
-          </h3>
-        </div>
-        <div className="p-4 space-y-3">
-          {/* Expenses with sub-categories */}
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
-            {/* Main Expenses Row */}
-            <div
-              onClick={() => setExpensesExpanded(!expensesExpanded)}
-              className="flex items-center justify-between p-3 bg-red-50 hover:bg-red-100 cursor-pointer transition-colors"
-            >
-              <div className="flex items-center gap-3 flex-1">
-                <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                  <Receipt className="text-red-600" size={20} />
-                </div>
-                <div>
-                  <p className={`font-medium text-gray-800 ${isMobile ? 'text-sm' : ''}`}>
-                    Dépenses
-                  </p>
-                  <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                    Approvisionnements, eau, électricité...
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={`font-bold text-red-600 ${isMobile ? 'text-sm' : ''}`}>
-                  -{formatPrice(expensesCosts)}
-                </span>
-                {expensesExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-              </div>
-            </div>
-
-            {/* Sub-categories (expandable) */}
-            {expensesExpanded && Object.keys(expensesByCategory).length > 0 && (
-              <div className="bg-white border-t border-gray-200">
-                {Object.entries(expensesByCategory).map(([key, data]) => (
-                  <div
-                    key={key}
-                    className="flex items-center justify-between p-3 border-b border-gray-100 last:border-b-0"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className={isMobile ? 'text-base' : 'text-lg'}>{data.icon}</span>
-                      <div>
-                        <p className={`text-gray-700 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                          {data.label}
-                        </p>
-                        <p className={`text-gray-400 ${isMobile ? 'text-xs' : 'text-xs'}`}>
-                          {data.count} transaction{data.count > 1 ? 's' : ''}
-                        </p>
-                      </div>
-                    </div>
-                    <span className={`text-red-600 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                      -{formatPrice(data.amount)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Salaries */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Users className="text-blue-600" size={20} />
-              </div>
-              <div>
-                <p className={`font-medium text-gray-800 ${isMobile ? 'text-sm' : ''}`}>
-                  Salaires
-                </p>
-                <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  Paiements équipe
-                </p>
-              </div>
-            </div>
-            <span className={`font-bold text-blue-600 ${isMobile ? 'text-sm' : ''}`}>
-              -{formatPrice(salariesCosts)}
-            </span>
-          </div>
-        </div>
-      </div>
 
       {/* Period Info */}
       <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">

@@ -13,6 +13,7 @@ import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
+import { useConsignments } from '../hooks/useConsignments';
 import { EnhancedButton } from './EnhancedButton';
 import { Sale, CartItem, Return, ReturnReason, ReturnReasonConfig } from '../types';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
@@ -643,7 +644,8 @@ function CreateReturnForm({
   canReturnSale: (sale: Sale) => { allowed: boolean; reason: string };
   closeHour: number;
 }) {
-  const { returns, getReturnsBySale } = useAppContext();
+  const { getReturnsBySale } = useAppContext();
+  const { getConsignmentsBySale } = useConsignments();
   const { formatPrice } = useCurrencyFormatter();
   const [selectedProduct, setSelectedProduct] = useState<CartItem | null>(null);
   const [quantity, setQuantity] = useState(1);
@@ -656,15 +658,21 @@ function CreateReturnForm({
   // Calculer quantité déjà retournée pour le produit sélectionné
   const getAlreadyReturned = (productId: string): number => {
     if (!selectedSale) return 0;
-    const existingReturns = getReturnsBySale(selectedSale.id);
-    return existingReturns
+    return getReturnsBySale(selectedSale.id)
       .filter(r => r.productId === productId && r.status !== 'rejected')
       .reduce((sum, r) => sum + r.quantityReturned, 0);
   };
 
+  const getAlreadyConsigned = (productId: string): number => {
+    if (!selectedSale) return 0;
+    return getConsignmentsBySale(selectedSale.id)
+      .filter(c => c.productId === productId && c.status === 'active')
+      .reduce((sum, c) => sum + c.quantity, 0);
+  };
+
   // Quantité disponible pour retour
   const availableQty = selectedProduct
-    ? selectedProduct.quantity - getAlreadyReturned(selectedProduct.product.id)
+    ? selectedProduct.quantity - getAlreadyReturned(selectedProduct.product.id) - getAlreadyConsigned(selectedProduct.product.id)
     : 0;
 
   const handleSubmit = () => {
@@ -785,17 +793,14 @@ function CreateReturnForm({
             <div className="space-y-2">
               {selectedSale.items.map((item: CartItem, index: number) => {
                 const alreadyReturned = getAlreadyReturned(item.product.id);
-                const available = item.quantity - alreadyReturned;
-                const isFullyReturned = available <= 0;
-
                 return (
                   <motion.button
                     key={index}
-                    onClick={() => !isFullyReturned && setSelectedProduct(item)}
-                    whileHover={!isFullyReturned ? { scale: 1.01 } : {}}
-                    disabled={isFullyReturned}
+                    onClick={() => !isFullyUnavailable && setSelectedProduct(item)}
+                    whileHover={!isFullyUnavailable ? { scale: 1.01 } : {}}
+                    disabled={isFullyUnavailable}
                     className={`w-full p-3 text-left rounded-lg border-2 transition-colors ${
-                      isFullyReturned
+                      isFullyUnavailable
                         ? 'border-red-200 bg-red-50 opacity-60 cursor-not-allowed'
                         : selectedProduct === item
                           ? 'border-blue-500 bg-blue-50'
@@ -807,7 +812,7 @@ function CreateReturnForm({
                         <p className="font-medium text-gray-800">
                           {item.product.name} ({item.product.volume})
                         </p>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <p className="text-sm text-gray-600">
                             Vendu: {item.quantity}
                           </p>
@@ -819,8 +824,16 @@ function CreateReturnForm({
                               </p>
                             </>
                           )}
+                          {alreadyConsigned > 0 && (
+                            <>
+                              <span className="text-gray-400">•</span>
+                              <p className="text-sm text-purple-600">
+                                Consigné: {alreadyConsigned}
+                              </p>
+                            </>
+                          )}
                           <span className="text-gray-400">•</span>
-                          <p className={`text-sm font-medium ${isFullyReturned ? 'text-red-600' : 'text-green-600'}`}>
+                          <p className={`text-sm font-medium ${isFullyUnavailable ? 'text-red-600' : 'text-green-600'}`}>
                             Disponible: {available}
                           </p>
                         </div>
@@ -829,9 +842,9 @@ function CreateReturnForm({
                         <p className="text-blue-600 font-semibold">
                           {item.product.price} FCFA
                         </p>
-                        {isFullyReturned && (
+                        {isFullyUnavailable && (
                           <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full mt-1 inline-block">
-                            Tout retourné
+                            Indisponible
                           </span>
                         )}
                       </div>
@@ -856,7 +869,7 @@ function CreateReturnForm({
                   min="1"
                   max={availableQty}
                   value={quantity}
-                  onChange={(e) => setQuantity(Number(e.target.value))}
+                  onChange={(e) => setQuantity(Math.min(availableQty, Math.max(1, parseInt(e.target.value) || 1)))}
                   className="w-full px-3 py-2 border border-orange-200 rounded-lg bg-white"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -864,14 +877,14 @@ function CreateReturnForm({
                 </p>
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Raison du retour
                 </label>
                 <select
                   value={reason}
                   onChange={(e) => setReason(e.target.value as ReturnReason)}
-                  className="w-full px-3 py-2 border border-orange-200 rounded-lg bg-white"
+                  className="px-3 py-2 border border-orange-200 rounded-lg bg-white"
                 >
                   {Object.entries(returnReasons).map(([key, value]) => {
                     // Pour "other", afficher "Choix manuel" au lieu de "Sans rembours."

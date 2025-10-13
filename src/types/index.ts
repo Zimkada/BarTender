@@ -110,6 +110,7 @@ export type ExpenseCategory =
   | 'water'          // 💧 Eau
   | 'electricity'    // ⚡ Électricité
   | 'maintenance'    // 🔧 Entretien/Réparations
+  | 'investment'     // 📈 Investissement
   | 'custom';        // Personnalisée
 
 export interface ExpenseCategoryCustom {
