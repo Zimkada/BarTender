@@ -391,6 +391,32 @@ export function AccountingOverview() {
   const handleExportAccounting = () => {
     const workbook = XLSX.utils.book_new();
 
+    // Filtrer les données par période pour l'export
+    const filteredSales = sales.filter(sale => {
+      const saleDate = new Date(sale.date);
+      return saleDate >= periodStart && saleDate <= periodEnd;
+    });
+
+    const filteredReturns = returns.filter(ret => {
+      const retDate = new Date(ret.returnedAt);
+      return retDate >= periodStart && retDate <= periodEnd;
+    });
+
+    const filteredSupplies = supplies.filter(supply => {
+      const supplyDate = new Date(supply.date);
+      return supplyDate >= periodStart && supplyDate <= periodEnd;
+    });
+
+    const filteredSalaries = salariesHook.salaries.filter(salary => {
+      const salaryDate = new Date(salary.paidAt);
+      return salaryDate >= periodStart && salaryDate <= periodEnd;
+    });
+
+    // Calculer les coûts d'approvisionnement
+    const suppliesCosts = filteredSupplies.reduce((sum, supply) =>
+      sum + (supply.lotPrice * supply.lotSize), 0
+    );
+
     // 1. ONGLET RÉSUMÉ
     const summaryData = [
       ['RAPPORT COMPTABLE', currentBar?.name || ''],
