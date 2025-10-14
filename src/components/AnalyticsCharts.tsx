@@ -32,7 +32,7 @@ const AnalyticsCharts = ({ data, expensesByCategory }) => {
 
   const expenseData = Object.entries(expensesByCategory)
     .filter(([key]) => key !== 'investment')
-    .map(([key, value]) => ({ name: value.label, value: value.amount }));
+    .map(([, value]) => ({ name: value.label, value: value.amount }));
 
   return (
     <div className="space-y-8">

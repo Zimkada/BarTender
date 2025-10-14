@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BarChart3, Receipt, DollarSign, Download, X } from 'lucide-react';
+import { BarChart3, Receipt, DollarSign, X } from 'lucide-react';
 import { AccountingOverview } from './AccountingOverview';
 import { ExpenseManager } from './ExpenseManager';
 import { SalaryManager } from './SalaryManager';

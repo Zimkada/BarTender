@@ -28,8 +28,6 @@ import { MobileNavigation } from './components/MobileNavigation';
 import { MobileSidebar } from './components/MobileSidebar';
 import { Accounting } from './components/Accounting';
 import { ConsignmentSystem } from './components/ConsignmentSystem';
-import { useNetworkOptimization } from './hooks/useNetworkOptimization';
-import { useViewport } from './hooks/useViewport';
 
 
 
@@ -45,8 +43,6 @@ function AppContent() {
   
   const { isAuthenticated } = useAuth();
   const { showNotification } = useNotifications();
-  const { performanceSettings, shouldReduceAnimations } = useNetworkOptimization();
-  const { isMobile } = useViewport();
   const [showDailyDashboard, setShowDailyDashboard] = useState(false);
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id || '');
   const [cart, setCart] = useState<CartItem[]>([]);

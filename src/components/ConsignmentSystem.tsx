@@ -22,8 +22,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
-import type { Consignment, Sale, Product } from '../types';
-import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
+import type { Consignment } from '../types';
 
 interface ConsignmentSystemProps {
   isOpen: boolean;
@@ -35,7 +34,6 @@ type TabType = 'create' | 'active' | 'history';
 export const ConsignmentSystem: React.FC<ConsignmentSystemProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<TabType>('active');
   const { formatPrice } = useCurrencyFormatter();
-  const { showSuccess, showError } = useFeedback();
 
   if (!isOpen) return null;
 
