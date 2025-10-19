@@ -20,7 +20,7 @@ import {
 } from '../hooks/useExpenses';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
-import { useApp } from '../context/AppContext';
+import { useAppContext } from '../context/AppContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { getWeekRange, getMonthRange, formatPeriod, getCurrentPeriod } from '../utils/accounting';
 import { ExpenseCategory } from '../types';
@@ -41,7 +41,7 @@ function ExpenseManagerContent() {
     addExpense,
     addCustomExpenseCategory,
     deleteExpense,
-  } = useApp();
+  } = useAppContext();
 
   const [showForm, setShowForm] = useState(false);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
