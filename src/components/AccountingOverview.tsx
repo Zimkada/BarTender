@@ -271,8 +271,8 @@ export function AccountingOverview() {
   const previousBalance = useMemo(() => {
     if (viewMode === 'tresorerie') return 0; // Not used in tresorerie view
 
-    // ✅ 1. Start with initial balance(s) at or before period start
-    const initialBalanceTotal = initialBalanceHook.getTotalInitialBalance(periodStart);
+    // ✅ 1. Start with initial balance (unique)
+    const initialBalanceAmount = initialBalanceHook.getInitialBalanceAmount();
 
     // 2. Sum all sales before period
     const previousSales = sales
@@ -305,8 +305,8 @@ export function AccountingOverview() {
     const previousCosts = previousExpenses + previousSalaries;
 
     // ✅ Total = Solde initial + (Revenus - Coûts) des périodes antérieures
-    return initialBalanceTotal + previousRevenue - previousCosts;
-  }, [viewMode, sales, returns, expenses, salariesHook.salaries, periodStart, initialBalanceHook.initialBalances]);
+    return initialBalanceAmount + previousRevenue - previousCosts;
+  }, [viewMode, sales, returns, expenses, salariesHook.salaries, periodStart, initialBalanceHook.initialBalance]);
 
   // Final balance (for Vue Analytique)
   const finalBalance = previousBalance + netProfit;
@@ -373,21 +373,25 @@ export function AccountingOverview() {
       return;
     }
 
-    initialBalanceHook.addInitialBalance({
-      barId: currentBar!.id,
-      amount: parseFloat(initialBalanceForm.amount),
-      date: new Date(initialBalanceForm.date),
-      description: initialBalanceForm.description || 'Solde initial',
-      createdBy: currentSession!.userId,
-    });
+    try {
+      initialBalanceHook.createInitialBalance({
+        barId: currentBar!.id,
+        amount: parseFloat(initialBalanceForm.amount),
+        date: new Date(initialBalanceForm.date),
+        description: initialBalanceForm.description || 'Solde initial',
+        createdBy: currentSession!.userId,
+      });
 
-    // Reset form and close modal
-    setInitialBalanceForm({
-      amount: '',
-      date: new Date().toISOString().split('T')[0],
-      description: 'Solde initial',
-    });
-    setShowInitialBalanceModal(false);
+      // Reset form and close modal
+      setInitialBalanceForm({
+        amount: '',
+        date: new Date().toISOString().split('T')[0],
+        description: 'Solde initial',
+      });
+      setShowInitialBalanceModal(false);
+    } catch (error) {
+      alert((error as Error).message);
+    }
   };
 
   // Export comptable complet
@@ -590,20 +594,18 @@ export function AccountingOverview() {
       XLSX.utils.book_append_sheet(workbook, consignmentsSheet, 'Consignations');
     }
 
-    // 9. ONGLET SOLDES INITIAUX (si présents)
-    const initialBalancesInPeriod = initialBalanceHook.initialBalances.filter(bal => {
-      const balDate = new Date(bal.date);
-      return balDate >= periodStart && balDate <= periodEnd;
-    });
-    if (initialBalancesInPeriod.length > 0) {
-      const initialBalancesData = initialBalancesInPeriod.map(bal => ({
+    // 9. ONGLET SOLDE INITIAL (si présent)
+    if (initialBalanceHook.initialBalance) {
+      const bal = initialBalanceHook.initialBalance;
+      const initialBalanceData = [{
         Date: new Date(bal.date).toLocaleDateString('fr-FR'),
         Montant: bal.amount,
         Description: bal.description,
         'Créé par': bal.createdBy,
-      }));
-      const initialBalancesSheet = XLSX.utils.json_to_sheet(initialBalancesData);
-      XLSX.utils.book_append_sheet(workbook, initialBalancesSheet, 'Soldes Initiaux');
+        'Verrouillé': bal.isLocked ? 'Oui' : 'Non',
+      }];
+      const initialBalanceSheet = XLSX.utils.json_to_sheet(initialBalanceData);
+      XLSX.utils.book_append_sheet(workbook, initialBalanceSheet, 'Solde Initial');
     }
 
     // Télécharger le fichier
@@ -1069,24 +1071,25 @@ export function AccountingOverview() {
                 />
               </div>
 
-              {/* Existing initial balances */}
-              {initialBalanceHook.initialBalances.length > 0 && (
+              {/* Existing initial balance */}
+              {initialBalanceHook.initialBalance && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                   <p className="text-xs font-medium text-yellow-800 mb-2">
-                    Soldes initiaux existants :
+                    ⚠️ Un solde initial existe déjà :
                   </p>
-                  <div className="space-y-2">
-                    {initialBalanceHook.initialBalances.map(bal => (
-                      <div key={bal.id} className="flex items-center justify-between text-xs">
-                        <span className="text-gray-700">
-                          {new Date(bal.date).toLocaleDateString('fr-FR')} - {bal.description}
-                        </span>
-                        <span className={`font-medium ${bal.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {formatPrice(bal.amount)}
-                        </span>
-                      </div>
-                    ))}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-700">
+                      {new Date(initialBalanceHook.initialBalance.date).toLocaleDateString('fr-FR')} - {initialBalanceHook.initialBalance.description}
+                    </span>
+                    <span className={`font-medium ${initialBalanceHook.initialBalance.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {formatPrice(initialBalanceHook.initialBalance.amount)}
+                    </span>
                   </div>
+                  {initialBalanceHook.initialBalance.isLocked && (
+                    <p className="text-xs text-red-600 mt-2">
+                      🔒 Verrouillé (transactions postérieures existent)
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -1101,9 +1104,14 @@ export function AccountingOverview() {
               </button>
               <button
                 onClick={handleCreateInitialBalance}
-                className="flex-1 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+                disabled={!!initialBalanceHook.initialBalance}
+                className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
+                  initialBalanceHook.initialBalance
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-purple-500 text-white hover:bg-purple-600'
+                }`}
               >
-                Enregistrer
+                {initialBalanceHook.initialBalance ? 'Solde déjà défini' : 'Enregistrer'}
               </button>
             </div>
           </motion.div>
