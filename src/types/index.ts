@@ -129,7 +129,9 @@ export interface Expense {
   category: ExpenseCategory;
   customCategoryId?: string; // Si category === 'custom'
   date: Date;
+  description?: string;      // Description de la dépense
   notes?: string;
+  relatedSupplyId?: string;  // ID de l'approvisionnement lié (si category === 'supply')
   createdBy: string;
   createdAt: Date;
 }

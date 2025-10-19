@@ -11,9 +11,16 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
-import { useExpenses, EXPENSE_CATEGORY_LABELS } from '../hooks/useExpenses';
+import {
+  EXPENSE_CATEGORY_LABELS,
+  getCategoryLabel,
+  getCategoryIcon,
+  getTotalExpenses,
+  getExpensesByCategory
+} from '../hooks/useExpenses';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
+import { useApp } from '../context/AppContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { getWeekRange, getMonthRange, formatPeriod, getCurrentPeriod } from '../utils/accounting';
 import { ExpenseCategory } from '../types';
@@ -27,17 +34,14 @@ function ExpenseManagerContent() {
   const { formatPrice } = useCurrencyFormatter();
   const { isMobile } = useViewport();
 
+  // ✅ Utiliser AppContext pour les dépenses
   const {
     expenses,
-    customCategories,
+    customExpenseCategories,
     addExpense,
-    addCustomCategory,
+    addCustomExpenseCategory,
     deleteExpense,
-    getCategoryLabel,
-    getCategoryIcon,
-    getTotalExpenses,
-    getExpensesByCategory
-  } = useExpenses(currentBar!.id);
+  } = useApp();
 
   const [showForm, setShowForm] = useState(false);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
@@ -89,7 +93,7 @@ function ExpenseManagerContent() {
       return;
     }
 
-    addCustomCategory(newCategoryName.trim(), newCategoryIcon, currentSession!.userId);
+    addCustomExpenseCategory(newCategoryName.trim(), newCategoryIcon, currentSession!.userId);
     setNewCategoryName('');
     setNewCategoryIcon('📝');
     setShowCategoryForm(false);
@@ -120,8 +124,8 @@ function ExpenseManagerContent() {
 
   const { start: periodStart, end: periodEnd } = getPeriodRange();
 
-  const totalExpenses = getTotalExpenses(periodStart, periodEnd);
-  const expensesByCategory = getExpensesByCategory(periodStart, periodEnd);
+  const totalExpenses = getTotalExpenses(expenses, periodStart, periodEnd);
+  const expensesByCategory = getExpensesByCategory(expenses, customExpenseCategories, periodStart, periodEnd);
 
   const filteredExpenses = expenses.filter(exp => {
     const expDate = new Date(exp.date);
@@ -364,12 +368,12 @@ function ExpenseManagerContent() {
                       ))}
 
                     {/* Separator if custom categories exist */}
-                    {customCategories.length > 0 && (
+                    {customExpenseCategories.length > 0 && (
                       <option disabled>──────────────</option>
                     )}
 
                     {/* Custom categories */}
-                    {customCategories.map(cat => (
+                    {customExpenseCategories.map(cat => (
                       <option key={cat.id} value={`custom:${cat.id}`}>
                         {cat.icon} {cat.name}
                       </option>

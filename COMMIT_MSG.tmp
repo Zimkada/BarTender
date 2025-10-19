@@ -1,0 +1,22 @@
+feat: Gestion avancée des catégories et refactorisation du flux de vente
+
+Ce commit majeur introduit deux évolutions fonctionnelles importantes ainsi qu'une refactorisation de fond du système de vente.
+
+**1. Gestion Complète des Catégories (par Gemini)**
+
+- **Modification & Suppression :** Il est désormais possible de modifier et supprimer des catégories via un appui long (ou clic droit) sur les onglets de catégorie.
+- **Sécurisation :** La suppression d'une catégorie contenant des produits est bloquée, avec un message d'erreur clair, pour garantir l'intégrité des données.
+- **Import Intelligent :** L'import de produits via Excel crée maintenant automatiquement les catégories non existantes, au lieu de les assigner arbitrairement.
+
+**2. Refactorisation du Flux de Vente (par Zimkada)**
+
+- **Nouveau Cycle de Vie :** L'ancien système de "Commandes" est remplacé par un flux de "Ventes" avec statuts (`pending`, `validated`, `rejected`), permettant une validation par le gérant.
+- **Impact :** Cette refactorisation clarifie la logique métier et touche `AppContext`, `types`, `ServerInterface`, `QuickSaleFlow`, `SalesHistory`, etc.
+- **Suppression :** Le hook `useOrders.ts` et le type `Order` ont été supprimés au profit de ce nouveau système.
+
+**3. Corrections de Bugs et Améliorations (par Gemini & Zimkada)**
+
+- **Filtres pour Serveurs :** Les vues "Tableau de bord" et "Historique" sont maintenant correctement filtrées pour le rôle "serveur", qui ne voit que ses propres ventes, retours et consignations.
+- **Accès à l'Historique :** Le bug qui empêchait les serveurs d'accéder à l'historique est corrigé en ajustant la permission requise.
+- **Améliorations UI/UX :** De nombreuses interfaces ont été améliorées pour plus de clarté et de détails (`PendingOrders`, `ReturnsSystem`, `AccountingOverview`).
+- **Fiabilisation :** Correction de bugs sur l'utilisation des dates et nettoyage du code dans plusieurs composants.

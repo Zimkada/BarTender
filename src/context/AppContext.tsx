@@ -13,6 +13,8 @@ import {
   AppSettings,
   Return,
   User,
+  Expense,
+  ExpenseCategoryCustom,
 } from '../types';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
 
@@ -83,6 +85,13 @@ interface AppContextType {
   getReturnsBySale: (saleId: string) => Return[];
   getPendingReturns: () => Return[];
 
+  // Dépenses
+  expenses: Expense[];
+  customExpenseCategories: ExpenseCategoryCustom[];
+  addExpense: (expenseData: Omit<Expense, 'id' | 'barId' | 'createdAt'>) => Expense | null;
+  deleteExpense: (expenseId: string) => void;
+  addCustomExpenseCategory: (name: string, icon: string, createdBy: string) => ExpenseCategoryCustom | null;
+
   // Paramètres
   updateSettings: (updates: Partial<AppSettings>) => void;
 
@@ -111,6 +120,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [allSupplies, setAllSupplies] = useLocalStorage<Supply[]>('supplies-v3', []);
   const [allSales, setAllSales] = useLocalStorage<Sale[]>('sales-v3', []);
   const [allReturns, setAllReturns] = useLocalStorage<Return[]>('returns-v1', []);
+  const [allExpenses, setAllExpenses] = useLocalStorage<Expense[]>('expenses-v1', []);
+  const [allCustomExpenseCategories, setAllCustomExpenseCategories] = useLocalStorage<ExpenseCategoryCustom[]>('expense-categories-v1', []);
   const [settings, setSettings] = useLocalStorage<AppSettings>('app-settings-v3', defaultSettings);
   const [users, setUsers] = useLocalStorage<User[]>('users', []); // Assurez-vous que la clé est correcte
 
@@ -120,6 +131,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const supplies = allSupplies.filter(s => s.barId === currentBar?.id);
   const sales = allSales.filter(s => s.barId === currentBar?.id);
   const returns = allReturns.filter(r => r.barId === currentBar?.id);
+  const expenses = allExpenses.filter(e => e.barId === currentBar?.id);
+  const customExpenseCategories = allCustomExpenseCategories.filter(c => c.barId === currentBar?.id);
 
   const initializeBarData = useCallback((barId: string) => {
     const existingCategories = allCategories.some(c => c.barId === barId);
@@ -196,12 +209,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addSupply = useCallback((supply: Omit<Supply, 'id' | 'date' | 'totalCost' | 'barId' | 'createdBy'>) => {
     if (!hasPermission('canManageInventory') || !currentBar || !currentSession) return null;
+
     const totalCost = (supply.quantity / supply.lotSize) * supply.lotPrice;
-    const newSupply: Supply = { ...supply, id: Date.now().toString(), barId: currentBar.id, date: new Date(), totalCost, createdBy: currentSession.userId };
+    const newSupply: Supply = {
+      ...supply,
+      id: Date.now().toString(),
+      barId: currentBar.id,
+      date: new Date(),
+      totalCost,
+      createdBy: currentSession.userId
+    };
+
     setAllSupplies(prev => [newSupply, ...prev]);
     increaseStock(supply.productId, supply.quantity);
+
+    // ✅ Créer automatiquement une dépense d'approvisionnement
+    const product = products.find(p => p.id === supply.productId);
+    const expenseData: Omit<Expense, 'id' | 'barId' | 'createdAt'> = {
+      category: 'supply',
+      amount: totalCost,
+      date: new Date(),
+      description: `Approvisionnement: ${product?.name || 'Produit'} (${supply.quantity} unités)`,
+      createdBy: currentSession.userId,
+      relatedSupplyId: newSupply.id, // Lien vers l'approvisionnement
+    };
+
+    const newExpense: Expense = {
+      ...expenseData,
+      id: `exp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      barId: currentBar.id,
+      createdAt: new Date(),
+    };
+
+    setAllExpenses(prev => [...prev, newExpense]);
+
     return newSupply;
-  }, [setAllSupplies, increaseStock, hasPermission, currentBar, currentSession]);
+  }, [setAllSupplies, setAllExpenses, increaseStock, hasPermission, currentBar, currentSession, products]);
 
   const getSuppliesByProduct = useCallback((productId: string) => supplies.filter(s => s.productId === productId), [supplies]);
 
@@ -354,26 +397,67 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const getReturnsBySale = useCallback((saleId: string) => returns.filter(r => r.saleId === saleId), [returns]);
   const getPendingReturns = useCallback(() => returns.filter(r => r.status === 'pending'), [returns]);
 
+  // ===== DÉPENSES =====
+
+  const addExpense = useCallback((expenseData: Omit<Expense, 'id' | 'barId' | 'createdAt'>) => {
+    if (!hasPermission('canManageInventory') || !currentBar || !currentSession) return null;
+
+    const newExpense: Expense = {
+      ...expenseData,
+      id: `exp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      barId: currentBar.id,
+      createdAt: new Date(),
+    };
+
+    setAllExpenses(prev => [...prev, newExpense]);
+    return newExpense;
+  }, [currentBar, currentSession, setAllExpenses, hasPermission]);
+
+  const deleteExpense = useCallback((expenseId: string) => {
+    if (!hasPermission('canManageInventory')) return;
+    setAllExpenses(prev => prev.filter(exp => exp.id !== expenseId));
+  }, [setAllExpenses, hasPermission]);
+
+  const addCustomExpenseCategory = useCallback((name: string, icon: string, createdBy: string) => {
+    if (!hasPermission('canManageInventory') || !currentBar) return null;
+
+    const newCategory: ExpenseCategoryCustom = {
+      id: `cat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      barId: currentBar.id,
+      name,
+      icon,
+      createdAt: new Date(),
+      createdBy,
+    };
+
+    setAllCustomExpenseCategories(prev => [...prev, newCategory]);
+    return newCategory;
+  }, [currentBar, setAllCustomExpenseCategories, hasPermission]);
+
   const value: AppContextType = {
     // État
     categories, products, supplies, sales, returns, settings, users,
-    
+    expenses, customExpenseCategories,
+
     // Catégories
     addCategory, updateCategory, deleteCategory,
-    
+
     // Produits
     addProduct, updateProduct, deleteProduct, decreaseStock, increaseStock,
     getProductsByCategory, getLowStockProducts, getProductById,
-    
+
     // Approvisionnements
     addSupply, getSuppliesByProduct, getTotalCostByProduct, getAverageCostPerUnit,
-    
+
     // Ventes
     addSale, validateSale, rejectSale, // NOUVELLES FONCTIONS
     getSalesByDate, getTodaySales, getTodayTotal, getSalesByUser,
 
     // Retours
     addReturn, updateReturn, deleteReturn, getReturnsBySale, getPendingReturns,
+
+    // Dépenses
+    addExpense, deleteExpense, addCustomExpenseCategory,
 
     // Paramètres
     updateSettings,

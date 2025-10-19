@@ -23,7 +23,7 @@ import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { useAppContext } from '../context/AppContext';
 import { useSupplies } from '../hooks/useSupplies';
-import { useExpenses } from '../hooks/useExpenses';
+import { getExpensesByCategory } from '../hooks/useExpenses';
 import { useSalaries } from '../hooks/useSalaries';
 import { useInitialBalance } from '../hooks/useInitialBalance';
 import { useConsignments } from '../hooks/useConsignments';
@@ -43,11 +43,10 @@ export function AccountingOverview() {
 
   const { sales } = useSales(currentBar?.id);
   const { supplies } = useSupplies();
-  const expensesHook = useExpenses(currentBar?.id);
   const salariesHook = useSalaries(currentBar?.id);
   const initialBalanceHook = useInitialBalance(currentBar?.id);
   const { consignments } = useConsignments(currentBar?.id);
-  const { returns } = useAppContext(); // ✅ Use returns from AppContext (same source as ReturnsSystem)
+  const { returns, expenses, customExpenseCategories } = useAppContext(); // ✅ Use expenses from AppContext
 
   const [periodType, setPeriodType] = useState<PeriodType>('month');
   const [periodOffset, setPeriodOffset] = useState(0); // 0 = current, -1 = previous, +1 = next
@@ -138,18 +137,18 @@ export function AccountingOverview() {
 
   // Calculate expenses (ALL categories including 'supply')
   const expensesCosts = useMemo(() => {
-    return expensesHook.expenses
+    return expenses
       .filter(exp => {
         const expDate = new Date(exp.date);
         return expDate >= periodStart && expDate <= periodEnd;
       })
       .reduce((sum, exp) => sum + exp.amount, 0);
-  }, [expensesHook.expenses, periodStart, periodEnd]);
+  }, [expenses, periodStart, periodEnd]);
 
   // Get expenses breakdown by category (for detailed view)
-  const expensesByCategory = useMemo(() => {
-    return expensesHook.getExpensesByCategory(periodStart, periodEnd);
-  }, [expensesHook, periodStart, periodEnd]);
+  const expensesByCategoryData = useMemo(() => {
+    return getExpensesByCategory(expenses, customExpenseCategories, periodStart, periodEnd);
+  }, [expenses, customExpenseCategories, periodStart, periodEnd]);
 
   // Calculate salaries
   const salariesCosts = salariesHook.getTotalSalaries(periodStart, periodEnd);
@@ -160,22 +159,22 @@ export function AccountingOverview() {
   const totalRevenue = salesRevenue - returnsRefunds; // CA NET = Ventes - Retours remboursés
 
   const operatingExpenses = useMemo(() => {
-    return expensesHook.expenses
+    return expenses
       .filter(exp => {
         const expDate = new Date(exp.date);
         return expDate >= periodStart && expDate <= periodEnd && exp.category !== 'investment';
       })
       .reduce((sum, exp) => sum + exp.amount, 0);
-  }, [expensesHook.expenses, periodStart, periodEnd]);
+  }, [expenses, periodStart, periodEnd]);
 
   const investments = useMemo(() => {
-    return expensesHook.expenses
+    return expenses
       .filter(exp => {
         const expDate = new Date(exp.date);
         return expDate >= periodStart && expDate <= periodEnd && exp.category === 'investment';
       })
       .reduce((sum, exp) => sum + exp.amount, 0);
-  }, [expensesHook.expenses, periodStart, periodEnd]);
+  }, [expenses, periodStart, periodEnd]);
 
   const totalOperatingCosts = operatingExpenses + salariesCosts;
   const operatingProfit = totalRevenue - totalOperatingCosts;
@@ -248,7 +247,7 @@ export function AccountingOverview() {
 
       const monthRevenue = monthSales - monthReturns;
 
-      const monthOperatingExpenses = expensesHook.expenses
+      const monthOperatingExpenses = expenses
         .filter(e => new Date(e.date) >= monthStart && new Date(e.date) <= monthEnd && e.category !== 'investment')
         .reduce((sum, e) => sum + e.amount, 0);
 
@@ -264,7 +263,7 @@ export function AccountingOverview() {
     }).reverse();
 
     return { revenueGrowth, revenuePerServer, investmentRate, chartData };
-  }, [totalRevenue, investments, operatingExpenses, sales, returns, expensesHook.expenses, salariesHook.salaries, periodStart, currentBar]);
+  }, [totalRevenue, investments, operatingExpenses, sales, returns, expenses, salariesHook.salaries, periodStart, currentBar]);
 
 
   // CALCULATIONS - Cumulative Balance (for Vue Analytique)
@@ -293,7 +292,7 @@ export function AccountingOverview() {
       .reduce((sum, ret) => sum + ret.refundAmount, 0);
 
     // 4. Sum all expenses before period
-    const previousExpenses = expensesHook.expenses
+    const previousExpenses = expenses
       .filter(exp => new Date(exp.date) < periodStart)
       .reduce((sum, exp) => sum + exp.amount, 0);
 
@@ -307,7 +306,7 @@ export function AccountingOverview() {
 
     // ✅ Total = Solde initial + (Revenus - Coûts) des périodes antérieures
     return initialBalanceTotal + previousRevenue - previousCosts;
-  }, [viewMode, sales, returns, expensesHook.expenses, salariesHook.salaries, periodStart, initialBalanceHook]);
+  }, [viewMode, sales, returns, expenses, salariesHook.salaries, periodStart, initialBalanceHook]);
 
   // Final balance (for Vue Analytique)
   const finalBalance = previousBalance + netProfit;
@@ -517,7 +516,7 @@ export function AccountingOverview() {
     }
 
     // 5. ONGLET DÉPENSES OPÉRATIONNELLES
-    const operatingExpensesData = expensesHook.expenses
+    const operatingExpensesData = expenses
       .filter(exp => {
         const expDate = new Date(exp.date);
         return expDate >= periodStart && expDate <= periodEnd && exp.category !== 'investment';
@@ -537,7 +536,7 @@ export function AccountingOverview() {
     }
 
     // 6. ONGLET INVESTISSEMENTS
-    const investmentsData = expensesHook.expenses
+    const investmentsData = expenses
       .filter(exp => {
         const expDate = new Date(exp.date);
         return expDate >= periodStart && expDate <= periodEnd && exp.category === 'investment';
@@ -881,7 +880,7 @@ export function AccountingOverview() {
           </div>
 
           {/* Charts */}
-          <AnalyticsCharts data={chartData} expensesByCategory={expensesByCategory} />
+          <AnalyticsCharts data={chartData} expensesByCategory={expensesByCategoryData} />
         </div>
       )}
 
