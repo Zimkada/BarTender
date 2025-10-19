@@ -271,7 +271,7 @@ export function AccountingOverview() {
   const previousBalance = useMemo(() => {
     if (viewMode === 'tresorerie') return 0; // Not used in tresorerie view
 
-    // ✅ 1. Start with initial balance(s) before period
+    // ✅ 1. Start with initial balance(s) at or before period start
     const initialBalanceTotal = initialBalanceHook.getTotalInitialBalance(periodStart);
 
     // 2. Sum all sales before period
@@ -306,7 +306,7 @@ export function AccountingOverview() {
 
     // ✅ Total = Solde initial + (Revenus - Coûts) des périodes antérieures
     return initialBalanceTotal + previousRevenue - previousCosts;
-  }, [viewMode, sales, returns, expenses, salariesHook.salaries, periodStart, initialBalanceHook]);
+  }, [viewMode, sales, returns, expenses, salariesHook.salaries, periodStart, initialBalanceHook.initialBalances]);
 
   // Final balance (for Vue Analytique)
   const finalBalance = previousBalance + netProfit;

@@ -62,10 +62,10 @@ export function useInitialBalance(barId?: string) {
     saveToStorage(updated);
   }, [initialBalances, saveToStorage]);
 
-  // Get total initial balance before a specific date
+  // Get total initial balance before or at a specific date
   const getTotalInitialBalance = useCallback((beforeDate: Date) => {
     return initialBalances
-      .filter(bal => new Date(bal.date) < beforeDate)
+      .filter(bal => new Date(bal.date) <= beforeDate)
       .reduce((sum, bal) => sum + bal.amount, 0);
   }, [initialBalances]);
 
