@@ -838,11 +838,76 @@ export function AccountingOverview() {
           </div>
         </div>
       ) : (
-        // VUE ANALYTIQUE
+        // VUE ANALYTIQUE : 4 cards avec solde début/fin
         <div className="space-y-8">
-          {/* 7-card layout */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* ... cards ... */}
+            {/* Solde début période */}
+            <div className="bg-gradient-to-br from-gray-500 to-slate-600 text-white rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Calendar size={20} />
+                <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  Solde début
+                </p>
+              </div>
+              <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+                {formatPrice(previousBalance)}
+              </p>
+              <p className={`mt-1 opacity-70 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                Report périodes antérieures
+              </p>
+            </div>
+
+            {/* Revenus période */}
+            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign size={20} />
+                <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  Revenus
+                </p>
+              </div>
+              <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+                + {formatPrice(totalRevenue)}
+              </p>
+              <p className={`mt-1 opacity-70 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                Encaissements période
+              </p>
+            </div>
+
+            {/* Dépenses période */}
+            <div className="bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Receipt size={20} />
+                <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  Dépenses
+                </p>
+              </div>
+              <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+                - {formatPrice(totalCosts)}
+              </p>
+              <p className={`mt-1 opacity-70 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                Décaissements période
+              </p>
+            </div>
+
+            {/* Solde fin période (final balance) */}
+            <div className={`bg-gradient-to-br ${
+              finalBalance >= 0
+                ? 'from-green-500 to-emerald-600'
+                : 'from-red-500 to-pink-600'
+            } text-white rounded-xl p-4`}>
+              <div className="flex items-center gap-2 mb-2">
+                {finalBalance >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
+                <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  Solde fin
+                </p>
+              </div>
+              <p className={`font-bold ${isMobile ? 'text-2xl' : 'text-3xl'}`}>
+                {formatPrice(finalBalance)}
+              </p>
+              <p className={`mt-1 opacity-80 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                Rentabilité globale
+              </p>
+            </div>
           </div>
 
           {/* KPI Cards */}
