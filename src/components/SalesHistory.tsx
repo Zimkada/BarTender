@@ -1123,7 +1123,7 @@ function SaleCard({
       <div className="space-y-2 mb-4">
         {sale.items.slice(0, 2).map((item, index) => (
           <div key={index} className="flex justify-between text-sm">
-            <span className="text-gray-700">{item.quantity}x {item.product.name}</span>
+            <span className="text-gray-700">{item.quantity}x {item.product.name} {item.product.volume ? `(${item.product.volume})` : ''}</span>
             <span className="text-gray-600">{formatPrice(item.product.price * item.quantity)}</span>
           </div>
         ))}
@@ -1646,7 +1646,7 @@ function AnalyticsView({
 
   // Top produits - 3 analyses (CA NET = Ventes - Retours)
   const topProductsData = useMemo(() => {
-    const productStats: Record<string, { name: string; units: number; revenue: number; profit: number }> = {};
+    const productStats: Record<string, { name: string; volume: string; units: number; revenue: number; profit: number }> = {};
 
     // 1. Ajouter les ventes
     sales.forEach(sale => {
@@ -1655,6 +1655,7 @@ function AnalyticsView({
         if (!productStats[product.id]) {
           productStats[product.id] = {
             name: product.name,
+            volume: product.volume,
             units: 0,
             revenue: 0,
             profit: 0
@@ -1708,7 +1709,10 @@ function AnalyticsView({
       }
     });
 
-    const products = Object.values(productStats);
+    const products = Object.values(productStats).map(p => ({
+      ...p,
+      displayName: `${p.name} ${p.volume ? `(${p.volume})` : ''}`
+    }));
 
     return {
       byUnits: products.sort((a, b) => b.units - a.units).slice(0, 5),
@@ -1966,7 +1970,7 @@ function AnalyticsView({
           <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
             <BarChart data={topProductsData.byUnits}>
               <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" />
-              <XAxis dataKey="name" tick={{ fill: '#9ca3af', fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
+              <XAxis dataKey="displayName" tick={{ fill: '#9ca3af', fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
               <YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} />
               <Tooltip />
               <Bar dataKey="units" fill="#3b82f6" radius={[8, 8, 0, 0]} />
@@ -1980,7 +1984,7 @@ function AnalyticsView({
           <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
             <BarChart data={topProductsData.byRevenue}>
               <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" />
-              <XAxis dataKey="name" tick={{ fill: '#9ca3af', fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
+              <XAxis dataKey="displayName" tick={{ fill: '#9ca3af', fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
               <YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} />
               <Tooltip formatter={(value: number) => formatPrice(value)} />
               <Bar dataKey="revenue" fill="#f97316" radius={[8, 8, 0, 0]} />
@@ -1994,7 +1998,7 @@ function AnalyticsView({
           <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
             <BarChart data={topProductsData.byProfit}>
               <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" />
-              <XAxis dataKey="name" tick={{ fill: '#9ca3af', fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
+              <XAxis dataKey="displayName" tick={{ fill: '#9ca3af', fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
               <YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} />
               <Tooltip formatter={(value: number) => formatPrice(value)} />
               <Bar dataKey="profit" fill="#10b981" radius={[8, 8, 0, 0]} />
@@ -2048,8 +2052,8 @@ function SaleDetailModal({
               {sale.items.map((item, index) => (
                 <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-800">{item.product.name}</p>
-                    <p className="text-sm text-gray-600">{item.product.volume} • Qté: {item.quantity}</p>
+                    <p className="font-medium text-gray-800">{item.product.name} {item.product.volume ? `(${item.product.volume})` : ''}</p>
+                    <p className="text-sm text-gray-600">Qté: {item.quantity}</p>
                   </div>
                   <span className="font-semibold text-orange-600">
                     {formatPrice(item.product.price * item.quantity)}

@@ -17,7 +17,7 @@ interface MobileNavigationProps {
   onShowInventory: () => void;
   onShowQuickSale: () => void;
   onShowReturns: () => void;
-  onShowStockAlerts: () => void;
+  onShowForecasting: () => void;
   onShowExcel: () => void;
 }
 
@@ -34,7 +34,7 @@ export function MobileNavigation({
   onShowInventory,
   onShowQuickSale,
   onShowReturns,
-  onShowStockAlerts,
+  onShowForecasting,
   onShowExcel
 }: MobileNavigationProps) {
   const { currentSession } = useAuth();
@@ -69,7 +69,7 @@ export function MobileNavigation({
     {
       icon: <TrendingUp size={24} />,
       label: 'Prévisions',
-      onClick: onShowStockAlerts,
+      onClick: onShowForecasting,
       color: 'text-orange-600',
       roles: ['gerant', 'promoteur']
     },

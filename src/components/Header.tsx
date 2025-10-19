@@ -39,7 +39,7 @@ interface HeaderProps {
   onShowDailyDashboard: () => void;
   onShowReturns: () => void;
   onShowQuickSale: () => void;
-  onShowStockAlerts?: () => void;
+  onShowForecasting?: () => void;
   onToggleMobileSidebar?: () => void;
   onShowAccounting?: () => void;
   onShowConsignment?: () => void;
@@ -55,7 +55,7 @@ export function Header({
   onShowDailyDashboard,
   onShowReturns,
   onShowQuickSale,
-  onShowStockAlerts = () => {},
+  onShowForecasting = () => {},
   onToggleMobileSidebar = () => {},
   onShowAccounting = () => {},
   onShowConsignment = () => {}

@@ -23,7 +23,7 @@ import { syncService } from './services/syncService';
 import { DailyDashboard } from './components/DailyDashboard';
 import { ReturnsSystem } from './components/ReturnsSystem';
 import { QuickSaleFlow } from './components/QuickSaleFlow';
-import { StockAlertsSystem } from './components/StockAlertsSystem';
+import { ForecastingSystem } from './components/ForecastingSystem';
 import { MobileNavigation } from './components/MobileNavigation';
 import { MobileSidebar } from './components/MobileSidebar';
 import { Accounting } from './components/Accounting';
@@ -61,7 +61,7 @@ function AppContent() {
   const currentProducts = getProductsByCategory(activeCategory);
   const [showReturns, setShowReturns] = useState(false);
   const [showQuickSale, setShowQuickSale] = useState(false);
-  const [showStockAlerts, setShowStockAlerts] = useState(false);
+  const [showForecasting, setShowForecasting] = useState(false);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [currentMenu, setCurrentMenu] = useState('home');
   const [showAccounting, setShowAccounting] = useState(false);
@@ -203,7 +203,7 @@ function AppContent() {
     setShowSettings(false);
     setShowDailyDashboard(false);
     setShowQuickSale(false);
-    setShowStockAlerts(false);
+    setShowForecasting(false);
     setShowServers(false);
     setShowAccounting(false);
     setShowReturns(false);
@@ -224,7 +224,7 @@ function AppContent() {
         setShowInventory(true);
         break;
       case 'stockAlerts':
-        setShowStockAlerts(true);
+        setShowForecasting(true);
         break;
       case 'returns':
         setShowReturns(true);
@@ -277,7 +277,7 @@ function AppContent() {
         onShowDailyDashboard={() => setShowDailyDashboard(true)}
         onShowReturns={() => setShowReturns(true)}
         onShowQuickSale={() => setShowQuickSale(true)}
-        onShowStockAlerts={() => setShowStockAlerts(true)}
+        onShowForecasting={() => setShowForecasting(true)}
         onShowAccounting={() => setShowAccounting(true)}
         onShowConsignment={() => setShowConsignment(true)}
         onToggleMobileSidebar={() => setShowMobileSidebar(!showMobileSidebar)}
@@ -321,9 +321,9 @@ function AppContent() {
       </motion.main>
 
       <RoleBasedComponent requiredPermission="canViewInventory">
-        <StockAlertsSystem 
-          isOpen={showStockAlerts} 
-          onClose={() => setShowStockAlerts(false)} />
+        <ForecastingSystem
+          isOpen={showForecasting}
+          onClose={() => setShowForecasting(false)} />
       </RoleBasedComponent>
 
       <DailyDashboard
@@ -351,7 +351,7 @@ function AppContent() {
         onRemoveItem={removeFromCart}
         onCheckout={checkout}
         onClear={clearCart}
-        hideFloatingButton={showQuickSale || showStockAlerts || showDailyDashboard || showSalesHistory || showInventory || showSettings || showServers || showReturns || showAccounting}
+        hideFloatingButton={showQuickSale || showForecasting || showDailyDashboard || showSalesHistory || showInventory || showSettings || showServers || showReturns || showAccounting}
       />
       
       <RoleBasedComponent requiredPermission="canManageUsers">
@@ -432,7 +432,7 @@ function AppContent() {
         onShowInventory={() => setShowInventory(true)}
         onShowQuickSale={() => setShowQuickSale(true)}
         onShowReturns={() => setShowReturns(true)}
-        onShowStockAlerts={() => setShowStockAlerts(true)}
+        onShowForecasting={() => setShowForecasting(true)}
         onShowExcel={() => setShowExcel(true)}
       />
     </motion.div>
