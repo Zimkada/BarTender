@@ -26,6 +26,7 @@ import { useSupplies } from '../hooks/useSupplies';
 import { getExpensesByCategory } from '../hooks/useExpenses';
 import { useSalaries } from '../hooks/useSalaries';
 import { useInitialBalance } from '../hooks/useInitialBalance';
+import { useCapitalContributions } from '../hooks/useCapitalContributions';
 import { useConsignments } from '../hooks/useConsignments';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
@@ -45,6 +46,7 @@ export function AccountingOverview() {
   const { supplies } = useSupplies();
   const salariesHook = useSalaries(currentBar?.id);
   const initialBalanceHook = useInitialBalance(currentBar?.id);
+  const capitalContributionsHook = useCapitalContributions(currentBar?.id);
   const { consignments } = useConsignments(currentBar?.id);
   const { returns, expenses, customExpenseCategories } = useAppContext(); // ✅ Use expenses from AppContext
 
@@ -274,7 +276,10 @@ export function AccountingOverview() {
     // ✅ 1. Start with initial balance (unique)
     const initialBalanceAmount = initialBalanceHook.getInitialBalanceAmount();
 
-    // 2. Sum all sales before period
+    // ✅ 2. Add capital contributions before period
+    const previousCapitalContributions = capitalContributionsHook.getTotalContributions(periodStart);
+
+    // 3. Sum all sales before period
     const previousSales = sales
       .filter(sale => {
         const saleDate = getSaleDate(sale);
@@ -304,9 +309,9 @@ export function AccountingOverview() {
     const previousRevenue = previousSales - previousReturns;
     const previousCosts = previousExpenses + previousSalaries;
 
-    // ✅ Total = Solde initial + (Revenus - Coûts) des périodes antérieures
-    return initialBalanceAmount + previousRevenue - previousCosts;
-  }, [viewMode, sales, returns, expenses, salariesHook.salaries, periodStart, initialBalanceHook.initialBalance]);
+    // ✅ Total = Solde initial + Apports capital + (Revenus - Coûts) des périodes antérieures
+    return initialBalanceAmount + previousCapitalContributions + previousRevenue - previousCosts;
+  }, [viewMode, sales, returns, expenses, salariesHook.salaries, periodStart, initialBalanceHook.initialBalance, capitalContributionsHook.contributions]);
 
   // Final balance (for Vue Analytique)
   const finalBalance = previousBalance + netProfit;
