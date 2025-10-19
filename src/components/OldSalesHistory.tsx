@@ -16,7 +16,6 @@ import {
   ArrowDown,
   Minus,
   RotateCcw,
-  Archive,
   //ChevronDown
 } from 'lucide-react';
 import {
@@ -43,8 +42,6 @@ import { useViewport } from '../hooks/useViewport';
 import { EnhancedButton } from './EnhancedButton';
 import { Sale, Category, Product, User, BarMember, Return } from '../types';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
-import { useConsignments } from '../hooks/useConsignments';
-import { getSaleDate } from '../utils/saleHelpers';
 
 interface EnhancedSalesHistoryProps {
   isOpen: boolean;
@@ -57,10 +54,9 @@ type ViewMode = 'list' | 'cards' | 'analytics';
 export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryProps) {
   const { sales, categories, products, returns, getReturnsBySale } = useAppContext();
   const { barMembers, currentBar } = useBarContext();
-  const { formatPrice } = useCurrencyFormatter();
+  const formatPrice = useCurrencyFormatter();
   const { currentSession, users } = useAuth();
   const { isMobile } = useViewport();
-  const { consignments, getActiveConsignments } = useConsignments();
 
   // Récupérer l'heure de clôture (défaut: 6h)
   const closeHour = currentBar?.settings?.businessDayCloseHour ?? 6;
@@ -81,21 +77,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
 
   // Filtrage des ventes
   const filteredSales = useMemo(() => {
-    const isServer = currentSession?.role === 'serveur';
-
-    // 1. Filtrage initial basé sur le rôle
-    const baseSales = sales.filter(sale => {
-      if (isServer) {
-        // Les serveurs voient toutes leurs ventes (pending, validated, rejected)
-        return sale.createdBy === currentSession.userId;
-      } else {
-        // Gérants/Promoteurs voient seulement les ventes validées dans l'historique
-        return sale.status === 'validated';
-      }
-    });
-
-    // 2. Appliquer les filtres de date et de recherche sur la liste pré-filtrée
-    let filtered = baseSales;
+    let filtered = sales;
 
     // Filtre par date avec logique journée commerciale
     const now = new Date();
@@ -103,36 +85,44 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
 
     switch (timeFilter) {
       case 'today': {
+        // Utiliser la journée commerciale actuelle
         const currentBusinessDay = getCurrentBusinessDay(closeHour);
-        filtered = baseSales.filter(sale => {
-          const saleDate = getSaleDate(sale);
+
+        filtered = sales.filter(sale => {
+          const saleDate = new Date(sale.date);
           const saleBusinessDay = getBusinessDay(saleDate, closeHour);
           return isSameDay(saleBusinessDay, currentBusinessDay);
         });
         break;
       }
       case 'week': {
-        const currentDay = today.getDay();
-        const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
+        // Semaine calendaire : Lundi-Dimanche
+        const currentDay = today.getDay(); // 0=Dimanche, 1=Lundi, ..., 6=Samedi
+        const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1; // Distance depuis lundi
         const monday = new Date(today);
         monday.setDate(monday.getDate() - daysFromMonday);
         monday.setHours(0, 0, 0, 0);
+
         const sunday = new Date(monday);
         sunday.setDate(monday.getDate() + 6);
         sunday.setHours(23, 59, 59, 999);
-        filtered = baseSales.filter(sale => {
-          const saleDate = getSaleDate(sale);
+
+        filtered = sales.filter(sale => {
+          const saleDate = new Date(sale.date);
           return saleDate >= monday && saleDate <= sunday;
         });
         break;
       }
       case 'month': {
+        // Mois calendaire : du 1er au dernier jour du mois
         const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
         firstDayOfMonth.setHours(0, 0, 0, 0);
+
         const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
         lastDayOfMonth.setHours(23, 59, 59, 999);
-        filtered = baseSales.filter(sale => {
-          const saleDate = getSaleDate(sale);
+
+        filtered = sales.filter(sale => {
+          const saleDate = new Date(sale.date);
           return saleDate >= firstDayOfMonth && saleDate <= lastDayOfMonth;
         });
         break;
@@ -141,8 +131,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
         const startDate = new Date(customDateRange.start);
         const endDate = new Date(customDateRange.end);
         endDate.setDate(endDate.getDate() + 1);
-        filtered = baseSales.filter(sale => {
-          const saleDate = getSaleDate(sale);
+        filtered = sales.filter(sale => {
+          const saleDate = new Date(sale.date);
           return saleDate >= startDate && saleDate < endDate;
         });
         break;
@@ -151,100 +141,65 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
 
     // Filtre par recherche
     if (searchTerm) {
-      filtered = filtered.filter(sale =>
+      filtered = filtered.filter(sale => 
         sale.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sale.items.some(item =>
+        sale.items.some(item => 
           item.product.name.toLowerCase().includes(searchTerm.toLowerCase())
         )
       );
     }
 
-    return filtered.sort((a, b) => getSaleDate(b).getTime() - getSaleDate(a).getTime());
-  }, [sales, timeFilter, searchTerm, customDateRange, currentSession, closeHour]);
-
-  // Filtrage des consignations par période
-  const filteredConsignments = useMemo(() => {
-    const isServer = currentSession?.role === 'serveur';
-
-    // 1. Filtrage initial basé sur le rôle
-    const baseConsignments = consignments.filter(consignment => {
-      if (isServer) {
-        return consignment.createdBy === currentSession.userId;
-      }
-      return true; // Gérants/Promoteurs voient toutes les consignations
-    });
-
-    // 2. Appliquer les filtres de date sur la liste pré-filtrée
-    let filtered = baseConsignments;
-
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    switch (timeFilter) {
-      case 'today': {
-        const currentBusinessDay = getCurrentBusinessDay(closeHour);
-        filtered = baseConsignments.filter(c => {
-          const consignDate = new Date(c.createdAt);
-          const consignBusinessDay = getBusinessDay(consignDate, closeHour);
-          return isSameDay(consignBusinessDay, currentBusinessDay);
-        });
-        break;
-      }
-      case 'week': {
-        const currentDay = today.getDay();
-        const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
-        const monday = new Date();
-        monday.setDate(monday.getDate() - daysFromMonday);
-        monday.setHours(0, 0, 0, 0);
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
-        sunday.setHours(23, 59, 59, 999);
-        filtered = baseConsignments.filter(c => {
-          const consignDate = new Date(c.createdAt);
-          return consignDate >= monday && consignDate <= sunday;
-        });
-        break;
-      }
-      case 'month': {
-        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-        firstDay.setHours(0, 0, 0, 0);
-        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        lastDay.setHours(23, 59, 59, 999);
-        filtered = baseConsignments.filter(c => {
-          const consignDate = new Date(c.createdAt);
-          return consignDate >= firstDay && consignDate <= lastDay;
-        });
-        break;
-      }
-      case 'custom': {
-        const startDate = new Date(customDateRange.start);
-        startDate.setHours(0, 0, 0, 0);
-        const endDate = new Date(customDateRange.end);
-        endDate.setDate(endDate.getDate() + 1);
-        filtered = baseConsignments.filter(c => {
-          const consignDate = new Date(c.createdAt);
-          return consignDate >= startDate && consignDate < endDate;
-        });
-        break;
-      }
+    // Filtre par utilisateur (serveurs voient leurs ventes uniquement)
+    if (currentSession?.role === 'serveur') {
+      filtered = filtered.filter(sale => sale.processedBy === currentSession.userId);
     }
 
-    return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [consignments, timeFilter, customDateRange, currentSession, closeHour]);
+    return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [sales, timeFilter, searchTerm, customDateRange, currentSession, closeHour]);
 
   // Statistiques
   const stats = useMemo(() => {
     // Total des ventes brutes
     const grossRevenue = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
 
-    // Déduire les retours remboursés des ventes affichées
-    const saleIds = new Set(filteredSales.map(s => s.id));
+    // Déduire les retours remboursés de la période filtrée
     const refundedReturns = returns
-      .filter(r => 
-        saleIds.has(r.saleId) &&
-        r.isRefunded && 
-        (r.status === 'approved' || r.status === 'restocked')
-      )
+      .filter(r => {
+        // Seulement les retours approuvés/restockés avec remboursement
+        if (r.status !== 'approved' && r.status !== 'restocked') return false;
+        if (!r.isRefunded) return false;
+
+        const returnDate = new Date(r.returnedAt);
+
+        // Filtrer selon la période active
+        if (timeFilter === 'today') {
+          const currentBusinessDay = getCurrentBusinessDay(closeHour);
+          const returnBusinessDay = getBusinessDay(returnDate, closeHour);
+          return isSameDay(returnBusinessDay, currentBusinessDay);
+        } else if (timeFilter === 'week') {
+          const currentDay = new Date().getDay();
+          const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
+          const monday = new Date();
+          monday.setDate(monday.getDate() - daysFromMonday);
+          monday.setHours(0, 0, 0, 0);
+          const sunday = new Date(monday);
+          sunday.setDate(monday.getDate() + 6);
+          sunday.setHours(23, 59, 59, 999);
+          return returnDate >= monday && returnDate <= sunday;
+        } else if (timeFilter === 'month') {
+          const today = new Date();
+          const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+          firstDay.setHours(0, 0, 0, 0);
+          const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+          lastDay.setHours(23, 59, 59, 999);
+          return returnDate >= firstDay && returnDate <= lastDay;
+        } else if (timeFilter === 'custom') {
+          const start = new Date(customDateRange.start);
+          const end = new Date(customDateRange.end);
+          return returnDate >= start && returnDate <= end;
+        }
+        return false;
+      })
       .reduce((sum, r) => sum + r.refundAmount, 0);
 
     // CA NET = Ventes brutes - Retours remboursés
@@ -319,12 +274,11 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
 
     // 1. Ajouter toutes les ventes
     filteredSales.forEach(sale => {
-      const user = safeUsers.find(u => u.id === sale.createdBy);
+      const user = safeUsers.find(u => u.id === sale.processedBy);
       const member = safeBarMembers.find(m => m.userId === user?.id);
       const vendeur = user?.name || 'Inconnu';
       const role = member?.role || user?.role || 'serveur';
 
-      const saleDate = getSaleDate(sale);
       sale.items.forEach(item => {
         const category = categories.find(c => c.id === item.product.categoryId);
         const cost = item.product.cost || 0;
@@ -333,8 +287,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
 
         exportData.push({
           'Type': 'Vente',
-          'Date': saleDate.toLocaleDateString('fr-FR'),
-          'Heure': saleDate.toLocaleTimeString('fr-FR'),
+          'Date': new Date(sale.date).toLocaleDateString('fr-FR'),
+          'Heure': new Date(sale.date).toLocaleTimeString('fr-FR'),
           'ID Transaction': sale.id.slice(-6),
           'Produit': item.product.name,
           'Catégorie': category?.name || 'Non classé',
@@ -346,17 +300,60 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
           'Bénéfice': benefice,
           'Utilisateur': vendeur,
           'Rôle': role,
-          'Statut': sale.status,
           'Devise': sale.currency
         });
       });
     });
 
-    // 2. Ajouter les retours associés aux ventes filtrées
-    const saleIds = new Set(filteredSales.map(s => s.id));
-    const relevantReturns = returns.filter(r => saleIds.has(r.saleId));
+    // 2. Ajouter tous les retours de la période filtrée
+    const filteredReturns = returns.filter(ret => {
+      const returnDate = new Date(ret.returnedAt);
 
-    relevantReturns.forEach(ret => {
+      // Appliquer les mêmes filtres de période que pour les ventes
+      switch (timeFilter) {
+        case 'today': {
+          const today = new Date();
+          const barToday = getCurrentBusinessDay(closeHour);
+          return returnDate >= barToday && returnDate <= today;
+        }
+        case 'week': {
+          // Semaine calendaire : Lundi-Dimanche
+          const today = new Date();
+          const currentDay = today.getDay();
+          const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
+          const monday = new Date(today);
+          monday.setDate(monday.getDate() - daysFromMonday);
+          monday.setHours(0, 0, 0, 0);
+
+          const sunday = new Date(monday);
+          sunday.setDate(monday.getDate() + 6);
+          sunday.setHours(23, 59, 59, 999);
+
+          return returnDate >= monday && returnDate <= sunday;
+        }
+        case 'month': {
+          // Mois calendaire : du 1er au dernier jour du mois
+          const today = new Date();
+          const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+          firstDayOfMonth.setHours(0, 0, 0, 0);
+
+          const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+          lastDayOfMonth.setHours(23, 59, 59, 999);
+
+          return returnDate >= firstDayOfMonth && returnDate <= lastDayOfMonth;
+        }
+        case 'custom': {
+          const startDate = new Date(customDateRange.start);
+          const endDate = new Date(customDateRange.end);
+          endDate.setDate(endDate.getDate() + 1);
+          return returnDate >= startDate && returnDate < endDate;
+        }
+        default:
+          return false;
+      }
+    });
+
+    filteredReturns.forEach(ret => {
       // Ignorer les retours sans produit
       if (!ret.product) {
         console.warn('⚠️ Retour sans produit ignoré:', ret.id);
@@ -389,60 +386,6 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
         'Utilisateur': utilisateur,
         'Rôle': role,
         'Devise': 'XOF'
-      });
-    });
-
-    // 3. Ajouter toutes les consignations de la période filtrée
-    filteredConsignments.forEach(consignment => {
-      const product = products.find(p => p.id === consignment.productId);
-      if (!product) {
-        console.warn('⚠️ Consignation sans produit ignoré:', consignment.id);
-        return;
-      }
-
-      const user = safeUsers.find(u => u.id === consignment.createdBy);
-      const member = safeBarMembers.find(m => m.userId === user?.id);
-      const utilisateur = user?.name || 'Inconnu';
-      const role = member?.role || user?.role || 'serveur';
-
-      const category = categories.find(c => c.id === product.categoryId);
-
-      // Déterminer le statut pour affichage
-      let statusLabel = '';
-      switch (consignment.status) {
-        case 'active':
-          statusLabel = 'Active';
-          break;
-        case 'claimed':
-          statusLabel = 'Récupérée';
-          break;
-        case 'expired':
-          statusLabel = 'Expirée';
-          break;
-        case 'forfeited':
-          statusLabel = 'Confisquée';
-          break;
-      }
-
-      exportData.push({
-        'Type': 'Consignation',
-        'Date': new Date(consignment.createdAt).toLocaleDateString('fr-FR'),
-        'Heure': new Date(consignment.createdAt).toLocaleTimeString('fr-FR'),
-        'ID Transaction': consignment.id.slice(-6),
-        'Produit': product.name,
-        'Catégorie': category?.name || 'Non classé',
-        'Volume': product.volume || '',
-        'Quantité': consignment.quantity,
-        'Prix unitaire': product.price,
-        'Coût unitaire': 0, // Les produits n'ont pas de coût dans le modèle actuel
-        'Total': consignment.totalAmount,
-        'Bénéfice': 0, // Consignations = pas de bénéfice immédiat
-        'Utilisateur': utilisateur,
-        'Rôle': role,
-        'Devise': 'XOF',
-        'Statut': statusLabel,
-        'Client': consignment.customerName || '',
-        'Expiration': new Date(consignment.expiresAt).toLocaleDateString('fr-FR')
       });
     });
 
@@ -517,6 +460,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
       URL.revokeObjectURL(url);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <AnimatePresence>
@@ -684,9 +629,6 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                           sale={sale}
                           formatPrice={formatPrice}
                           onViewDetails={() => setSelectedSale(sale)}
-                          returns={returns}
-                          getReturnsBySale={getReturnsBySale}
-                          users={safeUsers}
                         />
                       ))}
                     </div>
@@ -697,7 +639,6 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                       onViewDetails={setSelectedSale}
                       returns={returns}
                       getReturnsBySale={getReturnsBySale}
-                      users={safeUsers}
                     />
                   ) : (
                     <AnalyticsView
@@ -712,7 +653,6 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                       isMobile={isMobile}
                       returns={returns}
                       closeHour={closeHour}
-                      filteredConsignments={filteredConsignments}
                     />
                   )}
                 </div>
@@ -989,7 +929,6 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                                 onViewDetails={() => setSelectedSale(sale)}
                                 returns={returns}
                                 getReturnsBySale={getReturnsBySale}
-                                users={safeUsers}
                               />
                             ))}
                           </div>
@@ -1005,7 +944,6 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                             onViewDetails={setSelectedSale}
                             returns={returns}
                             getReturnsBySale={getReturnsBySale}
-                            users={safeUsers}
                           />
                         );
                       }
@@ -1024,7 +962,6 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                           isMobile={isMobile}
                           returns={returns}
                           closeHour={closeHour}
-                          filteredConsignments={filteredConsignments}
                         />
                       );
                     })()}
@@ -1055,15 +992,13 @@ function SaleCard({
   formatPrice,
   onViewDetails,
   returns,
-  getReturnsBySale,
-  users
+  getReturnsBySale
 }: {
   sale: Sale;
   formatPrice: (price: number) => string;
   onViewDetails: () => void;
   returns?: any[];
   getReturnsBySale?: (saleId: string) => any[];
-  users?: User[];
 }) {
   const itemCount = sale.items.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -1076,39 +1011,17 @@ function SaleCard({
   const netAmount = sale.total - refundedAmount;
   const hasReturns = saleReturns.length > 0;
 
-  // Badge de statut
-  const statusBadge = {
-    pending: { label: '⏳ En attente', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-    validated: { label: '✅ Validée', color: 'bg-green-100 text-green-700 border-green-200' },
-    rejected: { label: '❌ Rejetée', color: 'bg-red-100 text-red-700 border-red-200' }
-  }[sale.status];
-
-  // Infos utilisateurs
-  const creator = users?.find(u => u.id === sale.createdBy);
-  const validator = sale.validatedBy ? users?.find(u => u.id === sale.validatedBy) : null;
-
   return (
     <motion.div
       whileHover={{ y: -2 }}
       className="bg-white rounded-xl p-4 border border-orange-100 shadow-sm hover:shadow-md transition-all"
     >
       <div className="flex items-center justify-between mb-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <h4 className="font-semibold text-gray-800">Vente #{sale.id.slice(-6)}</h4>
-            <span className={`text-xs px-2 py-0.5 rounded-full border ${statusBadge.color}`}>
-              {statusBadge.label}
-            </span>
-          </div>
+        <div>
+          <h4 className="font-semibold text-gray-800">Vente #{sale.id.slice(-6)}</h4>
           <p className="text-sm text-gray-600">
-            {getSaleDate(sale).toLocaleDateString('fr-FR')} • {getSaleDate(sale).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+            {new Date(sale.date).toLocaleDateString('fr-FR')} • {new Date(sale.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
           </p>
-          {creator && (
-            <p className="text-xs text-gray-500 mt-1">
-              Par: {creator.name}
-              {validator && ` • Validée par: ${validator.name}`}
-            </p>
-          )}
         </div>
         <div className="text-right">
           <span className="text-lg font-bold text-orange-600">{formatPrice(sale.total)}</span>
@@ -1168,25 +1081,21 @@ function SalesList({
   formatPrice,
   onViewDetails,
   returns,
-  getReturnsBySale,
-  users
+  getReturnsBySale
 }: {
   sales: Sale[];
   formatPrice: (price: number) => string;
   onViewDetails: (sale: Sale) => void;
   returns: any[];
   getReturnsBySale: (saleId: string) => any[];
-  users?: User[];
 }) {
   return (
     <div className="bg-white rounded-xl border border-orange-100 overflow-x-auto">
-      <table className="w-full min-w-[900px]">
+      <table className="w-full min-w-[700px]">
         <thead className="bg-orange-50">
           <tr>
             <th className="text-left p-4 font-medium text-gray-700">ID</th>
-            <th className="text-left p-4 font-medium text-gray-700">Statut</th>
             <th className="text-left p-4 font-medium text-gray-700">Date</th>
-            <th className="text-left p-4 font-medium text-gray-700">Vendeur</th>
             <th className="text-left p-4 font-medium text-gray-700">Articles</th>
             <th className="text-left p-4 font-medium text-gray-700">Total</th>
             <th className="text-left p-4 font-medium text-gray-700">Retours</th>
@@ -1207,17 +1116,6 @@ function SalesList({
             const netAmount = sale.total - refundedAmount;
             const hasReturns = saleReturns.length > 0;
 
-            // Badge de statut
-            const statusBadge = {
-              pending: { label: '⏳ En attente', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-              validated: { label: '✅ Validée', color: 'bg-green-100 text-green-700 border-green-200' },
-              rejected: { label: '❌ Rejetée', color: 'bg-red-100 text-red-700 border-red-200' }
-            }[sale.status];
-
-            // Infos utilisateurs
-            const creator = users?.find(u => u.id === sale.createdBy);
-            const validator = sale.validatedBy ? users?.find(u => u.id === sale.validatedBy) : null;
-
             return (
               <tr key={sale.id} className="border-t border-orange-100 hover:bg-orange-25">
                 <td className="p-4">
@@ -1231,22 +1129,9 @@ function SalesList({
                   </div>
                 </td>
                 <td className="p-4">
-                  <span className={`text-xs px-2 py-1 rounded-full border ${statusBadge.color}`}>
-                    {statusBadge.label}
-                  </span>
-                </td>
-                <td className="p-4">
                   <div>
-                    <p className="text-sm">{getSaleDate(sale).toLocaleDateString('fr-FR')}</p>
-                    <p className="text-xs text-gray-600">{getSaleDate(sale).toLocaleTimeString('fr-FR')}</p>
-                  </div>
-                </td>
-                <td className="p-4">
-                  <div>
-                    <p className="text-sm font-medium">{creator?.name || 'Inconnu'}</p>
-                    {validator && (
-                      <p className="text-xs text-gray-500">Val.: {validator.name}</p>
-                    )}
+                    <p className="text-sm">{new Date(sale.date).toLocaleDateString('fr-FR')}</p>
+                    <p className="text-xs text-gray-600">{new Date(sale.date).toLocaleTimeString('fr-FR')}</p>
                   </div>
                 </td>
                 <td className="p-4">{itemCount} articles</td>
@@ -1312,8 +1197,7 @@ function AnalyticsView({
   timeFilter,
   isMobile,
   returns,
-  closeHour,
-  filteredConsignments
+  closeHour
 }: {
   sales: Sale[];
   stats: Stats;
@@ -1326,7 +1210,6 @@ function AnalyticsView({
   isMobile: boolean;
   returns: Return[];
   closeHour: number;
-  filteredConsignments: any[];
 }) {
   // Protection: s'assurer que tous les tableaux sont définis
   const safeUsers = users || [];
@@ -1400,47 +1283,13 @@ function AnalyticsView({
     };
   }, [sales, stats, previousPeriodSales]);
 
-  // Statistiques consignations
-  const consignmentStats = useMemo(() => {
-    const activeConsignments = filteredConsignments.filter(c => c.status === 'active');
-    const claimedConsignments = filteredConsignments.filter(c => c.status === 'claimed');
-    const expiredConsignments = filteredConsignments.filter(c => c.status === 'expired');
-    const forfeitedConsignments = filteredConsignments.filter(c => c.status === 'forfeited');
-
-    const activeValue = activeConsignments.reduce((sum, c) => sum + c.totalAmount, 0);
-    const claimedValue = claimedConsignments.reduce((sum, c) => sum + c.totalAmount, 0);
-    const totalValue = filteredConsignments.reduce((sum, c) => sum + c.totalAmount, 0);
-
-    const totalQuantity = filteredConsignments.reduce((sum, c) => sum + c.quantity, 0);
-    const claimedQuantity = claimedConsignments.reduce((sum, c) => sum + c.quantity, 0);
-    const claimRate = filteredConsignments.length > 0
-      ? (claimedConsignments.length / filteredConsignments.length) * 100
-      : 0;
-
-    return {
-      total: filteredConsignments.length,
-      active: activeConsignments.length,
-      claimed: claimedConsignments.length,
-      expired: expiredConsignments.length,
-      forfeited: forfeitedConsignments.length,
-      activeValue,
-      claimedValue,
-      totalValue,
-      totalQuantity,
-      claimedQuantity,
-      claimRate
-    };
-  }, [filteredConsignments]);
-
   // Données pour graphique d'évolution - granularité adaptative
   const evolutionChartData = useMemo(() => {
     const grouped: Record<string, { label: string; revenue: number; sales: number; timestamp: number }> = {};
 
     sales.forEach(sale => {
-      if (sale.status !== 'validated') return;
-
       let label: string;
-      const saleDate = getSaleDate(sale);
+      const saleDate = new Date(sale.date);
 
       if (timeFilter === 'today') {
         // Mode Aujourd'hui → Par heure (groupement)
@@ -1526,13 +1375,13 @@ function AnalyticsView({
       nbRetours: returns.length,
       nbUsers: safeUsers.length,
       nbBarMembers: safeBarMembers.length,
-      ventes: sales.map(s => ({ id: s.id.slice(-6), createdBy: s.createdBy, assignedTo: s.assignedTo }))
+      ventes: sales.map(s => ({ id: s.id.slice(-6), processedBy: s.processedBy, assignedTo: s.assignedTo }))
     });
 
     // 1. Ajouter les ventes
     sales.forEach(sale => {
       // Mode simplifié : utiliser assignedTo si présent
-      // Mode complet : utiliser createdBy (userId)
+      // Mode complet : utiliser processedBy (userId)
       if (sale.assignedTo) {
         // Mode simplifié - assignedTo contient le nom du serveur
         const serverName = sale.assignedTo;
@@ -1558,10 +1407,10 @@ function AnalyticsView({
         userStats[serverName].sales += 1;
         userStats[serverName].items += sale.items.reduce((sum, item) => sum + item.quantity, 0);
       } else {
-        // Mode complet - utiliser createdBy (userId)
-        const user = safeUsers.find(u => u.id === sale.createdBy);
+        // Mode complet - utiliser processedBy (userId)
+        const user = safeUsers.find(u => u.id === sale.processedBy);
         if (!user) {
-          console.log('⚠️ Utilisateur non trouvé pour vente:', sale.id.slice(-6), 'createdBy:', sale.createdBy);
+          console.log('⚠️ Utilisateur non trouvé pour vente:', sale.id.slice(-6), 'processedBy:', sale.processedBy);
           return;
         }
 
@@ -1627,7 +1476,7 @@ function AnalyticsView({
       const originalSale = sales.find(s => s.id === ret.saleId);
       if (!originalSale) return;
 
-      const identifier = originalSale.assignedTo || originalSale.createdBy;
+      const identifier = originalSale.assignedTo || originalSale.processedBy;
       if (userStats[identifier]) {
         userStats[identifier].revenue -= ret.refundAmount;
       }
@@ -1848,64 +1697,6 @@ function AnalyticsView({
         </div>
       </div>
 
-      {/* Section Consignations */}
-      {consignmentStats.total > 0 && (
-        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-200">
-          <div className="flex items-center gap-2 mb-3">
-            <Archive className="w-5 h-5 text-indigo-600" />
-            <h4 className="text-sm font-semibold text-gray-800">Consignations</h4>
-          </div>
-
-          {/* Stats grid */}
-          <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-5'} gap-3 mb-3`}>
-            <div className="bg-white rounded-lg p-3 border border-indigo-100">
-              <p className="text-xs text-gray-600 mb-1">Total</p>
-              <p className="text-lg font-bold text-indigo-900">{consignmentStats.total}</p>
-              <p className="text-xs text-gray-500 mt-1">{formatPrice(consignmentStats.totalValue)}</p>
-            </div>
-
-            <div className="bg-white rounded-lg p-3 border border-blue-100">
-              <p className="text-xs text-gray-600 mb-1">Actives</p>
-              <p className="text-lg font-bold text-blue-900">{consignmentStats.active}</p>
-              <p className="text-xs text-gray-500 mt-1">{formatPrice(consignmentStats.activeValue)}</p>
-            </div>
-
-            <div className="bg-white rounded-lg p-3 border border-green-100">
-              <p className="text-xs text-gray-600 mb-1">Récupérées</p>
-              <p className="text-lg font-bold text-green-900">{consignmentStats.claimed}</p>
-              <p className="text-xs text-gray-500 mt-1">{formatPrice(consignmentStats.claimedValue)}</p>
-            </div>
-
-            <div className="bg-white rounded-lg p-3 border border-orange-100">
-              <p className="text-xs text-gray-600 mb-1">Expirées</p>
-              <p className="text-lg font-bold text-orange-900">{consignmentStats.expired}</p>
-            </div>
-
-            <div className="bg-white rounded-lg p-3 border border-red-100">
-              <p className="text-xs text-gray-600 mb-1">Confisquées</p>
-              <p className="text-lg font-bold text-red-900">{consignmentStats.forfeited}</p>
-            </div>
-          </div>
-
-          {/* Taux de récupération */}
-          <div className="bg-white rounded-lg p-3 border border-indigo-100">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-gray-700">Taux de récupération</span>
-              <span className="text-sm font-bold text-indigo-900">{consignmentStats.claimRate.toFixed(1)}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${Math.min(consignmentStats.claimRate, 100)}%` }}
-              />
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              {consignmentStats.claimedQuantity} articles sur {consignmentStats.totalQuantity} récupérés
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Performance équipe */}
       <div className="bg-white rounded-xl p-4 border border-orange-100">
         <div className="flex items-center justify-between mb-3">
@@ -2039,7 +1830,7 @@ function SaleDetailModal({
         <div className="p-6 space-y-4">
           <div>
             <p className="text-sm text-gray-600">Date et heure</p>
-            <p className="font-medium">{getSaleDate(sale).toLocaleString('fr-FR')}</p>
+            <p className="font-medium">{new Date(sale.date).toLocaleString('fr-FR')}</p>
           </div>
 
           <div>

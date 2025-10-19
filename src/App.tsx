@@ -35,13 +35,16 @@ function AppContent() {
   const {
     categories,
     addCategory,
+    updateCategory,
+    deleteCategory,
     addProduct, 
     getProductsByCategory,
     addSale,
+    decreaseStock,
     settings 
   } = useAppContext();
   
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, currentSession } = useAuth();
   const { showNotification } = useNotifications();
   const [showDailyDashboard, setShowDailyDashboard] = useState(false);
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id || '');
@@ -49,6 +52,7 @@ function AppContent() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [showSalesHistory, setShowSalesHistory] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -63,6 +67,38 @@ function AppContent() {
   const [showAccounting, setShowAccounting] = useState(false);
   const [showConsignment, setShowConsignment] = useState(false);
 
+  useEffect(() => {
+    if (categories.length > 0 && !activeCategory) {
+      setActiveCategory(categories[0].id);
+    }
+  }, [categories, activeCategory]);
+
+  const handleEditCategory = (category: Category) => {
+    setEditingCategory(category);
+  };
+
+  const handleDeleteCategory = (categoryId: string) => {
+    deleteCategory(categoryId);
+  };
+
+  const handleCategoryModalClose = () => {
+    setShowCategoryModal(false);
+    setEditingCategory(null);
+  };
+
+  const handleCategoryModalSave = (categoryData: Omit<Category, 'id' | 'createdAt' | 'barId'>) => {
+    if (editingCategory) {
+      updateCategory(editingCategory.id, categoryData);
+      showNotification('success', `Catégorie "${categoryData.name}" modifiée.`);
+    } else {
+      const newCategory = addCategory(categoryData);
+      if (newCategory) {
+        setActiveCategory(newCategory.id);
+        showNotification('success', `Catégorie "${categoryData.name}" créée.`);
+      }
+    }
+    handleCategoryModalClose();
+  };
 
   useEffect(() => {
     // Démarrer la sync automatique
@@ -116,21 +152,43 @@ function AppContent() {
   };
 
   const checkout = (assignedTo?: string) => {
-    if (cart.length === 0) return;
+    if (cart.length === 0 || !currentSession) return;
 
     const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+    const isServerRole = currentSession.role === 'serveur';
 
     try {
-      addSale({
-        items: cart,
-        total,
-        currency: settings.currency,
-        assignedTo,
-      });
+      if (isServerRole) {
+        addSale({
+          items: cart,
+          total,
+          currency: settings.currency,
+          status: 'pending',
+          createdBy: currentSession.userId,
+          createdAt: new Date(),
+          assignedTo,
+        });
+      } else {
+        addSale({
+          items: cart,
+          total,
+          currency: settings.currency,
+          status: 'validated',
+          createdBy: currentSession.userId,
+          validatedBy: currentSession.userId,
+          createdAt: new Date(),
+          validatedAt: new Date(),
+          assignedTo,
+        });
+
+        cart.forEach(item => {
+          decreaseStock(item.product.id, item.quantity);
+        });
+      }
 
       clearCart();
       setIsCartOpen(false);
-      showNotification('success', 'Vente enregistrée avec succès !');
+      // La notification est gérée dans AppContext, pas besoin d'une autre ici.
     } catch (error) {
       showNotification('error', error instanceof Error ? error.message : 'Erreur lors de la vente');
     }
@@ -242,6 +300,8 @@ function AppContent() {
             }
           }}
           onAddCategory={() => setShowCategoryModal(true)}
+          onEditCategory={handleEditCategory}
+          onDeleteCategory={handleDeleteCategory}
         />
         
         <AnimatePresence mode="wait">
@@ -316,20 +376,14 @@ function AppContent() {
 
       <RoleBasedComponent requiredPermission="canAddProducts">
         <CategoryModal
-          isOpen={showCategoryModal}
-          onClose={() => setShowCategoryModal(false)}
-          onSave={(categoryData) => {
-            const newCategory = addCategory(categoryData);
-            if (newCategory) {
-              setActiveCategory(newCategory.id);
-              setShowCategoryModal(false);
-              showNotification('success', `Catégorie "${categoryData.name}" créée`);
-            }
-          }}
+          isOpen={showCategoryModal || !!editingCategory}
+          onClose={handleCategoryModalClose}
+          onSave={handleCategoryModalSave}
+          category={editingCategory || undefined}
         />
       </RoleBasedComponent>
 
-      <RoleBasedComponent requiredPermission="canViewAllSales">
+      <RoleBasedComponent requiredPermission="canViewOwnSales">
         <EnhancedSalesHistory
           isOpen={showSalesHistory}
           onClose={() => setShowSalesHistory(false)}

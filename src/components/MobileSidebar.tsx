@@ -65,8 +65,7 @@ export function MobileSidebar({ isOpen, onClose, onNavigate, currentMenu }: Mobi
     },
     {
       id: 'dailyDashboard',
-      label: 'Point du jour',
-      icon: <Calendar size={20} />,
+              label: 'Tableau de bord',      icon: <Calendar size={20} />,
       roles: ['promoteur', 'gerant', 'serveur'],
       action: () => {
         onNavigate('dailyDashboard');

@@ -13,7 +13,7 @@ interface ProductImportProps {
 }
 
 export function ProductImport({ isOpen, onClose }: ProductImportProps) {
-  const { addProduct, categories } = useAppContext();
+  const { addProduct, categories, addCategory } = useAppContext();
   const { showSuccess, showError } = useFeedback();
   const [importedProducts, setImportedProducts] = useState<any[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -50,8 +50,6 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
   });
 
   const handleImport = () => {
-    console.log('🔵 handleImport appelé', { productsCount: importedProducts.length });
-
     if (importedProducts.length === 0) {
       showError('Aucun produit à importer.');
       return;
@@ -59,65 +57,76 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
 
     let successCount = 0;
     let errorCount = 0;
+    const newCategoryNames = new Set<string>();
+    let localCategories = [...categories]; // Copie locale pour la session d'import
 
     importedProducts.forEach((product, index) => {
-      console.log('🔷 Traitement produit ligne', index + 2, ':', product);
-
       try {
-        // Normaliser les clés (gérer variations de casse et espaces)
         const normalizedProduct: any = {};
         Object.keys(product).forEach(key => {
-          const normalizedKey = key.toLowerCase().trim();
-          normalizedProduct[normalizedKey] = product[key];
+          normalizedProduct[key.toLowerCase().trim()] = product[key];
         });
 
-        // Extraire les valeurs avec différentes variations possibles
         const nom = normalizedProduct['nom'] || normalizedProduct['name'] || normalizedProduct['produit'];
         const prix = normalizedProduct['prix'] || normalizedProduct['price'];
         const stock = normalizedProduct['stock'] || normalizedProduct['quantite'] || normalizedProduct['quantity'];
         const volume = normalizedProduct['volume'] || normalizedProduct['taille'] || '';
-        const categorie = normalizedProduct['categorie'] || normalizedProduct['category'] || normalizedProduct['catégorie'];
+        const categoryName = String(normalizedProduct['categorie'] || normalizedProduct['category'] || normalizedProduct['catégorie'] || '').trim();
         const seuilAlerte = normalizedProduct['seuil alerte'] || normalizedProduct['seuil'] || normalizedProduct['alert'] || 10;
 
-        // Ignorer les lignes complètement vides
-        const isEmptyRow = !nom && !prix && !stock;
-        if (isEmptyRow) {
-          console.log('⚠️ Ligne vide ignorée:', index + 2);
-          return; // Skip empty rows
+        if (!nom && !prix && !stock) {
+          return; // Ignorer lignes vides
         }
 
-        // Validation stricte uniquement si la ligne contient des données
         if (!nom || prix === undefined || prix === null || stock === undefined || stock === null) {
-          console.error('❌ Ligne invalide:', { ligne: index + 2, nom, prix, stock, produitBrut: product });
-          throw new Error(`Ligne ${index + 2}: Nom, Prix, et Stock sont requis. (Trouvé: Nom="${nom}", Prix="${prix}", Stock="${stock}")`);
+          throw new Error(`Ligne ${index + 2}: Nom, Prix, et Stock sont requis.`);
         }
 
-        const category = categories.find(c => c.name.toLowerCase() === String(categorie || '').toLowerCase());
+        let categoryId = '';
+        if (categoryName) {
+          let category = localCategories.find(c => c.name.toLowerCase() === categoryName.toLowerCase());
+          
+          if (category) {
+            categoryId = category.id;
+          } else {
+            const newCategory = addCategory({ name: categoryName, color: '#888888' }); // Couleur par défaut pour les nouvelles catégories
+            if (newCategory) {
+              categoryId = newCategory.id;
+              localCategories.push(newCategory); // Ajouter à la liste locale pour les prochaines itérations
+              newCategoryNames.add(newCategory.name);
+            }
+          }
+        }
+
+        if (!categoryId) {
+          categoryId = localCategories[0]?.id || ''; // Fallback si aucune catégorie n'est trouvée ou créée
+        }
 
         const productData = {
           name: String(nom),
           volume: String(volume),
           price: Number(prix),
           stock: Number(stock),
-          categoryId: category ? category.id : categories[0]?.id || '',
+          categoryId: categoryId,
           alertThreshold: Number(seuilAlerte),
         };
 
-        console.log('✅ Ajout produit:', productData);
         addProduct(productData);
         successCount++;
       } catch (e: any) {
-        console.error('❌ Erreur produit ligne', index + 2, ':', e);
         showError(e.message);
         errorCount++;
       }
     });
 
-    console.log('📊 Résultat import:', { successCount, errorCount });
-
     if (successCount > 0) {
-      showSuccess(`${successCount} produit(s) importé(s) avec succès.`);
+      let successMessage = `${successCount} produit(s) importé(s) avec succès.`;
+      if (newCategoryNames.size > 0) {
+        successMessage += ` Nouvelles catégories créées : ${[...newCategoryNames].join(', ')}.`;
+      }
+      showSuccess(successMessage);
     }
+    
     if (errorCount === 0) {
       onClose();
     }
@@ -172,7 +181,7 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
                   <p className="mt-2 text-xs">
                     ℹ️ <strong>Notes:</strong> La première ligne doit être l'en-tête.
                     Les lignes vides sont ignorées automatiquement.
-                    Si la catégorie n'existe pas, le produit sera ajouté à la première catégorie disponible.
+                    Si la catégorie n'existe pas, elle sera automatiquement créée avec une couleur par défaut.
                   </p>
                 </div>
               </div>

@@ -19,6 +19,7 @@ import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 import { EnhancedButton } from './EnhancedButton';
 import { Product} from '../types';
+import { getSaleDate } from '../utils/saleHelpers';
 
 interface StockAlert {
   id: string;
@@ -99,9 +100,10 @@ export function StockAlertsSystem({ isOpen, onClose }: StockAlertsSystemProps) {
   const calculatePredictedRunout = (product: Product): Date | undefined => {
     const last30Days = new Date();
     last30Days.setDate(last30Days.getDate() - 30);
-    
-    const recentSales = sales.filter(sale => 
-      new Date(sale.date) >= last30Days &&
+
+    const recentSales = sales.filter(sale =>
+      sale.status === 'validated' &&
+      getSaleDate(sale) >= last30Days &&
       sale.items.some(item => item.product.id === product.id)
     );
 
@@ -126,9 +128,10 @@ export function StockAlertsSystem({ isOpen, onClose }: StockAlertsSystemProps) {
   const calculateSuggestedOrder = (product: Product): number => {
     const last30Days = new Date();
     last30Days.setDate(last30Days.getDate() - 30);
-    
-    const recentSales = sales.filter(sale => 
-      new Date(sale.date) >= last30Days &&
+
+    const recentSales = sales.filter(sale =>
+      sale.status === 'validated' &&
+      getSaleDate(sale) >= last30Days &&
       sale.items.some(item => item.product.id === product.id)
     );
 

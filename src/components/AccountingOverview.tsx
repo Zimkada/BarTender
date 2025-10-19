@@ -7,6 +7,10 @@ import {
   DollarSign,
   Calendar,
   Receipt,
+  Users,
+  Zap,
+  ChevronDown,
+  ChevronUp,
   ChevronLeft,
   ChevronRight,
   CalendarDays,
@@ -25,6 +29,7 @@ import { useInitialBalance } from '../hooks/useInitialBalance';
 import { useConsignments } from '../hooks/useConsignments';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
+import { getSaleDate } from '../utils/saleHelpers';
 
 type PeriodType = 'week' | 'month' | 'custom';
 
@@ -47,6 +52,7 @@ export function AccountingOverview() {
   const [periodType, setPeriodType] = useState<PeriodType>('month');
   const [periodOffset, setPeriodOffset] = useState(0); // 0 = current, -1 = previous, +1 = next
   const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
+  const [expensesExpanded, setExpensesExpanded] = useState(false);
   const [viewMode, setViewMode] = useState<'tresorerie' | 'analytique'>('tresorerie');
   const [showInitialBalanceModal, setShowInitialBalanceModal] = useState(false);
   const [initialBalanceForm, setInitialBalanceForm] = useState({
@@ -54,6 +60,8 @@ export function AccountingOverview() {
     date: new Date().toISOString().split('T')[0],
     description: 'Solde initial',
   });
+
+  if (!currentBar || !currentSession) return null;
 
   // Calculate period range based on type and offset
   const { start: periodStart, end: periodEnd } = useMemo(() => {
@@ -107,8 +115,8 @@ export function AccountingOverview() {
   const salesRevenue = useMemo(() => {
     return sales
       .filter(sale => {
-        const saleDate = new Date(sale.date);
-        return saleDate >= periodStart && saleDate <= periodEnd;
+        const saleDate = getSaleDate(sale);
+        return sale.status === 'validated' && saleDate >= periodStart && saleDate <= periodEnd;
       })
       .reduce((sum, sale) => sum + sale.total, 0);
   }, [sales, periodStart, periodEnd]);
@@ -128,6 +136,16 @@ export function AccountingOverview() {
       .reduce((sum, ret) => sum + ret.refundAmount, 0);
   }, [returns, periodStart, periodEnd]);
 
+  // Calculate expenses (ALL categories including 'supply')
+  const expensesCosts = useMemo(() => {
+    return expensesHook.expenses
+      .filter(exp => {
+        const expDate = new Date(exp.date);
+        return expDate >= periodStart && expDate <= periodEnd;
+      })
+      .reduce((sum, exp) => sum + exp.amount, 0);
+  }, [expensesHook.expenses, periodStart, periodEnd]);
+
   // Get expenses breakdown by category (for detailed view)
   const expensesByCategory = useMemo(() => {
     return expensesHook.getExpensesByCategory(periodStart, periodEnd);
@@ -135,6 +153,8 @@ export function AccountingOverview() {
 
   // Calculate salaries
   const salariesCosts = salariesHook.getTotalSalaries(periodStart, periodEnd);
+
+  const totalCosts = expensesCosts + salariesCosts;
 
   // CALCULATIONS - Period
   const totalRevenue = salesRevenue - returnsRefunds; // CA NET = Ventes - Retours remboursés
@@ -178,8 +198,8 @@ export function AccountingOverview() {
 
     const prevSalesRevenue = sales
       .filter(sale => {
-        const saleDate = new Date(sale.date);
-        return saleDate >= prevPeriodStart && saleDate <= prevPeriodEnd;
+        const saleDate = getSaleDate(sale);
+        return sale.status === 'validated' && saleDate >= prevPeriodStart && saleDate <= prevPeriodEnd;
       })
       .reduce((sum, sale) => sum + sale.total, 0);
 
@@ -244,7 +264,7 @@ export function AccountingOverview() {
     }).reverse();
 
     return { revenueGrowth, revenuePerServer, investmentRate, chartData };
-  }, [totalRevenue, investments, sales, returns, expensesHook.expenses, salariesHook.salaries, periodStart, currentBar]);
+  }, [totalRevenue, investments, operatingExpenses, sales, returns, expensesHook.expenses, salariesHook.salaries, periodStart, currentBar]);
 
 
   // CALCULATIONS - Cumulative Balance (for Vue Analytique)
@@ -257,7 +277,10 @@ export function AccountingOverview() {
 
     // 2. Sum all sales before period
     const previousSales = sales
-      .filter(sale => new Date(sale.date) < periodStart)
+      .filter(sale => {
+        const saleDate = getSaleDate(sale);
+        return sale.status === 'validated' && saleDate < periodStart;
+      })
       .reduce((sum, sale) => sum + sale.total, 0);
 
     // 3. Sum all returns before period
@@ -374,8 +397,8 @@ export function AccountingOverview() {
 
     // Filtrer les données par période pour l'export
     const filteredSales = sales.filter(sale => {
-      const saleDate = new Date(sale.date);
-      return saleDate >= periodStart && saleDate <= periodEnd;
+      const saleDate = getSaleDate(sale);
+      return sale.status === 'validated' && saleDate >= periodStart && saleDate <= periodEnd;
     });
 
     const filteredReturns = returns.filter(ret => {
@@ -436,19 +459,22 @@ export function AccountingOverview() {
     XLSX.utils.book_append_sheet(workbook, summarySheet, 'Résumé');
 
     // 2. ONGLET VENTES
-    const salesData = filteredSales.flatMap(sale =>
-      sale.items.map(item => ({
-        Date: new Date(sale.date).toLocaleDateString('fr-FR'),
-        Heure: new Date(sale.date).toLocaleTimeString('fr-FR'),
+    const salesData = filteredSales.flatMap(sale => {
+      const saleDate = getSaleDate(sale);
+      return sale.items.map(item => ({
+        Date: saleDate.toLocaleDateString('fr-FR'),
+        Heure: saleDate.toLocaleTimeString('fr-FR'),
         'ID Vente': sale.id.slice(0, 8),
         Produit: item.product.name,
         Volume: item.product.volume,
         Quantité: item.quantity,
         'Prix unitaire': item.product.price,
         Total: item.product.price * item.quantity,
-        'Traité par': sale.processedBy,
-        'Assigné à': sale.assignedTo || sale.processedBy,
-      }))
+        'Créé par': sale.createdBy,
+        'Validé par': sale.validatedBy || 'N/A',
+        'Statut': sale.status,
+      }));
+    }
     );
     if (salesData.length > 0) {
       const salesSheet = XLSX.utils.json_to_sheet(salesData);
@@ -583,9 +609,6 @@ export function AccountingOverview() {
     const fileName = `Comptabilite_${currentBar?.name.replace(/\s+/g, '_')}_${periodLabel.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
     XLSX.writeFile(workbook, fileName);
   };
-
-  // Guard clause AFTER all hooks
-  if (!currentBar || !currentSession) return null;
 
   return (
     <div className={`${isMobile ? 'p-3 space-y-3' : 'p-6 space-y-6'}`}>

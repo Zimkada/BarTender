@@ -13,7 +13,7 @@ interface ServerInterfaceProps {
 }
 
 export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
-  const { categories, getProductsByCategory, addOrder, settings } = useAppContext();
+  const { categories, getProductsByCategory, addSale, settings, decreaseStock } = useAppContext();
   const { currentSession } = useAuth();
 
 
@@ -73,24 +73,52 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
   };
 
   const launchOrder = () => {
-    if (cart.length === 0) return;
+    if (cart.length === 0 || !currentSession) return;
 
     const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-    
-    const orderItems: CartItem[] = cart.map(item => ({
-      product: item.product,
-      quantity: item.quantity,
-    }));
 
-    addOrder({
-      items: orderItems,
-      total,
-      currency: settings.currency,
-      tableNumber: tableNumber || undefined,
-    });
+    // Vérifier le rôle pour déterminer le statut de la vente
+    const isServerRole = currentSession.role === 'serveur';
+    const isManagerOrPromoter = currentSession.role === 'gerant' || currentSession.role === 'promoteur';
+
+    if (isServerRole) {
+      // Pour un SERVEUR, on crée une vente "en attente" de validation
+      addSale({
+        items: cart,
+        total,
+        currency: settings.currency,
+        status: 'pending',
+        createdBy: currentSession.userId,
+        createdAt: new Date(),
+        tableNumber: tableNumber || undefined,
+      });
+    } else if (isManagerOrPromoter) {
+      // Pour un GERANT ou PROMOTEUR, la vente est auto-validée
+      addSale({
+        items: cart,
+        total,
+        currency: settings.currency,
+        status: 'validated',
+        createdBy: currentSession.userId,
+        validatedBy: currentSession.userId,
+        createdAt: new Date(),
+        validatedAt: new Date(),
+        tableNumber: tableNumber || undefined,
+      });
+
+      // On diminue le stock car la vente est validée
+      cart.forEach(item => {
+        decreaseStock(item.product.id, item.quantity);
+      });
+    } else {
+      // Rôle non reconnu - ne devrait pas arriver
+      console.error('Rôle utilisateur non reconnu:', currentSession.role);
+      alert('Erreur: Rôle utilisateur non valide');
+      return;
+    }
 
     clearCart();
-    alert('Commande lancée avec succès !');
+    // La notification est maintenant gérée par AppContext
   };
 
   return (

@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
 import { RoleBasedComponent } from './RoleBasedComponent';
+import { getSaleDate } from '../utils/saleHelpers';
 
 
 interface ExcelImportExportProps {
@@ -62,18 +63,22 @@ export function ExcelImportExport({ isOpen, onClose }: ExcelImportExportProps) {
           break;
           
         case 'sales':
-          data = sales.flatMap(sale => 
-            sale.items.map(item => ({
-              'Date': new Date(sale.date).toLocaleDateString('fr-FR'),
-              'Heure': new Date(sale.date).toLocaleTimeString('fr-FR'),
-              'Produit': item.product.name,
-              'Volume': item.product.volume,
-              'Quantité': item.quantity,
-              'Prix unitaire': item.product.price,
-              'Total': item.product.price * item.quantity,
-              'Devise': sale.currency
-            }))
-          );
+          data = sales
+            .filter(sale => sale.status === 'validated')
+            .flatMap(sale => {
+              const saleDate = getSaleDate(sale);
+              return sale.items.map(item => ({
+                'Date': saleDate.toLocaleDateString('fr-FR'),
+                'Heure': saleDate.toLocaleTimeString('fr-FR'),
+                'Produit': item.product.name,
+                'Volume': item.product.volume,
+                'Quantité': item.quantity,
+                'Prix unitaire': item.product.price,
+                'Total': item.product.price * item.quantity,
+                'Statut': sale.status,
+                'Devise': sale.currency
+              }));
+            });
           filename = `ventes_${new Date().toISOString().split('T')[0]}.xlsx`;
           break;
           

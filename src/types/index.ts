@@ -174,29 +174,29 @@ export interface CartItem {
   returned?: number;
 }
 
-export interface Order {
-  id: string;
-  barId: string; // ✅ Tous les types incluent barId
-  items: CartItem[];
-  total: number;
-  currency: string;
-  status: 'en attente' | 'servi' | 'annulé';
-  tableNumber?: string;
-  createdBy: string;
-  date: Date;
-  completedAt?: Date;
-}
-
 export interface Sale {
   id: string;
-  barId: string; // ✅ Tous les types incluent barId
+  barId: string;
   items: CartItem[];
   total: number;
   currency: string;
-  date: Date;
-  orderId?: string;
-  processedBy: string; // Qui a enregistré la vente (userId)
-  assignedTo?: string; // En mode simplifié : nom du serveur qui a servi (ex: "Marie")
+
+  // Le cycle de vie de la vente pour la validation par le gérant
+  status: 'pending' | 'validated' | 'rejected';
+
+  // Traçabilité des actions
+  createdBy: string;      // ID du serveur qui a initié la vente
+  validatedBy?: string;   // ID du gérant qui a validé et sorti le stock
+  rejectedBy?: string;    // ID du gérant qui a rejeté la demande
+
+  // Timestamps pour l'audit
+  createdAt: Date;        // Date de création par le serveur
+  validatedAt?: Date;     // Date de validation par le gérant
+  rejectedAt?: Date;      // Date de rejet par le gérant
+
+  // Optionnel, pour le mode simplifié ou pour référence
+  assignedTo?: string;    // En mode simplifié : nom du serveur qui a servi (ex: "Marie")
+  tableNumber?: string;   // Numéro de la table si applicable
 }
 
 // ===== RETOURS =====
@@ -232,6 +232,9 @@ export interface Return {
   // ✅ NOUVEAU : Choix custom pour motif "other"
   customRefund?: boolean;   // Décision manuelle gérant : rembourser ?
   customRestock?: boolean;  // Décision manuelle gérant : remettre en stock ?
+
+  // ✅ NOUVEAU : Traçabilité vendeur original
+  originalSeller?: string;  // userId du vendeur qui a créé la vente originale
 }
 
 // ===== CONSIGNATIONS =====
@@ -268,6 +271,7 @@ export interface Consignment {
   // Traçabilité
   createdBy: string;              // userId qui a créé la consignation
   claimedBy?: string;             // userId qui a validé la récupération
+  originalSeller?: string;        // ✅ userId du vendeur qui a créé la vente originale
 
   // Optionnel - Identification client
   customerName?: string;          // Nom client (pour retrouver facilement)

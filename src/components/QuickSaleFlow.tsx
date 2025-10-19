@@ -135,7 +135,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
 
   // Finaliser la vente
   const handleCheckout = async () => {
-    if (cart.length === 0) return;
+    if (cart.length === 0 || !currentSession) return;
 
     // Vérifier si un serveur doit être sélectionné
     const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
@@ -155,18 +155,42 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
         }
       }
 
-      // Créer la vente
-      await addSale({
-        items: cart,
-        total,
-        currency: settings.currency,
-        assignedTo: isSimplifiedMode ? selectedServer : undefined,
-      });
+      const isServerRole = currentSession.role === 'serveur';
 
-      // Diminuer le stock
-      cart.forEach(item => {
-        decreaseStock(item.product.id, item.quantity);
-      });
+      // Logique différenciée selon le rôle
+      if (isServerRole) {
+        // Pour un SERVEUR, on crée une vente "en attente" de validation
+        await addSale({
+          items: cart,
+          total,
+          currency: settings.currency,
+          status: 'pending', // La vente est en attente
+          createdBy: currentSession.userId, // Le serveur qui a créé
+          createdAt: new Date(),
+          assignedTo: isSimplifiedMode ? selectedServer : undefined,
+        } as any); // `as any` est temporaire, le temps d'adapter addSale
+
+        // ON NE DIMINUE PAS LE STOCK ICI
+
+      } else {
+        // Pour un GERANT ou PROMOTEUR, la vente est auto-validée
+        await addSale({
+          items: cart,
+          total,
+          currency: settings.currency,
+          status: 'validated', // La vente est directement validée
+          createdBy: currentSession.userId, // Le gérant qui a créé
+          validatedBy: currentSession.userId, // Auto-validé par le gérant
+          createdAt: new Date(),
+          validatedAt: new Date(),
+          assignedTo: isSimplifiedMode ? selectedServer : undefined,
+        } as any); // `as any` est temporaire, le temps d'adapter addSale
+
+        // On diminue le stock car la vente est validée
+        cart.forEach(item => {
+          decreaseStock(item.product.id, item.quantity);
+        });
+      }
 
       // Animation de succès
       setShowSuccess(true);

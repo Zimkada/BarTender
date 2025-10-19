@@ -17,6 +17,7 @@ import { useConsignments } from '../hooks/useConsignments';
 import { EnhancedButton } from './EnhancedButton';
 import { Sale, CartItem, Return, ReturnReason, ReturnReasonConfig } from '../types';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
+import { getSaleDate } from '../utils/saleHelpers';
 
 interface ReturnsSystemProps {
   isOpen: boolean;
@@ -67,7 +68,11 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
     getPendingReturns,
     getReturnsBySale
   } = useAppContext();
-  const { currentBar } = useBarContext();
+  const { currentBar, getBarMembers } = useBarContext(); // ✅ Utiliser getBarMembers pour les vrais utilisateurs
+
+  // 👥 Obtenir les membres de l'équipe du bar actuel
+  const barMembers = currentBar ? getBarMembers(currentBar.id) : [];
+  const users = barMembers.map(m => m.user); // Extraire les users
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession } = useAuth();
   const { showSuccess, showError, showWarning } = useFeedback();
@@ -86,7 +91,7 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
    */
   const canReturnSale = (sale: Sale): { allowed: boolean; reason: string } => {
     // Journée commerciale de la vente
-    const saleBusinessDay = getBusinessDay(new Date(sale.date), closeHour);
+    const saleBusinessDay = getBusinessDay(getSaleDate(sale), closeHour);
 
     // Journée commerciale actuelle
     const currentBusinessDay = getCurrentBusinessDay(closeHour);
@@ -126,7 +131,8 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
     const currentBusinessDay = getCurrentBusinessDay(closeHour);
 
     return sales.filter(sale => {
-      const saleDate = new Date(sale.date);
+      if (sale.status !== 'validated') return false;
+      const saleDate = getSaleDate(sale);
       const saleBusinessDay = getBusinessDay(saleDate, closeHour);
       return isSameDay(saleBusinessDay, currentBusinessDay);
     });
@@ -205,7 +211,8 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
       manualRestockRequired: !finalRestock,
       notes,
       customRefund: reason === 'other' ? customRefund : undefined,
-      customRestock: reason === 'other' ? customRestock : undefined
+      customRestock: reason === 'other' ? customRestock : undefined,
+      originalSeller: sale.createdBy // ✅ Capturer le vendeur original de la vente
     });
 
     if (newReturn) {
@@ -356,29 +363,60 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
                         <p className="text-gray-500">Les retours apparaîtront ici</p>
                       </div>
                     ) : (
-                      filteredReturns.map(returnItem => (
-                        <motion.div
-                          key={returnItem.id}
-                          whileHover={{ y: -2 }}
-                          className="bg-white rounded-xl p-4 shadow-sm border border-orange-100"
-                        >
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-3 h-3 rounded-full ${
-                                returnItem.status === 'restocked' ? 'bg-green-500' :
-                                returnItem.status === 'approved' ? 'bg-blue-500' :
-                                returnItem.status === 'rejected' ? 'bg-red-500' :
-                                'bg-yellow-500'
-                              }`} />
-                              <div>
-                                <h4 className="font-medium text-gray-800">
-                                  {returnItem.productName} ({returnItem.productVolume})
-                                </h4>
-                                <p className="text-sm text-gray-600">
-                                  Retour #{returnItem.id.slice(-6)} • {new Date(returnItem.returnedAt).toLocaleDateString('fr-FR')}
-                                </p>
+                      filteredReturns.map(returnItem => {
+                        // 👤 Trouver le vendeur original
+                        // Fallback : si originalSeller n'existe pas (ancien retour), chercher dans la vente originale
+                        let originalSeller = null;
+                        if (returnItem.originalSeller) {
+                          originalSeller = users.find(u => u.id === returnItem.originalSeller);
+                        } else {
+                          // Fallback pour anciens retours
+                          const originalSale = sales.find(s => s.id === returnItem.saleId);
+                          if (originalSale?.createdBy) {
+                            originalSeller = users.find(u => u.id === originalSale.createdBy);
+                          }
+                        }
+
+                        // 🐛 DEBUG temporaire
+                        if (returnItem.id) {
+                          console.log('🔍 Retour Debug:', {
+                            returnId: returnItem.id.slice(-6),
+                            saleId: returnItem.saleId,
+                            originalSellerField: returnItem.originalSeller,
+                            usersCount: users?.length,
+                            salesCount: sales?.length,
+                            foundSeller: originalSeller?.name || 'NON TROUVÉ'
+                          });
+                        }
+
+                        return (
+                          <motion.div
+                            key={returnItem.id}
+                            whileHover={{ y: -2 }}
+                            className="bg-white rounded-xl p-4 shadow-sm border border-orange-100"
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-3 h-3 rounded-full ${
+                                  returnItem.status === 'restocked' ? 'bg-green-500' :
+                                  returnItem.status === 'approved' ? 'bg-blue-500' :
+                                  returnItem.status === 'rejected' ? 'bg-red-500' :
+                                  'bg-yellow-500'
+                                }`} />
+                                <div>
+                                  <h4 className="font-medium text-gray-800">
+                                    {returnItem.productName} ({returnItem.productVolume})
+                                  </h4>
+                                  <p className="text-sm text-gray-600">
+                                    Retour #{returnItem.id.slice(-6)} • {new Date(returnItem.returnedAt).toLocaleDateString('fr-FR')}
+                                  </p>
+                                  {originalSeller && (
+                                    <p className="text-xs text-purple-600 mt-1">
+                                      👤 Vendeur: {originalSeller.name}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
-                            </div>
                             
                             <div className="text-right">
                               <p className="font-semibold text-gray-800">
@@ -466,7 +504,8 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
                             </div>
                           </div>
                         </motion.div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 </>
@@ -646,7 +685,12 @@ function CreateReturnForm({
 }) {
   const { getReturnsBySale } = useAppContext();
   const { getConsignmentsBySale } = useConsignments();
+  const { currentBar, getBarMembers } = useBarContext();
   const { formatPrice } = useCurrencyFormatter();
+
+  // 👥 Obtenir les membres de l'équipe du bar actuel
+  const barMembers = currentBar ? getBarMembers(currentBar.id) : [];
+  const users = barMembers.map(m => m.user);
   const [selectedProduct, setSelectedProduct] = useState<CartItem | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [reason, setReason] = useState<ReturnReason>('defective');
@@ -741,6 +785,9 @@ function CreateReturnForm({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
               {returnableSales.map(sale => {
                 const returnCheck = canReturnSale(sale);
+                // 👤 Trouver le vendeur
+                const seller = sale.createdBy ? users.find(u => u.id === sale.createdBy) : null;
+
                 return (
                   <motion.button
                     key={sale.id}
@@ -761,8 +808,13 @@ function CreateReturnForm({
                           Vente #{sale.id.slice(-6)}
                         </p>
                         <p className="text-sm text-gray-600">
-                          {new Date(sale.date).toLocaleTimeString('fr-FR')} • {sale.items.length} articles
+                          {getSaleDate(sale).toLocaleTimeString('fr-FR')} • {sale.items.length} articles
                         </p>
+                        {seller && (
+                          <p className="text-xs text-purple-600 mt-0.5">
+                            👤 {seller.name}
+                          </p>
+                        )}
                       </div>
                       {returnCheck.allowed ? (
                         <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
@@ -793,6 +845,17 @@ function CreateReturnForm({
             <div className="space-y-2">
               {selectedSale.items.map((item: CartItem, index: number) => {
                 const alreadyReturned = getAlreadyReturned(item.product.id);
+
+                // 🔍 Calculer consignations pour ce produit dans cette vente
+                const consignmentsForSale = getConsignmentsBySale(selectedSale.id);
+                const alreadyConsigned = consignmentsForSale
+                  .filter(c => c.productId === item.product.id && c.status === 'active')
+                  .reduce((sum, c) => sum + c.quantity, 0);
+
+                // 📊 Calculer disponibilité
+                const available = item.quantity - alreadyReturned - alreadyConsigned;
+                const isFullyUnavailable = available <= 0;
+
                 return (
                   <motion.button
                     key={index}
