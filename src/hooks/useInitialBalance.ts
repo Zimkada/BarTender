@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { InitialBalance } from '../types';
 
-const STORAGE_KEY_PREFIX = 'initial_balances_';
+const STORAGE_KEY_PREFIX = 'initial_balance_'; // ⚠️ Changé de 'initial_balances_' à 'initial_balance_' (singulier)
 
 export function useInitialBalance(barId?: string) {
-  const [initialBalances, setInitialBalances] = useState<InitialBalance[]>([]);
+  const [initialBalance, setInitialBalance] = useState<InitialBalance | null>(null);
 
   // Load from localStorage
   useEffect(() => {
@@ -16,75 +16,116 @@ export function useInitialBalance(barId?: string) {
       if (stored) {
         const parsed = JSON.parse(stored);
         // Convert date strings back to Date objects
-        const balances = parsed.map((bal: any) => ({
-          ...bal,
-          date: new Date(bal.date),
-          createdAt: new Date(bal.createdAt),
-        }));
-        setInitialBalances(balances);
+        const balance: InitialBalance = {
+          ...parsed,
+          date: new Date(parsed.date),
+          createdAt: new Date(parsed.createdAt),
+        };
+        setInitialBalance(balance);
       }
     } catch (error) {
-      console.error('❌ Erreur chargement soldes initiaux:', error);
+      console.error('❌ Erreur chargement solde initial:', error);
     }
   }, [barId]);
 
   // Save to localStorage
-  const saveToStorage = useCallback((balances: InitialBalance[]) => {
+  const saveToStorage = useCallback((balance: InitialBalance | null) => {
     if (!barId) return;
 
     try {
       const key = `${STORAGE_KEY_PREFIX}${barId}`;
-      localStorage.setItem(key, JSON.stringify(balances));
+      if (balance) {
+        localStorage.setItem(key, JSON.stringify(balance));
+      } else {
+        localStorage.removeItem(key);
+      }
     } catch (error) {
-      console.error('❌ Erreur sauvegarde soldes initiaux:', error);
+      console.error('❌ Erreur sauvegarde solde initial:', error);
     }
   }, [barId]);
 
-  // Add new initial balance
-  const addInitialBalance = useCallback((balance: Omit<InitialBalance, 'id' | 'createdAt'>) => {
+  // Create initial balance (only if none exists)
+  const createInitialBalance = useCallback((balanceData: Omit<InitialBalance, 'id' | 'createdAt' | 'isLocked'>) => {
+    if (initialBalance) {
+      throw new Error('Un solde initial existe déjà pour ce bar. Supprimez-le d\'abord pour en créer un nouveau.');
+    }
+
     const newBalance: InitialBalance = {
-      ...balance,
+      ...balanceData,
       id: `init_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       createdAt: new Date(),
+      isLocked: false,
     };
 
-    const updated = [...initialBalances, newBalance];
-    setInitialBalances(updated);
-    saveToStorage(updated);
+    setInitialBalance(newBalance);
+    saveToStorage(newBalance);
 
     return newBalance;
-  }, [initialBalances, saveToStorage]);
+  }, [initialBalance, saveToStorage]);
 
-  // Delete initial balance
-  const deleteInitialBalance = useCallback((id: string) => {
-    const updated = initialBalances.filter(bal => bal.id !== id);
-    setInitialBalances(updated);
+  // Update initial balance (only if not locked)
+  const updateInitialBalance = useCallback((updates: Partial<Omit<InitialBalance, 'id' | 'barId' | 'createdAt' | 'createdBy'>>) => {
+    if (!initialBalance) {
+      throw new Error('Aucun solde initial à modifier.');
+    }
+
+    if (initialBalance.isLocked) {
+      throw new Error('Le solde initial est verrouillé car des transactions postérieures existent. Suppression impossible.');
+    }
+
+    const updated: InitialBalance = {
+      ...initialBalance,
+      ...updates,
+    };
+
+    setInitialBalance(updated);
     saveToStorage(updated);
-  }, [initialBalances, saveToStorage]);
 
-  // Get total initial balance before or at a specific date
-  const getTotalInitialBalance = useCallback((beforeDate: Date) => {
-    return initialBalances
-      .filter(bal => new Date(bal.date) <= beforeDate)
-      .reduce((sum, bal) => sum + bal.amount, 0);
-  }, [initialBalances]);
+    return updated;
+  }, [initialBalance, saveToStorage]);
 
-  // Get the most recent initial balance
-  const getLatestInitialBalance = useCallback(() => {
-    if (initialBalances.length === 0) return null;
+  // Delete initial balance (only if not locked)
+  const deleteInitialBalance = useCallback(() => {
+    if (!initialBalance) return;
 
-    return initialBalances.reduce((latest, current) => {
-      const latestDate = new Date(latest.date);
-      const currentDate = new Date(current.date);
-      return currentDate > latestDate ? current : latest;
-    });
-  }, [initialBalances]);
+    if (initialBalance.isLocked) {
+      throw new Error('Le solde initial est verrouillé car des transactions postérieures existent. Suppression impossible.');
+    }
+
+    setInitialBalance(null);
+    saveToStorage(null);
+  }, [initialBalance, saveToStorage]);
+
+  // Lock initial balance (prevent modifications)
+  const lockInitialBalance = useCallback(() => {
+    if (!initialBalance) return;
+
+    const locked: InitialBalance = {
+      ...initialBalance,
+      isLocked: true,
+    };
+
+    setInitialBalance(locked);
+    saveToStorage(locked);
+  }, [initialBalance, saveToStorage]);
+
+  // Get initial balance amount (0 if none)
+  const getInitialBalanceAmount = useCallback(() => {
+    return initialBalance?.amount || 0;
+  }, [initialBalance]);
+
+  // Check if initial balance exists
+  const hasInitialBalance = useCallback(() => {
+    return initialBalance !== null;
+  }, [initialBalance]);
 
   return {
-    initialBalances,
-    addInitialBalance,
+    initialBalance,
+    createInitialBalance,
+    updateInitialBalance,
     deleteInitialBalance,
-    getTotalInitialBalance,
-    getLatestInitialBalance,
+    lockInitialBalance,
+    getInitialBalanceAmount,
+    hasInitialBalance,
   };
 }

@@ -155,6 +155,23 @@ export interface InitialBalance {
   description: string;      // Ex: "Solde ouverture bar", "Solde début exercice 2025"
   createdBy: string;        // Qui a saisi ce solde
   createdAt: Date;          // Quand la saisie a été faite
+  isLocked?: boolean;       // ✅ Verrouillé si transactions postérieures existent
+}
+
+// Source d'apport de capital
+export type CapitalSource = 'owner' | 'partner' | 'investor' | 'loan' | 'other';
+
+// Apport de capital (ENTRÉE d'argent pour renforcer la trésorerie)
+export interface CapitalContribution {
+  id: string;
+  barId: string;
+  amount: number;           // ✅ TOUJOURS POSITIF (entrée d'argent)
+  date: Date;               // Date de l'apport
+  description: string;      // Ex: "Apport pour couvrir fournisseur urgent"
+  source: CapitalSource;    // Origine de l'apport
+  sourceDetails?: string;   // Ex: "Prêt Banque ABC", "Associé Jean Dupont"
+  createdBy: string;        // Qui a enregistré cet apport
+  createdAt: Date;          // Quand l'apport a été enregistré
 }
 
 export interface AccountingTransaction {
