@@ -62,6 +62,15 @@ export function AccountingOverview() {
     description: 'Solde initial',
   });
 
+  const [showCapitalContributionModal, setShowCapitalContributionModal] = useState(false);
+  const [capitalContributionForm, setCapitalContributionForm] = useState({
+    amount: '',
+    date: new Date().toISOString().split('T')[0],
+    description: '',
+    source: 'owner' as import('../types').CapitalSource,
+    sourceDetails: '',
+  });
+
   if (!currentBar || !currentSession) return null;
 
   // Calculate period range based on type and offset
@@ -313,6 +322,45 @@ export function AccountingOverview() {
     return initialBalanceAmount + previousCapitalContributions + previousRevenue - previousCosts;
   }, [viewMode, sales, returns, expenses, salariesHook.salaries, periodStart, initialBalanceHook.initialBalance, capitalContributionsHook.contributions]);
 
+  // Détail du solde de début (pour affichage détaillé dans la carte)
+  const previousBalanceDetails = useMemo(() => {
+    if (viewMode === 'tresorerie') return { initialBalance: 0, capitalContributions: 0, activityResult: 0 };
+
+    const initialBalanceAmount = initialBalanceHook.getInitialBalanceAmount();
+    const previousCapitalContributions = capitalContributionsHook.getTotalContributions(periodStart);
+
+    const previousSales = sales
+      .filter(sale => {
+        const saleDate = getSaleDate(sale);
+        return sale.status === 'validated' && saleDate < periodStart;
+      })
+      .reduce((sum, sale) => sum + sale.total, 0);
+
+    const previousReturns = returns
+      .filter(ret => {
+        if (ret.status !== 'approved' && ret.status !== 'restocked') return false;
+        if (!ret.isRefunded) return false;
+        return new Date(ret.returnedAt) < periodStart;
+      })
+      .reduce((sum, ret) => sum + ret.refundAmount, 0);
+
+    const previousExpenses = expenses
+      .filter(exp => new Date(exp.date) < periodStart)
+      .reduce((sum, exp) => sum + exp.amount, 0);
+
+    const previousSalaries = salariesHook.salaries
+      .filter(sal => new Date(sal.paidAt) < periodStart)
+      .reduce((sum, sal) => sum + sal.amount, 0);
+
+    const activityResult = (previousSales - previousReturns) - (previousExpenses + previousSalaries);
+
+    return {
+      initialBalance: initialBalanceAmount,
+      capitalContributions: previousCapitalContributions,
+      activityResult,
+    };
+  }, [viewMode, sales, returns, expenses, salariesHook.salaries, periodStart, initialBalanceHook.initialBalance, capitalContributionsHook.contributions]);
+
   // Final balance (for Vue Analytique)
   const finalBalance = previousBalance + netProfit;
 
@@ -399,6 +447,39 @@ export function AccountingOverview() {
     }
   };
 
+  // Capital Contribution handlers
+  const handleCreateCapitalContribution = () => {
+    if (!capitalContributionForm.amount || isNaN(parseFloat(capitalContributionForm.amount))) {
+      alert('Veuillez saisir un montant valide');
+      return;
+    }
+
+    if (parseFloat(capitalContributionForm.amount) <= 0) {
+      alert('Le montant doit être positif');
+      return;
+    }
+
+    capitalContributionsHook.addContribution({
+      barId: currentBar!.id,
+      amount: parseFloat(capitalContributionForm.amount),
+      date: new Date(capitalContributionForm.date),
+      description: capitalContributionForm.description || 'Apport de capital',
+      source: capitalContributionForm.source,
+      sourceDetails: capitalContributionForm.sourceDetails || undefined,
+      createdBy: currentSession!.userId,
+    });
+
+    // Reset form and close modal
+    setCapitalContributionForm({
+      amount: '',
+      date: new Date().toISOString().split('T')[0],
+      description: '',
+      source: 'owner',
+      sourceDetails: '',
+    });
+    setShowCapitalContributionModal(false);
+  };
+
   // Export comptable complet
   const handleExportAccounting = () => {
     const workbook = XLSX.utils.book_new();
@@ -431,6 +512,12 @@ export function AccountingOverview() {
       sum + supply.totalCost, 0
     );
 
+    // Calculer apports de capital de la période
+    const periodCapitalContributions = capitalContributionsHook.contributions.filter(contrib => {
+      const contribDate = new Date(contrib.date);
+      return contribDate >= periodStart && contribDate <= periodEnd;
+    }).reduce((sum, contrib) => sum + contrib.amount, 0);
+
     // 1. ONGLET RÉSUMÉ
     const summaryData = [
       ['RAPPORT COMPTABLE', currentBar?.name || ''],
@@ -459,6 +546,9 @@ export function AccountingOverview() {
       [],
       ['RÉSULTAT NET'],
       ['Bénéfice net', netProfit],
+      [],
+      ['APPORTS DE CAPITAL'],
+      ['Apports période', periodCapitalContributions],
       [],
       ['TRÉSORERIE (Vue Analytique)'],
       ['Solde début période', previousBalance],
@@ -613,6 +703,31 @@ export function AccountingOverview() {
       XLSX.utils.book_append_sheet(workbook, initialBalanceSheet, 'Solde Initial');
     }
 
+    // 10. ONGLET APPORTS DE CAPITAL
+    const filteredCapitalContributions = capitalContributionsHook.contributions.filter(contrib => {
+      const contribDate = new Date(contrib.date);
+      return contribDate >= periodStart && contribDate <= periodEnd;
+    });
+    if (filteredCapitalContributions.length > 0) {
+      const capitalContributionsData = filteredCapitalContributions.map(contrib => {
+        const sourceLabel = contrib.source === 'owner' ? 'Propriétaire' :
+                           contrib.source === 'partner' ? 'Associé' :
+                           contrib.source === 'investor' ? 'Investisseur' :
+                           contrib.source === 'loan' ? 'Prêt bancaire' :
+                           'Autre';
+        return {
+          Date: new Date(contrib.date).toLocaleDateString('fr-FR'),
+          Montant: contrib.amount,
+          Source: sourceLabel,
+          'Détails source': contrib.sourceDetails || 'N/A',
+          Description: contrib.description,
+          'Créé par': contrib.createdBy,
+        };
+      });
+      const capitalContributionsSheet = XLSX.utils.json_to_sheet(capitalContributionsData);
+      XLSX.utils.book_append_sheet(workbook, capitalContributionsSheet, 'Apports de Capital');
+    }
+
     // Télécharger le fichier
     const fileName = `Comptabilite_${currentBar?.name.replace(/\s+/g, '_')}_${periodLabel.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
     XLSX.writeFile(workbook, fileName);
@@ -649,6 +764,15 @@ export function AccountingOverview() {
           >
             <PlusCircle size={18} />
             {!isMobile && <span>Solde initial</span>}
+          </button>
+
+          <button
+            onClick={() => setShowCapitalContributionModal(true)}
+            className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+            title="Ajouter un apport de capital"
+          >
+            <DollarSign size={18} />
+            {!isMobile && <span>Apport</span>}
           </button>
         </div>
       </div>
@@ -848,7 +972,7 @@ export function AccountingOverview() {
         // VUE ANALYTIQUE : 4 cards avec solde début/fin
         <div className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Solde début période */}
+            {/* Solde début période avec détail */}
             <div className="bg-gradient-to-br from-gray-500 to-slate-600 text-white rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Calendar size={20} />
@@ -859,9 +983,27 @@ export function AccountingOverview() {
               <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
                 {formatPrice(previousBalance)}
               </p>
-              <p className={`mt-1 opacity-70 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-                Report périodes antérieures
-              </p>
+              {/* Détail de la composition */}
+              <div className={`mt-2 pt-2 border-t border-white/20 space-y-1 ${isMobile ? 'text-[9px]' : 'text-[10px]'} opacity-80`}>
+                <div className="flex justify-between">
+                  <span>• Capital initial:</span>
+                  <span>{formatPrice(previousBalanceDetails.initialBalance)}</span>
+                </div>
+                {previousBalanceDetails.capitalContributions > 0 && (
+                  <div className="flex justify-between">
+                    <span>• Apports capital:</span>
+                    <span className="text-blue-200">{formatPrice(previousBalanceDetails.capitalContributions)}</span>
+                  </div>
+                )}
+                {previousBalanceDetails.activityResult !== 0 && (
+                  <div className="flex justify-between">
+                    <span>• Résultat activité:</span>
+                    <span className={previousBalanceDetails.activityResult >= 0 ? 'text-green-200' : 'text-red-200'}>
+                      {formatPrice(previousBalanceDetails.activityResult)}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Revenus période */}
@@ -1117,6 +1259,151 @@ export function AccountingOverview() {
                 }`}
               >
                 {initialBalanceHook.initialBalance ? 'Solde déjà défini' : 'Enregistrer'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Modal: Add Capital Contribution */}
+      {showCapitalContributionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-indigo-600">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <DollarSign size={22} />
+                Apport de Capital
+              </h3>
+              <button
+                onClick={() => setShowCapitalContributionModal(false)}
+                className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+              >
+                <X size={20} className="text-white" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-gray-600">
+                Enregistrez une injection d'argent pour renforcer la trésorerie du bar (apport personnel, prêt, etc.).
+              </p>
+
+              {/* Amount */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Montant (FCFA) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  value={capitalContributionForm.amount}
+                  onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, amount: e.target.value }))}
+                  placeholder="Ex: 500000"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Montant positif uniquement (entrée d'argent)
+                </p>
+              </div>
+
+              {/* Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={capitalContributionForm.date}
+                  onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, date: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Source */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Source <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={capitalContributionForm.source}
+                  onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, source: e.target.value as import('../types').CapitalSource }))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="owner">👤 Propriétaire (apport personnel)</option>
+                  <option value="partner">🤝 Associé</option>
+                  <option value="investor">💼 Investisseur externe</option>
+                  <option value="loan">🏦 Prêt (banque/personnel)</option>
+                  <option value="other">📋 Autre</option>
+                </select>
+              </div>
+
+              {/* Source Details (optionnel) */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Détails source (optionnel)
+                </label>
+                <input
+                  type="text"
+                  value={capitalContributionForm.sourceDetails}
+                  onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, sourceDetails: e.target.value }))}
+                  placeholder="Ex: Prêt Banque ABC, Associé Jean Dupont..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <input
+                  type="text"
+                  value={capitalContributionForm.description}
+                  onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Ex: Apport pour couvrir fournisseur urgent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Existing contributions */}
+              {capitalContributionsHook.contributions.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-xs font-medium text-blue-800 mb-2">
+                    📋 Apports existants ({capitalContributionsHook.contributions.length})
+                  </p>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {capitalContributionsHook.contributions.slice(0, 5).map(contrib => (
+                      <div key={contrib.id} className="flex items-center justify-between text-xs">
+                        <span className="text-gray-700">
+                          {new Date(contrib.date).toLocaleDateString('fr-FR')} - {contrib.source}
+                        </span>
+                        <span className="font-medium text-green-600">
+                          +{formatPrice(contrib.amount)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center gap-3 p-4 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={() => setShowCapitalContributionModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleCreateCapitalContribution}
+                className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Créer l'apport
               </button>
             </div>
           </motion.div>
