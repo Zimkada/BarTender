@@ -377,18 +377,6 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
                           }
                         }
 
-                        // 🐛 DEBUG temporaire
-                        if (returnItem.id) {
-                          console.log('🔍 Retour Debug:', {
-                            returnId: returnItem.id.slice(-6),
-                            saleId: returnItem.saleId,
-                            originalSellerField: returnItem.originalSeller,
-                            usersCount: users?.length,
-                            salesCount: sales?.length,
-                            foundSeller: originalSeller?.name || 'NON TROUVÉ'
-                          });
-                        }
-
                         return (
                           <motion.div
                             key={returnItem.id}
