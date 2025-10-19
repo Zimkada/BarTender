@@ -417,8 +417,10 @@ export function AccountingOverview() {
     });
 
     // Calculer les coûts d'approvisionnement
+    // ✅ FIX: Utiliser totalCost qui est calculé correctement dans useSupplies
+    // totalCost = (quantity / lotSize) * lotPrice
     const suppliesCosts = filteredSupplies.reduce((sum, supply) =>
-      sum + (supply.lotPrice * supply.lotSize), 0
+      sum + supply.totalCost, 0
     );
 
     // 1. ONGLET RÉSUMÉ
