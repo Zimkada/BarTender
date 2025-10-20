@@ -92,36 +92,39 @@ export function Header({
     return (
       <header className="bg-gradient-to-r from-yellow-400 to-amber-400 shadow-lg sticky top-0 z-50">
         <div className="px-3 py-2">
-          {/* Ligne 1: Hamburger + Logo + Actions */}
-          <div className="flex items-center gap-2 mb-2">
-            {/* Bouton Menu Hamburger */}
+          {/* Ligne 1: Hamburger (position absolue) + Logo + Actions */}
+          <div className="relative flex items-center gap-2 mb-2">
+            {/* Bouton Menu Hamburger - Position absolue garantit visibilité sur tous écrans */}
             <button
               onClick={onToggleMobileSidebar}
-              className="p-1.5 bg-white/20 rounded-lg text-white active:scale-95 transition-transform flex-shrink-0"
+              className="absolute left-0 z-10 p-2 bg-gray-900/90 rounded-lg text-white active:scale-95 transition-all shadow-lg border-2 border-white/40"
               aria-label="Menu"
             >
-              <Menu size={18} />
+              <Menu size={22} className="stroke-[2.5]" />
             </button>
 
-            {/* Logo + Nom bar */}
-            <div className="flex items-center gap-1.5 flex-1 min-w-0">
-              <h1 className="text-sm font-bold text-white truncate">
-                🍺 {currentBar?.name || 'BarTender'}
-              </h1>
-            </div>
+            {/* Contenu avec padding-left pour éviter chevauchement avec hamburger */}
+            <div className="flex items-center gap-2 pl-12 w-full">
+              {/* Logo + Nom bar */}
+              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                <h1 className="text-sm font-bold text-white truncate">
+                  🍺 {currentBar?.name || 'BarTender'}
+                </h1>
+              </div>
 
-            {/* Indicateurs + Actions (compacts) */}
-            <div className="flex items-center gap-1 flex-shrink-0">
-              <OfflineIndicator />
-              <NetworkIndicator />
-              <SyncButton />
-              <button
-                onClick={logout}
-                className="p-1.5 bg-red-500/80 rounded-lg text-white active:scale-95 transition-transform"
-                aria-label="Déconnexion"
-              >
-                <LogOut size={16} />
-              </button>
+              {/* Indicateurs + Actions (compacts) */}
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <OfflineIndicator />
+                <NetworkIndicator />
+                <SyncButton />
+                <button
+                  onClick={logout}
+                  className="p-1.5 bg-red-500/80 rounded-lg text-white active:scale-95 transition-transform"
+                  aria-label="Déconnexion"
+                >
+                  <LogOut size={16} />
+                </button>
+              </div>
             </div>
           </div>
 
