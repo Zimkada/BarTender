@@ -147,7 +147,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // ... (fonctions categories, products, supplies restent les mêmes)
   const addCategory = useCallback((category: Omit<Category, 'id' | 'createdAt' | 'barId'>) => {
     if (!hasPermission('canAddProducts') || !currentBar) return null;
-    const newCategory: Category = { ...category, id: Date.now().toString(), barId: currentBar.id, createdAt: new Date() };
+    const uniqueId = `cat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const newCategory: Category = { ...category, id: uniqueId, barId: currentBar.id, createdAt: new Date() };
     setAllCategories(prev => [...prev, newCategory]);
     return newCategory;
   }, [setAllCategories, hasPermission, currentBar]);
@@ -211,9 +212,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!hasPermission('canManageInventory') || !currentBar || !currentSession) return null;
 
     const totalCost = (supply.quantity / supply.lotSize) * supply.lotPrice;
+    const uniqueId = `supply_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const newSupply: Supply = {
       ...supply,
-      id: Date.now().toString(),
+      id: uniqueId,
       barId: currentBar.id,
       date: new Date(),
       totalCost,
@@ -264,8 +266,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addSale = useCallback((saleData: Partial<Sale>) => {
     if (!hasPermission('canSell') || !currentBar || !currentSession) return null;
 
+    const uniqueId = `sale_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const newSale: Sale = {
-      id: `sale_${Date.now()}`,
+      id: uniqueId,
       barId: currentBar.id,
       ...saleData,
     } as Sale;
@@ -379,7 +382,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addReturn = useCallback((returnData: Omit<Return, 'id' | 'barId'>) => {
     if (!hasPermission('canManageInventory') || !currentBar) return null;
-    const newReturn: Return = { ...returnData, id: `return_${Date.now()}`, barId: currentBar.id };
+    const uniqueId = `return_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const newReturn: Return = { ...returnData, id: uniqueId, barId: currentBar.id };
     setAllReturns(prev => [newReturn, ...prev]);
     return newReturn;
   }, [setAllReturns, hasPermission, currentBar]);
