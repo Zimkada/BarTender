@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 //import React, from 'react';
 import { Header } from './components/Header';
 import { CategoryTabs } from './components/CategoryTabs';
@@ -6,28 +6,30 @@ import { ProductGrid } from './components/ProductGrid';
 import { Cart } from './components/Cart';
 import { ProductModal } from './components/ProductModal';
 import { CategoryModal } from './components/CategoryModal';
-import { EnhancedSalesHistory } from './components/SalesHistory';
-import { Inventory } from './components/Inventory';
-import { Settings } from './components/Settings';
 import { ServerInterface } from './components/ServerInterface';
 import { LoginScreen } from './components/LoginScreen';
 import { UserManagement } from './components/UserManagement';
 import { RoleBasedComponent } from './components/RoleBasedComponent';
-import { NotificationsProvider} from './components/Notifications';
-import { useNotifications } from './hooks/useNotifications';
+import { NotificationsProvider, useNotifications } from './components/Notifications';
 import { useAppContext } from './context/AppContext';
-import { CartItem, Product } from './types';
+import { CartItem, Product, Category } from './types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from './context/AuthContext';
 import { syncService } from './services/syncService';
-import { DailyDashboard } from './components/DailyDashboard';
-import { ReturnsSystem } from './components/ReturnsSystem';
 import { QuickSaleFlow } from './components/QuickSaleFlow';
-import { ForecastingSystem } from './components/ForecastingSystem';
 import { MobileNavigation } from './components/MobileNavigation';
 import { MobileSidebar } from './components/MobileSidebar';
-import { Accounting } from './components/Accounting';
-import { ConsignmentSystem } from './components/ConsignmentSystem';
+import { LoadingFallback } from './components/LoadingFallback';
+
+// Lazy load des composants lourds (XLSX, Recharts, etc.)
+const EnhancedSalesHistory = lazy(() => import('./components/SalesHistory').then(m => ({ default: m.EnhancedSalesHistory })));
+const Inventory = lazy(() => import('./components/Inventory').then(m => ({ default: m.Inventory })));
+const Settings = lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
+const DailyDashboard = lazy(() => import('./components/DailyDashboard').then(m => ({ default: m.DailyDashboard })));
+const ReturnsSystem = lazy(() => import('./components/ReturnsSystem').then(m => ({ default: m.ReturnsSystem })));
+const ForecastingSystem = lazy(() => import('./components/ForecastingSystem').then(m => ({ default: m.ForecastingSystem })));
+const Accounting = lazy(() => import('./components/Accounting').then(m => ({ default: m.Accounting })));
+const ConsignmentSystem = lazy(() => import('./components/ConsignmentSystem').then(m => ({ default: m.ConsignmentSystem })));
 
 
 
@@ -321,21 +323,27 @@ function AppContent() {
       </motion.main>
 
       <RoleBasedComponent requiredPermission="canViewInventory">
-        <ForecastingSystem
-          isOpen={showForecasting}
-          onClose={() => setShowForecasting(false)} />
+        <Suspense fallback={<LoadingFallback />}>
+          <ForecastingSystem
+            isOpen={showForecasting}
+            onClose={() => setShowForecasting(false)} />
+        </Suspense>
       </RoleBasedComponent>
 
-      <DailyDashboard
-        isOpen={showDailyDashboard}
-        onClose={() => setShowDailyDashboard(false)}
-      />
+      <Suspense fallback={<LoadingFallback />}>
+        <DailyDashboard
+          isOpen={showDailyDashboard}
+          onClose={() => setShowDailyDashboard(false)}
+        />
+      </Suspense>
 
       <RoleBasedComponent requiredPermission="canManageInventory">
-        <ReturnsSystem
-          isOpen={showReturns}
-          onClose={() => setShowReturns(false)}
-        />
+        <Suspense fallback={<LoadingFallback />}>
+          <ReturnsSystem
+            isOpen={showReturns}
+            onClose={() => setShowReturns(false)}
+          />
+        </Suspense>
       </RoleBasedComponent>
 
       <QuickSaleFlow
@@ -384,38 +392,48 @@ function AppContent() {
       </RoleBasedComponent>
 
       <RoleBasedComponent requiredPermission="canViewOwnSales">
-        <EnhancedSalesHistory
-          isOpen={showSalesHistory}
-          onClose={() => setShowSalesHistory(false)}
-        />
+        <Suspense fallback={<LoadingFallback />}>
+          <EnhancedSalesHistory
+            isOpen={showSalesHistory}
+            onClose={() => setShowSalesHistory(false)}
+          />
+        </Suspense>
       </RoleBasedComponent>
 
       <RoleBasedComponent requiredPermission="canManageInventory">
-        <Inventory
-          isOpen={showInventory}
-          onClose={() => setShowInventory(false)}
-        />
+        <Suspense fallback={<LoadingFallback />}>
+          <Inventory
+            isOpen={showInventory}
+            onClose={() => setShowInventory(false)}
+          />
+        </Suspense>
       </RoleBasedComponent>
 
       <RoleBasedComponent requiredPermission="canManageSettings">
-        <Settings
-          isOpen={showSettings}
-          onClose={() => setShowSettings(false)}
-        />
+        <Suspense fallback={<LoadingFallback />}>
+          <Settings
+            isOpen={showSettings}
+            onClose={() => setShowSettings(false)}
+          />
+        </Suspense>
       </RoleBasedComponent>
 
       <RoleBasedComponent requiredPermission="canViewAccounting">
-        <Accounting
-          isOpen={showAccounting}
-          onClose={() => setShowAccounting(false)}
-        />
+        <Suspense fallback={<LoadingFallback />}>
+          <Accounting
+            isOpen={showAccounting}
+            onClose={() => setShowAccounting(false)}
+          />
+        </Suspense>
       </RoleBasedComponent>
 
       <RoleBasedComponent requiredPermission="canCreateConsignment">
-        <ConsignmentSystem
-          isOpen={showConsignment}
-          onClose={() => setShowConsignment(false)}
-        />
+        <Suspense fallback={<LoadingFallback />}>
+          <ConsignmentSystem
+            isOpen={showConsignment}
+            onClose={() => setShowConsignment(false)}
+          />
+        </Suspense>
       </RoleBasedComponent>
 
       {/* Sidebar - Mobile & Desktop */}
@@ -433,7 +451,7 @@ function AppContent() {
         onShowQuickSale={() => setShowQuickSale(true)}
         onShowReturns={() => setShowReturns(true)}
         onShowForecasting={() => setShowForecasting(true)}
-        onShowExcel={() => setShowExcel(true)}
+        onShowExcel={() => setShowSalesHistory(true)}
       />
     </motion.div>
   );

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNotifications } from './useNotifications';
+import { useNotifications } from '../components/Notifications';
 import { offlineQueue } from '../services/offlineQueue';
 
 interface OfflineStatus {
@@ -55,7 +55,7 @@ export function useOfflineStatus() {
 
     const handleOffline = () => {
       setStatus(prev => ({ ...prev, isOnline: false }));
-      showNotification('warning', '📵 Mode hors-ligne activé');
+      showNotification('info', '📵 Mode hors-ligne activé');
     };
 
     window.addEventListener('online', handleOnline);

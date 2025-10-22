@@ -1,5 +1,5 @@
 // hooks/useFeedback.ts
-import { useNotifications } from '../hooks/useNotifications';
+import { useNotifications } from '../components/Notifications';
 import { useState } from 'react';
 
 export const useFeedback = () => {
@@ -38,8 +38,8 @@ export const useFeedback = () => {
     
     // Inventaire
     stockUpdated: () => showSuccess('📦 Stock mis à jour'),
-    lowStockAlert: (product: string) => 
-      showNotification('warning', `⚠️ Stock faible pour ${product}`),
+    lowStockAlert: (product: string) =>
+      showNotification('error', `⚠️ Stock faible pour ${product}`),
     
     // Erreurs courantes
     networkError: () => showError('❌ Erreur de connexion'),

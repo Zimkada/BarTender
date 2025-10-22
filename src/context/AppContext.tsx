@@ -3,7 +3,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { offlineQueue } from '../services/offlineQueue';
-import { useNotifications } from '../hooks/useNotifications';
+import { useNotifications } from '../components/Notifications';
 import {
   Category,
   Product,
