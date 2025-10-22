@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Plus, Edit, Trash2 } from 'lucide-react';
 import { Category } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -13,17 +14,17 @@ interface CategoryTabsProps {
   onDeleteCategory: (categoryId: string) => void;
 }
 
-export function CategoryTabs({ 
-  categories, 
-  activeCategory, 
-  onCategoryChange, 
+export function CategoryTabs({
+  categories,
+  activeCategory,
+  onCategoryChange,
   onAddCategory,
   onEditCategory,
   onDeleteCategory
 }: CategoryTabsProps) {
   const { hasPermission } = useAuth();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; category: Category } | null>(null);
-  const longPressTimer = useRef<NodeJS.Timeout>();
+  const longPressTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const canEdit = hasPermission('canEditProducts');
 
@@ -61,9 +62,9 @@ export function CategoryTabs({
   }, [contextMenu]);
 
   const tabVariants = {
-    active: { scale: 1.02, transition: { type: "spring", stiffness: 400, damping: 15 } },
+    active: { scale: 1.02, transition: { type: "spring" as const, stiffness: 400, damping: 15 } },
     inactive: { scale: 1, transition: { duration: 0.2 } }
-  };
+  } as const;
 
   return (
     <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-orange-100">
@@ -89,7 +90,7 @@ export function CategoryTabs({
             whileTap={{ scale: 0.98 }}
             className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all ${
               activeCategory === category.id
-                ? 'bg-white text-gray-800 shadow-md border border-orange-200'
+                ? 'bg-gradient-to-br from-orange-50 to-amber-50 text-orange-600 shadow-md border border-orange-300 font-semibold'
                 : 'bg-transparent text-gray-600 hover:bg-white/50'
             }`}
           >
@@ -110,47 +111,60 @@ export function CategoryTabs({
         )}
       </div>
 
-      <AnimatePresence>
-        {contextMenu && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-            className="absolute z-50 bg-white rounded-xl shadow-2xl border border-gray-200 p-2 w-48"
-            style={{ top: contextMenu.y + 10, left: contextMenu.x }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className='px-3 py-2 border-b border-gray-100'>
-              <p className='text-sm font-semibold truncate text-gray-800'>{contextMenu.category.name}</p>
-            </div>
-            <div className='py-1'>
-              <button
-                onClick={() => {
-                  onEditCategory(contextMenu.category);
-                  setContextMenu(null);
-                }}
-                className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700 rounded-md transition-colors"
-              >
-                <Edit size={16} />
-                Modifier
-              </button>
-              {hasPermission('canDeleteProducts') && (
+      {contextMenu && createPortal(
+        <AnimatePresence>
+          <>
+            {/* Backdrop transparent pour garantir z-index au-dessus de tout */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[9998]"
+              onClick={() => setContextMenu(null)}
+            />
+
+            {/* Menu contextuel */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              className="fixed z-[9999] bg-white rounded-xl shadow-2xl border border-gray-200 p-2 w-48"
+              style={{ top: contextMenu.y + 10, left: contextMenu.x }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className='px-3 py-2 border-b border-gray-100'>
+                <p className='text-sm font-semibold truncate text-gray-800'>{contextMenu.category.name}</p>
+              </div>
+              <div className='py-1'>
                 <button
                   onClick={() => {
-                    onDeleteCategory(contextMenu.category.id);
+                    onEditCategory(contextMenu.category);
                     setContextMenu(null);
                   }}
-                  className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                  className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700 rounded-md transition-colors"
                 >
-                  <Trash2 size={16} />
-                  Supprimer
+                  <Edit size={16} />
+                  Modifier
                 </button>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                {hasPermission('canDeleteProducts') && (
+                  <button
+                    onClick={() => {
+                      onDeleteCategory(contextMenu.category.id);
+                      setContextMenu(null);
+                    }}
+                    className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                  >
+                    <Trash2 size={16} />
+                    Supprimer
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </>
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }

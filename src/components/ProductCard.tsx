@@ -125,7 +125,7 @@ export function ProductCard({ product, onAddToCart, compact = false }: ProductCa
   // ==================== VERSION DESKTOP (1% promoteurs avec PC) ====================
   // Card verticale classique pour grid
   return (
-    <div className="bg-gradient-to-br from-yellow-100 to-amber-100 rounded-2xl p-4 shadow-sm border border-orange-100 hover:shadow-md transition-shadow relative">
+    <div className="bg-gradient-to-br from-orange-100 to-amber-100 rounded-2xl p-4 shadow-sm border border-orange-100 hover:shadow-md transition-shadow relative">
       {/* Stock Badge */}
       <div className={`absolute top-3 right-3 ${getStockBadgeColor()} text-white text-xs px-2 py-1 rounded-full font-bold z-10`}>
         {product.stock}

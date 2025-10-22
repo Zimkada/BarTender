@@ -72,21 +72,21 @@ export function Accounting({ isOpen, onClose }: AccountingProps) {
                   </div>
 
                   {/* Tabs navigation */}
-                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide border-b border-gray-200">
                     {tabs.map(tab => (
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all whitespace-nowrap ${
+                        className={`flex items-center gap-2 px-4 py-3 transition-all whitespace-nowrap ${
                           isMobile ? 'text-sm' : ''
                         } ${
                           activeTab === tab.id
-                            ? 'bg-orange-500 text-white shadow-md'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            ? 'text-orange-600 border-b-2 border-orange-600 -mb-px font-semibold'
+                            : 'text-gray-600 hover:text-orange-500 hover:bg-orange-50 font-medium'
                         }`}
                       >
                         {tab.icon}
-                        <span className="font-medium">{tab.label}</span>
+                        <span>{tab.label}</span>
                       </button>
                     ))}
                   </div>

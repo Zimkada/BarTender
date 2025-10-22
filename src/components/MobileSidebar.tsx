@@ -178,7 +178,7 @@ export function MobileSidebar({ isOpen, onClose, onNavigate, currentMenu }: Mobi
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="fixed top-0 left-0 bottom-0 w-72 bg-gradient-to-br from-yellow-50 to-amber-50 shadow-2xl z-50 flex flex-col"
+            className="fixed top-0 left-0 bottom-0 w-72 bg-gradient-to-br from-orange-50 to-amber-50 shadow-2xl z-50 flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-orange-200 bg-gradient-to-r from-orange-500 to-amber-500">

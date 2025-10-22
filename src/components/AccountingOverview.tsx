@@ -1184,7 +1184,7 @@ export function AccountingOverview() {
                   value={initialBalanceForm.amount}
                   onChange={(e) => setInitialBalanceForm(prev => ({ ...prev, amount: e.target.value }))}
                   placeholder="Ex: 500000"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Peut être négatif si vous aviez des dettes
@@ -1200,7 +1200,7 @@ export function AccountingOverview() {
                   type="date"
                   value={initialBalanceForm.date}
                   onChange={(e) => setInitialBalanceForm(prev => ({ ...prev, date: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
 
@@ -1214,7 +1214,7 @@ export function AccountingOverview() {
                   value={initialBalanceForm.description}
                   onChange={(e) => setInitialBalanceForm(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Ex: Solde ouverture bar"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
 
@@ -1303,7 +1303,7 @@ export function AccountingOverview() {
                   value={capitalContributionForm.amount}
                   onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, amount: e.target.value }))}
                   placeholder="Ex: 500000"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Montant positif uniquement (entrée d'argent)
@@ -1319,7 +1319,7 @@ export function AccountingOverview() {
                   type="date"
                   value={capitalContributionForm.date}
                   onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, date: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
 
@@ -1331,7 +1331,7 @@ export function AccountingOverview() {
                 <select
                   value={capitalContributionForm.source}
                   onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, source: e.target.value as import('../types').CapitalSource }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 >
                   <option value="owner">👤 Propriétaire (apport personnel)</option>
                   <option value="partner">🤝 Associé</option>
@@ -1351,7 +1351,7 @@ export function AccountingOverview() {
                   value={capitalContributionForm.sourceDetails}
                   onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, sourceDetails: e.target.value }))}
                   placeholder="Ex: Prêt Banque ABC, Associé Jean Dupont..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
 
@@ -1365,7 +1365,7 @@ export function AccountingOverview() {
                   value={capitalContributionForm.description}
                   onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="Ex: Apport pour couvrir fournisseur urgent"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
 

@@ -263,7 +263,7 @@ function AppContent() {
 
   return (
     <motion.div
-      className="min-h-screen bg-gradient-to-br from-yellow-200 to-amber-200 pb-16 md:pb-0"
+      className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 pb-16 md:pb-0"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}

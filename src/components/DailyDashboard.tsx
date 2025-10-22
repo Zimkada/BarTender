@@ -202,8 +202,8 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
     <AnimatePresence>
       {isOpen && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }} className="bg-gradient-to-br from-yellow-100 to-amber-100 rounded-2xl w-full max-w-4xl max-h-[85vh] md:max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="flex items-center justify-between p-6 border-b border-orange-200 sticky top-0 bg-yellow-100/80 backdrop-blur-sm z-10">
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }} className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl w-full max-w-4xl max-h-[85vh] md:max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between p-6 border-b border-orange-200 sticky top-0 bg-orange-50/80 backdrop-blur-sm z-10">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center"><TrendingUp size={20} className="text-white" /></div>
                 <div>

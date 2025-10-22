@@ -336,7 +336,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
 
                 {/* Panier sticky footer mobile */}
                 {cart.length > 0 && (
-                  <div className="flex-shrink-0 sticky bottom-0 bg-gradient-to-br from-yellow-50 to-amber-50 border-t-2 border-orange-300 shadow-lg">
+                  <div className="flex-shrink-0 sticky bottom-0 bg-gradient-to-br from-orange-50 to-amber-50 border-t-2 border-orange-300 shadow-lg">
                     <div className="p-4 space-y-3">
                       {/* Résumé panier */}
                       <div className="flex items-center justify-between">
@@ -616,7 +616,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                 </div>
 
                 {/* Panier latéral */}
-                <div className="w-80 h-full bg-gradient-to-br from-yellow-50 to-amber-50 border-l border-orange-200 flex flex-col">
+                <div className="w-80 h-full bg-gradient-to-br from-orange-50 to-amber-50 border-l border-orange-200 flex flex-col">
                 {/* Header panier */}
                 <div className="flex-shrink-0 p-4 border-b border-orange-200">
                   <div className="flex items-center justify-between mb-2">
@@ -699,7 +699,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                 </div>
 
                 {/* Footer panier - TOUJOURS VISIBLE ET FIXE EN BAS */}
-                <div className="flex-shrink-0 p-4 border-t border-orange-200 space-y-3 bg-gradient-to-br from-yellow-50 to-amber-50">
+                <div className="flex-shrink-0 p-4 border-t border-orange-200 space-y-3 bg-gradient-to-br from-orange-50 to-amber-50">
                   {/* Mode de paiement */}
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1.5">Mode de paiement</label>

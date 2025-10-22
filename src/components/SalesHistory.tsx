@@ -531,7 +531,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className={`bg-gradient-to-br from-yellow-100 to-amber-100 w-full shadow-2xl overflow-hidden ${
+            className={`bg-gradient-to-br from-orange-50 to-amber-50 w-full shadow-2xl overflow-hidden ${
               isMobile
                 ? 'h-full'
                 : 'rounded-2xl max-w-7xl max-h-[85vh] md:max-h-[90vh]'

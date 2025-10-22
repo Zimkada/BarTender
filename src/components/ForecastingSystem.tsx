@@ -259,14 +259,14 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className={`bg-gradient-to-br from-purple-50 to-indigo-50 w-full shadow-2xl ${
+            className={`bg-gradient-to-br from-orange-50 to-amber-50 w-full shadow-2xl ${
               isMobile
                 ? 'h-full'
                 : 'rounded-2xl max-w-6xl max-h-[85vh] md:max-h-[90vh] overflow-hidden'
             }`}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-4">
+            <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <TrendingUp size={isMobile ? 20 : 24} />
@@ -285,7 +285,7 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
                   onClick={() => setActiveTab('stock')}
                   className={`flex-1 px-3 py-2 rounded-md transition-colors flex items-center justify-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} font-medium ${
                     activeTab === 'stock'
-                      ? 'bg-white text-purple-600'
+                      ? 'bg-white text-orange-600'
                       : 'text-white hover:bg-white/10'
                   }`}
                 >
@@ -296,7 +296,7 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
                   onClick={() => setActiveTab('sales')}
                   className={`flex-1 px-3 py-2 rounded-md transition-colors flex items-center justify-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} font-medium ${
                     activeTab === 'sales'
-                      ? 'bg-white text-purple-600'
+                      ? 'bg-white text-orange-600'
                       : 'text-white hover:bg-white/10'
                   }`}
                 >
@@ -388,7 +388,7 @@ function StockForecastView({
       {isMobile ? (
         <div className="flex flex-col h-full">
           {/* Stats + Filtres compacts en haut */}
-          <div className="flex-shrink-0 bg-purple-50 p-3">
+          <div className="flex-shrink-0 bg-orange-50 p-3">
             {/* Stats en 3 colonnes */}
             <div className="grid grid-cols-3 gap-2 mb-3">
               <div className="bg-red-100 rounded-lg p-2 text-center">
@@ -410,8 +410,8 @@ function StockForecastView({
               onClick={() => setShowOrderSuggestions(!showOrderSuggestions)}
               className={`w-full px-4 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors mb-3 ${
                 showOrderSuggestions
-                  ? 'bg-white text-purple-600 border-2 border-purple-600'
-                  : 'bg-purple-500 text-white'
+                  ? 'bg-white text-orange-600 border-2 border-orange-600'
+                  : 'bg-orange-500 text-white'
               }`}
             >
               <ShoppingCart size={18} />
@@ -432,7 +432,7 @@ function StockForecastView({
                     onClick={() => setFilterStatus(filter.value as typeof filterStatus)}
                     className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium transition-colors ${
                       filterStatus === filter.value
-                        ? 'bg-purple-500 text-white'
+                        ? 'bg-orange-500 text-white'
                         : 'bg-white text-gray-700'
                     }`}
                   >
@@ -477,7 +477,7 @@ function StockForecastView({
               ) : (
                 <div className="space-y-3">
                   <p className="text-sm text-gray-600 mb-2">
-                    Total estimé: <span className="font-bold text-purple-600">{formatPrice(stats.totalOrderValue)}</span>
+                    Total estimé: <span className="font-bold text-orange-600">{formatPrice(stats.totalOrderValue)}</span>
                   </p>
                   {orderSuggestions.map((suggestion: OrderSuggestion) => (
                     <OrderSuggestionCard
@@ -536,8 +536,8 @@ function StockForecastView({
                     onClick={() => setFilterStatus(filter.value as typeof filterStatus)}
                     className={`w-full text-left p-2 rounded-lg transition-colors ${
                       filterStatus === filter.value
-                        ? 'bg-purple-500 text-white'
-                        : 'bg-white text-gray-700 hover:bg-purple-50'
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-white text-gray-700 hover:bg-orange-50'
                     }`}
                   >
                     {filter.label}
@@ -649,7 +649,7 @@ function SalesForecastView({ isMobile, formatPrice }: any) {
   return (
     <div className="flex items-center justify-center h-full p-6">
       <div className="text-center max-w-2xl">
-        <DollarSign size={64} className="mx-auto mb-4 text-purple-400" />
+        <DollarSign size={64} className="mx-auto mb-4 text-orange-400" />
         <h3 className="text-xl font-semibold text-gray-800 mb-3">
           Prévisions de Ventes
         </h3>
@@ -657,27 +657,27 @@ function SalesForecastView({ isMobile, formatPrice }: any) {
           🚧 Module en développement - Bientôt disponible
         </p>
 
-        <div className="bg-purple-50 border-2 border-purple-200 rounded-xl p-6 text-left">
-          <h4 className="font-semibold text-purple-800 mb-3">Fonctionnalités à venir :</h4>
+        <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-6 text-left">
+          <h4 className="font-semibold text-orange-800 mb-3">Fonctionnalités à venir :</h4>
           <ul className="space-y-2 text-sm text-gray-700">
             <li className="flex items-start gap-2">
-              <span className="text-purple-500 font-bold">•</span>
+              <span className="text-orange-500 font-bold">•</span>
               <span>Prévision CA 7 et 30 jours basée sur moyenne mobile</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-purple-500 font-bold">•</span>
+              <span className="text-orange-500 font-bold">•</span>
               <span>Identification produits stars et tendances</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-purple-500 font-bold">•</span>
+              <span className="text-orange-500 font-bold">•</span>
               <span>Meilleur jour de vente prévu (saisonnalité)</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-purple-500 font-bold">•</span>
+              <span className="text-orange-500 font-bold">•</span>
               <span>Graphique évolution prévisions vs réalisations</span>
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-purple-500 font-bold">•</span>
+              <span className="text-orange-500 font-bold">•</span>
               <span>Recommandations promotions et actions commerciales</span>
             </li>
           </ul>

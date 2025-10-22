@@ -40,68 +40,8 @@
     <link rel="apple-touch-startup-image" href="/splash-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" />
     <link rel="apple-touch-startup-image" href="/splash-1242x2208.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" />
 
-    <!-- Critical CSS (inline for performance) -->
-    <style>
-      /* Critical loading styles */
-      html, body {
-        margin: 0;
-        padding: 0;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-        background: linear-gradient(135deg, #fef3c7 0%, #f59e0b 100%);
-        overflow-x: hidden;
-      }
-
-      #root {
-        min-height: 100vh;
-        min-height: 100dvh; /* Support for new viewport units */
-      }
-
-      /* Loading spinner */
-      .app-loader {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        text-align: center;
-        color: #1f2937;
-      }
-
-      .app-loader .spinner {
-        width: 40px;
-        height: 40px;
-        border: 4px solid #f3f4f6;
-        border-top: 4px solid #f59e0b;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin: 0 auto 1rem;
-      }
-
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-
-      /* Touch optimization */
-      * {
-        -webkit-tap-highlight-color: transparent;
-        -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        user-select: none;
-      }
-
-      input, textarea, button {
-        -webkit-user-select: auto;
-        user-select: auto;
-      }
-
-      /* PWA display optimization */
-      @media (display-mode: standalone) {
-        body {
-          padding-top: env(safe-area-inset-top);
-          padding-bottom: env(safe-area-inset-bottom);
-        }
-      }
-    </style>
+    <!-- Critical CSS (for performance) -->
+    <link rel="stylesheet" href="/src/critical.css" />
   </head>
   <body>
     <!-- App Loading -->

@@ -122,7 +122,7 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br fbg-gradient-to-br from-yellow-200 to-amber-200">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-orange-100 p-4 shadow-sm">
         <div className="flex items-center justify-between">

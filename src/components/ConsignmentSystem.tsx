@@ -55,12 +55,12 @@ export const ConsignmentSystem: React.FC<ConsignmentSystemProps> = ({ isOpen, on
           className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col"
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-6 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white p-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Package className="w-8 h-8" />
               <div>
                 <h2 className="text-2xl font-bold">Gestion des Consignations</h2>
-                <p className="text-purple-100 text-sm">
+                <p className="text-orange-100 text-sm">
                   Gérer les produits consignés et récupérations
                 </p>
               </div>
@@ -122,8 +122,8 @@ const TabButton: React.FC<TabButtonProps> = ({ active, onClick, icon, label }) =
     onClick={onClick}
     className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-medium transition-all ${
       active
-        ? 'text-purple-600 border-b-2 border-purple-600 bg-white'
-        : 'text-gray-600 hover:text-purple-600 hover:bg-white/50'
+        ? 'text-orange-600 border-b-2 border-orange-600 bg-white'
+        : 'text-gray-600 hover:text-orange-600 hover:bg-white/50'
     }`}
   >
     {icon}
