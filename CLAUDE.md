@@ -8,6 +8,9 @@
 - `npm run build` - Build for production
 - `npm run lint` - Run ESLint
 - `npm run preview` - Preview production build
+- `npm test` - Run all tests (Vitest)
+- `npm run test:ui` - Run tests with interactive UI
+- `npm run test:coverage` - Run tests with coverage report
 
 ## 🏗️ Architecture
 
@@ -552,6 +555,7 @@ For detailed implementation guides, see:
 - [MVP_SEMAINE1_RAPPORT.md](MVP_SEMAINE1_RAPPORT.md) - Week 1 completion report
 - [AUDIT_METIER_BENIN.md](AUDIT_METIER_BENIN.md) - Market analysis & strategy
 - [LECONS_DEPLOIEMENT.md](LECONS_DEPLOIEMENT.md) - Deployment lessons (Windows→Linux)
+- [TESTING.md](TESTING.md) - Testing guide (103 tests, Vitest + RTL)
 
 ## 🚀 Deployment
 
