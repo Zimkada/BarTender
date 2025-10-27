@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useLocalStorage } from './useLocalStorage';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
+import { calculateAvailableStock } from '../utils/calculations';
 import type { Consignment, ConsignmentStatus, ConsignmentStock, ProductStockInfo } from '../types';
 
 const STORAGE_KEY = 'consignments-v1';
@@ -199,7 +200,8 @@ export const useConsignments = (): UseConsignmentsReturn => {
   const getProductStockInfo = useCallback(
     (productId: string, physicalStock: number): ProductStockInfo => {
       const consignedStock = getConsignedStockByProduct(productId);
-      const availableStock = Math.max(0, physicalStock - consignedStock);
+      // ✅ Utilise fonction centralisée pour cohérence
+      const availableStock = calculateAvailableStock(physicalStock, consignedStock);
 
       return {
         productId,
