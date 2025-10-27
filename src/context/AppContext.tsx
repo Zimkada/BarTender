@@ -365,9 +365,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const getTodayTotal = useCallback(() => {
     const salesTotal = getTodaySales().reduce((sum, sale) => sum + sale.total, 0);
-    // La logique des retours reste la même
-    return salesTotal; // Simplifié pour l'instant
-  }, [getTodaySales]);
+
+    // Déduire les retours remboursés du jour (CA NET = Ventes - Retours)
+    const closeHour = currentBar?.settings?.businessDayCloseHour ?? 6;
+    const currentBusinessDay = getCurrentBusinessDay(closeHour);
+
+    const returnsTotal = returns
+      .filter(r => {
+        // Seulement retours approuvés/restockés (pas pending ni rejected)
+        if (r.status !== 'approved' && r.status !== 'restocked') return false;
+        // Seulement retours remboursés
+        if (!r.isRefunded) return false;
+        // Même jour commercial que les ventes
+        const returnDate = new Date(r.returnedAt);
+        const returnBusinessDay = getBusinessDay(returnDate, closeHour);
+        return isSameDay(returnBusinessDay, currentBusinessDay);
+      })
+      .reduce((sum, r) => sum + r.refundAmount, 0);
+
+    return salesTotal - returnsTotal; // CA NET
+  }, [getTodaySales, returns, currentBar]);
 
   const getSalesByUser = useCallback((userId: string) => {
     if (!hasPermission('canViewAllSales')) return [];
