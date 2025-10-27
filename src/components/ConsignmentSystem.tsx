@@ -469,12 +469,12 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
 
 // ===== TAB 2: CONSIGNATIONS ACTIVES =====
 const ActiveConsignmentsTab: React.FC = () => {
-  const { getActiveConsignments, claimConsignment, forfeitConsignment, checkAndExpireConsignments } = useConsignments();
-  const { products, decreaseStock, sales } = useAppContext();
+  const { getActiveConsignments, claimConsignment, forfeitConsignment, checkAndExpireConsignments, consignments } = useConsignments();
+  const { increaseStock, sales } = useAppContext();
   const { currentBar, getBarMembers } = useBarContext();
-  const { formatPrice } = useCurrencyFormatter();
   const { showSuccess, showError } = useFeedback();
   const [searchTerm, setSearchTerm] = useState('');
+  const [processedExpired, setProcessedExpired] = useState<Set<string>>(new Set());
 
   // 👥 Obtenir les membres de l'équipe du bar actuel
   const barMembers = currentBar ? getBarMembers(currentBar.id) : [];
@@ -492,6 +492,22 @@ const ActiveConsignmentsTab: React.FC = () => {
       c.id.toLowerCase().includes(term)
     );
   }, [activeConsignments, searchTerm]);
+
+  // ✅ Effet: Remettre en stock les consignations expirées automatiquement
+  useEffect(() => {
+    const expiredConsignments = consignments.filter(
+      c => (c.status === 'expired' || c.status === 'forfeited') && !processedExpired.has(c.id)
+    );
+
+    if (expiredConsignments.length > 0) {
+      expiredConsignments.forEach(c => {
+        increaseStock(c.productId, c.quantity);
+        setProcessedExpired(prev => new Set(prev).add(c.id));
+      });
+
+      console.log(`✅ ${expiredConsignments.length} consignation(s) expirée(s) - stock remis automatiquement`);
+    }
+  }, [consignments, increaseStock, processedExpired]);
 
   const handleClaim = (consignment: Consignment) => {
     const confirmed = window.confirm(
@@ -517,7 +533,10 @@ const ActiveConsignmentsTab: React.FC = () => {
 
     const success = forfeitConsignment(consignment.id);
     if (success) {
-      showSuccess('Consignation confisquée, stock libéré');
+      // ✅ Remettre en stock : client ne vient pas chercher, bouteilles restent au bar
+      increaseStock(consignment.productId, consignment.quantity);
+
+      showSuccess(`Consignation confisquée - ${consignment.quantity}x ${consignment.productName} remis en stock`);
     } else {
       showError('Erreur lors de la confiscation');
     }

@@ -65,6 +65,12 @@ export const useConsignments = (): UseConsignmentsReturn => {
       return null;
     }
 
+    // ✅ Vérification permission (seuls promoteur/gérant peuvent créer)
+    if (session.role !== 'promoteur' && session.role !== 'gerant') {
+      console.error('❌ Permission refusée: seuls promoteur/gérant peuvent créer des consignations');
+      return null;
+    }
+
     const now = new Date();
     const { expirationDays, ...consignmentData } = data;
 
