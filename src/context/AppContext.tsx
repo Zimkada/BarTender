@@ -2,6 +2,7 @@ import React, { createContext, useContext, useCallback } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
+import { useStockBridge } from '../context/StockBridgeProvider';
 import { offlineQueue } from '../services/offlineQueue';
 import { useNotifications } from '../components/Notifications';
 import {
@@ -56,14 +57,11 @@ interface AppContextType {
   addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'barId'>) => Product | null;
   updateProduct: (id: string, updates: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
-  decreaseStock: (id: string, quantity: number) => void;
-  increaseStock: (id: string, quantity: number) => void;
   getProductsByCategory: (categoryId: string) => Product[];
   getLowStockProducts: () => Product[];
   getProductById: (id: string) => Product | undefined;
-  
-  // Approvisionnements
-  addSupply: (supply: Omit<Supply, 'id' | 'date' | 'totalCost' | 'barId' | 'createdBy'>) => Supply | null;
+
+  // Approvisionnements (addSupply removed - use useStockManagement.processSupply)
   getSuppliesByProduct: (productId: string) => Supply[];
   getTotalCostByProduct: (productId: string) => number;
   getAverageCostPerUnit: (productId: string) => number;
@@ -113,6 +111,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const { currentSession, hasPermission } = useAuth();
   const { currentBar } = useBarContext();
   const { showNotification } = useNotifications();
+  const { processSaleValidation } = useStockBridge();
   
   // États avec tous les bars
   const [allCategories, setAllCategories] = useLocalStorage<Category[]>('categories-v3', []);
@@ -195,58 +194,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAllProducts(prev => prev.filter(p => p.id !== id));
   }, [setAllProducts, hasPermission]);
 
-  const decreaseStock = useCallback((id: string, quantity: number) => {
-    setAllProducts(prev => prev.map(p => p.id === id ? { ...p, stock: Math.max(0, p.stock - quantity) } : p));
-  }, [setAllProducts]);
-
-  const increaseStock = useCallback((id: string, quantity: number) => {
-    if (!hasPermission('canManageInventory')) return;
-    setAllProducts(prev => prev.map(p => p.id === id ? { ...p, stock: p.stock + quantity } : p));
-  }, [setAllProducts, hasPermission]);
+  // ❌ REMOVED: decreaseStock, increaseStock - Use useStockManagement.decreasePhysicalStock/increasePhysicalStock
 
   const getProductsByCategory = useCallback((categoryId: string) => products.filter(p => p.categoryId === categoryId), [products]);
   const getLowStockProducts = useCallback(() => products.filter(p => p.stock <= p.alertThreshold), [products]);
   const getProductById = useCallback((id: string) => products.find(p => p.id === id), [products]);
 
-  const addSupply = useCallback((supply: Omit<Supply, 'id' | 'date' | 'totalCost' | 'barId' | 'createdBy'>) => {
-    if (!hasPermission('canManageInventory') || !currentBar || !currentSession) return null;
-
-    const totalCost = (supply.quantity / supply.lotSize) * supply.lotPrice;
-    const uniqueId = `supply_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const newSupply: Supply = {
-      ...supply,
-      id: uniqueId,
-      barId: currentBar.id,
-      date: new Date(),
-      totalCost,
-      createdBy: currentSession.userId
-    };
-
-    setAllSupplies(prev => [newSupply, ...prev]);
-    increaseStock(supply.productId, supply.quantity);
-
-    // ✅ Créer automatiquement une dépense d'approvisionnement
-    const product = products.find(p => p.id === supply.productId);
-    const expenseData: Omit<Expense, 'id' | 'barId' | 'createdAt'> = {
-      category: 'supply',
-      amount: totalCost,
-      date: new Date(),
-      description: `Approvisionnement: ${product?.name || 'Produit'} (${supply.quantity} unités)`,
-      createdBy: currentSession.userId,
-      relatedSupplyId: newSupply.id, // Lien vers l'approvisionnement
-    };
-
-    const newExpense: Expense = {
-      ...expenseData,
-      id: `exp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      barId: currentBar.id,
-      createdAt: new Date(),
-    };
-
-    setAllExpenses(prev => [...prev, newExpense]);
-
-    return newSupply;
-  }, [setAllSupplies, setAllExpenses, increaseStock, hasPermission, currentBar, currentSession, products]);
+  // ❌ REMOVED: addSupply - Use useStockManagement.processSupply
 
   const getSuppliesByProduct = useCallback((productId: string) => supplies.filter(s => s.productId === productId), [supplies]);
 
@@ -293,21 +247,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
 
-    // 1. Mettre à jour le statut de la vente
-    setAllSales(prev => prev.map(s => 
-      s.id === saleId 
-        ? { ...s, status: 'validated', validatedBy: validatorId, validatedAt: new Date() } 
-        : s
-    ));
-
-    // 2. Décrémenter le stock
-    saleToValidate.items.forEach(item => {
-      decreaseStock(item.product.id, item.quantity);
-    });
-
-    showNotification('success', `Vente #${saleId.slice(-4)} validée et stock mis à jour.`);
-
-  }, [allSales, setAllSales, decreaseStock, hasPermission, showNotification]);
+    // Utiliser processSaleValidation pour validation atomique du stock
+    processSaleValidation(
+      saleToValidate.items,
+      () => {
+        // Success callback: mettre à jour le statut de la vente
+        setAllSales(prev => prev.map(s =>
+          s.id === saleId
+            ? { ...s, status: 'validated', validatedBy: validatorId, validatedAt: new Date() }
+            : s
+        ));
+        showNotification('success', `Vente #${saleId.slice(-4)} validée et stock mis à jour.`);
+      },
+      (error) => {
+        // Error callback: stock insuffisant
+        showNotification('error', error);
+      }
+    );
+  }, [allSales, setAllSales, processSaleValidation, hasPermission, showNotification]);
 
   const rejectSale = useCallback((saleId: string, rejectorId: string) => {
     if (!hasPermission('canManageInventory')) return; // Seul un gérant peut rejeter
@@ -464,11 +421,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addCategory, updateCategory, deleteCategory,
 
     // Produits
-    addProduct, updateProduct, deleteProduct, decreaseStock, increaseStock,
+    addProduct, updateProduct, deleteProduct,
     getProductsByCategory, getLowStockProducts, getProductById,
 
-    // Approvisionnements
-    addSupply, getSuppliesByProduct, getTotalCostByProduct, getAverageCostPerUnit,
+    // Approvisionnements (addSupply removed - use useStockManagement.processSupply)
+    getSuppliesByProduct, getTotalCostByProduct, getAverageCostPerUnit,
 
     // Ventes
     addSale, validateSale, rejectSale, // NOUVELLES FONCTIONS

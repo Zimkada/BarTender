@@ -4,21 +4,24 @@ import { useLocalStorage } from './useLocalStorage';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { calculateAvailableStock } from '../utils/calculations';
-import type { Product, Consignment, ConsignmentStatus, ProductStockInfo } from '../types';
+import type { Product, Consignment, ConsignmentStatus, ProductStockInfo, Supply, Expense } from '../types';
 
 // ----- CONSTANTES -----
 const PRODUCTS_STORAGE_KEY = 'bar-products';
 const CONSIGNMENTS_STORAGE_KEY = 'consignments-v1';
+const SUPPLIES_STORAGE_KEY = 'all-supplies-v1';
 const DEFAULT_EXPIRATION_DAYS = 7;
 
 // ----- INTERFACES -----
-// (Les interfaces pour le retour du hook seront définies ici)
+// Callback type for expense creation (separation of concerns)
+export type CreateExpenseCallback = (expense: Omit<Expense, 'id' | 'barId' | 'createdAt'>) => void;
 
 // ----- HOOK PRINCIPAL -----
 export const useStockManagement = () => {
   const [products, setProducts] = useLocalStorage<Product[]>(PRODUCTS_STORAGE_KEY, []);
   const [consignments, setConsignments] = useLocalStorage<Consignment[]>(CONSIGNMENTS_STORAGE_KEY, []);
-  
+  const [supplies, setSupplies] = useLocalStorage<Supply[]>(SUPPLIES_STORAGE_KEY, []);
+
   const { currentBar } = useBarContext();
   const { currentSession: session } = useAuth();
 
@@ -147,6 +150,63 @@ export const useStockManagement = () => {
   }, [currentBar, consignments, setConsignments, increasePhysicalStock]);
 
 
+  // ===== SUPPLY MANAGEMENT (APPROVISIONNEMENTS) =====
+
+  /**
+   * Traite un approvisionnement de manière atomique
+   * @param supplyData - Données de l'approvisionnement
+   * @param onExpenseCreated - Callback pour créer la dépense associée (AppContext)
+   * @returns Supply créé ou null si erreur
+   */
+  const processSupply = useCallback((
+    supplyData: Omit<Supply, 'id' | 'date' | 'totalCost' | 'barId' | 'createdBy'>,
+    onExpenseCreated: CreateExpenseCallback
+  ): Supply | null => {
+    // Vérifications permissions et contexte
+    if (!currentBar || !session) {
+      console.error('❌ processSupply: currentBar ou session manquant');
+      return null;
+    }
+
+    if (session.role !== 'promoteur' && session.role !== 'gerant') {
+      console.error('❌ processSupply: Permission refusée (role:', session.role, ')');
+      return null;
+    }
+
+    // 1️⃣ Calculer coût total
+    const totalCost = (supplyData.quantity / supplyData.lotSize) * supplyData.lotPrice;
+
+    // 2️⃣ Créer supply
+    const uniqueId = `supply_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    const newSupply: Supply = {
+      ...supplyData,
+      id: uniqueId,
+      barId: currentBar.id,
+      date: new Date(),
+      totalCost,
+      createdBy: session.userId
+    };
+
+    // 3️⃣ Opération atomique : supply + stock physique
+    setSupplies(prev => [newSupply, ...prev]);
+    increasePhysicalStock(supplyData.productId, supplyData.quantity);
+
+    // 4️⃣ Callback pour créer expense (AppContext garde la logique expenses)
+    const product = products.find(p => p.id === supplyData.productId);
+    onExpenseCreated({
+      category: 'supply',
+      amount: totalCost,
+      date: new Date(),
+      description: `Approvisionnement: ${product?.name || 'Produit'} (${supplyData.quantity} unités)`,
+      createdBy: session.userId,
+      relatedSupplyId: newSupply.id,
+    });
+
+    console.log(`✅ Supply créé: ${supplyData.quantity} unités, stock physique augmenté`);
+    return newSupply;
+  }, [currentBar, session, products, setSupplies, increasePhysicalStock]);
+
+
   // ===== QUERIES ET DONNÉES DÉRIVÉES =====
 
   const barConsignments = useMemo(() => {
@@ -177,11 +237,52 @@ export const useStockManagement = () => {
   }, [products, getConsignedStockByProduct]);
 
 
+  // ===== SALE VALIDATION =====
+
+  /**
+   * Traite la validation d'une vente en vérifiant et décrementant le stock
+   * @param saleItems - Items de la vente à valider
+   * @param onSuccess - Callback si validation réussie
+   * @param onError - Callback si erreur (stock insuffisant)
+   * @returns true si succès, false si erreur
+   */
+  const processSaleValidation = useCallback((
+    saleItems: Array<{ product: { id: string; name: string }; quantity: number }>,
+    onSuccess: () => void,
+    onError: (message: string) => void
+  ): boolean => {
+    // Vérifier stock disponible AVANT validation (protection stock consigné)
+    for (const item of saleItems) {
+      const stockInfo = getProductStockInfo(item.product.id);
+
+      if (!stockInfo) {
+        onError(`Produit ${item.product.name} introuvable`);
+        return false;
+      }
+
+      if (stockInfo.availableStock < item.quantity) {
+        onError(`Stock insuffisant pour ${item.product.name} (disponible: ${stockInfo.availableStock}, demandé: ${item.quantity})`);
+        return false;
+      }
+    }
+
+    // Opération atomique: décrémenter tous les stocks
+    saleItems.forEach(item => {
+      decreasePhysicalStock(item.product.id, item.quantity);
+    });
+
+    console.log(`✅ Vente validée: ${saleItems.length} produit(s), stock mis à jour`);
+    onSuccess();
+    return true;
+  }, [getProductStockInfo, decreasePhysicalStock]);
+
+
   // ===== EXPORTATIONS DU HOOK =====
   return {
     // State
     products,
     consignments: barConsignments,
+    supplies,
 
     // Product Actions
     addProduct,
@@ -191,6 +292,12 @@ export const useStockManagement = () => {
     // Physical Stock Actions
     increasePhysicalStock,
     decreasePhysicalStock,
+
+    // Supply Actions
+    processSupply,
+
+    // Sale Actions
+    processSaleValidation,
 
     // Consignment Actions
     createConsignment,

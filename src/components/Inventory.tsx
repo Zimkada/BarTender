@@ -19,13 +19,14 @@ interface InventoryProps {
 }
 
 export function Inventory({ isOpen, onClose }: InventoryProps) {
-  const { categories, getAverageCostPerUnit, addSupply } = useAppContext();
+  const { categories, getAverageCostPerUnit, addExpense } = useAppContext();
   const {
     products,
     addProduct,
     updateProduct,
     deleteProduct,
     getProductStockInfo,
+    processSupply,
   } = useStockManagement();
 
   const { formatPrice } = useCurrencyFormatter();
@@ -61,8 +62,10 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
     lotPrice: number;
     supplier: string;
   }) => {
-    // This function will eventually be moved inside useStockManagement
-    addSupply(supplyData);
+    // ✅ Migré vers useStockManagement (opération atomique + callback expense)
+    processSupply(supplyData, (expenseData) => {
+      addExpense(expenseData);
+    });
     setShowSupplyModal(false);
   };
 

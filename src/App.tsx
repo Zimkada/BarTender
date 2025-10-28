@@ -12,6 +12,8 @@ import { UserManagement } from './components/UserManagement';
 import { RoleBasedComponent } from './components/RoleBasedComponent';
 import { NotificationsProvider, useNotifications } from './components/Notifications';
 import { useAppContext } from './context/AppContext';
+import { useStockManagement } from './hooks/useStockManagement';
+import { StockBridgeProvider } from './context/StockBridgeProvider';
 import { CartItem, Product, Category } from './types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from './context/AuthContext';
@@ -39,13 +41,13 @@ function AppContent() {
     addCategory,
     updateCategory,
     deleteCategory,
-    addProduct, 
+    addProduct,
     getProductsByCategory,
     addSale,
-    decreaseStock,
-    settings 
+    settings
   } = useAppContext();
-  
+
+  const { processSaleValidation } = useStockManagement();
   const { isAuthenticated, currentSession } = useAuth();
   const { showNotification } = useNotifications();
   const [showDailyDashboard, setShowDailyDashboard] = useState(false);
@@ -171,21 +173,30 @@ function AppContent() {
           assignedTo,
         });
       } else {
-        addSale({
-          items: cart,
-          total,
-          currency: settings.currency,
-          status: 'validated',
-          createdBy: currentSession.userId,
-          validatedBy: currentSession.userId,
-          createdAt: new Date(),
-          validatedAt: new Date(),
-          assignedTo,
-        });
+        // ✅ Vente directe (promoteur/gérant) : validation + stock atomique
+        const success = processSaleValidation(
+          cart,
+          () => {
+            // Callback succès : créer la vente après décrémentation stock
+            addSale({
+              items: cart,
+              total,
+              currency: settings.currency,
+              status: 'validated',
+              createdBy: currentSession.userId,
+              validatedBy: currentSession.userId,
+              createdAt: new Date(),
+              validatedAt: new Date(),
+              assignedTo,
+            });
+          },
+          (error) => {
+            // Callback erreur : stock insuffisant
+            showNotification('error', error);
+          }
+        );
 
-        cart.forEach(item => {
-          decreaseStock(item.product.id, item.quantity);
-        });
+        if (!success) return; // Arrêter si validation échouée
       }
 
       clearCart();
@@ -460,7 +471,9 @@ function AppContent() {
 function App() {
   return (
     <NotificationsProvider>
-      <AppContent />
+      <StockBridgeProvider>
+        <AppContent />
+      </StockBridgeProvider>
     </NotificationsProvider>
   );
 }
