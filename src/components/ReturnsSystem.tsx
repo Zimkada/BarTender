@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
   RotateCcw,
   Package,
@@ -177,7 +176,6 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
     const finalRestock = reason === 'other' ? (customRestock ?? false) : reasonConfig.autoRestock;
 
     const newReturn = addReturn({
-      barId: currentBar!.id,
       saleId,
       productId,
       productName: item.product.name,
@@ -934,11 +932,11 @@ function CreateReturnForm({
                     </span>
                   ) : reasonConfig.autoRestock ? (
                     <span className="text-sm bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
-                      📦 Stock auto
+                      📦 Remis en stock auto
                     </span>
                   ) : (
-                    <span className="text-sm bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-medium">
-                      📦 Choix manuel
+                    <span className="text-sm bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">
+                      ❌ Pas de remise en stock
                     </span>
                   )}
                 </div>
