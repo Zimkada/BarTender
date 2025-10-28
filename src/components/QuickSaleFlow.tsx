@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
+import { useStockManagement } from '../hooks/useStockManagement';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
@@ -26,13 +27,12 @@ interface QuickSaleFlowProps {
 }
 
 export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
-  const {
-    products,
-    categories,
-    addSale,
-    decreaseStock,
-    settings
-  } = useAppContext();
+  const { categories, addSale, settings } = useAppContext();
+  const { 
+    products, 
+    decreasePhysicalStock, 
+    getProductStockInfo 
+  } = useStockManagement();
   const { currentBar } = useBarContext();
   const { currentSession } = useAuth();
   const { formatPrice } = useCurrencyFormatter();
@@ -43,101 +43,90 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [customerInfo, setCustomerInfo] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'mobile'>('cash');
-  const [selectedServer, setSelectedServer] = useState<string>(''); // Pour mode simplifié
+  const [selectedServer, setSelectedServer] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCartMobile, setShowCartMobile] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Focus automatique sur la recherche
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
       searchInputRef.current.focus();
     }
   }, [isOpen]);
 
-  // Raccourcis clavier
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (!isOpen) return;
-      
-      // Ctrl/Cmd + Enter = Finaliser vente
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         handleCheckout();
       }
-      
-      // Escape = Vider panier
       if (e.key === 'Escape') {
         e.preventDefault();
         setCart([]);
       }
-      
-      // F1 = Focus recherche
       if (e.key === 'F1') {
         e.preventDefault();
         searchInputRef.current?.focus();
       }
     };
-
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [isOpen, cart]);
 
-  // Produits filtrés
   const filteredProducts = products.filter(product => {
+    const stockInfo = getProductStockInfo(product.id);
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.volume.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || product.categoryId === selectedCategory;
-    return matchesSearch && matchesCategory && product.stock > 0;
+    return matchesSearch && matchesCategory && (stockInfo?.availableStock ?? 0) > 0;
   });
 
-  // Ajout rapide au panier
   const quickAddToCart = (product: Product, quantity = 1) => {
-    if (product.stock < quantity) return;
+    const stockInfo = getProductStockInfo(product.id);
+    const availableStock = stockInfo?.availableStock ?? 0;
+    if (availableStock < quantity) return;
 
     const existingItem = cart.find(item => item.product.id === product.id);
 
     if (existingItem) {
       setCart(cart.map(item =>
         item.product.id === product.id
-          ? { ...item, quantity: Math.min(item.quantity + quantity, product.stock) }
+          ? { ...item, quantity: Math.min(item.quantity + quantity, availableStock) }
           : item
       ));
     } else {
       setCart([...cart, { product, quantity }]);
     }
 
-    // Vider la recherche pour continuer rapidement
     setSearchTerm('');
-    // Ne pas re-focus sur mobile pour éviter d'activer le clavier
     if (!isMobile) {
       searchInputRef.current?.focus();
     }
   };
 
-  // Modification quantité
   const updateQuantity = (productId: string, newQuantity: number) => {
+    const stockInfo = getProductStockInfo(productId);
+    const availableStock = stockInfo?.availableStock ?? 0;
+
     if (newQuantity === 0) {
       setCart(cart.filter(item => item.product.id !== productId));
     } else {
       setCart(cart.map(item =>
         item.product.id === productId
-          ? { ...item, quantity: Math.min(newQuantity, item.product.stock) }
+          ? { ...item, quantity: Math.min(newQuantity, availableStock) }
           : item
       ));
     }
   };
 
-  // Calculs
   const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Finaliser la vente
   const handleCheckout = async () => {
     if (cart.length === 0 || !currentSession) return;
 
-    // Vérifier si un serveur doit être sélectionné
     const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
     if (isSimplifiedMode && !selectedServer) {
       alert('Veuillez sélectionner le serveur qui a effectué la vente');
@@ -147,52 +136,43 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     setIsProcessing(true);
 
     try {
-      // Vérifier le stock une dernière fois
       for (const item of cart) {
-        const currentProduct = products.find(p => p.id === item.product.id);
-        if (!currentProduct || currentProduct.stock < item.quantity) {
-          throw new Error(`Stock insuffisant pour ${item.product.name}`);
+        const stockInfo = getProductStockInfo(item.product.id);
+        if (!stockInfo || stockInfo.availableStock < item.quantity) {
+          throw new Error(`Stock disponible insuffisant pour ${item.product.name}`);
         }
       }
 
       const isServerRole = currentSession.role === 'serveur';
 
-      // Logique différenciée selon le rôle
       if (isServerRole) {
-        // Pour un SERVEUR, on crée une vente "en attente" de validation
         await addSale({
           items: cart,
           total,
           currency: settings.currency,
-          status: 'pending', // La vente est en attente
-          createdBy: currentSession.userId, // Le serveur qui a créé
+          status: 'pending',
+          createdBy: currentSession.userId,
           createdAt: new Date(),
           assignedTo: isSimplifiedMode ? selectedServer : undefined,
-        } as any); // `as any` est temporaire, le temps d'adapter addSale
-
-        // ON NE DIMINUE PAS LE STOCK ICI
-
+        } as any);
       } else {
-        // Pour un GERANT ou PROMOTEUR, la vente est auto-validée
         await addSale({
           items: cart,
           total,
           currency: settings.currency,
-          status: 'validated', // La vente est directement validée
-          createdBy: currentSession.userId, // Le gérant qui a créé
-          validatedBy: currentSession.userId, // Auto-validé par le gérant
+          status: 'validated',
+          createdBy: currentSession.userId,
+          validatedBy: currentSession.userId,
           createdAt: new Date(),
           validatedAt: new Date(),
           assignedTo: isSimplifiedMode ? selectedServer : undefined,
-        } as any); // `as any` est temporaire, le temps d'adapter addSale
+        } as any);
 
-        // On diminue le stock car la vente est validée
         cart.forEach(item => {
-          decreaseStock(item.product.id, item.quantity);
+          decreasePhysicalStock(item.product.id, item.quantity);
         });
       }
 
-      // Animation de succès
       setShowSuccess(true);
       setTimeout(() => {
         setShowSuccess(false);
@@ -227,7 +207,6 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className="w-full max-w-4xl bg-white h-full overflow-hidden flex flex-col"
           >
-            {/* Header */}
             <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -243,12 +222,9 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
               </div>
             </div>
 
-            {/* ==================== VERSION MOBILE (vertical stack) ==================== */}
             {isMobile ? (
               <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Zone produits (scrollable) */}
                 <div className="flex-1 overflow-y-auto p-4">
-                  {/* Recherche et filtres */}
                   <div className="space-y-4 mb-6">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -289,41 +265,44 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                     </div>
                   </div>
 
-                  {/* Liste produits - 1 colonne mobile */}
                   <div className="space-y-3 pb-24">
-                    {filteredProducts.map(product => (
-                      <div
-                        key={product.id}
-                        onClick={() => quickAddToCart(product)}
-                        className="bg-white rounded-xl border border-gray-200 active:scale-[0.98] transition-transform overflow-hidden"
-                      >
-                        <div className="flex items-center gap-3 p-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between mb-1">
-                              <h3 className="font-semibold text-gray-800 text-base truncate">{product.name}</h3>
-                              <span className={`flex-shrink-0 text-xs px-2 py-1 rounded-full ml-2 ${
-                                product.stock <= product.alertThreshold
-                                  ? 'bg-red-100 text-red-600'
-                                  : 'bg-orange-100 text-orange-600'
-                              }`}>
-                                {product.stock}
-                              </span>
+                    {filteredProducts.map(product => {
+                      const stockInfo = getProductStockInfo(product.id);
+                      const availableStock = stockInfo?.availableStock ?? 0;
+                      return (
+                        <div
+                          key={product.id}
+                          onClick={() => quickAddToCart(product)}
+                          className="bg-white rounded-xl border border-gray-200 active:scale-[0.98] transition-transform overflow-hidden"
+                        >
+                          <div className="flex items-center gap-3 p-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between mb-1">
+                                <h3 className="font-semibold text-gray-800 text-base truncate">{product.name}</h3>
+                                <span className={`flex-shrink-0 text-xs px-2 py-1 rounded-full ml-2 ${
+                                  availableStock <= product.alertThreshold
+                                    ? 'bg-red-100 text-red-600'
+                                    : 'bg-orange-100 text-orange-600'
+                                }`}>
+                                  {availableStock}
+                                </span>
+                              </div>
+                              <p className="text-gray-600 text-sm mb-2">{product.volume}</p>
+                              <span className="text-orange-600 font-bold text-lg">{formatPrice(product.price)}</span>
                             </div>
-                            <p className="text-gray-600 text-sm mb-2">{product.volume}</p>
-                            <span className="text-orange-600 font-bold text-lg">{formatPrice(product.price)}</span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                quickAddToCart(product, 1);
+                              }}
+                              className="flex-shrink-0 w-12 h-12 bg-orange-500 text-white rounded-xl flex items-center justify-center active:bg-orange-600 transition-colors"
+                            >
+                              <Plus size={20} strokeWidth={3} />
+                            </button>
                           </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              quickAddToCart(product, 1);
-                            }}
-                            className="flex-shrink-0 w-12 h-12 bg-orange-500 text-white rounded-xl flex items-center justify-center active:bg-orange-600 transition-colors"
-                          >
-                            <Plus size={20} strokeWidth={3} />
-                          </button>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   {filteredProducts.length === 0 && (
@@ -334,11 +313,9 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                   )}
                 </div>
 
-                {/* Panier sticky footer mobile */}
                 {cart.length > 0 && (
                   <div className="flex-shrink-0 sticky bottom-0 bg-gradient-to-br from-orange-50 to-amber-50 border-t-2 border-orange-300 shadow-lg">
                     <div className="p-4 space-y-3">
-                      {/* Résumé panier */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <ShoppingCart size={20} className="text-orange-600" />
@@ -352,7 +329,6 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                         </button>
                       </div>
 
-                      {/* Total + Finaliser */}
                       <div className="flex items-center gap-3">
                         <div className="flex-1 bg-orange-100 rounded-lg px-4 py-3">
                           <div className="text-xs text-gray-600 mb-1">Total</div>
@@ -375,14 +351,12 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                   </div>
                 )}
 
-                {/* Modal panier détails mobile */}
                 {showCartMobile && (
                   <div className="fixed inset-0 bg-black/50 z-60 flex items-end" onClick={() => setShowCartMobile(false)}>
                     <div
                       className="bg-white w-full rounded-t-3xl max-h-[80vh] flex flex-col"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {/* Header */}
                       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between rounded-t-3xl">
                         <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
                           <ShoppingCart size={24} className="text-orange-600" />
@@ -393,7 +367,6 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                         </button>
                       </div>
 
-                      {/* Contenu scrollable */}
                       <div className="flex-1 overflow-y-auto p-4 space-y-3">
                         {cart.map(item => (
                           <div key={item.product.id} className="bg-gray-50 rounded-xl p-3 border border-gray-200">
@@ -459,7 +432,6 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                           </div>
                         </div>
 
-                        {/* Sélecteur serveur (mode simplifié uniquement) */}
                         {currentBar?.settings?.operatingMode === 'simplified' && (
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
@@ -493,15 +465,12 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                         />
                       </div>
 
-                      {/* Footer sticky avec bouton Finaliser */}
                       <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-white space-y-3">
-                        {/* Total */}
                         <div className="flex items-center justify-between bg-orange-50 rounded-xl p-4">
                           <span className="text-gray-700 font-semibold">Total</span>
                           <span className="text-orange-600 font-bold text-xl">{formatPrice(total)}</span>
                         </div>
 
-                        {/* Bouton Finaliser */}
                         <EnhancedButton
                           variant="success"
                           size="lg"
@@ -523,11 +492,8 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                 )}
               </div>
             ) : (
-              /* ==================== VERSION DESKTOP (horizontal) ==================== */
               <div className="flex-1 flex overflow-hidden">
-                {/* Zone produits */}
                 <div className="flex-1 p-4 overflow-y-auto">
-                  {/* Recherche et filtres */}
                   <div className="space-y-4 mb-6">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
@@ -568,9 +534,11 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                     </div>
                   </div>
 
-                  {/* Liste produits */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {filteredProducts.map(product => (
+                    {filteredProducts.map(product => {
+                      const stockInfo = getProductStockInfo(product.id);
+                      const availableStock = stockInfo?.availableStock ?? 0;
+                      return (
                       <motion.div
                         key={product.id}
                         whileHover={{ scale: 1.02 }}
@@ -581,11 +549,12 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                         <div className="flex items-center justify-between mb-2">
                           <h3 className="font-semibold text-gray-800 text-sm">{product.name}</h3>
                           <span className={`text-xs px-2 py-1 rounded-full ${
-                            product.stock <= product.alertThreshold
+                            availableStock <= product.alertThreshold
                               ? 'bg-red-100 text-red-600'
                               : 'bg-orange-100 text-orange-600'
                           }`}>
-                            {product.stock}
+
+                            {availableStock}
                           </span>
                         </div>
                         <p className="text-gray-600 text-xs mb-2">{product.volume}</p>
@@ -604,7 +573,8 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                           </div>
                         </div>
                       </motion.div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   {filteredProducts.length === 0 && (
@@ -615,9 +585,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                   )}
                 </div>
 
-                {/* Panier latéral */}
                 <div className="w-80 h-full bg-gradient-to-br from-orange-50 to-amber-50 border-l border-orange-200 flex flex-col">
-                {/* Header panier */}
                 <div className="flex-shrink-0 p-4 border-b border-orange-200">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold text-gray-800 flex items-center gap-2">
@@ -634,7 +602,6 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                     )}
                   </div>
                   
-                  {/* Info client */}
                   <input
                     type="text"
                     placeholder="Client (optionnel)"
@@ -644,7 +611,6 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                   />
                 </div>
 
-                {/* Items panier - scrollable */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
                   {cart.length === 0 ? (
                     <div className="text-center py-8">
@@ -698,9 +664,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                   )}
                 </div>
 
-                {/* Footer panier - TOUJOURS VISIBLE ET FIXE EN BAS */}
                 <div className="flex-shrink-0 p-4 border-t border-orange-200 space-y-3 bg-gradient-to-br from-orange-50 to-amber-50">
-                  {/* Mode de paiement */}
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1.5">Mode de paiement</label>
                     <div className="grid grid-cols-3 gap-1.5">
@@ -727,7 +691,6 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                     </div>
                   </div>
 
-                  {/* Sélecteur serveur (mode simplifié uniquement) */}
                   {currentBar?.settings?.operatingMode === 'simplified' && (
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1.5 flex items-center gap-1">
@@ -752,7 +715,6 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                     </div>
                   )}
 
-                  {/* Total */}
                   <div className="bg-orange-100 rounded-lg p-2.5">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-700 font-medium text-sm">Total:</span>
@@ -760,7 +722,6 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                     </div>
                   </div>
 
-                  {/* Bouton finaliser */}
                   <EnhancedButton
                     variant="success"
                     size="lg"

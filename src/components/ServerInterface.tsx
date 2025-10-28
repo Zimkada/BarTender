@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { CategoryTabs } from './CategoryTabs';
 import { ProductGrid } from './ProductGrid';
 import { ServerCart } from './ServerCart';
 import { PendingOrders } from './PendingOrders';
 import { useAppContext } from '../context/AppContext';
+import { useStockManagement } from '../hooks/useStockManagement';
 import { useAuth } from '../context/AuthContext';
 import { CartItem, Product } from '../types';
 import { Users } from 'lucide-react';
@@ -13,51 +14,62 @@ interface ServerInterfaceProps {
 }
 
 export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
-  const { categories, getProductsByCategory, addSale, settings, decreaseStock } = useAppContext();
+  const { categories, addSale, settings } = useAppContext();
+  const {
+    products,
+    decreasePhysicalStock,
+    getProductStockInfo
+  } = useStockManagement();
   const { currentSession } = useAuth();
-
-
-
 
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id || '');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [tableNumber, setTableNumber] = useState('');
   const [showPendingOrders, setShowPendingOrders] = useState(false);
 
-  const currentProducts = getProductsByCategory(activeCategory);
+  const currentProducts = useMemo(() => {
+    return products.filter(product => product.categoryId === activeCategory);
+  }, [products, activeCategory]);
 
   const addToCart = (product: Product) => {
- if (product.stock === 0) {
-   alert('❌ Stock épuisé');
-   return;
- }
- 
- if (product.stock <= product.alertThreshold && product.stock > 0) {
-   if (!confirm(`⚠️ Stock critique (${product.stock} restants). Continuer ?`)) {
-     return;
-   }
- }
- 
- const existingItem = cart.find(item => item.product.id === product.id);
- 
- if (existingItem) {
-   setCart(cart.map(item =>
-     item.product.id === product.id
-       ? { ...item, quantity: item.quantity + 1 }
-       : item
-   ));
- } else {
-   setCart([...cart, { product, quantity: 1 }]);
- }
-};
+    const stockInfo = getProductStockInfo(product.id);
+    const availableStock = stockInfo?.availableStock ?? 0;
+    const physicalStock = stockInfo?.physicalStock ?? 0;
+
+    if (availableStock === 0) {
+      alert('❌ Stock disponible épuisé');
+      return;
+    }
+    
+    if (physicalStock <= product.alertThreshold && physicalStock > 0) {
+      if (!confirm(`⚠️ Stock physique critique (${physicalStock} restants). Continuer ?`)) {
+        return;
+      }
+    }
+    
+    const existingItem = cart.find(item => item.product.id === product.id);
+    
+    if (existingItem) {
+      setCart(cart.map(item =>
+        item.product.id === product.id
+          ? { ...item, quantity: Math.min(item.quantity + 1, availableStock) }
+          : item
+      ));
+    } else {
+      setCart([...cart, { product, quantity: 1 }]);
+    }
+  };
 
   const updateCartQuantity = (productId: string, quantity: number) => {
+    const stockInfo = getProductStockInfo(productId);
+    const availableStock = stockInfo?.availableStock ?? 0;
+
     if (quantity === 0) {
       setCart(cart.filter(item => item.product.id !== productId));
     } else {
       setCart(cart.map(item =>
         item.product.id === productId
-          ? { ...item, quantity }
+          ? { ...item, quantity: Math.min(quantity, availableStock) }
           : item
       ));
     }
@@ -77,12 +89,10 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
 
     const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
 
-    // Vérifier le rôle pour déterminer le statut de la vente
     const isServerRole = currentSession.role === 'serveur';
     const isManagerOrPromoter = currentSession.role === 'gerant' || currentSession.role === 'promoteur';
 
     if (isServerRole) {
-      // Pour un SERVEUR, on crée une vente "en attente" de validation
       addSale({
         items: cart,
         total,
@@ -93,7 +103,6 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
         tableNumber: tableNumber || undefined,
       });
     } else if (isManagerOrPromoter) {
-      // Pour un GERANT ou PROMOTEUR, la vente est auto-validée
       addSale({
         items: cart,
         total,
@@ -106,24 +115,20 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
         tableNumber: tableNumber || undefined,
       });
 
-      // On diminue le stock car la vente est validée
       cart.forEach(item => {
-        decreaseStock(item.product.id, item.quantity);
+        decreasePhysicalStock(item.product.id, item.quantity);
       });
     } else {
-      // Rôle non reconnu - ne devrait pas arriver
       console.error('Rôle utilisateur non reconnu:', currentSession.role);
       alert('Erreur: Rôle utilisateur non valide');
       return;
     }
 
     clearCart();
-    // La notification est maintenant gérée par AppContext
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
-      {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-orange-100 p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
@@ -151,7 +156,6 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
       </header>
       
       <main className="container mx-auto px-4 py-6 space-y-6">
-        {/* Table Number Input */}
         <div className="bg-white/60 backdrop-blur-sm border border-orange-100 rounded-2xl p-4 shadow-sm">
           <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
             <Users size={16} className="text-orange-500" />

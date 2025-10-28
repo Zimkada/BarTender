@@ -223,6 +223,8 @@ export type ReturnReason = 'defective' | 'wrong_item' | 'customer_change' | 'exp
 
 export interface ReturnReasonConfig {
   label: string;
+  description: string; // Description détaillée pour clarté mobile
+  icon: string; // Emoji représentatif
   color: string;
   autoRestock: boolean; // Remise en stock automatique ?
   autoRefund: boolean; // Remboursement automatique ?

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import {
   RotateCcw,
@@ -9,11 +10,11 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
+import { useStockManagement } from '../hooks/useStockManagement';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
-import { useConsignments } from '../hooks/useConsignments';
 import { EnhancedButton } from './EnhancedButton';
 import { Sale, CartItem, Return, ReturnReason, ReturnReasonConfig } from '../types';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
@@ -24,37 +25,46 @@ interface ReturnsSystemProps {
   onClose: () => void;
 }
 
-// Configuration des motifs de retour
 const returnReasons: Record<ReturnReason, ReturnReasonConfig> = {
   defective: {
-    label: 'Produit défectueux',
+    label: 'Défectueux',
+    description: 'Remboursé, pas remis en stock',
+    icon: '⚠️',
     color: 'red',
-    autoRestock: false,  // Ne pas remettre en stock (produit HS)
-    autoRefund: true     // Remboursement client (pas sa faute)
+    autoRestock: false,
+    autoRefund: true
   },
   wrong_item: {
-    label: 'Mauvais article livré',
+    label: 'Erreur article',
+    description: 'Remboursé + remis en stock',
+    icon: '🔄',
     color: 'orange',
-    autoRestock: true,   // Remettre en stock (produit OK)
-    autoRefund: true     // Remboursement (erreur du bar)
+    autoRestock: true,
+    autoRefund: true
   },
   customer_change: {
-    label: 'Produit non consommé',
+    label: 'Non consommé',
+    description: 'Pas remboursé, remis en stock',
+    icon: '↩️',
     color: 'blue',
-    autoRestock: true,   // Remettre en stock (produit OK)
-    autoRefund: false    // PAS de remboursement (caprice client)
+    autoRestock: true,
+    autoRefund: false
   },
   expired: {
-    label: 'Produit expiré',
+    label: 'Périmé',
+    description: 'Remboursé, pas remis en stock',
+    icon: '📅',
     color: 'purple',
-    autoRestock: false,  // Ne pas remettre en stock (périmé)
-    autoRefund: true     // Remboursement (faute du bar)
+    autoRestock: false,
+    autoRefund: true
   },
   other: {
-    label: 'Autre raison',
+    label: 'Autre (manuel)',
+    description: 'Gérant décide remboursement et stock',
+    icon: '✏️',
     color: 'gray',
-    autoRestock: false,  // Décision manuelle gérant
-    autoRefund: false    // Décision manuelle gérant
+    autoRestock: false,
+    autoRefund: false
   }
 };
 
@@ -64,42 +74,30 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
     returns,
     addReturn,
     updateReturn,
-    increaseStock,
-    getPendingReturns,
     getReturnsBySale
   } = useAppContext();
-  const { currentBar, getBarMembers } = useBarContext(); // ✅ Utiliser getBarMembers pour les vrais utilisateurs
-
-  // 👥 Obtenir les membres de l'équipe du bar actuel
-  const barMembers = currentBar ? getBarMembers(currentBar.id) : [];
-  const users = barMembers.map(m => m.user); // Extraire les users
+  const { 
+    increasePhysicalStock,
+    consignments 
+  } = useStockManagement();
+  const { currentBar, getBarMembers } = useBarContext();
+  const users = (currentBar ? getBarMembers(currentBar.id) : []).map(m => m.user);
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession } = useAuth();
-  const { showSuccess, showError, showWarning } = useFeedback();
+  const { showSuccess, showError } = useFeedback();
 
   const [showCreateReturn, setShowCreateReturn] = useState(false);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Heure de clôture caisse
   const closeHour = currentBar?.settings?.businessDayCloseHour ?? 6;
 
-  /**
-   * Vérifie si un retour est autorisé pour une vente
-   * Règle métier : Retour UNIQUEMENT avant clôture du jour commercial
-   */
   const canReturnSale = (sale: Sale): { allowed: boolean; reason: string } => {
-    // Journée commerciale de la vente
     const saleBusinessDay = getBusinessDay(getSaleDate(sale), closeHour);
-
-    // Journée commerciale actuelle
     const currentBusinessDay = getCurrentBusinessDay(closeHour);
-
-    // Heure actuelle
     const now = new Date();
 
-    // Cas 1 : Vente d'un jour commercial déjà clôturé
     if (!isSameDay(saleBusinessDay, currentBusinessDay)) {
       return {
         allowed: false,
@@ -107,7 +105,6 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
       };
     }
 
-    // Cas 2 : Même jour commercial, vérifier si avant clôture
     const nextCloseTime = new Date(currentBusinessDay);
     nextCloseTime.setDate(nextCloseTime.getDate() + 1);
     nextCloseTime.setHours(closeHour, 0, 0, 0);
@@ -119,17 +116,14 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
       };
     }
 
-    // Cas 3 : Même jour commercial ET avant clôture = OK
     return {
       allowed: true,
       reason: `Retour autorisé (avant clôture ${closeHour}h)`
     };
   };
 
-  // Récupérer les ventes du jour commercial actuel uniquement
   const getReturnableSales = useMemo((): Sale[] => {
     const currentBusinessDay = getCurrentBusinessDay(closeHour);
-
     return sales.filter(sale => {
       if (sale.status !== 'validated') return false;
       const saleDate = getSaleDate(sale);
@@ -138,7 +132,6 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
     });
   }, [sales, closeHour]);
 
-  // Créer un retour
   const createReturn = (
     saleId: string,
     productId: string,
@@ -156,14 +149,12 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
       return;
     }
 
-    // Vérifier si retour autorisé (jour commercial + avant clôture)
     const returnCheck = canReturnSale(sale);
     if (!returnCheck.allowed) {
       showError(returnCheck.reason);
       return;
     }
 
-    // ✅ NOUVEAU: Vérifier quantité déjà retournée
     const existingReturns = getReturnsBySale(saleId);
     const alreadyReturnedQty = existingReturns
       .filter(r => r.productId === productId && r.status !== 'rejected')
@@ -182,19 +173,11 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
     }
 
     const reasonConfig = returnReasons[reason];
+    const finalRefund = reason === 'other' ? (customRefund ?? false) : reasonConfig.autoRefund;
+    const finalRestock = reason === 'other' ? (customRestock ?? false) : reasonConfig.autoRestock;
 
-    // ✅ Gérer les choix personnalisés pour "other"
-    const finalRefund = reason === 'other'
-      ? (customRefund ?? false)
-      : reasonConfig.autoRefund;
-
-    const finalRestock = reason === 'other'
-      ? (customRestock ?? false)
-      : reasonConfig.autoRestock;
-
-    // Créer retour via AppContext (persistance)
     const newReturn = addReturn({
-      barId: currentBar!.id, // ✅ Multi-tenant support
+      barId: currentBar!.id,
       saleId,
       productId,
       productName: item.product.name,
@@ -212,7 +195,7 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
       notes,
       customRefund: reason === 'other' ? customRefund : undefined,
       customRestock: reason === 'other' ? customRestock : undefined,
-      originalSeller: sale.createdBy // ✅ Capturer le vendeur original de la vente
+      originalSeller: sale.createdBy
     });
 
     if (newReturn) {
@@ -225,26 +208,19 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
     }
   };
 
-  // Approuver un retour
   const approveReturn = (returnId: string) => {
     const returnItem = returns.find(r => r.id === returnId);
     if (!returnItem) return;
 
     let newStatus: Return['status'] = 'approved';
 
-    // Remise en stock automatique selon la raison
     if (returnItem.autoRestock) {
-      increaseStock(returnItem.productId, returnItem.quantityReturned);
+      increasePhysicalStock(returnItem.productId, returnItem.quantityReturned);
       newStatus = 'restocked';
-
-      const refundInfo = returnItem.isRefunded
-        ? ` + Remboursement ${formatPrice(returnItem.refundAmount)}`
-        : '';
+      const refundInfo = returnItem.isRefunded ? ` + Remboursement ${formatPrice(returnItem.refundAmount)}` : '';
       showSuccess(`Retour approuvé - ${returnItem.quantityReturned}x ${returnItem.productName} remis en stock${refundInfo}`);
     } else {
-      const refundInfo = returnItem.isRefunded
-        ? ` - Remboursement ${formatPrice(returnItem.refundAmount)}`
-        : '';
+      const refundInfo = returnItem.isRefunded ? ` - Remboursement ${formatPrice(returnItem.refundAmount)}` : '';
       showSuccess(`Retour approuvé${refundInfo} - Choix de remise en stock disponible`);
     }
 
@@ -254,12 +230,11 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
     });
   };
 
-  // Remettre en stock manuellement
   const manualRestock = (returnId: string) => {
     const returnItem = returns.find(r => r.id === returnId);
     if (!returnItem || returnItem.status !== 'approved') return;
 
-    increaseStock(returnItem.productId, returnItem.quantityReturned);
+    increasePhysicalStock(returnItem.productId, returnItem.quantityReturned);
 
     updateReturn(returnId, {
       status: 'restocked',
@@ -269,13 +244,11 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
     showSuccess(`${returnItem.quantityReturned}x ${returnItem.productName} remis en stock`);
   };
 
-  // Rejeter un retour
   const rejectReturn = (returnId: string) => {
     updateReturn(returnId, { status: 'rejected' });
     showSuccess('Retour rejeté');
   };
 
-  // Filtrer les retours
   const filteredReturns = returns.filter(returnItem => {
     const matchesStatus = filterStatus === 'all' || returnItem.status === filterStatus;
     const matchesSearch = returnItem.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -300,7 +273,6 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
             exit={{ opacity: 0, scale: 0.9 }}
             className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl w-full max-w-6xl max-h-[85vh] md:max-h-[90vh] overflow-y-auto shadow-2xl"
           >
-            {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-orange-200">
               <div className="flex items-center gap-3">
                 <RotateCcw className="w-8 h-8 text-blue-600" />
@@ -326,7 +298,6 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
             <div className="p-6">
               {!showCreateReturn ? (
                 <>
-                  {/* Filtres et recherche */}
                   <div className="flex flex-wrap gap-4 mb-6">
                     <div className="flex items-center gap-2">
                       <Search size={16} className="text-gray-400" />
@@ -354,7 +325,6 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
                     </div>
                   </div>
 
-                  {/* Liste des retours */}
                   <div className="space-y-4">
                     {filteredReturns.length === 0 ? (
                       <div className="text-center py-12">
@@ -364,13 +334,10 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
                       </div>
                     ) : (
                       filteredReturns.map(returnItem => {
-                        // 👤 Trouver le vendeur original
-                        // Fallback : si originalSeller n'existe pas (ancien retour), chercher dans la vente originale
                         let originalSeller = null;
                         if (returnItem.originalSeller) {
                           originalSeller = users.find(u => u.id === returnItem.originalSeller);
                         } else {
-                          // Fallback pour anciens retours
                           const originalSale = sales.find(s => s.id === returnItem.saleId);
                           if (originalSale?.createdBy) {
                             originalSeller = users.find(u => u.id === originalSale.createdBy);
@@ -498,7 +465,6 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
                   </div>
                 </>
               ) : (
-                /* Création de retour */
                 <CreateReturnForm
                   returnableSales={getReturnableSales}
                   returnReasons={returnReasons}
@@ -511,6 +477,7 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
                   onSelectSale={setSelectedSale}
                   canReturnSale={canReturnSale}
                   closeHour={closeHour}
+                  consignments={consignments}
                 />
               )}
             </div>
@@ -521,7 +488,6 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
   );
 }
 
-// Modal pour motif "Autre raison" avec choix personnalisés
 function OtherReasonDialog({
   isOpen,
   onConfirm,
@@ -541,7 +507,6 @@ function OtherReasonDialog({
       return;
     }
     onConfirm(customRefund, customRestock, customNotes);
-    // Reset
     setCustomRefund(false);
     setCustomRestock(false);
     setCustomNotes('');
@@ -574,7 +539,6 @@ function OtherReasonDialog({
             </p>
 
             <div className="space-y-4">
-              {/* Checkbox Remboursement */}
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
@@ -588,7 +552,6 @@ function OtherReasonDialog({
                 </div>
               </label>
 
-              {/* Checkbox Remise en stock */}
               <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
@@ -602,7 +565,6 @@ function OtherReasonDialog({
                 </div>
               </label>
 
-              {/* Notes obligatoires */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Notes <span className="text-red-500">*</span>
@@ -617,7 +579,6 @@ function OtherReasonDialog({
                 />
               </div>
 
-              {/* Résumé décision */}
               {(customRefund || customRestock || customNotes) && (
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm">
                   <p className="font-medium text-gray-700 mb-1">Résumé :</p>
@@ -629,7 +590,6 @@ function OtherReasonDialog({
               )}
             </div>
 
-            {/* Boutons */}
             <div className="flex gap-3 mt-6">
               <button
                 onClick={onCancel}
@@ -651,7 +611,6 @@ function OtherReasonDialog({
   );
 }
 
-// Formulaire de création de retour
 function CreateReturnForm({
   returnableSales,
   returnReasons,
@@ -660,7 +619,8 @@ function CreateReturnForm({
   selectedSale,
   onSelectSale,
   canReturnSale,
-  closeHour
+  closeHour,
+  consignments
 }: {
   returnableSales: Sale[];
   returnReasons: Record<ReturnReason, ReturnReasonConfig>;
@@ -670,15 +630,13 @@ function CreateReturnForm({
   onSelectSale: (sale: Sale) => void;
   canReturnSale: (sale: Sale) => { allowed: boolean; reason: string };
   closeHour: number;
+  consignments: any[];
 }) {
   const { getReturnsBySale } = useAppContext();
-  const { getConsignmentsBySale } = useConsignments();
   const { currentBar, getBarMembers } = useBarContext();
   const { formatPrice } = useCurrencyFormatter();
 
-  // 👥 Obtenir les membres de l'équipe du bar actuel
-  const barMembers = currentBar ? getBarMembers(currentBar.id) : [];
-  const users = barMembers.map(m => m.user);
+  const users = (currentBar ? getBarMembers(currentBar.id) : []).map(m => m.user);
   const [selectedProduct, setSelectedProduct] = useState<CartItem | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [reason, setReason] = useState<ReturnReason>('defective');
@@ -687,7 +645,6 @@ function CreateReturnForm({
 
   const reasonConfig = returnReasons[reason];
 
-  // Calculer quantité déjà retournée pour le produit sélectionné
   const getAlreadyReturned = (productId: string): number => {
     if (!selectedSale) return 0;
     return getReturnsBySale(selectedSale.id)
@@ -697,12 +654,11 @@ function CreateReturnForm({
 
   const getAlreadyConsigned = (productId: string): number => {
     if (!selectedSale) return 0;
-    return getConsignmentsBySale(selectedSale.id)
-      .filter(c => c.productId === productId && c.status === 'active')
+    return consignments
+      .filter(c => c.saleId === selectedSale.id && c.productId === productId && c.status === 'active')
       .reduce((sum, c) => sum + c.quantity, 0);
   };
 
-  // Quantité disponible pour retour
   const availableQty = selectedProduct
     ? selectedProduct.quantity - getAlreadyReturned(selectedProduct.product.id) - getAlreadyConsigned(selectedProduct.product.id)
     : 0;
@@ -710,13 +666,11 @@ function CreateReturnForm({
   const handleSubmit = () => {
     if (!selectedSale || !selectedProduct) return;
 
-    // Si motif "other", ouvrir modal pour choix personnalisés
     if (reason === 'other') {
       setShowOtherReasonDialog(true);
       return;
     }
 
-    // Sinon, créer retour normalement
     onCreateReturn(selectedSale.id, selectedProduct.product.id, quantity, reason, notes || undefined);
   };
 
@@ -747,7 +701,6 @@ function CreateReturnForm({
         <h3 className="text-lg font-semibold text-gray-800">Créer un nouveau retour</h3>
 
       <div className="space-y-4">
-        {/* Alerte jour commercial */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <div className="flex items-center gap-2">
             <AlertTriangle className="text-blue-600" size={18} />
@@ -760,7 +713,6 @@ function CreateReturnForm({
           </p>
         </div>
 
-        {/* Sélection de la vente */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Ventes de la journée commerciale actuelle
@@ -773,7 +725,6 @@ function CreateReturnForm({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
               {returnableSales.map(sale => {
                 const returnCheck = canReturnSale(sale);
-                // 👤 Trouver le vendeur
                 const seller = sale.createdBy ? users.find(u => u.id === sale.createdBy) : null;
 
                 return (
@@ -824,7 +775,6 @@ function CreateReturnForm({
           )}
         </div>
 
-        {/* Sélection du produit */}
         {selectedSale && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -833,14 +783,7 @@ function CreateReturnForm({
             <div className="space-y-2">
               {selectedSale.items.map((item: CartItem, index: number) => {
                 const alreadyReturned = getAlreadyReturned(item.product.id);
-
-                // 🔍 Calculer consignations pour ce produit dans cette vente
-                const consignmentsForSale = getConsignmentsBySale(selectedSale.id);
-                const alreadyConsigned = consignmentsForSale
-                  .filter(c => c.productId === item.product.id && c.status === 'active')
-                  .reduce((sum, c) => sum + c.quantity, 0);
-
-                // 📊 Calculer disponibilité
+                const alreadyConsigned = getAlreadyConsigned(item.product.id);
                 const available = item.quantity - alreadyReturned - alreadyConsigned;
                 const isFullyUnavailable = available <= 0;
 
@@ -907,7 +850,6 @@ function CreateReturnForm({
           </div>
         )}
 
-        {/* Détails du retour */}
         {selectedProduct && (
           <>
             <div className="grid grid-cols-2 gap-4">
@@ -935,23 +877,17 @@ function CreateReturnForm({
                 <select
                   value={reason}
                   onChange={(e) => setReason(e.target.value as ReturnReason)}
-                  className="px-3 py-2 border border-orange-200 rounded-lg bg-white"
+                  className="w-full px-3 py-2 border border-orange-200 rounded-lg bg-white text-base"
                 >
-                  {Object.entries(returnReasons).map(([key, value]) => {
-                    // Pour "other", afficher "Choix manuel" au lieu de "Sans rembours."
-                    const refundLabel = key === 'other'
-                      ? '💰 Choix manuel'
-                      : value.autoRefund
-                        ? '💰 Remboursé'
-                        : '❌ Sans rembours.';
-
-                    return (
-                      <option key={key} value={key}>
-                        {value.label} • {value.autoRestock ? '📦 Stock auto' : '📦 Choix manuel'} • {refundLabel}
-                      </option>
-                    );
-                  })}
+                  {Object.entries(returnReasons).map(([key, value]) => (
+                    <option key={key} value={key}>
+                      {value.icon} {value.label}
+                    </option>
+                  ))}
                 </select>
+                <p className="text-xs text-gray-600 mt-1">
+                  {returnReasons[reason].description}
+                </p>
               </div>
             </div>
 

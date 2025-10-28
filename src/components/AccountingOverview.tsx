@@ -27,7 +27,7 @@ import { getExpensesByCategory } from '../hooks/useExpenses';
 import { useSalaries } from '../hooks/useSalaries';
 import { useInitialBalance } from '../hooks/useInitialBalance';
 import { useCapitalContributions } from '../hooks/useCapitalContributions';
-import { useConsignments } from '../hooks/useConsignments';
+import { useStockManagement } from '../hooks/useStockManagement';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 import { getSaleDate } from '../utils/saleHelpers';
@@ -47,7 +47,7 @@ export function AccountingOverview() {
   const salariesHook = useSalaries(currentBar?.id);
   const initialBalanceHook = useInitialBalance(currentBar?.id);
   const capitalContributionsHook = useCapitalContributions(currentBar?.id);
-  const { consignments } = useConsignments(currentBar?.id);
+  const { consignments } = useStockManagement();
   const { returns, expenses, customExpenseCategories } = useAppContext(); // ✅ Use expenses from AppContext
 
   const [periodType, setPeriodType] = useState<PeriodType>('month');

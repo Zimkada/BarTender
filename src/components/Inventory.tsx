@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { X, Package, AlertTriangle, Plus, Edit, Trash2, UploadCloud, TruckIcon } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { useStockManagement } from '../hooks/useStockManagement';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { ProductModal } from './ProductModal';
 import { SupplyModal } from './SupplyModal';
@@ -18,16 +19,15 @@ interface InventoryProps {
 }
 
 export function Inventory({ isOpen, onClose }: InventoryProps) {
+  const { categories, getAverageCostPerUnit, addSupply } = useAppContext();
   const {
     products,
-    categories,
-    getLowStockProducts,
-    deleteProduct,
     addProduct,
     updateProduct,
-    addSupply,
-    getAverageCostPerUnit
-  } = useAppContext();
+    deleteProduct,
+    getProductStockInfo,
+  } = useStockManagement();
+
   const { formatPrice } = useCurrencyFormatter();
   const { isMobile } = useViewport();
   const [showProductModal, setShowProductModal] = useState(false);
@@ -36,7 +36,13 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
   const [editingProduct, setEditingProduct] = useState<Product | undefined>();
   const { showSuccess } = useFeedback();
 
-  const lowStockProducts = getLowStockProducts();
+  const lowStockProducts = useMemo(() => 
+    products.filter(p => {
+      const stockInfo = getProductStockInfo(p.id);
+      // Physical stock is used for low stock alerts
+      return stockInfo && stockInfo.physicalStock <= p.alertThreshold;
+    }), 
+  [products, getProductStockInfo]);
 
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
@@ -55,6 +61,7 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
     lotPrice: number;
     supplier: string;
   }) => {
+    // This function will eventually be moved inside useStockManagement
     addSupply(supplyData);
     setShowSupplyModal(false);
   };
@@ -81,10 +88,8 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50"
           >
-            {/* ==================== VERSION MOBILE ==================== */}
             {isMobile ? (
               <div className="bg-white w-full h-full flex flex-col">
-                {/* Header sticky avec boutons */}
                 <div className="flex-shrink-0 sticky top-0 bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg z-10">
                   <div className="px-4 py-3">
                     <div className="flex items-center justify-between mb-3">
@@ -122,9 +127,7 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                   </div>
                 </div>
 
-                {/* Content scrollable */}
                 <div className="flex-1 overflow-y-auto px-4 py-4 pb-safe">
-                  {/* Alertes stock */}
                   {lowStockProducts.length > 0 && (
                     <div className="bg-red-50 border-2 border-red-300 rounded-xl p-3 mb-4">
                       <div className="flex items-center gap-2 mb-2">
@@ -134,23 +137,22 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                       <div className="space-y-1">
                         {lowStockProducts.map((product) => (
                           <p key={product.id} className="text-sm text-red-700">
-                            {product.name} • Stock: {product.stock}
+                            {product.name} • Stock: {getProductStockInfo(product.id)?.physicalStock ?? 'N/A'}
                           </p>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {/* Cards verticales */}
                   <div className="space-y-3">
                     {products.map((product) => {
                       const avgCost = getAverageCostPerUnit(product.id);
                       const margin = getMargin(product);
+                      const stockInfo = getProductStockInfo(product.id);
 
                       return (
                         <div key={product.id} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 overflow-hidden">
                           <div className="p-4">
-                            {/* En-tête produit */}
                             <div className="flex items-start justify-between mb-3">
                               <div className="flex-1 min-w-0">
                                 <h3 className="font-bold text-gray-800 text-base mb-1">{product.name}</h3>
@@ -158,15 +160,14 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                                 <p className="text-gray-500 text-xs mt-1">{getCategoryName(product.categoryId)}</p>
                               </div>
                               <div className={`flex-shrink-0 px-3 py-1 rounded-full text-sm font-bold ${
-                                product.stock <= product.alertThreshold
+                                (stockInfo?.physicalStock ?? 0) <= product.alertThreshold
                                   ? 'bg-red-100 text-red-700'
                                   : 'bg-orange-100 text-orange-700'
                               }`}>
-                                {product.stock}
+                                {stockInfo?.physicalStock ?? 'N/A'}
                               </div>
                             </div>
 
-                            {/* Infos financières */}
                             <div className="grid grid-cols-3 gap-3 mb-3">
                               <div className="bg-white rounded-lg p-2">
                                 <p className="text-xs text-gray-600 mb-1">Prix vente</p>
@@ -188,7 +189,6 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                               </div>
                             </div>
 
-                            {/* Actions */}
                             <div className="flex gap-2">
                               <button
                                 onClick={() => handleEditProduct(product)}
@@ -217,7 +217,6 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                 </div>
               </div>
             ) : (
-              /* ==================== VERSION DESKTOP ==================== */
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -279,7 +278,7 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                       <div className="space-y-1">
                         {lowStockProducts.map((product) => (
                           <p key={product.id} className="text-sm text-red-600">
-                            {product.name} ({product.volume}) - Stock: {product.stock}
+                            {product.name} ({product.volume}) - Stock: {getProductStockInfo(product.id)?.physicalStock ?? 'N/A'}
                           </p>
                         ))}
                       </div>
@@ -303,6 +302,7 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                         {products.map((product) => {
                           const avgCost = getAverageCostPerUnit(product.id);
                           const margin = getMargin(product);
+                          const stockInfo = getProductStockInfo(product.id);
 
                           return (
                             <motion.tr
@@ -333,13 +333,18 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                                 ) : '-'}
                               </td>
                               <td className="p-4">
-                                <span className={`${
-                                  product.stock <= product.alertThreshold
+                                <span className={`font-bold ${
+                                  (stockInfo?.physicalStock ?? 0) <= product.alertThreshold
                                     ? 'text-red-600'
                                     : 'text-gray-800'
                                 }`}>
-                                  {product.stock}
+                                  {stockInfo?.physicalStock ?? 'N/A'}
                                 </span>
+                                <div className="text-xs text-gray-500">
+                                  <span title={`Consigné: ${stockInfo?.consignedStock ?? 0}`}>
+                                    Dispo: {stockInfo?.availableStock ?? 'N/A'}
+                                  </span>
+                                </div>
                               </td>
                               <td className="p-4">
                                 <div className="flex items-center gap-2">

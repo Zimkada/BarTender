@@ -43,7 +43,7 @@ import { useViewport } from '../hooks/useViewport';
 import { EnhancedButton } from './EnhancedButton';
 import { Sale, Category, Product, User, BarMember, Return } from '../types';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
-import { useConsignments } from '../hooks/useConsignments';
+import { useStockManagement } from '../hooks/useStockManagement';
 import { getSaleDate } from '../utils/saleHelpers';
 
 interface EnhancedSalesHistoryProps {
@@ -60,7 +60,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession, users } = useAuth();
   const { isMobile } = useViewport();
-  const { consignments, getActiveConsignments } = useConsignments();
+  const { consignments } = useStockManagement();
 
   // Récupérer l'heure de clôture (défaut: 6h)
   const closeHour = currentBar?.settings?.businessDayCloseHour ?? 6;

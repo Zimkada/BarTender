@@ -5,7 +5,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { useConsignments } from '../hooks/useConsignments';
+import { useStockManagement } from '../hooks/useStockManagement';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
@@ -96,7 +96,7 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
 
 export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
   const { sales, getTodaySales, getTodayTotal, getLowStockProducts, returns, validateSale, rejectSale, users } = useAppContext();
-  const { getActiveConsignments } = useConsignments();
+  const { consignments } = useStockManagement();
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession } = useAuth();
   const { showSuccess, showError, setLoading, isLoading } = useFeedback();
@@ -128,13 +128,14 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
   );
   const todayReturnsCount = todayReturns.length;
   const todayReturnsRefunded = todayReturns.filter(r => r.isRefunded && (r.status === 'approved' || r.status === 'restocked')).reduce((sum, r) => sum + r.refundAmount, 0);
+  
   const activeConsignments = useMemo(() => {
-    const allActive = getActiveConsignments();
+    const allActive = consignments.filter(c => c.status === 'active');
     if (currentSession?.role === 'serveur') {
       return allActive.filter(c => c.createdBy === currentSession.userId);
     }
     return allActive;
-  }, [getActiveConsignments, currentSession]);
+  }, [consignments, currentSession]);
   const activeConsignmentsCount = activeConsignments.length;
   const activeConsignmentsValue = activeConsignments.reduce((sum, c) => sum + c.totalAmount, 0);
   const todayReturnsPending = todayReturns.filter(r => r.status === 'pending').length;
