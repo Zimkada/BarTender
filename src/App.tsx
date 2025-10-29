@@ -13,7 +13,7 @@ import { RoleBasedComponent } from './components/RoleBasedComponent';
 import { NotificationsProvider, useNotifications } from './components/Notifications';
 import { useAppContext } from './context/AppContext';
 import { useStockManagement } from './hooks/useStockManagement';
-import { StockBridgeProvider } from './context/StockBridgeProvider';
+// StockBridgeProvider moved to main.tsx
 import { CartItem, Product, Category } from './types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from './context/AuthContext';
@@ -471,9 +471,7 @@ function AppContent() {
 function App() {
   return (
     <NotificationsProvider>
-      <StockBridgeProvider>
-        <AppContent />
-      </StockBridgeProvider>
+      <AppContent />
     </NotificationsProvider>
   );
 }
