@@ -86,19 +86,13 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
 
         let categoryId = '';
         if (categoryName) {
-          console.log(`[Import] Recherche catégorie "${categoryName}"`);
-          console.log('[Import] Catégories disponibles:', localCategories.map(c => c.name));
-
           let category = localCategories.find(c => c.name.toLowerCase() === categoryName.toLowerCase());
 
           if (category) {
-            console.log(`[Import] ✅ Catégorie trouvée: "${category.name}" (ID: ${category.id})`);
             categoryId = category.id;
           } else {
-            console.log(`[Import] ❌ Catégorie non trouvée, création de "${categoryName}"`);
             const newCategory = addCategory({ name: categoryName, color: '#888888' }); // Couleur par défaut pour les nouvelles catégories
             if (newCategory) {
-              console.log(`[Import] ✅ Nouvelle catégorie créée: "${newCategory.name}" (ID: ${newCategory.id})`);
               categoryId = newCategory.id;
               localCategories.push(newCategory); // Ajouter à la liste locale pour les prochaines itérations
               newCategoryNames.add(newCategory.name);
