@@ -42,12 +42,11 @@ function AppContent() {
     updateCategory,
     deleteCategory,
     addProduct,
-    getProductsByCategory,
     addSale,
     settings
   } = useAppContext();
 
-  const { processSaleValidation } = useStockManagement();
+  const { processSaleValidation, products } = useStockManagement();
   const { isAuthenticated, currentSession } = useAuth();
   const { showNotification } = useNotifications();
   const [showDailyDashboard, setShowDailyDashboard] = useState(false);
@@ -62,7 +61,7 @@ function AppContent() {
   const [showSettings, setShowSettings] = useState(false);
   const [showServers, setShowServers] = useState(false);
   const [currentInterface, setCurrentInterface] = useState<'manager' | 'server'>('manager');
-  const currentProducts = getProductsByCategory(activeCategory);
+  const currentProducts = products.filter(p => p.categoryId === activeCategory);
   const [showReturns, setShowReturns] = useState(false);
   const [showQuickSale, setShowQuickSale] = useState(false);
   const [showForecasting, setShowForecasting] = useState(false);
