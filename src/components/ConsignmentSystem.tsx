@@ -197,8 +197,14 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
       .reduce((sum, r) => sum + r.quantityReturned, 0);
   };
 
+  const getAlreadyConsigned = (saleId: string, productId: string): number => {
+    return stockManager.consignments
+      .filter(c => c.saleId === saleId && c.productId === productId && c.status === 'active')
+      .reduce((sum, c) => sum + c.quantity, 0);
+  };
+
   const maxQuantity = selectedProductItem
-    ? selectedProductItem.quantity - getAlreadyReturned(selectedSale!.id, selectedProductItem.product.id)
+    ? selectedProductItem.quantity - getAlreadyReturned(selectedSale!.id, selectedProductItem.product.id) - getAlreadyConsigned(selectedSale!.id, selectedProductItem.product.id)
     : 0;
 
   const handleCreateConsignment = () => {
@@ -326,9 +332,9 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {selectedSale.items.map(item => {
-              const consignedStock = stockManager.getConsignedStockByProduct(item.product.id);
+              const consignedFromThisSale = getAlreadyConsigned(selectedSale.id, item.product.id);
               const returnedStock = getAlreadyReturned(selectedSale.id, item.product.id);
-              const available = item.quantity - consignedStock - returnedStock;
+              const available = item.quantity - consignedFromThisSale - returnedStock;
               const isFullyUnavailable = available <= 0;
 
               return (
@@ -355,7 +361,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
                     {formatPrice(item.product.price)} × {item.quantity}
                   </div>
                   <div className="text-xs text-orange-600 mt-1 space-x-2">
-                    {consignedStock > 0 && <span>⚠️ {consignedStock} consigné(s)</span>}
+                    {consignedFromThisSale > 0 && <span>⚠️ {consignedFromThisSale} consigné(s)</span>}
                     {returnedStock > 0 && <span>↩️ {returnedStock} retourné(s)</span>}
                   </div>
                   <div className={`text-sm font-medium mt-1 ${isFullyUnavailable ? 'text-red-600' : 'text-green-600'}`}>
