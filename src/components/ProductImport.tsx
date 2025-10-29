@@ -4,6 +4,7 @@ import { X, UploadCloud, FileText, AlertTriangle } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import * as XLSX from 'xlsx';
 import { useAppContext } from '../context/AppContext';
+import { useStockManagement } from '../hooks/useStockManagement';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
 
@@ -13,7 +14,8 @@ interface ProductImportProps {
 }
 
 export function ProductImport({ isOpen, onClose }: ProductImportProps) {
-  const { addProduct, categories, addCategory } = useAppContext();
+  const { categories, addCategory } = useAppContext();
+  const { addProduct } = useStockManagement();
   const { showSuccess, showError } = useFeedback();
   const [importedProducts, setImportedProducts] = useState<any[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
