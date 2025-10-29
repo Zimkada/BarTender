@@ -7,9 +7,10 @@ import { calculateAvailableStock } from '../utils/calculations';
 import type { Product, Consignment, ConsignmentStatus, ProductStockInfo, Supply, Expense } from '../types';
 
 // ----- CONSTANTES -----
-const PRODUCTS_STORAGE_KEY = 'bar-products';
+// ✅ IMPORTANT: Utiliser les mêmes clés que AppContext pour éviter duplication
+const PRODUCTS_STORAGE_KEY = 'products-v3'; // ✅ Unifié avec AppContext (was 'bar-products')
 const CONSIGNMENTS_STORAGE_KEY = 'consignments-v1';
-const SUPPLIES_STORAGE_KEY = 'all-supplies-v1';
+const SUPPLIES_STORAGE_KEY = 'supplies-v3'; // ✅ Unifié avec AppContext (was 'all-supplies-v1')
 const DEFAULT_EXPIRATION_DAYS = 7;
 
 // ----- INTERFACES -----
