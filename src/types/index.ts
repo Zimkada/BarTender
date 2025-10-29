@@ -48,6 +48,7 @@ export interface BarSettings {
   businessDayCloseHour?: number; // Heure de clôture de la journée commerciale (0-23, défaut: 6h)
   operatingMode?: 'full' | 'simplified'; // Mode de fonctionnement : complet (avec comptes serveurs) ou simplifié (gérant attribue)
   serversList?: string[]; // Liste des serveurs (mode simplifié uniquement)
+  consignmentExpirationDays?: number; // Nombre de jours avant expiration consignation (défaut: 7)
 }
 
 export interface BarMember {
