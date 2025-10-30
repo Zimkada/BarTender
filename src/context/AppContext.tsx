@@ -53,11 +53,8 @@ interface AppContextType {
   addCategory: (category: Omit<Category, 'id' | 'createdAt' | 'barId'>) => Category | null;
   updateCategory: (id: string, updates: Partial<Category>) => void;
   deleteCategory: (id: string) => void;
-  
-  // Produits
-  addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'barId'>) => Product | null;
-  updateProduct: (id: string, updates: Partial<Product>) => void;
-  deleteProduct: (id: string) => void;
+
+  // Produits (lecture seule - mutations via StockContext)
   getProductsByCategory: (categoryId: string) => Product[];
   getLowStockProducts: () => Product[];
   getProductById: (id: string) => Product | undefined;
@@ -185,26 +182,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       showNotification('success', `La catégorie "${categoryToDelete.name}" a été supprimée.`);
     }
   }, [products, categories, setAllCategories, hasPermission, showNotification]);
-  
-  const addProduct = useCallback((product: Omit<Product, 'id' | 'createdAt' | 'barId'>) => {
-    if (!hasPermission('canAddProducts') || !currentBar) return null;
-    const uniqueId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const newProduct: Product = { ...product, id: uniqueId, barId: currentBar.id, createdAt: new Date() };
-    setAllProducts(prev => [...prev, newProduct]);
-    return newProduct;
-  }, [setAllProducts, hasPermission, currentBar]);
 
-  const updateProduct = useCallback((id: string, updates: Partial<Product>) => {
-    if (!hasPermission('canEditProducts')) return;
-    setAllProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
-  }, [setAllProducts, hasPermission]);
-
-  const deleteProduct = useCallback((id: string) => {
-    if (!hasPermission('canDeleteProducts')) return;
-    setAllProducts(prev => prev.filter(p => p.id !== id));
-  }, [setAllProducts, hasPermission]);
-
-  // ❌ REMOVED: decreaseStock, increaseStock - Use useStockManagement.decreasePhysicalStock/increasePhysicalStock
+  // ❌ REMOVED: addProduct, updateProduct, deleteProduct
+  // → Use StockContext (useStock) for all product mutations
+  // ❌ REMOVED: decreaseStock, increaseStock
+  // → Use useStockManagement.decreasePhysicalStock/increasePhysicalStock
 
   const getProductsByCategory = useCallback((categoryId: string) => products.filter(p => p.categoryId === categoryId), [products]);
   const getLowStockProducts = useCallback(() => products.filter(p => p.stock <= p.alertThreshold), [products]);
@@ -430,11 +412,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Catégories
     addCategory, updateCategory, deleteCategory,
 
-    // Produits
-    addProduct, updateProduct, deleteProduct,
+    // Produits (lecture seule - mutations via StockContext)
     getProductsByCategory, getLowStockProducts, getProductById,
 
-    // Approvisionnements (addSupply removed - use useStockManagement.processSupply)
+    // Approvisionnements (read-only - use StockContext for mutations)
     getSuppliesByProduct, getTotalCostByProduct, getAverageCostPerUnit,
 
     // Ventes
