@@ -53,7 +53,10 @@ interface AppContextType {
   updateCategory: (id: string, updates: Partial<Category>) => void;
   deleteCategory: (id: string) => void;
   
-  // Produits (lecture seule - mutations via useStockManagement)
+  // Produits
+  addProduct: (product: Omit<Product, 'id' | 'createdAt' | 'barId'>) => Product | null;
+  updateProduct: (id: string, updates: Partial<Product>) => void;
+  deleteProduct: (id: string) => void;
   getProductsByCategory: (categoryId: string) => Product[];
   getLowStockProducts: () => Product[];
   getProductById: (id: string) => Product | undefined;
@@ -172,11 +175,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       showNotification('success', `La catégorie "${categoryToDelete.name}" a été supprimée.`);
     }
   }, [products, categories, setAllCategories, hasPermission, showNotification]);
+  
+  const addProduct = useCallback((product: Omit<Product, 'id' | 'createdAt' | 'barId'>) => {
+    if (!hasPermission('canAddProducts') || !currentBar) return null;
+    const uniqueId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const newProduct: Product = { ...product, id: uniqueId, barId: currentBar.id, createdAt: new Date() };
+    setAllProducts(prev => [...prev, newProduct]);
+    return newProduct;
+  }, [setAllProducts, hasPermission, currentBar]);
 
-  // ❌ REMOVED: addProduct, updateProduct, deleteProduct
-  // → Use useStockManagement.addProduct/updateProduct/deleteProduct instead
-  // ❌ REMOVED: decreaseStock, increaseStock
-  // → Use useStockManagement.decreasePhysicalStock/increasePhysicalStock instead
+  const updateProduct = useCallback((id: string, updates: Partial<Product>) => {
+    if (!hasPermission('canEditProducts')) return;
+    setAllProducts(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+  }, [setAllProducts, hasPermission]);
+
+  const deleteProduct = useCallback((id: string) => {
+    if (!hasPermission('canDeleteProducts')) return;
+    setAllProducts(prev => prev.filter(p => p.id !== id));
+  }, [setAllProducts, hasPermission]);
+
+  // ❌ REMOVED: decreaseStock, increaseStock - Use useStockManagement.decreasePhysicalStock/increasePhysicalStock
 
   const getProductsByCategory = useCallback((categoryId: string) => products.filter(p => p.categoryId === categoryId), [products]);
   const getLowStockProducts = useCallback(() => products.filter(p => p.stock <= p.alertThreshold), [products]);
@@ -402,10 +420,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Catégories
     addCategory, updateCategory, deleteCategory,
 
-    // Produits (lecture seule - mutations via useStockManagement)
+    // Produits
+    addProduct, updateProduct, deleteProduct,
     getProductsByCategory, getLowStockProducts, getProductById,
 
-    // Approvisionnements (read-only - use useStockManagement.processSupply for mutations)
+    // Approvisionnements (addSupply removed - use useStockManagement.processSupply)
     getSuppliesByProduct, getTotalCostByProduct, getAverageCostPerUnit,
 
     // Ventes
