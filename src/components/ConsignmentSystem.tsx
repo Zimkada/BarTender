@@ -383,11 +383,12 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
             </label>
             <input
               type="number"
+              required
               min="1"
               max={maxQuantity}
               value={quantity}
-              onChange={(e) => setQuantity(Math.min(maxQuantity, Math.max(1, parseInt(e.target.value) || 1)))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              onChange={(e) => setQuantity(Number(e.target.value))}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
             <p className="text-xs text-gray-500 mt-1">Maximum: {maxQuantity}</p>
           </div>

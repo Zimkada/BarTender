@@ -159,15 +159,20 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
       .filter(r => r.productId === productId && r.status !== 'rejected')
       .reduce((sum, r) => sum + r.quantityReturned, 0);
 
-    const remainingQty = item.quantity - alreadyReturnedQty;
+    // ✅ Tenir compte des consignations actives
+    const alreadyConsignedQty = consignments
+      .filter(c => c.saleId === saleId && c.productId === productId && c.status === 'active')
+      .reduce((sum, c) => sum + c.quantity, 0);
+
+    const remainingQty = item.quantity - alreadyReturnedQty - alreadyConsignedQty;
 
     if (quantity > remainingQty) {
-      showError(`Impossible : ${alreadyReturnedQty} déjà retourné(s). Reste seulement ${remainingQty} disponible(s).`);
+      showError(`Impossible : ${alreadyReturnedQty} déjà retourné(s), ${alreadyConsignedQty} consigné(s). Reste ${remainingQty} disponible(s).`);
       return;
     }
 
     if (remainingQty <= 0) {
-      showError(`Ce produit a déjà été entièrement retourné (${alreadyReturnedQty}/${item.quantity})`);
+      showError(`Ce produit n'est plus disponible pour retour (${alreadyReturnedQty} retourné(s), ${alreadyConsignedQty} consigné(s))`);
       return;
     }
 
@@ -857,11 +862,12 @@ function CreateReturnForm({
                 </label>
                 <input
                   type="number"
+                  required
                   min="1"
                   max={availableQty}
                   value={quantity}
-                  onChange={(e) => setQuantity(Math.min(availableQty, Math.max(1, parseInt(e.target.value) || 1)))}
-                  className="w-full px-3 py-2 border border-orange-200 rounded-lg bg-white"
+                  onChange={(e) => setQuantity(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-orange-200 rounded-lg bg-white focus:border-orange-400 focus:outline-none"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Maximum disponible : {availableQty}
