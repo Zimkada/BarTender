@@ -18,11 +18,9 @@ import {
   X,
   Download
 } from 'lucide-react';
-import { useSales } from '../hooks/useSales';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { useAppContext } from '../context/AppContext';
-import { useSupplies } from '../hooks/useSupplies';
 import { getExpensesByCategory } from '../hooks/useExpenses';
 import { useSalaries } from '../hooks/useSalaries';
 import { useInitialBalance } from '../hooks/useInitialBalance';
@@ -42,8 +40,8 @@ export function AccountingOverview() {
   const { formatPrice } = useCurrencyFormatter();
   const { isMobile } = useViewport();
 
-  const { sales } = useSales(currentBar?.id);
-  const { supplies } = useSupplies();
+  // ✅ Utiliser AppContext et StockContext (sources uniques)
+  const { sales, supplies } = useAppContext();
   const salariesHook = useSalaries(currentBar?.id);
   const initialBalanceHook = useInitialBalance(currentBar?.id);
   const capitalContributionsHook = useCapitalContributions(currentBar?.id);

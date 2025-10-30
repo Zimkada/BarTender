@@ -1332,20 +1332,6 @@ function AnalyticsView({
   const safeUsers = users || [];
   const safeBarMembers = barMembers || [];
 
-  // DEBUG: Tracer les données reçues
-  console.log('🔍 AnalyticsView - DEBUG:', {
-    salesCount: sales.length,
-    statsTotal: stats.totalRevenue,
-    timeFilter,
-    isMobile,
-    categoriesCount: categories.length,
-    productsCount: products.length,
-    usersCount: safeUsers.length,
-    barMembersCount: safeBarMembers.length,
-    firstSale: sales[0],
-    stats
-  });
-
   // Calculer période précédente pour comparaison
   const { currentPeriodSales, previousPeriodSales } = useMemo(() => {
     const now = new Date();
