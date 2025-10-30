@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import { AuthProvider } from './context/AuthContext.tsx';
 import { BarProvider } from './context/BarContext.tsx';
+import { StockProvider } from './context/StockContext.tsx';
 import { StockBridgeProvider } from './context/StockBridgeProvider.tsx';
 import { AppProvider } from './context/AppContext.tsx';
 import { NotificationsProvider } from './components/Notifications';
@@ -13,11 +14,13 @@ createRoot(document.getElementById('root')!).render(
     <NotificationsProvider>
       <AuthProvider>
         <BarProvider>
-          <StockBridgeProvider>
-            <AppProvider>
-              <App />
-            </AppProvider>
-          </StockBridgeProvider>
+          <StockProvider>
+            <StockBridgeProvider>
+              <AppProvider>
+                <App />
+              </AppProvider>
+            </StockBridgeProvider>
+          </StockProvider>
         </BarProvider>
       </AuthProvider>
     </NotificationsProvider>

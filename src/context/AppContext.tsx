@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useCallback } from 'react';
+import React, { createContext, useContext, useCallback, useEffect } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { useStockBridge } from '../context/StockBridgeProvider';
+import { useStock } from '../context/StockContext';
 import { offlineQueue } from '../services/offlineQueue';
 import { useNotifications } from '../components/Notifications';
 import {
@@ -112,11 +113,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const { currentBar } = useBarContext();
   const { showNotification } = useNotifications();
   const { processSaleValidation } = useStockBridge();
-  
-  // États avec tous les bars
+
+  // ✅ Utiliser StockContext pour products et supplies (source unique)
+  const { products: allProducts, supplies: allSupplies } = useStock();
+
+  // États avec tous les bars (sauf products/supplies → délégués à StockContext)
   const [allCategories, setAllCategories] = useLocalStorage<Category[]>('categories-v3', []);
-  const [allProducts, setAllProducts] = useLocalStorage<Product[]>('products-v3', []);
-  const [allSupplies, setAllSupplies] = useLocalStorage<Supply[]>('supplies-v3', []);
   const [allSales, setAllSales] = useLocalStorage<Sale[]>('sales-v3', []);
   const [allReturns, setAllReturns] = useLocalStorage<Return[]>('returns-v1', []);
   const [allExpenses, setAllExpenses] = useLocalStorage<Expense[]>('expenses-v1', []);
@@ -133,15 +135,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const expenses = allExpenses.filter(e => e.barId === currentBar?.id);
   const customExpenseCategories = allCustomExpenseCategories.filter(c => c.barId === currentBar?.id);
 
+  const { addProduct: addProductToStock } = useStock();
+
   const initializeBarData = useCallback((barId: string) => {
     const existingCategories = allCategories.some(c => c.barId === barId);
     if (!existingCategories) {
       const defaultCategories = getDefaultCategories(barId);
       const defaultProducts = getDefaultProducts(barId);
+
+      // Ajouter catégories
       setAllCategories(prev => [...prev, ...defaultCategories]);
-      setAllProducts(prev => [...prev, ...defaultProducts]);
+
+      // Ajouter produits via StockContext (source unique)
+      defaultProducts.forEach(product => {
+        addProductToStock(product);
+      });
     }
-  }, [allCategories, setAllCategories, setAllProducts]);
+  }, [allCategories, setAllCategories, addProductToStock]);
 
   // ... (fonctions categories, products, supplies restent les mêmes)
   const addCategory = useCallback((category: Omit<Category, 'id' | 'createdAt' | 'barId'>) => {
