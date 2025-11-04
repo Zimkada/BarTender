@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, createContext, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, AlertCircle, Info } from 'lucide-react';
 
@@ -31,9 +31,10 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const showNotification = (type: NotificationType, message: string) => {
-    const id = Date.now().toString();
+    // ✅ FIX: Ajouter random pour éviter collisions de clés si notifications simultanées
+    const id = `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     setNotifications((prev) => [...prev, { id, type, message }]);
-    
+
     // Auto-dismiss after 3 seconds
     setTimeout(() => {
       hideNotification(id);
