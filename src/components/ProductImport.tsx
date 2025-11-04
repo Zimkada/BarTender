@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, UploadCloud, FileText, AlertTriangle } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import * as XLSX from 'xlsx';
 import { useAppContext } from '../context/AppContext';
+import { useBarContext } from '../context/BarContext';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
@@ -14,9 +15,10 @@ interface ProductImportProps {
 }
 
 export function ProductImport({ isOpen, onClose }: ProductImportProps) {
-  const { categories, addCategory } = useAppContext();
+  const { categories, addCategory, products } = useAppContext();
   const { addProduct } = useStockManagement();
   const { showSuccess, showError } = useFeedback();
+  const { currentBar } = useBarContext();
   const [importedProducts, setImportedProducts] = useState<any[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
 
@@ -57,10 +59,17 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
       return;
     }
 
+    // 🔒 PROTECTION: Vérifier currentBar AVANT l'import
+    if (!currentBar) {
+      showError('Aucun bar sélectionné. Impossible d\'importer des produits.');
+      return;
+    }
+
     let successCount = 0;
     let errorCount = 0;
     const newCategoryNames = new Set<string>();
     let localCategories = [...categories]; // Copie locale pour la session d'import
+    const existingProducts = [...products]; // Pour détecter les doublons
 
     importedProducts.forEach((product, index) => {
       try {
@@ -84,6 +93,35 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
           throw new Error(`Ligne ${index + 2}: Nom, Prix, et Stock sont requis.`);
         }
 
+        // ✅ VALIDATION NaN (Bug critique #3)
+        const prixNumber = Number(prix);
+        const stockNumber = Number(stock);
+        const seuilNumber = Number(seuilAlerte);
+
+        if (isNaN(prixNumber) || prixNumber < 0) {
+          throw new Error(`Ligne ${index + 2}: Prix invalide (${prix}). Doit être un nombre positif.`);
+        }
+
+        if (isNaN(stockNumber) || stockNumber < 0) {
+          throw new Error(`Ligne ${index + 2}: Stock invalide (${stock}). Doit être un nombre positif.`);
+        }
+
+        if (isNaN(seuilNumber) || seuilNumber < 0) {
+          throw new Error(`Ligne ${index + 2}: Seuil d'alerte invalide (${seuilAlerte}). Doit être un nombre positif.`);
+        }
+
+        // ✅ DÉTECTION DOUBLONS (Bug critique #5)
+        const volumeStr = String(volume).trim();
+        const duplicate = existingProducts.find(p =>
+          p.name.toLowerCase() === String(nom).toLowerCase() &&
+          p.volume.toLowerCase() === volumeStr.toLowerCase() &&
+          p.barId === currentBar.id
+        );
+
+        if (duplicate) {
+          throw new Error(`Ligne ${index + 2}: Produit "${nom}" (${volumeStr || 'sans volume'}) existe déjà. Import ignoré.`);
+        }
+
         let categoryId = '';
         if (categoryName) {
           let category = localCategories.find(c => c.name.toLowerCase() === categoryName.toLowerCase());
@@ -104,16 +142,24 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
           categoryId = localCategories[0]?.id || ''; // Fallback si aucune catégorie n'est trouvée ou créée
         }
 
+        // ✅ FIX CRITIQUE #1: Ajouter barId manquant
         const productData = {
+          barId: currentBar.id, // 🔒 CRITIQUE: Multi-tenant isolation
           name: String(nom),
-          volume: String(volume),
-          price: Number(prix),
-          stock: Number(stock),
+          volume: volumeStr,
+          price: prixNumber,
+          stock: stockNumber,
           categoryId: categoryId,
-          alertThreshold: Number(seuilAlerte),
+          alertThreshold: seuilNumber,
         };
 
-        addProduct(productData);
+        const newProduct = addProduct(productData);
+
+        // ✅ Ajouter à la liste locale pour détecter doublons dans le même fichier
+        if (newProduct) {
+          existingProducts.push(newProduct);
+        }
+
         successCount++;
       } catch (e: any) {
         showError(e.message);
@@ -128,8 +174,12 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
       }
       showSuccess(successMessage);
     }
-    
+
+    // ✅ FIX BUG #4: Toujours réinitialiser l'état après import
     if (errorCount === 0) {
+      // Réinitialiser l'état pour éviter double import
+      setImportedProducts([]);
+      setFileName(null);
       onClose();
     }
   };
