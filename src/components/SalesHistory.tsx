@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import {
   TrendingUp,
@@ -169,7 +169,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
     // 1. Filtrage initial basé sur le rôle
     const baseConsignments = consignments.filter(consignment => {
       if (isServer) {
-        return consignment.createdBy === currentSession.userId;
+        // 🔒 SERVEURS : Voir consignations de LEURS ventes (via originalSeller)
+        return consignment.originalSeller === currentSession.userId;
       }
       return true; // Gérants/Promoteurs voient toutes les consignations
     });
@@ -322,12 +323,12 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
       const user = safeUsers.find(u => u.id === sale.createdBy);
       const member = safeBarMembers.find(m => m.userId === user?.id);
       const vendeur = user?.name || 'Inconnu';
-      const role = member?.role || user?.role || 'serveur';
+      const role = member?.role || 'serveur';
 
       const saleDate = getSaleDate(sale);
       sale.items.forEach(item => {
         const category = categories.find(c => c.id === item.product.categoryId);
-        const cost = item.product.cost || 0;
+        const cost = 0; // TODO: Calculer depuis Supply
         const total = item.product.price * item.quantity;
         const benefice = (item.product.price - cost) * item.quantity;
 
@@ -357,32 +358,33 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
     const relevantReturns = returns.filter(r => saleIds.has(r.saleId));
 
     relevantReturns.forEach(ret => {
-      // Ignorer les retours sans produit
-      if (!ret.product) {
-        console.warn('⚠️ Retour sans produit ignoré:', ret.id);
+      // Récupérer le produit via productId
+      const product = products.find(p => p.id === ret.productId);
+      if (!product) {
+        console.warn('⚠️ Retour avec produit introuvable:', ret.id);
         return;
       }
 
       const user = safeUsers.find(u => u.id === ret.returnedBy);
       const member = safeBarMembers.find(m => m.userId === user?.id);
       const utilisateur = user?.name || 'Inconnu';
-      const role = member?.role || user?.role || 'serveur';
+      const role = member?.role || 'serveur';
 
-      const category = categories.find(c => c.id === ret.product.categoryId);
-      const cost = ret.product.cost || 0;
+      const category = categories.find(c => c.id === product.categoryId);
+      const cost = 0; // TODO: Calculer depuis Supply
       const total = ret.isRefunded ? -ret.refundAmount : 0; // Négatif si remboursé
-      const benefice = ret.isRefunded ? -(ret.refundAmount - (cost * ret.quantity)) : 0;
+      const benefice = ret.isRefunded ? -(ret.refundAmount - (cost * ret.quantityReturned)) : 0;
 
       exportData.push({
         'Type': 'Retour',
         'Date': new Date(ret.returnedAt).toLocaleDateString('fr-FR'),
         'Heure': new Date(ret.returnedAt).toLocaleTimeString('fr-FR'),
         'ID Transaction': ret.id.slice(-6),
-        'Produit': ret.product.name,
+        'Produit': ret.productName,
         'Catégorie': category?.name || 'Non classé',
-        'Volume': ret.product.volume || '',
-        'Quantité': -ret.quantity, // Négatif pour indiquer retour
-        'Prix unitaire': ret.product.price,
+        'Volume': ret.productVolume || '',
+        'Quantité': -ret.quantityReturned, // Négatif pour indiquer retour
+        'Prix unitaire': product.price,
         'Coût unitaire': cost,
         'Total': total,
         'Bénéfice': benefice,
@@ -403,7 +405,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
       const user = safeUsers.find(u => u.id === consignment.createdBy);
       const member = safeBarMembers.find(m => m.userId === user?.id);
       const utilisateur = user?.name || 'Inconnu';
-      const role = member?.role || user?.role || 'serveur';
+      const role = member?.role || 'serveur';
 
       const category = categories.find(c => c.id === product.categoryId);
 
@@ -684,7 +686,6 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                           sale={sale}
                           formatPrice={formatPrice}
                           onViewDetails={() => setSelectedSale(sale)}
-                          returns={returns}
                           getReturnsBySale={getReturnsBySale}
                           users={safeUsers}
                         />
@@ -695,7 +696,6 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                       sales={filteredSales}
                       formatPrice={formatPrice}
                       onViewDetails={setSelectedSale}
-                      returns={returns}
                       getReturnsBySale={getReturnsBySale}
                       users={safeUsers}
                     />
@@ -713,6 +713,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                       returns={returns}
                       closeHour={closeHour}
                       filteredConsignments={filteredConsignments}
+                      currentSession={currentSession}
+                      customDateRange={customDateRange}
                     />
                   )}
                 </div>
@@ -788,9 +790,14 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                       </div>
                       {(() => {
                         // Calculer les retours de la période filtrée
+                        // 🔒 SERVEURS : Seulement retours de LEURS ventes (même logique que getTodayTotal)
+                        const filteredSaleIds = new Set(filteredSales.map(s => s.id));
+
                         const periodReturns = returns.filter(r => {
                           if (r.status !== 'approved' && r.status !== 'restocked') return false;
                           if (!r.isRefunded) return false;
+                          // 🔒 IMPORTANT: Seulement retours des ventes affichées (filtrage par serveur)
+                          if (!filteredSaleIds.has(r.saleId)) return false;
 
                           const returnDate = new Date(r.returnedAt);
 
@@ -987,7 +994,6 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                                 sale={sale}
                                 formatPrice={formatPrice}
                                 onViewDetails={() => setSelectedSale(sale)}
-                                returns={returns}
                                 getReturnsBySale={getReturnsBySale}
                                 users={safeUsers}
                               />
@@ -1003,7 +1009,6 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                             sales={filteredSales}
                             formatPrice={formatPrice}
                             onViewDetails={setSelectedSale}
-                            returns={returns}
                             getReturnsBySale={getReturnsBySale}
                             users={safeUsers}
                           />
@@ -1025,6 +1030,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                           returns={returns}
                           closeHour={closeHour}
                           filteredConsignments={filteredConsignments}
+                          currentSession={currentSession}
+                          customDateRange={customDateRange}
                         />
                       );
                     })()}
@@ -1054,14 +1061,12 @@ function SaleCard({
   sale,
   formatPrice,
   onViewDetails,
-  returns,
   getReturnsBySale,
   users
 }: {
   sale: Sale;
   formatPrice: (price: number) => string;
   onViewDetails: () => void;
-  returns?: any[];
   getReturnsBySale?: (saleId: string) => any[];
   users?: User[];
 }) {
@@ -1167,14 +1172,12 @@ function SalesList({
   sales,
   formatPrice,
   onViewDetails,
-  returns,
   getReturnsBySale,
   users
 }: {
   sales: Sale[];
   formatPrice: (price: number) => string;
   onViewDetails: (sale: Sale) => void;
-  returns: any[];
   getReturnsBySale: (saleId: string) => any[];
   users?: User[];
 }) {
@@ -1306,14 +1309,16 @@ function AnalyticsView({
   stats,
   formatPrice,
   categories,
-  products,
+  products: _products,
   users,
   barMembers,
   timeFilter,
   isMobile,
   returns,
   closeHour,
-  filteredConsignments
+  filteredConsignments,
+  currentSession,
+  customDateRange
 }: {
   sales: Sale[];
   stats: Stats;
@@ -1327,13 +1332,15 @@ function AnalyticsView({
   returns: Return[];
   closeHour: number;
   filteredConsignments: any[];
+  currentSession: any;
+  customDateRange: { start: string; end: string };
 }) {
   // Protection: s'assurer que tous les tableaux sont définis
   const safeUsers = users || [];
   const safeBarMembers = barMembers || [];
 
   // Calculer période précédente pour comparaison
-  const { currentPeriodSales, previousPeriodSales } = useMemo(() => {
+  const { currentPeriodSales: _currentPeriodSales, previousPeriodSales } = useMemo(() => {
     const now = new Date();
     let currentStart: Date, previousStart: Date, previousEnd: Date;
 
@@ -1359,7 +1366,7 @@ function AnalyticsView({
     }
 
     const previous = sales.filter(s => {
-      const saleDate = new Date(s.date);
+      const saleDate = getSaleDate(s);
       return saleDate >= previousStart && saleDate < previousEnd;
     });
 
@@ -1507,16 +1514,79 @@ function AnalyticsView({
   const userPerformance = useMemo(() => {
     const userStats: Record<string, { name: string; role: string; revenue: number; sales: number; items: number }> = {};
 
+    // Filtrer les ventes selon la période (duplication nécessaire car useMemo séparé)
+    const isServer = currentSession?.role === 'serveur';
+    const baseSales = sales.filter(sale => {
+      if (isServer) {
+        return sale.createdBy === currentSession?.userId;
+      } else {
+        return sale.status === 'validated';
+      }
+    });
+
+    let performanceSales = baseSales;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    switch (timeFilter) {
+      case 'today': {
+        const currentBusinessDay = getCurrentBusinessDay(closeHour);
+        performanceSales = baseSales.filter(sale => {
+          const saleDate = getSaleDate(sale);
+          const saleBusinessDay = getBusinessDay(saleDate, closeHour);
+          return isSameDay(saleBusinessDay, currentBusinessDay);
+        });
+        break;
+      }
+      case 'week': {
+        const currentDay = today.getDay();
+        const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
+        const monday = new Date(today);
+        monday.setDate(monday.getDate() - daysFromMonday);
+        monday.setHours(0, 0, 0, 0);
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        sunday.setHours(23, 59, 59, 999);
+        performanceSales = baseSales.filter(sale => {
+          const saleDate = getSaleDate(sale);
+          return saleDate >= monday && saleDate <= sunday;
+        });
+        break;
+      }
+      case 'month': {
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        firstDayOfMonth.setHours(0, 0, 0, 0);
+        const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        lastDayOfMonth.setHours(23, 59, 59, 999);
+        performanceSales = baseSales.filter(sale => {
+          const saleDate = getSaleDate(sale);
+          return saleDate >= firstDayOfMonth && saleDate <= lastDayOfMonth;
+        });
+        break;
+      }
+      case 'custom': {
+        const startDate = new Date(customDateRange.start);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(customDateRange.end);
+        endDate.setHours(23, 59, 59, 999);
+        performanceSales = baseSales.filter(sale => {
+          const saleDate = getSaleDate(sale);
+          return saleDate >= startDate && saleDate <= endDate;
+        });
+        break;
+      }
+    }
+
     console.log('🔍 Performance équipe - Analyse:', {
-      nbVentes: sales.length,
+      nbVentes: performanceSales.length,
       nbRetours: returns.length,
       nbUsers: safeUsers.length,
       nbBarMembers: safeBarMembers.length,
-      ventes: sales.map(s => ({ id: s.id.slice(-6), createdBy: s.createdBy, assignedTo: s.assignedTo }))
+      ventes: performanceSales.map(s => ({ id: s.id.slice(-6), createdBy: s.createdBy, assignedTo: s.assignedTo }))
     });
 
-    // 1. Ajouter les ventes
-    sales.forEach(sale => {
+    // 1. Ajouter les ventes (FILTÉES par période)
+    performanceSales.forEach(sale => {
       // Mode simplifié : utiliser assignedTo si présent
       // Mode complet : utiliser createdBy (userId)
       if (sale.assignedTo) {
@@ -1553,7 +1623,7 @@ function AnalyticsView({
 
         // Chercher d'abord dans barMembers, sinon utiliser le rôle de l'utilisateur
         const member = safeBarMembers.find(m => m.userId === user.id);
-        const role = member?.role || user.role || 'serveur';
+        const role = member?.role || 'serveur';
 
         if (!userStats[user.id]) {
           userStats[user.id] = {
@@ -1572,9 +1642,14 @@ function AnalyticsView({
     });
 
     // 2. Déduire les retours remboursés de la période filtrée
+    // 🔒 SERVEURS : Seulement retours de LEURS ventes (même logique que getTodayTotal)
+    const performanceSaleIds = new Set(performanceSales.map(s => s.id));
+
     const filteredReturns = returns.filter(r => {
       if (r.status !== 'approved' && r.status !== 'restocked') return false;
       if (!r.isRefunded) return false;
+      // 🔒 IMPORTANT: Seulement retours des ventes affichées (filtrage par serveur)
+      if (!performanceSaleIds.has(r.saleId)) return false;
 
       const returnDate = new Date(r.returnedAt);
 
@@ -1610,12 +1685,31 @@ function AnalyticsView({
     // Déduire les retours du revenue de chaque vendeur
     filteredReturns.forEach(ret => {
       // Trouver la vente originale pour identifier le vendeur
-      const originalSale = sales.find(s => s.id === ret.saleId);
-      if (!originalSale) return;
+      // ✅ IMPORTANT: Chercher dans performanceSales (même période)
+      const originalSale = performanceSales.find(s => s.id === ret.saleId);
+      if (!originalSale) {
+        console.log('⚠️ Vente originale non trouvée pour retour:', ret.id.slice(-6), 'saleId:', ret.saleId);
+        return; // Vente hors période, ignorer
+      }
 
       const identifier = originalSale.assignedTo || originalSale.createdBy;
+
+      console.log('🔍 Retour déduction:', {
+        retourId: ret.id.slice(-6),
+        montant: ret.refundAmount,
+        venteOriginale: originalSale.id.slice(-6),
+        assignedTo: originalSale.assignedTo,
+        createdBy: originalSale.createdBy,
+        identifierUtilisé: identifier,
+        existeDansStats: !!userStats[identifier],
+        statsKeys: Object.keys(userStats)
+      });
+
       if (userStats[identifier]) {
         userStats[identifier].revenue -= ret.refundAmount;
+        console.log('✅ Déduit', ret.refundAmount, 'FCFA du CA de', identifier);
+      } else {
+        console.warn('❌ Identifier non trouvé dans userStats:', identifier);
       }
     });
 
@@ -1628,7 +1722,7 @@ function AnalyticsView({
     }
 
     return allUsers;
-  }, [sales, returns, safeUsers, safeBarMembers, userFilter, timeFilter, closeHour]);
+  }, [sales, returns, safeUsers, safeBarMembers, userFilter, timeFilter, closeHour, currentSession, customDateRange]);
 
   // Top produits - 3 analyses (CA NET = Ventes - Retours)
   const topProductsData = useMemo(() => {
@@ -1649,7 +1743,7 @@ function AnalyticsView({
         }
         productStats[product.id].units += item.quantity;
         productStats[product.id].revenue += product.price * item.quantity;
-        productStats[product.id].profit += (product.price - (product.cost || 0)) * item.quantity;
+        productStats[product.id].profit += product.price * item.quantity; // TODO: Déduire coût réel
       });
     });
 
@@ -1688,10 +1782,10 @@ function AnalyticsView({
     });
 
     filteredReturns.forEach(ret => {
-      if (ret.product && productStats[ret.product.id]) {
-        productStats[ret.product.id].units -= ret.quantity;
-        productStats[ret.product.id].revenue -= ret.refundAmount;
-        productStats[ret.product.id].profit -= (ret.product.price - (ret.product.cost || 0)) * ret.quantity;
+      if (productStats[ret.productId]) {
+        productStats[ret.productId].units -= ret.quantityReturned;
+        productStats[ret.productId].revenue -= ret.refundAmount;
+        productStats[ret.productId].profit -= ret.refundAmount; // Approximation sans coût
       }
     });
 
@@ -1820,9 +1914,9 @@ function AnalyticsView({
                 outerRadius={isMobile ? 70 : 90}
                 paddingAngle={2}
                 dataKey="value"
-                label={(entry) => `${entry.percentage.toFixed(0)}%`}
+                label={(entry: any) => `${entry.percentage.toFixed(0)}%`}
               >
-                {categoryData.map((entry, index) => (
+                {categoryData.map((_entry, index) => (
                   <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                 ))}
               </Pie>

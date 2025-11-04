@@ -1,4 +1,4 @@
-import { useLocalStorage } from './useLocalStorage';
+import { useDataStore } from './useDataStore';
 import { AppSettings } from '../types';
 
 const defaultSettings: AppSettings = {
@@ -8,7 +8,7 @@ const defaultSettings: AppSettings = {
 };
 
 export function useSettings() {
-  const [settings, setSettings] = useLocalStorage<AppSettings>('bar-settings', defaultSettings);
+  const [settings, setSettings] = useDataStore<AppSettings>('bar-settings', defaultSettings);
 
   const updateSettings = (updates: Partial<AppSettings>) => {
     setSettings({ ...settings, ...updates });

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useCallback, ReactNode, useState, useEffect } from 'react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useDataStore } from '../hooks/useDataStore';
 import { useAuth } from '../context/AuthContext';
 import { Bar, BarMember, User, UserRole } from '../types';
 
@@ -64,10 +64,10 @@ const mockBarMembers: BarMember[] = [
 
 export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { currentSession, hasPermission } = useAuth();
-  const [bars, setBars] = useLocalStorage<Bar[]>('bars', mockBars);
-  const [barMembers, setBarMembers] = useLocalStorage<BarMember[]>('bar-members', mockBarMembers);
-  const [currentBarId, setCurrentBarId] = useLocalStorage<string | null>('current-bar-id', null);
-  const [users] = useLocalStorage<User[]>('bar-users', []);
+  const [bars, setBars] = useDataStore<Bar[]>('bars', mockBars);
+  const [barMembers, setBarMembers] = useDataStore<BarMember[]>('bar-members', mockBarMembers);
+  const [currentBarId, setCurrentBarId] = useDataStore<string | null>('current-bar-id', null);
+  const [users] = useDataStore<User[]>('bar-users', []);
 
   // État dérivé
   const [currentBar, setCurrentBar] = useState<Bar | null>(null);

@@ -11,22 +11,27 @@ vi.mock('../context/AuthContext', () => ({
   useAuth: () => ({ currentSession: { userId: 'user-1', role: 'gerant' } }),
 }));
 
-// Mock de useLocalStorage pour contrôler les données
-vi.mock('./useLocalStorage', () => {
-    const original = vi.importActual('./useLocalStorage');
+// Mock DataStore avec store partagé
+const mockDataStore: Record<string, any> = {};
+
+vi.mock('../services/DataStore', () => {
+    // Créer le store dans la factory pour qu'il soit partagé
+    const store: Record<string, any> = {};
+
     return {
-        ...original,
-        useLocalStorage: vi.fn((key, initialValue) => {
-            let value = initialValue;
-            const set = (newValue) => {
-                if (typeof newValue === 'function') {
-                    value = newValue(value);
-                } else {
-                    value = newValue;
-                }
-            };
-            return [value, set];
-        }),
+        dataStore: {
+            get: (key: string) => store[key] ?? null,
+            set: (key: string, value: any) => {
+                store[key] = value;
+            },
+            remove: (key: string) => {
+                delete store[key];
+            },
+            has: (key: string) => key in store,
+            subscribe: () => () => {}, // Pas de subscription dans les tests
+        },
+        // Exposer le store pour accès dans les tests
+        __getStore: () => store,
     };
 });
 
@@ -41,20 +46,12 @@ describe('useStockManagement', () => {
       { id: 'prod-2', name: 'Another Product', stock: 10 },
     ];
     initialConsignments = [];
-    
-    // Mock de useLocalStorage pour retourner les données initiales
-    const { useLocalStorage } = require('./useLocalStorage');
-    useLocalStorage.mockImplementation((key, defaultValue) => {
-        let value = key === 'bar-products' ? initialProducts : initialConsignments;
-        const set = (newValue) => {
-            if (typeof newValue === 'function') {
-                value = newValue(value);
-            } else {
-                value = newValue;
-            }
-        };
-        return [value, set];
-    });
+
+    // Réinitialiser via le dataStore mocké
+    const { dataStore } = require('../services/DataStore');
+    dataStore.set('products-v3', initialProducts);
+    dataStore.set('consignments-v1', initialConsignments);
+    dataStore.set('supplies-v3', []);
   });
 
   it('devrait retourner les informations de stock correctes pour un produit', () => {
@@ -202,18 +199,11 @@ describe('useStockManagement - Business Critical Tests', () => {
     ];
     initialConsignments = [];
 
-    const { useLocalStorage } = require('./useLocalStorage');
-    useLocalStorage.mockImplementation((key) => {
-        let value = key === 'bar-products' ? initialProducts : initialConsignments;
-        const set = (newValue) => {
-            if (typeof newValue === 'function') {
-                value = newValue(value);
-            } else {
-                value = newValue;
-            }
-        };
-        return [value, set];
-    });
+    // Réinitialiser via le dataStore mocké
+    const { dataStore } = require('../services/DataStore');
+    dataStore.set('products-v3', initialProducts);
+    dataStore.set('consignments-v1', initialConsignments);
+    dataStore.set('supplies-v3', []);
   });
 
   // ✅ TEST #1 : Stock disponible = Stock physique - Stock consigné

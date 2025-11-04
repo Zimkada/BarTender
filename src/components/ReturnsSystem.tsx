@@ -274,7 +274,7 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl w-full max-w-6xl max-h-[85vh] md:max-h-[90vh] overflow-y-auto shadow-2xl"
+            className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
           >
             <div className="flex items-center justify-between p-6 border-b border-orange-200">
               <div className="flex items-center gap-3">
@@ -298,7 +298,7 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
               </div>
             </div>
 
-            <div className="p-6">
+            <div className="flex-1 overflow-y-auto p-6">
               {!showCreateReturn ? (
                 <>
                   <div className="flex flex-wrap gap-4 mb-6">

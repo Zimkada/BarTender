@@ -122,9 +122,12 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
   const avgSaleValue = todayValidatedSales.length > 0 ? todayTotal / todayValidatedSales.length : 0;
   const topProducts = todayValidatedSales.flatMap(sale => sale.items).reduce((acc, item) => { const key = `${item.product.name}-${item.product.volume}`; acc[key] = (acc[key] || 0) + item.quantity; return acc; }, {} as Record<string, number>);
   const topProductsList = Object.entries(topProducts).sort((a, b) => b[1] - a[1]).slice(0, 3);
-  const todayReturns = returns.filter(r => 
+
+  // 🔒 SERVEURS : Ne voir que les retours de LEURS ventes (même logique que getTodayTotal)
+  const todaySaleIds = useMemo(() => new Set(todayValidatedSales.map(s => s.id)), [todayValidatedSales]);
+  const todayReturns = returns.filter(r =>
     new Date(r.returnedAt).toDateString() === new Date().toDateString() &&
-    (currentSession?.role !== 'serveur' || r.returnedBy === currentSession.userId)
+    (currentSession?.role !== 'serveur' || todaySaleIds.has(r.saleId))
   );
   const todayReturnsCount = todayReturns.length;
   const todayReturnsRefunded = todayReturns.filter(r => r.isRefunded && (r.status === 'approved' || r.status === 'restocked')).reduce((sum, r) => sum + r.refundAmount, 0);
@@ -132,7 +135,8 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
   const activeConsignments = useMemo(() => {
     const allActive = consignments.filter(c => c.status === 'active');
     if (currentSession?.role === 'serveur') {
-      return allActive.filter(c => c.createdBy === currentSession.userId);
+      // 🔒 SERVEURS : Voir consignations de LEURS ventes (via originalSeller)
+      return allActive.filter(c => c.originalSeller === currentSession.userId);
     }
     return allActive;
   }, [consignments, currentSession]);

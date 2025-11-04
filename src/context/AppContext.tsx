@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useCallback, useEffect } from 'react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useDataStore } from '../hooks/useDataStore';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { useStockBridge } from '../context/StockBridgeProvider';
@@ -72,6 +72,8 @@ interface AppContextType {
   getTodaySales: () => Sale[];
   getTodayTotal: () => number;
   getSalesByUser: (userId: string) => Sale[];
+  getServerRevenue: (userId: string, startDate?: Date, endDate?: Date) => number;
+  getServerReturns: (userId: string) => Return[];
 
   // Retours
   returns: Return[];
@@ -115,13 +117,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const { products: allProducts, supplies: allSupplies } = useStock();
 
   // États avec tous les bars (sauf products/supplies → délégués à StockContext)
-  const [allCategories, setAllCategories] = useLocalStorage<Category[]>('categories-v3', []);
-  const [allSales, setAllSales] = useLocalStorage<Sale[]>('sales-v3', []);
-  const [allReturns, setAllReturns] = useLocalStorage<Return[]>('returns-v1', []);
-  const [allExpenses, setAllExpenses] = useLocalStorage<Expense[]>('expenses-v1', []);
-  const [allCustomExpenseCategories, setAllCustomExpenseCategories] = useLocalStorage<ExpenseCategoryCustom[]>('expense-categories-v1', []);
-  const [settings, setSettings] = useLocalStorage<AppSettings>('app-settings-v3', defaultSettings);
-  const [users, setUsers] = useLocalStorage<User[]>('users', []); // Assurez-vous que la clé est correcte
+  const [allCategories, setAllCategories] = useDataStore<Category[]>('categories-v3', []);
+  const [allSales, setAllSales] = useDataStore<Sale[]>('sales-v3', []);
+  const [allReturns, setAllReturns] = useDataStore<Return[]>('returns-v1', []);
+  const [allExpenses, setAllExpenses] = useDataStore<Expense[]>('expenses-v1', []);
+  const [allCustomExpenseCategories, setAllCustomExpenseCategories] = useDataStore<ExpenseCategoryCustom[]>('expense-categories-v1', []);
+  const [settings, setSettings] = useDataStore<AppSettings>('app-settings-v3', defaultSettings);
+  const [users, setUsers] = useDataStore<User[]>('bar-users', []); // Synchronisé avec AuthContext et BarContext
 
   // Filtrage automatique par bar actuel
   const categories = allCategories.filter(c => c.barId === currentBar?.id);
@@ -313,11 +315,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [sales, currentBar, currentSession]);
 
   const getTodayTotal = useCallback(() => {
-    const salesTotal = getTodaySales().reduce((sum, sale) => sum + sale.total, 0);
+    const todaySales = getTodaySales();
+    const salesTotal = todaySales.reduce((sum, sale) => sum + sale.total, 0);
 
     // Déduire les retours remboursés du jour (CA NET = Ventes - Retours)
     const closeHour = currentBar?.settings?.businessDayCloseHour ?? 6;
     const currentBusinessDay = getCurrentBusinessDay(closeHour);
+
+    // 🔒 SERVEURS : Ne déduire que les retours de LEURS ventes
+    const todaySaleIds = new Set(todaySales.map(s => s.id));
 
     const returnsTotal = returns
       .filter(r => {
@@ -325,6 +331,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (r.status !== 'approved' && r.status !== 'restocked') return false;
         // Seulement retours remboursés
         if (!r.isRefunded) return false;
+        // 🔒 IMPORTANT: Seulement retours des ventes affichées (filtrage par serveur)
+        if (!todaySaleIds.has(r.saleId)) return false;
         // Même jour commercial que les ventes
         const returnDate = new Date(r.returnedAt);
         const returnBusinessDay = getBusinessDay(returnDate, closeHour);
@@ -339,6 +347,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!hasPermission('canViewAllSales')) return [];
     return sales.filter(sale => sale.status === 'validated' && sale.createdBy === userId);
   }, [sales, hasPermission]);
+
+  // ===== NOUVEAU : CA NET SERVEUR (avec déduction retours) =====
+  const getServerRevenue = useCallback((
+    userId: string,
+    startDate?: Date,
+    endDate?: Date
+  ): number => {
+    // 1. Récupérer les ventes du serveur (validées uniquement)
+    const serverSales = sales.filter(sale => {
+      if (sale.status !== 'validated' || sale.createdBy !== userId) return false;
+      if (startDate && new Date(sale.createdAt) < startDate) return false;
+      if (endDate && new Date(sale.createdAt) > endDate) return false;
+      return true;
+    });
+
+    const salesTotal = serverSales.reduce((sum, s) => sum + s.total, 0);
+
+    // 2. Récupérer les retours des ventes de ce serveur (remboursés uniquement)
+    const serverSaleIds = serverSales.map(s => s.id);
+    const serverReturns = returns.filter(r => {
+      if (!serverSaleIds.includes(r.saleId)) return false;  // Pas une vente de ce serveur
+      if (r.status === 'rejected') return false;            // Retour rejeté
+      if (!r.isRefunded) return false;                      // Pas remboursé
+      if (startDate && new Date(r.returnedAt) < startDate) return false;
+      if (endDate && new Date(r.returnedAt) > endDate) return false;
+      return true;
+    });
+
+    const returnsTotal = serverReturns.reduce((sum, r) => sum + r.refundAmount, 0);
+
+    // 3. CA NET = Ventes - Retours remboursés
+    return salesTotal - returnsTotal;
+  }, [sales, returns]);
+
+  // ===== NOUVEAU : Retours liés aux ventes d'un serveur =====
+  const getServerReturns = useCallback((userId: string): Return[] => {
+    // Trouver toutes les ventes du serveur
+    const serverSaleIds = sales
+      .filter(s => s.createdBy === userId && s.status === 'validated')
+      .map(s => s.id);
+
+    // Retourner les retours liés à ces ventes
+    return returns.filter(r => serverSaleIds.includes(r.saleId));
+  }, [sales, returns]);
 
   // ... (fonctions de retour et de paramètres restent les mêmes)
   const updateSettings = useCallback((updates: Partial<AppSettings>) => {
@@ -421,6 +473,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Ventes
     addSale, validateSale, rejectSale, // NOUVELLES FONCTIONS
     getSalesByDate, getTodaySales, getTodayTotal, getSalesByUser,
+    getServerRevenue, getServerReturns, // ✅ NOUVEAU : CA net serveur
 
     // Retours
     addReturn, updateReturn, deleteReturn, getReturnsBySale, getPendingReturns,

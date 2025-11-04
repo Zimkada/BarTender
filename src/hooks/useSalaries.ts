@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Salary, BarMember } from '../types';
-import { useLocalStorage } from './useLocalStorage';
+import { useDataStore } from './useDataStore';
 
 export function useSalaries(barId: string) {
-  const [salaries, setSalaries] = useLocalStorage<Salary[]>(`salaries_${barId}`, []);
+  const [salaries, setSalaries] = useDataStore<Salary[]>(`salaries_${barId}`, []);
   const [isLoading, setIsLoading] = useState(false);
 
   // Ajouter un salaire

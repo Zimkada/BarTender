@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useCallback, ReactNode } from 'react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useDataStore } from '../hooks/useDataStore';
 import { UserSession, UserRole, getPermissionsByRole, User, RolePermissions } from '../types';
 
 // Mock users étendu pour multi-tenant
@@ -76,8 +76,8 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [currentSession, setCurrentSession] = useLocalStorage<UserSession | null>('bar-current-session', null);
-  const [users, setUsers] = useLocalStorage<User[]>('bar-users', mockUsers);
+  const [currentSession, setCurrentSession] = useDataStore<UserSession | null>('bar-current-session', null);
+  const [users, setUsers] = useDataStore<User[]>('bar-users', mockUsers);
 
   const login = useCallback((username: string, password: string, barId: string, role: UserRole) => {
     const user = users.find(u => 

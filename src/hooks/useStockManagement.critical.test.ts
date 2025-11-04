@@ -23,31 +23,25 @@ vi.mock('../context/AuthContext', () => ({
   }),
 }));
 
-// Mock de useLocalStorage
-let mockProducts: Product[] = [];
-let mockConsignments: Consignment[] = [];
+// Mock DataStore avec store partagé
+vi.mock('../services/DataStore', () => {
+    // Créer le store dans la factory pour qu'il soit partagé
+    const store: Record<string, any> = {};
 
-vi.mock('./useLocalStorage', () => ({
-  useLocalStorage: (key: string, defaultValue: any) => {
-    if (key === 'bar-products') {
-      return [
-        mockProducts,
-        (newValue: any) => {
-          mockProducts = typeof newValue === 'function' ? newValue(mockProducts) : newValue;
-        }
-      ];
-    }
-    if (key === 'consignments-v1') {
-      return [
-        mockConsignments,
-        (newValue: any) => {
-          mockConsignments = typeof newValue === 'function' ? newValue(mockConsignments) : newValue;
-        }
-      ];
-    }
-    return [defaultValue, () => {}];
-  },
-}));
+    return {
+        dataStore: {
+            get: (key: string) => store[key] ?? null,
+            set: (key: string, value: any) => {
+                store[key] = value;
+            },
+            remove: (key: string) => {
+                delete store[key];
+            },
+            has: (key: string) => key in store,
+            subscribe: () => () => {}, // Pas de subscription dans les tests
+        },
+    };
+});
 
 // ========================================
 // 🎯 TESTS CRITIQUES PERMANENTS
@@ -57,8 +51,8 @@ vi.mock('./useLocalStorage', () => ({
 describe('useStockManagement - Business Critical Tests', () => {
 
   beforeEach(() => {
-    // Réinitialiser les données
-    mockProducts = [
+    // Réinitialiser via le dataStore mocké
+    const initialProducts: Product[] = [
       {
         id: 'prod-1',
         barId: 'bar-1',
@@ -71,7 +65,10 @@ describe('useStockManagement - Business Critical Tests', () => {
         createdAt: new Date()
       },
     ];
-    mockConsignments = [];
+    const { dataStore } = require('../services/DataStore');
+    dataStore.set('products-v3', initialProducts);
+    dataStore.set('consignments-v1', []);
+    dataStore.set('supplies-v3', []);
   });
 
   // ✅ TEST #1 : Stock disponible = Stock physique - Stock consigné

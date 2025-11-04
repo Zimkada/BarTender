@@ -1,6 +1,6 @@
 // hooks/useStockManagement.ts - Hook unifié pour la gestion des stocks
 import { useCallback, useMemo } from 'react';
-import { useLocalStorage } from './useLocalStorage';
+import { useDataStore } from './useDataStore';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { calculateAvailableStock } from '../utils/calculations';
@@ -19,9 +19,9 @@ export type CreateExpenseCallback = (expense: Omit<Expense, 'id' | 'barId' | 'cr
 
 // ----- HOOK PRINCIPAL -----
 export const useStockManagement = () => {
-  const [products, setProducts] = useLocalStorage<Product[]>(PRODUCTS_STORAGE_KEY, []);
-  const [consignments, setConsignments] = useLocalStorage<Consignment[]>(CONSIGNMENTS_STORAGE_KEY, []);
-  const [supplies, setSupplies] = useLocalStorage<Supply[]>(SUPPLIES_STORAGE_KEY, []);
+  const [products, setProducts] = useDataStore<Product[]>(PRODUCTS_STORAGE_KEY, []);
+  const [consignments, setConsignments] = useDataStore<Consignment[]>(CONSIGNMENTS_STORAGE_KEY, []);
+  const [supplies, setSupplies] = useDataStore<Supply[]>(SUPPLIES_STORAGE_KEY, []);
 
   const { currentBar } = useBarContext();
   const { currentSession: session } = useAuth();
