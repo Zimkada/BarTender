@@ -1,7 +1,7 @@
 // useDataStore.ts - Hook React pour utiliser DataStore
 // Remplace useLocalStorage avec une API identique
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { dataStore } from '../services/DataStore';
 
 /**
@@ -22,11 +22,21 @@ export function useDataStore<T>(key: string, initialValue: T) {
     return item !== null ? item : initialValue;
   });
 
+  // ✅ FIX CRITIQUE: Utiliser ref pour éviter closure stale dans updates rapides (import batch)
+  // Sans cela, les appels rapides à setValue() en boucle utilisent l'ancienne valeur
+  const storedValueRef = useRef(storedValue);
+
+  // Mettre à jour la ref à chaque changement
+  useEffect(() => {
+    storedValueRef.current = storedValue;
+  }, [storedValue]);
+
   // Fonction de mise à jour (compatible useState)
   const setValue = useCallback((value: T | ((val: T) => T)) => {
     try {
-      // Gérer fonction ou valeur directe (comme useState)
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
+      // ✅ FIX: Utiliser ref.current au lieu de closure pour avoir TOUJOURS la valeur la plus récente
+      // Cela garantit que les callbacks (prev => [...prev, item]) utilisent la bonne valeur
+      const valueToStore = value instanceof Function ? value(storedValueRef.current) : value;
 
       // Sauvegarder dans le store
       dataStore.set(key, valueToStore);
@@ -36,7 +46,7 @@ export function useDataStore<T>(key: string, initialValue: T) {
     } catch (error) {
       console.error(`[useDataStore] Error setting key "${key}":`, error);
     }
-  }, [key, storedValue]);
+  }, [key]);
 
   // S'abonner aux changements (multi-composants / multi-onglets)
   useEffect(() => {
