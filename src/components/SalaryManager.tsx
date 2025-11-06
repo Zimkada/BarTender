@@ -27,7 +27,7 @@ export function SalaryManager() {
 
   if (!currentBar || !currentSession) return null;
 
-  const members = getBarMembers();
+  const members = getBarMembers(currentBar.id); // ✅ FIX: Passer barId en paramètre
   const {
     salaries,
     addSalary,
@@ -101,8 +101,9 @@ export function SalaryManager() {
     const member = members.find(m => m.id === memberId);
     if (!member) return 'Membre inconnu';
 
-    const user = member as any; // Simple pour éviter erreur typage
-    return user.name || user.userName || 'N/A';
+    const memberWithUser = member as any; // BarMember & { user: User }
+    // ✅ FIX: Accéder à member.user.name au lieu de member.name
+    return memberWithUser.user?.name || memberWithUser.user?.userName || 'N/A';
   };
 
   const getMemberRole = (memberId: string) => {
@@ -203,10 +204,11 @@ export function SalaryManager() {
               </p>
               <ul className={`mt-2 space-y-1 text-amber-700 ${isMobile ? 'text-xs' : 'text-sm'}`}>
                 {unpaidMembers.map(member => {
-                  const user = member as any;
+                  const memberWithUser = member as any; // BarMember & { user: User }
+                  const displayName = memberWithUser.user?.name || memberWithUser.user?.userName || 'Membre inconnu';
                   return (
                     <li key={member.id}>
-                      • {user.name || user.userName} ({member.role})
+                      • {displayName} ({member.role})
                     </li>
                   );
                 })}
@@ -376,11 +378,13 @@ export function SalaryManager() {
                   >
                     <option value="">Sélectionner...</option>
                     {activeMembers.map(member => {
-                      const user = member as any;
+                      const memberWithUser = member as any; // BarMember & { user: User }
                       const alreadyPaid = getSalaryForPeriod(member.id, selectedPeriod);
+                      // ✅ FIX: Accéder à member.user.name au lieu de member.name
+                      const displayName = memberWithUser.user?.name || memberWithUser.user?.userName || 'Membre inconnu';
                       return (
                         <option key={member.id} value={member.id} disabled={!!alreadyPaid}>
-                          {user.name || user.userName} ({member.role}) {alreadyPaid ? '✓ Payé' : ''}
+                          {displayName} ({member.role}) {alreadyPaid ? '✓ Payé' : ''}
                         </option>
                       );
                     })}

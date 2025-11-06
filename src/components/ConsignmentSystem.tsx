@@ -12,7 +12,8 @@ import {
   User,
   Phone,
   Calendar,
-  Archive
+  Archive,
+  Filter
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
@@ -155,6 +156,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
   const [customerPhone, setCustomerPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterSeller, setFilterSeller] = useState<string>('all'); // ✅ Filtre vendeur
   const [expirationDays, setExpirationDays] = useState(currentBar?.settings?.consignmentExpirationDays ?? 7);
 
   useEffect(() => {
@@ -181,12 +183,31 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
   }
 
   const todaySales = getTodaySales();
+
+  // ✅ Filtrer par vendeur puis par recherche
   const filteredSales = useMemo(() => {
-    if (!searchTerm) return todaySales;
-    return todaySales.filter(sale =>
-      sale.id.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [todaySales, searchTerm]);
+    let filtered = todaySales;
+
+    // Filtre vendeur
+    if (filterSeller !== 'all') {
+      filtered = filtered.filter(sale => sale.createdBy === filterSeller);
+    }
+
+    // Filtre recherche
+    if (searchTerm) {
+      filtered = filtered.filter(sale =>
+        sale.id.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    return filtered;
+  }, [todaySales, filterSeller, searchTerm]);
+
+  // ✅ Liste unique des vendeurs ayant des ventes
+  const sellersWithSales = useMemo(() => {
+    const sellerIds = new Set(todaySales.map(sale => sale.createdBy).filter(Boolean));
+    return users.filter(user => sellerIds.has(user.id));
+  }, [todaySales, users]);
 
   const selectedSale = todaySales.find(s => s.id === selectedSaleId);
   const selectedProductItem = selectedSale?.items.find(item => item.product.id === selectedProductId);
@@ -273,6 +294,31 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
         <label className="block text-sm font-medium text-gray-700 mb-2">
           1. Sélectionner la vente
         </label>
+
+        {/* ✅ Filtre vendeur */}
+        {sellersWithSales.length > 1 && (
+          <div className="mb-3">
+            <div className="flex items-center gap-2">
+              <Filter size={16} className="text-gray-400" />
+              <select
+                value={filterSeller}
+                onChange={(e) => setFilterSeller(e.target.value)}
+                className="px-3 py-2 border border-orange-200 rounded-lg bg-white text-sm"
+              >
+                <option value="all">Tous les vendeurs ({todaySales.length})</option>
+                {sellersWithSales.map(seller => {
+                  const count = todaySales.filter(s => s.createdBy === seller.id).length;
+                  return (
+                    <option key={seller.id} value={seller.id}>
+                      {seller.name} ({count})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          </div>
+        )}
+
         <div className="relative mb-3">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
           <input
@@ -286,7 +332,14 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-60 overflow-y-auto">
           {filteredSales.length === 0 ? (
-            <p className="text-gray-500 text-sm col-span-2">Aucune vente trouvée aujourd'hui</p>
+            <p className="text-gray-500 text-sm col-span-2">
+              {todaySales.length === 0
+                ? 'Aucune vente trouvée aujourd\'hui'
+                : filterSeller !== 'all'
+                  ? 'Aucune vente pour ce vendeur'
+                  : 'Aucune vente trouvée'
+              }
+            </p>
           ) : (
             filteredSales.map(sale => {
               // 👤 Trouver le vendeur

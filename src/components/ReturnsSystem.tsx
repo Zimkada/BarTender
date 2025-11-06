@@ -645,6 +645,7 @@ function CreateReturnForm({
   const [reason, setReason] = useState<ReturnReason>('defective');
   const [notes, setNotes] = useState('');
   const [showOtherReasonDialog, setShowOtherReasonDialog] = useState(false);
+  const [filterSeller, setFilterSeller] = useState<string>('all'); // ✅ Filtre vendeur
 
   const reasonConfig = returnReasons[reason];
 
@@ -665,6 +666,18 @@ function CreateReturnForm({
   const availableQty = selectedProduct
     ? selectedProduct.quantity - getAlreadyReturned(selectedProduct.product.id) - getAlreadyConsigned(selectedProduct.product.id)
     : 0;
+
+  // ✅ Filtrer ventes par vendeur sélectionné
+  const filteredSalesBySeller = useMemo(() => {
+    if (filterSeller === 'all') return returnableSales;
+    return returnableSales.filter(sale => sale.createdBy === filterSeller);
+  }, [returnableSales, filterSeller]);
+
+  // ✅ Liste unique des vendeurs ayant des ventes
+  const sellersWithSales = useMemo(() => {
+    const sellerIds = new Set(returnableSales.map(sale => sale.createdBy).filter(Boolean));
+    return users.filter(user => sellerIds.has(user.id));
+  }, [returnableSales, users]);
 
   const handleSubmit = () => {
     if (!selectedSale || !selectedProduct) return;
@@ -720,13 +733,43 @@ function CreateReturnForm({
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Ventes de la journée commerciale actuelle
           </label>
-          {returnableSales.length === 0 ? (
+
+          {/* ✅ Filtre vendeur */}
+          {sellersWithSales.length > 1 && (
+            <div className="mb-3">
+              <div className="flex items-center gap-2">
+                <Filter size={16} className="text-gray-400" />
+                <select
+                  value={filterSeller}
+                  onChange={(e) => setFilterSeller(e.target.value)}
+                  className="px-3 py-2 border border-orange-200 rounded-lg bg-white text-sm"
+                >
+                  <option value="all">Tous les vendeurs ({returnableSales.length})</option>
+                  {sellersWithSales.map(seller => {
+                    const count = returnableSales.filter(s => s.createdBy === seller.id).length;
+                    return (
+                      <option key={seller.id} value={seller.id}>
+                        {seller.name} ({count})
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {filteredSalesBySeller.length === 0 ? (
             <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-              <p className="text-gray-500">Aucune vente dans la journée commerciale actuelle</p>
+              <p className="text-gray-500">
+                {returnableSales.length === 0
+                  ? 'Aucune vente dans la journée commerciale actuelle'
+                  : 'Aucune vente pour ce vendeur'
+                }
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-              {returnableSales.map(sale => {
+              {filteredSalesBySeller.map(sale => {
                 const returnCheck = canReturnSale(sale);
                 const seller = sale.createdBy ? users.find(u => u.id === sale.createdBy) : null;
 
