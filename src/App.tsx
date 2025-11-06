@@ -462,6 +462,7 @@ function AppContent() {
         onShowReturns={() => setShowReturns(true)}
         onShowForecasting={() => setShowForecasting(true)}
         onShowExcel={() => setShowSalesHistory(true)}
+        onShowDashboard={() => setShowDailyDashboard(true)} // ✅ NOUVEAU
       />
     </motion.div>
   );

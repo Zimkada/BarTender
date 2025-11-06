@@ -7,7 +7,8 @@ import {
   TrendingUp,
   FileSpreadsheet,
   Home,
-  User
+  User,
+  LayoutDashboard
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useViewport } from '../hooks/useViewport';
@@ -19,6 +20,7 @@ interface MobileNavigationProps {
   onShowReturns: () => void;
   onShowForecasting: () => void;
   onShowExcel: () => void;
+  onShowDashboard: () => void; // ✅ NOUVEAU
 }
 
 interface NavItem {
@@ -35,7 +37,8 @@ export function MobileNavigation({
   onShowQuickSale,
   onShowReturns,
   onShowForecasting,
-  onShowExcel
+  onShowExcel,
+  onShowDashboard
 }: MobileNavigationProps) {
   const { currentSession } = useAuth();
   const { isMobile } = useViewport();
@@ -53,38 +56,45 @@ export function MobileNavigation({
       roles: ['serveur', 'gerant', 'promoteur']
     },
     {
+      icon: <LayoutDashboard size={24} />,
+      label: 'Dashboard',
+      onClick: onShowDashboard,
+      color: 'text-blue-600',
+      roles: ['serveur', 'gerant', 'promoteur'] // ✅ Serveurs voient LEURS stats
+    },
+    {
       icon: <BarChart3 size={24} />,
       label: 'Historique',
       onClick: onShowSales,
-      color: 'text-orange-600',
-      roles: ['gerant', 'promoteur']
+      color: 'text-purple-600',
+      roles: ['serveur', 'gerant', 'promoteur'] // ✅ Serveurs voient LEURS ventes
     },
     {
       icon: <Package size={24} />,
       label: 'Inventaire',
       onClick: onShowInventory,
-      color: 'text-orange-600',
+      color: 'text-green-600',
       roles: ['gerant', 'promoteur']
     },
     {
       icon: <TrendingUp size={24} />,
       label: 'Prévisions',
       onClick: onShowForecasting,
-      color: 'text-orange-600',
+      color: 'text-indigo-600',
       roles: ['gerant', 'promoteur']
     },
     {
       icon: <RotateCcw size={24} />,
       label: 'Retours',
       onClick: onShowReturns,
-      color: 'text-orange-600',
+      color: 'text-red-600',
       roles: ['gerant', 'promoteur']
     },
     {
       icon: <FileSpreadsheet size={24} />,
       label: 'Import/Export',
       onClick: onShowExcel,
-      color: 'text-orange-600',
+      color: 'text-teal-600',
       roles: ['gerant', 'promoteur']
     }
   ];
