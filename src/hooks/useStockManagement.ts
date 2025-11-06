@@ -37,6 +37,29 @@ export const useStockManagement = () => {
     return newProduct;
   };
 
+  /**
+   * Ajoute plusieurs produits en UNE SEULE opération atomique
+   * ✅ CRITIQUE: Évite race condition avec forEach + addProduct rapide
+   * ✅ Compatible Supabase (un seul INSERT batch au lieu de N requêtes)
+   *
+   * @param productsData - Array de produits à ajouter
+   * @returns Array des produits créés avec id et createdAt
+   */
+  const addProducts = useCallback((productsData: Omit<Product, 'id' | 'createdAt'>[]): Product[] => {
+    const newProducts = productsData.map((data, index) => ({
+      ...data,
+      // ID unique avec timestamp + random + index pour garantir unicité
+      id: `product_${Date.now()}_${index}_${Math.random().toString(36).substring(2, 11)}`,
+      createdAt: new Date(),
+    }));
+
+    // ✅ UNE SEULE opération setState (pas de race condition)
+    setProducts(prev => [...prev, ...newProducts]);
+
+    console.log(`✅ Batch import: ${newProducts.length} produits ajoutés en une seule opération`);
+    return newProducts;
+  }, [setProducts]);
+
   const updateProduct = (id: string, updates: Partial<Product>) => {
     setProducts(prev => prev.map(p => (p.id === id ? { ...p, ...updates } : p)));
   };
@@ -287,6 +310,7 @@ export const useStockManagement = () => {
 
     // Product Actions
     addProduct,
+    addProducts,
     updateProduct,
     deleteProduct,
 

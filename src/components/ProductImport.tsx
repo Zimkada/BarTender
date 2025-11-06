@@ -16,7 +16,7 @@ interface ProductImportProps {
 
 export function ProductImport({ isOpen, onClose }: ProductImportProps) {
   const { categories, addCategory, products } = useAppContext();
-  const { addProduct } = useStockManagement();
+  const { addProducts } = useStockManagement(); // ✅ Batch import au lieu de addProduct
   const { showSuccess, showError } = useFeedback();
   const { currentBar } = useBarContext();
   const [importedProducts, setImportedProducts] = useState<any[]>([]);
@@ -65,12 +65,13 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
       return;
     }
 
-    let successCount = 0;
     let errorCount = 0;
     const newCategoryNames = new Set<string>();
     let localCategories = [...categories]; // Copie locale pour la session d'import
     const existingProducts = [...products]; // Pour détecter les doublons
+    const validProductsToImport: any[] = []; // ✅ Array pour batch import
 
+    // 1️⃣ PHASE VALIDATION: Collecter tous les produits valides
     importedProducts.forEach((product, index) => {
       try {
         const normalizedProduct: any = {};
@@ -122,6 +123,16 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
           throw new Error(`Ligne ${index + 2}: Produit "${nom}" (${volumeStr || 'sans volume'}) existe déjà. Import ignoré.`);
         }
 
+        // ✅ Vérifier doublons dans le fichier Excel lui-même
+        const duplicateInFile = validProductsToImport.find(p =>
+          p.name.toLowerCase() === String(nom).toLowerCase() &&
+          p.volume.toLowerCase() === volumeStr.toLowerCase()
+        );
+
+        if (duplicateInFile) {
+          throw new Error(`Ligne ${index + 2}: Produit "${nom}" (${volumeStr || 'sans volume'}) apparaît plusieurs fois dans le fichier. Import ignoré.`);
+        }
+
         let categoryId = '';
         if (categoryName) {
           let category = localCategories.find(c => c.name.toLowerCase() === categoryName.toLowerCase());
@@ -153,22 +164,20 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
           alertThreshold: seuilNumber,
         };
 
-        const newProduct = addProduct(productData);
+        // ✅ AJOUT AU BATCH (au lieu d'appeler addProduct immédiatement)
+        validProductsToImport.push(productData);
 
-        // ✅ Ajouter à la liste locale pour détecter doublons dans le même fichier
-        if (newProduct) {
-          existingProducts.push(newProduct);
-        }
-
-        successCount++;
       } catch (e: any) {
         showError(e.message);
         errorCount++;
       }
     });
 
-    if (successCount > 0) {
-      let successMessage = `${successCount} produit(s) importé(s) avec succès.`;
+    // 2️⃣ PHASE IMPORT ATOMIQUE: Importer TOUS les produits valides en UNE SEULE opération
+    if (validProductsToImport.length > 0) {
+      const importedProductsList = addProducts(validProductsToImport);
+
+      let successMessage = `${importedProductsList.length} produit(s) importé(s) avec succès.`;
       if (newCategoryNames.size > 0) {
         successMessage += ` Nouvelles catégories créées : ${[...newCategoryNames].join(', ')}.`;
       }
