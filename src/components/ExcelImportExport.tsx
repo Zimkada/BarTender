@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { 
-  FileSpreadsheet, 
-  Upload, 
-  Download, 
+import {
+  FileSpreadsheet,
+  Upload,
+  Download,
   X,
   Package,
   BarChart3,
@@ -11,6 +11,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import { useAppContext } from '../context/AppContext';
+import { useStock } from '../context/StockContext';
 import { useAuth } from '../context/AuthContext';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
@@ -27,12 +28,11 @@ type ExportType = 'products' | 'sales' | 'inventory' | 'users';
 
 export function ExcelImportExport({ isOpen, onClose }: ExcelImportExportProps) {
   const {
-    products,
     categories,
     sales,
-    addProduct,
     addCategory,
   } = useAppContext();
+  const { products, addProduct } = useStock();
   const { users, hasPermission } = useAuth();
   const { showSuccess, showError, setLoading, isLoading } = useFeedback();
   
@@ -198,6 +198,9 @@ export function ExcelImportExport({ isOpen, onClose }: ExcelImportExportProps) {
   const confirmImport = async () => {
     setLoading('confirmImport', true);
 
+    console.log('🚀 [IMPORT DEBUG] Début de l\'import');
+    console.log('📦 [IMPORT DEBUG] Catégories existantes:', categories.map(c => ({ id: c.id, name: c.name })));
+
     try {
       let imported = 0;
       let errors = 0;
@@ -207,13 +210,17 @@ export function ExcelImportExport({ isOpen, onClose }: ExcelImportExportProps) {
       // Initialiser le cache avec les catégories existantes
       categories.forEach(cat => {
         categoryCache.set(cat.name.toLowerCase(), cat.id);
+        console.log(`✅ [IMPORT DEBUG] Catégorie existante en cache: "${cat.name}" → ${cat.id}`);
       });
+
+      console.log(`📋 [IMPORT DEBUG] ${importData.length} lignes à traiter`);
 
       for (const row of importData) {
         try {
           if (importType === 'products') {
             // Validation des champs requis
             if (!row.Nom || !row.Volume || !row['Prix (FCFA)'] || row.Stock === undefined) {
+              console.warn('⚠️ [IMPORT DEBUG] Ligne ignorée (champs manquants):', row);
               continue;
             }
 
@@ -225,11 +232,15 @@ export function ExcelImportExport({ isOpen, onClose }: ExcelImportExportProps) {
 
             const categoryNameLower = categoryName.toLowerCase();
 
+            console.log(`🔍 [IMPORT DEBUG] Produit "${row.Nom}" → Catégorie: "${categoryName}"`);
+
             // Vérifier si la catégorie existe déjà (dans le cache)
             if (categoryCache.has(categoryNameLower)) {
               categoryId = categoryCache.get(categoryNameLower);
+              console.log(`✅ [IMPORT DEBUG] Catégorie trouvée dans cache: "${categoryName}" → ${categoryId}`);
             } else {
               // Créer une nouvelle catégorie
+              console.log(`🆕 [IMPORT DEBUG] Tentative création catégorie: "${categoryName}"`);
               const newCategory = addCategory({
                 name: categoryName,
                 color: '#f97316' // Orange par défaut
@@ -239,10 +250,15 @@ export function ExcelImportExport({ isOpen, onClose }: ExcelImportExportProps) {
                 categoryId = newCategory.id;
                 categoryCache.set(categoryNameLower, newCategory.id);
                 categoriesCreated++;
+                console.log(`✅ [IMPORT DEBUG] Catégorie créée avec succès: "${categoryName}" → ${newCategory.id}`);
+              } else {
+                console.error(`❌ [IMPORT DEBUG] addCategory a retourné null pour: "${categoryName}"`);
+                console.error('❌ [IMPORT DEBUG] Raisons possibles: pas de permission ou pas de currentBar');
               }
             }
 
             if (!categoryId) {
+              console.error(`❌ [IMPORT DEBUG] Impossible d'obtenir categoryId pour: "${categoryName}"`);
               errors++;
               continue;
             }
@@ -256,17 +272,26 @@ export function ExcelImportExport({ isOpen, onClose }: ExcelImportExportProps) {
               alertThreshold: Number(row['Seuil d\'alerte']) || 10
             });
             imported++;
+            console.log(`✅ [IMPORT DEBUG] Produit importé: "${row.Nom}" (catégorie: ${categoryId})`);
           }
-        } catch {
+        } catch (error) {
+          console.error('❌ [IMPORT DEBUG] Erreur lors du traitement de la ligne:', row, error);
           errors++;
         }
       }
+
+      console.log('🎉 [IMPORT DEBUG] Résumé:');
+      console.log(`   - Produits importés: ${imported}`);
+      console.log(`   - Catégories créées: ${categoriesCreated}`);
+      console.log(`   - Erreurs: ${errors}`);
+      console.log(`   - Catégories finales en cache:`, Array.from(categoryCache.entries()));
 
       const successMessage = `✅ ${imported} produits importés${categoriesCreated > 0 ? `, ${categoriesCreated} catégories créées` : ''}${errors > 0 ? `, ${errors} erreurs` : ''}`;
       showSuccess(successMessage);
       setImportPreview(false);
       setImportData([]);
-    } catch {
+    } catch (error) {
+      console.error('❌ [IMPORT DEBUG] Erreur fatale lors de l\'import:', error);
       showError('❌ Erreur lors de l\'import');
     } finally {
       setLoading('confirmImport', false);
