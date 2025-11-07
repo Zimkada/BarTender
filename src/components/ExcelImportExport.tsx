@@ -26,11 +26,12 @@ interface ExcelImportExportProps {
 type ExportType = 'products' | 'sales' | 'inventory' | 'users';
 
 export function ExcelImportExport({ isOpen, onClose }: ExcelImportExportProps) {
-  const { 
-    products, 
+  const {
+    products,
     categories,
     sales,
     addProduct,
+    addCategory,
   } = useAppContext();
   const { users, hasPermission } = useAuth();
   const { showSuccess, showError, setLoading, isLoading } = useFeedback();
@@ -196,10 +197,17 @@ export function ExcelImportExport({ isOpen, onClose }: ExcelImportExportProps) {
 
   const confirmImport = async () => {
     setLoading('confirmImport', true);
-    
+
     try {
       let imported = 0;
       let errors = 0;
+      let categoriesCreated = 0;
+      const categoryCache = new Map<string, string>(); // Cache: nom → id
+
+      // Initialiser le cache avec les catégories existantes
+      categories.forEach(cat => {
+        categoryCache.set(cat.name.toLowerCase(), cat.id);
+      });
 
       for (const row of importData) {
         try {
@@ -209,10 +217,30 @@ export function ExcelImportExport({ isOpen, onClose }: ExcelImportExportProps) {
               continue;
             }
 
-            // Trouver la catégorie ou utiliser la première
-            const categoryId = categories.find(c => 
-              c.name.toLowerCase() === (typeof row.Catégorie === 'string' ? row.Catégorie.toLowerCase() : '')
-            )?.id || categories[0]?.id;
+            // ✅ FIX: Créer automatiquement la catégorie si elle n'existe pas
+            let categoryId: string | undefined;
+            const categoryName = typeof row.Catégorie === 'string' && row.Catégorie.trim()
+              ? row.Catégorie.trim()
+              : 'Non catégorisé';
+
+            const categoryNameLower = categoryName.toLowerCase();
+
+            // Vérifier si la catégorie existe déjà (dans le cache)
+            if (categoryCache.has(categoryNameLower)) {
+              categoryId = categoryCache.get(categoryNameLower);
+            } else {
+              // Créer une nouvelle catégorie
+              const newCategory = addCategory({
+                name: categoryName,
+                color: '#f97316' // Orange par défaut
+              });
+
+              if (newCategory) {
+                categoryId = newCategory.id;
+                categoryCache.set(categoryNameLower, newCategory.id);
+                categoriesCreated++;
+              }
+            }
 
             if (!categoryId) {
               errors++;
@@ -234,7 +262,8 @@ export function ExcelImportExport({ isOpen, onClose }: ExcelImportExportProps) {
         }
       }
 
-      showSuccess(`✅ ${imported} produits importés${errors > 0 ? `, ${errors} erreurs` : ''}`);
+      const successMessage = `✅ ${imported} produits importés${categoriesCreated > 0 ? `, ${categoriesCreated} catégories créées` : ''}${errors > 0 ? `, ${errors} erreurs` : ''}`;
+      showSuccess(successMessage);
       setImportPreview(false);
       setImportData([]);
     } catch {
