@@ -23,7 +23,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
-import type { Consignment } from '../types';
+import type { Consignment, User as UserType, Sale } from '../types';
 import { getSaleDate } from '../utils/saleHelpers';
 
 interface ConsignmentSystemProps {
@@ -35,7 +35,7 @@ type TabType = 'create' | 'active' | 'history';
 
 export const ConsignmentSystem: React.FC<ConsignmentSystemProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<TabType>('active');
-  const { formatPrice } = useCurrencyFormatter();
+  // formatPrice non utilisé ici, mais dans les tabs enfants
 
   if (!isOpen) return null;
 
@@ -140,7 +140,7 @@ interface CreateConsignmentTabProps {
 const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) => {
   const { getTodaySales, getReturnsBySale } = useAppContext();
   const stockManager = useStockManagement();
-  const { formatPrice } = useCurrencyFormatter();
+  const { formatPrice } = useCurrencyFormatter(); // ✅ Utilisé dans le JSX
   const { showSuccess, showError } = useFeedback();
   const { currentBar, getBarMembers } = useBarContext();
   const { currentSession: session } = useAuth();
@@ -163,6 +163,37 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
     setExpirationDays(currentBar?.settings?.consignmentExpirationDays ?? 7);
   }, [currentBar?.settings?.consignmentExpirationDays]);
 
+  // ✅ FIX: Déplacer tous les hooks AVANT le early return
+  const todaySales = getTodaySales();
+
+  // ✅ Filtrer par vendeur puis par recherche
+  const filteredSales = useMemo(() => {
+    if (!currentBar || !session) return []; // ✅ Protection si pas de bar/session
+    let filtered = todaySales;
+
+    // Filtre vendeur
+    if (filterSeller !== 'all') {
+      filtered = filtered.filter(sale => sale.createdBy === filterSeller);
+    }
+
+    // Filtre recherche
+    if (searchTerm) {
+      filtered = filtered.filter(sale =>
+        sale.id.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    return filtered;
+  }, [todaySales, filterSeller, searchTerm, currentBar, session]);
+
+  // ✅ Liste unique des vendeurs ayant des ventes
+  const sellersWithSales = useMemo(() => {
+    if (!currentBar || !session) return []; // ✅ Protection si pas de bar/session
+    const sellerIds = new Set(todaySales.map(sale => sale.createdBy).filter(Boolean));
+    return users.filter(user => sellerIds.has(user.id));
+  }, [todaySales, users, currentBar, session]);
+
+  // ✅ FIX: Early return APRÈS tous les hooks
   if (!currentBar || !session) {
     return (
       <div className="flex flex-col items-center justify-center text-center p-8 bg-gray-50 rounded-lg h-full">
@@ -181,33 +212,6 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
       </div>
     );
   }
-
-  const todaySales = getTodaySales();
-
-  // ✅ Filtrer par vendeur puis par recherche
-  const filteredSales = useMemo(() => {
-    let filtered = todaySales;
-
-    // Filtre vendeur
-    if (filterSeller !== 'all') {
-      filtered = filtered.filter(sale => sale.createdBy === filterSeller);
-    }
-
-    // Filtre recherche
-    if (searchTerm) {
-      filtered = filtered.filter(sale =>
-        sale.id.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    return filtered;
-  }, [todaySales, filterSeller, searchTerm]);
-
-  // ✅ Liste unique des vendeurs ayant des ventes
-  const sellersWithSales = useMemo(() => {
-    const sellerIds = new Set(todaySales.map(sale => sale.createdBy).filter(Boolean));
-    return users.filter(user => sellerIds.has(user.id));
-  }, [todaySales, users]);
 
   const selectedSale = todaySales.find(s => s.id === selectedSaleId);
   const selectedProductItem = selectedSale?.items.find(item => item.product.id === selectedProductId);
@@ -648,8 +652,8 @@ interface ConsignmentCardProps {
   consignment: Consignment;
   onClaim: () => void;
   onForfeit: () => void;
-  users: any[]; // ✅ Ajouter users pour afficher vendeur
-  sales: any[]; // ✅ Ajouter sales pour fallback
+  users: UserType[]; // ✅ Type UserType (évite conflit avec icône User de lucide-react)
+  sales: Sale[]; // ✅ Type Sale au lieu de any
 }
 
 const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim, onForfeit, users, sales }) => {
@@ -657,14 +661,14 @@ const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim,
 
   // 👤 Trouver le vendeur original
   // Fallback : si originalSeller n'existe pas (ancienne consignation), chercher dans la vente originale
-  let originalSeller = null;
+  let originalSeller: UserType | undefined = undefined;
   if (consignment.originalSeller) {
-    originalSeller = users.find((u: any) => u.id === consignment.originalSeller);
+    originalSeller = users.find(u => u.id === consignment.originalSeller);
   } else {
     // Fallback pour anciennes consignations
-    const originalSale = sales.find((s: any) => s.id === consignment.saleId);
+    const originalSale = sales.find(s => s.id === consignment.saleId);
     if (originalSale?.createdBy) {
-      originalSeller = users.find((u: any) => u.id === originalSale.createdBy);
+      originalSeller = users.find(u => u.id === originalSale.createdBy);
     }
   }
 
@@ -779,7 +783,7 @@ const HistoryTab: React.FC = () => {
         ].map(filter => (
           <button
             key={filter.value}
-            onClick={() => setFilterStatus(filter.value as any)}
+            onClick={() => setFilterStatus(filter.value as 'all' | 'claimed' | 'expired' | 'forfeited')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               filterStatus === filter.value
                 ? 'bg-orange-600 text-white'
@@ -802,14 +806,14 @@ const HistoryTab: React.FC = () => {
           {sortedHistory.map(consignment => {
             // 👤 Trouver le vendeur original
             // Fallback : si originalSeller n'existe pas (ancienne consignation), chercher dans la vente originale
-            let originalSeller = null;
+            let originalSeller: UserType | undefined = undefined;
             if (consignment.originalSeller) {
-              originalSeller = users.find((u: any) => u.id === consignment.originalSeller);
+              originalSeller = users.find(u => u.id === consignment.originalSeller);
             } else {
               // Fallback pour anciennes consignations
-              const originalSale = sales.find((s: any) => s.id === consignment.saleId);
+              const originalSale = sales.find(s => s.id === consignment.saleId);
               if (originalSale?.createdBy) {
-                originalSeller = users.find((u: any) => u.id === originalSale.createdBy);
+                originalSeller = users.find(u => u.id === originalSale.createdBy);
               }
             }
 
