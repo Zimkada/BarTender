@@ -24,9 +24,7 @@ import { useBarContext } from '../context/BarContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { RoleBasedComponent } from './RoleBasedComponent';
 import { BarSelector } from './BarSelector';
-import { OfflineIndicator } from './OfflineIndicator';
-import { NetworkIndicator } from './NetworkIndicator';
-import { SyncButton } from './SyncButton';
+import { SyncStatusBadge } from './SyncStatusBadge'; // ✅ Badge sync unifié (remplace OfflineIndicator, NetworkIndicator, SyncButton)
 import { useViewport } from '../hooks/useViewport';
 
 interface HeaderProps {
@@ -114,9 +112,8 @@ export function Header({
 
               {/* Indicateurs + Actions (compacts) */}
               <div className="flex items-center gap-1 flex-shrink-0">
-                <OfflineIndicator />
-                <NetworkIndicator />
-                <SyncButton />
+                {/* ✅ Nouveau badge sync unifié (remplace OfflineIndicator + NetworkIndicator + SyncButton) */}
+                <SyncStatusBadge compact position="header" />
                 <button
                   onClick={logout}
                   className="p-1.5 bg-red-500/80 rounded-lg text-white active:scale-95 transition-transform"
@@ -175,11 +172,8 @@ export function Header({
 
             <h1 className="text-2xl font-bold text-white">🍺 BarTender Pro</h1>
 
-            <div className="flex items-center gap-2">
-              <OfflineIndicator />
-              <NetworkIndicator />
-              <SyncButton />
-            </div>
+            {/* ✅ Nouveau badge sync unifié (remplace OfflineIndicator + NetworkIndicator + SyncButton) */}
+            <SyncStatusBadge position="header" />
 
             {/* Sélecteur de bar pour promoteur */}
             {currentSession?.role === 'promoteur' && (
