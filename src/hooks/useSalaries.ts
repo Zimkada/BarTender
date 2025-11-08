@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { Salary, BarMember } from '../types';
 import { useDataStore } from './useDataStore';
+import { syncQueue } from '../services/SyncQueue';
+import { useBarContext } from '../context/BarContext';
+import { useAuth } from '../context/AuthContext';
 
 export function useSalaries(barId: string) {
   const [salaries, setSalaries] = useDataStore<Salary[]>(`salaries_${barId}`, []);
   const [isLoading, setIsLoading] = useState(false);
+  const { currentBar } = useBarContext();
+  const { currentSession } = useAuth();
 
   // Ajouter un salaire
   const addSalary = (salary: Omit<Salary, 'id' | 'createdAt'>) => {
@@ -19,11 +24,18 @@ export function useSalaries(barId: string) {
 
     const newSalary: Salary = {
       ...salary,
-      id: `sal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: `sal_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       createdAt: new Date(),
     };
 
+    // 1. Optimistic update
     setSalaries([...salaries, newSalary]);
+
+    // 2. Enqueue pour sync
+    if (currentBar && currentSession) {
+      syncQueue.enqueue('ADD_SALARY', newSalary, currentBar.id, currentSession.userId);
+    }
+
     return newSalary;
   };
 

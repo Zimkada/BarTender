@@ -257,15 +257,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAllSales(prev => [newSale, ...prev]);
 
     // 2. Enqueue pour sync backend
-    syncQueue.enqueue({
-      type: 'CREATE_SALE',
-      payload: newSale,
-      barId: currentBar.id,
-      userId: currentSession.userId,
-      timestamp: Date.now(),
-      retryCount: 0,
-      status: 'pending',
-    });
+    syncQueue.enqueue('CREATE_SALE', newSale, currentBar.id, currentSession.userId);
 
     if (newSale.status === 'pending') {
       showNotification('success', 'Demande de vente envoyée au gérant pour validation.');
@@ -451,23 +443,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAllReturns(prev => [newReturn, ...prev]);
 
     // 2. Enqueue pour sync
-    syncQueue.enqueue({
-      type: 'CREATE_RETURN',
-      payload: newReturn,
-      barId: currentBar.id,
-      userId: currentSession.userId,
-      timestamp: Date.now(),
-      retryCount: 0,
-      status: 'pending',
-    });
+    syncQueue.enqueue('CREATE_RETURN', newReturn, currentBar.id, currentSession.userId);
 
     return newReturn;
   }, [setAllReturns, hasPermission, currentBar, currentSession]);
 
   const updateReturn = useCallback((returnId: string, updates: Partial<Return>) => {
-    if (!hasPermission('canManageInventory')) return;
+    if (!hasPermission('canManageInventory') || !currentBar || !currentSession) return;
+
+    // 1. Optimistic update
     setAllReturns(prev => prev.map(r => r.id === returnId ? { ...r, ...updates } : r));
-  }, [setAllReturns, hasPermission]);
+
+    // 2. Enqueue pour sync (mise à jour statut: approved/rejected/restocked)
+    syncQueue.enqueue('UPDATE_RETURN', { returnId, updates }, currentBar.id, currentSession.userId);
+  }, [setAllReturns, hasPermission, currentBar, currentSession]);
 
   const deleteReturn = useCallback((returnId: string) => {
     if (!hasPermission('canManageInventory')) return;
@@ -493,15 +482,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAllExpenses(prev => [...prev, newExpense]);
 
     // 2. Enqueue pour sync
-    syncQueue.enqueue({
-      type: 'ADD_EXPENSE',
-      payload: newExpense,
-      barId: currentBar.id,
-      userId: currentSession.userId,
-      timestamp: Date.now(),
-      retryCount: 0,
-      status: 'pending',
-    });
+    syncQueue.enqueue('ADD_EXPENSE', newExpense, currentBar.id, currentSession.userId);
 
     return newExpense;
   }, [currentBar, currentSession, setAllExpenses, hasPermission]);

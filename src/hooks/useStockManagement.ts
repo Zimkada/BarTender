@@ -4,6 +4,7 @@ import { useDataStore } from './useDataStore';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { calculateAvailableStock } from '../utils/calculations';
+import { syncQueue } from '../services/SyncQueue';
 import type { Product, Consignment, ConsignmentStatus, ProductStockInfo, Supply, Expense } from '../types';
 
 // ----- CONSTANTES -----
@@ -33,7 +34,15 @@ export const useStockManagement = () => {
       id: `product_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       createdAt: new Date(),
     };
+
+    // 1. Optimistic update
     setProducts(prev => [...prev, newProduct]);
+
+    // 2. Enqueue pour sync
+    if (currentBar && session) {
+      syncQueue.enqueue('CREATE_PRODUCT', newProduct, currentBar.id, session.userId);
+    }
+
     return newProduct;
   };
 
@@ -61,11 +70,23 @@ export const useStockManagement = () => {
   }, [setProducts]);
 
   const updateProduct = (id: string, updates: Partial<Product>) => {
+    // 1. Optimistic update
     setProducts(prev => prev.map(p => (p.id === id ? { ...p, ...updates } : p)));
+
+    // 2. Enqueue pour sync
+    if (currentBar && session) {
+      syncQueue.enqueue('UPDATE_PRODUCT', { productId: id, updates }, currentBar.id, session.userId);
+    }
   };
 
   const deleteProduct = (id: string) => {
+    // 1. Optimistic update
     setProducts(prev => prev.filter(p => p.id !== id));
+
+    // 2. Enqueue pour sync
+    if (currentBar && session) {
+      syncQueue.enqueue('DELETE_PRODUCT', { productId: id }, currentBar.id, session.userId);
+    }
   };
 
   // ===== LOGIQUE DE STOCK PHYSIQUE =====
@@ -111,7 +132,12 @@ export const useStockManagement = () => {
       status: 'active',
     };
 
+    // 1. Optimistic update
     setConsignments(prev => [...prev, newConsignment]);
+
+    // 2. Enqueue pour sync
+    syncQueue.enqueue('CREATE_CONSIGNMENT', newConsignment, currentBar.id, session.userId);
+
     return newConsignment;
   }, [currentBar, session, setConsignments, getExpirationDate]);
 
@@ -119,6 +145,7 @@ export const useStockManagement = () => {
     const consignment = consignments.find(c => c.id === consignmentId);
     if (!consignment || consignment.status !== 'active') return false;
 
+    // 1. Optimistic update
     setConsignments(prev =>
       prev.map(c =>
         c.id === consignmentId
@@ -127,24 +154,43 @@ export const useStockManagement = () => {
       )
     );
 
-    // ✅ Opération atomique : déduire le stock physique (produit part avec le client)
+    // 2. Opération atomique : déduire le stock physique (produit part avec le client)
     decreasePhysicalStock(consignment.productId, consignment.quantity);
+
+    // 3. Enqueue pour sync
+    if (currentBar && session) {
+      syncQueue.enqueue(
+        'CLAIM_CONSIGNMENT',
+        { consignmentId, claimedBy: session.userId, claimedAt: new Date() },
+        currentBar.id,
+        session.userId
+      );
+    }
+
     return true;
-  }, [consignments, session, setConsignments, decreasePhysicalStock]);
+  }, [consignments, session, currentBar, setConsignments, decreasePhysicalStock]);
 
   const forfeitConsignment = useCallback((consignmentId: string): boolean => {
     const consignment = consignments.find(c => c.id === consignmentId);
     if (!consignment || consignment.status !== 'active') return false;
 
+    // 1. Optimistic update
     setConsignments(prev =>
       prev.map(c =>
         c.id === consignmentId ? { ...c, status: 'forfeited' as ConsignmentStatus } : c
       )
     );
-    // Opération atomique : réintégrer le stock physique.
+
+    // 2. Opération atomique : réintégrer le stock physique
     increasePhysicalStock(consignment.productId, consignment.quantity);
+
+    // 3. Enqueue pour sync
+    if (currentBar && session) {
+      syncQueue.enqueue('FORFEIT_CONSIGNMENT', { consignmentId }, currentBar.id, session.userId);
+    }
+
     return true;
-  }, [consignments, setConsignments, increasePhysicalStock]);
+  }, [consignments, currentBar, session, setConsignments, increasePhysicalStock]);
 
   const checkAndExpireConsignments = useCallback(() => {
     const now = new Date();
@@ -215,7 +261,10 @@ export const useStockManagement = () => {
     setSupplies(prev => [newSupply, ...prev]);
     increasePhysicalStock(supplyData.productId, supplyData.quantity);
 
-    // 4️⃣ Callback pour créer expense (AppContext garde la logique expenses)
+    // 4️⃣ Enqueue pour sync
+    syncQueue.enqueue('ADD_SUPPLY', newSupply, currentBar.id, session.userId);
+
+    // 5️⃣ Callback pour créer expense (AppContext garde la logique expenses)
     const product = products.find(p => p.id === supplyData.productId);
     onExpenseCreated({
       category: 'supply',
