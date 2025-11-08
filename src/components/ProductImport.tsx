@@ -15,7 +15,7 @@ interface ProductImportProps {
 }
 
 export function ProductImport({ isOpen, onClose }: ProductImportProps) {
-  const { categories, addCategory, products } = useAppContext();
+  const { categories, addCategories, products } = useAppContext();
   const { addProducts } = useStockManagement(); // ✅ Batch import au lieu de addProduct
   const { showSuccess, showError } = useFeedback();
   const { currentBar } = useBarContext();
@@ -70,6 +70,13 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
     let localCategories = [...categories]; // Copie locale pour la session d'import
     const existingProducts = [...products]; // Pour détecter les doublons
     const validProductsToImport: any[] = []; // ✅ Array pour batch import
+    const categoriesToCreate = new Set<string>(); // ✅ Collecter catégories à créer
+    const categoryCache = new Map<string, string>(); // Map: nom → ID
+
+    // Initialiser cache avec catégories existantes
+    categories.forEach(cat => {
+      categoryCache.set(cat.name.toLowerCase(), cat.id);
+    });
 
     // 1️⃣ PHASE VALIDATION: Collecter tous les produits valides
     importedProducts.forEach((product, index) => {
@@ -133,24 +140,22 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
           throw new Error(`Ligne ${index + 2}: Produit "${nom}" (${volumeStr || 'sans volume'}) apparaît plusieurs fois dans le fichier. Import ignoré.`);
         }
 
+        // ✅ Collecter les catégories à créer (ne pas créer immédiatement)
         let categoryId = '';
         if (categoryName) {
-          let category = localCategories.find(c => c.name.toLowerCase() === categoryName.toLowerCase());
+          const categoryNameLower = categoryName.toLowerCase();
 
-          if (category) {
-            categoryId = category.id;
+          if (categoryCache.has(categoryNameLower)) {
+            categoryId = categoryCache.get(categoryNameLower)!;
           } else {
-            const newCategory = addCategory({ name: categoryName, color: '#888888' }); // Couleur par défaut pour les nouvelles catégories
-            if (newCategory) {
-              categoryId = newCategory.id;
-              localCategories.push(newCategory); // Ajouter à la liste locale pour les prochaines itérations
-              newCategoryNames.add(newCategory.name);
-            }
+            // Marquer pour création ultérieure
+            categoriesToCreate.add(categoryName);
+            categoryId = 'PENDING'; // Temporaire, sera résolu après création batch
           }
         }
 
-        if (!categoryId) {
-          categoryId = localCategories[0]?.id || ''; // Fallback si aucune catégorie n'est trouvée ou créée
+        if (!categoryId || categoryId === 'PENDING') {
+          categoryId = localCategories[0]?.id || ''; // Fallback si aucune catégorie
         }
 
         // ✅ FIX CRITIQUE #1: Ajouter barId manquant
@@ -161,6 +166,7 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
           price: prixNumber,
           stock: stockNumber,
           categoryId: categoryId,
+          categoryName: categoryName, // ✅ Stocker pour résolution après batch
           alertThreshold: seuilNumber,
         };
 
@@ -173,7 +179,39 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
       }
     });
 
-    // 2️⃣ PHASE IMPORT ATOMIQUE: Importer TOUS les produits valides en UNE SEULE opération
+    // 2️⃣ PHASE BATCH CATEGORIES: Créer toutes les catégories en UNE SEULE opération
+    if (categoriesToCreate.size > 0) {
+      const categoriesToAdd = Array.from(categoriesToCreate).map(name => ({
+        name,
+        color: '#f97316' // Orange par défaut
+      }));
+
+      const createdCategories = addCategories(categoriesToAdd);
+
+      // Mettre à jour le cache et localCategories
+      createdCategories.forEach(cat => {
+        categoryCache.set(cat.name.toLowerCase(), cat.id);
+        localCategories.push(cat);
+        newCategoryNames.add(cat.name);
+      });
+
+      // ✅ Mettre à jour les categoryId PENDING dans validProductsToImport
+      validProductsToImport.forEach(product => {
+        if (!product.categoryId || product.categoryId === '' || product.categoryId === 'PENDING') {
+          const categoryName = product.categoryName;
+          if (categoryName) {
+            const categoryId = categoryCache.get(categoryName.toLowerCase());
+            if (categoryId) {
+              product.categoryId = categoryId;
+            }
+          }
+        }
+        // Nettoyer le champ temporaire categoryName
+        delete product.categoryName;
+      });
+    }
+
+    // 3️⃣ PHASE IMPORT ATOMIQUE: Importer TOUS les produits valides en UNE SEULE opération
     if (validProductsToImport.length > 0) {
       const importedProductsList = addProducts(validProductsToImport);
 

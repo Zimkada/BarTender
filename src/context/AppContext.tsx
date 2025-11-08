@@ -4,7 +4,7 @@ import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { useStockBridge } from '../context/StockBridgeProvider';
 import { useStock } from '../context/StockContext';
-import { offlineQueue } from '../services/offlineQueue';
+import { syncQueue } from '../services/SyncQueue';
 import { useNotifications } from '../components/Notifications';
 import {
   Category,
@@ -19,6 +19,7 @@ import {
   ExpenseCategoryCustom,
 } from '../types';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
+import type { MutationType } from '../types/sync';
 
 // Données par défaut pour un nouveau bar
 const getDefaultCategories = (barId: string): Category[] => [
@@ -51,6 +52,7 @@ interface AppContextType {
   
   // Catégories
   addCategory: (category: Omit<Category, 'id' | 'createdAt' | 'barId'>) => Category | null;
+  addCategories: (categories: Omit<Category, 'id' | 'createdAt' | 'barId'>[]) => Category[];
   updateCategory: (id: string, updates: Partial<Category>) => void;
   deleteCategory: (id: string) => void;
 
@@ -152,13 +154,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [allCategories, setAllCategories, addProductToStock]);
 
-  // ... (fonctions categories, products, supplies restent les mêmes)
+  // ⚠️ FONCTION LEGACY - Préférer addCategories pour créations multiples (évite race condition)
   const addCategory = useCallback((category: Omit<Category, 'id' | 'createdAt' | 'barId'>) => {
-    if (!hasPermission('canAddProducts') || !currentBar) return null;
-    const uniqueId = `cat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const newCategory: Category = { ...category, id: uniqueId, barId: currentBar.id, createdAt: new Date() };
+    if (!hasPermission('canAddProducts')) return null;
+    if (!currentBar) return null;
+
+    const newCategory: Category = {
+      ...category,
+      id: `cat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      barId: currentBar.id,
+      createdAt: new Date(),
+    };
+
     setAllCategories(prev => [...prev, newCategory]);
     return newCategory;
+  }, [setAllCategories, hasPermission, currentBar]);
+
+  // ✅ Ajouter plusieurs catégories en UNE SEULE opération (évite race condition)
+  const addCategories = useCallback((categories: Omit<Category, 'id' | 'createdAt' | 'barId'>[]): Category[] => {
+    if (!hasPermission('canAddProducts')) {
+      return [];
+    }
+
+    if (!currentBar) {
+      return [];
+    }
+
+    const newCategories = categories.map((cat, index) => ({
+      ...cat,
+      id: `cat_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+      barId: currentBar.id,
+      createdAt: new Date(),
+    }));
+
+    // ✅ UNE SEULE opération setState (pas de race condition)
+    setAllCategories(prev => [...prev, ...newCategories]);
+
+    return newCategories;
   }, [setAllCategories, hasPermission, currentBar]);
 
   const updateCategory = useCallback((id: string, updates: Partial<Category>) => {
@@ -221,8 +253,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...saleData,
     } as Sale;
 
+    // 1. Optimistic update: sauvegarder localement immédiatement
     setAllSales(prev => [newSale, ...prev]);
-    
+
+    // 2. Enqueue pour sync backend
+    syncQueue.enqueue({
+      type: 'CREATE_SALE',
+      payload: newSale,
+      barId: currentBar.id,
+      userId: currentSession.userId,
+      timestamp: Date.now(),
+      retryCount: 0,
+      status: 'pending',
+    });
+
     if (newSale.status === 'pending') {
       showNotification('success', 'Demande de vente envoyée au gérant pour validation.');
     } else if (newSale.status === 'validated') {
@@ -399,12 +443,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [setSettings, hasPermission]);
 
   const addReturn = useCallback((returnData: Omit<Return, 'id' | 'barId'>) => {
-    if (!hasPermission('canManageInventory') || !currentBar) return null;
+    if (!hasPermission('canManageInventory') || !currentBar || !currentSession) return null;
     const uniqueId = `return_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const newReturn: Return = { ...returnData, id: uniqueId, barId: currentBar.id };
+
+    // 1. Optimistic update
     setAllReturns(prev => [newReturn, ...prev]);
+
+    // 2. Enqueue pour sync
+    syncQueue.enqueue({
+      type: 'CREATE_RETURN',
+      payload: newReturn,
+      barId: currentBar.id,
+      userId: currentSession.userId,
+      timestamp: Date.now(),
+      retryCount: 0,
+      status: 'pending',
+    });
+
     return newReturn;
-  }, [setAllReturns, hasPermission, currentBar]);
+  }, [setAllReturns, hasPermission, currentBar, currentSession]);
 
   const updateReturn = useCallback((returnId: string, updates: Partial<Return>) => {
     if (!hasPermission('canManageInventory')) return;
@@ -431,7 +489,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       createdAt: new Date(),
     };
 
+    // 1. Optimistic update
     setAllExpenses(prev => [...prev, newExpense]);
+
+    // 2. Enqueue pour sync
+    syncQueue.enqueue({
+      type: 'ADD_EXPENSE',
+      payload: newExpense,
+      barId: currentBar.id,
+      userId: currentSession.userId,
+      timestamp: Date.now(),
+      retryCount: 0,
+      status: 'pending',
+    });
+
     return newExpense;
   }, [currentBar, currentSession, setAllExpenses, hasPermission]);
 
@@ -462,7 +533,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     expenses, customExpenseCategories,
 
     // Catégories
-    addCategory, updateCategory, deleteCategory,
+    addCategory, addCategories, updateCategory, deleteCategory,
 
     // Produits (lecture seule - mutations via StockContext)
     getProductsByCategory, getLowStockProducts, getProductById,

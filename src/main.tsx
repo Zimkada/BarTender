@@ -9,6 +9,9 @@ import { AppProvider } from './context/AppContext.tsx';
 import { NotificationsProvider } from './components/Notifications';
 import './index.css';
 
+// Dev helpers (console utilities) - Mode dev uniquement
+import './utils/devHelpers';
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <NotificationsProvider>

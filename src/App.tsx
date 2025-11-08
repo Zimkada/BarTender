@@ -17,7 +17,8 @@ import { useStockManagement } from './hooks/useStockManagement';
 import { CartItem, Product, Category } from './types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from './context/AuthContext';
-import { syncService } from './services/syncService';
+import { useBarContext } from './context/BarContext';
+import { syncHandler } from './services/SyncHandler';
 import { QuickSaleFlow } from './components/QuickSaleFlow';
 import { MobileNavigation } from './components/MobileNavigation';
 import { MobileSidebar } from './components/MobileSidebar';
@@ -41,13 +42,13 @@ function AppContent() {
     addCategory,
     updateCategory,
     deleteCategory,
-    addProduct,
     addSale,
     settings
   } = useAppContext();
 
-  const { processSaleValidation, products } = useStockManagement();
+  const { processSaleValidation, products, addProduct } = useStockManagement();
   const { isAuthenticated, currentSession } = useAuth();
+  const { currentBar } = useBarContext();
   const { showNotification } = useNotifications();
   const [showDailyDashboard, setShowDailyDashboard] = useState(false);
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id || '');
@@ -104,21 +105,13 @@ function AppContent() {
   };
 
   useEffect(() => {
-    // Démarrer la sync automatique
-    syncService.startAutoSync();
-
-    // Écouter l'événement de sync requise
-    const handleSyncRequired = () => {
-      syncService.syncPendingOperations();
-    };
-
-    window.addEventListener('sync-required', handleSyncRequired);
+    // Démarrer le processing automatique de la queue de sync
+    syncHandler.start(5000); // Traiter toutes les 5 secondes
 
     return () => {
-      syncService.stopAutoSync();
-      window.removeEventListener('sync-required', handleSyncRequired);
+      syncHandler.stop();
     };
-    }, []);
+  }, []);
 
   const addToCart = (product: Product) => {
     const existingItem = cart.find(item => item.product.id === product.id);
@@ -384,7 +377,11 @@ function AppContent() {
           isOpen={showProductModal}
           onClose={() => setShowProductModal(false)}
           onSave={(productData) => {
-            addProduct(productData);
+            if (!currentBar) {
+              showNotification('error', 'Aucun bar sélectionné');
+              return;
+            }
+            addProduct({ ...productData, barId: currentBar.id });
             setShowProductModal(false);
             showNotification('success', `Produit "${productData.name}" ajouté`);
           }}
