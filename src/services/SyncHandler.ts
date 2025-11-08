@@ -1,9 +1,10 @@
 // SyncHandler.ts - Service pour traiter la queue de synchronisation
-// Architecture: Processor + API client stub (prêt pour Supabase)
+// Architecture: Processor + API client (Supabase ou mock)
 
 import type { SyncOperation, SyncResult } from '../types/sync';
 import { syncQueue } from './SyncQueue';
 import { networkManager } from './NetworkManager';
+import { apiClient } from './ApiClient';
 
 /**
  * Type de callback pour notifier les erreurs de sync
@@ -145,35 +146,40 @@ class SyncHandlerService {
   }
 
   /**
-   * Envoie une opération au backend
+   * Envoie une opération au backend via ApiClient
    *
-   * TODO: Remplacer par vraie communication Supabase
+   * Mode automatique:
+   * - Si Supabase configuré: vraies requêtes HTTP
+   * - Si pas configuré: mode MOCK pour tests locaux
    */
   private async syncToBackend(operation: SyncOperation): Promise<SyncResult> {
-    // 🚧 STUB: Simulation pour tests sans backend
-    // À remplacer par apiClient.sync(operation) quand Supabase sera prêt
+    console.log(`[SyncHandler] Syncing operation ${operation.id} (${operation.type})`);
 
-    console.log(`[SyncHandler] 🚧 STUB: Simulating sync for operation ${operation.id} (${operation.type})`);
+    try {
+      // Utiliser ApiClient qui gère automatiquement MOCK vs SUPABASE
+      const response = await apiClient.syncOperation(operation);
 
-    // Simuler latence réseau
-    await this.delay(500);
-
-    // TODO: Implémenter switch selon operation.type
-    // switch (operation.type) {
-    //   case 'CREATE_SALE':
-    //     return apiClient.sales.create(operation.payload);
-    //   case 'UPDATE_PRODUCT':
-    //     return apiClient.products.update(operation.payload.id, operation.payload);
-    //   case 'CREATE_RETURN':
-    //     return apiClient.returns.create(operation.payload);
-    //   // ...
-    // }
-
-    // Pour l'instant, simuler un succès
-    return {
-      success: true,
-      operationId: operation.id,
-    };
+      if (response.success) {
+        return {
+          success: true,
+          operationId: operation.id,
+          data: response.data,
+        };
+      } else {
+        return {
+          success: false,
+          operationId: operation.id,
+          error: response.error || 'Erreur inconnue',
+        };
+      }
+    } catch (error) {
+      console.error('[SyncHandler] Unexpected error:', error);
+      return {
+        success: false,
+        operationId: operation.id,
+        error: error instanceof Error ? error.message : 'Erreur inattendue',
+      };
+    }
   }
 
   /**
