@@ -15,7 +15,8 @@ import {
   FileSpreadsheet,
   Menu,
   Calendar,
-  Archive // Pour les consignations
+  Archive, // Pour les consignations
+  ShieldCheck // Pour Super Admin
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
@@ -41,6 +42,7 @@ interface HeaderProps {
   onToggleMobileSidebar?: () => void;
   onShowAccounting?: () => void;
   onShowConsignment?: () => void;
+  onShowAdminDashboard?: () => void;
 }
 
 export function Header({
@@ -56,7 +58,8 @@ export function Header({
   onShowForecasting = () => {},
   onToggleMobileSidebar = () => {},
   onShowAccounting = () => {},
-  onShowConsignment = () => {}
+  onShowConsignment = () => {},
+  onShowAdminDashboard = () => {}
 }: HeaderProps) {
   const { getTodayTotal } = useAppContext();
   const { formatPrice } = useCurrencyFormatter();
@@ -69,6 +72,7 @@ export function Header({
 
   const getRoleIcon = () => {
     switch (currentSession?.role) {
+      case 'super_admin': return <ShieldCheck size={16} className="text-purple-600" />;
       case 'promoteur': return <Crown size={16} className="text-purple-600" />;
       case 'gerant': return <Settings size={16} className="text-orange-600" />;
       case 'serveur': return <Users size={16} className="text-amber-600" />;
@@ -78,6 +82,7 @@ export function Header({
 
   const getRoleLabel = () => {
     switch (currentSession?.role) {
+      case 'super_admin': return 'Super Admin';
       case 'promoteur': return 'Promoteur';
       case 'gerant': return 'Gérant';
       case 'serveur': return 'Serveur';
@@ -114,6 +119,15 @@ export function Header({
               <div className="flex items-center gap-1 flex-shrink-0">
                 {/* ✅ Nouveau badge sync unifié (remplace OfflineIndicator + NetworkIndicator + SyncButton) */}
                 <SyncStatusBadge compact position="header" />
+                {currentSession?.role === 'super_admin' && (
+                  <button
+                    onClick={onShowAdminDashboard}
+                    className="p-1.5 bg-purple-600/90 rounded-lg text-white active:scale-95 transition-transform"
+                    aria-label="Admin Dashboard"
+                  >
+                    <ShieldCheck size={16} />
+                  </button>
+                )}
                 <button
                   onClick={logout}
                   className="p-1.5 bg-red-500/80 rounded-lg text-white active:scale-95 transition-transform"
@@ -205,6 +219,17 @@ export function Header({
                 {getRoleLabel()}
               </p>
             </div>
+
+            {/* Admin Dashboard (super_admin uniquement) */}
+            {currentSession?.role === 'super_admin' && (
+              <button
+                onClick={onShowAdminDashboard}
+                className="p-2 bg-purple-600/90 rounded-lg text-white hover:bg-purple-700/90 transition-colors"
+                title="Admin Dashboard"
+              >
+                <ShieldCheck size={20} />
+              </button>
+            )}
 
             {/* Déconnexion */}
             <button

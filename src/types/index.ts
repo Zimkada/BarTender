@@ -1,7 +1,7 @@
 // types/index.ts - VERSION UNIFIÉE MULTI-TENANT
 
 // ===== UTILISATEURS & AUTHENTIFICATION =====
-export type UserRole = 'promoteur' | 'gerant' | 'serveur';
+export type UserRole = 'super_admin' | 'promoteur' | 'gerant' | 'serveur';
 
 export interface User {
   id: string;
@@ -360,9 +360,49 @@ export interface RolePermissions {
   // Multi-bar
   canCreateBars: boolean;
   canSwitchBars: boolean;
+
+  // Super Admin (permissions spéciales)
+  canAccessAdminDashboard?: boolean;
+  canManagePromoteurs?: boolean;
+  canImpersonateUsers?: boolean;
+  canViewGlobalStats?: boolean;
+  canSuspendBars?: boolean;
 }
 
 export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
+  super_admin: {
+    // Toutes les permissions (super utilisateur)
+    canManageUsers: true,
+    canCreateManagers: true,
+    canCreateServers: true,
+    canAddProducts: true,
+    canEditProducts: true,
+    canDeleteProducts: true,
+    canManageInventory: true,
+    canViewInventory: true,
+    canSell: true,
+    canCancelSales: true,
+    canViewAllSales: true,
+    canViewOwnSales: true,
+    canViewAnalytics: true,
+    canExportData: true,
+    canViewAccounting: true,
+    canManageExpenses: true,
+    canManageSalaries: true,
+    canCreateConsignment: true,
+    canClaimConsignment: true,
+    canViewConsignments: true,
+    canManageSettings: true,
+    canManageBarInfo: true,
+    canCreateBars: true,
+    canSwitchBars: true,
+    // Permissions spéciales Super Admin
+    canAccessAdminDashboard: true,
+    canManagePromoteurs: true,
+    canImpersonateUsers: true,
+    canViewGlobalStats: true,
+    canSuspendBars: true,
+  },
   promoteur: {
     canManageUsers: true,
     canCreateManagers: true,

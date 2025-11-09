@@ -4,14 +4,26 @@ import { UserSession, UserRole, getPermissionsByRole, User, RolePermissions } fr
 
 // Mock users étendu pour multi-tenant
 const mockUsers: User[] = [
-  { 
-    id: '1', 
+  {
+    id: 'super_admin_001',
+    username: 'admin',
+    password: 'Admin@2025',
+    name: 'Super Administrateur',
+    phone: '97000000',
+    email: 'admin@bartender.bj',
+    createdAt: new Date(),
+    isActive: true,
+    firstLogin: false,
+    createdBy: undefined
+  },
+  {
+    id: '1',
     username: 'promoteur',
     password: '1234',
-    name: 'Promoteur Principal', 
-    phone: '97000001', 
-    email: 'promoteur@bar.com', 
-    createdAt: new Date(), 
+    name: 'Promoteur Principal',
+    phone: '97000001',
+    email: 'promoteur@bar.com',
+    createdAt: new Date(),
     isActive: true,
     firstLogin: false,
     createdBy: undefined
@@ -80,27 +92,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [users, setUsers] = useDataStore<User[]>('bar-users', mockUsers);
 
   const login = useCallback((username: string, password: string, barId: string, role: UserRole) => {
-    const user = users.find(u => 
-      u.username === username && 
-      u.password === password && 
+    const user = users.find(u =>
+      u.username === username &&
+      u.password === password &&
       u.isActive
     );
-    
+
     if (user) {
+      // Super admin n'a pas besoin de bar spécifique
       const session: UserSession = {
         userId: user.id,
         userName: user.name,
         role: role,
-        barId: barId,
-        barName: 'Bar Demo',
+        barId: role === 'super_admin' ? 'admin_global' : barId,
+        barName: role === 'super_admin' ? 'Admin Dashboard' : 'Bar Demo',
         loginTime: new Date(),
         permissions: getPermissionsByRole(role)
       };
-      
-      setUsers(prev => prev.map(u => 
+
+      setUsers(prev => prev.map(u =>
         u.id === user.id ? { ...u, lastLoginAt: new Date() } : u
       ));
-      
+
       setCurrentSession(session);
       return session;
     }

@@ -33,6 +33,7 @@ const ReturnsSystem = lazy(() => import('./components/ReturnsSystem').then(m => 
 const ForecastingSystem = lazy(() => import('./components/ForecastingSystem').then(m => ({ default: m.ForecastingSystem })));
 const Accounting = lazy(() => import('./components/Accounting').then(m => ({ default: m.Accounting })));
 const ConsignmentSystem = lazy(() => import('./components/ConsignmentSystem').then(m => ({ default: m.ConsignmentSystem })));
+const SuperAdminDashboard = lazy(() => import('./components/SuperAdminDashboard').then(m => ({ default: m.default })));
 
 
 
@@ -70,6 +71,7 @@ function AppContent() {
   const [currentMenu, setCurrentMenu] = useState('home');
   const [showAccounting, setShowAccounting] = useState(false);
   const [showConsignment, setShowConsignment] = useState(false);
+  const [showAdminDashboard, setShowAdminDashboard] = useState(false);
 
   useEffect(() => {
     if (categories.length > 0 && !activeCategory) {
@@ -285,6 +287,7 @@ function AppContent() {
         onShowForecasting={() => setShowForecasting(true)}
         onShowAccounting={() => setShowAccounting(true)}
         onShowConsignment={() => setShowConsignment(true)}
+        onShowAdminDashboard={() => setShowAdminDashboard(true)}
         onToggleMobileSidebar={() => setShowMobileSidebar(!showMobileSidebar)}
       />
       
@@ -439,6 +442,15 @@ function AppContent() {
           <ConsignmentSystem
             isOpen={showConsignment}
             onClose={() => setShowConsignment(false)}
+          />
+        </Suspense>
+      </RoleBasedComponent>
+
+      <RoleBasedComponent requiredPermission="canAccessAdminDashboard">
+        <Suspense fallback={<LoadingFallback />}>
+          <SuperAdminDashboard
+            isOpen={showAdminDashboard}
+            onClose={() => setShowAdminDashboard(false)}
           />
         </Suspense>
       </RoleBasedComponent>
