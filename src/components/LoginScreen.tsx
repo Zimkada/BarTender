@@ -27,29 +27,47 @@ export function LoginScreen() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!username || !password) {
       setError('Veuillez remplir tous les champs');
       return;
     }
 
-    if (!selectedBar) {
-      setError('Veuillez sélectionner un bar');
-      return;
-    }
-
-    // Trouver l'utilisateur et son rôle dans le bar sélectionné
-    // Chercher l'utilisateur par username dans la liste des users
+    // Trouver l'utilisateur
     const user = users.find((u: User) => u.username === username);
     if (!user) {
       setError('Identifiants incorrects');
       return;
     }
 
-    // Vérifier que l'utilisateur a accès à ce bar
-    const membership = barMembers.find(m => 
-      (m.userId === user?.id || m.userId === username) && 
-      m.barId === selectedBar && 
+    // Cas spécial: Super Admin n'a pas besoin de sélectionner un bar
+    const isSuperAdmin = username === 'admin'; // Super admin username
+
+    if (!isSuperAdmin && !selectedBar) {
+      setError('Veuillez sélectionner un bar');
+      return;
+    }
+
+    // Pour super admin: login direct avec role 'super_admin'
+    if (isSuperAdmin) {
+      const session = login(username, password, 'admin_global', 'super_admin');
+
+      if (session) {
+        // Vérifier si c'est la première connexion
+        if (user?.firstLogin) {
+          setIsFirstLogin(true);
+          setCurrentUserId(user.id);
+        }
+      } else {
+        setError('Identifiants incorrects');
+      }
+      return;
+    }
+
+    // Pour utilisateurs normaux: vérifier membership
+    const membership = barMembers.find(m =>
+      (m.userId === user?.id || m.userId === username) &&
+      m.barId === selectedBar &&
       m.isActive
     );
 
@@ -60,7 +78,7 @@ export function LoginScreen() {
 
     // Tenter la connexion
     const session = login(username, password, selectedBar, membership.role);
-    
+
     if (session) {
       // Vérifier si c'est la première connexion
       if (user?.firstLogin) {
@@ -184,23 +202,26 @@ export function LoginScreen() {
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Bar
-            </label>
-            <select
-              value={selectedBar}
-              onChange={(e) => setSelectedBar(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            >
-              <option value="">Sélectionnez un bar</option>
-              {bars.map(bar => (
-                <option key={bar.id} value={bar.id}>
-                  {bar.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Sélecteur de bar - caché pour super admin */}
+          {username !== 'admin' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Bar
+              </label>
+              <select
+                value={selectedBar}
+                onChange={(e) => setSelectedBar(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              >
+                <option value="">Sélectionnez un bar</option>
+                {bars.map(bar => (
+                  <option key={bar.id} value={bar.id}>
+                    {bar.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
