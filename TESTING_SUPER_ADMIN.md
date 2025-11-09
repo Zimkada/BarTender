@@ -40,14 +40,16 @@
 **Étapes:**
 1. Ouvrir http://localhost:5173
 2. Si déjà connecté, se déconnecter
-3. Credentials:
+3. Commencer à taper username: `admin`
+   - ✅ Le sélecteur de bar **disparaît automatiquement**
+4. Credentials:
    - Username: `admin`
    - Password: `Admin@2025`
-4. Sélectionner n'importe quel bar (le barId sera remplacé par 'admin_global')
-5. Cliquer sur "Se connecter"
+5. Cliquer sur "Se connecter" (PAS besoin de sélectionner un bar)
 
 **Résultat attendu:**
-- ✅ Connexion réussie
+- ✅ Sélecteur de bar caché quand username = "admin"
+- ✅ Connexion réussie sans sélection de bar
 - ✅ Header affiche "Super Admin" comme rôle
 - ✅ Icône ShieldCheck (bouclier) visible dans le header
 - ✅ Bouton purple "Admin Dashboard" visible à côté du bouton déconnexion
