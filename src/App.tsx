@@ -1,5 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 //import React, from 'react';
+import { ShieldCheck } from 'lucide-react';
 import { Header } from './components/Header';
 import { CategoryTabs } from './components/CategoryTabs';
 import { ProductGrid } from './components/ProductGrid';
@@ -262,9 +263,66 @@ function AppContent() {
   // Interface serveur simplifiée
   if (currentInterface === 'server') {
     return (
-      <ServerInterface 
+      <ServerInterface
         onSwitchToManager={() => setCurrentInterface('manager')}
       />
+    );
+  }
+
+  // Interface Super Admin - Affiche directement le dashboard
+  if (currentSession?.role === 'super_admin') {
+    return (
+      <motion.div
+        className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-50"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4 }}
+      >
+        <Header
+          onShowSales={() => {}}
+          onShowSettings={() => {}}
+          onShowInventory={() => {}}
+          onShowServers={() => {}}
+          onShowDailyDashboard={() => {}}
+          onShowReturns={() => {}}
+          onShowQuickSale={() => {}}
+          onShowAdminDashboard={() => setShowAdminDashboard(true)}
+          onToggleMobileSidebar={() => {}}
+        />
+
+        <div className="container mx-auto px-4 py-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-2xl shadow-xl p-8 text-center"
+          >
+            <div className="mx-auto w-20 h-20 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-full flex items-center justify-center mb-6">
+              <ShieldCheck className="w-12 h-12 text-white" />
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Bienvenue, Super Admin</h1>
+            <p className="text-gray-600 mb-6">
+              Cliquez sur le bouton purple dans le header pour accéder au dashboard administrateur
+            </p>
+            <button
+              onClick={() => setShowAdminDashboard(true)}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:shadow-lg transition-shadow flex items-center gap-3 mx-auto"
+            >
+              <ShieldCheck className="w-6 h-6" />
+              Ouvrir le Dashboard Admin
+            </button>
+          </motion.div>
+        </div>
+
+        {/* SuperAdminDashboard Modal */}
+        <RoleBasedComponent requiredPermission="canAccessAdminDashboard">
+          <Suspense fallback={<LoadingFallback />}>
+            <SuperAdminDashboard
+              isOpen={showAdminDashboard}
+              onClose={() => setShowAdminDashboard(false)}
+            />
+          </Suspense>
+        </RoleBasedComponent>
+      </motion.div>
     );
   }
 
