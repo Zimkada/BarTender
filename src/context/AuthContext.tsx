@@ -98,6 +98,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [originalSession, setOriginalSession] = useDataStore<UserSession | null>('bar-original-session', null);
   const [isImpersonating, setIsImpersonating] = useDataStore<boolean>('bar-is-impersonating', false);
 
+  // 🔒 GARANTIR que le super admin existe toujours (fix déploiement Vercel)
+  React.useEffect(() => {
+    const superAdmin = users.find(u => u.id === 'super_admin_001');
+    if (!superAdmin) {
+      console.log('[AuthContext] Super admin missing, re-adding...');
+      const superAdminUser: User = {
+        id: 'super_admin_001',
+        username: 'admin',
+        password: 'Admin@2025',
+        name: 'Super Administrateur',
+        phone: '97000000',
+        email: 'admin@bartender.bj',
+        createdAt: new Date(),
+        isActive: true,
+        firstLogin: false,
+        createdBy: undefined
+      };
+      setUsers([superAdminUser, ...users]);
+    }
+  }, []); // Exécuté une seule fois au mount
+
   const login = useCallback((username: string, password: string, barId: string, role: UserRole) => {
     const user = users.find(u =>
       u.username === username &&
