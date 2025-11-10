@@ -495,3 +495,40 @@ export interface AppSettings {
 export const getPermissionsByRole = (role: UserRole): RolePermissions => {
   return ROLE_PERMISSIONS[role];
 };
+
+// ===== ADMIN NOTIFICATIONS (A.5) =====
+export type NotificationType =
+  // Problèmes Métier Critiques
+  | 'negative_stock'           // Stock négatif détecté
+  | 'high_return_rate'         // Taux de retours > 15%
+  | 'unpaid_salaries'          // Salaires non payés > 30j
+  | 'zero_revenue_active'      // Bar actif mais 0 CA depuis 7j
+  | 'consignment_expired_high' // > 20 consignations expirées
+  | 'no_products'              // Bar sans produits créés
+  | 'single_user_bar'          // Bar avec 1 seul membre
+  // Anomalies Techniques
+  | 'sync_queue_blocked'       // Queue sync > 50 ops
+  | 'data_corruption'          // Données incohérentes
+  | 'localstorage_full'        // localStorage > 90%
+  | 'large_sale_anomaly'       // Vente > 500k FCFA
+  // Opportunités Business
+  | 'high_performer'           // CA > 1M FCFA sur 30j
+  | 'ready_for_billing'        // Bar actif > 3 mois
+  | 'new_bar_success';         // Nouveau bar avec 50+ ventes
+
+export type NotificationPriority = 'high' | 'medium' | 'info';
+
+export interface AdminNotification {
+  id: string;
+  type: NotificationType;
+  priority: NotificationPriority;
+  barId: string;
+  barName: string;
+  title: string;
+  message: string;
+  timestamp: Date;
+  isRead: boolean;
+  isResolved: boolean;        // Marquer comme résolu
+  metadata?: Record<string, any>; // Données contextuelles (productId, stock, etc.)
+  actions?: string[];         // IDs actions disponibles ('fix_stock', 'view_stats', etc.)
+}

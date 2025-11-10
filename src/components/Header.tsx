@@ -16,7 +16,8 @@ import {
   Menu,
   Calendar,
   Archive, // Pour les consignations
-  ShieldCheck // Pour Super Admin
+  ShieldCheck, // Pour Super Admin
+  Bell // Pour notifications admin
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
@@ -43,6 +44,8 @@ interface HeaderProps {
   onShowAccounting?: () => void;
   onShowConsignment?: () => void;
   onShowAdminDashboard?: () => void;
+  onShowNotifications?: () => void; // A.5: Notifications admin
+  unreadNotificationsCount?: number; // A.5: Compteur notifications non lues
 }
 
 export function Header({
@@ -59,11 +62,13 @@ export function Header({
   onToggleMobileSidebar = () => {},
   onShowAccounting = () => {},
   onShowConsignment = () => {},
-  onShowAdminDashboard = () => {}
+  onShowAdminDashboard = () => {},
+  onShowNotifications = () => {},
+  unreadNotificationsCount = 0
 }: HeaderProps) {
   const { getTodayTotal } = useAppContext();
   const { formatPrice } = useCurrencyFormatter();
-  const { currentSession, logout } = useAuth();
+  const { currentSession, logout, isImpersonating, stopImpersonation } = useAuth();
   const { currentBar } = useBarContext();
   const { isMobile } = useViewport();
 
@@ -120,13 +125,28 @@ export function Header({
                 {/* ✅ Nouveau badge sync unifié (remplace OfflineIndicator + NetworkIndicator + SyncButton) */}
                 <SyncStatusBadge compact position="header" />
                 {currentSession?.role === 'super_admin' && (
-                  <button
-                    onClick={onShowAdminDashboard}
-                    className="p-1.5 bg-purple-600/90 rounded-lg text-white active:scale-95 transition-transform"
-                    aria-label="Admin Dashboard"
-                  >
-                    <ShieldCheck size={16} />
-                  </button>
+                  <>
+                    {/* A.5: Badge notifications admin */}
+                    <button
+                      onClick={onShowNotifications}
+                      className="relative p-1.5 bg-purple-600/90 rounded-lg text-white active:scale-95 transition-transform"
+                      aria-label="Notifications Admin"
+                    >
+                      <Bell size={16} />
+                      {unreadNotificationsCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center animate-pulse">
+                          {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      onClick={onShowAdminDashboard}
+                      className="p-1.5 bg-purple-600/90 rounded-lg text-white active:scale-95 transition-transform"
+                      aria-label="Admin Dashboard"
+                    >
+                      <ShieldCheck size={16} />
+                    </button>
+                  </>
                 )}
                 <button
                   onClick={logout}
@@ -164,6 +184,30 @@ export function Header({
             </p>
           )}
         </div>
+
+        {/* Bannière Impersonation */}
+        {isImpersonating && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            className="bg-yellow-500 px-3 py-2"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <UserCog className="w-4 h-4 text-yellow-900" />
+                <span className="text-yellow-900 text-xs font-semibold">
+                  Mode Impersonation
+                </span>
+              </div>
+              <button
+                onClick={stopImpersonation}
+                className="px-3 py-1 bg-yellow-900 text-yellow-50 rounded text-xs font-semibold hover:bg-yellow-800 transition-colors"
+              >
+                Retour Admin
+              </button>
+            </div>
+          </motion.div>
+        )}
       </header>
     );
   }
@@ -220,15 +264,30 @@ export function Header({
               </p>
             </div>
 
-            {/* Admin Dashboard (super_admin uniquement) */}
+            {/* Admin Actions (super_admin uniquement) */}
             {currentSession?.role === 'super_admin' && (
-              <button
-                onClick={onShowAdminDashboard}
-                className="p-2 bg-purple-600/90 rounded-lg text-white hover:bg-purple-700/90 transition-colors"
-                title="Admin Dashboard"
-              >
-                <ShieldCheck size={20} />
-              </button>
+              <>
+                {/* A.5: Badge notifications admin */}
+                <button
+                  onClick={onShowNotifications}
+                  className="relative p-2 bg-purple-600/90 rounded-lg text-white hover:bg-purple-700/90 transition-colors"
+                  title="Notifications Admin"
+                >
+                  <Bell size={20} />
+                  {unreadNotificationsCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                      {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={onShowAdminDashboard}
+                  className="p-2 bg-purple-600/90 rounded-lg text-white hover:bg-purple-700/90 transition-colors"
+                  title="Admin Dashboard"
+                >
+                  <ShieldCheck size={20} />
+                </button>
+              </>
             )}
 
             {/* Déconnexion */}
@@ -242,6 +301,30 @@ export function Header({
           </div>
         </div>
       </div>
+
+      {/* Bannière Impersonation */}
+      {isImpersonating && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          className="bg-yellow-500 px-6 py-3"
+        >
+          <div className="container mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <UserCog className="w-5 h-5 text-yellow-900" />
+              <span className="text-yellow-900 text-sm font-semibold">
+                Mode Impersonation - Connecté en tant que {currentSession?.userName}
+              </span>
+            </div>
+            <button
+              onClick={stopImpersonation}
+              className="px-4 py-2 bg-yellow-900 text-yellow-50 rounded-lg text-sm font-semibold hover:bg-yellow-800 transition-colors"
+            >
+              Retour Admin
+            </button>
+          </div>
+        </motion.div>
+      )}
     </header>
   );
 }

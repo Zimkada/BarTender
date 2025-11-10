@@ -75,6 +75,11 @@ interface AuthContextType {
   updateUser: (userId: string, updates: Partial<User>) => void;
   changePassword: (userId: string, newPassword: string) => void;
   getUserById: (userId: string) => User | undefined;
+  // Impersonation
+  isImpersonating: boolean;
+  originalSession: UserSession | null;
+  impersonate: (userId: string, barId: string, role: UserRole) => void;
+  stopImpersonation: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -90,6 +95,8 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentSession, setCurrentSession] = useDataStore<UserSession | null>('bar-current-session', null);
   const [users, setUsers] = useDataStore<User[]>('bar-users', mockUsers);
+  const [originalSession, setOriginalSession] = useDataStore<UserSession | null>('bar-original-session', null);
+  const [isImpersonating, setIsImpersonating] = useDataStore<boolean>('bar-is-impersonating', false);
 
   const login = useCallback((username: string, password: string, barId: string, role: UserRole) => {
     const user = users.find(u =>
@@ -167,6 +174,56 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return users.find(u => u.id === userId);
   }, [users]);
 
+  // Impersonation: Se connecter en tant qu'un autre user (pour super admin)
+  const impersonate = useCallback((userId: string, barId: string, role: UserRole) => {
+    if (!currentSession) return;
+
+    // Seulement le super admin peut impersonate
+    if (currentSession.role !== 'super_admin') {
+      console.error('Only super admin can impersonate');
+      return;
+    }
+
+    const targetUser = users.find(u => u.id === userId);
+    if (!targetUser) {
+      console.error('Target user not found');
+      return;
+    }
+
+    // Sauvegarder la session originale (super admin)
+    setOriginalSession(currentSession);
+    setIsImpersonating(true);
+
+    // Créer nouvelle session pour l'user ciblé
+    const impersonatedSession: UserSession = {
+      userId: targetUser.id,
+      userName: targetUser.name,
+      role: role,
+      barId: barId,
+      barName: 'Bar Impersonated', // Will be updated by BarContext
+      loginTime: new Date(),
+      permissions: getPermissionsByRole(role),
+    };
+
+    setCurrentSession(impersonatedSession);
+    console.log(`[Impersonation] Admin impersonating ${targetUser.name} (${role})`);
+  }, [currentSession, users, setCurrentSession, setOriginalSession, setIsImpersonating]);
+
+  // Stop impersonation: Revenir à la session super admin
+  const stopImpersonation = useCallback(() => {
+    if (!isImpersonating || !originalSession) {
+      console.error('Not currently impersonating');
+      return;
+    }
+
+    // Restore session originale
+    setCurrentSession(originalSession);
+    setOriginalSession(null);
+    setIsImpersonating(false);
+
+    console.log('[Impersonation] Returned to admin session');
+  }, [isImpersonating, originalSession, setCurrentSession, setOriginalSession, setIsImpersonating]);
+
   const value: AuthContextType = {
     currentSession,
     isAuthenticated: !!currentSession,
@@ -178,6 +235,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     updateUser,
     changePassword,
     getUserById,
+    isImpersonating,
+    originalSession,
+    impersonate,
+    stopImpersonation,
   };
 
   return (

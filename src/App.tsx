@@ -14,6 +14,7 @@ import { RoleBasedComponent } from './components/RoleBasedComponent';
 import { NotificationsProvider, useNotifications } from './components/Notifications';
 import { useAppContext } from './context/AppContext';
 import { useStockManagement } from './hooks/useStockManagement';
+import { useAdminNotifications } from './hooks/useAdminNotifications'; // A.5: Notifications admin
 // StockBridgeProvider moved to main.tsx
 import { CartItem, Product, Category } from './types';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -35,6 +36,7 @@ const ForecastingSystem = lazy(() => import('./components/ForecastingSystem').th
 const Accounting = lazy(() => import('./components/Accounting').then(m => ({ default: m.Accounting })));
 const ConsignmentSystem = lazy(() => import('./components/ConsignmentSystem').then(m => ({ default: m.ConsignmentSystem })));
 const SuperAdminDashboard = lazy(() => import('./components/SuperAdminDashboard').then(m => ({ default: m.default })));
+const AdminNotificationsPanel = lazy(() => import('./components/AdminNotificationsPanel').then(m => ({ default: m.default })));
 
 
 
@@ -50,8 +52,20 @@ function AppContent() {
 
   const { processSaleValidation, products, addProduct } = useStockManagement();
   const { isAuthenticated, currentSession } = useAuth();
-  const { currentBar } = useBarContext();
+  const { currentBar, bars } = useBarContext();
   const { showNotification } = useNotifications();
+
+  // A.5: Notifications admin hook
+  const {
+    unresolvedNotifications,
+    stats: notifStats,
+    analyzeAllBars,
+    markAsRead,
+    markAllAsRead,
+    markAsResolved,
+    deleteNotification,
+    clearAll,
+  } = useAdminNotifications();
   const [showDailyDashboard, setShowDailyDashboard] = useState(false);
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id || '');
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -73,6 +87,7 @@ function AppContent() {
   const [showAccounting, setShowAccounting] = useState(false);
   const [showConsignment, setShowConsignment] = useState(false);
   const [showAdminDashboard, setShowAdminDashboard] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false); // A.5: Notifications panel
 
   useEffect(() => {
     if (categories.length > 0 && !activeCategory) {
@@ -345,7 +360,15 @@ function AppContent() {
         onShowForecasting={() => setShowForecasting(true)}
         onShowAccounting={() => setShowAccounting(true)}
         onShowConsignment={() => setShowConsignment(true)}
-        onShowAdminDashboard={() => setShowAdminDashboard(true)}
+        onShowAdminDashboard={() => {
+          setShowAdminDashboard(true);
+          // A.5: Analyser bars quand dashboard s'ouvre
+          if (currentSession?.role === 'super_admin') {
+            analyzeAllBars(bars);
+          }
+        }}
+        onShowNotifications={() => setShowNotifications(true)}
+        unreadNotificationsCount={notifStats.unreadCount}
         onToggleMobileSidebar={() => setShowMobileSidebar(!showMobileSidebar)}
       />
       
@@ -509,6 +532,22 @@ function AppContent() {
           <SuperAdminDashboard
             isOpen={showAdminDashboard}
             onClose={() => setShowAdminDashboard(false)}
+          />
+        </Suspense>
+      </RoleBasedComponent>
+
+      {/* A.5: Admin Notifications Panel */}
+      <RoleBasedComponent requiredPermission="canAccessAdminDashboard">
+        <Suspense fallback={<LoadingFallback />}>
+          <AdminNotificationsPanel
+            isOpen={showNotifications}
+            onClose={() => setShowNotifications(false)}
+            notifications={unresolvedNotifications}
+            onMarkAsRead={markAsRead}
+            onMarkAllAsRead={markAllAsRead}
+            onMarkAsResolved={markAsResolved}
+            onDelete={deleteNotification}
+            onClearAll={clearAll}
           />
         </Suspense>
       </RoleBasedComponent>
