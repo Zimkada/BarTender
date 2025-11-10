@@ -509,7 +509,7 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
                           value={formData.firstName}
                           onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                           className={`w-full px-4 py-2 border rounded-lg ${formErrors.firstName ? 'border-red-500' : 'border-gray-300'}`}
-                          placeholder="Jean"
+                          placeholder="Guy"
                         />
                         {formErrors.firstName && <p className="text-red-500 text-xs mt-1">{formErrors.firstName}</p>}
                       </div>
@@ -523,7 +523,7 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
                           value={formData.lastName}
                           onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                           className={`w-full px-4 py-2 border rounded-lg ${formErrors.lastName ? 'border-red-500' : 'border-gray-300'}`}
-                          placeholder="Dupont"
+                          placeholder="GOUNOU"
                         />
                         {formErrors.lastName && <p className="text-red-500 text-xs mt-1">{formErrors.lastName}</p>}
                       </div>
@@ -537,7 +537,7 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
                           value={formData.email}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                           className={`w-full px-4 py-2 border rounded-lg ${formErrors.email ? 'border-red-500' : 'border-gray-300'}`}
-                          placeholder="jean@example.com"
+                          placeholder="guy.gounou@example.com"
                         />
                         {formErrors.email && <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>}
                       </div>
