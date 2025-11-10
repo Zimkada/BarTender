@@ -170,7 +170,7 @@ export interface CapitalContribution {
   date: Date;               // Date de l'apport
   description: string;      // Ex: "Apport pour couvrir fournisseur urgent"
   source: CapitalSource;    // Origine de l'apport
-  sourceDetails?: string;   // Ex: "Prêt Banque ABC", "Associé Jean Dupont"
+  sourceDetails?: string;   // Ex: "Prêt Banque ABC", "Associé Guy GOUNOU"
   createdBy: string;        // Qui a enregistré cet apport
   createdAt: Date;          // Quand l'apport a été enregistré
 }

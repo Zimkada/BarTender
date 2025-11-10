@@ -1348,7 +1348,7 @@ export function AccountingOverview() {
                   type="text"
                   value={capitalContributionForm.sourceDetails}
                   onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, sourceDetails: e.target.value }))}
-                  placeholder="Ex: Prêt Banque ABC, Associé Jean Dupont..."
+                  placeholder="Ex: Prêt Banque ABC, Associé Guy GOUNOU..."
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>

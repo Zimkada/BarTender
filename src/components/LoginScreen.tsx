@@ -14,16 +14,29 @@ export function LoginScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [selectedBar, setSelectedBar] = useState<string>('');
+  const [barSearchQuery, setBarSearchQuery] = useState(''); // 🔒 Recherche bar par nom au lieu de dropdown
   const [error, setError] = useState('');
   const [isFirstLogin, setIsFirstLogin] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string>('');
 
+  // 🔒 Trouver le bar par nom (sécurité: pas de liste visible)
+  useEffect(() => {
+    if (barSearchQuery.trim() && username !== 'admin') {
+      const foundBar = bars.find(b =>
+        b.name.toLowerCase() === barSearchQuery.toLowerCase().trim()
+      );
+      setSelectedBar(foundBar?.id || '');
+    } else {
+      setSelectedBar('');
+    }
+  }, [barSearchQuery, bars, username]);
+
   // Réinitialiser l'erreur quand on change les champs
   useEffect(() => {
     setError('');
-  }, [username, password, selectedBar]);
+  }, [username, password, selectedBar, barSearchQuery]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +57,7 @@ export function LoginScreen() {
     const isSuperAdmin = username === 'admin'; // Super admin username
 
     if (!isSuperAdmin && !selectedBar) {
-      setError('Veuillez sélectionner un bar');
+      setError('Bar introuvable. Vérifiez le nom exact.');
       return;
     }
 
@@ -202,24 +215,28 @@ export function LoginScreen() {
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
-          {/* Sélecteur de bar - caché pour super admin */}
+          {/* 🔒 Recherche bar par nom (sécurité: liste cachée) - caché pour super admin */}
           {username !== 'admin' && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Bar
+                Nom du Bar
               </label>
-              <select
-                value={selectedBar}
-                onChange={(e) => setSelectedBar(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              >
-                <option value="">Sélectionnez un bar</option>
-                {bars.map(bar => (
-                  <option key={bar.id} value={bar.id}>
-                    {bar.name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <input
+                  type="text"
+                  value={barSearchQuery}
+                  onChange={(e) => setBarSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  placeholder="Entrez le nom exact du bar"
+                  autoComplete="off"
+                />
+                {barSearchQuery && selectedBar && (
+                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-500 text-xs">
+                    ✓ Trouvé
+                  </span>
+                )}
+              </div>
             </div>
           )}
 

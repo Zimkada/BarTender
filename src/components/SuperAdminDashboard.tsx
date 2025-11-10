@@ -304,7 +304,7 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) errors.email = 'Email invalide';
 
     if (!formData.phone.trim()) errors.phone = 'Téléphone requis';
-    else if (!/^\d{8,}$/.test(formData.phone.replace(/\s/g, ''))) errors.phone = 'Téléphone invalide';
+    else if (!/^01\d{8}$/.test(formData.phone.replace(/\s/g, ''))) errors.phone = 'Format: 01XXXXXXXX (10 chiffres)';
 
     if (!formData.password.trim()) errors.password = 'Mot de passe requis';
     else if (formData.password.length < 6) errors.password = 'Minimum 6 caractères';
@@ -342,13 +342,14 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
         return;
       }
 
-      // 2. Créer bar
+      // 2. Créer bar avec le nouveau promoteur comme propriétaire
       const newBar = createBar({
         name: formData.barName,
         address: formData.barAddress || undefined,
         phone: formData.barPhone || undefined,
         email: formData.email,
         isActive: true,
+        ownerId: newUser.id, // 🔧 FIX: Assigner le nouveau promoteur comme owner
         settings: {
           currency: 'FCFA',
           currencySymbol: ' FCFA',
@@ -366,7 +367,7 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
       }
 
       // 3. Succès
-      alert(`✅ Promoteur créé avec succès!\n\nCredentials:\nEmail: ${formData.email}\nMot de passe: ${formData.password}\n\n(Envoyez ces informations au promoteur)`);
+      alert(`✅ Promoteur créé avec succès!\n\nBar: ${formData.barName}\n\nCredentials:\nUsername: ${username}\nMot de passe: ${formData.password}\nBar: ${formData.barName}\n\n(Envoyez ces informations au promoteur)`);
 
       setFormData(initialFormData);
       setShowCreateForm(false);
@@ -550,7 +551,7 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
                           value={formData.phone}
                           onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                           className={`w-full px-4 py-2 border rounded-lg ${formErrors.phone ? 'border-red-500' : 'border-gray-300'}`}
-                          placeholder="97123456"
+                          placeholder="0197123456"
                         />
                         {formErrors.phone && <p className="text-red-500 text-xs mt-1">{formErrors.phone}</p>}
                       </div>
@@ -619,7 +620,7 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
                           value={formData.barPhone}
                           onChange={(e) => setFormData({ ...formData, barPhone: e.target.value })}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg"
-                          placeholder="97987654"
+                          placeholder="0197987654"
                         />
                       </div>
 

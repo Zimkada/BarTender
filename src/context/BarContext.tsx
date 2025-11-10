@@ -79,7 +79,17 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const bar = bars.find(b => b.id === currentBarId);
       setCurrentBar(bar || null);
     } else if (currentSession) {
-      // Si pas de bar sélectionné, prendre le premier accessible
+      // 🔧 FIX: Prioriser le barId de la session (important pour impersonation)
+      if (currentSession.barId && currentSession.barId !== 'admin_global') {
+        const sessionBar = bars.find(b => b.id === currentSession.barId);
+        if (sessionBar) {
+          setCurrentBar(sessionBar);
+          setCurrentBarId(sessionBar.id);
+          return;
+        }
+      }
+
+      // Sinon, prendre le premier bar accessible
       const accessibleBars = getUserBars();
       if (accessibleBars.length > 0) {
         setCurrentBar(accessibleBars[0]);
@@ -114,22 +124,25 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [bars, barMembers, currentSession]);
 
   // Gestion des bars
-  const createBar = useCallback((barData: Omit<Bar, 'id' | 'createdAt' | 'ownerId'>) => {
+  const createBar = useCallback((barData: Omit<Bar, 'id' | 'createdAt' | 'ownerId'> & { ownerId?: string }) => {
     if (!currentSession || !hasPermission('canCreateBars')) return null;
+
+    // Permettre au super admin de spécifier l'ownerId
+    const ownerId = barData.ownerId || currentSession.userId;
 
     const newBar: Bar = {
       ...barData,
       id: `bar_${Date.now()}`,
-      ownerId: currentSession.userId,
+      ownerId,
       createdAt: new Date(),
     };
 
     setBars(prev => [...prev, newBar]);
 
-    // Ajouter le créateur comme membre
+    // Ajouter le propriétaire comme membre promoteur
     const ownerMember: BarMember = {
       id: `member_${Date.now()}`,
-      userId: currentSession.userId,
+      userId: ownerId,
       barId: newBar.id,
       role: 'promoteur',
       assignedBy: currentSession.userId,
