@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useCallback, ReactNode } from 'react';
 import { useDataStore } from '../hooks/useDataStore';
 import { UserSession, UserRole, getPermissionsByRole, User, RolePermissions } from '../types';
+import { auditLogger } from '../services/AuditLogger';
 
 // Mock users étendu pour multi-tenant
 const mockUsers: User[] = [
@@ -143,14 +144,55 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       ));
 
       setCurrentSession(session);
+
+      // Log connexion réussie
+      auditLogger.log({
+        event: 'LOGIN_SUCCESS',
+        severity: 'info',
+        userId: user.id,
+        userName: user.name,
+        userRole: role,
+        barId: session.barId !== 'admin_global' ? session.barId : undefined,
+        barName: session.barName !== 'Admin Dashboard' ? session.barName : undefined,
+        description: `Connexion réussie en tant que ${role}`,
+        metadata: { username },
+      });
+
       return session;
     }
+
+    // Log tentative de connexion échouée
+    auditLogger.log({
+      event: 'LOGIN_FAILED',
+      severity: 'warning',
+      userId: username, // On n'a pas l'ID, on met le username
+      userName: username,
+      userRole: role,
+      barId: barId !== 'admin_global' ? barId : undefined,
+      description: `Tentative de connexion échouée (identifiants invalides)`,
+      metadata: { username, attemptedRole: role },
+    });
+
     return null;
   }, [users, setCurrentSession, setUsers]);
 
   const logout = useCallback(() => {
+    if (currentSession) {
+      // Log déconnexion
+      auditLogger.log({
+        event: 'LOGOUT',
+        severity: 'info',
+        userId: currentSession.userId,
+        userName: currentSession.userName,
+        userRole: currentSession.role,
+        barId: currentSession.barId !== 'admin_global' ? currentSession.barId : undefined,
+        barName: currentSession.barName !== 'Admin Dashboard' ? currentSession.barName : undefined,
+        description: 'Déconnexion',
+      });
+    }
+
     setCurrentSession(null);
-  }, [setCurrentSession]);
+  }, [currentSession, setCurrentSession]);
 
   const hasPermission = useCallback((permission: keyof RolePermissions) => {
     return currentSession?.permissions?.[permission] ?? false;
@@ -158,7 +200,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const createUser = useCallback((userData: Omit<User, 'id' | 'createdAt' | 'createdBy'>, role: UserRole) => {
     if (!currentSession) return null;
-    
+
     if (role === 'gerant' && !hasPermission('canCreateManagers')) return null;
     if (role === 'serveur' && !hasPermission('canCreateServers')) return null;
 
@@ -172,6 +214,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     setUsers(prev => [...prev, newUser]);
+
+    // Log création utilisateur
+    auditLogger.log({
+      event: 'USER_CREATED',
+      severity: 'info',
+      userId: currentSession.userId,
+      userName: currentSession.userName,
+      userRole: currentSession.role,
+      barId: currentSession.barId !== 'admin_global' ? currentSession.barId : undefined,
+      barName: currentSession.barName !== 'Admin Dashboard' ? currentSession.barName : undefined,
+      description: `Création utilisateur: ${newUser.name} (${role})`,
+      metadata: {
+        newUserId: newUser.id,
+        newUserName: newUser.name,
+        newUserRole: role,
+        newUserUsername: newUser.username,
+      },
+      relatedEntityId: newUser.id,
+      relatedEntityType: 'user',
+    });
+
     return newUser;
   }, [currentSession, hasPermission, setUsers]);
 
@@ -227,6 +290,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     setCurrentSession(impersonatedSession);
+
+    // Log impersonation start
+    auditLogger.log({
+      event: 'IMPERSONATE_START',
+      severity: 'warning',
+      userId: currentSession.userId,
+      userName: currentSession.userName,
+      userRole: currentSession.role,
+      barId: barId,
+      description: `Impersonation démarrée: Admin se connecte en tant que ${targetUser.name} (${role})`,
+      metadata: {
+        targetUserId: targetUser.id,
+        targetUserName: targetUser.name,
+        targetRole: role,
+        targetBarId: barId,
+      },
+      relatedEntityId: targetUser.id,
+      relatedEntityType: 'user',
+    });
+
     console.log(`[Impersonation] Admin impersonating ${targetUser.name} (${role})`);
   }, [currentSession, users, setCurrentSession, setOriginalSession, setIsImpersonating]);
 
@@ -237,13 +320,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
 
+    // Log impersonation stop (avant de changer session)
+    if (currentSession) {
+      auditLogger.log({
+        event: 'IMPERSONATE_STOP',
+        severity: 'info',
+        userId: originalSession.userId,
+        userName: originalSession.userName,
+        userRole: originalSession.role,
+        barId: currentSession.barId,
+        description: `Impersonation terminée: Retour au compte Super Admin`,
+        metadata: {
+          impersonatedUserId: currentSession.userId,
+          impersonatedUserName: currentSession.userName,
+          impersonatedRole: currentSession.role,
+        },
+      });
+    }
+
     // Restore session originale
     setCurrentSession(originalSession);
     setOriginalSession(null);
     setIsImpersonating(false);
 
     console.log('[Impersonation] Returned to admin session');
-  }, [isImpersonating, originalSession, setCurrentSession, setOriginalSession, setIsImpersonating]);
+  }, [isImpersonating, originalSession, currentSession, setCurrentSession, setOriginalSession, setIsImpersonating]);
 
   const value: AuthContextType = {
     currentSession,

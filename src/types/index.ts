@@ -532,3 +532,69 @@ export interface AdminNotification {
   metadata?: Record<string, any>; // Données contextuelles (productId, stock, etc.)
   actions?: string[];         // IDs actions disponibles ('fix_stock', 'view_stats', etc.)
 }
+
+// ===== AUDIT LOGS =====
+export type AuditLogEvent =
+  // Bar Management
+  | 'BAR_CREATED'
+  | 'BAR_UPDATED'
+  | 'BAR_SUSPENDED'
+  | 'BAR_ACTIVATED'
+  | 'BAR_DELETED'
+  // User Management
+  | 'USER_CREATED'
+  | 'USER_UPDATED'
+  | 'USER_DELETED'
+  | 'USER_SUSPENDED'
+  | 'USER_ACTIVATED'
+  | 'PASSWORD_RESET'
+  // Authentication
+  | 'LOGIN_SUCCESS'
+  | 'LOGIN_FAILED'
+  | 'LOGOUT'
+  | 'IMPERSONATE_START'
+  | 'IMPERSONATE_STOP'
+  // Products & Inventory
+  | 'PRODUCT_CREATED'
+  | 'PRODUCT_UPDATED'
+  | 'PRODUCT_DELETED'
+  | 'PRODUCTS_BULK_DELETED'
+  | 'SUPPLY_CREATED'
+  | 'STOCK_ADJUSTED'
+  // Sales & Returns
+  | 'SALE_CREATED'
+  | 'SALE_DELETED'
+  | 'RETURN_CREATED'
+  | 'RETURN_PROCESSED'
+  // Accounting
+  | 'EXPENSE_CREATED'
+  | 'EXPENSE_DELETED'
+  | 'SALARY_PAID'
+  | 'SALARY_DELETED'
+  // System
+  | 'DATA_EXPORTED'
+  | 'DATA_IMPORTED'
+  | 'BACKUP_CREATED'
+  | 'SETTINGS_UPDATED'
+  | 'SYNC_FAILED'
+  | 'SYNC_SUCCESS';
+
+export type AuditLogSeverity = 'info' | 'warning' | 'critical';
+
+export interface AuditLog {
+  id: string;
+  timestamp: Date;
+  event: AuditLogEvent;
+  severity: AuditLogSeverity;
+  userId: string;
+  userName: string;
+  userRole: UserRole;
+  barId?: string;
+  barName?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  description: string;
+  metadata?: Record<string, any>;
+  relatedEntityId?: string;
+  relatedEntityType?: 'bar' | 'user' | 'product' | 'sale' | 'expense';
+}
