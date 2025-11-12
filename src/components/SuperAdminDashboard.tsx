@@ -17,6 +17,7 @@ import {
   ShoppingCart,
   Search,
   Filter,
+  FileText,
 } from 'lucide-react';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
@@ -24,6 +25,7 @@ import { useAppContext } from '../context/AppContext';
 import { useDataStore } from '../hooks/useDataStore';
 import { Bar, User, Sale, Return } from '../types';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
+import { AuditLogsPanel } from './AuditLogsPanel';
 
 interface SuperAdminDashboardProps {
   isOpen: boolean;
@@ -71,6 +73,7 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
   // A.1: Filters and Search
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
+  const [showAuditLogs, setShowAuditLogs] = useState(false);
 
   // Helper function to get bar revenue for today
   const getBarTodayRevenue = (barId: string): number => {
@@ -476,14 +479,21 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-4">
-            {/* Bouton Créer Promoteur */}
-            <div className="mb-4">
+            {/* Boutons Actions */}
+            <div className="mb-4 flex gap-3">
               <button
                 onClick={() => setShowCreateForm(!showCreateForm)}
                 className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2 hover:shadow-lg transition-shadow text-sm"
               >
                 <UserPlus className="w-4 h-4" />
                 Créer un Promoteur
+              </button>
+              <button
+                onClick={() => setShowAuditLogs(true)}
+                className="bg-gradient-to-r from-gray-700 to-gray-900 text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2 hover:shadow-lg transition-shadow text-sm"
+              >
+                <FileText className="w-4 h-4" />
+                Audit Logs
               </button>
             </div>
 
@@ -1242,6 +1252,12 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
           </motion.div>
         )}
     </AnimatePresence>
+
+    {/* Audit Logs Panel */}
+    <AuditLogsPanel
+      isOpen={showAuditLogs}
+      onClose={() => setShowAuditLogs(false)}
+    />
   </>
   );
 }
