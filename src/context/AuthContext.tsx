@@ -240,19 +240,70 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const updateUser = useCallback((userId: string, updates: Partial<User>) => {
     if (!currentSession) return;
-    
-    setUsers(prev => prev.map(user => 
+
+    const targetUser = users.find(u => u.id === userId);
+
+    setUsers(prev => prev.map(user =>
       user.id === userId ? { ...user, ...updates } : user
     ));
-  }, [currentSession, setUsers]);
+
+    // Log mise à jour utilisateur
+    if (targetUser) {
+      auditLogger.log({
+        event: 'USER_UPDATED',
+        severity: 'info',
+        userId: currentSession.userId,
+        userName: currentSession.userName,
+        userRole: currentSession.role,
+        barId: currentSession.barId !== 'admin_global' ? currentSession.barId : undefined,
+        barName: currentSession.barName !== 'Admin Dashboard' ? currentSession.barName : undefined,
+        description: `Mise à jour utilisateur: ${targetUser.name}`,
+        metadata: {
+          targetUserId: userId,
+          targetUserName: targetUser.name,
+          updates: updates,
+        },
+        relatedEntityId: userId,
+        relatedEntityType: 'user',
+      });
+    }
+  }, [currentSession, setUsers, users]);
 
   const changePassword = useCallback((userId: string, newPassword: string) => {
-    setUsers(prev => prev.map(user => 
-      user.id === userId 
-        ? { ...user, password: newPassword, firstLogin: false } 
+    const targetUser = users.find(u => u.id === userId);
+
+    setUsers(prev => prev.map(user =>
+      user.id === userId
+        ? { ...user, password: newPassword, firstLogin: false }
         : user
     ));
-  }, [setUsers]);
+
+    // Log changement mot de passe
+    if (targetUser && currentSession) {
+      const isSelfChange = userId === currentSession.userId;
+
+      auditLogger.log({
+        event: 'PASSWORD_RESET',
+        severity: isSelfChange ? 'info' : 'warning',
+        userId: currentSession.userId,
+        userName: currentSession.userName,
+        userRole: currentSession.role,
+        barId: currentSession.barId !== 'admin_global' ? currentSession.barId : undefined,
+        barName: currentSession.barName !== 'Admin Dashboard' ? currentSession.barName : undefined,
+        description: isSelfChange
+          ? `${currentSession.userName} a modifié son propre mot de passe`
+          : `${currentSession.userName} a réinitialisé le mot de passe de ${targetUser.name}`,
+        metadata: {
+          targetUserId: userId,
+          targetUserName: targetUser.name,
+          isSelfChange,
+          changedBy: currentSession.userName,
+        },
+        relatedEntityId: userId,
+        relatedEntityType: 'user',
+      });
+    }
+  }, [setUsers, users, currentSession]);
 
   const getUserById = useCallback((userId: string) => {
     return users.find(u => u.id === userId);

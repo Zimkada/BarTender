@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   BarChart3,
   Settings,
@@ -17,7 +17,8 @@ import {
   Calendar,
   Archive, // Pour les consignations
   ShieldCheck, // Pour Super Admin
-  Bell // Pour notifications admin
+  Bell, // Pour notifications admin
+  User, // Pour profil utilisateur
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
@@ -28,6 +29,7 @@ import { RoleBasedComponent } from './RoleBasedComponent';
 import { BarSelector } from './BarSelector';
 import { SyncStatusBadge } from './SyncStatusBadge'; // ✅ Badge sync unifié (remplace OfflineIndicator, NetworkIndicator, SyncButton)
 import { useViewport } from '../hooks/useViewport';
+import { ProfileSettings } from './ProfileSettings';
 
 interface HeaderProps {
   onShowSales: () => void;
@@ -71,6 +73,8 @@ export function Header({
   const { currentSession, logout, isImpersonating, stopImpersonation } = useAuth();
   const { currentBar } = useBarContext();
   const { isMobile } = useViewport();
+
+  const [showProfileSettings, setShowProfileSettings] = useState(false);
 
   const todayTotal = getTodayTotal();
   const alertCount = 0; // TODO: Implémenter compteur alertes réel
@@ -148,6 +152,13 @@ export function Header({
                     </button>
                   </>
                 )}
+                <button
+                  onClick={() => setShowProfileSettings(true)}
+                  className="p-1.5 bg-indigo-600/90 rounded-lg text-white active:scale-95 transition-transform"
+                  aria-label="Mon Profil"
+                >
+                  <User size={16} />
+                </button>
                 <button
                   onClick={logout}
                   className="p-1.5 bg-red-500/80 rounded-lg text-white active:scale-95 transition-transform"
@@ -304,6 +315,15 @@ export function Header({
               </>
             )}
 
+            {/* Mon Profil */}
+            <button
+              onClick={() => setShowProfileSettings(true)}
+              className="p-2 bg-indigo-600/90 rounded-lg text-white hover:bg-indigo-700/90 transition-colors"
+              title="Mon Profil"
+            >
+              <User size={20} />
+            </button>
+
             {/* Déconnexion */}
             <button
               onClick={logout}
@@ -339,6 +359,12 @@ export function Header({
           </div>
         </motion.div>
       )}
+
+      {/* ProfileSettings Modal */}
+      <ProfileSettings
+        isOpen={showProfileSettings}
+        onClose={() => setShowProfileSettings(false)}
+      />
     </header>
   );
 }

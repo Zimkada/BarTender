@@ -18,6 +18,7 @@ import {
   Search,
   Filter,
   FileText,
+  Key, // For password reset
 } from 'lucide-react';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
@@ -56,7 +57,7 @@ const initialFormData: CreatePromoteurForm = {
 
 export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashboardProps) {
   const { bars, createBar, updateBar, barMembers, getBarMembers } = useBarContext();
-  const { users, createUser, impersonate } = useAuth();
+  const { users, createUser, impersonate, changePassword } = useAuth();
   const { initializeBarData } = useAppContext();
 
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -391,6 +392,29 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
     const action = currentStatus ? 'suspendre' : 'activer';
     if (confirm(`Voulez-vous vraiment ${action} ce bar ?`)) {
       updateBar(barId, { isActive: !currentStatus });
+    }
+  };
+
+  // Réinitialiser mot de passe promoteur
+  const handleResetPassword = (userId: string, userName: string) => {
+    const newPassword = prompt(
+      `Réinitialiser le mot de passe de ${userName}\n\nEntrez le nouveau mot de passe (min. 4 caractères):`
+    );
+
+    if (newPassword === null) return; // Annulé
+
+    if (!newPassword || newPassword.length < 4) {
+      alert('Le mot de passe doit contenir au moins 4 caractères');
+      return;
+    }
+
+    const confirm2 = confirm(
+      `Confirmer la réinitialisation du mot de passe de ${userName}?\n\nNouveau mot de passe: ${newPassword}\n\n⚠️ Cette action sera enregistrée dans les logs d'audit.`
+    );
+
+    if (confirm2) {
+      changePassword(userId, newPassword);
+      alert(`✅ Mot de passe réinitialisé avec succès!\n\nUtilisateur: ${userName}\nNouveau mot de passe: ${newPassword}\n\n(Communiquez ce mot de passe au promoteur)`);
     }
   };
 
@@ -842,6 +866,21 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
                         >
                           <UserCog className="w-3.5 h-3.5" />
                           Impersonate
+                        </button>
+                        <button
+                          onClick={() => {
+                            const promoteurMember = members.find(m => m.role === 'promoteur');
+                            if (promoteurMember) {
+                              handleResetPassword(promoteurMember.user.id, promoteurMember.user.name);
+                            } else {
+                              alert('Aucun promoteur trouvé pour ce bar');
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg font-semibold text-xs hover:bg-blue-200 flex items-center justify-center gap-1.5"
+                          title="Réinitialiser le mot de passe du promoteur"
+                        >
+                          <Key className="w-3.5 h-3.5" />
+                          Reset MDP
                         </button>
                         <button
                           onClick={() => setSelectedBarForStats(bar)}
