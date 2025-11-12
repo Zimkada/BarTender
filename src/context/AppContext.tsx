@@ -6,6 +6,7 @@ import { useStockBridge } from '../context/StockBridgeProvider';
 import { useStock } from '../context/StockContext';
 import { syncQueue } from '../services/SyncQueue';
 import { useNotifications } from '../components/Notifications';
+import { auditLogger } from '../services/AuditLogger';
 import {
   Category,
   Product,
@@ -247,6 +248,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // 2. Enqueue pour sync backend
     syncQueue.enqueue('CREATE_SALE', newSale, currentBar.id, currentSession.userId);
+
+    // 3. Log création vente
+    auditLogger.log({
+      event: 'SALE_CREATED',
+      severity: 'info',
+      userId: currentSession.userId,
+      userName: currentSession.userName,
+      userRole: currentSession.role,
+      barId: currentBar.id,
+      barName: currentBar.name,
+      description: `Vente créée: ${newSale.total} FCFA (${newSale.items.length} produits)`,
+      metadata: {
+        saleId: newSale.id,
+        saleTotal: newSale.total,
+        saleStatus: newSale.status,
+        itemsCount: newSale.items.length,
+        serverId: newSale.serverId,
+      },
+      relatedEntityId: newSale.id,
+      relatedEntityType: 'sale',
+    });
 
     if (newSale.status === 'pending') {
       showNotification('success', 'Demande de vente envoyée au gérant pour validation.');

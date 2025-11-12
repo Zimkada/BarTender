@@ -5,6 +5,7 @@ import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { calculateAvailableStock } from '../utils/calculations';
 import { syncQueue } from '../services/SyncQueue';
+import { auditLogger } from '../services/AuditLogger';
 import type { Product, Consignment, ConsignmentStatus, ProductStockInfo, Supply, Expense } from '../types';
 
 // ----- CONSTANTES -----
@@ -41,6 +42,29 @@ export const useStockManagement = () => {
     // 2. Enqueue pour sync
     if (currentBar && session) {
       syncQueue.enqueue('CREATE_PRODUCT', newProduct, currentBar.id, session.userId);
+    }
+
+    // 3. Log création produit
+    if (currentBar && session) {
+      auditLogger.log({
+        event: 'PRODUCT_CREATED',
+        severity: 'info',
+        userId: session.userId,
+        userName: session.userName,
+        userRole: session.role,
+        barId: currentBar.id,
+        barName: currentBar.name,
+        description: `Création produit: ${newProduct.name} ${newProduct.volume}`,
+        metadata: {
+          productId: newProduct.id,
+          productName: newProduct.name,
+          productPrice: newProduct.price,
+          productStock: newProduct.stock,
+          categoryId: newProduct.categoryId,
+        },
+        relatedEntityId: newProduct.id,
+        relatedEntityType: 'product',
+      });
     }
 
     return newProduct;
@@ -80,12 +104,36 @@ export const useStockManagement = () => {
   };
 
   const deleteProduct = (id: string) => {
+    const deletedProduct = products.find(p => p.id === id);
+
     // 1. Optimistic update
     setProducts(prev => prev.filter(p => p.id !== id));
 
     // 2. Enqueue pour sync
     if (currentBar && session) {
       syncQueue.enqueue('DELETE_PRODUCT', { productId: id }, currentBar.id, session.userId);
+    }
+
+    // 3. Log suppression produit
+    if (currentBar && session && deletedProduct) {
+      auditLogger.log({
+        event: 'PRODUCT_DELETED',
+        severity: 'warning',
+        userId: session.userId,
+        userName: session.userName,
+        userRole: session.role,
+        barId: currentBar.id,
+        barName: currentBar.name,
+        description: `Suppression produit: ${deletedProduct.name} ${deletedProduct.volume}`,
+        metadata: {
+          productId: deletedProduct.id,
+          productName: deletedProduct.name,
+          productPrice: deletedProduct.price,
+          productStock: deletedProduct.stock,
+        },
+        relatedEntityId: deletedProduct.id,
+        relatedEntityType: 'product',
+      });
     }
   };
 

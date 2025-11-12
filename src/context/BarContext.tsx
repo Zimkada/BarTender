@@ -2,6 +2,7 @@ import React, { createContext, useContext, useCallback, ReactNode, useState, use
 import { useDataStore } from '../hooks/useDataStore';
 import { useAuth } from '../context/AuthContext';
 import { Bar, BarMember, User, UserRole } from '../types';
+import { auditLogger } from '../services/AuditLogger';
 
 interface BarContextType {
   // Bars
@@ -170,16 +171,58 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     setBarMembers(prev => [...prev, ownerMember]);
 
+    // Log création bar
+    auditLogger.log({
+      event: 'BAR_CREATED',
+      severity: 'info',
+      userId: currentSession.userId,
+      userName: currentSession.userName,
+      userRole: currentSession.role,
+      barId: newBar.id,
+      barName: newBar.name,
+      description: `Création bar: ${newBar.name}`,
+      metadata: {
+        barAddress: newBar.address,
+        barPhone: newBar.phone,
+        ownerId: ownerId,
+        createdByRole: currentSession.role,
+      },
+      relatedEntityId: newBar.id,
+      relatedEntityType: 'bar',
+    });
+
     return newBar;
   }, [currentSession, hasPermission, setBars, setBarMembers]);
 
   const updateBar = useCallback((barId: string, updates: Partial<Bar>) => {
     if (!currentSession || !hasPermission('canManageBarInfo')) return;
 
+    const oldBar = bars.find(b => b.id === barId);
+
     setBars(prev => prev.map(bar =>
       bar.id === barId ? { ...bar, ...updates } : bar
     ));
-  }, [currentSession, hasPermission, setBars]);
+
+    // Log mise à jour bar
+    if (oldBar) {
+      auditLogger.log({
+        event: 'BAR_UPDATED',
+        severity: 'info',
+        userId: currentSession.userId,
+        userName: currentSession.userName,
+        userRole: currentSession.role,
+        barId: barId,
+        barName: oldBar.name,
+        description: `Mise à jour bar: ${oldBar.name}`,
+        metadata: {
+          updates: updates,
+          oldValues: { name: oldBar.name, address: oldBar.address, phone: oldBar.phone },
+        },
+        relatedEntityId: barId,
+        relatedEntityType: 'bar',
+      });
+    }
+  }, [currentSession, hasPermission, bars, setBars]);
 
   const switchBar = useCallback((barId: string) => {
     if (!canAccessBar(barId)) return;
