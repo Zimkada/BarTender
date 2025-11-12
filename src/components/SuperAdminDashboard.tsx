@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
+import { useAppContext } from '../context/AppContext';
 import { useDataStore } from '../hooks/useDataStore';
 import { Bar, User, Sale, Return } from '../types';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
@@ -54,6 +55,7 @@ const initialFormData: CreatePromoteurForm = {
 export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashboardProps) {
   const { bars, createBar, updateBar, barMembers, getBarMembers } = useBarContext();
   const { users, createUser, impersonate } = useAuth();
+  const { initializeBarData } = useAppContext();
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState<CreatePromoteurForm>(initialFormData);
@@ -366,7 +368,11 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
         return;
       }
 
-      // 3. Succès
+      // 3. Initialiser les données du bar (catégories et produits par défaut)
+      console.log(`[SuperAdminDashboard] Initializing data for new bar: ${newBar.id}`);
+      initializeBarData(newBar.id);
+
+      // 4. Succès
       alert(`✅ Promoteur créé avec succès!\n\nBar: ${formData.barName}\n\nCredentials:\nUsername: ${username}\nMot de passe: ${formData.password}\nBar: ${formData.barName}\n\n(Envoyez ces informations au promoteur)`);
 
       setFormData(initialFormData);
