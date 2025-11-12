@@ -8,6 +8,7 @@ interface StockContextType {
   // Products
   products: Product[];
   addProduct: (product: Omit<Product, 'id' | 'createdAt'>) => Product;
+  addProducts: (products: Omit<Product, 'id' | 'createdAt'>[]) => Product[]; // Batch import
   updateProduct: (id: string, updates: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
 
@@ -51,6 +52,7 @@ export const StockProvider: React.FC<StockProviderProps> = ({ children }) => {
     // Expose toutes les méthodes de useStockManagement
     products: stockManagement.products,
     addProduct: stockManagement.addProduct,
+    addProducts: stockManagement.addProducts, // Batch import
     updateProduct: stockManagement.updateProduct,
     deleteProduct: stockManagement.deleteProduct,
 

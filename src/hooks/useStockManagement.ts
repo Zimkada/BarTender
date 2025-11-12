@@ -282,6 +282,19 @@ export const useStockManagement = () => {
 
   // ===== QUERIES ET DONNÉES DÉRIVÉES =====
 
+  // ✅ Filtrer les produits par bar actuel (isolation multi-tenant)
+  const barProducts = useMemo(() => {
+    if (!currentBar) return [];
+    return products.filter(p => p.barId === currentBar.id);
+  }, [products, currentBar]);
+
+  // ✅ Filtrer les supplies par bar actuel
+  const barSupplies = useMemo(() => {
+    if (!currentBar) return [];
+    return supplies.filter(s => s.barId === currentBar.id);
+  }, [supplies, currentBar]);
+
+  // ✅ Filtrer les consignations par bar actuel
   const barConsignments = useMemo(() => {
     if (!currentBar) return [];
     return consignments.filter(c => c.barId === currentBar.id);
@@ -294,7 +307,8 @@ export const useStockManagement = () => {
   }, [barConsignments]);
 
   const getProductStockInfo = useCallback((productId: string): ProductStockInfo | null => {
-    const product = products.find(p => p.id === productId);
+    // ✅ Utiliser barProducts (filtré) au lieu de products (global)
+    const product = barProducts.find(p => p.id === productId);
     if (!product) return null;
 
     const physicalStock = product.stock;
@@ -307,7 +321,7 @@ export const useStockManagement = () => {
       consignedStock,
       availableStock,
     };
-  }, [products, getConsignedStockByProduct]);
+  }, [barProducts, getConsignedStockByProduct]);
 
 
   // ===== SALE VALIDATION =====
@@ -350,12 +364,37 @@ export const useStockManagement = () => {
   }, [getProductStockInfo, decreasePhysicalStock]);
 
 
+  // ===== SUPPLY QUERIES =====
+
+  /**
+   * Calcule le coût moyen par unité pour un produit
+   * Basé sur les approvisionnements effectués
+   */
+  const getAverageCostPerUnit = useCallback((productId: string): number => {
+    // ✅ Utiliser barSupplies (filtré) au lieu de supplies (global)
+    const productSupplies = barSupplies.filter(s => s.productId === productId);
+
+    if (productSupplies.length === 0) return 0;
+
+    const totalCost = productSupplies.reduce((sum, s) => sum + s.totalCost, 0);
+    const totalQuantity = productSupplies.reduce((sum, s) => sum + s.quantity, 0);
+
+    return totalQuantity > 0 ? totalCost / totalQuantity : 0;
+  }, [barSupplies]);
+
+  /**
+   * Récupère toutes les consignations actives du bar
+   */
+  const getActiveConsignments = useCallback((): Consignment[] => {
+    return barConsignments.filter(c => c.status === 'active');
+  }, [barConsignments]);
+
   // ===== EXPORTATIONS DU HOOK =====
   return {
-    // State
-    products,
+    // State (✅ Filtrés par bar actuel)
+    products: barProducts,
     consignments: barConsignments,
-    supplies,
+    supplies: barSupplies,
 
     // Product Actions
     addProduct,
@@ -382,5 +421,7 @@ export const useStockManagement = () => {
     // Queries
     getProductStockInfo,
     getConsignedStockByProduct,
+    getAverageCostPerUnit,
+    getActiveConsignments,
   };
 };

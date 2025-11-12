@@ -159,23 +159,35 @@ export function Header({
             </div>
           </div>
 
-          {/* Ligne 2: Ventes du jour (info principale) */}
-          <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-white/80 text-xs font-medium">Ventes du jour</p>
-                <p className="text-white text-lg font-bold tracking-tight">
-                  {formatPrice(todayTotal)}
-                </p>
-              </div>
+          {/* Ligne 2: Ventes du jour (info principale) - Masqué pour super admin */}
+          {currentSession?.role !== 'super_admin' && (
+            <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <p className="text-white/80 text-xs font-medium">Ventes du jour</p>
+                  <p className="text-white text-lg font-bold tracking-tight">
+                    {formatPrice(todayTotal)}
+                  </p>
+                </div>
 
-              {/* Badge rôle */}
-              <div className="flex items-center gap-1 bg-white/20 rounded-full px-3 py-1">
-                {getRoleIcon()}
-                <span className="text-white text-xs font-medium">{getRoleLabel()}</span>
+                {/* Badge rôle */}
+                <div className="flex items-center gap-1 bg-white/20 rounded-full px-3 py-1">
+                  {getRoleIcon()}
+                  <span className="text-white text-xs font-medium">{getRoleLabel()}</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Badge rôle pour super admin (standalone) */}
+          {currentSession?.role === 'super_admin' && (
+            <div className="flex items-center justify-center">
+              <div className="flex items-center gap-2 bg-white/20 rounded-full px-4 py-2">
+                {getRoleIcon()}
+                <span className="text-white text-sm font-bold">{getRoleLabel()}</span>
+              </div>
+            </div>
+          )}
 
           {/* Ligne 3: Nom utilisateur (si espace) */}
           {currentSession?.userName && (
@@ -249,11 +261,13 @@ export function Header({
 
           {/* Droite: Stats + User + Déconnexion */}
           <div className="flex items-center gap-6">
-            {/* Ventes du jour */}
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-              <p className="text-white/80 text-sm">Ventes du jour</p>
-              <p className="text-white text-2xl font-bold">{formatPrice(todayTotal)}</p>
-            </div>
+            {/* Ventes du jour - Masqué pour super admin */}
+            {currentSession?.role !== 'super_admin' && (
+              <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
+                <p className="text-white/80 text-sm">Ventes du jour</p>
+                <p className="text-white text-2xl font-bold">{formatPrice(todayTotal)}</p>
+              </div>
+            )}
 
             {/* User info */}
             <div className="text-right">

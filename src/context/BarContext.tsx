@@ -73,42 +73,10 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [currentBar, setCurrentBar] = useState<Bar | null>(null);
   const [userBars, setUserBars] = useState<Bar[]>([]);
 
-  // Mise à jour du bar actuel
-  useEffect(() => {
-    if (currentBarId) {
-      const bar = bars.find(b => b.id === currentBarId);
-      setCurrentBar(bar || null);
-    } else if (currentSession) {
-      // 🔧 FIX: Prioriser le barId de la session (important pour impersonation)
-      if (currentSession.barId && currentSession.barId !== 'admin_global') {
-        const sessionBar = bars.find(b => b.id === currentSession.barId);
-        if (sessionBar) {
-          setCurrentBar(sessionBar);
-          setCurrentBarId(sessionBar.id);
-          return;
-        }
-      }
-
-      // Sinon, prendre le premier bar accessible
-      const accessibleBars = getUserBars();
-      if (accessibleBars.length > 0) {
-        setCurrentBar(accessibleBars[0]);
-        setCurrentBarId(accessibleBars[0].id);
-      }
-    }
-  }, [currentBarId, bars, currentSession]);
-
-  // Mise à jour des bars de l'utilisateur
-  useEffect(() => {
-    if (currentSession) {
-      setUserBars(getUserBars());
-    }
-  }, [currentSession, bars, barMembers]);
-
-  // Helpers privés
+  // Helper pour obtenir les bars accessibles (défini AVANT les useEffect qui l'utilisent)
   const getUserBars = useCallback(() => {
     if (!currentSession) return [];
-    
+
     if (currentSession.role === 'promoteur') {
       // Le promoteur voit tous ses bars
       return bars.filter(bar => bar.ownerId === currentSession.userId);
@@ -117,11 +85,61 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const userMemberships = barMembers.filter(
         m => m.userId === currentSession.userId && m.isActive
       );
-      return bars.filter(bar => 
+      return bars.filter(bar =>
         userMemberships.some(m => m.barId === bar.id)
       );
     }
   }, [bars, barMembers, currentSession]);
+
+  // Mise à jour du bar actuel
+  useEffect(() => {
+    if (!currentSession) {
+      // 🔧 FIX: Reset bar quand pas de session (déconnexion)
+      setCurrentBar(null);
+      setCurrentBarId(null);
+      return;
+    }
+
+    // 🔧 FIX: Toujours prioriser le barId de la session (important pour impersonation et multi-promoteurs)
+    if (currentSession.barId && currentSession.barId !== 'admin_global') {
+      const sessionBar = bars.find(b => b.id === currentSession.barId);
+      if (sessionBar) {
+        setCurrentBar(sessionBar);
+        setCurrentBarId(sessionBar.id);
+        return;
+      }
+    }
+
+    // Si currentBarId est défini manuellement (via switchBar), l'utiliser
+    if (currentBarId) {
+      const bar = bars.find(b => b.id === currentBarId);
+      if (bar) {
+        // Vérifier que l'utilisateur a accès à ce bar
+        const accessibleBars = getUserBars();
+        if (accessibleBars.some(b => b.id === currentBarId)) {
+          setCurrentBar(bar);
+          return;
+        }
+      }
+    }
+
+    // Sinon, prendre le premier bar accessible
+    const accessibleBars = getUserBars();
+    if (accessibleBars.length > 0) {
+      setCurrentBar(accessibleBars[0]);
+      setCurrentBarId(accessibleBars[0].id);
+    } else {
+      setCurrentBar(null);
+      setCurrentBarId(null);
+    }
+  }, [currentBarId, bars, currentSession, getUserBars]);
+
+  // Mise à jour des bars de l'utilisateur
+  useEffect(() => {
+    if (currentSession) {
+      setUserBars(getUserBars());
+    }
+  }, [currentSession, bars, barMembers, getUserBars]);
 
   // Gestion des bars
   const createBar = useCallback((barData: Omit<Bar, 'id' | 'createdAt' | 'ownerId'> & { ownerId?: string }) => {

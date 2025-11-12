@@ -21,18 +21,12 @@ import {
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
 import type { MutationType } from '../types/sync';
 
-// Données par défaut pour un nouveau bar
+// Données par défaut pour un nouveau bar - Catégories uniquement (SINGULIER)
 const getDefaultCategories = (barId: string): Category[] => [
-  { id: `${barId}_cat_1`, barId, name: 'Bières', color: '#f59e0b', createdAt: new Date() },
-  { id: `${barId}_cat_2`, barId, name: 'Sucreries', color: '#ef4444', createdAt: new Date() },
-  { id: `${barId}_cat_3`, barId, name: 'Liqueurs', color: '#8b5cf6', createdAt: new Date() },
-  { id: `${barId}_cat_4`, barId, name: 'Vins', color: '#dc2626', createdAt: new Date() },
-];
-
-const getDefaultProducts = (barId: string): Product[] => [
-  { id: `${barId}_prod_1`, barId, name: 'Beaufort', volume: '33cl', price: 500, stock: 24, categoryId: `${barId}_cat_1`, alertThreshold: 10, createdAt: new Date() },
-  { id: `${barId}_prod_2`, barId, name: 'Beaufort', volume: '50cl', price: 650, stock: 12, categoryId: `${barId}_cat_1`, alertThreshold: 8, createdAt: new Date() },
-  { id: `${barId}_prod_3`, barId, name: 'Coca Cola', volume: '33cl', price: 300, stock: 48, categoryId: `${barId}_cat_2`, alertThreshold: 15, createdAt: new Date() },
+  { id: `${barId}_cat_1`, barId, name: 'Bière', color: '#f59e0b', createdAt: new Date() },
+  { id: `${barId}_cat_2`, barId, name: 'Sucrerie', color: '#ef4444', createdAt: new Date() },
+  { id: `${barId}_cat_3`, barId, name: 'Liqueur', color: '#8b5cf6', createdAt: new Date() },
+  { id: `${barId}_cat_4`, barId, name: 'Vin', color: '#dc2626', createdAt: new Date() },
 ];
 
 const defaultSettings: AppSettings = {
@@ -136,23 +130,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const expenses = allExpenses.filter(e => e.barId === currentBar?.id);
   const customExpenseCategories = allCustomExpenseCategories.filter(c => c.barId === currentBar?.id);
 
-  const { addProduct: addProductToStock } = useStock();
-
   const initializeBarData = useCallback((barId: string) => {
     const existingCategories = allCategories.some(c => c.barId === barId);
     if (!existingCategories) {
       const defaultCategories = getDefaultCategories(barId);
-      const defaultProducts = getDefaultProducts(barId);
 
-      // Ajouter catégories
+      // ✅ Ajouter uniquement les catégories (pas de produits par défaut)
+      // Le promoteur ajoutera ses propres produits via l'interface ou import Excel
       setAllCategories(prev => [...prev, ...defaultCategories]);
 
-      // Ajouter produits via StockContext (source unique)
-      defaultProducts.forEach(product => {
-        addProductToStock(product);
-      });
+      console.log(`✅ Bar ${barId}: 4 catégories créées (${defaultCategories.map(c => c.name).join(', ')})`);
     }
-  }, [allCategories, setAllCategories, addProductToStock]);
+  }, [allCategories, setAllCategories]);
 
   // ⚠️ FONCTION LEGACY - Préférer addCategories pour créations multiples (évite race condition)
   const addCategory = useCallback((category: Omit<Category, 'id' | 'createdAt' | 'barId'>) => {
