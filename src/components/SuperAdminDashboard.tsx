@@ -19,6 +19,8 @@ import {
   Filter,
   FileText,
   Key, // For password reset
+  RefreshCw, // For generate password
+  Copy, // For copy credentials
 } from 'lucide-react';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
@@ -301,6 +303,48 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
       totalSalesToday,
     };
   }, [bars, users, barMembers]);
+
+  // Générer mot de passe sécurisé
+  const generateSecurePassword = () => {
+    const length = 12;
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*';
+    let password = '';
+
+    // Garantir au moins 1 majuscule, 1 minuscule, 1 chiffre, 1 caractère spécial
+    password += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)];
+    password += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)];
+    password += '0123456789'[Math.floor(Math.random() * 10)];
+    password += '!@#$%&*'[Math.floor(Math.random() * 7)];
+
+    // Compléter le reste
+    for (let i = password.length; i < length; i++) {
+      password += charset[Math.floor(Math.random() * charset.length)];
+    }
+
+    // Mélanger
+    password = password.split('').sort(() => Math.random() - 0.5).join('');
+
+    setFormData({ ...formData, password });
+  };
+
+  // Copier credentials dans presse-papier
+  const copyCredentials = () => {
+    const username = formData.email.split('@')[0];
+    const credentials = `Bar: ${formData.barName}\nNom: ${formData.firstName} ${formData.lastName}\nEmail: ${formData.email}\nTéléphone: ${formData.phone}\n\nCREDENTIALS:\nUsername: ${username}\nMot de passe: ${formData.password}`;
+
+    navigator.clipboard.writeText(credentials).then(() => {
+      alert('✅ Credentials copiés dans le presse-papier!');
+    }).catch(() => {
+      // Fallback pour navigateurs anciens
+      const textarea = document.createElement('textarea');
+      textarea.value = credentials;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      alert('✅ Credentials copiés!');
+    });
+  };
 
   // Validation formulaire
   const validateForm = (): boolean => {
@@ -600,23 +644,36 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Mot de passe *
                         </label>
-                        <div className="relative">
-                          <input
-                            type={showPassword ? 'text' : 'password'}
-                            value={formData.password}
-                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                            className={`w-full px-4 py-2 border rounded-lg pr-10 ${formErrors.password ? 'border-red-500' : 'border-gray-300'}`}
-                            placeholder="Minimum 6 caractères"
-                          />
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <input
+                              type={showPassword ? 'text' : 'password'}
+                              value={formData.password}
+                              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                              className={`w-full px-4 py-2 border rounded-lg pr-10 ${formErrors.password ? 'border-red-500' : 'border-gray-300'}`}
+                              placeholder="Minimum 6 caractères"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700"
+                            >
+                              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            </button>
+                          </div>
                           <button
                             type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700"
+                            onClick={generateSecurePassword}
+                            className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                            title="Générer un mot de passe sécurisé"
                           >
-                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            <RefreshCw className="w-4 h-4" />
                           </button>
                         </div>
                         {formErrors.password && <p className="text-red-500 text-xs mt-1">{formErrors.password}</p>}
+                        <p className="text-xs text-gray-500 mt-1">
+                          💡 Cliquez sur <RefreshCw className="w-3 h-3 inline" /> pour générer un mot de passe sécurisé
+                        </p>
                       </div>
                     </div>
 
@@ -676,12 +733,22 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
                     </div>
                   </div>
 
-                  <div className="flex gap-3 mt-6">
+                  <div className="flex flex-col sm:flex-row gap-3 mt-6">
                     <button
                       onClick={handleCreatePromoteur}
                       className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-shadow"
                     >
                       Créer le Promoteur
+                    </button>
+                    <button
+                      type="button"
+                      onClick={copyCredentials}
+                      disabled={!formData.email || !formData.password}
+                      className="px-6 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      title="Copier les credentials dans le presse-papier"
+                    >
+                      <Copy className="w-4 h-4" />
+                      Copier
                     </button>
                     <button
                       onClick={() => {

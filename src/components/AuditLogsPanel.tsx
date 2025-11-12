@@ -29,6 +29,10 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const logsPerPage = 50;
 
+  // Date range filters
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
   // Récupérer tous les logs
   const allLogs = useMemo(() => auditLogger.getAllLogs(), []);
 
@@ -57,8 +61,21 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
       logs = logs.filter(log => log.event === eventFilter);
     }
 
+    // Filtre date range
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      logs = logs.filter(log => new Date(log.timestamp) >= start);
+    }
+
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      logs = logs.filter(log => new Date(log.timestamp) <= end);
+    }
+
     return logs;
-  }, [allLogs, searchQuery, severityFilter, eventFilter]);
+  }, [allLogs, searchQuery, severityFilter, eventFilter, startDate, endDate]);
 
   // Pagination
   const totalPages = Math.ceil(filteredLogs.length / logsPerPage);
@@ -70,14 +87,48 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
   // Stats
   const stats = useMemo(() => auditLogger.getStats(), []);
 
-  // Export logs
-  const handleExport = () => {
+  // Export logs JSON
+  const handleExportJSON = () => {
     const exported = auditLogger.exportLogs();
     const blob = new Blob([exported], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Export logs CSV (filtered)
+  const handleExportCSV = () => {
+    // CSV headers
+    const headers = ['Date/Heure', 'Event', 'Sévérité', 'Description', 'Utilisateur', 'Rôle', 'Bar', 'IP', 'User Agent'];
+
+    // Convert filtered logs to CSV rows
+    const rows = filteredLogs.map(log => [
+      formatDate(log.timestamp),
+      log.event,
+      log.severity,
+      `"${log.description.replace(/"/g, '""')}"`, // Escape quotes
+      `"${log.userName.replace(/"/g, '""')}"`,
+      log.userRole,
+      log.barName ? `"${log.barName.replace(/"/g, '""')}"` : '',
+      log.metadata?.ipAddress || '',
+      log.metadata?.userAgent ? `"${log.metadata.userAgent.replace(/"/g, '""')}"` : ''
+    ]);
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    // Create and download CSV
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' }); // BOM for Excel UTF-8
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `audit-logs-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -177,7 +228,8 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
 
         {/* Filtres */}
         <div className="p-4 bg-gray-50 border-b">
-          <div className="flex gap-3 flex-wrap">
+          {/* Ligne 1: Recherche + Filtres */}
+          <div className="flex gap-3 flex-wrap mb-3">
             {/* Search */}
             <div className="flex-1 min-w-[300px]">
               <div className="relative">
@@ -217,11 +269,63 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
                 </option>
               ))}
             </select>
+          </div>
 
-            {/* Export */}
+          {/* Ligne 2: Date Range + Export Buttons */}
+          <div className="flex gap-3 flex-wrap items-center">
+            {/* Start Date */}
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-gray-400" />
+              <input
+                type="date"
+                value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                placeholder="Date début"
+              />
+            </div>
+
+            {/* End Date */}
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500 text-sm">au</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={e => setEndDate(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                placeholder="Date fin"
+              />
+            </div>
+
+            {/* Clear dates */}
+            {(startDate || endDate) && (
+              <button
+                onClick={() => {
+                  setStartDate('');
+                  setEndDate('');
+                }}
+                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 underline"
+              >
+                Réinitialiser dates
+              </button>
+            )}
+
+            <div className="flex-1"></div>
+
+            {/* Export Buttons */}
             <button
-              onClick={handleExport}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+              onClick={handleExportCSV}
+              disabled={filteredLogs.length === 0}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Exporter les logs filtrés en CSV"
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </button>
+            <button
+              onClick={handleExportJSON}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+              title="Exporter tous les logs en JSON"
             >
               <Download className="w-4 h-4" />
               Export JSON
