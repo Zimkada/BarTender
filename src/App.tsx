@@ -37,6 +37,7 @@ const Accounting = lazy(() => import('./components/Accounting').then(m => ({ def
 const ConsignmentSystem = lazy(() => import('./components/ConsignmentSystem').then(m => ({ default: m.ConsignmentSystem })));
 const SuperAdminDashboard = lazy(() => import('./components/SuperAdminDashboard').then(m => ({ default: m.default })));
 const AdminNotificationsPanel = lazy(() => import('./components/AdminNotificationsPanel').then(m => ({ default: m.default })));
+const AuditLogsPanel = lazy(() => import('./components/AuditLogsPanel').then(m => ({ default: m.AuditLogsPanel })));
 
 
 
@@ -88,6 +89,7 @@ function AppContent() {
   const [showConsignment, setShowConsignment] = useState(false);
   const [showAdminDashboard, setShowAdminDashboard] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false); // A.5: Notifications panel
+  const [showAuditLogs, setShowAuditLogs] = useState(false); // Audit logs panel
 
   useEffect(() => {
     if (categories.length > 0 && !activeCategory) {
@@ -358,12 +360,25 @@ function AppContent() {
           </Suspense>
         </RoleBasedComponent>
 
+        {/* Audit Logs Panel */}
+        <RoleBasedComponent requiredPermission="canAccessAdminDashboard">
+          <Suspense fallback={<LoadingFallback />}>
+            <AuditLogsPanel
+              isOpen={showAuditLogs}
+              onClose={() => setShowAuditLogs(false)}
+            />
+          </Suspense>
+        </RoleBasedComponent>
+
         {/* Mobile Sidebar */}
         <MobileSidebar
           isOpen={showMobileSidebar}
           onClose={() => setShowMobileSidebar(false)}
           currentMenu={currentMenu}
           onMenuChange={setCurrentMenu}
+          onShowAdminDashboard={() => setShowAdminDashboard(true)}
+          onShowNotifications={() => setShowNotifications(true)}
+          onShowAuditLogs={() => setShowAuditLogs(true)}
         />
       </motion.div>
     );
@@ -586,6 +601,9 @@ function AppContent() {
         onClose={() => setShowMobileSidebar(false)}
         onNavigate={handleMobileNavigation}
         currentMenu={currentMenu}
+        onShowAdminDashboard={() => setShowAdminDashboard(true)}
+        onShowNotifications={() => setShowNotifications(true)}
+        onShowAuditLogs={() => setShowAuditLogs(true)}
       />
 
       {/* Mobile Navigation */}

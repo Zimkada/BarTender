@@ -231,6 +231,12 @@ export function Header({
             </div>
           </motion.div>
         )}
+
+        {/* ProfileSettings Modal */}
+        <ProfileSettings
+          isOpen={showProfileSettings}
+          onClose={() => setShowProfileSettings(false)}
+        />
       </header>
     );
   }
