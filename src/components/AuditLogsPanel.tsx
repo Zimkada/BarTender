@@ -33,6 +33,9 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
+  // Mobile advanced filters toggle
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
   // Récupérer tous les logs
   const allLogs = useMemo(() => auditLogger.getAllLogs(), []);
 
@@ -271,28 +274,44 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
             </select>
           </div>
 
-          {/* Ligne 2: Date Range + Export Buttons - Masqué sur mobile */}
-          <div className="hidden md:flex gap-3 flex-wrap items-center">
+          {/* Bouton Filtres avancés (mobile uniquement) */}
+          <button
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            className="md:hidden w-full flex items-center justify-between px-3 py-2 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-medium"
+          >
+            <span className="flex items-center gap-2">
+              <Filter className="w-4 h-4" />
+              Filtres avancés & Export
+            </span>
+            {showAdvancedFilters ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+          </button>
+
+          {/* Ligne 2: Date Range + Export Buttons - Toujours visible sur desktop, collapsible sur mobile */}
+          <div className={`${showAdvancedFilters ? 'flex' : 'hidden'} md:flex gap-3 flex-wrap items-center mt-2 md:mt-0`}>
             {/* Start Date */}
-            <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-gray-400" />
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <Calendar className="w-4 md:w-5 h-4 md:h-5 text-gray-400" />
               <input
                 type="date"
                 value={startDate}
                 onChange={e => setStartDate(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                className="flex-1 md:flex-none px-2 md:px-3 py-1.5 md:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
                 placeholder="Date début"
               />
             </div>
 
             {/* End Date */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full md:w-auto">
               <span className="text-gray-500 text-sm">au</span>
               <input
                 type="date"
                 value={endDate}
                 onChange={e => setEndDate(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
+                className="flex-1 md:flex-none px-2 md:px-3 py-1.5 md:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm"
                 placeholder="Date fin"
               />
             </div>
@@ -304,31 +323,31 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
                   setStartDate('');
                   setEndDate('');
                 }}
-                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 underline"
+                className="px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm text-gray-600 hover:text-gray-800 underline w-full md:w-auto"
               >
-                Réinitialiser dates
+                Réinitialiser
               </button>
             )}
 
-            <div className="flex-1"></div>
+            <div className="hidden md:block flex-1"></div>
 
             {/* Export Buttons */}
             <button
               onClick={handleExportCSV}
               disabled={filteredLogs.length === 0}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 md:flex-none px-3 md:px-4 py-1.5 md:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               title="Exporter les logs filtrés en CSV"
             >
               <Download className="w-4 h-4" />
-              Export CSV
+              <span className="hidden sm:inline">Export</span> CSV
             </button>
             <button
               onClick={handleExportJSON}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+              className="flex-1 md:flex-none px-3 md:px-4 py-1.5 md:py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 text-sm"
               title="Exporter tous les logs en JSON"
             >
               <Download className="w-4 h-4" />
-              Export JSON
+              <span className="hidden sm:inline">Export</span> JSON
             </button>
           </div>
 
