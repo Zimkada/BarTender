@@ -358,18 +358,6 @@ function AppContent() {
           </Suspense>
         </RoleBasedComponent>
 
-        {/* Settings Modal (pour ProfileSettings via Header) */}
-        <Suspense fallback={<LoadingFallback />}>
-          <AnimatePresence>
-            {showSettings && (
-              <Settings
-                isOpen={showSettings}
-                onClose={() => setShowSettings(false)}
-              />
-            )}
-          </AnimatePresence>
-        </Suspense>
-
         {/* Mobile Sidebar */}
         <MobileSidebar
           isOpen={showMobileSidebar}
