@@ -25,6 +25,7 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [severityFilter, setSeverityFilter] = useState<AuditLogSeverity | 'all'>('all');
   const [eventFilter, setEventFilter] = useState<AuditLogEvent | 'all'>('all');
+  const [barFilter, setBarFilter] = useState<string>('all');
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const logsPerPage = 50;
@@ -38,6 +39,17 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
 
   // Récupérer tous les logs
   const allLogs = useMemo(() => auditLogger.getAllLogs(), []);
+
+  // Extraire la liste unique des bars
+  const uniqueBars = useMemo(() => {
+    const bars = allLogs
+      .filter(log => log.barId && log.barName)
+      .map(log => ({ id: log.barId!, name: log.barName! }));
+
+    // Dédupliquer par barId
+    const uniqueMap = new Map(bars.map(bar => [bar.id, bar]));
+    return Array.from(uniqueMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [allLogs]);
 
   // Filtrer les logs
   const filteredLogs = useMemo(() => {
@@ -64,6 +76,11 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
       logs = logs.filter(log => log.event === eventFilter);
     }
 
+    // Filtre bar
+    if (barFilter !== 'all') {
+      logs = logs.filter(log => log.barId === barFilter);
+    }
+
     // Filtre date range
     if (startDate) {
       const start = new Date(startDate);
@@ -78,7 +95,7 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
     }
 
     return logs;
-  }, [allLogs, searchQuery, severityFilter, eventFilter, startDate, endDate]);
+  }, [allLogs, searchQuery, severityFilter, eventFilter, barFilter, startDate, endDate]);
 
   // Pagination
   const totalPages = Math.ceil(filteredLogs.length / logsPerPage);
@@ -290,8 +307,24 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
             )}
           </button>
 
-          {/* Ligne 2: Date Range + Export Buttons - Toujours visible sur desktop, collapsible sur mobile */}
+          {/* Ligne 2: Date Range + Bar Filter + Export Buttons - Toujours visible sur desktop, collapsible sur mobile */}
           <div className={`${showAdvancedFilters ? 'flex' : 'hidden'} md:flex gap-3 flex-wrap items-center mt-2 md:mt-0`}>
+            {/* Bar Filter */}
+            {uniqueBars.length > 0 && (
+              <select
+                value={barFilter}
+                onChange={e => setBarFilter(e.target.value)}
+                className="px-2 md:px-3 py-1.5 md:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm w-full md:w-auto"
+              >
+                <option value="all">Tous les bars ({uniqueBars.length})</option>
+                {uniqueBars.map(bar => (
+                  <option key={bar.id} value={bar.id}>
+                    {bar.name}
+                  </option>
+                ))}
+              </select>
+            )}
+
             {/* Start Date */}
             <div className="flex items-center gap-2 w-full md:w-auto">
               <Calendar className="w-4 md:w-5 h-4 md:h-5 text-gray-400" />
@@ -316,12 +349,13 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
               />
             </div>
 
-            {/* Clear dates */}
-            {(startDate || endDate) && (
+            {/* Clear filters */}
+            {(startDate || endDate || barFilter !== 'all') && (
               <button
                 onClick={() => {
                   setStartDate('');
                   setEndDate('');
+                  setBarFilter('all');
                 }}
                 className="px-2 md:px-3 py-1.5 md:py-2 text-xs md:text-sm text-gray-600 hover:text-gray-800 underline w-full md:w-auto"
               >
