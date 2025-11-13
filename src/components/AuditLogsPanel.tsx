@@ -189,11 +189,11 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
         className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl h-[90vh] overflow-hidden flex flex-col"
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-3 md:p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold">Audit Logs</h2>
-              <p className="text-indigo-100 text-sm mt-1">
+              <h2 className="text-lg md:text-2xl font-bold">Audit Logs</h2>
+              <p className="text-indigo-100 text-xs md:text-sm mt-0.5 md:mt-1 hidden md:block">
                 Historique complet des actions système
               </p>
             </div>
@@ -205,41 +205,41 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
             </button>
           </div>
 
-          {/* Stats rapides */}
-          <div className="grid grid-cols-4 gap-3 mt-4">
-            <div className="bg-white/10 rounded-lg p-3">
-              <p className="text-indigo-100 text-xs">Total Logs</p>
-              <p className="text-2xl font-bold">{stats.totalLogs}</p>
+          {/* Stats rapides - Compactes sur mobile */}
+          <div className="grid grid-cols-4 gap-2 md:gap-3 mt-2 md:mt-4">
+            <div className="bg-white/10 rounded-lg p-2 md:p-3">
+              <p className="text-indigo-100 text-[10px] md:text-xs">Total</p>
+              <p className="text-base md:text-2xl font-bold">{stats.totalLogs}</p>
             </div>
-            <div className="bg-red-500/20 rounded-lg p-3">
-              <p className="text-red-100 text-xs">Critiques</p>
-              <p className="text-2xl font-bold">{stats.criticalCount}</p>
+            <div className="bg-red-500/20 rounded-lg p-2 md:p-3">
+              <p className="text-red-100 text-[10px] md:text-xs">Critiques</p>
+              <p className="text-base md:text-2xl font-bold">{stats.criticalCount}</p>
             </div>
-            <div className="bg-orange-500/20 rounded-lg p-3">
-              <p className="text-orange-100 text-xs">Warnings</p>
-              <p className="text-2xl font-bold">{stats.warningCount}</p>
+            <div className="bg-orange-500/20 rounded-lg p-2 md:p-3">
+              <p className="text-orange-100 text-[10px] md:text-xs">Warnings</p>
+              <p className="text-base md:text-2xl font-bold">{stats.warningCount}</p>
             </div>
-            <div className="bg-blue-500/20 rounded-lg p-3">
-              <p className="text-blue-100 text-xs">Info</p>
-              <p className="text-2xl font-bold">{stats.infoCount}</p>
+            <div className="bg-blue-500/20 rounded-lg p-2 md:p-3">
+              <p className="text-blue-100 text-[10px] md:text-xs">Info</p>
+              <p className="text-base md:text-2xl font-bold">{stats.infoCount}</p>
             </div>
           </div>
         </div>
 
         {/* Filtres */}
-        <div className="p-4 bg-gray-50 border-b">
+        <div className="p-2 md:p-4 bg-gray-50 border-b">
           {/* Ligne 1: Recherche + Filtres */}
-          <div className="flex gap-3 flex-wrap mb-3">
+          <div className="flex gap-2 md:gap-3 flex-wrap mb-2 md:mb-3">
             {/* Search */}
-            <div className="flex-1 min-w-[300px]">
+            <div className="flex-1 min-w-[200px]">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Search className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 w-4 md:w-5 h-4 md:h-5 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Rechercher (description, utilisateur, bar)..."
+                  placeholder="Rechercher..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full pl-8 md:pl-10 pr-3 md:pr-4 py-1.5 md:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -271,8 +271,8 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
             </select>
           </div>
 
-          {/* Ligne 2: Date Range + Export Buttons */}
-          <div className="flex gap-3 flex-wrap items-center">
+          {/* Ligne 2: Date Range + Export Buttons - Masqué sur mobile */}
+          <div className="hidden md:flex gap-3 flex-wrap items-center">
             {/* Start Date */}
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-gray-400" />
@@ -333,7 +333,7 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
           </div>
 
           {/* Résultats filtrés */}
-          <div className="mt-3 text-sm text-gray-600">
+          <div className="mt-2 md:mt-3 text-xs md:text-sm text-gray-600">
             <span className="font-semibold text-indigo-700">{filteredLogs.length}</span> log
             {filteredLogs.length > 1 ? 's' : ''} affiché{filteredLogs.length > 1 ? 's' : ''}
             {filteredLogs.length !== allLogs.length && (
