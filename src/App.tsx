@@ -294,15 +294,17 @@ function AppContent() {
         transition={{ duration: 0.4 }}
       >
         <Header
-          onShowSales={() => {}}
-          onShowSettings={() => {}}
-          onShowInventory={() => {}}
-          onShowServers={() => {}}
-          onShowDailyDashboard={() => {}}
-          onShowReturns={() => {}}
-          onShowQuickSale={() => {}}
+          onShowSales={() => setShowSalesHistory(true)}
+          onShowSettings={() => setShowSettings(true)}
+          onShowInventory={() => setShowInventory(true)}
+          onShowServers={() => setShowServers(true)}
+          onShowDailyDashboard={() => setShowDailyDashboard(true)}
+          onShowReturns={() => setShowReturns(true)}
+          onShowQuickSale={() => setShowQuickSale(true)}
           onShowAdminDashboard={() => setShowAdminDashboard(true)}
-          onToggleMobileSidebar={() => {}}
+          onShowNotifications={() => setShowNotifications(true)}
+          unreadNotificationsCount={unresolvedNotifications.length}
+          onToggleMobileSidebar={() => setShowMobileSidebar(!showMobileSidebar)}
         />
 
         <div className="container mx-auto px-4 py-8">
@@ -337,6 +339,44 @@ function AppContent() {
             />
           </Suspense>
         </RoleBasedComponent>
+
+        {/* Admin Notifications Panel */}
+        <RoleBasedComponent requiredPermission="canAccessAdminDashboard">
+          <Suspense fallback={<LoadingFallback />}>
+            <AdminNotificationsPanel
+              isOpen={showNotifications}
+              onClose={() => setShowNotifications(false)}
+              notifications={unresolvedNotifications}
+              stats={notifStats}
+              onMarkAsRead={markAsRead}
+              onMarkAllAsRead={markAllAsRead}
+              onMarkAsResolved={markAsResolved}
+              onDelete={deleteNotification}
+              onClearAll={clearAll}
+              onRefresh={analyzeAllBars}
+            />
+          </Suspense>
+        </RoleBasedComponent>
+
+        {/* Settings Modal (pour ProfileSettings via Header) */}
+        <Suspense fallback={<LoadingFallback />}>
+          <AnimatePresence>
+            {showSettings && (
+              <Settings
+                isOpen={showSettings}
+                onClose={() => setShowSettings(false)}
+              />
+            )}
+          </AnimatePresence>
+        </Suspense>
+
+        {/* Mobile Sidebar */}
+        <MobileSidebar
+          isOpen={showMobileSidebar}
+          onClose={() => setShowMobileSidebar(false)}
+          currentMenu={currentMenu}
+          onMenuChange={setCurrentMenu}
+        />
       </motion.div>
     );
   }

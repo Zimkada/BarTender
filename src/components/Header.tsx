@@ -117,10 +117,10 @@ export function Header({
 
             {/* Contenu avec padding-left pour éviter chevauchement avec hamburger */}
             <div className="flex items-center gap-2 pl-12 w-full">
-              {/* Logo + Nom bar */}
+              {/* Logo + Nom bar (ou BarTender Pro pour super admin) */}
               <div className="flex items-center gap-1.5 flex-1 min-w-0">
                 <h1 className="text-sm font-bold text-white truncate">
-                  🍺 {currentBar?.name || 'BarTender'}
+                  🍺 {currentSession?.role === 'super_admin' ? 'BarTender Pro' : (currentBar?.name || 'BarTender')}
                 </h1>
               </div>
 
