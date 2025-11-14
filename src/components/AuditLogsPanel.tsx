@@ -51,6 +51,11 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
     return Array.from(uniqueMap.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [allLogs]);
 
+  // Compter les logs système (sans barId)
+  const systemLogsCount = useMemo(() => {
+    return allLogs.filter(log => !log.barId).length;
+  }, [allLogs]);
+
   // Filtrer les logs
   const filteredLogs = useMemo(() => {
     let logs = allLogs;
@@ -78,7 +83,13 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
 
     // Filtre bar
     if (barFilter !== 'all') {
-      logs = logs.filter(log => log.barId === barFilter);
+      if (barFilter === 'system') {
+        // Logs système (super admin) = logs sans barId
+        logs = logs.filter(log => !log.barId);
+      } else {
+        // Logs d'un bar spécifique
+        logs = logs.filter(log => log.barId === barFilter);
+      }
     }
 
     // Filtre date range
@@ -310,18 +321,25 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
           {/* Ligne 2: Date Range + Bar Filter + Export Buttons - Toujours visible sur desktop, collapsible sur mobile */}
           <div className={`${showAdvancedFilters ? 'flex' : 'hidden'} md:flex gap-3 flex-wrap items-center mt-2 md:mt-0`}>
             {/* Bar Filter */}
-            {uniqueBars.length > 0 && (
+            {(uniqueBars.length > 0 || systemLogsCount > 0) && (
               <select
                 value={barFilter}
                 onChange={e => setBarFilter(e.target.value)}
                 className="px-2 md:px-3 py-1.5 md:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm w-full md:w-auto"
               >
-                <option value="all">Tous les bars ({uniqueBars.length})</option>
-                {uniqueBars.map(bar => (
-                  <option key={bar.id} value={bar.id}>
-                    {bar.name}
-                  </option>
-                ))}
+                <option value="all">Tous les logs</option>
+                {systemLogsCount > 0 && (
+                  <option value="system">🔧 Logs système ({systemLogsCount})</option>
+                )}
+                {uniqueBars.length > 0 && (
+                  <optgroup label="Bars">
+                    {uniqueBars.map(bar => (
+                      <option key={bar.id} value={bar.id}>
+                        {bar.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             )}
 
