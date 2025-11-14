@@ -233,32 +233,6 @@ export function UsersManagementPanel({ isOpen, onClose }: UsersManagementPanelPr
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-4 md:p-6">
-            {/* Stats Summary */}
-            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4 mb-6 border border-purple-200">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-lg p-3 shadow-sm">
-                  <p className="text-xs md:text-sm text-gray-600">Total Utilisateurs</p>
-                  <p className="text-2xl font-bold text-purple-600">{users.length}</p>
-                </div>
-                <div className="bg-white rounded-lg p-3 shadow-sm">
-                  <p className="text-xs md:text-sm text-gray-600">Promoteurs</p>
-                  <p className="text-2xl font-bold text-blue-600">{promoteurs.length}</p>
-                </div>
-                <div className="bg-white rounded-lg p-3 shadow-sm">
-                  <p className="text-xs md:text-sm text-gray-600">Actifs</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {users.filter(u => u.isActive).length}
-                  </p>
-                </div>
-                <div className="bg-white rounded-lg p-3 shadow-sm">
-                  <p className="text-xs md:text-sm text-gray-600">Suspendus</p>
-                  <p className="text-2xl font-bold text-red-600">
-                    {users.filter(u => !u.isActive).length}
-                  </p>
-                </div>
-              </div>
-            </div>
-
             {/* Create Promoteur Button */}
             <div className="mb-4">
               <button

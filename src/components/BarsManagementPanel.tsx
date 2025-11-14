@@ -166,28 +166,6 @@ export function BarsManagementPanel({ isOpen, onClose, onShowBarStats }: BarsMan
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-4 md:p-6">
-            {/* Stats Summary */}
-            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4 mb-6 border border-purple-200">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="bg-white rounded-lg p-3 shadow-sm">
-                  <p className="text-xs md:text-sm text-gray-600">Total Bars</p>
-                  <p className="text-2xl font-bold text-purple-600">{bars.length}</p>
-                </div>
-                <div className="bg-white rounded-lg p-3 shadow-sm">
-                  <p className="text-xs md:text-sm text-gray-600">Actifs</p>
-                  <p className="text-2xl font-bold text-green-600">
-                    {bars.filter(b => b.isActive).length}
-                  </p>
-                </div>
-                <div className="bg-white rounded-lg p-3 shadow-sm">
-                  <p className="text-xs md:text-sm text-gray-600">Suspendus</p>
-                  <p className="text-2xl font-bold text-red-600">
-                    {bars.filter(b => !b.isActive).length}
-                  </p>
-                </div>
-              </div>
-            </div>
-
             {/* Search and Filters */}
             <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-200 mb-4">
               <div className="flex flex-col md:flex-row gap-3">
