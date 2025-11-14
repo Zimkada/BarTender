@@ -38,6 +38,8 @@ const ConsignmentSystem = lazy(() => import('./components/ConsignmentSystem').th
 const SuperAdminDashboard = lazy(() => import('./components/SuperAdminDashboard').then(m => ({ default: m.default })));
 const AdminNotificationsPanel = lazy(() => import('./components/AdminNotificationsPanel').then(m => ({ default: m.default })));
 const AuditLogsPanel = lazy(() => import('./components/AuditLogsPanel').then(m => ({ default: m.AuditLogsPanel })));
+const BarsManagementPanel = lazy(() => import('./components/BarsManagementPanel').then(m => ({ default: m.BarsManagementPanel })));
+const UsersManagementPanel = lazy(() => import('./components/UsersManagementPanel').then(m => ({ default: m.UsersManagementPanel })));
 
 
 
@@ -88,8 +90,10 @@ function AppContent() {
   const [showAccounting, setShowAccounting] = useState(false);
   const [showConsignment, setShowConsignment] = useState(false);
   const [showAdminDashboard, setShowAdminDashboard] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false); // A.5: Notifications panel
-  const [showAuditLogs, setShowAuditLogs] = useState(false); // Audit logs panel
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showAuditLogs, setShowAuditLogs] = useState(false);
+  const [showBarsManagement, setShowBarsManagement] = useState(false);
+  const [showUsersManagement, setShowUsersManagement] = useState(false);
 
   useEffect(() => {
     if (categories.length > 0 && !activeCategory) {
@@ -370,6 +374,30 @@ function AppContent() {
           </Suspense>
         </RoleBasedComponent>
 
+        {/* Bars Management Panel */}
+        <RoleBasedComponent requiredPermission="canAccessAdminDashboard">
+          <Suspense fallback={<LoadingFallback />}>
+            <BarsManagementPanel
+              isOpen={showBarsManagement}
+              onClose={() => setShowBarsManagement(false)}
+              onShowBarStats={(bar) => {
+                // TODO: Optionally implement bar stats modal from SuperAdminDashboard
+                console.log('Show stats for bar:', bar.name);
+              }}
+            />
+          </Suspense>
+        </RoleBasedComponent>
+
+        {/* Users Management Panel */}
+        <RoleBasedComponent requiredPermission="canAccessAdminDashboard">
+          <Suspense fallback={<LoadingFallback />}>
+            <UsersManagementPanel
+              isOpen={showUsersManagement}
+              onClose={() => setShowUsersManagement(false)}
+            />
+          </Suspense>
+        </RoleBasedComponent>
+
         {/* Mobile Sidebar */}
         <MobileSidebar
           isOpen={showMobileSidebar}
@@ -379,6 +407,8 @@ function AppContent() {
           onShowAdminDashboard={() => setShowAdminDashboard(true)}
           onShowNotifications={() => setShowNotifications(true)}
           onShowAuditLogs={() => setShowAuditLogs(true)}
+          onShowBarsManagement={() => setShowBarsManagement(true)}
+          onShowUsersManagement={() => setShowUsersManagement(true)}
         />
       </motion.div>
     );
@@ -604,6 +634,8 @@ function AppContent() {
         onShowAdminDashboard={() => setShowAdminDashboard(true)}
         onShowNotifications={() => setShowNotifications(true)}
         onShowAuditLogs={() => setShowAuditLogs(true)}
+        onShowBarsManagement={() => setShowBarsManagement(true)}
+        onShowUsersManagement={() => setShowUsersManagement(true)}
       />
 
       {/* Mobile Navigation */}

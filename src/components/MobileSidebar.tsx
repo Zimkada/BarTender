@@ -16,7 +16,9 @@ import {
   Archive,
   ShieldCheck,
   Bell,
-  FileText
+  FileText,
+  Building2,
+  UserCog,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -29,6 +31,8 @@ interface MobileSidebarProps {
   onShowAdminDashboard?: () => void;
   onShowNotifications?: () => void;
   onShowAuditLogs?: () => void;
+  onShowBarsManagement?: () => void;
+  onShowUsersManagement?: () => void;
 }
 
 interface MenuItem {
@@ -46,7 +50,9 @@ export function MobileSidebar({
   currentMenu,
   onShowAdminDashboard,
   onShowNotifications,
-  onShowAuditLogs
+  onShowAuditLogs,
+  onShowBarsManagement,
+  onShowUsersManagement
 }: MobileSidebarProps) {
   const { currentSession, logout } = useAuth();
 
@@ -86,6 +92,26 @@ export function MobileSidebar({
       roles: ['super_admin'],
       action: () => {
         onShowAuditLogs?.();
+        onClose();
+      }
+    },
+    {
+      id: 'barsManagement',
+      label: 'Gestion des Bars',
+      icon: <Building2 size={20} />,
+      roles: ['super_admin'],
+      action: () => {
+        onShowBarsManagement?.();
+        onClose();
+      }
+    },
+    {
+      id: 'usersManagement',
+      label: 'Gestion des Utilisateurs',
+      icon: <UserCog size={20} />,
+      roles: ['super_admin'],
+      action: () => {
+        onShowUsersManagement?.();
         onClose();
       }
     },
