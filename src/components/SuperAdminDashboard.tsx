@@ -5,6 +5,8 @@ import {
   Users,
   Building2,
   TrendingUp,
+  TrendingDown,
+  Minus,
   ShieldCheck,
   ShoppingCart,
   DollarSign,
@@ -55,9 +57,16 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
     const activeBars = bars.filter(b => b.isActive);
     const suspendedBars = bars.filter(b => !b.isActive);
 
-    // Calculate total CA and sales count across all bars (today)
+    // Calculate total CA and sales count across all bars (today + historical)
     let totalCAToday = 0;
     let totalSalesToday = 0;
+    let totalCAYesterday = 0;
+    let totalSalesYesterday = 0;
+    let totalCALast7Days = 0;
+    let totalSalesLast7Days = 0;
+    let totalCALast30Days = 0;
+    let totalSalesLast30Days = 0;
+
     const barsPerformance: Array<{
       barId: string;
       barName: string;
@@ -75,17 +84,57 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
         const closeHour = bar.settings?.businessDayCloseHour ?? 6;
         const currentBusinessDay = getCurrentBusinessDay(closeHour);
 
+        // Calculate yesterday's date
+        const yesterday = new Date(currentBusinessDay);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        // Calculate dates for 7 days ago and 30 days ago
+        const sevenDaysAgo = new Date(currentBusinessDay);
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        const thirtyDaysAgo = new Date(currentBusinessDay);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        // Filter sales by time period
         const salesToday = sales.filter(sale => {
           const saleDate = new Date(sale.date);
           const saleBusinessDay = getBusinessDay(saleDate, closeHour);
           return isSameDay(saleBusinessDay, currentBusinessDay);
         });
 
+        const salesYesterday = sales.filter(sale => {
+          const saleDate = new Date(sale.date);
+          const saleBusinessDay = getBusinessDay(saleDate, closeHour);
+          return isSameDay(saleBusinessDay, yesterday);
+        });
+
+        const salesLast7Days = sales.filter(sale => {
+          const saleDate = new Date(sale.date);
+          const saleBusinessDay = getBusinessDay(saleDate, closeHour);
+          return saleBusinessDay >= sevenDaysAgo && saleBusinessDay < currentBusinessDay;
+        });
+
+        const salesLast30Days = sales.filter(sale => {
+          const saleDate = new Date(sale.date);
+          const saleBusinessDay = getBusinessDay(saleDate, closeHour);
+          return saleBusinessDay >= thirtyDaysAgo && saleBusinessDay < currentBusinessDay;
+        });
+
+        // Calculate CA for each period
         const barCA = salesToday.reduce((sum, sale) => sum + sale.totalAmount, 0);
         const barSalesCount = salesToday.length;
 
         totalCAToday += barCA;
         totalSalesToday += barSalesCount;
+
+        totalCAYesterday += salesYesterday.reduce((sum, sale) => sum + sale.totalAmount, 0);
+        totalSalesYesterday += salesYesterday.length;
+
+        totalCALast7Days += salesLast7Days.reduce((sum, sale) => sum + sale.totalAmount, 0);
+        totalSalesLast7Days += salesLast7Days.length;
+
+        totalCALast30Days += salesLast30Days.reduce((sum, sale) => sum + sale.totalAmount, 0);
+        totalSalesLast30Days += salesLast30Days.length;
 
         barsPerformance.push({
           barId: bar.id,
@@ -98,6 +147,25 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
         console.error(`Error calculating stats for bar ${bar.id}:`, error);
       }
     });
+
+    // Calculate percentage changes
+    const caChangeVsYesterday = totalCAYesterday > 0
+      ? ((totalCAToday - totalCAYesterday) / totalCAYesterday * 100)
+      : (totalCAToday > 0 ? 100 : 0);
+
+    const salesChangeVsYesterday = totalSalesYesterday > 0
+      ? ((totalSalesToday - totalSalesYesterday) / totalSalesYesterday * 100)
+      : (totalSalesToday > 0 ? 100 : 0);
+
+    const avgCALast7Days = totalCALast7Days / 7;
+    const caChangeVsLast7Days = avgCALast7Days > 0
+      ? ((totalCAToday - avgCALast7Days) / avgCALast7Days * 100)
+      : (totalCAToday > 0 ? 100 : 0);
+
+    const avgSalesLast7Days = totalSalesLast7Days / 7;
+    const salesChangeVsLast7Days = avgSalesLast7Days > 0
+      ? ((totalSalesToday - avgSalesLast7Days) / avgSalesLast7Days * 100)
+      : (totalSalesToday > 0 ? 100 : 0);
 
     // Sort bars by CA and get top 10
     const topBars = barsPerformance
@@ -118,9 +186,26 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
       activeUsers,
       suspendedUsers,
 
-      // Performance
+      // Performance - Today
       totalCAToday,
       totalSalesToday,
+
+      // Performance - Historical comparisons
+      totalCAYesterday,
+      totalSalesYesterday,
+      totalCALast7Days,
+      totalSalesLast7Days,
+      totalCALast30Days,
+      totalSalesLast30Days,
+
+      // Performance - Trends
+      caChangeVsYesterday,
+      salesChangeVsYesterday,
+      caChangeVsLast7Days,
+      salesChangeVsLast7Days,
+      avgCALast7Days,
+      avgSalesLast7Days,
+
       topBars,
     };
   }, [bars, users, barMembers]);
@@ -295,25 +380,125 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
                 <h3 className="text-lg font-bold text-gray-900">Performance & Analytics</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4">
+                {/* CA Total Card */}
                 <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl p-4 md:p-6 shadow-sm border border-green-200">
                   <div className="flex items-start gap-3">
                     <DollarSign className="w-8 h-8 text-green-600 flex-shrink-0" />
-                    <div>
+                    <div className="flex-1">
                       <p className="text-gray-600 text-sm mb-1">CA Total Aujourd'hui</p>
                       <p className="text-3xl md:text-4xl font-bold text-green-600">
                         {stats.totalCAToday.toLocaleString('fr-FR')} <span className="text-xl md:text-2xl">FCFA</span>
                       </p>
+
+                      {/* Trend indicators */}
+                      <div className="mt-3 space-y-1.5">
+                        {/* vs Yesterday */}
+                        <div className="flex items-center gap-2">
+                          {Math.abs(stats.caChangeVsYesterday) < 1 ? (
+                            <Minus className="w-4 h-4 text-gray-500" />
+                          ) : stats.caChangeVsYesterday > 0 ? (
+                            <TrendingUp className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <TrendingDown className="w-4 h-4 text-red-600" />
+                          )}
+                          <span className={`text-xs font-medium ${
+                            Math.abs(stats.caChangeVsYesterday) < 1
+                              ? 'text-gray-600'
+                              : stats.caChangeVsYesterday > 0
+                                ? 'text-green-600'
+                                : 'text-red-600'
+                          }`}>
+                            {stats.caChangeVsYesterday > 0 ? '+' : ''}{stats.caChangeVsYesterday.toFixed(1)}% vs hier
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            ({stats.totalCAYesterday.toLocaleString('fr-FR')} FCFA)
+                          </span>
+                        </div>
+
+                        {/* vs Last 7 days average */}
+                        <div className="flex items-center gap-2">
+                          {Math.abs(stats.caChangeVsLast7Days) < 1 ? (
+                            <Minus className="w-4 h-4 text-gray-500" />
+                          ) : stats.caChangeVsLast7Days > 0 ? (
+                            <TrendingUp className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <TrendingDown className="w-4 h-4 text-red-600" />
+                          )}
+                          <span className={`text-xs font-medium ${
+                            Math.abs(stats.caChangeVsLast7Days) < 1
+                              ? 'text-gray-600'
+                              : stats.caChangeVsLast7Days > 0
+                                ? 'text-green-600'
+                                : 'text-red-600'
+                          }`}>
+                            {stats.caChangeVsLast7Days > 0 ? '+' : ''}{stats.caChangeVsLast7Days.toFixed(1)}% vs moy. 7j
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            ({stats.avgCALast7Days.toFixed(0)} FCFA/j)
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
 
+                {/* Ventes Count Card */}
                 <div className="bg-gradient-to-br from-orange-50 to-amber-100 rounded-xl p-4 md:p-6 shadow-sm border border-orange-200">
                   <div className="flex items-start gap-3">
                     <ShoppingCart className="w-8 h-8 text-orange-600 flex-shrink-0" />
-                    <div>
+                    <div className="flex-1">
                       <p className="text-gray-600 text-sm mb-1">Nombre de Ventes</p>
                       <p className="text-3xl md:text-4xl font-bold text-orange-600">{stats.totalSalesToday}</p>
                       <p className="text-xs text-gray-500 mt-1">Transactions effectuées</p>
+
+                      {/* Trend indicators */}
+                      <div className="mt-2 space-y-1.5">
+                        {/* vs Yesterday */}
+                        <div className="flex items-center gap-2">
+                          {Math.abs(stats.salesChangeVsYesterday) < 1 ? (
+                            <Minus className="w-4 h-4 text-gray-500" />
+                          ) : stats.salesChangeVsYesterday > 0 ? (
+                            <TrendingUp className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <TrendingDown className="w-4 h-4 text-red-600" />
+                          )}
+                          <span className={`text-xs font-medium ${
+                            Math.abs(stats.salesChangeVsYesterday) < 1
+                              ? 'text-gray-600'
+                              : stats.salesChangeVsYesterday > 0
+                                ? 'text-green-600'
+                                : 'text-red-600'
+                          }`}>
+                            {stats.salesChangeVsYesterday > 0 ? '+' : ''}{stats.salesChangeVsYesterday.toFixed(1)}% vs hier
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            ({stats.totalSalesYesterday} ventes)
+                          </span>
+                        </div>
+
+                        {/* vs Last 7 days average */}
+                        <div className="flex items-center gap-2">
+                          {Math.abs(stats.salesChangeVsLast7Days) < 1 ? (
+                            <Minus className="w-4 h-4 text-gray-500" />
+                          ) : stats.salesChangeVsLast7Days > 0 ? (
+                            <TrendingUp className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <TrendingDown className="w-4 h-4 text-red-600" />
+                          )}
+                          <span className={`text-xs font-medium ${
+                            Math.abs(stats.salesChangeVsLast7Days) < 1
+                              ? 'text-gray-600'
+                              : stats.salesChangeVsLast7Days > 0
+                                ? 'text-green-600'
+                                : 'text-red-600'
+                          }`}>
+                            {stats.salesChangeVsLast7Days > 0 ? '+' : ''}{stats.salesChangeVsLast7Days.toFixed(1)}% vs moy. 7j
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            ({stats.avgSalesLast7Days.toFixed(1)} ventes/j)
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
