@@ -381,8 +381,7 @@ function AppContent() {
               isOpen={showBarsManagement}
               onClose={() => setShowBarsManagement(false)}
               onShowBarStats={(bar) => {
-                // TODO: Optionally implement bar stats modal from SuperAdminDashboard
-                console.log('Show stats for bar:', bar.name);
+                alert(`📊 Statistiques de ${bar.name}\n\nStatus: ${bar.isActive ? '✅ Actif' : '❌ Suspendu'}\n\nPour des statistiques détaillées (CA, ventes, tendances),\nveuillez consulter le Dashboard Admin → Section Performance & Analytics`);
               }}
             />
           </Suspense>

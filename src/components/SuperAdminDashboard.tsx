@@ -162,52 +162,11 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
 
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
-            {/* 📊 Section 1: Vue d'Ensemble */}
-            <section>
-              <div className="flex items-center gap-2 mb-4">
-                <BarChart3 className="w-5 h-5 text-purple-600" />
-                <h3 className="text-lg font-bold text-gray-900">Vue d'Ensemble</h3>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-3 md:p-4 shadow-sm border border-purple-200">
-                  <div className="flex flex-col items-center text-center">
-                    <Building2 className="w-8 h-8 md:w-10 md:h-10 text-purple-600 mb-2" />
-                    <p className="text-gray-600 text-xs md:text-sm mb-1">Total Bars</p>
-                    <p className="text-2xl md:text-3xl font-bold text-purple-600">{stats.totalBars}</p>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-3 md:p-4 shadow-sm border border-green-200">
-                  <div className="flex flex-col items-center text-center">
-                    <CheckCircle className="w-8 h-8 md:w-10 md:h-10 text-green-600 mb-2" />
-                    <p className="text-gray-600 text-xs md:text-sm mb-1">Bars Actifs</p>
-                    <p className="text-2xl md:text-3xl font-bold text-green-600">{stats.activeBars}</p>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-3 md:p-4 shadow-sm border border-blue-200">
-                  <div className="flex flex-col items-center text-center">
-                    <Users className="w-8 h-8 md:w-10 md:h-10 text-blue-600 mb-2" />
-                    <p className="text-gray-600 text-xs md:text-sm mb-1">Utilisateurs</p>
-                    <p className="text-2xl md:text-3xl font-bold text-blue-600">{stats.totalUsers}</p>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-3 md:p-4 shadow-sm border border-amber-200">
-                  <div className="flex flex-col items-center text-center">
-                    <UserCheck className="w-8 h-8 md:w-10 md:h-10 text-amber-600 mb-2" />
-                    <p className="text-gray-600 text-xs md:text-sm mb-1">Utilisateurs Actifs</p>
-                    <p className="text-2xl md:text-3xl font-bold text-amber-600">{stats.activeUsers}</p>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* 🏢 Section 2: Gestion des Bars */}
+            {/* 🏢 Section 1: Statistiques des Bars */}
             <section>
               <div className="flex items-center gap-2 mb-4">
                 <Building2 className="w-5 h-5 text-purple-600" />
-                <h3 className="text-lg font-bold text-gray-900">Gestion des Bars</h3>
+                <h3 className="text-lg font-bold text-gray-900">Statistiques des Bars</h3>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                 <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 shadow-sm border border-purple-200">
@@ -251,11 +210,11 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
               )}
             </section>
 
-            {/* 👥 Section 3: Gestion des Utilisateurs */}
+            {/* 👥 Section 2: Statistiques des Utilisateurs */}
             <section>
               <div className="flex items-center gap-2 mb-4">
                 <Users className="w-5 h-5 text-blue-600" />
-                <h3 className="text-lg font-bold text-gray-900">Gestion des Utilisateurs</h3>
+                <h3 className="text-lg font-bold text-gray-900">Statistiques des Utilisateurs</h3>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                 <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 shadow-sm border border-blue-200">
@@ -329,11 +288,11 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
               )}
             </section>
 
-            {/* 💰 Section 4: Performance (Aujourd'hui) */}
+            {/* 💰 Section 3: Performance & Analytics */}
             <section>
               <div className="flex items-center gap-2 mb-4">
                 <TrendingUp className="w-5 h-5 text-green-600" />
-                <h3 className="text-lg font-bold text-gray-900">Performance du Jour</h3>
+                <h3 className="text-lg font-bold text-gray-900">Performance & Analytics</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4">
                 <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl p-4 md:p-6 shadow-sm border border-green-200">

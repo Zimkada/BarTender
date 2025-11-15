@@ -64,7 +64,7 @@ export function MobileSidebar({
   };
 
   const menuItems: MenuItem[] = [
-    // Super Admin menus
+    // Super Admin menus - Ordered by usage frequency
     {
       id: 'adminDashboard',
       label: 'Dashboard Admin',
@@ -72,26 +72,6 @@ export function MobileSidebar({
       roles: ['super_admin'],
       action: () => {
         onShowAdminDashboard?.();
-        onClose();
-      }
-    },
-    {
-      id: 'notifications',
-      label: 'Notifications',
-      icon: <Bell size={20} />,
-      roles: ['super_admin'],
-      action: () => {
-        onShowNotifications?.();
-        onClose();
-      }
-    },
-    {
-      id: 'auditLogs',
-      label: 'Audit Logs',
-      icon: <FileText size={20} />,
-      roles: ['super_admin'],
-      action: () => {
-        onShowAuditLogs?.();
         onClose();
       }
     },
@@ -112,6 +92,26 @@ export function MobileSidebar({
       roles: ['super_admin'],
       action: () => {
         onShowUsersManagement?.();
+        onClose();
+      }
+    },
+    {
+      id: 'notifications',
+      label: 'Notifications',
+      icon: <Bell size={20} />,
+      roles: ['super_admin'],
+      action: () => {
+        onShowNotifications?.();
+        onClose();
+      }
+    },
+    {
+      id: 'auditLogs',
+      label: 'Audit Logs',
+      icon: <FileText size={20} />,
+      roles: ['super_admin'],
+      action: () => {
+        onShowAuditLogs?.();
         onClose();
       }
     },
