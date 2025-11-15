@@ -6,6 +6,7 @@ import { useStockBridge } from '../context/StockBridgeProvider';
 import { useStock } from '../context/StockContext';
 import { syncQueue } from '../services/SyncQueue';
 import { useNotifications } from '../components/Notifications';
+import { NOTIFICATION_DURATION } from '../config/notifications';
 import { auditLogger } from '../services/AuditLogger';
 import {
   Category,
@@ -270,14 +271,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       relatedEntityType: 'sale',
     });
 
-    if (newSale.status === 'pending') {
-      showNotification('success', 'Demande de vente envoyée au gérant pour validation.');
-    } else if (newSale.status === 'validated') {
-      showNotification('success', 'Vente enregistrée et stock mis à jour.');
-    }
-
+    // Notifications removed for quick sale workflow - UI has its own visual feedback
     return newSale;
-  }, [setAllSales, hasPermission, currentBar, currentSession, showNotification]);
+  }, [setAllSales, hasPermission, currentBar, currentSession]);
 
   const validateSale = useCallback((saleId: string, validatorId: string) => {
     if (!hasPermission('canManageInventory')) return; // Seul un gérant peut valider
@@ -298,7 +294,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ? { ...s, status: 'validated', validatedBy: validatorId, validatedAt: new Date() }
             : s
         ));
-        showNotification('success', `Vente #${saleId.slice(-4)} validée et stock mis à jour.`);
+        showNotification('success', `Vente #${saleId.slice(-4)} validée et stock mis à jour.`, { duration: NOTIFICATION_DURATION.QUICK });
       },
       (error) => {
         // Error callback: stock insuffisant
@@ -323,7 +319,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         : s
     ));
 
-    showNotification('info', `Vente #${saleId.slice(-4)} rejetée.`);
+    showNotification('info', `Vente #${saleId.slice(-4)} rejetée.`, { duration: NOTIFICATION_DURATION.QUICK });
 
   }, [allSales, setAllSales, hasPermission, showNotification]);
 
