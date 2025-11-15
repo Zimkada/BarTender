@@ -40,6 +40,7 @@ const AdminNotificationsPanel = lazy(() => import('./components/AdminNotificatio
 const AuditLogsPanel = lazy(() => import('./components/AuditLogsPanel').then(m => ({ default: m.AuditLogsPanel })));
 const BarsManagementPanel = lazy(() => import('./components/BarsManagementPanel').then(m => ({ default: m.BarsManagementPanel })));
 const UsersManagementPanel = lazy(() => import('./components/UsersManagementPanel').then(m => ({ default: m.UsersManagementPanel })));
+const BarStatsModal = lazy(() => import('./components/BarStatsModal').then(m => ({ default: m.BarStatsModal })));
 
 
 
@@ -94,6 +95,7 @@ function AppContent() {
   const [showAuditLogs, setShowAuditLogs] = useState(false);
   const [showBarsManagement, setShowBarsManagement] = useState(false);
   const [showUsersManagement, setShowUsersManagement] = useState(false);
+  const [selectedBarForStats, setSelectedBarForStats] = useState<any>(null);
 
   useEffect(() => {
     if (categories.length > 0 && !activeCategory) {
@@ -380,9 +382,7 @@ function AppContent() {
             <BarsManagementPanel
               isOpen={showBarsManagement}
               onClose={() => setShowBarsManagement(false)}
-              onShowBarStats={(bar) => {
-                alert(`📊 Statistiques de ${bar.name}\n\nStatus: ${bar.isActive ? '✅ Actif' : '❌ Suspendu'}\n\nPour des statistiques détaillées (CA, ventes, tendances),\nveuillez consulter le Dashboard Admin → Section Performance & Analytics`);
-              }}
+              onShowBarStats={(bar) => setSelectedBarForStats(bar)}
             />
           </Suspense>
         </RoleBasedComponent>
@@ -394,6 +394,19 @@ function AppContent() {
               isOpen={showUsersManagement}
               onClose={() => setShowUsersManagement(false)}
             />
+          </Suspense>
+        </RoleBasedComponent>
+
+        {/* Bar Stats Modal */}
+        <RoleBasedComponent requiredPermission="canAccessAdminDashboard">
+          <Suspense fallback={<LoadingFallback />}>
+            {selectedBarForStats && (
+              <BarStatsModal
+                isOpen={!!selectedBarForStats}
+                onClose={() => setSelectedBarForStats(null)}
+                bar={selectedBarForStats}
+              />
+            )}
           </Suspense>
         </RoleBasedComponent>
 
