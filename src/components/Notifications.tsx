@@ -1,21 +1,22 @@
-import React, { useState, createContext, useContext } from 'react';
+import React, { useState, createContext, useContext, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, AlertCircle, Info } from 'lucide-react';
-
-
+import { NOTIFICATION_DURATION } from '../config/notifications';
 
 type NotificationType = 'success' | 'error' | 'info';
 interface Notification {
   id: string;
   type: NotificationType;
   message: string;
+  duration?: number;
 }
 
 interface NotificationsContextType {
   notifications: Notification[];
-  showNotification: (type: NotificationType, message: string) => void;
+  showNotification: (type: NotificationType, message: string, options?: { duration?: number }) => void;
   hideNotification: (id: string) => void;
 }
+
 const useNotifications = () => {
   const context = useContext(NotificationsContext);
   if (!context) {
@@ -26,19 +27,23 @@ const useNotifications = () => {
 
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
 
-
 export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  const showNotification = (type: NotificationType, message: string) => {
-    // ✅ FIX: Ajouter random pour éviter collisions de clés si notifications simultanées
+  const showNotification = (
+    type: NotificationType,
+    message: string,
+    options?: { duration?: number }
+  ) => {
     const id = `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-    setNotifications((prev) => [...prev, { id, type, message }]);
+    const duration = options?.duration ?? NOTIFICATION_DURATION.NORMAL;
 
-    // Auto-dismiss after 3 seconds
+    setNotifications((prev) => [...prev, { id, type, message, duration }]);
+
+    // Auto-dismiss after specified duration
     setTimeout(() => {
       hideNotification(id);
-    }, 3000);
+    }, duration);
   };
 
   const hideNotification = (id: string) => {
@@ -55,16 +60,34 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
 
 const NotificationsContainer: React.FC = () => {
   const { notifications, hideNotification } = useNotifications();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    // Detect mobile on mount and window resize
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div
+      className={`fixed z-50 ${
+        isMobile
+          ? 'top-20 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)]' // Mobile: top center
+          : 'bottom-4 right-4' // Desktop: bottom right
+      }`}
+    >
       <AnimatePresence>
         {notifications.map((notification) => (
           <motion.div
             key={notification.id}
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: isMobile ? -20 : 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            exit={{ opacity: 0, y: isMobile ? -20 : 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
             className="mb-2"
           >
@@ -110,16 +133,16 @@ const NotificationItem: React.FC<{
   const { bgColor, icon } = getTypeStyles();
 
   return (
-    <motion.div 
+    <motion.div
       whileHover={{ scale: 1.02 }}
-      className={`${bgColor} text-white px-4 py-3 rounded-xl shadow-lg min-w-[300px] max-w-md flex items-center justify-between backdrop-blur-sm`}
+      className={`${bgColor} text-white px-4 py-3 rounded-xl shadow-lg min-w-[200px] max-w-md flex items-center justify-between backdrop-blur-sm`}
     >
       <div className="flex items-center gap-3">
         {icon}
         <p className="font-medium">{message}</p>
       </div>
-      <motion.button 
-        onClick={onClose} 
+      <motion.button
+        onClick={onClose}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         className="text-white/70 hover:text-white transition-colors"
@@ -130,5 +153,4 @@ const NotificationItem: React.FC<{
   );
 };
 
-// Ajoutez cette ligne à la fin du fichier
 export { useNotifications };
