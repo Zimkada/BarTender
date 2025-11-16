@@ -367,7 +367,6 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
 // Stock Forecast View
 function StockForecastView({
   isMobile,
-  alerts,
   filteredAlerts,
   filterStatus,
   setFilterStatus,

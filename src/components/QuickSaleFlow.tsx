@@ -9,7 +9,6 @@ import {
   Users,
   CreditCard,
   Check,
-  Scan
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';

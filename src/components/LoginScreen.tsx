@@ -4,8 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { User } from '../types';
-//import { CheckCircle } from 'lucide-react';
-//import { UserRole } from '../types';
 
 export function LoginScreen() {
   const { login, users, changePassword } = useAuth();

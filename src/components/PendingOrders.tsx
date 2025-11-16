@@ -1,5 +1,4 @@
-import React from 'react';
-import { Clock, Check, X, User, ShoppingBag, AlertTriangle } from 'lucide-react';
+import { Clock, Check, X, User, ShoppingBag } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';

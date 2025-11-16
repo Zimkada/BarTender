@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Wifi, WifiOff, Zap, Clock } from 'lucide-react';
+import { RefreshCw, WifiOff, Zap, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNetworkOptimization } from '../hooks/useNetworkOptimization';
 import { optimizedSyncService } from '../services/optimizedSyncService';
 
 export function SyncButton() {
-  const { networkInfo, performanceSettings } = useNetworkOptimization();
+  const { networkInfo} = useNetworkOptimization();
   const [isSyncing, setIsSyncing] = useState(false);
   const [queueSize, setQueueSize] = useState(0);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);

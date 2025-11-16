@@ -1,4 +1,3 @@
-import React from 'react';
 import { WifiOff, Wifi, Clock } from 'lucide-react';
 import { useOfflineStatus } from '../hooks/useOfflineStatus';
 import { motion } from 'framer-motion';

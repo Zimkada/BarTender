@@ -6,8 +6,6 @@ import {
   RotateCcw,
   TrendingUp,
   FileSpreadsheet,
-  Home,
-  User,
   LayoutDashboard
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';

@@ -1,10 +1,9 @@
-import React from 'react';
 import { Wifi, WifiOff, Battery, BatteryLow, Zap, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNetworkOptimization } from '../hooks/useNetworkOptimization';
 
 export function NetworkIndicator() {
-  const { networkInfo, performanceSettings } = useNetworkOptimization();
+  const { networkInfo} = useNetworkOptimization();
 
   const getConnectionIcon = () => {
     if (!networkInfo.isOnline) {

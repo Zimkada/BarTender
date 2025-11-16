@@ -3,9 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
   Trash2,
-  Calendar,
-  DollarSign,
-  Edit,
   X,
   TrendingDown,
   ChevronDown,
@@ -13,8 +10,6 @@ import {
 } from 'lucide-react';
 import {
   EXPENSE_CATEGORY_LABELS,
-  getCategoryLabel,
-  getCategoryIcon,
   getTotalExpenses,
   getExpensesByCategory
 } from '../hooks/useExpenses';
@@ -22,7 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { useAppContext } from '../context/AppContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
-import { getWeekRange, getMonthRange, formatPeriod, getCurrentPeriod } from '../utils/accounting';
+import { getWeekRange, getMonthRange} from '../utils/accounting';
 import { ExpenseCategory } from '../types';
 import { useViewport } from '../hooks/useViewport';
 

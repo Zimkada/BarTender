@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Package } from 'lucide-react';
 import { Product } from '../types';
-import { useAppContext } from '../context/AppContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { motion, AnimatePresence } from 'framer-motion';
 

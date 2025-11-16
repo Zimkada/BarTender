@@ -4,7 +4,6 @@ import {
   X,
   AlertCircle,
   TrendingDown,
-  Ban,
   Package,
   Archive,
   Users,

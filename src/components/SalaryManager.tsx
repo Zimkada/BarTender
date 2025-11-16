@@ -3,8 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
   Trash2,
-  Users,
-  DollarSign,
   Calendar,
   X,
   CheckCircle,

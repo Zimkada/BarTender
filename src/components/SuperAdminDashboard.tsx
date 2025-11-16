@@ -16,7 +16,6 @@ import {
   CheckCircle,
   XCircle,
   Award,
-  BarChart3,
 } from 'lucide-react';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
