@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { X, Package, AlertTriangle, Plus, Edit, Trash2, UploadCloud, TruckIcon } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useStockManagement } from '../hooks/useStockManagement';
@@ -9,7 +9,6 @@ import { Product } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFeedback } from '../hooks/useFeedback';
 import { FeedbackButton } from './FeedbackButton';
-import { EnhancedButton } from './EnhancedButton';
 import { useViewport } from '../hooks/useViewport';
 import { ProductImport } from './ProductImport';
 
@@ -225,49 +224,52 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                className="bg-gradient-to-br from-amber-50 to-amber-50 rounded-lg w-full max-w-6xl max-h-[85vh] md:max-h-[90vh] overflow-y-auto"
+                className="bg-white rounded-2xl w-full max-w-6xl max-h-[85vh] md:max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
               >
-                <div className="flex items-center justify-between p-6 border-b border-amber-100">
-                  <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                    <Package size={20} className="text-amber-500" />
-                    Inventaire
-                  </h2>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <EnhancedButton
-                      onClick={() => setShowProductImport(true)}
-                      className="px-4 py-2 bg-green-500 text-white rounded-xl flex items-center gap-2"
-                      icon={<UploadCloud size={18} />}
-                    >
-                      Importer
-                    </EnhancedButton>
-                    <EnhancedButton
-                      onClick={() => setShowSupplyModal(true)}
-                      className="px-4 py-2 bg-amber-500 text-white rounded-xl flex items-center gap-2"
-                      icon={<TruckIcon size={18} />}
-                    >
-                      Approvisionnement
-                    </EnhancedButton>
-                    <motion.button
-                      onClick={handleAddProduct}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="px-4 py-2 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 transition-colors flex items-center gap-2"
-                    >
-                      <Plus size={16} />
-                      Ajouter produit
-                    </motion.button>
-                    <motion.button
+                {/* Header */}
+                <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6 flex-shrink-0">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <Package size={28} />
+                      <div>
+                        <h2 className="text-xl font-bold">Inventaire</h2>
+                        <p className="text-sm text-amber-100">Gestion des produits</p>
+                      </div>
+                    </div>
+                    <button
                       onClick={onClose}
-                      whileHover={{ scale: 1.1, rotate: 90 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                      className="p-2 hover:bg-white/20 rounded-lg transition-colors"
                     >
                       <X size={24} />
-                    </motion.button>
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      onClick={() => setShowProductImport(true)}
+                      className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <UploadCloud size={18} />
+                      <span className="text-sm font-medium">Importer</span>
+                    </button>
+                    <button
+                      onClick={() => setShowSupplyModal(true)}
+                      className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <TruckIcon size={18} />
+                      <span className="text-sm font-medium">Approvisionnement</span>
+                    </button>
+                    <button
+                      onClick={handleAddProduct}
+                      className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <Plus size={18} />
+                      <span className="text-sm font-medium">Ajouter produit</span>
+                    </button>
                   </div>
                 </div>
 
-                <div className="p-6">
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto bg-gradient-to-br from-amber-50 to-amber-50 p-6">
                   {lowStockProducts.length > 0 && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
