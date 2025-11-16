@@ -179,7 +179,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
         setCustomerInfo('');
         setSelectedServer('');
         onClose();
-      }, 2000);
+      }, 1000);
 
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Erreur lors de la vente');

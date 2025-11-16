@@ -194,7 +194,7 @@ export function Cart({
                       setLoading('checkout', true);
                       await onCheckout(isSimplifiedMode ? selectedServer : undefined);
                       setSelectedServer(''); // Reset
-                      showSuccess('🎉 Vente finalisée !');
+                      showSuccess('🎉 Vente finalisée !', 1000);
                       setLoading('checkout', false);
                     }}
                     disabled={isLoading('checkout')}
@@ -370,7 +370,7 @@ export function Cart({
                     setLoading('checkout', true);
                     await onCheckout(isSimplifiedMode ? selectedServer : undefined);
                     setSelectedServer(''); // Reset
-                    showSuccess('🎉 Vente finalisée !');
+                    showSuccess('🎉 Vente finalisée !', 1000);
                     setLoading('checkout', false);
                   }}
                   loading={isLoading('checkout')}

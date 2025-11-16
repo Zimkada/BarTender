@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   BarChart3,
   Settings,
@@ -30,6 +30,36 @@ import { BarSelector } from './BarSelector';
 import { SyncStatusBadge } from './SyncStatusBadge'; // ✅ Badge sync unifié (remplace OfflineIndicator, NetworkIndicator, SyncButton)
 import { useViewport } from '../hooks/useViewport';
 import { ProfileSettings } from './ProfileSettings';
+
+// Composant pour l'animation lettre par lettre du nom du bar
+const AnimatedBarName: React.FC<{ text: string }> = ({ text }) => {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    // Déclenche l'animation après le montage du composant
+    const timer = setTimeout(() => setIsVisible(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <span className="inline-flex">
+      {text.split('').map((char, index) => (
+        <motion.span
+          key={`${char}-${index}`}
+          initial={{ opacity: 0, y: -20 }}
+          animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
+          transition={{
+            duration: 0.3,
+            delay: index * 0.05, // 50ms entre chaque lettre
+            ease: "easeOut"
+          }}
+        >
+          {char}
+        </motion.span>
+      ))}
+    </span>
+  );
+};
 
 interface HeaderProps {
   onShowSales: () => void;
@@ -120,7 +150,7 @@ export function Header({
               {/* Logo + Nom bar (ou BarTender Pro pour super admin) */}
               <div className="flex items-center gap-1.5 flex-1 min-w-0">
                 <h1 className="text-sm font-bold text-white truncate">
-                  🍺 {currentSession?.role === 'super_admin' ? 'BarTender Pro' : (currentBar?.name || 'BarTender')}
+                  🍺 <AnimatedBarName text={currentSession?.role === 'super_admin' ? 'BarTender Pro' : (currentBar?.name || 'BarTender')} />
                 </h1>
               </div>
 
@@ -257,7 +287,9 @@ export function Header({
               <Menu size={24} />
             </button>
 
-            <h1 className="text-2xl font-bold text-white">🍺 BarTender Pro</h1>
+            <h1 className="text-2xl font-bold text-white">
+              🍺 <AnimatedBarName text={currentSession?.role === 'super_admin' ? 'BarTender Pro' : (currentBar?.name || 'BarTender')} />
+            </h1>
 
             {/* ✅ Nouveau badge sync unifié (remplace OfflineIndicator + NetworkIndicator + SyncButton) */}
             <SyncStatusBadge position="header" />
@@ -265,14 +297,6 @@ export function Header({
             {/* Sélecteur de bar pour promoteur */}
             {currentSession?.role === 'promoteur' && (
               <BarSelector onCreateNew={onShowCreateBar} />
-            )}
-
-            {/* Nom du bar pour gérants/serveurs */}
-            {currentSession?.role !== 'promoteur' && currentBar && (
-              <div className="flex items-center gap-2 bg-white/20 rounded-lg px-3 py-1.5">
-                <Building2 size={18} className="text-white" />
-                <span className="text-white font-medium">{currentBar.name}</span>
-              </div>
             )}
           </div>
 
