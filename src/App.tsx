@@ -25,7 +25,6 @@ import { QuickSaleFlow } from './components/QuickSaleFlow';
 import { MobileNavigation } from './components/MobileNavigation';
 import { MobileSidebar } from './components/MobileSidebar';
 import { LoadingFallback } from './components/LoadingFallback';
-import { ColorDemo } from './components/ColorDemo'; // TEMP: Color palette demo
 
 // Lazy load des composants lourds (XLSX, Recharts, etc.)
 const EnhancedSalesHistory = lazy(() => import('./components/SalesHistory').then(m => ({ default: m.EnhancedSalesHistory })));
@@ -97,7 +96,6 @@ function AppContent() {
   const [showBarsManagement, setShowBarsManagement] = useState(false);
   const [showUsersManagement, setShowUsersManagement] = useState(false);
   const [selectedBarForStats, setSelectedBarForStats] = useState<any>(null);
-  const [showColorDemo, setShowColorDemo] = useState(false); // TEMP: Color demo
 
   useEffect(() => {
     if (categories.length > 0 && !activeCategory) {
@@ -435,14 +433,6 @@ function AppContent() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
     >
-      {/* TEMP: Bouton pour ouvrir la démo de couleurs */}
-      <button
-        onClick={() => setShowColorDemo(true)}
-        className="fixed bottom-20 right-4 z-50 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all font-medium flex items-center gap-2"
-      >
-        🎨 Voir palettes
-      </button>
-
       <Header
         onShowSales={() => setShowSalesHistory(true)}
         onShowSettings={() => setShowSettings(true)}
@@ -671,10 +661,6 @@ function AppContent() {
         onShowDashboard={() => setShowDailyDashboard(true)} // ✅ NOUVEAU
       />
 
-      {/* TEMP: Color Demo Modal */}
-      {showColorDemo && (
-        <ColorDemo onClose={() => setShowColorDemo(false)} />
-      )}
     </motion.div>
   );
 }
