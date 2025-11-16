@@ -558,7 +558,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                   </div>
                   <button
                     onClick={exportSales}
-                    className="w-full mt-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                     disabled={filteredSales.length === 0}
                     title={`Exporter en ${exportFormat.toUpperCase()}`}
                   >
@@ -744,8 +744,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                         onClick={() => setExportFormat('excel')}
                         className={`px-3 py-1.5 text-xs font-medium rounded-l-lg transition-colors ${
                           exportFormat === 'excel'
-                            ? 'bg-white text-amber-600'
-                            : 'bg-white/20 text-white hover:bg-white/30'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >
                         Excel
@@ -754,8 +754,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                         onClick={() => setExportFormat('csv')}
                         className={`px-3 py-1.5 text-xs font-medium rounded-r-lg transition-colors ${
                           exportFormat === 'csv'
-                            ? 'bg-white text-amber-600'
-                            : 'bg-white/20 text-white hover:bg-white/30'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >
                         CSV
@@ -764,7 +764,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                     <button
                       onClick={exportSales}
                       disabled={filteredSales.length === 0}
-                      className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
                     >
                       <Download size={16} />
                       <span className="text-sm font-medium">Exporter</span>
