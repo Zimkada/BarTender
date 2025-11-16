@@ -51,31 +51,34 @@ export function Accounting({ isOpen, onClose }: AccountingProps) {
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
             <div className="bg-white rounded-2xl shadow-2xl w-full h-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col">
-              {/* Header avec tabs */}
-              <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white flex-shrink-0">
-                <div className={`${isMobile ? 'px-3 py-3' : 'px-6 py-4'}`}>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <DollarSign size={isMobile ? 28 : 32} />
-                      <div>
-                        <h1 className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-                          Comptabilité
-                        </h1>
-                        <p className={`text-amber-100 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                          Gestion financière de {currentBar.name}
-                        </p>
-                      </div>
+              {/* Header */}
+              <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white flex-shrink-0 p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <DollarSign size={isMobile ? 28 : 32} />
+                    <div>
+                      <h1 className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+                        Comptabilité
+                      </h1>
+                      <p className={`text-amber-100 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        Gestion financière de {currentBar.name}
+                      </p>
                     </div>
-                    <button
-                      onClick={onClose}
-                      className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                    >
-                      <X size={24} />
-                    </button>
                   </div>
+                  <button
+                    onClick={onClose}
+                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
+              </div>
 
-                  {/* Tabs navigation */}
-                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+              {/* Content - Scrollable */}
+              <div className="flex-1 overflow-y-auto bg-gradient-to-br from-amber-50 to-amber-50">
+                {/* Tabs navigation - Dans le contenu pour qu'ils scrollent */}
+                <div className="sticky top-0 bg-white border-b border-gray-200 z-10 px-6 py-3">
+                  <div className="flex gap-2 overflow-x-auto scrollbar-hide">
                     {tabs.map(tab => (
                       <button
                         key={tab.id}
@@ -84,8 +87,8 @@ export function Accounting({ isOpen, onClose }: AccountingProps) {
                           isMobile ? 'text-sm' : ''
                         } ${
                           activeTab === tab.id
-                            ? 'bg-white text-amber-600 font-semibold'
-                            : 'bg-white/20 text-white hover:bg-white/30 font-medium'
+                            ? 'bg-amber-500 text-white font-semibold'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 font-medium'
                         }`}
                       >
                         {tab.icon}
@@ -94,10 +97,6 @@ export function Accounting({ isOpen, onClose }: AccountingProps) {
                     ))}
                   </div>
                 </div>
-              </div>
-
-              {/* Content - Scrollable */}
-              <div className="flex-1 overflow-y-auto bg-gradient-to-br from-amber-50 to-amber-50">
                 <motion.div
                   key={activeTab}
                   initial={{ opacity: 0, y: 20 }}
