@@ -156,35 +156,38 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
   const exportToWhatsApp = () => {
     const date = new Date().toLocaleDateString('fr-FR');
     const time = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    let message = `🏪 *Rapport de caisse - ${date}*
-`;
-    message += `⏰ Heure: ${time}
-`;
-    message += `👤 ${currentSession?.role}: ${currentSession?.userName}
 
-`;
-    message += `💰 *RÉSUMÉ FINANCIER*
-`;
-    message += `• Total des ventes: *${formatPrice(todayTotal)}*
-`;
-    message += `• Nombre de ventes: ${todayValidatedSales.length}
-`;
-    message += `• Articles vendus: ${totalItems}
-`;
-    message += `• Panier moyen: ${formatPrice(avgSaleValue)}
+    // Construction du message sans emojis pour WhatsApp
+    let message = `*Rapport de caisse - ${date}*\n`;
+    message += `Heure: ${time}\n`;
+    message += `${currentSession?.role}: ${currentSession?.userName}\n\n`;
 
-`;
-    if (topProductsList.length > 0) { message += `🏆 *TOP PRODUITS*
-`; topProductsList.forEach(([product, qty], index) => { message += `${index + 1}. ${product}: ${qty} vendus
-`; }); message += `
-`; }
-    if (lowStockProducts.length > 0) { message += `⚠️ *ALERTES STOCK*
-`; lowStockProducts.slice(0, 5).forEach(product => { message += `• ${product.name} (${product.volume}): ${product.stock} restants
-`; }); message += `
-`; }
-    message += `📱 Envoyé depuis BarTender Pro`;
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+    message += `*RESUME FINANCIER*\n`;
+    message += `- Total des ventes: *${formatPrice(todayTotal)}*\n`;
+    message += `- Nombre de ventes: ${todayValidatedSales.length}\n`;
+    message += `- Articles vendus: ${totalItems}\n`;
+    message += `- Panier moyen: ${formatPrice(avgSaleValue)}\n\n`;
+
+    if (topProductsList.length > 0) {
+      message += `*TOP PRODUITS*\n`;
+      topProductsList.forEach(([product, qty], index) => {
+        message += `${index + 1}. ${product}: ${qty} vendus\n`;
+      });
+      message += `\n`;
+    }
+
+    if (lowStockProducts.length > 0) {
+      message += `*ALERTES STOCK*\n`;
+      lowStockProducts.slice(0, 5).forEach(product => {
+        message += `- ${product.name} (${product.volume}): ${product.stock} restants\n`;
+      });
+      message += `\n`;
+    }
+
+    message += `Envoye depuis BarTender Pro`;
+
+    // Encodage correct pour WhatsApp (sans encodeURIComponent pour les emojis)
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
     showSuccess('📱 Rapport exporté vers WhatsApp');
   };

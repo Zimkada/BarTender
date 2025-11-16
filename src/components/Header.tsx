@@ -257,7 +257,9 @@ export function Header({
               <Menu size={24} />
             </button>
 
-            <h1 className="text-2xl font-bold text-white">🍺 BarTender Pro</h1>
+            <h1 className="text-2xl font-bold text-white">
+              🍺 {currentSession?.role === 'super_admin' ? 'BarTender Pro' : (currentBar?.name || 'BarTender')}
+            </h1>
 
             {/* ✅ Nouveau badge sync unifié (remplace OfflineIndicator + NetworkIndicator + SyncButton) */}
             <SyncStatusBadge position="header" />
@@ -265,14 +267,6 @@ export function Header({
             {/* Sélecteur de bar pour promoteur */}
             {currentSession?.role === 'promoteur' && (
               <BarSelector onCreateNew={onShowCreateBar} />
-            )}
-
-            {/* Nom du bar pour gérants/serveurs */}
-            {currentSession?.role !== 'promoteur' && currentBar && (
-              <div className="flex items-center gap-2 bg-white/20 rounded-lg px-3 py-1.5">
-                <Building2 size={18} className="text-white" />
-                <span className="text-white font-medium">{currentBar.name}</span>
-              </div>
             )}
           </div>
 
