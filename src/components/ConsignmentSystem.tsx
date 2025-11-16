@@ -56,12 +56,12 @@ export const ConsignmentSystem: React.FC<ConsignmentSystemProps> = ({ isOpen, on
           className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col"
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white p-6 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Package className="w-8 h-8" />
               <div>
                 <h2 className="text-2xl font-bold">Gestion des Consignations</h2>
-                <p className="text-orange-100 text-sm">
+                <p className="text-amber-100 text-sm">
                   Gérer les produits consignés et récupérations
                 </p>
               </div>
@@ -123,8 +123,8 @@ const TabButton: React.FC<TabButtonProps> = ({ active, onClick, icon, label }) =
     onClick={onClick}
     className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-medium transition-all ${
       active
-        ? 'text-orange-600 border-b-2 border-orange-600 bg-white'
-        : 'text-gray-600 hover:text-orange-600 hover:bg-white/50'
+        ? 'text-amber-600 border-b-2 border-amber-600 bg-white'
+        : 'text-gray-600 hover:text-amber-600 hover:bg-white/50'
     }`}
   >
     {icon}
@@ -197,7 +197,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
   if (!currentBar || !session) {
     return (
       <div className="flex flex-col items-center justify-center text-center p-8 bg-gray-50 rounded-lg h-full">
-        <AlertTriangle className="w-12 h-12 text-orange-400 mb-4" />
+        <AlertTriangle className="w-12 h-12 text-amber-400 mb-4" />
         <h3 className="text-xl font-semibold text-gray-800">Accès non autorisé</h3>
         <p className="text-gray-600 mt-2 max-w-md">
           {!currentBar
@@ -206,7 +206,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
         </p>
         <EnhancedButton
           onClick={onClose}
-          className="mt-6 bg-orange-600 hover:bg-orange-700 text-white">
+          className="mt-6 bg-amber-600 hover:bg-amber-700 text-white">
           Fermer
         </EnhancedButton>
       </div>
@@ -280,11 +280,11 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
   return (
     <div className="space-y-6">
       {/* Instruction */}
-      <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 flex items-start gap-3">
-        <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
-        <div className="text-sm text-orange-800">
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
+        <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+        <div className="text-sm text-amber-800">
           <p className="font-semibold mb-1">Comment créer une consignation ?</p>
-          <ol className="list-decimal list-inside space-y-1 text-orange-700">
+          <ol className="list-decimal list-inside space-y-1 text-amber-700">
             <li>Sélectionnez la vente d'origine (aujourd'hui uniquement)</li>
             <li>Choisissez le produit à consigner</li>
             <li>Indiquez la quantité et les infos client</li>
@@ -307,7 +307,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
               <select
                 value={filterSeller}
                 onChange={(e) => setFilterSeller(e.target.value)}
-                className="px-3 py-2 border border-orange-200 rounded-lg bg-white text-sm"
+                className="px-3 py-2 border border-amber-200 rounded-lg bg-white text-sm"
               >
                 <option value="all">Tous les vendeurs ({todaySales.length})</option>
                 {sellersWithSales.map(seller => {
@@ -330,7 +330,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Rechercher par ID vente..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
           />
         </div>
 
@@ -358,8 +358,8 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
                   }}
                   className={`p-4 rounded-lg border-2 text-left transition-all ${
                     selectedSaleId === sale.id
-                      ? 'border-orange-500 bg-orange-50'
-                      : 'border-gray-200 hover:border-orange-300'
+                      ? 'border-amber-500 bg-amber-50'
+                      : 'border-gray-200 hover:border-amber-300'
                   }`}
                 >
                   <div className="font-medium text-gray-900 text-sm mb-1">#{sale.id}</div>
@@ -370,7 +370,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
                     {getSaleDate(sale).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                   </div>
                   {seller && (
-                    <div className="text-xs text-orange-600 mt-1">
+                    <div className="text-xs text-amber-600 mt-1">
                       👤 {seller.name}
                     </div>
                   )}
@@ -408,16 +408,16 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
                     isFullyUnavailable
                       ? 'border-red-200 bg-red-50 opacity-60 cursor-not-allowed'
                       : selectedProductId === item.product.id
-                        ? 'border-orange-500 bg-orange-50'
-                        : 'border-gray-200 hover:border-orange-300'
+                        ? 'border-amber-500 bg-amber-50'
+                        : 'border-gray-200 hover:border-amber-300'
                   }`}
                 >
                   <div className="font-medium text-gray-900">{item.product.name}</div>
                   <div className="text-sm text-gray-600">{item.product.volume}</div>
-                  <div className="text-sm text-orange-600 font-medium mt-1">
+                  <div className="text-sm text-amber-600 font-medium mt-1">
                     {formatPrice(item.product.price)} × {item.quantity}
                   </div>
-                  <div className="text-xs text-orange-600 mt-1 space-x-2">
+                  <div className="text-xs text-amber-600 mt-1 space-x-2">
                     {consignedFromThisSale > 0 && <span>⚠️ {consignedFromThisSale} consigné(s)</span>}
                     {returnedStock > 0 && <span>↩️ {returnedStock} retourné(s)</span>}
                   </div>
@@ -461,7 +461,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 placeholder="Ex: Guy GOUNOU"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               />
             </div>
 
@@ -475,7 +475,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
                 placeholder="Ex: +229 XX XX XX XX"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -489,7 +489,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Informations complémentaires..."
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent resize-none"
             />
           </div>
 
@@ -503,15 +503,15 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
               min="1"
               value={expirationDays}
               onChange={(e) => setExpirationDays(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
             />
             <p className="text-xs text-gray-500 mt-1">Modifiez pour définir une durée spécifique pour cette consigne uniquement.</p>
           </div>
 
           {/* Récapitulatif */}
-          <div className="bg-orange-50 rounded-lg p-4 border border-orange-200">
-            <h4 className="font-semibold text-orange-900 mb-2">Récapitulatif</h4>
-            <div className="space-y-1 text-sm text-orange-800">
+          <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+            <h4 className="font-semibold text-amber-900 mb-2">Récapitulatif</h4>
+            <div className="space-y-1 text-sm text-amber-800">
               <p>• Produit: {selectedProductItem.product.name} {selectedProductItem.product.volume}</p>
               <p>• Quantité: {quantity}</p>
               <p>• Montant: {formatPrice(selectedProductItem.product.price * quantity)} (déjà payé)</p>
@@ -521,7 +521,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
 
           <EnhancedButton
             onClick={handleCreateConsignment}
-            className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg font-medium"
+            className="w-full bg-amber-600 hover:bg-amber-700 text-white py-3 rounded-lg font-medium"
           >
             Créer la Consignation
           </EnhancedButton>
@@ -598,13 +598,13 @@ const ActiveConsignmentsTab: React.FC = () => {
       {/* Stats + Actions */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="bg-orange-100 rounded-lg px-4 py-2">
-            <span className="text-2xl font-bold text-orange-600">{activeConsignments.length}</span>
-            <span className="text-sm text-orange-700 ml-2">actif(s)</span>
+          <div className="bg-amber-100 rounded-lg px-4 py-2">
+            <span className="text-2xl font-bold text-amber-600">{activeConsignments.length}</span>
+            <span className="text-sm text-amber-700 ml-2">actif(s)</span>
           </div>
           <button
             onClick={stockManager.checkAndExpireConsignments}
-            className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center gap-1"
+            className="text-sm text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1"
           >
             <Clock className="w-4 h-4" />
             Vérifier expirations
@@ -618,7 +618,7 @@ const ActiveConsignmentsTab: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Rechercher par client, produit, ID..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
           />
         </div>
       </div>
@@ -678,7 +678,7 @@ const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim,
   const isExpiringSoon = hoursLeft <= 24;
 
   return (
-    <div className="bg-white border-2 border-orange-200 rounded-lg p-4 hover:shadow-lg transition-shadow">
+    <div className="bg-white border-2 border-amber-200 rounded-lg p-4 hover:shadow-lg transition-shadow">
       <div className="flex items-start justify-between mb-3">
         <div>
           <h4 className="font-semibold text-gray-900">{consignment.customerName}</h4>
@@ -690,7 +690,7 @@ const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim,
           )}
         </div>
         <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-          isExpiringSoon ? 'bg-orange-100 text-orange-700' : 'bg-orange-100 text-orange-700'
+          isExpiringSoon ? 'bg-amber-100 text-amber-700' : 'bg-amber-100 text-amber-700'
         }`}>
           {hoursLeft > 48 ? `${Math.floor(hoursLeft / 24)}j` : `${hoursLeft}h`}
         </div>
@@ -707,7 +707,7 @@ const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim,
         </div>
         <div className="flex items-center justify-between">
           <span className="text-gray-600">Montant:</span>
-          <span className="font-medium text-orange-600">{formatPrice(consignment.totalAmount)}</span>
+          <span className="font-medium text-amber-600">{formatPrice(consignment.totalAmount)}</span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-gray-600">Expire le:</span>
@@ -716,7 +716,7 @@ const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim,
         {originalSeller && (
           <div className="flex items-center justify-between">
             <span className="text-gray-600">Vendeur:</span>
-            <span className="text-xs font-medium text-orange-600">👤 {originalSeller.name}</span>
+            <span className="text-xs font-medium text-amber-600">👤 {originalSeller.name}</span>
           </div>
         )}
       </div>
@@ -786,7 +786,7 @@ const HistoryTab: React.FC = () => {
             onClick={() => setFilterStatus(filter.value as 'all' | 'claimed' | 'expired' | 'forfeited')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               filterStatus === filter.value
-                ? 'bg-orange-600 text-white'
+                ? 'bg-amber-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
           >
@@ -829,7 +829,7 @@ const HistoryTab: React.FC = () => {
                       {consignment.quantity} × {consignment.productName} {consignment.productVolume}
                     </p>
                     {originalSeller && (
-                      <p className="text-xs text-orange-600 mt-1">
+                      <p className="text-xs text-amber-600 mt-1">
                         👤 Vendeur: {originalSeller.name}
                       </p>
                     )}
@@ -859,9 +859,9 @@ const HistoryTab: React.FC = () => {
 // ===== STATUS BADGE =====
 const StatusBadge: React.FC<{ status: Consignment['status'] }> = ({ status }) => {
   const configs = {
-    active: { label: 'Actif', color: 'bg-orange-100 text-orange-700' },
+    active: { label: 'Actif', color: 'bg-amber-100 text-amber-700' },
     claimed: { label: 'Récupéré', color: 'bg-green-100 text-green-700' },
-    expired: { label: 'Expiré', color: 'bg-orange-100 text-orange-700' },
+    expired: { label: 'Expiré', color: 'bg-amber-100 text-amber-700' },
     forfeited: { label: 'Confisqué', color: 'bg-red-100 text-red-700' }
   };
 

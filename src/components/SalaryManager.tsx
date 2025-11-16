@@ -157,7 +157,7 @@ export function SalaryManager() {
         <select
           value={selectedPeriod}
           onChange={e => setSelectedPeriod(e.target.value)}
-          className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-orange-500 focus:outline-none ${
+          className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${
             isMobile ? 'text-sm' : ''
           }`}
         >
@@ -185,7 +185,7 @@ export function SalaryManager() {
           </p>
         </div>
 
-        <div className="bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-xl p-4">
+        <div className="bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-xl p-4">
           <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>En attente</p>
           <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
             {unpaidMembers.length}
@@ -352,7 +352,7 @@ export function SalaryManager() {
                   <select
                     value={selectedPeriod}
                     onChange={e => setSelectedPeriod(e.target.value)}
-                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-orange-500 focus:outline-none ${
+                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${
                       isMobile ? 'text-sm' : ''
                     }`}
                   >
@@ -372,7 +372,7 @@ export function SalaryManager() {
                   <select
                     value={selectedMemberId}
                     onChange={e => setSelectedMemberId(e.target.value)}
-                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-orange-500 focus:outline-none ${
+                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${
                       isMobile ? 'text-sm' : ''
                     }`}
                   >
@@ -401,7 +401,7 @@ export function SalaryManager() {
                     value={amount}
                     onChange={e => setAmount(e.target.value)}
                     placeholder="50000"
-                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-orange-500 focus:outline-none ${
+                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${
                       isMobile ? 'text-sm' : ''
                     }`}
                   />

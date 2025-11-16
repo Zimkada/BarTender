@@ -32,7 +32,7 @@ export function ServerCart({
   if (items.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 w-full max-w-md bg-white border border-orange-200 rounded-2xl shadow-xl z-40">
+    <div className="fixed bottom-4 right-4 w-full max-w-md bg-white border border-amber-200 rounded-2xl shadow-xl z-40">
       <div className="p-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
@@ -41,7 +41,7 @@ export function ServerCart({
             Commande ({totalItems})
           </h3>
           {tableNumber && (
-            <span className="text-sm text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
+            <span className="text-sm text-amber-600 bg-amber-100 px-2 py-1 rounded-full">
               {tableNumber}
             </span>
           )}
@@ -50,7 +50,7 @@ export function ServerCart({
         {/* Items */}
         <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
           {items.map((item) => (
-            <div key={item.product.id} className="bg-orange-50 rounded-xl p-3 border border-orange-100">
+            <div key={item.product.id} className="bg-amber-50 rounded-xl p-3 border border-amber-100">
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <h4 className="font-medium text-gray-800">{item.product.name}</h4>
@@ -68,19 +68,19 @@ export function ServerCart({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
-                    className="w-8 h-8 bg-orange-200 text-orange-700 rounded-full flex items-center justify-center hover:bg-orange-300 transition-colors"
+                    className="w-8 h-8 bg-amber-200 text-amber-700 rounded-full flex items-center justify-center hover:bg-amber-300 transition-colors"
                   >
                     <Minus size={16} />
                   </button>
                   <span className="text-gray-800 font-medium w-8 text-center">{item.quantity}</span>
                   <button
                     onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                    className="w-8 h-8 bg-orange-200 text-orange-700 rounded-full flex items-center justify-center hover:bg-orange-300 transition-colors"
+                    className="w-8 h-8 bg-amber-200 text-amber-700 rounded-full flex items-center justify-center hover:bg-amber-300 transition-colors"
                   >
                     <Plus size={16} />
                   </button>
                 </div>
-                <span className="text-orange-600 font-semibold">
+                <span className="text-amber-600 font-semibold">
                   {formatPrice(item.product.price * item.quantity)}
                 </span>
               </div>
@@ -89,12 +89,12 @@ export function ServerCart({
         </div>
 
         {/* Total */}
-        <div className="flex justify-between items-center text-lg font-semibold mb-4 pt-3 border-t border-orange-200">
+        <div className="flex justify-between items-center text-lg font-semibold mb-4 pt-3 border-t border-amber-200">
           <span className="text-gray-800">Total:</span>
           <AnimatedCounter 
             value={total} 
             prefix="FCFA " 
-            className="text-orange-600"
+            className="text-amber-600"
           />
         </div>
         
@@ -108,7 +108,7 @@ export function ServerCart({
               setLoading('launchOrder', false);
             }}
             loading={isLoading('launchOrder')}
-            className="flex-1 py-3 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 flex items-center justify-center gap-2"
+            className="flex-1 py-3 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 flex items-center justify-center gap-2"
           >
             <Send size={16} />
             Lancer la commande

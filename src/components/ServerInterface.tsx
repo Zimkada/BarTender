@@ -128,20 +128,20 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50">
-      <header className="bg-white/80 backdrop-blur-md border-b border-orange-100 p-4 shadow-sm">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-50">
+      <header className="bg-white/80 backdrop-blur-md border-b border-amber-100 p-4 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Interface Serveur</h1>
             <p className="text-gray-600 text-sm">
-              Serveur: <span className="text-orange-600 font-semibold">{currentSession?.userName || 'Non défini'}</span>
+              Serveur: <span className="text-amber-600 font-semibold">{currentSession?.userName || 'Non défini'}</span>
             </p>
           </div>
           
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowPendingOrders(true)}
-              className="px-4 py-2 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 transition-colors"
+              className="px-4 py-2 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 transition-colors"
             >
               Commandes en attente
             </button>
@@ -156,16 +156,16 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
       </header>
       
       <main className="container mx-auto px-4 py-6 space-y-6">
-        <div className="bg-white/60 backdrop-blur-sm border border-orange-100 rounded-2xl p-4 shadow-sm">
+        <div className="bg-white/60 backdrop-blur-sm border border-amber-100 rounded-2xl p-4 shadow-sm">
           <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-            <Users size={16} className="text-orange-500" />
+            <Users size={16} className="text-amber-500" />
             Numéro de table (optionnel)
           </label>
           <input
             type="text"
             value={tableNumber}
             onChange={(e) => setTableNumber(e.target.value)}
-            className="w-full max-w-xs px-3 py-2 bg-white border border-orange-200 rounded-xl text-gray-800 focus:border-orange-400 focus:outline-none"
+            className="w-full max-w-xs px-3 py-2 bg-white border border-amber-200 rounded-xl text-gray-800 focus:border-amber-400 focus:outline-none"
             placeholder="ex: Table 5"
           />
         </div>

@@ -74,7 +74,7 @@ export function SyncButton() {
 
   const getSyncButtonColor = () => {
     if (!networkInfo.isOnline) return 'bg-gray-500';
-    if (queueSize > 0) return 'bg-orange-500 hover:bg-orange-600';
+    if (queueSize > 0) return 'bg-amber-500 hover:bg-amber-600';
     return 'bg-green-500 hover:bg-green-600';
   };
 
@@ -201,7 +201,7 @@ export function CompactSyncButton() {
       animate={{ scale: 1 }}
       onClick={handleQuickSync}
       disabled={isSyncing || !networkInfo.isOnline}
-      className="fixed top-4 right-4 bg-orange-500 hover:bg-orange-600 text-white p-2 rounded-full shadow-lg z-50 disabled:opacity-50 touch-target"
+      className="fixed top-4 right-4 bg-amber-500 hover:bg-amber-600 text-white p-2 rounded-full shadow-lg z-50 disabled:opacity-50 touch-target"
       whileTap={{ scale: 0.9 }}
     >
       <div className="relative">

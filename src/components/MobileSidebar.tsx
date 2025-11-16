@@ -254,18 +254,18 @@ export function MobileSidebar({
             className={`fixed top-0 left-0 bottom-0 w-72 shadow-2xl z-50 flex flex-col ${
               currentSession?.role === 'super_admin'
                 ? 'bg-gradient-to-br from-purple-50 to-indigo-50'
-                : 'bg-gradient-to-br from-orange-50 to-amber-50'
+                : 'bg-gradient-to-br from-amber-50 to-amber-50'
             }`}
           >
             {/* Header */}
             <div className={`flex items-center justify-between p-4 border-b ${
               currentSession?.role === 'super_admin'
                 ? 'border-purple-200 bg-gradient-to-r from-purple-600 to-indigo-600'
-                : 'border-orange-200 bg-gradient-to-r from-orange-500 to-amber-500'
+                : 'border-amber-200 bg-gradient-to-r from-amber-500 to-amber-500'
             }`}>
               <div>
                 <h2 className="text-white font-bold text-lg">Menu</h2>
-                <p className={currentSession?.role === 'super_admin' ? 'text-purple-100 text-xs' : 'text-orange-100 text-xs'}>
+                <p className={currentSession?.role === 'super_admin' ? 'text-purple-100 text-xs' : 'text-amber-100 text-xs'}>
                   {currentSession?.userName} • {currentSession?.role}
                 </p>
               </div>
@@ -289,11 +289,11 @@ export function MobileSidebar({
                     currentMenu === item.id
                       ? currentSession?.role === 'super_admin'
                         ? 'bg-purple-600 text-white shadow-md'
-                        : 'bg-orange-500 text-white shadow-md'
+                        : 'bg-amber-500 text-white shadow-md'
                       : 'bg-white/60 text-gray-700 hover:bg-white hover:shadow-sm'
                   }`}
                 >
-                  <span className={currentMenu === item.id ? 'text-white' : (currentSession?.role === 'super_admin' ? 'text-purple-600' : 'text-orange-500')}>
+                  <span className={currentMenu === item.id ? 'text-white' : (currentSession?.role === 'super_admin' ? 'text-purple-600' : 'text-amber-500')}>
                     {item.icon}
                   </span>
                   <span className="font-medium">{item.label}</span>
@@ -302,7 +302,7 @@ export function MobileSidebar({
             </div>
 
             {/* Footer - Déconnexion */}
-            <div className="p-4 border-t border-orange-200">
+            <div className="p-4 border-t border-amber-200">
               <motion.button
                 onClick={handleLogout}
                 whileHover={{ scale: 1.02 }}

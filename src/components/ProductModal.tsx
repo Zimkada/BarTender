@@ -99,9 +99,9 @@ export function ProductModal({ isOpen, onClose, onSave, product }: ProductModalP
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] md:max-h-[90vh] overflow-y-auto shadow-xl border border-orange-200"
+            className="bg-white rounded-2xl w-full max-w-md max-h-[85vh] md:max-h-[90vh] overflow-y-auto shadow-xl border border-amber-200"
           >
-            <div className="flex items-center justify-between p-4 border-b border-orange-200">
+            <div className="flex items-center justify-between p-4 border-b border-amber-200">
               <h2 className="text-xl font-semibold text-gray-800">
                 {product ? 'Modifier le produit' : 'Ajouter un produit'}
               </h2>
@@ -125,7 +125,7 @@ export function ProductModal({ isOpen, onClose, onSave, product }: ProductModalP
                   required
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-orange-200 rounded-xl text-gray-800 focus:border-orange-400 focus:outline-none"
+                  className="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-gray-800 focus:border-amber-400 focus:outline-none"
                   placeholder="ex: Beaufort"
                 />
               </div>
@@ -139,7 +139,7 @@ export function ProductModal({ isOpen, onClose, onSave, product }: ProductModalP
                   required
                   value={formData.volume}
                   onChange={(e) => handleInputChange('volume', e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-orange-200 rounded-xl text-gray-800 focus:border-orange-400 focus:outline-none"
+                  className="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-gray-800 focus:border-amber-400 focus:outline-none"
                   placeholder="ex: 33cl, 50cl, 75cl"
                 />
               </div>
@@ -155,7 +155,7 @@ export function ProductModal({ isOpen, onClose, onSave, product }: ProductModalP
                     min="0"
                     value={formData.price}
                     onChange={(e) => handleInputChange('price', e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-orange-200 rounded-xl text-gray-800 focus:border-orange-400 focus:outline-none"
+                    className="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-gray-800 focus:border-amber-400 focus:outline-none"
                     placeholder="500"
                   />
                 </div>
@@ -170,7 +170,7 @@ export function ProductModal({ isOpen, onClose, onSave, product }: ProductModalP
                     min="0"
                     value={formData.stock}
                     onChange={(e) => handleInputChange('stock', e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-orange-200 rounded-xl text-gray-800 focus:border-orange-400 focus:outline-none"
+                    className="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-gray-800 focus:border-amber-400 focus:outline-none"
                     placeholder="24"
                   />
                 </div>
@@ -184,7 +184,7 @@ export function ProductModal({ isOpen, onClose, onSave, product }: ProductModalP
                   required
                   value={formData.categoryId}
                   onChange={(e) => handleInputChange('categoryId', e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-orange-200 rounded-xl text-gray-800 focus:border-orange-400 focus:outline-none"
+                  className="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-gray-800 focus:border-amber-400 focus:outline-none"
                 >
                   {categories.map((category) => (
                     <option key={category.id} value={category.id}>
@@ -204,7 +204,7 @@ export function ProductModal({ isOpen, onClose, onSave, product }: ProductModalP
                   min="0"
                   value={formData.alertThreshold}
                   onChange={(e) => handleInputChange('alertThreshold', e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-orange-200 rounded-xl text-gray-800 focus:border-orange-400 focus:outline-none"
+                  className="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-gray-800 focus:border-amber-400 focus:outline-none"
                   placeholder="10"
                 />
               </div>
@@ -217,7 +217,7 @@ export function ProductModal({ isOpen, onClose, onSave, product }: ProductModalP
                   type="url"
                   value={formData.image}
                   onChange={(e) => handleInputChange('image', e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-orange-200 rounded-xl text-gray-800 focus:border-orange-400 focus:outline-none"
+                  className="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-gray-800 focus:border-amber-400 focus:outline-none"
                   placeholder="https://example.com/image.jpg"
                 />
               </div>
@@ -239,7 +239,7 @@ export function ProductModal({ isOpen, onClose, onSave, product }: ProductModalP
                   whileTap={!isSubmitting ? { scale: 0.98 } : {}}
                   className={`flex-1 py-3 rounded-xl font-medium flex items-center justify-center ${
                     formTouched 
-                      ? 'bg-orange-500 text-white hover:bg-orange-600' 
+                      ? 'bg-amber-500 text-white hover:bg-amber-600' 
                       : 'bg-gray-300 text-gray-500'
                   }`}
                 >

@@ -252,7 +252,7 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div className="flex items-center gap-3">
-              <UploadCloud className="w-6 h-6 text-orange-500" />
+              <UploadCloud className="w-6 h-6 text-amber-500" />
               <h2 className="text-xl font-bold text-gray-800">Importer des Produits</h2>
             </div>
             <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg">
@@ -263,13 +263,13 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
           {/* Body */}
           <div className="p-6 space-y-6">
             {/* Instructions */}
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-orange-800">
+                <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-amber-800">
                   <p className="font-semibold mb-2">Format du fichier Excel (.xlsx)</p>
                   <p>Votre fichier doit contenir les colonnes suivantes :</p>
-                  <ul className="list-disc list-inside mt-1 font-mono text-xs bg-orange-100 p-2 rounded">
+                  <ul className="list-disc list-inside mt-1 font-mono text-xs bg-amber-100 p-2 rounded">
                     <li><strong>Nom</strong> (Requis) - Nom du produit</li>
                     <li>Volume (Optionnel) - Ex: 33cl, 1L, etc.</li>
                     <li><strong>Prix</strong> (Requis) - Prix de vente en FCFA</li>
@@ -290,13 +290,13 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
             <div
               {...getRootProps()}
               className={`p-12 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${
-                isDragActive ? 'border-orange-500 bg-orange-50' : 'border-gray-300 hover:border-orange-400'
+                isDragActive ? 'border-amber-500 bg-amber-50' : 'border-gray-300 hover:border-amber-400'
               }`}
             >
               <input {...getInputProps()} />
               <UploadCloud className="w-12 h-12 mx-auto text-gray-400 mb-4" />
               {isDragActive ? (
-                <p className="text-orange-600 font-semibold">Déposez le fichier ici...</p>
+                <p className="text-amber-600 font-semibold">Déposez le fichier ici...</p>
               ) : (
                 <div>
                   <p className="font-semibold text-gray-700">Glissez-déposez votre fichier ici</p>

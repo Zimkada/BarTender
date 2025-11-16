@@ -170,7 +170,7 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
       case 'critical':
         return <AlertCircle className="w-4 h-4 text-red-600" />;
       case 'warning':
-        return <AlertTriangle className="w-4 h-4 text-orange-600" />;
+        return <AlertTriangle className="w-4 h-4 text-amber-600" />;
       case 'info':
         return <Info className="w-4 h-4 text-blue-600" />;
     }
@@ -182,7 +182,7 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
       case 'critical':
         return 'bg-red-50 border-red-200 text-red-900';
       case 'warning':
-        return 'bg-orange-50 border-orange-200 text-orange-900';
+        return 'bg-amber-50 border-amber-200 text-amber-900';
       case 'info':
         return 'bg-blue-50 border-blue-200 text-blue-900';
     }
@@ -246,8 +246,8 @@ export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
               <p className="text-red-100 text-[10px] md:text-xs">Critiques</p>
               <p className="text-base md:text-2xl font-bold">{stats.criticalCount}</p>
             </div>
-            <div className="bg-orange-500/20 rounded-lg p-2 md:p-3">
-              <p className="text-orange-100 text-[10px] md:text-xs">Warnings</p>
+            <div className="bg-amber-500/20 rounded-lg p-2 md:p-3">
+              <p className="text-amber-100 text-[10px] md:text-xs">Warnings</p>
               <p className="text-base md:text-2xl font-bold">{stats.warningCount}</p>
             </div>
             <div className="bg-blue-500/20 rounded-lg p-2 md:p-3">

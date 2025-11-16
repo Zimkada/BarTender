@@ -50,7 +50,7 @@ export function Accounting({ isOpen, onClose }: AccountingProps) {
             transition={{ duration: 0.2 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl shadow-2xl w-full h-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="bg-gradient-to-br from-amber-50 to-amber-50 rounded-2xl shadow-2xl w-full h-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col">
               {/* Header avec tabs */}
               <div className="bg-white border-b border-gray-200 flex-shrink-0">
                 <div className={`${isMobile ? 'px-3 py-3' : 'px-6 py-4'}`}>
@@ -81,8 +81,8 @@ export function Accounting({ isOpen, onClose }: AccountingProps) {
                           isMobile ? 'text-sm' : ''
                         } ${
                           activeTab === tab.id
-                            ? 'text-orange-600 border-b-2 border-orange-600 -mb-px font-semibold'
-                            : 'text-gray-600 hover:text-orange-500 hover:bg-orange-50 font-medium'
+                            ? 'text-amber-600 border-b-2 border-amber-600 -mb-px font-semibold'
+                            : 'text-gray-600 hover:text-amber-500 hover:bg-amber-50 font-medium'
                         }`}
                       >
                         {tab.icon}

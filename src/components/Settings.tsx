@@ -93,12 +93,12 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-lg w-full max-w-md max-h-[85vh] md:max-h-[90vh] overflow-hidden flex flex-col"
+            className="bg-gradient-to-br from-amber-50 to-amber-50 rounded-lg w-full max-w-md max-h-[85vh] md:max-h-[90vh] overflow-hidden flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-orange-100">
+            <div className="flex items-center justify-between p-6 border-b border-amber-100">
               <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                <SettingsIcon size={20} className="text-orange-500" />
+                <SettingsIcon size={20} className="text-amber-500" />
                 Paramètres
               </h2>
               <motion.button
@@ -112,12 +112,12 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
             </div>
 
             {/* Onglets */}
-            <div className="flex border-b bg-orange-50/50">
+            <div className="flex border-b bg-amber-50/50">
               <button
                 onClick={() => setActiveTab('bar')}
                 className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${
                   activeTab === 'bar'
-                    ? 'bg-white text-orange-600 border-b-2 border-orange-600'
+                    ? 'bg-white text-amber-600 border-b-2 border-amber-600'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -128,7 +128,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                 onClick={() => setActiveTab('operational')}
                 className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${
                   activeTab === 'operational'
-                    ? 'bg-white text-orange-600 border-b-2 border-orange-600'
+                    ? 'bg-white text-amber-600 border-b-2 border-amber-600'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -139,7 +139,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                 onClick={() => setActiveTab('general')}
                 className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${
                   activeTab === 'general'
-                    ? 'bg-white text-orange-600 border-b-2 border-orange-600'
+                    ? 'bg-white text-amber-600 border-b-2 border-amber-600'
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
@@ -161,49 +161,49 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                       type="text"
                       value={barName}
                       onChange={(e) => setBarName(e.target.value)}
-                      className="w-full px-4 py-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                       placeholder="Ex: Le Privilège"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                      <MapPin size={16} className="text-orange-500" />
+                      <MapPin size={16} className="text-amber-500" />
                       Adresse
                     </label>
                     <input
                       type="text"
                       value={barAddress}
                       onChange={(e) => setBarAddress(e.target.value)}
-                      className="w-full px-4 py-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                       placeholder="Ex: Cotonou, Bénin"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                      <Phone size={16} className="text-orange-500" />
+                      <Phone size={16} className="text-amber-500" />
                       Téléphone
                     </label>
                     <input
                       type="tel"
                       value={barPhone}
                       onChange={(e) => setBarPhone(e.target.value)}
-                      className="w-full px-4 py-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                       placeholder="Ex: 0197000000"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                      <Mail size={16} className="text-orange-500" />
+                      <Mail size={16} className="text-amber-500" />
                       Email
                     </label>
                     <input
                       type="email"
                       value={barEmail}
                       onChange={(e) => setBarEmail(e.target.value)}
-                      className="w-full px-4 py-2 border border-orange-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                       placeholder="Ex: contact@leprivilege.bj"
                     />
                   </div>
@@ -223,23 +223,23 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                   {/* Heure de clôture */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-                      <Clock size={16} className="text-orange-500" />
+                      <Clock size={16} className="text-amber-500" />
                       Heure de clôture de la journée commerciale
                     </label>
                     <p className="text-xs text-gray-600 mb-3">
                       Les ventes après minuit seront comptabilisées dans la journée précédente jusqu'à cette heure.
                     </p>
-                    <div className="flex items-center gap-3 p-4 bg-orange-50 rounded-xl border border-orange-100">
+                    <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100">
                       <input
                         type="range"
                         min="0"
                         max="23"
                         value={tempCloseHour}
                         onChange={(e) => setTempCloseHour(Number(e.target.value))}
-                        className="flex-1 h-2 bg-orange-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                        className="flex-1 h-2 bg-amber-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
                       />
-                      <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-orange-200 min-w-[80px] justify-center">
-                        <Clock size={18} className="text-orange-500" />
+                      <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-amber-200 min-w-[80px] justify-center">
+                        <Clock size={18} className="text-amber-500" />
                         <span className="text-lg font-bold text-gray-800">
                           {tempCloseHour.toString().padStart(2, '0')}h
                         </span>
@@ -250,22 +250,22 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                   {/* Durée expiration consignations */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-                      <Clock size={16} className="text-orange-500" />
+                      <Clock size={16} className="text-amber-500" />
                       Durée d'expiration des consignations
                     </label>
                     <p className="text-xs text-gray-600 mb-3">
                       Nombre de jours avant qu'un produit consigné non réclamé ne redevienne disponible à la vente.
                     </p>
-                    <div className="flex items-center gap-3 p-4 bg-orange-50 rounded-xl border border-orange-100">
+                    <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100">
                       <input
                         type="range"
                         min="1"
                         max="30"
                         value={tempConsignmentExpirationDays}
                         onChange={(e) => setTempConsignmentExpirationDays(Number(e.target.value))}
-                        className="flex-1 h-2 bg-orange-200 rounded-lg appearance-none cursor-pointer accent-orange-500"
+                        className="flex-1 h-2 bg-amber-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
                       />
-                      <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-orange-200 min-w-[90px] justify-center">
+                      <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-amber-200 min-w-[90px] justify-center">
                         <span className="text-lg font-bold text-gray-800">
                           {tempConsignmentExpirationDays} jour(s)
                         </span>
@@ -276,13 +276,13 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                   {/* Mode de fonctionnement */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-                      <Users size={16} className="text-orange-500" />
+                      <Users size={16} className="text-amber-500" />
                       Mode de fonctionnement
                     </label>
                     <div className="space-y-3">
                       <motion.label
                         whileHover={{ scale: 1.02 }}
-                        className="flex items-start gap-3 p-3 bg-orange-50 rounded-xl cursor-pointer hover:bg-orange-100 transition-colors border border-orange-100"
+                        className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl cursor-pointer hover:bg-amber-100 transition-colors border border-amber-100"
                       >
                         <input
                           type="radio"
@@ -290,7 +290,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                           value="full"
                           checked={tempOperatingMode === 'full'}
                           onChange={() => setTempOperatingMode('full')}
-                          className="mt-1 text-orange-500 focus:ring-orange-400"
+                          className="mt-1 text-amber-500 focus:ring-amber-400"
                         />
                         <div className="flex-1">
                           <div className="text-gray-800 font-medium">Mode Complet</div>
@@ -302,7 +302,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
 
                       <motion.label
                         whileHover={{ scale: 1.02 }}
-                        className="flex items-start gap-3 p-3 bg-orange-50 rounded-xl cursor-pointer hover:bg-orange-100 transition-colors border border-orange-100"
+                        className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl cursor-pointer hover:bg-amber-100 transition-colors border border-amber-100"
                       >
                         <input
                           type="radio"
@@ -310,7 +310,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                           value="simplified"
                           checked={tempOperatingMode === 'simplified'}
                           onChange={() => setTempOperatingMode('simplified')}
-                          className="mt-1 text-orange-500 focus:ring-orange-400"
+                          className="mt-1 text-amber-500 focus:ring-amber-400"
                         />
                         <div className="flex-1">
                           <div className="text-gray-800 font-medium">Mode Simplifié</div>
@@ -326,7 +326,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                   {tempOperatingMode === 'simplified' && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-                        <Users size={16} className="text-orange-500" />
+                        <Users size={16} className="text-amber-500" />
                         Liste des serveurs
                       </label>
                       <p className="text-xs text-gray-600 mb-3">
@@ -340,13 +340,13 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                           onChange={(e) => setNewServerName(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && handleAddServer()}
                           placeholder="Nom du serveur"
-                          className="flex-1 px-3 py-2 bg-white border border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 text-sm"
+                          className="flex-1 px-3 py-2 bg-white border border-amber-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm"
                         />
                         <motion.button
                           onClick={handleAddServer}
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2"
+                          className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors flex items-center gap-2"
                         >
                           <Plus size={16} />
                           Ajouter
@@ -364,7 +364,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                               key={index}
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
-                              className="flex items-center justify-between p-2 bg-white rounded-lg border border-orange-100"
+                              className="flex items-center justify-between p-2 bg-white rounded-lg border border-amber-100"
                             >
                               <span className="text-sm text-gray-700">{serverName}</span>
                               <button
@@ -386,7 +386,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
               {activeTab === 'general' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-                    <DollarSign size={16} className="text-orange-500" />
+                    <DollarSign size={16} className="text-amber-500" />
                     Devise
                   </label>
                   <div className="space-y-2">
@@ -394,7 +394,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                       <motion.label
                         key={currency.code}
                         whileHover={{ scale: 1.02 }}
-                        className="flex items-center gap-3 p-3 bg-orange-50 rounded-xl cursor-pointer hover:bg-orange-100 transition-colors border border-orange-100"
+                        className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl cursor-pointer hover:bg-amber-100 transition-colors border border-amber-100"
                       >
                         <input
                           type="radio"
@@ -406,7 +406,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                             currency: e.target.value,
                             currencySymbol: currency.symbol,
                           })}
-                          className="text-orange-500 focus:ring-orange-400"
+                          className="text-amber-500 focus:ring-amber-400"
                         />
                         <div>
                           <div className="text-gray-800 font-medium">{currency.name}</div>
@@ -420,7 +420,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
             </div>
 
             {/* Footer Buttons */}
-            <div className="p-6 border-t border-orange-100 bg-white">
+            <div className="p-6 border-t border-amber-100 bg-white">
               <div className="flex gap-3">
                 <motion.button
                   onClick={onClose}
@@ -434,7 +434,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                   onClick={handleSave}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="flex-1 py-3 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 transition-colors"
+                  className="flex-1 py-3 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 transition-colors"
                 >
                   Enregistrer
                 </motion.button>

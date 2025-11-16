@@ -56,11 +56,11 @@ export function BarSelector({ onCreateNew }: BarSelectorProps) {
                     setIsOpen(false);
                   }}
                   className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3 ${
-                    currentBar?.id === bar.id ? 'bg-orange-50' : ''
+                    currentBar?.id === bar.id ? 'bg-amber-50' : ''
                   }`}
                 >
                   <div className={`w-2 h-2 rounded-full ${
-                    currentBar?.id === bar.id ? 'bg-orange-500' : 'bg-gray-300'
+                    currentBar?.id === bar.id ? 'bg-amber-500' : 'bg-gray-300'
                   }`} />
                   <div>
                     <p className="font-medium text-gray-800">{bar.name}</p>
@@ -79,7 +79,7 @@ export function BarSelector({ onCreateNew }: BarSelectorProps) {
                       onCreateNew();
                       setIsOpen(false);
                     }}
-                    className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3 text-orange-600"
+                    className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3 text-amber-600"
                   >
                     <Plus size={20} />
                     <span className="font-medium">Créer un nouveau bar</span>

@@ -52,7 +52,7 @@ const notificationIcons: Record<string, React.ElementType> = {
 
 // Couleurs par priorité
 const priorityColors: Record<NotificationPriority, string> = {
-  high: 'from-red-50 to-orange-50 border-red-300',
+  high: 'from-red-50 to-amber-50 border-red-300',
   medium: 'from-yellow-50 to-amber-50 border-yellow-300',
   info: 'from-blue-50 to-indigo-50 border-blue-300',
 };
@@ -186,7 +186,7 @@ export default function AdminNotificationsPanel({
                 onClick={() => setFilter('medium')}
                 className={`px-3 py-1.5 rounded-lg font-semibold text-sm transition-all ${
                   filter === 'medium'
-                    ? 'bg-white text-orange-700'
+                    ? 'bg-white text-amber-700'
                     : 'bg-purple-500/30 hover:bg-purple-500/50'
                 }`}
               >
@@ -281,7 +281,7 @@ export default function AdminNotificationsPanel({
                       {notification.actions?.includes('impersonate') && (
                         <button
                           onClick={() => handleAction(notification, 'impersonate')}
-                          className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg font-semibold text-xs hover:bg-orange-200 flex items-center gap-1"
+                          className="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg font-semibold text-xs hover:bg-amber-200 flex items-center gap-1"
                         >
                           <UserCog className="w-3.5 h-3.5" />
                           Impersonate

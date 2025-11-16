@@ -323,7 +323,7 @@ export function BarsManagementPanel({ isOpen, onClose, onShowBarStats }: BarsMan
                             alert('Aucun promoteur trouvé pour ce bar');
                           }
                         }}
-                        className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-lg font-semibold text-xs hover:bg-orange-200 flex items-center justify-center gap-1.5"
+                        className="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg font-semibold text-xs hover:bg-amber-200 flex items-center justify-center gap-1.5"
                         title="Se connecter en tant que promoteur"
                       >
                         <UserCog className="w-3.5 h-3.5" />

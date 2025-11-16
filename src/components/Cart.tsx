@@ -48,7 +48,7 @@ export function Cart({
         {!hideFloatingButton && (
           <button
             onClick={onToggle}
-            className="fixed bottom-20 right-4 z-50 w-16 h-16 bg-orange-500 text-white rounded-full shadow-2xl active:scale-95 transition-transform flex items-center justify-center"
+            className="fixed bottom-20 right-4 z-50 w-16 h-16 bg-amber-500 text-white rounded-full shadow-2xl active:scale-95 transition-transform flex items-center justify-center"
             aria-label="Panier"
           >
             <div className="relative">
@@ -94,7 +94,7 @@ export function Cart({
                   {items.map((item) => (
                     <div
                       key={item.product.id}
-                      className="bg-orange-50 rounded-2xl p-4 border border-orange-200"
+                      className="bg-amber-50 rounded-2xl p-4 border border-amber-200"
                     >
                       {/* Nom + bouton supprimer */}
                       <div className="flex items-start justify-between mb-3">
@@ -119,7 +119,7 @@ export function Cart({
                         <div className="flex items-center gap-3">
                           <button
                             onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
-                            className="w-12 h-12 bg-orange-200 text-orange-700 rounded-xl active:bg-orange-300 transition-colors flex items-center justify-center"
+                            className="w-12 h-12 bg-amber-200 text-amber-700 rounded-xl active:bg-amber-300 transition-colors flex items-center justify-center"
                             aria-label="Diminuer quantité"
                           >
                             <Minus size={20} strokeWidth={3} />
@@ -129,7 +129,7 @@ export function Cart({
                           </span>
                           <button
                             onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                            className="w-12 h-12 bg-orange-200 text-orange-700 rounded-xl active:bg-orange-300 transition-colors flex items-center justify-center"
+                            className="w-12 h-12 bg-amber-200 text-amber-700 rounded-xl active:bg-amber-300 transition-colors flex items-center justify-center"
                             aria-label="Augmenter quantité"
                           >
                             <Plus size={20} strokeWidth={3} />
@@ -137,7 +137,7 @@ export function Cart({
                         </div>
 
                         {/* Prix total item */}
-                        <span className="text-orange-600 font-bold text-xl font-mono">
+                        <span className="text-amber-600 font-bold text-xl font-mono">
                           {formatPrice(item.product.price * item.quantity)}
                         </span>
                       </div>
@@ -154,13 +154,13 @@ export function Cart({
                 {isSimplifiedMode && (
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                      <Users size={16} className="text-orange-500" />
+                      <Users size={16} className="text-amber-500" />
                       Serveur qui a servi
                     </label>
                     <select
                       value={selectedServer}
                       onChange={(e) => setSelectedServer(e.target.value)}
-                      className="w-full px-4 py-3 border border-orange-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-base"
+                      className="w-full px-4 py-3 border border-amber-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-base"
                     >
                       <option value="">Sélectionner un serveur...</option>
                       <option value={`Moi (${currentSession?.userName})`}>
@@ -178,7 +178,7 @@ export function Cart({
                 {/* Total */}
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-gray-900 text-lg font-semibold">Total:</span>
-                  <span className="text-orange-600 font-bold text-2xl font-mono">
+                  <span className="text-amber-600 font-bold text-2xl font-mono">
                     {formatPrice(total)}
                   </span>
                 </div>
@@ -198,7 +198,7 @@ export function Cart({
                       setLoading('checkout', false);
                     }}
                     disabled={isLoading('checkout')}
-                    className="flex-1 h-14 bg-orange-500 text-white font-bold text-lg rounded-2xl active:bg-orange-600 disabled:bg-gray-400 transition-colors flex items-center justify-center"
+                    className="flex-1 h-14 bg-amber-500 text-white font-bold text-lg rounded-2xl active:bg-amber-600 disabled:bg-gray-400 transition-colors flex items-center justify-center"
                   >
                     {isLoading('checkout') ? (
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white" />
@@ -236,7 +236,7 @@ export function Cart({
       {/* Bouton panier desktop */}
       <button
         onClick={onToggle}
-        className="fixed bottom-4 right-4 z-50 w-16 h-16 bg-orange-500 text-white rounded-full shadow-lg hover:bg-orange-600 hover:scale-110 transition-all"
+        className="fixed bottom-4 right-4 z-50 w-16 h-16 bg-amber-500 text-white rounded-full shadow-lg hover:bg-amber-600 hover:scale-110 transition-all"
         aria-label="Panier"
       >
         <div className="relative flex items-center justify-center">
@@ -251,13 +251,13 @@ export function Cart({
 
       {/* Panel desktop (slide-in from right) */}
       <div
-        className={`fixed bottom-0 right-0 top-0 w-full max-w-md bg-white border-l border-orange-200 shadow-2xl transition-transform duration-300 z-40 ${
+        className={`fixed bottom-0 right-0 top-0 w-full max-w-md bg-white border-l border-amber-200 shadow-2xl transition-transform duration-300 z-40 ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-orange-200">
+          <div className="flex items-center justify-between p-4 border-b border-amber-200">
             <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
               <ShoppingCart size={20} />
               Panier ({totalItems})
@@ -282,7 +282,7 @@ export function Cart({
                 {items.map((item) => (
                   <div
                     key={item.product.id}
-                    className="bg-orange-50 rounded-xl p-3 border border-orange-100"
+                    className="bg-amber-50 rounded-xl p-3 border border-amber-100"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div>
@@ -301,7 +301,7 @@ export function Cart({
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
-                          className="w-8 h-8 bg-orange-200 text-orange-700 rounded-lg hover:bg-orange-300 transition-colors flex items-center justify-center"
+                          className="w-8 h-8 bg-amber-200 text-amber-700 rounded-lg hover:bg-amber-300 transition-colors flex items-center justify-center"
                         >
                           <Minus size={14} />
                         </button>
@@ -310,12 +310,12 @@ export function Cart({
                         </span>
                         <button
                           onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                          className="w-8 h-8 bg-orange-200 text-orange-700 rounded-lg hover:bg-orange-300 transition-colors flex items-center justify-center"
+                          className="w-8 h-8 bg-amber-200 text-amber-700 rounded-lg hover:bg-amber-300 transition-colors flex items-center justify-center"
                         >
                           <Plus size={14} />
                         </button>
                       </div>
-                      <span className="text-orange-600 font-bold font-mono">
+                      <span className="text-amber-600 font-bold font-mono">
                         {formatPrice(item.product.price * item.quantity)}
                       </span>
                     </div>
@@ -327,18 +327,18 @@ export function Cart({
 
           {/* Footer */}
           {items.length > 0 && (
-            <div className="p-4 border-t border-orange-200 space-y-3">
+            <div className="p-4 border-t border-amber-200 space-y-3">
               {/* Sélecteur serveur (mode simplifié uniquement) */}
               {isSimplifiedMode && (
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1.5 flex items-center gap-1">
-                    <Users size={14} className="text-orange-500" />
+                    <Users size={14} className="text-amber-500" />
                     Serveur
                   </label>
                   <select
                     value={selectedServer}
                     onChange={(e) => setSelectedServer(e.target.value)}
-                    className="w-full px-3 py-2 border border-orange-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                    className="w-full px-3 py-2 border border-amber-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
                   >
                     <option value="">Sélectionner...</option>
                     <option value={`Moi (${currentSession?.userName})`}>
@@ -355,7 +355,7 @@ export function Cart({
 
               <div className="flex justify-between items-center">
                 <span className="text-gray-800 text-lg font-semibold">Total:</span>
-                <span className="text-orange-600 text-2xl font-bold font-mono">
+                <span className="text-amber-600 text-2xl font-bold font-mono">
                   {formatPrice(total)}
                 </span>
               </div>

@@ -61,9 +61,9 @@ export function CategoryModal({ isOpen, onClose, onSave, category }: CategoryMod
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className="bg-white rounded-2xl w-full max-w-md shadow-xl border border-orange-100"
+            className="bg-white rounded-2xl w-full max-w-md shadow-xl border border-amber-100"
           >
-            <div className="flex items-center justify-between p-6 border-b border-orange-100">
+            <div className="flex items-center justify-between p-6 border-b border-amber-100">
               <h2 className="text-xl font-semibold text-gray-800">
                 {category ? 'Modifier la catégorie' : 'Ajouter une catégorie'}
               </h2>
@@ -87,7 +87,7 @@ export function CategoryModal({ isOpen, onClose, onSave, category }: CategoryMod
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-orange-200 rounded-xl text-gray-800 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100"
+                  className="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-gray-800 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
                   placeholder="ex: Sodas, Spiritueux"
                 />
               </div>
@@ -130,7 +130,7 @@ export function CategoryModal({ isOpen, onClose, onSave, category }: CategoryMod
                   type="submit"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="flex-1 py-3 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 transition-colors"
+                  className="flex-1 py-3 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 transition-colors"
                 >
                   {category ? 'Modifier' : 'Ajouter'}
                 </motion.button>

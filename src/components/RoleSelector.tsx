@@ -8,7 +8,7 @@ interface RoleSelectorProps {
 
 export function RoleSelector({ onSelectRole }: RoleSelectorProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-50 flex items-center justify-center p-4">
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -25,10 +25,10 @@ export function RoleSelector({ onSelectRole }: RoleSelectorProps) {
             onClick={() => onSelectRole('manager')}
             whileHover={{ scale: 1.02, y: -2 }}
             whileTap={{ scale: 0.98 }}
-            className="w-full p-6 bg-white hover:bg-orange-50 border border-orange-200 rounded-xl transition-all duration-200 group shadow-sm"
+            className="w-full p-6 bg-white hover:bg-amber-50 border border-amber-200 rounded-xl transition-all duration-200 group shadow-sm"
           >
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-orange-500 rounded-xl group-hover:bg-orange-600 transition-colors">
+              <div className="p-3 bg-amber-500 rounded-xl group-hover:bg-amber-600 transition-colors">
                 <Settings size={24} className="text-white" />
               </div>
               <div className="text-left">
@@ -42,7 +42,7 @@ export function RoleSelector({ onSelectRole }: RoleSelectorProps) {
             onClick={() => onSelectRole('server')}
             whileHover={{ scale: 1.02, y: -2 }}
             whileTap={{ scale: 0.98 }}
-            className="w-full p-6 bg-white hover:bg-orange-50 border border-orange-200 rounded-xl transition-all duration-200 group shadow-sm"
+            className="w-full p-6 bg-white hover:bg-amber-50 border border-amber-200 rounded-xl transition-all duration-200 group shadow-sm"
           >
             <div className="flex items-center gap-4">
               <div className="p-3 bg-amber-500 rounded-xl group-hover:bg-amber-600 transition-colors">

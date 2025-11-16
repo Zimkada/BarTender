@@ -66,7 +66,7 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
             >
               <div className="flex items-center justify-between p-5 border-b border-gray-200 bg-white">
                 <h2 className="text-xl font-bold text-gray-800 flex items-center gap-3">
-                  <Clock size={24} className="text-orange-500" />
+                  <Clock size={24} className="text-amber-500" />
                   Ventes en attente de validation
                 </h2>
                 <motion.button
@@ -94,12 +94,12 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, x: -20 }}
-                      className="bg-white rounded-xl p-4 shadow-md border border-gray-100 hover:border-orange-300 transition-colors"
+                      className="bg-white rounded-xl p-4 shadow-md border border-gray-100 hover:border-amber-300 transition-colors"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                            <User className="text-orange-500" size={24} />
+                          <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+                            <User className="text-amber-500" size={24} />
                           </div>
                           <div>
                             <h3 className="font-bold text-gray-800">
@@ -134,7 +134,7 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
                         </div>
                       </div>
 
-                      <div className="space-y-2 mb-4 pl-4 border-l-2 border-orange-200">
+                      <div className="space-y-2 mb-4 pl-4 border-l-2 border-amber-200">
                         {sale.items.map((item: CartItem, index: number) => (
                           <div key={index} className="flex items-center justify-between text-sm ml-4">
                             <div className="flex items-center gap-2">
@@ -151,7 +151,7 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
 
                       <div className="flex justify-between items-center pt-3 border-t border-gray-200 mt-3">
                         <span className="text-gray-800 font-bold text-lg">Total à encaisser:</span>
-                        <span className="text-orange-600 font-bold text-xl">
+                        <span className="text-amber-600 font-bold text-xl">
                           {formatPrice(sale.total)}
                         </span>
                       </div>

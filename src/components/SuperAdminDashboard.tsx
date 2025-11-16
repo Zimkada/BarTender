@@ -364,9 +364,9 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
               </div>
 
               {stats.suspendedUsers > 0 && (
-                <div className="mt-3 bg-orange-50 border border-orange-200 rounded-lg p-3 flex items-start gap-2">
-                  <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-orange-800">
+                <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-amber-800">
                     <span className="font-semibold">{stats.suspendedUsers}</span> utilisateur{stats.suspendedUsers > 1 ? 's' : ''} suspendu{stats.suspendedUsers > 1 ? 's' : ''}.
                   </p>
                 </div>
@@ -443,12 +443,12 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
                 </div>
 
                 {/* Ventes Count Card */}
-                <div className="bg-gradient-to-br from-orange-50 to-amber-100 rounded-xl p-4 md:p-6 shadow-sm border border-orange-200">
+                <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 md:p-6 shadow-sm border border-amber-200">
                   <div className="flex items-start gap-3">
-                    <ShoppingCart className="w-8 h-8 text-orange-600 flex-shrink-0" />
+                    <ShoppingCart className="w-8 h-8 text-amber-600 flex-shrink-0" />
                     <div className="flex-1">
                       <p className="text-gray-600 text-sm mb-1">Nombre de Ventes</p>
-                      <p className="text-3xl md:text-4xl font-bold text-orange-600">{stats.totalSalesToday}</p>
+                      <p className="text-3xl md:text-4xl font-bold text-amber-600">{stats.totalSalesToday}</p>
                       <p className="text-xs text-gray-500 mt-1">Transactions effectuées</p>
 
                       {/* Trend indicators */}
@@ -532,7 +532,7 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
                                 : index === 1
                                 ? 'bg-gray-300 text-gray-700'
                                 : index === 2
-                                ? 'bg-orange-300 text-orange-900'
+                                ? 'bg-amber-300 text-amber-900'
                                 : 'bg-gray-100 text-gray-600'
                             }`}
                           >

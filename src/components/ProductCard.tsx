@@ -43,7 +43,7 @@ export function ProductCard({ product, onAddToCart, compact = false }: ProductCa
 
   const getStockBadgeColor = () => {
     if (product.stock === 0) return 'bg-red-500';
-    if (isLowStock) return 'bg-orange-500';
+    if (isLowStock) return 'bg-amber-500';
     return 'bg-green-500';
   };
 
@@ -55,7 +55,7 @@ export function ProductCard({ product, onAddToCart, compact = false }: ProductCa
         <div className="flex items-center gap-4 p-4">
           {/* Image produit 80x80 */}
           <div className="relative flex-shrink-0">
-            <div className="w-20 h-20 bg-gradient-to-br from-orange-100 to-amber-100 rounded-xl flex items-center justify-center overflow-hidden">
+            <div className="w-20 h-20 bg-gradient-to-br from-amber-100 to-amber-100 rounded-xl flex items-center justify-center overflow-hidden">
               {product.image ? (
                 <img
                   src={product.image}
@@ -63,7 +63,7 @@ export function ProductCard({ product, onAddToCart, compact = false }: ProductCa
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <Package size={32} className="text-orange-400" />
+                <Package size={32} className="text-amber-400" />
               )}
             </div>
 
@@ -74,7 +74,7 @@ export function ProductCard({ product, onAddToCart, compact = false }: ProductCa
 
             {/* Alerte stock faible */}
             {isLowStock && product.stock > 0 && (
-              <div className="absolute -bottom-1 -right-1 bg-orange-500 text-white rounded-full p-1">
+              <div className="absolute -bottom-1 -right-1 bg-amber-500 text-white rounded-full p-1">
                 <AlertTriangle size={12} />
               </div>
             )}
@@ -88,7 +88,7 @@ export function ProductCard({ product, onAddToCart, compact = false }: ProductCa
             <p className="text-sm text-gray-600 mb-2">
               {product.volume}
             </p>
-            <p className="text-xl font-bold text-orange-600 font-mono">
+            <p className="text-xl font-bold text-amber-600 font-mono">
               {formatPrice(product.price)}
             </p>
           </div>
@@ -104,7 +104,7 @@ export function ProductCard({ product, onAddToCart, compact = false }: ProductCa
                 ? 'bg-gray-400 cursor-not-allowed'
                 : showFeedback
                   ? 'bg-green-500'
-                  : 'bg-orange-500 active:bg-orange-600'
+                  : 'bg-amber-500 active:bg-amber-600'
               }
             `}
             aria-label={`Ajouter ${product.name} au panier`}
@@ -125,14 +125,14 @@ export function ProductCard({ product, onAddToCart, compact = false }: ProductCa
   // ==================== VERSION DESKTOP (1% promoteurs avec PC) ====================
   // Card verticale classique pour grid
   return (
-    <div className="bg-gradient-to-br from-orange-100 to-amber-100 rounded-2xl p-4 shadow-sm border border-orange-100 hover:shadow-md transition-shadow relative">
+    <div className="bg-gradient-to-br from-amber-100 to-amber-100 rounded-2xl p-4 shadow-sm border border-amber-100 hover:shadow-md transition-shadow relative">
       {/* Stock Badge */}
       <div className={`absolute top-3 right-3 ${getStockBadgeColor()} text-white text-xs px-2 py-1 rounded-full font-bold z-10`}>
         {product.stock}
       </div>
 
       {/* Image Container */}
-      <div className="aspect-square bg-gradient-to-br from-orange-100 to-amber-100 rounded-xl mb-3 flex items-center justify-center overflow-hidden">
+      <div className="aspect-square bg-gradient-to-br from-amber-100 to-amber-100 rounded-xl mb-3 flex items-center justify-center overflow-hidden">
         {product.image ? (
           <img
             src={product.image}
@@ -140,7 +140,7 @@ export function ProductCard({ product, onAddToCart, compact = false }: ProductCa
             className="w-full h-full object-cover"
           />
         ) : (
-          <Package size={48} className="text-orange-400" />
+          <Package size={48} className="text-amber-400" />
         )}
       </div>
 
@@ -151,7 +151,7 @@ export function ProductCard({ product, onAddToCart, compact = false }: ProductCa
         <p className="text-gray-600 text-sm">{product.volume}</p>
 
         <div className="flex items-center justify-between pt-2">
-          <span className="text-orange-600 font-bold text-lg font-mono">
+          <span className="text-amber-600 font-bold text-lg font-mono">
             {formatPrice(product.price)}
           </span>
 
@@ -165,7 +165,7 @@ export function ProductCard({ product, onAddToCart, compact = false }: ProductCa
                 ? 'bg-gray-400 cursor-not-allowed'
                 : showFeedback
                   ? 'bg-green-500'
-                  : 'bg-orange-500 hover:bg-orange-600'
+                  : 'bg-amber-500 hover:bg-amber-600'
               }
             `}
             aria-label={`Ajouter ${product.name} au panier`}
@@ -183,7 +183,7 @@ export function ProductCard({ product, onAddToCart, compact = false }: ProductCa
 
       {/* Alert stock faible desktop */}
       {isLowStock && product.stock > 0 && (
-        <div className="absolute top-3 left-3 bg-orange-500 text-white rounded-full p-1.5">
+        <div className="absolute top-3 left-3 bg-amber-500 text-white rounded-full p-1.5">
           <AlertTriangle size={16} />
         </div>
       )}

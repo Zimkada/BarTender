@@ -533,7 +533,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className={`bg-gradient-to-br from-orange-50 to-amber-50 w-full shadow-2xl overflow-hidden ${
+            className={`bg-gradient-to-br from-amber-50 to-amber-50 w-full shadow-2xl overflow-hidden ${
               isMobile
                 ? 'h-full'
                 : 'rounded-2xl max-w-7xl max-h-[85vh] md:max-h-[90vh]'
@@ -543,7 +543,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
             {isMobile ? (
               <div className="flex flex-col h-full">
                 {/* Header mobile */}
-                <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-orange-200">
+                <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-amber-200">
                   <div className="flex items-center gap-2">
                     <TrendingUp className="w-6 h-6 text-blue-600" />
                     <div>
@@ -566,7 +566,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                   </div>
                 </div>
                 {/* Filtres compacts en haut (stats retirées, disponibles dans Analytics) */}
-                <div className="flex-shrink-0 bg-orange-50 p-3">
+                <div className="flex-shrink-0 bg-amber-50 p-3">
                   {/* Sélecteur format export mobile */}
                   <div className="flex gap-1 mb-3">
                     <button
@@ -604,7 +604,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                         onClick={() => setTimeFilter(filter.value as TimeFilter)}
                         className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium transition-colors ${
                           timeFilter === filter.value
-                            ? 'bg-orange-500 text-white'
+                            ? 'bg-amber-500 text-white'
                             : 'bg-white text-gray-700'
                         }`}
                       >
@@ -620,14 +620,14 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                         type="date"
                         value={customDateRange.start}
                         onChange={(e) => setCustomDateRange(prev => ({ ...prev, start: e.target.value }))}
-                        className="flex-1 p-2 border border-orange-200 rounded-lg bg-white text-sm"
+                        className="flex-1 p-2 border border-amber-200 rounded-lg bg-white text-sm"
                         placeholder="Début"
                       />
                       <input
                         type="date"
                         value={customDateRange.end}
                         onChange={(e) => setCustomDateRange(prev => ({ ...prev, end: e.target.value }))}
-                        className="flex-1 p-2 border border-orange-200 rounded-lg bg-white text-sm"
+                        className="flex-1 p-2 border border-amber-200 rounded-lg bg-white text-sm"
                         placeholder="Fin"
                       />
                     </div>
@@ -641,7 +641,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                       placeholder="ID vente ou produit..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 border border-orange-200 rounded-lg bg-white text-sm"
+                      className="w-full pl-9 pr-3 py-2 border border-amber-200 rounded-lg bg-white text-sm"
                     />
                   </div>
 
@@ -659,7 +659,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                           onClick={() => setViewMode(mode.value as ViewMode)}
                           className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium transition-colors flex items-center gap-1 ${
                             viewMode === mode.value
-                              ? 'bg-orange-500 text-white'
+                              ? 'bg-amber-500 text-white'
                               : 'bg-white text-gray-700'
                           }`}
                         >
@@ -723,7 +723,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
               /* ==================== VERSION DESKTOP ==================== */
               <>
                 {/* Header desktop */}
-                <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-orange-200">
+                <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-amber-200">
                   <div className="flex items-center gap-3">
                     <TrendingUp className="w-8 h-8 text-blue-600" />
                     <div>
@@ -771,22 +771,22 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                 </div>
               <div className="flex h-[calc(85vh-120px)] md:h-[calc(90vh-120px)]">
                 {/* Sidebar filtres */}
-                <div className="w-80 border-r border-orange-200 p-6 overflow-y-auto">
+                <div className="w-80 border-r border-amber-200 p-6 overflow-y-auto">
                   {/* Statistiques */}
                   <div className="mb-6">
                     <h3 className="font-semibold text-gray-800 mb-3">Statistiques</h3>
                     <div className="space-y-3">
-                      <div className="bg-orange-100 rounded-lg p-3">
-                        <p className="text-orange-600 text-sm font-medium">Chiffre d'affaires (NET)</p>
-                        <p className="text-orange-800 font-bold text-lg">{formatPrice(stats.totalRevenue)}</p>
+                      <div className="bg-amber-100 rounded-lg p-3">
+                        <p className="text-amber-600 text-sm font-medium">Chiffre d'affaires (NET)</p>
+                        <p className="text-amber-800 font-bold text-lg">{formatPrice(stats.totalRevenue)}</p>
                       </div>
-                      <div className="bg-orange-100 rounded-lg p-3">
-                        <p className="text-orange-600 text-sm font-medium">Articles vendus</p>
-                        <p className="text-orange-800 font-bold text-lg">{stats.totalItems}</p>
+                      <div className="bg-amber-100 rounded-lg p-3">
+                        <p className="text-amber-600 text-sm font-medium">Articles vendus</p>
+                        <p className="text-amber-800 font-bold text-lg">{stats.totalItems}</p>
                       </div>
-                      <div className="bg-orange-100 rounded-lg p-3">
-                        <p className="text-orange-600 text-sm font-medium">{stats.kpiLabel}</p>
-                        <p className="text-orange-800 font-bold text-lg">{formatPrice(stats.kpiValue)}</p>
+                      <div className="bg-amber-100 rounded-lg p-3">
+                        <p className="text-amber-600 text-sm font-medium">{stats.kpiLabel}</p>
+                        <p className="text-amber-800 font-bold text-lg">{formatPrice(stats.kpiValue)}</p>
                       </div>
                       {(() => {
                         // Calculer les retours de la période filtrée
@@ -867,8 +867,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                           onClick={() => setTimeFilter(filter.value as TimeFilter)}
                           className={`w-full text-left p-2 rounded-lg transition-colors ${
                             timeFilter === filter.value
-                              ? 'bg-orange-500 text-white'
-                              : 'bg-white text-gray-700 hover:bg-orange-50'
+                              ? 'bg-amber-500 text-white'
+                              : 'bg-white text-gray-700 hover:bg-amber-50'
                           }`}
                         >
                           {filter.label}
@@ -882,13 +882,13 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                           type="date"
                           value={customDateRange.start}
                           onChange={(e) => setCustomDateRange(prev => ({ ...prev, start: e.target.value }))}
-                          className="w-full p-2 border border-orange-200 rounded-lg bg-white text-sm"
+                          className="w-full p-2 border border-amber-200 rounded-lg bg-white text-sm"
                         />
                         <input
                           type="date"
                           value={customDateRange.end}
                           onChange={(e) => setCustomDateRange(prev => ({ ...prev, end: e.target.value }))}
-                          className="w-full p-2 border border-orange-200 rounded-lg bg-white text-sm"
+                          className="w-full p-2 border border-amber-200 rounded-lg bg-white text-sm"
                         />
                       </div>
                     )}
@@ -909,7 +909,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                                 <p className="text-xs text-gray-600">{product.volume}</p>
                               </div>
                               <div className="text-right">
-                                <p className="text-sm font-bold text-orange-600">{product.count}</p>
+                                <p className="text-sm font-bold text-amber-600">{product.count}</p>
                                 <p className="text-xs text-gray-500">{formatPrice(product.revenue)}</p>
                               </div>
                             </div>
@@ -929,7 +929,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                         placeholder="ID vente ou produit..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 border border-orange-200 rounded-lg bg-white text-sm"
+                        className="w-full pl-9 pr-3 py-2 border border-amber-200 rounded-lg bg-white text-sm"
                       />
                     </div>
                   </div>
@@ -938,11 +938,11 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                 {/* Contenu principal */}
                 <div className="flex-1 flex flex-col">
                   {/* Toolbar */}
-                  <div className="p-4 border-b border-orange-200 bg-orange-50">
+                  <div className="p-4 border-b border-amber-200 bg-amber-50">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600">Mode d'affichage:</span>
-                        <div className="flex border border-orange-300 rounded-lg overflow-hidden">
+                        <div className="flex border border-amber-300 rounded-lg overflow-hidden">
                           {[
                             { value: 'list', icon: Users, label: 'Liste' },
                             { value: 'cards', icon: Eye, label: 'Détails' },
@@ -955,8 +955,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                                 onClick={() => setViewMode(mode.value as ViewMode)}
                                 className={`px-3 py-1.5 text-sm flex items-center gap-1 transition-colors ${
                                   viewMode === mode.value
-                                    ? 'bg-orange-500 text-white'
-                                    : 'bg-white text-gray-700 hover:bg-orange-100'
+                                    ? 'bg-amber-500 text-white'
+                                    : 'bg-white text-gray-700 hover:bg-amber-100'
                                 }`}
                               >
                                 <Icon size={14} />
@@ -1095,7 +1095,7 @@ function SaleCard({
   return (
     <motion.div
       whileHover={{ y: -2 }}
-      className="bg-white rounded-xl p-4 border border-orange-100 shadow-sm hover:shadow-md transition-all"
+      className="bg-white rounded-xl p-4 border border-amber-100 shadow-sm hover:shadow-md transition-all"
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex-1">
@@ -1116,7 +1116,7 @@ function SaleCard({
           )}
         </div>
         <div className="text-right">
-          <span className="text-lg font-bold text-orange-600">{formatPrice(sale.total)}</span>
+          <span className="text-lg font-bold text-amber-600">{formatPrice(sale.total)}</span>
           {hasReturns && refundedAmount > 0 && (
             <p className="text-xs text-red-600 font-medium">
               -{formatPrice(refundedAmount).replace(/\s/g, '')}
@@ -1182,9 +1182,9 @@ function SalesList({
   users?: User[];
 }) {
   return (
-    <div className="bg-white rounded-xl border border-orange-100 overflow-x-auto">
+    <div className="bg-white rounded-xl border border-amber-100 overflow-x-auto">
       <table className="w-full min-w-[900px]">
-        <thead className="bg-orange-50">
+        <thead className="bg-amber-50">
           <tr>
             <th className="text-left p-4 font-medium text-gray-700">ID</th>
             <th className="text-left p-4 font-medium text-gray-700">Statut</th>
@@ -1222,7 +1222,7 @@ function SalesList({
             const validator = sale.validatedBy ? users?.find(u => u.id === sale.validatedBy) : null;
 
             return (
-              <tr key={sale.id} className="border-t border-orange-100 hover:bg-orange-25">
+              <tr key={sale.id} className="border-t border-amber-100 hover:bg-amber-50">
                 <td className="p-4">
                   <div className="flex items-center gap-2">
                     <span>#{sale.id.slice(-6)}</span>
@@ -1254,7 +1254,7 @@ function SalesList({
                 </td>
                 <td className="p-4">{itemCount} articles</td>
                 <td className="p-4">
-                  <span className={`font-semibold ${hasReturns ? 'text-gray-500 line-through' : 'text-orange-600'}`}>
+                  <span className={`font-semibold ${hasReturns ? 'text-gray-500 line-through' : 'text-amber-600'}`}>
                     {formatPrice(sale.total)}
                   </span>
                 </td>
@@ -1834,9 +1834,9 @@ function AnalyticsView({
     <div className="space-y-4">
       {/* KPIs principaux */}
       <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-4'} gap-3`}>
-        <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl p-4 border border-orange-200">
-          <h4 className="text-xs font-medium text-orange-700 mb-1">Chiffre d'affaires</h4>
-          <p className="text-xl font-bold text-orange-900">{formatPrice(kpis.revenue.value)}</p>
+        <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 border border-amber-200">
+          <h4 className="text-xs font-medium text-amber-700 mb-1">Chiffre d'affaires</h4>
+          <p className="text-xl font-bold text-amber-900">{formatPrice(kpis.revenue.value)}</p>
           <div className="flex items-center gap-1 mt-1">
             <TrendIcon change={kpis.revenue.change} />
             <span className={`text-xs font-medium ${kpis.revenue.change > 0 ? 'text-green-600' : kpis.revenue.change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
@@ -1856,16 +1856,16 @@ function AnalyticsView({
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-orange-50 to-amber-100 rounded-xl p-4 border border-orange-200">
-          <h4 className="text-xs font-medium text-orange-700 mb-1">{kpis.kpi.label}</h4>
-          <p className="text-xl font-bold text-orange-900">{formatPrice(kpis.kpi.value)}</p>
+        <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 border border-amber-200">
+          <h4 className="text-xs font-medium text-amber-700 mb-1">{kpis.kpi.label}</h4>
+          <p className="text-xl font-bold text-amber-900">{formatPrice(kpis.kpi.value)}</p>
           <div className="flex items-center gap-1 mt-1">
-            <Clock className="w-4 h-4 text-orange-600" />
-            <span className="text-xs font-medium text-orange-600">Période actuelle</span>
+            <Clock className="w-4 h-4 text-amber-600" />
+            <span className="text-xs font-medium text-amber-600">Période actuelle</span>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-amber-50 to-orange-100 rounded-xl p-4 border border-amber-200">
+        <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 border border-amber-200">
           <h4 className="text-xs font-medium text-amber-700 mb-1">Articles vendus</h4>
           <p className="text-xl font-bold text-amber-900">{kpis.items.value}</p>
           <div className="flex items-center gap-1 mt-1">
@@ -1880,7 +1880,7 @@ function AnalyticsView({
       {/* Graphiques principaux */}
       <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
         {/* Évolution CA - granularité adaptative */}
-        <div className="bg-white rounded-xl p-4 border border-orange-100">
+        <div className="bg-white rounded-xl p-4 border border-amber-100">
           <h4 className="text-sm font-semibold text-gray-800 mb-3">
             Évolution du CA
             <span className="text-xs text-gray-500 ml-2">
@@ -1902,7 +1902,7 @@ function AnalyticsView({
         </div>
 
         {/* Répartition par catégorie */}
-        <div className="bg-white rounded-xl p-4 border border-orange-100">
+        <div className="bg-white rounded-xl p-4 border border-amber-100">
           <h4 className="text-sm font-semibold text-gray-800 mb-3">Répartition par catégorie</h4>
           <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
             <PieChart>
@@ -1960,9 +1960,9 @@ function AnalyticsView({
               <p className="text-xs text-gray-500 mt-1">{formatPrice(consignmentStats.claimedValue)}</p>
             </div>
 
-            <div className="bg-white rounded-lg p-3 border border-orange-100">
+            <div className="bg-white rounded-lg p-3 border border-amber-100">
               <p className="text-xs text-gray-600 mb-1">Expirées</p>
-              <p className="text-lg font-bold text-orange-900">{consignmentStats.expired}</p>
+              <p className="text-lg font-bold text-amber-900">{consignmentStats.expired}</p>
             </div>
 
             <div className="bg-white rounded-lg p-3 border border-red-100">
@@ -1991,13 +1991,13 @@ function AnalyticsView({
       )}
 
       {/* Performance équipe */}
-      <div className="bg-white rounded-xl p-4 border border-orange-100">
+      <div className="bg-white rounded-xl p-4 border border-amber-100">
         <div className="flex items-center justify-between mb-3">
           <h4 className="text-sm font-semibold text-gray-800">Performance Équipe</h4>
           <select
             value={userFilter}
             onChange={(e) => setUserFilter(e.target.value as any)}
-            className="text-xs border border-orange-200 rounded-lg px-2 py-1 bg-white"
+            className="text-xs border border-amber-200 rounded-lg px-2 py-1 bg-white"
           >
             <option value="all">Tous</option>
             <option value="servers">Serveurs</option>
@@ -2007,7 +2007,7 @@ function AnalyticsView({
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-orange-100">
+              <tr className="border-b border-amber-100">
                 <th className="text-left text-xs font-medium text-gray-600 pb-2 px-1">Nom</th>
                 <th className="text-right text-xs font-medium text-gray-600 pb-2 px-2">CA</th>
                 <th className="text-right text-xs font-medium text-gray-600 pb-2 px-2">Ventes</th>
@@ -2018,7 +2018,7 @@ function AnalyticsView({
               {userPerformance.sort((a, b) => b.revenue - a.revenue).map((user, index) => {
                 const badge = getRoleBadge(user.role);
                 return (
-                  <tr key={index} className="border-b border-orange-50">
+                  <tr key={index} className="border-b border-amber-50">
                     <td className="py-2 px-1">
                       <div className="flex items-center gap-2">
                         <span className={`text-xs px-2 py-0.5 rounded-full ${badge.color}`}>
@@ -2027,7 +2027,7 @@ function AnalyticsView({
                         <span className="text-sm font-medium text-gray-800">{user.name}</span>
                       </div>
                     </td>
-                    <td className="text-right text-sm font-semibold text-orange-600 py-2 px-2">
+                    <td className="text-right text-sm font-semibold text-amber-600 py-2 px-2">
                       {formatPrice(user.revenue)}
                     </td>
                     <td className="text-right text-sm text-gray-600 py-2 px-2">{user.sales}</td>
@@ -2045,7 +2045,7 @@ function AnalyticsView({
       {/* Top produits - 3 graphiques */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Top par unités vendues */}
-        <div className="bg-white rounded-xl p-4 border border-orange-100">
+        <div className="bg-white rounded-xl p-4 border border-amber-100">
           <h4 className="text-sm font-semibold text-gray-800 mb-3">Top 5 - Unités vendues</h4>
           <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
             <BarChart data={topProductsData.byUnits}>
@@ -2059,7 +2059,7 @@ function AnalyticsView({
         </div>
 
         {/* Top par CA */}
-        <div className="bg-white rounded-xl p-4 border border-orange-100">
+        <div className="bg-white rounded-xl p-4 border border-amber-100">
           <h4 className="text-sm font-semibold text-gray-800 mb-3">Top 5 - Chiffre d'affaires</h4>
           <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
             <BarChart data={topProductsData.byRevenue}>
@@ -2073,7 +2073,7 @@ function AnalyticsView({
         </div>
 
         {/* Top par bénéfice */}
-        <div className="bg-white rounded-xl p-4 border border-orange-100">
+        <div className="bg-white rounded-xl p-4 border border-amber-100">
           <h4 className="text-sm font-semibold text-gray-800 mb-3">Top 5 - Bénéfices</h4>
           <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
             <BarChart data={topProductsData.byProfit}>
@@ -2135,7 +2135,7 @@ function SaleDetailModal({
                     <p className="font-medium text-gray-800">{item.product.name} {item.product.volume ? `(${item.product.volume})` : ''}</p>
                     <p className="text-sm text-gray-600">Qté: {item.quantity}</p>
                   </div>
-                  <span className="font-semibold text-orange-600">
+                  <span className="font-semibold text-amber-600">
                     {formatPrice(item.product.price * item.quantity)}
                   </span>
                 </div>
@@ -2146,7 +2146,7 @@ function SaleDetailModal({
           <div className="border-t pt-4">
             <div className="flex justify-between items-center">
               <span className="text-lg font-semibold text-gray-800">Total</span>
-              <span className="text-xl font-bold text-orange-600">{formatPrice(sale.total)}</span>
+              <span className="text-xl font-bold text-amber-600">{formatPrice(sale.total)}</span>
             </div>
           </div>
         </div>

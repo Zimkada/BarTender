@@ -272,12 +272,12 @@ export function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
                 </div>
 
                 {/* Sales Count Card */}
-                <div className="bg-gradient-to-br from-orange-50 to-amber-100 rounded-xl p-4 md:p-5 shadow-sm border border-orange-200">
+                <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 md:p-5 shadow-sm border border-amber-200">
                   <div className="flex items-start gap-3">
-                    <ShoppingCart className="w-7 h-7 text-orange-600 flex-shrink-0" />
+                    <ShoppingCart className="w-7 h-7 text-amber-600 flex-shrink-0" />
                     <div className="flex-1">
                       <p className="text-gray-600 text-sm mb-1">Ventes Aujourd'hui</p>
-                      <p className="text-2xl md:text-3xl font-bold text-orange-600">{stats.salesToday}</p>
+                      <p className="text-2xl md:text-3xl font-bold text-amber-600">{stats.salesToday}</p>
                       <p className="text-xs text-gray-500 mt-1">Transactions effectuées</p>
 
                       {/* Trends */}
@@ -386,7 +386,7 @@ export function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
                               : index === 1
                               ? 'bg-gray-300 text-gray-700'
                               : index === 2
-                              ? 'bg-orange-300 text-orange-900'
+                              ? 'bg-amber-300 text-amber-900'
                               : 'bg-gray-100 text-gray-600'
                           }`}
                         >
@@ -437,12 +437,12 @@ export function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
               {/* Stock Alerts */}
               <section>
                 <div className="flex items-center gap-2 mb-3">
-                  <Package className="w-5 h-5 text-orange-600" />
+                  <Package className="w-5 h-5 text-amber-600" />
                   <h3 className="text-lg font-bold text-gray-900">Alertes Stock</h3>
                 </div>
                 <div className={`rounded-xl p-4 border ${
                   stats.lowStockItems > 0
-                    ? 'bg-gradient-to-br from-red-50 to-orange-50 border-red-200'
+                    ? 'bg-gradient-to-br from-red-50 to-amber-50 border-red-200'
                     : 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200'
                 }`}>
                   {stats.lowStockItems > 0 ? (

@@ -43,7 +43,7 @@ export function UserManagement({ isOpen, onClose }: UserManagementProps) {
   const getRoleColor = (role: UserRole) => {
     switch (role) {
       case 'promoteur': return 'text-purple-600 bg-purple-100';
-      case 'gerant': return 'text-orange-600 bg-orange-100';
+      case 'gerant': return 'text-amber-600 bg-amber-100';
       case 'serveur': return 'text-amber-600 bg-amber-100';
     }
   };
@@ -130,17 +130,17 @@ export function UserManagement({ isOpen, onClose }: UserManagementProps) {
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl"
+            className="bg-gradient-to-br from-amber-50 to-amber-50 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl"
           >
             {/* Header avec bouton fermer */}
-            <div className="bg-gradient-to-r from-orange-500 to-amber-500 p-6 flex justify-between items-center">
+            <div className="bg-gradient-to-r from-amber-500 to-amber-500 p-6 flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                   <Users className="text-white" size={24} />
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-white">Équipe du bar</h2>
-                  <p className="text-orange-100">{currentBar?.name}</p>
+                  <p className="text-amber-100">{currentBar?.name}</p>
                 </div>
               </div>
               <button
@@ -159,7 +159,7 @@ export function UserManagement({ isOpen, onClose }: UserManagementProps) {
                   <div className="flex justify-end">
                     <button
                       onClick={() => setShowAddUser(true)}
-                      className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition-colors flex items-center gap-2 shadow-md"
+                      className="bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors flex items-center gap-2 shadow-md"
                     >
                       <UserPlus size={20} />
                       Ajouter un membre
@@ -175,8 +175,8 @@ export function UserManagement({ isOpen, onClose }: UserManagementProps) {
               <p className="text-gray-600">Gérants</p>
               <p className="text-2xl font-bold">{managers.length}</p>
             </div>
-            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-              <UserIcon className="w-6 h-6 text-orange-600" />
+            <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+              <UserIcon className="w-6 h-6 text-amber-600" />
             </div>
           </div>
         </div>
@@ -297,11 +297,11 @@ export function UserManagement({ isOpen, onClose }: UserManagementProps) {
                         onClick={() => setSelectedRole('gerant')}
                         className={`p-3 rounded-lg border-2 transition-all ${
                           selectedRole === 'gerant'
-                            ? 'border-orange-500 bg-orange-50'
+                            ? 'border-amber-500 bg-amber-50'
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
                       >
-                        <UserIcon className="w-5 h-5 mx-auto mb-1 text-orange-600" />
+                        <UserIcon className="w-5 h-5 mx-auto mb-1 text-amber-600" />
                         <span className="text-sm">Gérant</span>
                       </button>
                     )}
@@ -332,7 +332,7 @@ export function UserManagement({ isOpen, onClose }: UserManagementProps) {
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                     placeholder="nom.prenom"
                   />
                 </div>
@@ -345,7 +345,7 @@ export function UserManagement({ isOpen, onClose }: UserManagementProps) {
                     type="text"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                     placeholder="Minimum 4 caractères"
                   />
                   <p className="text-xs text-gray-500 mt-1">
@@ -361,7 +361,7 @@ export function UserManagement({ isOpen, onClose }: UserManagementProps) {
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                     placeholder="Prénom Nom"
                   />
                 </div>
@@ -374,7 +374,7 @@ export function UserManagement({ isOpen, onClose }: UserManagementProps) {
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                     placeholder="0197000000"
                   />
                 </div>
@@ -387,7 +387,7 @@ export function UserManagement({ isOpen, onClose }: UserManagementProps) {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                     placeholder="email@exemple.com"
                   />
                 </div>
@@ -416,7 +416,7 @@ export function UserManagement({ isOpen, onClose }: UserManagementProps) {
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                    className="flex-1 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
                   >
                     Créer le compte
                   </button>

@@ -52,7 +52,7 @@ export function MobileNavigation({
       icon: <Zap size={24} />,
       label: 'Vente',
       onClick: onShowQuickSale,
-      color: 'text-orange-600',
+      color: 'text-amber-600',
       roles: ['serveur', 'gerant', 'promoteur']
     },
     {
@@ -112,7 +112,7 @@ export function MobileNavigation({
           <button
             key={index}
             onClick={item.onClick}
-            className="flex-1 flex flex-col items-center justify-center gap-1 h-full active:bg-orange-50 transition-colors"
+            className="flex-1 flex flex-col items-center justify-center gap-1 h-full active:bg-amber-50 transition-colors"
             aria-label={item.label}
           >
             <span className={item.color}>

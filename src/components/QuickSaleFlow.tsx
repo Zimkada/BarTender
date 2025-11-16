@@ -207,7 +207,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className="w-full max-w-4xl bg-white h-full overflow-hidden flex flex-col"
           >
-            <div className="bg-gradient-to-r from-orange-500 to-amber-500 text-white p-4">
+            <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Zap size={24} />
@@ -234,7 +234,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                         placeholder="Rechercher un produit..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                       />
                     </div>
 
@@ -243,7 +243,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                         onClick={() => setSelectedCategory('all')}
                         className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
                           selectedCategory === 'all'
-                            ? 'bg-orange-500 text-white'
+                            ? 'bg-amber-500 text-white'
                             : 'bg-gray-200 text-gray-700'
                         }`}
                       >
@@ -255,7 +255,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                           onClick={() => setSelectedCategory(category.id)}
                           className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
                             selectedCategory === category.id
-                              ? 'bg-orange-500 text-white'
+                              ? 'bg-amber-500 text-white'
                               : 'bg-gray-200 text-gray-700'
                           }`}
                         >
@@ -282,20 +282,20 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                                 <span className={`flex-shrink-0 text-xs px-2 py-1 rounded-full ml-2 ${
                                   availableStock <= product.alertThreshold
                                     ? 'bg-red-100 text-red-600'
-                                    : 'bg-orange-100 text-orange-600'
+                                    : 'bg-amber-100 text-amber-600'
                                 }`}>
                                   {availableStock}
                                 </span>
                               </div>
                               <p className="text-gray-600 text-sm mb-2">{product.volume}</p>
-                              <span className="text-orange-600 font-bold text-lg">{formatPrice(product.price)}</span>
+                              <span className="text-amber-600 font-bold text-lg">{formatPrice(product.price)}</span>
                             </div>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 quickAddToCart(product, 1);
                               }}
-                              className="flex-shrink-0 w-12 h-12 bg-orange-500 text-white rounded-xl flex items-center justify-center active:bg-orange-600 transition-colors"
+                              className="flex-shrink-0 w-12 h-12 bg-amber-500 text-white rounded-xl flex items-center justify-center active:bg-amber-600 transition-colors"
                             >
                               <Plus size={20} strokeWidth={3} />
                             </button>
@@ -314,25 +314,25 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                 </div>
 
                 {cart.length > 0 && (
-                  <div className="flex-shrink-0 sticky bottom-0 bg-gradient-to-br from-orange-50 to-amber-50 border-t-2 border-orange-300 shadow-lg">
+                  <div className="flex-shrink-0 sticky bottom-0 bg-gradient-to-br from-amber-50 to-amber-50 border-t-2 border-amber-300 shadow-lg">
                     <div className="p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <ShoppingCart size={20} className="text-orange-600" />
+                          <ShoppingCart size={20} className="text-amber-600" />
                           <span className="font-semibold text-gray-800">{itemCount} article{itemCount > 1 ? 's' : ''}</span>
                         </div>
                         <button
                           onClick={() => setShowCartMobile(true)}
-                          className="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium active:bg-orange-600"
+                          className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium active:bg-amber-600"
                         >
                           Voir panier
                         </button>
                       </div>
 
                       <div className="flex items-center gap-3">
-                        <div className="flex-1 bg-orange-100 rounded-lg px-4 py-3">
+                        <div className="flex-1 bg-amber-100 rounded-lg px-4 py-3">
                           <div className="text-xs text-gray-600 mb-1">Total</div>
-                          <div className="text-orange-600 font-bold text-xl">{formatPrice(total)}</div>
+                          <div className="text-amber-600 font-bold text-xl">{formatPrice(total)}</div>
                         </div>
                         <EnhancedButton
                           variant="success"
@@ -359,7 +359,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                     >
                       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between rounded-t-3xl">
                         <h3 className="font-bold text-lg text-gray-800 flex items-center gap-2">
-                          <ShoppingCart size={24} className="text-orange-600" />
+                          <ShoppingCart size={24} className="text-amber-600" />
                           Panier ({itemCount})
                         </h3>
                         <button onClick={() => setShowCartMobile(false)} className="p-2 hover:bg-gray-100 rounded-lg">
@@ -387,19 +387,19 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                               <div className="flex items-center gap-3">
                                 <button
                                   onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                                  className="w-10 h-10 bg-orange-200 text-orange-700 rounded-xl flex items-center justify-center"
+                                  className="w-10 h-10 bg-amber-200 text-amber-700 rounded-xl flex items-center justify-center"
                                 >
                                   <Minus size={16} />
                                 </button>
                                 <span className="w-10 text-center text-base font-semibold">{item.quantity}</span>
                                 <button
                                   onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                                  className="w-10 h-10 bg-orange-200 text-orange-700 rounded-xl flex items-center justify-center"
+                                  className="w-10 h-10 bg-amber-200 text-amber-700 rounded-xl flex items-center justify-center"
                                 >
                                   <Plus size={16} />
                                 </button>
                               </div>
-                              <span className="text-orange-600 font-bold text-base">
+                              <span className="text-amber-600 font-bold text-base">
                                 {formatPrice(item.product.price * item.quantity)}
                               </span>
                             </div>
@@ -419,7 +419,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                                 onClick={() => setPaymentMethod(method.value as any)}
                                 className={`p-3 text-sm rounded-xl border-2 transition-colors ${
                                   paymentMethod === method.value
-                                    ? 'border-orange-500 bg-orange-50 text-orange-700'
+                                    ? 'border-amber-500 bg-amber-50 text-amber-700'
                                     : 'border-gray-200 bg-white text-gray-600'
                                 }`}
                               >
@@ -435,13 +435,13 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                         {currentBar?.settings?.operatingMode === 'simplified' && (
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                              <Users size={16} className="text-orange-500" />
+                              <Users size={16} className="text-amber-500" />
                               Serveur qui a servi
                             </label>
                             <select
                               value={selectedServer}
                               onChange={(e) => setSelectedServer(e.target.value)}
-                              className="w-full px-4 py-3 border border-orange-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-base"
+                              className="w-full px-4 py-3 border border-amber-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-base"
                             >
                               <option value="">Sélectionner un serveur...</option>
                               <option value={`Moi (${currentSession?.userName})`}>
@@ -466,9 +466,9 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                       </div>
 
                       <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-white space-y-3">
-                        <div className="flex items-center justify-between bg-orange-50 rounded-xl p-4">
+                        <div className="flex items-center justify-between bg-amber-50 rounded-xl p-4">
                           <span className="text-gray-700 font-semibold">Total</span>
-                          <span className="text-orange-600 font-bold text-xl">{formatPrice(total)}</span>
+                          <span className="text-amber-600 font-bold text-xl">{formatPrice(total)}</span>
                         </div>
 
                         <EnhancedButton
@@ -503,7 +503,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                         placeholder="Rechercher un produit (nom ou volume)..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                       />
                     </div>
 
@@ -512,7 +512,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                         onClick={() => setSelectedCategory('all')}
                         className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
                           selectedCategory === 'all'
-                            ? 'bg-orange-500 text-white'
+                            ? 'bg-amber-500 text-white'
                             : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                         }`}
                       >
@@ -524,7 +524,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                           onClick={() => setSelectedCategory(category.id)}
                           className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
                             selectedCategory === category.id
-                              ? 'bg-orange-500 text-white'
+                              ? 'bg-amber-500 text-white'
                               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                           }`}
                         >
@@ -544,14 +544,14 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => quickAddToCart(product)}
-                        className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:border-orange-300 cursor-pointer transition-all"
+                        className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:border-amber-300 cursor-pointer transition-all"
                       >
                         <div className="flex items-center justify-between mb-2">
                           <h3 className="font-semibold text-gray-800 text-sm">{product.name}</h3>
                           <span className={`text-xs px-2 py-1 rounded-full ${
                             availableStock <= product.alertThreshold
                               ? 'bg-red-100 text-red-600'
-                              : 'bg-orange-100 text-orange-600'
+                              : 'bg-amber-100 text-amber-600'
                           }`}>
 
                             {availableStock}
@@ -559,14 +559,14 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                         </div>
                         <p className="text-gray-600 text-xs mb-2">{product.volume}</p>
                         <div className="flex items-center justify-between">
-                          <span className="text-orange-600 font-bold">{formatPrice(product.price)}</span>
+                          <span className="text-amber-600 font-bold">{formatPrice(product.price)}</span>
                           <div className="flex gap-1">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 quickAddToCart(product, 1);
                               }}
-                              className="w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center hover:bg-orange-600 transition-colors"
+                              className="w-8 h-8 bg-amber-500 text-white rounded-full flex items-center justify-center hover:bg-amber-600 transition-colors"
                             >
                               <Plus size={14} />
                             </button>
@@ -585,8 +585,8 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                   )}
                 </div>
 
-                <div className="w-80 h-full bg-gradient-to-br from-orange-50 to-amber-50 border-l border-orange-200 flex flex-col">
-                <div className="flex-shrink-0 p-4 border-b border-orange-200">
+                <div className="w-80 h-full bg-gradient-to-br from-amber-50 to-amber-50 border-l border-amber-200 flex flex-col">
+                <div className="flex-shrink-0 p-4 border-b border-amber-200">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold text-gray-800 flex items-center gap-2">
                       <ShoppingCart size={20} />
@@ -607,7 +607,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                     placeholder="Client (optionnel)"
                     value={customerInfo}
                     onChange={(e) => setCustomerInfo(e.target.value)}
-                    className="w-full px-3 py-2 border border-orange-200 rounded-lg text-sm bg-white"
+                    className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm bg-white"
                   />
                 </div>
 
@@ -624,7 +624,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -20 }}
-                        className="bg-white rounded-lg p-3 border border-orange-100"
+                        className="bg-white rounded-lg p-3 border border-amber-100"
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
@@ -643,19 +643,19 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                              className="w-6 h-6 bg-orange-200 text-orange-700 rounded-full flex items-center justify-center text-xs hover:bg-orange-300"
+                              className="w-6 h-6 bg-amber-200 text-amber-700 rounded-full flex items-center justify-center text-xs hover:bg-amber-300"
                             >
                               <Minus size={12} />
                             </button>
                             <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
                             <button
                               onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                              className="w-6 h-6 bg-orange-200 text-orange-700 rounded-full flex items-center justify-center text-xs hover:bg-orange-300"
+                              className="w-6 h-6 bg-amber-200 text-amber-700 rounded-full flex items-center justify-center text-xs hover:bg-amber-300"
                             >
                               <Plus size={12} />
                             </button>
                           </div>
-                          <span className="text-orange-600 font-semibold text-sm">
+                          <span className="text-amber-600 font-semibold text-sm">
                             {formatPrice(item.product.price * item.quantity)}
                           </span>
                         </div>
@@ -664,7 +664,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                   )}
                 </div>
 
-                <div className="flex-shrink-0 p-4 border-t border-orange-200 space-y-3 bg-gradient-to-br from-orange-50 to-amber-50">
+                <div className="flex-shrink-0 p-4 border-t border-amber-200 space-y-3 bg-gradient-to-br from-amber-50 to-amber-50">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1.5">Mode de paiement</label>
                     <div className="grid grid-cols-3 gap-1.5">
@@ -678,7 +678,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                           onClick={() => setPaymentMethod(method.value as any)}
                           className={`p-1.5 text-xs rounded-lg border-2 transition-colors ${
                             paymentMethod === method.value
-                              ? 'border-orange-500 bg-orange-50 text-orange-700'
+                              ? 'border-amber-500 bg-amber-50 text-amber-700'
                               : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                           }`}
                         >
@@ -694,13 +694,13 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                   {currentBar?.settings?.operatingMode === 'simplified' && (
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1.5 flex items-center gap-1">
-                        <Users size={14} className="text-orange-500" />
+                        <Users size={14} className="text-amber-500" />
                         Serveur
                       </label>
                       <select
                         value={selectedServer}
                         onChange={(e) => setSelectedServer(e.target.value)}
-                        className="w-full px-3 py-2 border border-orange-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
+                        className="w-full px-3 py-2 border border-amber-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
                       >
                         <option value="">Sélectionner...</option>
                         <option value={`Moi (${currentSession?.userName})`}>
@@ -715,10 +715,10 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                     </div>
                   )}
 
-                  <div className="bg-orange-100 rounded-lg p-2.5">
+                  <div className="bg-amber-100 rounded-lg p-2.5">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-700 font-medium text-sm">Total:</span>
-                      <span className="text-orange-600 font-bold text-lg">{formatPrice(total)}</span>
+                      <span className="text-amber-600 font-bold text-lg">{formatPrice(total)}</span>
                     </div>
                   </div>
 

@@ -274,9 +274,9 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
+            className="bg-gradient-to-br from-amber-50 to-amber-50 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
           >
-            <div className="flex items-center justify-between p-6 border-b border-orange-200">
+            <div className="flex items-center justify-between p-6 border-b border-amber-200">
               <div className="flex items-center gap-3">
                 <RotateCcw className="w-8 h-8 text-blue-600" />
                 <div>
@@ -309,7 +309,7 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
                         placeholder="Rechercher..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="px-3 py-2 border border-orange-200 rounded-lg bg-white"
+                        className="px-3 py-2 border border-amber-200 rounded-lg bg-white"
                       />
                     </div>
                     
@@ -318,7 +318,7 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
                       <select
                         value={filterStatus}
                         onChange={(e) => setFilterStatus(e.target.value as 'all' | 'pending' | 'approved' | 'rejected')}
-                        className="px-3 py-2 border border-orange-200 rounded-lg bg-white"
+                        className="px-3 py-2 border border-amber-200 rounded-lg bg-white"
                       >
                         <option value="all">Tous les statuts</option>
                         <option value="pending">En attente</option>
@@ -351,7 +351,7 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
                           <motion.div
                             key={returnItem.id}
                             whileHover={{ y: -2 }}
-                            className="bg-white rounded-xl p-4 shadow-sm border border-orange-100"
+                            className="bg-white rounded-xl p-4 shadow-sm border border-amber-100"
                           >
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-3">
@@ -390,7 +390,7 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
                             <div className="flex items-center gap-4">
                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                 returnReasons[returnItem.reason].color === 'red' ? 'bg-red-100 text-red-700' :
-                                returnReasons[returnItem.reason].color === 'orange' ? 'bg-orange-100 text-orange-700' :
+                                returnReasons[returnItem.reason].color === 'orange' ? 'bg-amber-100 text-amber-700' :
                                 returnReasons[returnItem.reason].color === 'blue' ? 'bg-blue-100 text-blue-700' :
                                 returnReasons[returnItem.reason].color === 'purple' ? 'bg-purple-100 text-purple-700' :
                                 'bg-gray-100 text-gray-700'
@@ -533,7 +533,7 @@ function OtherReasonDialog({
         >
           <div className="p-6">
             <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="text-orange-600" size={24} />
+              <AlertTriangle className="text-amber-600" size={24} />
               <h3 className="text-lg font-bold text-gray-800">Retour - Autre raison</h3>
             </div>
 
@@ -577,7 +577,7 @@ function OtherReasonDialog({
                   onChange={(e) => setCustomNotes(e.target.value)}
                   rows={4}
                   placeholder="Expliquez la raison du retour (obligatoire)..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                   required
                 />
               </div>
@@ -602,7 +602,7 @@ function OtherReasonDialog({
               </button>
               <button
                 onClick={handleSubmit}
-                className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                className="flex-1 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
               >
                 Valider
               </button>
@@ -742,7 +742,7 @@ function CreateReturnForm({
                 <select
                   value={filterSeller}
                   onChange={(e) => setFilterSeller(e.target.value)}
-                  className="px-3 py-2 border border-orange-200 rounded-lg bg-white text-sm"
+                  className="px-3 py-2 border border-amber-200 rounded-lg bg-white text-sm"
                 >
                   <option value="all">Tous les vendeurs ({returnableSales.length})</option>
                   {sellersWithSales.map(seller => {
@@ -781,7 +781,7 @@ function CreateReturnForm({
                     disabled={!returnCheck.allowed}
                     className={`p-3 text-left rounded-lg border-2 transition-colors ${
                       selectedSale?.id === sale.id
-                        ? 'border-orange-500 bg-orange-50'
+                        ? 'border-amber-500 bg-amber-50'
                         : returnCheck.allowed
                           ? 'border-gray-200 bg-white hover:border-gray-300'
                           : 'border-red-200 bg-red-50 opacity-50 cursor-not-allowed'
@@ -859,7 +859,7 @@ function CreateReturnForm({
                           {alreadyReturned > 0 && (
                             <>
                               <span className="text-gray-400">•</span>
-                              <p className="text-sm text-orange-600">
+                              <p className="text-sm text-amber-600">
                                 Retourné: {alreadyReturned}
                               </p>
                             </>
@@ -910,7 +910,7 @@ function CreateReturnForm({
                   max={availableQty}
                   value={quantity}
                   onChange={(e) => setQuantity(Number(e.target.value))}
-                  className="w-full px-3 py-2 border border-orange-200 rounded-lg bg-white focus:border-orange-400 focus:outline-none"
+                  className="w-full px-3 py-2 border border-amber-200 rounded-lg bg-white focus:border-amber-400 focus:outline-none"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Maximum disponible : {availableQty}
@@ -924,7 +924,7 @@ function CreateReturnForm({
                 <select
                   value={reason}
                   onChange={(e) => setReason(e.target.value as ReturnReason)}
-                  className="w-full px-3 py-2 border border-orange-200 rounded-lg bg-white text-base"
+                  className="w-full px-3 py-2 border border-amber-200 rounded-lg bg-white text-base"
                 >
                   {Object.entries(returnReasons).map(([key, value]) => (
                     <option key={key} value={key}>
@@ -946,7 +946,7 @@ function CreateReturnForm({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
-                className="w-full px-3 py-2 border border-orange-200 rounded-lg bg-white"
+                className="w-full px-3 py-2 border border-amber-200 rounded-lg bg-white"
                 placeholder="Détails supplémentaires..."
               />
             </div>

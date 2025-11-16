@@ -66,7 +66,7 @@ export const SyncStatusBadge: React.FC<SyncStatusBadgeProps> = ({
     if (isOffline) return 'bg-red-500';
     if (hasErrors) return 'bg-red-500';
     if (isSyncing) return 'bg-blue-500';
-    if (hasPending) return 'bg-orange-500';
+    if (hasPending) return 'bg-amber-500';
     return 'bg-green-500';
   };
 

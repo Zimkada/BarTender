@@ -93,7 +93,7 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
           >
             {isMobile ? (
               <div className="bg-white w-full h-full flex flex-col">
-                <div className="flex-shrink-0 sticky top-0 bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg z-10">
+                <div className="flex-shrink-0 sticky top-0 bg-gradient-to-r from-amber-500 to-amber-500 text-white shadow-lg z-10">
                   <div className="px-4 py-3">
                     <div className="flex items-center justify-between mb-3">
                       <h2 className="text-lg font-bold flex items-center gap-2">
@@ -121,7 +121,7 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                       </button>
                       <button
                         onClick={handleAddProduct}
-                        className="flex-1 min-w-[120px] px-3 py-2 bg-white text-orange-600 rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-orange-50"
+                        className="flex-1 min-w-[120px] px-3 py-2 bg-white text-amber-600 rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-amber-50"
                       >
                         <Plus size={16} />
                         Ajouter
@@ -165,7 +165,7 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                               <div className={`flex-shrink-0 px-3 py-1 rounded-full text-sm font-bold ${
                                 (stockInfo?.physicalStock ?? 0) <= product.alertThreshold
                                   ? 'bg-red-100 text-red-700'
-                                  : 'bg-orange-100 text-orange-700'
+                                  : 'bg-amber-100 text-amber-700'
                               }`}>
                                 {stockInfo?.physicalStock ?? 'N/A'}
                               </div>
@@ -174,7 +174,7 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                             <div className="grid grid-cols-3 gap-3 mb-3">
                               <div className="bg-white rounded-lg p-2">
                                 <p className="text-xs text-gray-600 mb-1">Prix vente</p>
-                                <p className="text-orange-600 font-bold text-sm">{formatPrice(product.price)}</p>
+                                <p className="text-amber-600 font-bold text-sm">{formatPrice(product.price)}</p>
                               </div>
                               <div className="bg-white rounded-lg p-2">
                                 <p className="text-xs text-gray-600 mb-1">Coût moy.</p>
@@ -185,7 +185,7 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                               <div className="bg-white rounded-lg p-2">
                                 <p className="text-xs text-gray-600 mb-1">Marge</p>
                                 <p className={`font-bold text-sm ${
-                                  margin > 50 ? 'text-green-600' : margin > 30 ? 'text-orange-600' : 'text-red-600'
+                                  margin > 50 ? 'text-green-600' : margin > 30 ? 'text-amber-600' : 'text-red-600'
                                 }`}>
                                   {margin > 0 ? `${margin.toFixed(1)}%` : '-'}
                                 </p>
@@ -195,7 +195,7 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                             <div className="flex gap-2">
                               <button
                                 onClick={() => handleEditProduct(product)}
-                                className="flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-orange-600"
+                                className="flex-1 px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-amber-600"
                               >
                                 <Edit size={16} />
                                 Modifier
@@ -225,11 +225,11 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-                className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-lg w-full max-w-6xl max-h-[85vh] md:max-h-[90vh] overflow-y-auto"
+                className="bg-gradient-to-br from-amber-50 to-amber-50 rounded-lg w-full max-w-6xl max-h-[85vh] md:max-h-[90vh] overflow-y-auto"
               >
-                <div className="flex items-center justify-between p-6 border-b border-orange-100">
+                <div className="flex items-center justify-between p-6 border-b border-amber-100">
                   <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                    <Package size={20} className="text-orange-500" />
+                    <Package size={20} className="text-amber-500" />
                     Inventaire
                   </h2>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -242,7 +242,7 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                     </EnhancedButton>
                     <EnhancedButton
                       onClick={() => setShowSupplyModal(true)}
-                      className="px-4 py-2 bg-orange-500 text-white rounded-xl flex items-center gap-2"
+                      className="px-4 py-2 bg-amber-500 text-white rounded-xl flex items-center gap-2"
                       icon={<TruckIcon size={18} />}
                     >
                       Approvisionnement
@@ -251,7 +251,7 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                       onClick={handleAddProduct}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="px-4 py-2 bg-orange-500 text-white rounded-xl font-medium hover:bg-orange-600 transition-colors flex items-center gap-2"
+                      className="px-4 py-2 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 transition-colors flex items-center gap-2"
                     >
                       <Plus size={16} />
                       Ajouter produit
@@ -288,10 +288,10 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                     </motion.div>
                   )}
 
-                  <div className="overflow-x-auto bg-white rounded-xl border border-orange-100">
+                  <div className="overflow-x-auto bg-white rounded-xl border border-amber-100">
                     <table className="w-full text-left">
                       <thead>
-                        <tr className="border-b border-orange-100 bg-orange-50">
+                        <tr className="border-b border-amber-100 bg-amber-50">
                           <th className="p-4 text-gray-700 font-medium">Produit</th>
                           <th className="p-4 text-gray-700 font-medium">Catégorie</th>
                           <th className="p-4 text-gray-700 font-medium">Prix vente</th>
@@ -311,7 +311,7 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                             <motion.tr
                               key={product.id}
                               whileHover={{ backgroundColor: '#fef7ed' }}
-                              className="border-b border-orange-50"
+                              className="border-b border-amber-50"
                             >
                               <td className="p-4">
                                 <div>
@@ -322,7 +322,7 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                               <td className="p-4 text-gray-700">
                                 {getCategoryName(product.categoryId)}
                               </td>
-                              <td className="p-4 text-orange-600 font-medium">
+                              <td className="p-4 text-amber-600 font-medium">
                                 {formatPrice(product.price)}
                               </td>
                               <td className="p-4 text-gray-700">
@@ -330,7 +330,7 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                               </td>
                               <td className="p-4">
                                 {margin > 0 ? (
-                                  <span className={`${margin > 50 ? 'text-green-600' : margin > 30 ? 'text-orange-600' : 'text-red-600'}`}>
+                                  <span className={`${margin > 50 ? 'text-green-600' : margin > 30 ? 'text-amber-600' : 'text-red-600'}`}>
                                     {margin.toFixed(1)}%
                                   </span>
                                 ) : '-'}
@@ -355,7 +355,7 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                                     onClick={() => handleEditProduct(product)}
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
-                                    className="p-2 text-gray-500 hover:text-orange-600 transition-colors"
+                                    className="p-2 text-gray-500 hover:text-amber-600 transition-colors"
                                   >
                                     <Edit size={16} />
                                   </motion.button>

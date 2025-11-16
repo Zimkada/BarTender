@@ -18,26 +18,26 @@ export const COLORS = {
   // === BRAND: ORANGE/AMBER (Identité BarTender) ===
   brand: {
     // Gradients
-    gradient: 'from-orange-500 to-amber-500',           // Headers, boutons primaires
-    gradientLight: 'from-orange-100 to-amber-100',     // Widgets, cards backgrounds
-    gradientSubtle: 'from-orange-50 to-amber-50',      // Containers légers
+    gradient: 'from-amber-500 to-amber-500',           // Headers, boutons primaires
+    gradientLight: 'from-amber-100 to-amber-100',     // Widgets, cards backgrounds
+    gradientSubtle: 'from-amber-50 to-amber-50',      // Containers légers
 
     // Solides
-    solid: 'bg-orange-500',
-    solidLight: 'bg-orange-100',
+    solid: 'bg-amber-500',
+    solidLight: 'bg-amber-100',
 
     // Texte
-    text: 'text-orange-600',
-    textLight: 'text-orange-500',
-    textDark: 'text-orange-700',
+    text: 'text-amber-600',
+    textLight: 'text-amber-500',
+    textDark: 'text-amber-700',
 
     // Bordures
-    border: 'border-orange-200',
-    borderDark: 'border-orange-300',
+    border: 'border-amber-200',
+    borderDark: 'border-amber-300',
 
     // Hover states
-    hover: 'hover:bg-orange-600',
-    hoverLight: 'hover:bg-orange-50',
+    hover: 'hover:bg-amber-600',
+    hoverLight: 'hover:bg-amber-50',
   },
 
   // === SUCCESS/MONEY: VERT/ÉMERAUDE (Argent, profits, validations) ===
@@ -95,17 +95,17 @@ export const COMPONENTS = {
   // TOUJOURS utiliser gradient orange pour cohérence visuelle
   modalHeader: `bg-gradient-to-r ${COLORS.brand.gradient} text-white`,
   modalHeaderIcon: 'w-8 h-8 text-white',
-  modalHeaderSubtitle: 'text-orange-100 text-sm',
+  modalHeaderSubtitle: 'text-amber-100 text-sm',
   modalCloseButton: 'p-2 hover:bg-white/20 rounded-lg transition-colors',
 
   // === TABS NAVIGATION ===
   // Style underline moderne (pattern standard)
-  tabActive: `${COLORS.brand.text} border-b-2 border-orange-600 bg-white font-medium`,
-  tabInactive: `${COLORS.neutral.text} hover:${COLORS.brand.textLight} hover:bg-orange-50 transition-colors`,
+  tabActive: `${COLORS.brand.text} border-b-2 border-amber-600 bg-white font-medium`,
+  tabInactive: `${COLORS.neutral.text} hover:${COLORS.brand.textLight} hover:bg-amber-50 transition-colors`,
 
   // === FOCUS RINGS ===
   // TOUJOURS orange pour uniformité
-  focusRing: 'focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none',
+  focusRing: 'focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none',
 
   // === BADGES STATUTS ===
   badgePending: `${COLORS.brand.solidLight} ${COLORS.brand.textDark} border ${COLORS.brand.border} px-3 py-1 rounded-full text-xs font-medium`,

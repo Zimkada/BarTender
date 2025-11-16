@@ -83,7 +83,7 @@ export function Header({
     switch (currentSession?.role) {
       case 'super_admin': return <ShieldCheck size={16} className="text-purple-600" />;
       case 'promoteur': return <Crown size={16} className="text-purple-600" />;
-      case 'gerant': return <Settings size={16} className="text-orange-600" />;
+      case 'gerant': return <Settings size={16} className="text-amber-600" />;
       case 'serveur': return <Users size={16} className="text-amber-600" />;
       default: return null;
     }
@@ -102,7 +102,7 @@ export function Header({
   // ==================== VERSION MOBILE (99% utilisateurs Bénin) ====================
   if (isMobile) {
     return (
-      <header className="bg-gradient-to-r from-orange-500 to-amber-500 shadow-lg sticky top-0 z-50">
+      <header className="bg-gradient-to-r from-amber-500 to-amber-500 shadow-lg sticky top-0 z-50">
         <div className="px-3 py-2">
           {/* Ligne 1: Hamburger (position absolue) + Logo + Actions */}
           <div className="relative flex items-center gap-2 mb-2">
@@ -243,7 +243,7 @@ export function Header({
 
   // ==================== VERSION DESKTOP (1% promoteurs avec PC) ====================
   return (
-    <header className="bg-gradient-to-r from-orange-500 to-amber-500 shadow-lg sticky top-0 z-50">
+    <header className="bg-gradient-to-r from-amber-500 to-amber-500 shadow-lg sticky top-0 z-50">
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Gauche: Hamburger + Logo + Indicateurs + Bar selector */}

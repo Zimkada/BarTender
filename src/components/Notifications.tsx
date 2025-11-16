@@ -119,7 +119,7 @@ const NotificationItem: React.FC<{
         };
       case 'info':
         return {
-          bgColor: 'bg-orange-500',
+          bgColor: 'bg-amber-500',
           icon: <Info size={18} className="text-white" />,
         };
       default:

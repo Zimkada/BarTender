@@ -67,7 +67,7 @@ export function CategoryTabs({
   } as const;
 
   return (
-    <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-orange-100">
+    <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-amber-100">
       <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
         {categories.map((category) => (
           <motion.button
@@ -90,7 +90,7 @@ export function CategoryTabs({
             whileTap={{ scale: 0.98 }}
             className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all ${
               activeCategory === category.id
-                ? 'bg-gradient-to-br from-orange-50 to-amber-50 text-orange-600 shadow-md border border-orange-300 font-semibold'
+                ? 'bg-gradient-to-br from-amber-50 to-amber-50 text-amber-600 shadow-md border border-amber-300 font-semibold'
                 : 'bg-transparent text-gray-600 hover:bg-white/50'
             }`}
           >
@@ -103,7 +103,7 @@ export function CategoryTabs({
             onClick={onAddCategory}
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95 }}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 rounded-full font-medium hover:bg-orange-200 whitespace-nowrap transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-700 rounded-full font-medium hover:bg-amber-200 whitespace-nowrap transition-colors"
           >
             <Plus size={16} />
             <span>Ajouter</span>
@@ -142,7 +142,7 @@ export function CategoryTabs({
                     onEditCategory(contextMenu.category);
                     setContextMenu(null);
                   }}
-                  className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700 rounded-md transition-colors"
+                  className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-700 rounded-md transition-colors"
                 >
                   <Edit size={16} />
                   Modifier

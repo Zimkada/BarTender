@@ -22,7 +22,7 @@ const COLORS = [
   '#eab308', // Jaune yellow-500 (Électricité)
   '#6b7280', // Gris gray-500 (Entretien)
   '#a855f7', // Violet purple-500 (Custom)
-  '#f97316', // Orange orange-500
+  '#f97316', // Orange amber-500
 ];
 
 const AnalyticsCharts = ({ data, expensesByCategory }) => {
