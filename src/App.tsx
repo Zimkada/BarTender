@@ -355,13 +355,11 @@ function AppContent() {
               isOpen={showNotifications}
               onClose={() => setShowNotifications(false)}
               notifications={unresolvedNotifications}
-              stats={notifStats}
               onMarkAsRead={markAsRead}
               onMarkAllAsRead={markAllAsRead}
               onMarkAsResolved={markAsResolved}
               onDelete={deleteNotification}
               onClearAll={clearAll}
-              onRefresh={analyzeAllBars}
             />
           </Suspense>
         </RoleBasedComponent>
@@ -414,8 +412,8 @@ function AppContent() {
         <MobileSidebar
           isOpen={showMobileSidebar}
           onClose={() => setShowMobileSidebar(false)}
+          onNavigate={setCurrentMenu}
           currentMenu={currentMenu}
-          onMenuChange={setCurrentMenu}
           onShowAdminDashboard={() => setShowAdminDashboard(true)}
           onShowNotifications={() => setShowNotifications(true)}
           onShowAuditLogs={() => setShowAuditLogs(true)}
