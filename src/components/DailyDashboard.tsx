@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  TrendingUp, DollarSign, ShoppingCart, Package, Share, Lock, Eye, EyeOff, RotateCcw, Archive, Check, X as XIcon, User
+  TrendingUp, DollarSign, ShoppingCart, Package, Share, Lock, Eye, EyeOff, RotateCcw, Archive, Check, X, User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
@@ -77,7 +77,7 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <EnhancedButton onClick={() => onValidate(sale.id)} size="icon" className="bg-green-500 hover:bg-green-600 text-white"><Check size={16} /></EnhancedButton>
-                        <EnhancedButton onClick={() => onReject(sale.id)} size="icon" className="bg-red-500 hover:bg-red-600 text-white"><XIcon size={16} /></EnhancedButton>
+                        <EnhancedButton onClick={() => onReject(sale.id)} size="icon" className="bg-red-500 hover:bg-red-600 text-white"><X size={16} /></EnhancedButton>
                       </div>
                     </div>
                     <ul className="mt-2 text-xs text-gray-700 space-y-1">
@@ -207,17 +207,21 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
     <AnimatePresence>
       {isOpen && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }} className="bg-gradient-to-br from-amber-50 to-amber-50 rounded-2xl w-full max-w-4xl max-h-[85vh] md:max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="flex items-center justify-between p-6 border-b border-amber-200 sticky top-0 bg-amber-50/80 backdrop-blur-sm z-10">
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }} className="bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] md:max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+            <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-amber-500 rounded-full flex items-center justify-center"><TrendingUp size={20} className="text-white" /></div>
+                <TrendingUp size={24} />
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800">Informations du jour</h2>
-                  <p className="text-sm text-gray-600">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                  <h2 className="text-xl font-bold">Informations du jour</h2>
+                  <p className="text-sm text-amber-100">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                 </div>
               </div>
-              <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-white/50 transition-colors">×</button>
+              <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
+                <X size={24} />
+              </button>
             </div>
+
+            <div className="flex-1 overflow-y-auto bg-gradient-to-br from-amber-50 to-amber-50">
 
             <div className="p-6 space-y-6">
               {pendingSales.length > 0 && <PendingSalesSection sales={pendingSales} onValidate={handleValidateSale} onReject={handleRejectSale} onValidateAll={handleValidateAll} users={users} />}
@@ -250,6 +254,7 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
                 </div>
                 {cashClosed && <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-4 bg-green-100 border border-green-200 rounded-lg p-3 text-center"><p className="text-green-700 font-medium">✅ Caisse fermée - Rapport automatiquement exporté</p></motion.div>}
               </div>
+            </div>
             </div>
           </motion.div>
         </motion.div>

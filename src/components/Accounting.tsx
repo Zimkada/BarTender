@@ -50,39 +50,42 @@ export function Accounting({ isOpen, onClose }: AccountingProps) {
             transition={{ duration: 0.2 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
-            <div className="bg-gradient-to-br from-amber-50 to-amber-50 rounded-2xl shadow-2xl w-full h-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="bg-white rounded-2xl shadow-2xl w-full h-full max-w-7xl max-h-[90vh] overflow-hidden flex flex-col">
               {/* Header avec tabs */}
-              <div className="bg-white border-b border-gray-200 flex-shrink-0">
+              <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white flex-shrink-0">
                 <div className={`${isMobile ? 'px-3 py-3' : 'px-6 py-4'}`}>
                   <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h1 className={`font-bold text-gray-800 ${isMobile ? 'text-xl' : 'text-3xl'}`}>
-                        💰 Comptabilité
-                      </h1>
-                      <p className={`text-gray-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                        Gestion financière de {currentBar.name}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <DollarSign size={isMobile ? 28 : 32} />
+                      <div>
+                        <h1 className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+                          Comptabilité
+                        </h1>
+                        <p className={`text-amber-100 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                          Gestion financière de {currentBar.name}
+                        </p>
+                      </div>
                     </div>
                     <button
                       onClick={onClose}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      className="p-2 hover:bg-white/20 rounded-lg transition-colors"
                     >
                       <X size={24} />
                     </button>
                   </div>
 
                   {/* Tabs navigation */}
-                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide border-b border-gray-200">
+                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                     {tabs.map(tab => (
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 px-4 py-3 transition-all whitespace-nowrap ${
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all whitespace-nowrap ${
                           isMobile ? 'text-sm' : ''
                         } ${
                           activeTab === tab.id
-                            ? 'text-amber-600 border-b-2 border-amber-600 -mb-px font-semibold'
-                            : 'text-gray-600 hover:text-amber-500 hover:bg-amber-50 font-medium'
+                            ? 'bg-white text-amber-600 font-semibold'
+                            : 'bg-white/20 text-white hover:bg-white/30 font-medium'
                         }`}
                       >
                         {tab.icon}
@@ -94,7 +97,7 @@ export function Accounting({ isOpen, onClose }: AccountingProps) {
               </div>
 
               {/* Content - Scrollable */}
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto bg-gradient-to-br from-amber-50 to-amber-50">
                 <motion.div
                   key={activeTab}
                   initial={{ opacity: 0, y: 20 }}

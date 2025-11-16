@@ -93,22 +93,23 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className="bg-gradient-to-br from-amber-50 to-amber-50 rounded-lg w-full max-w-md max-h-[85vh] md:max-h-[90vh] overflow-hidden flex flex-col"
+            className="bg-white rounded-lg w-full max-w-md max-h-[85vh] md:max-h-[90vh] overflow-hidden flex flex-col"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-amber-100">
-              <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                <SettingsIcon size={20} className="text-amber-500" />
-                Paramètres
-              </h2>
-              <motion.button
+            <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <SettingsIcon size={24} />
+                <div>
+                  <h2 className="text-xl font-bold">Paramètres</h2>
+                  <p className="text-amber-100 text-sm">Configuration du bar</p>
+                </div>
+              </div>
+              <button
                 onClick={onClose}
-                whileHover={{ scale: 1.1, rotate: 90 }}
-                whileTap={{ scale: 0.9 }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
               >
                 <X size={24} />
-              </motion.button>
+              </button>
             </div>
 
             {/* Onglets */}

@@ -274,31 +274,31 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="bg-gradient-to-br from-amber-50 to-amber-50 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
+            className="bg-white rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl"
           >
-            <div className="flex items-center justify-between p-6 border-b border-amber-200">
+            <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <RotateCcw className="w-8 h-8 text-blue-600" />
+                <RotateCcw size={28} />
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800">Système de retours</h2>
-                  <p className="text-sm text-gray-600">Gérer les retours produits</p>
+                  <h2 className="text-xl font-bold">Système de retours</h2>
+                  <p className="text-sm text-amber-100">Gérer les retours produits</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <EnhancedButton
-                  variant="primary"
+                <button
                   onClick={() => setShowCreateReturn(true)}
-                  icon={<RotateCcw size={16} />}
+                  className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors flex items-center gap-2"
                 >
-                  Nouveau retour
-                </EnhancedButton>
-                <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600">
+                  <RotateCcw size={16} />
+                  <span className="text-sm font-medium">Nouveau retour</span>
+                </button>
+                <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
                   <X size={24} />
                 </button>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-br from-amber-50 to-amber-50">
               {!showCreateReturn ? (
                 <>
                   <div className="flex flex-wrap gap-4 mb-6">

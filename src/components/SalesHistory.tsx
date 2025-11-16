@@ -543,27 +543,28 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
             {isMobile ? (
               <div className="flex flex-col h-full">
                 {/* Header mobile */}
-                <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-amber-200">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="w-6 h-6 text-blue-600" />
-                    <div>
-                      <h2 className="text-lg font-bold text-gray-800">Historique</h2>
-                      <p className="text-xs text-gray-600">{filteredSales.length} ventes</p>
+                <div className="flex-shrink-0 bg-gradient-to-r from-amber-500 to-amber-500 text-white p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <TrendingUp size={24} />
+                      <div>
+                        <h2 className="text-lg font-bold">Historique</h2>
+                        <p className="text-xs text-amber-100">{filteredSales.length} ventes</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={exportSales}
-                      className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
-                      disabled={filteredSales.length === 0}
-                      title={`Exporter en ${exportFormat.toUpperCase()}`}
-                    >
-                      <Download size={20} />
-                    </button>
-                    <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600">
+                    <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
                       <X size={24} />
                     </button>
                   </div>
+                  <button
+                    onClick={exportSales}
+                    className="w-full mt-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    disabled={filteredSales.length === 0}
+                    title={`Exporter en ${exportFormat.toUpperCase()}`}
+                  >
+                    <Download size={18} />
+                    <span className="text-sm font-medium">Exporter ({exportFormat.toUpperCase()})</span>
+                  </button>
                 </div>
                 {/* Filtres compacts en haut (stats retirées, disponibles dans Analytics) */}
                 <div className="flex-shrink-0 bg-amber-50 p-3">
@@ -723,13 +724,18 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
               /* ==================== VERSION DESKTOP ==================== */
               <>
                 {/* Header desktop */}
-                <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-amber-200">
-                  <div className="flex items-center gap-3">
-                    <TrendingUp className="w-8 h-8 text-blue-600" />
-                    <div>
-                      <h2 className="text-xl font-bold text-gray-800">Historique des ventes</h2>
-                      <p className="text-sm text-gray-600">{filteredSales.length} ventes trouvées</p>
+                <div className="flex-shrink-0 bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <TrendingUp size={28} />
+                      <div>
+                        <h2 className="text-xl font-bold">Historique des ventes</h2>
+                        <p className="text-sm text-amber-100">{filteredSales.length} ventes trouvées</p>
+                      </div>
                     </div>
+                    <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
+                      <X size={24} />
+                    </button>
                   </div>
                   <div className="flex items-center gap-2">
                     {/* Sélecteur de format d'export */}
@@ -738,8 +744,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                         onClick={() => setExportFormat('excel')}
                         className={`px-3 py-1.5 text-xs font-medium rounded-l-lg transition-colors ${
                           exportFormat === 'excel'
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            ? 'bg-white text-amber-600'
+                            : 'bg-white/20 text-white hover:bg-white/30'
                         }`}
                       >
                         Excel
@@ -748,24 +754,20 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                         onClick={() => setExportFormat('csv')}
                         className={`px-3 py-1.5 text-xs font-medium rounded-r-lg transition-colors ${
                           exportFormat === 'csv'
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            ? 'bg-white text-amber-600'
+                            : 'bg-white/20 text-white hover:bg-white/30'
                         }`}
                       >
                         CSV
                       </button>
                     </div>
-                    <EnhancedButton
-                      variant="info"
-                      size="sm"
+                    <button
                       onClick={exportSales}
-                      icon={<Download size={16} />}
                       disabled={filteredSales.length === 0}
+                      className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
                     >
-                      Exporter
-                    </EnhancedButton>
-                    <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600">
-                      <X size={24} />
+                      <Download size={16} />
+                      <span className="text-sm font-medium">Exporter</span>
                     </button>
                   </div>
                 </div>
