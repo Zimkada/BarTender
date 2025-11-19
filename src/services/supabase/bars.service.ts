@@ -79,13 +79,7 @@ export class BarsService {
     try {
       const { data, error } = await supabase
         .from('bars')
-        .select(`
-          *,
-          users!bars_owner_id_fkey (
-            name,
-            phone
-          )
-        `)
+        .select('*')
         .eq('id', barId)
         .eq('is_active', true)
         .single();
@@ -94,6 +88,13 @@ export class BarsService {
         return null;
       }
 
+      // Récupérer le owner
+      const { data: owner } = await supabase
+        .from('users')
+        .select('name, phone')
+        .eq('id', data.owner_id)
+        .single();
+
       // Compter les membres actifs
       const { count } = await supabase
         .from('bar_members')
@@ -101,11 +102,10 @@ export class BarsService {
         .eq('bar_id', barId)
         .eq('is_active', true);
 
-      const owner = data.users as any;
       const barWithOwner: BarWithOwner = {
         ...data,
-        owner_name: owner.name,
-        owner_phone: owner.phone,
+        owner_name: owner?.name || '',
+        owner_phone: owner?.phone || '',
         member_count: count || 0,
       };
 
@@ -122,13 +122,7 @@ export class BarsService {
     try {
       const { data, error } = await supabase
         .from('bars')
-        .select(`
-          *,
-          users!bars_owner_id_fkey (
-            name,
-            phone
-          )
-        `)
+        .select('*')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
@@ -136,20 +130,27 @@ export class BarsService {
         throw new Error('Erreur lors de la récupération des bars');
       }
 
-      // Pour chaque bar, compter les membres
+      // Pour chaque bar, récupérer owner et compter les membres
       const barsWithOwner: BarWithOwner[] = await Promise.all(
         (data || []).map(async (bar) => {
+          // Récupérer le owner
+          const { data: owner } = await supabase
+            .from('users')
+            .select('name, phone')
+            .eq('id', bar.owner_id)
+            .single();
+
+          // Compter les membres
           const { count } = await supabase
             .from('bar_members')
             .select('*', { count: 'exact', head: true })
             .eq('bar_id', bar.id)
             .eq('is_active', true);
 
-          const owner = bar.users as any;
           return {
             ...bar,
-            owner_name: owner.name,
-            owner_phone: owner.phone,
+            owner_name: owner?.name || '',
+            owner_phone: owner?.phone || '',
             member_count: count || 0,
           };
         })
