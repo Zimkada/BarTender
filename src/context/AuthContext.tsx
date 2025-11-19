@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useCallback, ReactNode, useEffect } from 'react';
 import { useDataStore } from '../hooks/useDataStore';
 import { UserSession, UserRole, getPermissionsByRole, User, RolePermissions } from '../types';
 import { auditLogger } from '../services/AuditLogger';
+import { AuthService } from '../services/supabase/auth.service';
 
 // Mock users étendu pour multi-tenant
 const mockUsers: User[] = [
@@ -119,6 +120,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUsers([superAdminUser, ...users]);
     }
   }, []); // Exécuté une seule fois au mount
+
+  // 🔐 Initialiser la session Supabase RLS au démarrage
+  useEffect(() => {
+    AuthService.initializeSession().catch(err => {
+      console.error('[AuthContext] Failed to initialize Supabase session:', err);
+    });
+  }, []);
 
   const login = useCallback((username: string, password: string, barId: string, role: UserRole) => {
     const user = users.find(u =>

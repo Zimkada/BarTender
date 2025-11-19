@@ -2,9 +2,9 @@ import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
 
 type User = Database['public']['Tables']['users']['Row'];
-type UserInsert = Database['public']['Tables']['users']['Insert'];
+type UserUpdate = Database['public']['Tables']['users']['Update'];
 
-export interface AuthUser extends User {
+export interface AuthUser extends Omit<User, 'password_hash'> {
   role: 'super_admin' | 'promoteur' | 'gerant' | 'serveur';
   barId: string;
   barName: string;
@@ -23,38 +23,41 @@ export interface SignupData {
 }
 
 /**
- * Service d'authentification utilisant Supabase
- * Remplace progressivement localStorage auth
+ * Service d'authentification custom (sans Supabase Auth)
+ * Utilise username + password_hash (bcrypt) stocké dans PostgreSQL
+ * Sessions gérées via localStorage + RLS avec current_setting('app.user_id')
  */
 export class AuthService {
   /**
-   * Connexion utilisateur
-   * Vérifie username + password et retourne les infos complètes
+   * Définir la session utilisateur dans Supabase (pour RLS)
+   * À appeler après chaque connexion ou au démarrage de l'app
+   */
+  private static async setUserSession(userId: string): Promise<void> {
+    try {
+      await supabase.rpc('set_user_session', { user_id: userId });
+    } catch (error) {
+      console.error('Failed to set user session:', error);
+    }
+  }
+
+  /**
+   * Connexion utilisateur avec username + password
    */
   static async login(credentials: LoginCredentials): Promise<AuthUser> {
     try {
-      // 1. Récupérer l'utilisateur par username
-      const { data: user, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('username', credentials.username)
-        .eq('is_active', true)
-        .single();
+      // 1. Valider le mot de passe via la fonction SQL
+      const { data, error } = await supabase.rpc('validate_password', {
+        p_username: credentials.username,
+        p_password: credentials.password,
+      });
 
-      if (userError || !user) {
+      if (error || !data || data.length === 0) {
         throw new Error('Nom d\'utilisateur ou mot de passe incorrect');
       }
 
-      // 2. Vérifier le mot de passe
-      // TODO: Remplacer par bcrypt.compare() une fois les mots de passe hashés
-      const isPasswordValid = user.password_hash === credentials.password;
-      // const isPasswordValid = await bcrypt.compare(credentials.password, user.password_hash);
+      const userProfile = data[0];
 
-      if (!isPasswordValid) {
-        throw new Error('Nom d\'utilisateur ou mot de passe incorrect');
-      }
-
-      // 3. Récupérer le rôle et le bar de l'utilisateur
+      // 2. Récupérer le rôle et le bar de l'utilisateur
       const { data: membership, error: memberError } = await supabase
         .from('bar_members')
         .select(`
@@ -64,7 +67,7 @@ export class AuthService {
             name
           )
         `)
-        .eq('user_id', user.id)
+        .eq('user_id', userProfile.user_id)
         .eq('is_active', true)
         .single();
 
@@ -72,16 +75,28 @@ export class AuthService {
         throw new Error('Utilisateur non assigné à un bar');
       }
 
-      // 4. Construire l'objet AuthUser
+      // 3. Construire l'objet AuthUser (sans password_hash)
       const authUser: AuthUser = {
-        ...user,
-        role: membership.role,
+        id: userProfile.user_id,
+        username: userProfile.username,
+        name: userProfile.name,
+        phone: userProfile.phone,
+        avatar_url: userProfile.avatar_url,
+        is_active: userProfile.is_active,
+        first_login: userProfile.first_login,
+        created_at: '', // Pas retourné par validate_password
+        updated_at: '',
+        last_login_at: null,
+        role: membership.role as AuthUser['role'],
         barId: membership.bar_id,
         barName: (membership.bars as any).name,
       };
 
-      // 5. Stocker la session dans localStorage (temporaire)
+      // 4. Stocker dans localStorage
       localStorage.setItem('auth_user', JSON.stringify(authUser));
+
+      // 5. Définir la session pour RLS
+      await this.setUserSession(authUser.id);
 
       return authUser;
     } catch (error: any) {
@@ -93,57 +108,48 @@ export class AuthService {
    * Inscription d'un nouvel utilisateur
    * Réservé aux promoteurs et super_admins
    */
-  static async signup(data: SignupData, barId: string, role: 'gerant' | 'serveur'): Promise<User> {
+  static async signup(
+    data: SignupData,
+    barId: string,
+    role: 'gerant' | 'serveur'
+  ): Promise<Omit<User, 'password_hash'>> {
     try {
-      // 1. Vérifier que le username n'existe pas déjà
-      const { data: existing } = await supabase
-        .from('users')
-        .select('id')
-        .eq('username', data.username)
-        .single();
+      // 1. Créer l'utilisateur via la fonction SQL
+      const { data: userId, error: createError } = await supabase.rpc('create_user', {
+        p_username: data.username,
+        p_password: data.password,
+        p_name: data.name,
+        p_phone: data.phone,
+      });
 
-      if (existing) {
-        throw new Error('Ce nom d\'utilisateur existe déjà');
-      }
-
-      // 2. Hasher le mot de passe
-      // TODO: Activer bcrypt une fois la dépendance installée
-      const passwordHash = data.password;
-      // const passwordHash = await bcrypt.hash(data.password, 10);
-
-      // 3. Créer l'utilisateur
-      const { data: newUser, error: userError } = await supabase
-        .from('users')
-        .insert({
-          username: data.username,
-          password_hash: passwordHash,
-          name: data.name,
-          phone: data.phone,
-          is_active: true,
-          first_login: true,
-        })
-        .select()
-        .single();
-
-      if (userError || !newUser) {
+      if (createError || !userId) {
         throw new Error('Erreur lors de la création de l\'utilisateur');
       }
 
-      // 4. Créer l'association bar_member
+      // 2. Créer l'association bar_member
       const currentUser = AuthService.getCurrentUser();
       const { error: memberError } = await supabase
         .from('bar_members')
         .insert({
-          user_id: newUser.id,
+          user_id: userId,
           bar_id: barId,
           role,
-          assigned_by: currentUser?.id || newUser.id,
+          assigned_by: currentUser?.id || userId,
         });
 
       if (memberError) {
-        // Rollback: supprimer l'utilisateur créé
-        await supabase.from('users').delete().eq('id', newUser.id);
         throw new Error('Erreur lors de l\'assignation au bar');
+      }
+
+      // 3. Récupérer le profil créé
+      const { data: newUser, error: userError } = await supabase
+        .from('users')
+        .select('id, username, name, phone, avatar_url, is_active, first_login, created_at, updated_at, last_login_at')
+        .eq('id', userId)
+        .single();
+
+      if (userError || !newUser) {
+        throw new Error('Erreur lors de la récupération du profil');
       }
 
       return newUser;
@@ -181,6 +187,17 @@ export class AuthService {
   }
 
   /**
+   * Initialiser la session au démarrage de l'application
+   * À appeler au démarrage pour restaurer la session RLS
+   */
+  static async initializeSession(): Promise<void> {
+    const user = this.getCurrentUser();
+    if (user) {
+      await this.setUserSession(user.id);
+    }
+  }
+
+  /**
    * Vérifier si l'utilisateur est super_admin
    */
   static isSuperAdmin(): boolean {
@@ -211,13 +228,16 @@ export class AuthService {
   /**
    * Mettre à jour le profil utilisateur
    */
-  static async updateProfile(userId: string, updates: Partial<UserInsert>): Promise<User> {
+  static async updateProfile(
+    userId: string,
+    updates: Omit<UserUpdate, 'password_hash'>
+  ): Promise<Omit<User, 'password_hash'>> {
     try {
       const { data, error } = await supabase
         .from('users')
         .update(updates)
         .eq('id', userId)
-        .select()
+        .select('id, username, name, phone, avatar_url, is_active, first_login, created_at, updated_at, last_login_at')
         .single();
 
       if (error || !data) {
@@ -243,43 +263,31 @@ export class AuthService {
   /**
    * Changer le mot de passe
    */
-  static async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<void> {
+  static async changePassword(
+    userId: string,
+    oldPassword: string,
+    newPassword: string
+  ): Promise<void> {
     try {
-      // 1. Vérifier l'ancien mot de passe
-      const { data: user } = await supabase
-        .from('users')
-        .select('password_hash')
-        .eq('id', userId)
-        .single();
+      const { data, error } = await supabase.rpc('change_password', {
+        p_user_id: userId,
+        p_old_password: oldPassword,
+        p_new_password: newPassword,
+      });
 
-      if (!user) {
-        throw new Error('Utilisateur introuvable');
+      if (error) {
+        throw new Error(error.message || 'Erreur lors du changement de mot de passe');
       }
 
-      // TODO: Utiliser bcrypt.compare()
-      const isOldPasswordValid = user.password_hash === oldPassword;
-      // const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password_hash);
-
-      if (!isOldPasswordValid) {
+      if (!data) {
         throw new Error('Ancien mot de passe incorrect');
       }
 
-      // 2. Hasher le nouveau mot de passe
-      // TODO: Utiliser bcrypt.hash()
-      const newPasswordHash = newPassword;
-      // const newPasswordHash = await bcrypt.hash(newPassword, 10);
-
-      // 3. Mettre à jour
-      const { error } = await supabase
-        .from('users')
-        .update({
-          password_hash: newPasswordHash,
-          first_login: false,
-        })
-        .eq('id', userId);
-
-      if (error) {
-        throw new Error('Erreur lors du changement de mot de passe');
+      // Mettre à jour first_login dans le localStorage
+      const currentUser = this.getCurrentUser();
+      if (currentUser && currentUser.id === userId) {
+        currentUser.first_login = false;
+        localStorage.setItem('auth_user', JSON.stringify(currentUser));
       }
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
@@ -289,14 +297,27 @@ export class AuthService {
   /**
    * Récupérer tous les membres d'un bar
    */
-  static async getBarMembers(barId: string): Promise<Array<User & { role: string; joined_at: string }>> {
+  static async getBarMembers(
+    barId: string
+  ): Promise<Array<Omit<User, 'password_hash'> & { role: string; joined_at: string }>> {
     try {
       const { data, error } = await supabase
         .from('bar_members')
         .select(`
           role,
           joined_at,
-          users (*)
+          users!inner (
+            id,
+            username,
+            name,
+            phone,
+            avatar_url,
+            is_active,
+            first_login,
+            created_at,
+            updated_at,
+            last_login_at
+          )
         `)
         .eq('bar_id', barId)
         .eq('is_active', true);

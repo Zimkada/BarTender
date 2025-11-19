@@ -21,6 +21,7 @@ export interface Database {
           first_login: boolean
           created_at: string
           updated_at: string
+          last_login_at: string | null
         }
         Insert: {
           id?: string
@@ -33,6 +34,7 @@ export interface Database {
           first_login?: boolean
           created_at?: string
           updated_at?: string
+          last_login_at?: string | null
         }
         Update: {
           id?: string
@@ -45,6 +47,7 @@ export interface Database {
           first_login?: boolean
           created_at?: string
           updated_at?: string
+          last_login_at?: string | null
         }
       }
       bars: {
@@ -936,6 +939,48 @@ export interface Database {
       auth_user_id: {
         Args: Record<string, never>
         Returns: string
+      }
+      get_current_user_id: {
+        Args: Record<string, never>
+        Returns: string
+      }
+      set_user_session: {
+        Args: {
+          user_id: string
+        }
+        Returns: void
+      }
+      validate_password: {
+        Args: {
+          p_username: string
+          p_password: string
+        }
+        Returns: Array<{
+          user_id: string
+          username: string
+          name: string
+          phone: string
+          avatar_url: string | null
+          is_active: boolean
+          first_login: boolean
+        }>
+      }
+      create_user: {
+        Args: {
+          p_username: string
+          p_password: string
+          p_name: string
+          p_phone: string
+        }
+        Returns: string
+      }
+      change_password: {
+        Args: {
+          p_user_id: string
+          p_old_password: string
+          p_new_password: string
+        }
+        Returns: boolean
       }
       is_super_admin: {
         Args: Record<string, never>

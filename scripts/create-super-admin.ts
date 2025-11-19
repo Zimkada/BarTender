@@ -1,0 +1,122 @@
+/**
+ * Script pour créer le super admin initial avec custom auth
+ * À exécuter une seule fois lors de la configuration initiale
+ *
+ * Usage: npx tsx scripts/create-super-admin.ts
+ */
+
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = 'https://yekomwjdznvtnialpdcz.supabase.co';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+if (!supabaseServiceKey) {
+  console.error('❌ SUPABASE_SERVICE_ROLE_KEY manquante');
+  console.error('Récupérez-la depuis : Supabase Dashboard > Settings > API > service_role key');
+  process.exit(1);
+}
+
+// Client avec service role key (bypass RLS)
+const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+});
+
+async function createSuperAdmin() {
+  console.log('🚀 Création du super admin avec custom auth...\n');
+
+  const username = 'admin';
+  const password = 'Admin@1234';
+  const name = 'Super Administrateur';
+  const phone = '+22900000000';
+
+  try {
+    // 1. Créer l'utilisateur via la fonction SQL
+    console.log('1️⃣ Création de l\'utilisateur...');
+    const { data: userId, error: createError } = await supabase.rpc('create_user', {
+      p_username: username,
+      p_password: password,
+      p_name: name,
+      p_phone: phone,
+    });
+
+    if (createError || !userId) {
+      throw new Error(`Erreur création user: ${createError?.message}`);
+    }
+
+    console.log(`✅ Utilisateur créé: ${userId}`);
+
+    // 2. Créer un bar système pour le super admin
+    console.log('\n2️⃣ Création du bar système...');
+    const { data: bar, error: barError } = await supabase
+      .from('bars')
+      .insert({
+        name: 'BarTender System',
+        owner_id: userId,
+        is_active: true,
+      })
+      .select()
+      .single();
+
+    if (barError || !bar) {
+      throw new Error(`Erreur bar: ${barError?.message}`);
+    }
+
+    console.log(`✅ Bar créé: ${bar.id}`);
+
+    // 3. Créer l'entrée bar_members avec rôle super_admin
+    console.log('\n3️⃣ Attribution du rôle super_admin...');
+    const { error: memberError } = await supabase
+      .from('bar_members')
+      .insert({
+        user_id: userId,
+        bar_id: bar.id,
+        role: 'super_admin',
+        assigned_by: userId,
+        is_active: true,
+      });
+
+    if (memberError) {
+      throw new Error(`Erreur member: ${memberError.message}`);
+    }
+
+    console.log('✅ Rôle attribué: super_admin');
+
+    // 4. Vérifier que le login fonctionne
+    console.log('\n4️⃣ Vérification de l\'authentification...');
+    const { data: validateData, error: validateError } = await supabase.rpc('validate_password', {
+      p_username: username,
+      p_password: password,
+    });
+
+    if (validateError || !validateData || validateData.length === 0) {
+      throw new Error('Échec de la validation du mot de passe');
+    }
+
+    console.log('✅ Authentification testée avec succès');
+
+    // 5. Résumé
+    console.log('\n' + '='.repeat(50));
+    console.log('✅ SUPER ADMIN CRÉÉ AVEC SUCCÈS !');
+    console.log('='.repeat(50));
+    console.log(`\n📝 Credentials:`);
+    console.log(`   Username: ${username}`);
+    console.log(`   Password: ${password}`);
+    console.log(`\n🆔 IDs:`);
+    console.log(`   User ID: ${userId}`);
+    console.log(`   Bar ID: ${bar.id}`);
+    console.log('\n💡 Vous pouvez maintenant vous connecter avec:');
+    console.log(`   Username: ${username}`);
+    console.log(`   Password: ${password}\n`);
+    console.log('📌 Note: Custom auth avec bcrypt activé');
+
+  } catch (error: any) {
+    console.error('\n❌ ERREUR:', error.message);
+    process.exit(1);
+  }
+}
+
+// Exécuter
+createSuperAdmin();
