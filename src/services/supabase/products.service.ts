@@ -1,0 +1,535 @@
+import { supabase, handleSupabaseError } from '../../lib/supabase';
+import type { Database } from '../../lib/database.types';
+
+type GlobalProduct = Database['public']['Tables']['global_products']['Row'];
+type GlobalProductInsert = Database['public']['Tables']['global_products']['Insert'];
+type BarProduct = Database['public']['Tables']['bar_products']['Row'];
+type BarProductInsert = Database['public']['Tables']['bar_products']['Insert'];
+type BarProductUpdate = Database['public']['Tables']['bar_products']['Update'];
+type BarCategory = Database['public']['Tables']['bar_categories']['Row'];
+
+export interface BarProductWithDetails extends BarProduct {
+  global_product?: GlobalProduct | null;
+  category?: BarCategory | null;
+  display_name: string;
+  display_image: string | null;
+}
+
+export interface CreateBarProductData {
+  bar_id: string;
+  global_product_id?: string;
+  local_name?: string;
+  local_image?: string;
+  local_category_id?: string;
+  price: number;
+  stock?: number;
+  alert_threshold?: number;
+  is_custom_product?: boolean;
+}
+
+/**
+ * Service de gestion des produits
+ * Gère à la fois le catalogue global et les produits par bar
+ */
+export class ProductsService {
+  // =====================================================
+  // CATALOGUE GLOBAL (Super Admin uniquement)
+  // =====================================================
+
+  /**
+   * Créer un produit global (super_admin uniquement)
+   */
+  static async createGlobalProduct(data: GlobalProductInsert): Promise<GlobalProduct> {
+    try {
+      const { data: newProduct, error } = await supabase
+        .from('global_products')
+        .insert(data)
+        .select()
+        .single();
+
+      if (error || !newProduct) {
+        throw new Error('Erreur lors de la création du produit global');
+      }
+
+      return newProduct;
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Récupérer tous les produits globaux
+   */
+  static async getGlobalProducts(): Promise<GlobalProduct[]> {
+    try {
+      const { data, error } = await supabase
+        .from('global_products')
+        .select('*')
+        .eq('is_active', true)
+        .order('category', { ascending: true })
+        .order('name', { ascending: true });
+
+      if (error) {
+        throw new Error('Erreur lors de la récupération des produits globaux');
+      }
+
+      return data || [];
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Récupérer les produits globaux par catégorie
+   */
+  static async getGlobalProductsByCategory(category: string): Promise<GlobalProduct[]> {
+    try {
+      const { data, error } = await supabase
+        .from('global_products')
+        .select('*')
+        .eq('category', category)
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+
+      if (error) {
+        throw new Error('Erreur lors de la récupération des produits');
+      }
+
+      return data || [];
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Mettre à jour un produit global
+   */
+  static async updateGlobalProduct(
+    productId: string,
+    updates: Partial<GlobalProductInsert>
+  ): Promise<GlobalProduct> {
+    try {
+      const { data, error } = await supabase
+        .from('global_products')
+        .update(updates)
+        .eq('id', productId)
+        .select()
+        .single();
+
+      if (error || !data) {
+        throw new Error('Erreur lors de la mise à jour du produit global');
+      }
+
+      return data;
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  // =====================================================
+  // PRODUITS PAR BAR
+  // =====================================================
+
+  /**
+   * Créer un produit pour un bar
+   * Peut être lié à un produit global OU être 100% custom
+   */
+  static async createBarProduct(data: CreateBarProductData): Promise<BarProduct> {
+    try {
+      // Validation: soit global_product_id, soit (is_custom_product + local_name)
+      if (!data.global_product_id && !data.is_custom_product) {
+        throw new Error('Le produit doit être lié au catalogue global ou être un produit custom');
+      }
+
+      if (data.is_custom_product && !data.local_name) {
+        throw new Error('Un produit custom doit avoir un nom local');
+      }
+
+      const { data: newProduct, error } = await supabase
+        .from('bar_products')
+        .insert({
+          bar_id: data.bar_id,
+          global_product_id: data.global_product_id,
+          local_name: data.local_name,
+          local_image: data.local_image,
+          local_category_id: data.local_category_id,
+          price: data.price,
+          stock: data.stock || 0,
+          alert_threshold: data.alert_threshold || 10,
+          is_custom_product: data.is_custom_product || false,
+          is_active: true,
+        })
+        .select()
+        .single();
+
+      if (error || !newProduct) {
+        throw new Error('Erreur lors de la création du produit');
+      }
+
+      return newProduct;
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Récupérer tous les produits d'un bar avec leurs détails
+   */
+  static async getBarProducts(barId: string): Promise<BarProductWithDetails[]> {
+    try {
+      const { data, error } = await supabase
+        .from('bar_products')
+        .select(`
+          *,
+          global_products (*),
+          bar_categories (*)
+        `)
+        .eq('bar_id', barId)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw new Error('Erreur lors de la récupération des produits');
+      }
+
+      // Enrichir avec display_name et display_image
+      const enrichedProducts: BarProductWithDetails[] = (data || []).map((product: any) => {
+        const globalProduct = product.global_products as GlobalProduct | null;
+
+        return {
+          ...product,
+          global_product: globalProduct,
+          category: product.bar_categories,
+          display_name: product.local_name || globalProduct?.name || 'Produit sans nom',
+          display_image: product.local_image || globalProduct?.official_image || null,
+        };
+      });
+
+      return enrichedProducts;
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Récupérer les produits d'un bar par catégorie
+   */
+  static async getBarProductsByCategory(
+    barId: string,
+    categoryId: string
+  ): Promise<BarProductWithDetails[]> {
+    try {
+      const { data, error } = await supabase
+        .from('bar_products')
+        .select(`
+          *,
+          global_products (*),
+          bar_categories (*)
+        `)
+        .eq('bar_id', barId)
+        .eq('local_category_id', categoryId)
+        .eq('is_active', true);
+
+      if (error) {
+        throw new Error('Erreur lors de la récupération des produits');
+      }
+
+      const enrichedProducts: BarProductWithDetails[] = (data || []).map((product: any) => {
+        const globalProduct = product.global_products as GlobalProduct | null;
+
+        return {
+          ...product,
+          global_product: globalProduct,
+          category: product.bar_categories,
+          display_name: product.local_name || globalProduct?.name || 'Produit sans nom',
+          display_image: product.local_image || globalProduct?.official_image || null,
+        };
+      });
+
+      return enrichedProducts;
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Récupérer un produit par ID
+   */
+  static async getBarProductById(productId: string): Promise<BarProductWithDetails | null> {
+    try {
+      const { data, error } = await supabase
+        .from('bar_products')
+        .select(`
+          *,
+          global_products (*),
+          bar_categories (*)
+        `)
+        .eq('id', productId)
+        .single();
+
+      if (error || !data) {
+        return null;
+      }
+
+      const globalProduct = data.global_products as GlobalProduct | null;
+
+      return {
+        ...data,
+        global_product: globalProduct,
+        category: data.bar_categories,
+        display_name: data.local_name || globalProduct?.name || 'Produit sans nom',
+        display_image: data.local_image || globalProduct?.official_image || null,
+      };
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Mettre à jour un produit de bar
+   */
+  static async updateBarProduct(
+    productId: string,
+    updates: BarProductUpdate
+  ): Promise<BarProduct> {
+    try {
+      const { data, error } = await supabase
+        .from('bar_products')
+        .update(updates)
+        .eq('id', productId)
+        .select()
+        .single();
+
+      if (error || !data) {
+        throw new Error('Erreur lors de la mise à jour du produit');
+      }
+
+      return data;
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Mettre à jour le stock d'un produit
+   */
+  static async updateStock(productId: string, quantity: number): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('bar_products')
+        .update({ stock: quantity })
+        .eq('id', productId);
+
+      if (error) {
+        throw new Error('Erreur lors de la mise à jour du stock');
+      }
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Incrémenter le stock d'un produit (approvisionnement)
+   */
+  static async incrementStock(productId: string, quantity: number): Promise<void> {
+    try {
+      // Récupérer le stock actuel
+      const { data: product } = await supabase
+        .from('bar_products')
+        .select('stock')
+        .eq('id', productId)
+        .single();
+
+      if (!product) {
+        throw new Error('Produit introuvable');
+      }
+
+      const newStock = product.stock + quantity;
+
+      await this.updateStock(productId, newStock);
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Décrémenter le stock d'un produit (vente)
+   */
+  static async decrementStock(productId: string, quantity: number): Promise<void> {
+    try {
+      // Récupérer le stock actuel
+      const { data: product } = await supabase
+        .from('bar_products')
+        .select('stock')
+        .eq('id', productId)
+        .single();
+
+      if (!product) {
+        throw new Error('Produit introuvable');
+      }
+
+      const newStock = Math.max(0, product.stock - quantity);
+
+      await this.updateStock(productId, newStock);
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Désactiver un produit (soft delete)
+   */
+  static async deactivateProduct(productId: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('bar_products')
+        .update({ is_active: false })
+        .eq('id', productId);
+
+      if (error) {
+        throw new Error('Erreur lors de la désactivation du produit');
+      }
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Récupérer les produits en rupture de stock
+   */
+  static async getLowStockProducts(barId: string): Promise<BarProductWithDetails[]> {
+    try {
+      const { data, error } = await supabase
+        .from('bar_products')
+        .select(`
+          *,
+          global_products (*),
+          bar_categories (*)
+        `)
+        .eq('bar_id', barId)
+        .eq('is_active', true)
+        .filter('stock', 'lte', 'alert_threshold');
+
+      if (error) {
+        throw new Error('Erreur lors de la récupération des produits en rupture');
+      }
+
+      const enrichedProducts: BarProductWithDetails[] = (data || []).map((product: any) => {
+        const globalProduct = product.global_products as GlobalProduct | null;
+
+        return {
+          ...product,
+          global_product: globalProduct,
+          category: product.bar_categories,
+          display_name: product.local_name || globalProduct?.name || 'Produit sans nom',
+          display_image: product.local_image || globalProduct?.official_image || null,
+        };
+      });
+
+      return enrichedProducts;
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  // =====================================================
+  // CATÉGORIES PAR BAR
+  // =====================================================
+
+  /**
+   * Créer une catégorie pour un bar
+   */
+  static async createBarCategory(data: {
+    bar_id: string;
+    name: string;
+    color?: string;
+    icon?: string;
+    is_custom?: boolean;
+  }): Promise<BarCategory> {
+    try {
+      const { data: newCategory, error } = await supabase
+        .from('bar_categories')
+        .insert({
+          bar_id: data.bar_id,
+          name: data.name,
+          color: data.color || '#3B82F6',
+          icon: data.icon,
+          is_custom: data.is_custom || false,
+        })
+        .select()
+        .single();
+
+      if (error || !newCategory) {
+        throw new Error('Erreur lors de la création de la catégorie');
+      }
+
+      return newCategory;
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Récupérer les catégories d'un bar
+   */
+  static async getBarCategories(barId: string): Promise<BarCategory[]> {
+    try {
+      const { data, error } = await supabase
+        .from('bar_categories')
+        .select('*')
+        .eq('bar_id', barId)
+        .order('order_index', { ascending: true });
+
+      if (error) {
+        throw new Error('Erreur lors de la récupération des catégories');
+      }
+
+      return data || [];
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Mettre à jour une catégorie
+   */
+  static async updateBarCategory(
+    categoryId: string,
+    updates: { name?: string; color?: string; icon?: string; order_index?: number }
+  ): Promise<BarCategory> {
+    try {
+      const { data, error } = await supabase
+        .from('bar_categories')
+        .update(updates)
+        .eq('id', categoryId)
+        .select()
+        .single();
+
+      if (error || !data) {
+        throw new Error('Erreur lors de la mise à jour de la catégorie');
+      }
+
+      return data;
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Supprimer une catégorie
+   */
+  static async deleteBarCategory(categoryId: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('bar_categories')
+        .delete()
+        .eq('id', categoryId);
+
+      if (error) {
+        throw new Error('Erreur lors de la suppression de la catégorie');
+      }
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+}
