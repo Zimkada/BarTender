@@ -6,8 +6,8 @@ import { useBarContext } from '../context/BarContext';
 import { User } from '../types';
 
 export function LoginScreen() {
-  const { login, users, changePassword } = useAuth();
-  const { bars, barMembers } = useBarContext();
+  const { login, changePassword } = useAuth();
+  const { bars } = useBarContext();
   
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -36,74 +36,51 @@ export function LoginScreen() {
     setError('');
   }, [username, password, selectedBar, barSearchQuery]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
 
     if (!username || !password) {
       setError('Veuillez remplir tous les champs');
       return;
     }
 
-    // Trouver l'utilisateur
-    const user = users.find((u: User) => u.username === username);
-    if (!user) {
-      setError('Identifiants incorrects');
-      return;
-    }
-
     // Cas spécial: Super Admin n'a pas besoin de sélectionner un bar
-    const isSuperAdmin = username === 'admin'; // Super admin username
+    const isSuperAdmin = username === 'admin';
 
     if (!isSuperAdmin && !selectedBar) {
       setError('Bar introuvable. Vérifiez le nom exact.');
       return;
     }
 
-    // Pour super admin: login direct avec role 'super_admin'
-    if (isSuperAdmin) {
-      const session = login(username, password, 'admin_global', 'super_admin');
+    try {
+      // Tenter la connexion via AuthService (qui gère la validation et le role)
+      const session = await login(
+        username,
+        password,
+        selectedBar || 'admin_global',
+        undefined // Le role sera récupéré automatiquement par AuthService
+      );
 
-      if (session) {
-        // Vérifier si c'est la première connexion
-        if (user?.firstLogin) {
-          setIsFirstLogin(true);
-          setCurrentUserId(user.id);
-        }
-      } else {
-        setError('Identifiants incorrects');
+      if (!session) {
+        setError('Identifiants incorrects ou accès refusé');
+        return;
       }
-      return;
-    }
 
-    // Pour utilisateurs normaux: vérifier membership
-    const membership = barMembers.find(m =>
-      (m.userId === user?.id || m.userId === username) &&
-      m.barId === selectedBar &&
-      m.isActive
-    );
-
-    if (!membership) {
-      setError('Vous n\'avez pas accès à ce bar');
-      return;
-    }
-
-    // Tenter la connexion
-    const session = login(username, password, selectedBar, membership.role);
-
-    if (session) {
       // Vérifier si c'est la première connexion
-      if (user?.firstLogin) {
+      if (session.firstLogin) {
         setIsFirstLogin(true);
-        setCurrentUserId(user.id);
+        setCurrentUserId(session.userId);
       }
-    } else {
-      setError('Identifiants incorrects');
+    } catch (error: any) {
+      setError(error.message || 'Erreur lors de la connexion');
     }
   };
 
-  const handlePasswordChange = (e: React.FormEvent) => {
+  const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setError('');
+
     if (newPassword.length < 4) {
       setError('Le mot de passe doit contenir au moins 4 caractères');
       return;
@@ -114,17 +91,24 @@ export function LoginScreen() {
       return;
     }
 
-    changePassword(currentUserId, newPassword);
-    
-    // Re-login avec le nouveau mot de passe
-    const membership = barMembers.find(m => 
-      m.userId === currentUserId && 
-      m.barId === selectedBar && 
-      m.isActive
-    );
-    
-    if (membership) {
-      login(username, newPassword, selectedBar, membership.role);
+    try {
+      // Changer le mot de passe via AuthService
+      await changePassword(currentUserId, password, newPassword);
+
+      // Re-login automatique avec le nouveau mot de passe
+      const session = await login(
+        username,
+        newPassword,
+        selectedBar || 'admin_global',
+        undefined
+      );
+
+      if (session) {
+        // Connexion réussie, l'écran de login disparaîtra automatiquement
+        setIsFirstLogin(false);
+      }
+    } catch (error: any) {
+      setError(error.message || 'Erreur lors du changement de mot de passe');
     }
   };
 

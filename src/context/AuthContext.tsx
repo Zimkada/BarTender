@@ -13,7 +13,7 @@ interface AuthContextType {
   hasPermission: (permission: keyof RolePermissions) => boolean;
   createUser: (userData: Omit<User, 'id' | 'createdAt' | 'createdBy'>, role: UserRole) => Promise<User | null>;
   updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
-  changePassword: (userId: string, newPassword: string) => Promise<void>;
+  changePassword: (userId: string, oldPassword: string, newPassword: string) => Promise<void>;
   getUserById: (userId: string) => User | undefined;
   // Impersonation
   isImpersonating: boolean;
@@ -58,7 +58,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         barId: authUser.barId,
         barName: authUser.barName,
         loginTime: new Date(),
-        permissions: getPermissionsByRole(authUser.role)
+        permissions: getPermissionsByRole(authUser.role),
+        firstLogin: authUser.first_login
       };
 
       setCurrentSession(session);
@@ -212,24 +213,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [currentSession]);
 
-  const changePassword = useCallback(async (userId: string, _newPassword: string): Promise<void> => {
-    if (!currentSession) return;
+  const changePassword = useCallback(async (userId: string, oldPassword: string, newPassword: string): Promise<void> => {
+    if (!currentSession) {
+      throw new Error('Session non trouvée');
+    }
 
     try {
-      const isSelfChange = userId === currentSession.userId;
+      // Changer le mot de passe via AuthService
+      await AuthService.changePassword(userId, oldPassword, newPassword);
 
-      // Pour l'instant, on suppose que c'est un changement de mot de passe auto (avec ancien mot de passe)
-      // TODO: Ajouter support pour reset par admin avec AuthService.changePassword
-      if (isSelfChange) {
-        // Nécessite l'ancien mot de passe - à implémenter dans l'UI
-        console.warn('[AuthContext] Self password change requires old password');
-        return;
+      // Mettre à jour firstLogin dans la session si c'est l'utilisateur courant
+      if (userId === currentSession.userId) {
+        setCurrentSession({
+          ...currentSession,
+          firstLogin: false
+        });
       }
+
+      const isSelfChange = userId === currentSession.userId;
 
       // Log changement mot de passe
       auditLogger.log({
         event: 'PASSWORD_RESET',
-        severity: isSelfChange ? 'info' : 'warning',
+        severity: 'info',
         userId: currentSession.userId,
         userName: currentSession.userName,
         userRole: currentSession.role,
@@ -246,10 +252,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         relatedEntityId: userId,
         relatedEntityType: 'user',
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('[AuthContext] Error changing password:', error);
+      throw new Error(error.message || 'Erreur lors du changement de mot de passe');
     }
-  }, [currentSession]);
+  }, [currentSession, setCurrentSession]);
 
   const getUserById = useCallback((_userId: string) => {
     // TODO: Implémenter avec Supabase

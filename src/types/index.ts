@@ -25,6 +25,7 @@ export interface UserSession {
   barName: string;
   loginTime: Date;
   permissions: RolePermissions;
+  firstLogin?: boolean;
 }
 
 // ===== BARS & ORGANISATION =====

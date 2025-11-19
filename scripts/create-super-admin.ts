@@ -22,6 +22,9 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
     autoRefreshToken: false,
     persistSession: false,
   },
+  db: {
+    schema: 'public',
+  },
 });
 
 async function createSuperAdmin() {
@@ -48,40 +51,18 @@ async function createSuperAdmin() {
 
     console.log(`✅ Utilisateur créé: ${userId}`);
 
-    // 2. Créer un bar système pour le super admin
-    console.log('\n2️⃣ Création du bar système...');
-    const { data: bar, error: barError } = await supabase
-      .from('bars')
-      .insert({
-        name: 'BarTender System',
-        owner_id: userId,
-        is_active: true,
-      })
-      .select()
-      .single();
+    // 2. Créer le bar système + bar_members via fonction SQL (bypass RLS)
+    console.log('\n2️⃣ Création du bar système et attribution du rôle...');
+    const { data: barSetup, error: setupError } = await supabase.rpc('setup_super_admin_bar', {
+      p_user_id: userId,
+    });
 
-    if (barError || !bar) {
-      throw new Error(`Erreur bar: ${barError?.message}`);
+    if (setupError || !barSetup || barSetup.length === 0) {
+      throw new Error(`Erreur setup: ${setupError?.message || 'Pas de données retournées'}`);
     }
 
-    console.log(`✅ Bar créé: ${bar.id}`);
-
-    // 3. Créer l'entrée bar_members avec rôle super_admin
-    console.log('\n3️⃣ Attribution du rôle super_admin...');
-    const { error: memberError } = await supabase
-      .from('bar_members')
-      .insert({
-        user_id: userId,
-        bar_id: bar.id,
-        role: 'super_admin',
-        assigned_by: userId,
-        is_active: true,
-      });
-
-    if (memberError) {
-      throw new Error(`Erreur member: ${memberError.message}`);
-    }
-
+    const barInfo = barSetup[0];
+    console.log(`✅ Bar créé: ${barInfo.bar_id}`);
     console.log('✅ Rôle attribué: super_admin');
 
     // 4. Vérifier que le login fonctionne
@@ -106,7 +87,7 @@ async function createSuperAdmin() {
     console.log(`   Password: ${password}`);
     console.log(`\n🆔 IDs:`);
     console.log(`   User ID: ${userId}`);
-    console.log(`   Bar ID: ${bar.id}`);
+    console.log(`   Bar ID: ${barInfo.bar_id}`);
     console.log('\n💡 Vous pouvez maintenant vous connecter avec:');
     console.log(`   Username: ${username}`);
     console.log(`   Password: ${password}\n`);
