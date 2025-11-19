@@ -332,8 +332,13 @@ export const useStockManagement = () => {
 
   // ✅ Filtrer les produits par bar actuel (isolation multi-tenant)
   const barProducts = useMemo(() => {
-    if (!currentBar) return [];
-    return products.filter(p => p.barId === currentBar.id);
+    if (!currentBar) {
+      console.log('[barProducts] No current bar');
+      return [];
+    }
+    const filtered = products.filter(p => p.barId === currentBar.id);
+    console.log(`[barProducts] Filtering: ${products.length} total → ${filtered.length} for bar ${currentBar.id}`);
+    return filtered;
   }, [products, currentBar]);
 
   // ✅ Filtrer les supplies par bar actuel

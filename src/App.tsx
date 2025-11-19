@@ -544,10 +544,12 @@ function AppContent() {
           isOpen={showProductModal}
           onClose={() => setShowProductModal(false)}
           onSave={(productData) => {
+            console.log('[ProductModal] onSave - currentBar:', currentBar);
             if (!currentBar) {
               showNotification('error', 'Aucun bar sélectionné');
               return;
             }
+            console.log('[ProductModal] Adding product with barId:', currentBar.id);
             addProduct({ ...productData, barId: currentBar.id });
             setShowProductModal(false);
             showNotification('success', `Produit "${productData.name}" ajouté`);
