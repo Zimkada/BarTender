@@ -49,7 +49,18 @@ export class AuthService {
       const { data, error } = await supabase.rpc('validate_password', {
         p_username: credentials.username,
         p_password: credentials.password,
-      });
+      }) as {
+        data: Array<{
+          user_id: string;
+          username: string;
+          name: string;
+          phone: string;
+          avatar_url: string | null;
+          is_active: boolean;
+          first_login: boolean;
+        }> | null;
+        error: any;
+      };
 
       if (error || !data || data.length === 0) {
         throw new Error('Nom d\'utilisateur ou mot de passe incorrect');
@@ -57,7 +68,10 @@ export class AuthService {
 
       const userProfile = data[0];
 
-      // 2. Récupérer le rôle et le bar de l'utilisateur
+      // 2. Définir la session pour RLS AVANT les requêtes
+      await this.setUserSession(userProfile.user_id);
+
+      // 3. Récupérer le rôle et le bar de l'utilisateur
       const { data: membership, error: memberError } = await supabase
         .from('bar_members')
         .select(`
@@ -75,7 +89,7 @@ export class AuthService {
         throw new Error('Utilisateur non assigné à un bar');
       }
 
-      // 3. Construire l'objet AuthUser (sans password_hash)
+      // 4. Construire l'objet AuthUser (sans password_hash)
       const authUser: AuthUser = {
         id: userProfile.user_id,
         username: userProfile.username,
@@ -92,11 +106,8 @@ export class AuthService {
         barName: (membership.bars as any).name,
       };
 
-      // 4. Stocker dans localStorage
+      // 5. Stocker dans localStorage
       localStorage.setItem('auth_user', JSON.stringify(authUser));
-
-      // 5. Définir la session pour RLS
-      await this.setUserSession(authUser.id);
 
       return authUser;
     } catch (error: any) {
