@@ -1,30 +1,39 @@
 import React, { createContext, useContext, useCallback, ReactNode, useState, useEffect } from 'react';
-import { useDataStore } from '../hooks/useDataStore';
 import { useAuth } from '../context/AuthContext';
 import { Bar, BarMember, User, UserRole } from '../types';
 import { auditLogger } from '../services/AuditLogger';
+import { BarsService } from '../services/supabase/bars.service';
+import { AuthService } from '../services/supabase/auth.service';
+import { supabase } from '../lib/supabase';
+import type { Database } from '../lib/database.types';
+
+type BarMemberRow = Database['public']['Tables']['bar_members']['Row'];
+type BarMemberInsert = Database['public']['Tables']['bar_members']['Insert'];
+type BarMemberUpdate = Database['public']['Tables']['bar_members']['Update'];
 
 interface BarContextType {
   // Bars
   bars: Bar[];
   currentBar: Bar | null;
   userBars: Bar[]; // Bars de l'utilisateur connecté
-  
+  loading: boolean;
+
   // Gestion des bars
-  createBar: (bar: Omit<Bar, 'id' | 'createdAt' | 'ownerId'>) => Bar | null;
-  updateBar: (barId: string, updates: Partial<Bar>) => void;
+  createBar: (bar: Omit<Bar, 'id' | 'createdAt' | 'ownerId'> & { ownerId?: string }) => Promise<Bar | null>;
+  updateBar: (barId: string, updates: Partial<Bar>) => Promise<void>;
   switchBar: (barId: string) => void;
-  
+
   // Membres du bar
   barMembers: BarMember[];
-  getBarMembers: (barId: string) => (BarMember & { user: User })[];
-  addBarMember: (userId: string, role: UserRole) => BarMember | null;
-  removeBarMember: (memberId: string) => void;
-  updateBarMember: (memberId: string, updates: Partial<BarMember>) => void;
-  
+  getBarMembers: (barId: string) => Promise<(BarMember & { user: User })[]>;
+  addBarMember: (userId: string, role: UserRole) => Promise<BarMember | null>;
+  removeBarMember: (memberId: string) => Promise<void>;
+  updateBarMember: (memberId: string, updates: Partial<BarMember>) => Promise<void>;
+
   // Helpers
   isOwner: (barId: string) => boolean;
   canAccessBar: (barId: string) => boolean;
+  refreshBars: () => Promise<void>;
 }
 
 const BarContext = createContext<BarContextType | undefined>(undefined);
@@ -37,71 +46,113 @@ export const useBarContext = () => {
   return context;
 };
 
-// Mock data pour démarrer
-const mockBars: Bar[] = [
-  {
-    id: 'bar1',
-    name: 'Bar Demo',
-    address: 'Cotonou, Bénin',
-    phone: '0197000000',
-    ownerId: '1', // Promoteur principal
-    createdAt: new Date(),
-    isActive: true,
-    settings: {
-      currency: 'FCFA',
-      currencySymbol: ' FCFA',
-      timezone: 'Africa/Porto-Novo',
-      language: 'fr',
-    },
-  },
-];
-
-const mockBarMembers: BarMember[] = [
-  { id: '1', userId: '1', barId: 'bar1', role: 'promoteur', assignedBy: '1', assignedAt: new Date(), isActive: true },
-  { id: '2', userId: '2', barId: 'bar1', role: 'gerant', assignedBy: '1', assignedAt: new Date(), isActive: true },
-  { id: '3', userId: '3', barId: 'bar1', role: 'serveur', assignedBy: '1', assignedAt: new Date(), isActive: true },
-  { id: '4', userId: '4', barId: 'bar1', role: 'serveur', assignedBy: '1', assignedAt: new Date(), isActive: true },
-];
-
 export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { currentSession, hasPermission } = useAuth();
-  const [bars, setBars] = useDataStore<Bar[]>('bars', mockBars);
-  const [barMembers, setBarMembers] = useDataStore<BarMember[]>('bar-members', mockBarMembers);
-  const [currentBarId, setCurrentBarId] = useDataStore<string | null>('current-bar-id', null);
-  const [users] = useDataStore<User[]>('bar-users', []);
+  const [bars, setBars] = useState<Bar[]>([]);
+  const [barMembers, setBarMembers] = useState<BarMember[]>([]);
+  const [currentBarId, setCurrentBarId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // État dérivé
   const [currentBar, setCurrentBar] = useState<Bar | null>(null);
   const [userBars, setUserBars] = useState<Bar[]>([]);
 
-  // Helper pour obtenir les bars accessibles (défini AVANT les useEffect qui l'utilisent)
-  const getUserBars = useCallback(() => {
-    if (!currentSession) return [];
-
-    if (currentSession.role === 'promoteur') {
-      // Le promoteur voit tous ses bars
-      return bars.filter(bar => bar.ownerId === currentSession.userId);
-    } else {
-      // Les autres voient seulement leur bar assigné
-      const userMemberships = barMembers.filter(
-        m => m.userId === currentSession.userId && m.isActive
-      );
-      return bars.filter(bar =>
-        userMemberships.some(m => m.barId === bar.id)
-      );
+  // Fonction pour charger les bars depuis Supabase
+  const refreshBars = useCallback(async () => {
+    if (!currentSession) {
+      setBars([]);
+      setUserBars([]);
+      setLoading(false);
+      return;
     }
-  }, [bars, barMembers, currentSession]);
+
+    try {
+      setLoading(true);
+
+      if (currentSession.role === 'super_admin') {
+        // Super admin voit tous les bars
+        const allBars = await BarsService.getAllBars();
+        const mappedBars: Bar[] = allBars.map(b => ({
+          id: b.id,
+          name: b.name,
+          ownerId: b.owner_id,
+          address: b.address || undefined,
+          phone: b.phone || undefined,
+          logoUrl: b.logo_url || undefined,
+          settings: (b.settings as any) || {
+            currency: 'FCFA',
+            currencySymbol: ' FCFA',
+            timezone: 'Africa/Porto-Novo',
+            language: 'fr',
+          },
+          isActive: b.is_active,
+          createdAt: new Date(b.created_at),
+        }));
+        setBars(mappedBars);
+        setUserBars(mappedBars);
+      } else {
+        // Les autres utilisateurs voient seulement leurs bars
+        const userBarsData = await BarsService.getUserBars(currentSession.userId);
+        const mappedBars: Bar[] = userBarsData.map(b => ({
+          id: b.id,
+          name: b.name,
+          ownerId: b.owner_id,
+          address: b.address || undefined,
+          phone: b.phone || undefined,
+          logoUrl: b.logo_url || undefined,
+          settings: (b.settings as any) || {
+            currency: 'FCFA',
+            currencySymbol: ' FCFA',
+            timezone: 'Africa/Porto-Novo',
+            language: 'fr',
+          },
+          isActive: b.is_active,
+          createdAt: new Date(b.created_at),
+        }));
+        setBars(mappedBars);
+        setUserBars(mappedBars);
+      }
+
+      // Charger les membres du bar courant si on en a un
+      if (currentSession.barId && currentSession.barId !== 'admin_global') {
+        const members = await AuthService.getBarMembers(currentSession.barId);
+        const mappedMembers: BarMember[] = members.map(m => ({
+          id: m.id,
+          userId: m.id,
+          barId: currentSession.barId,
+          role: m.role as UserRole,
+          assignedBy: '', // Pas retourné par l'API
+          assignedAt: new Date(m.joined_at),
+          isActive: m.is_active,
+        }));
+        setBarMembers(mappedMembers);
+      }
+    } catch (error) {
+      console.error('[BarContext] Error loading bars:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentSession]);
+
+  // Charger les bars au démarrage et quand la session change
+  useEffect(() => {
+    refreshBars();
+  }, [refreshBars]);
+
+  // Helper pour obtenir les bars accessibles
+  const getUserBars = useCallback(() => {
+    return userBars;
+  }, [userBars]);
 
   // Mise à jour du bar actuel
   useEffect(() => {
     if (!currentSession) {
-      // 🔧 FIX: Reset bar quand pas de session (déconnexion)
       setCurrentBar(null);
       setCurrentBarId(null);
       return;
     }
 
-    // 🔧 FIX: Toujours prioriser le barId de la session (important pour impersonation et multi-promoteurs)
+    // Prioriser le barId de la session
     if (currentSession.barId && currentSession.barId !== 'admin_global') {
       const sessionBar = bars.find(b => b.id === currentSession.barId);
       if (sessionBar) {
@@ -115,7 +166,6 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (currentBarId) {
       const bar = bars.find(b => b.id === currentBarId);
       if (bar) {
-        // Vérifier que l'utilisateur a accès à ce bar
         const accessibleBars = getUserBars();
         if (accessibleBars.some(b => b.id === currentBarId)) {
           setCurrentBar(bar);
@@ -135,161 +185,106 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [currentBarId, bars, currentSession, getUserBars]);
 
-  // Mise à jour des bars de l'utilisateur
-  useEffect(() => {
-    if (currentSession) {
-      setUserBars(getUserBars());
-    }
-  }, [currentSession, bars, barMembers, getUserBars]);
-
   // Gestion des bars
-  const createBar = useCallback((barData: Omit<Bar, 'id' | 'createdAt' | 'ownerId'> & { ownerId?: string }) => {
+  const createBar = useCallback(async (barData: Omit<Bar, 'id' | 'createdAt' | 'ownerId'> & { ownerId?: string }) => {
     if (!currentSession || !hasPermission('canCreateBars')) return null;
 
-    // Permettre au super admin de spécifier l'ownerId
-    const ownerId = barData.ownerId || currentSession.userId;
+    try {
+      const ownerId = barData.ownerId || currentSession.userId;
 
-    const newBar: Bar = {
-      ...barData,
-      id: `bar_${Date.now()}`,
-      ownerId,
-      createdAt: new Date(),
-    };
+      const newBarData = {
+        name: barData.name,
+        owner_id: ownerId,
+        address: barData.address,
+        phone: barData.phone,
+        settings: barData.settings,
+      };
 
-    setBars(prev => [...prev, newBar]);
+      const createdBar = await BarsService.createBar(newBarData);
 
-    // Ajouter le propriétaire comme membre promoteur
-    const ownerMember: BarMember = {
-      id: `member_${Date.now()}`,
-      userId: ownerId,
-      barId: newBar.id,
-      role: 'promoteur',
-      assignedBy: currentSession.userId,
-      assignedAt: new Date(),
-      isActive: true,
-    };
+      const newBar: Bar = {
+        id: createdBar.id,
+        name: createdBar.name,
+        ownerId: createdBar.owner_id,
+        address: createdBar.address || undefined,
+        phone: createdBar.phone || undefined,
+        settings: (createdBar.settings as any) || barData.settings,
+        isActive: createdBar.is_active,
+        createdAt: new Date(createdBar.created_at),
+      };
 
-    setBarMembers(prev => [...prev, ownerMember]);
+      // Rafraîchir la liste des bars
+      await refreshBars();
 
-    // Log création bar
-    auditLogger.log({
-      event: 'BAR_CREATED',
-      severity: 'info',
-      userId: currentSession.userId,
-      userName: currentSession.userName,
-      userRole: currentSession.role,
-      barId: newBar.id,
-      barName: newBar.name,
-      description: `Création bar: ${newBar.name}`,
-      metadata: {
-        barAddress: newBar.address,
-        barPhone: newBar.phone,
-        ownerId: ownerId,
-        createdByRole: currentSession.role,
-      },
-      relatedEntityId: newBar.id,
-      relatedEntityType: 'bar',
-    });
-
-    return newBar;
-  }, [currentSession, hasPermission, setBars, setBarMembers]);
-
-  const updateBar = useCallback((barId: string, updates: Partial<Bar>) => {
-    if (!currentSession || !hasPermission('canManageBarInfo')) return;
-
-    const oldBar = bars.find(b => b.id === barId);
-
-    setBars(prev => prev.map(bar =>
-      bar.id === barId ? { ...bar, ...updates } : bar
-    ));
-
-    // Log mise à jour bar
-    if (oldBar) {
+      // Log création bar
       auditLogger.log({
-        event: 'BAR_UPDATED',
+        event: 'BAR_CREATED',
         severity: 'info',
         userId: currentSession.userId,
         userName: currentSession.userName,
         userRole: currentSession.role,
-        barId: barId,
-        barName: oldBar.name,
-        description: `Mise à jour bar: ${oldBar.name}`,
+        barId: newBar.id,
+        barName: newBar.name,
+        description: `Création bar: ${newBar.name}`,
         metadata: {
-          updates: updates,
-          oldValues: { name: oldBar.name, address: oldBar.address, phone: oldBar.phone },
+          barAddress: newBar.address,
+          barPhone: newBar.phone,
+          ownerId: ownerId,
+          createdByRole: currentSession.role,
         },
-        relatedEntityId: barId,
+        relatedEntityId: newBar.id,
         relatedEntityType: 'bar',
       });
+
+      return newBar;
+    } catch (error) {
+      console.error('[BarContext] Error creating bar:', error);
+      return null;
     }
-  }, [currentSession, hasPermission, bars, setBars]);
+  }, [currentSession, hasPermission, refreshBars]);
 
-  const switchBar = useCallback((barId: string) => {
-    if (!canAccessBar(barId)) return;
-    setCurrentBarId(barId);
-  }, []);
+  const updateBar = useCallback(async (barId: string, updates: Partial<Bar>) => {
+    if (!currentSession || !hasPermission('canManageBarInfo')) return;
 
-  // Gestion des membres
-  const getBarMembers = useCallback((barId: string) => {
-    const members = barMembers.filter(m => m.barId === barId && m.isActive);
-    
-    return members.map(member => {
-      const user = users.find(u => u.id === member.userId);
-      return { ...member, user };
-    }).filter(m => m.user) as (BarMember & { user: User })[];
-  }, [barMembers, users]);
+    try {
+      const oldBar = bars.find(b => b.id === barId);
 
-  const addBarMember = useCallback((userId: string, role: UserRole) => {
-    if (!currentSession || !currentBar) return null;
-    
-    // Vérifier les permissions
-    if (role === 'gerant' && !hasPermission('canCreateManagers')) return null;
-    if (role === 'serveur' && !hasPermission('canCreateServers')) return null;
+      // Mapper les updates au format Supabase
+      const supabaseUpdates: any = {};
+      if (updates.name) supabaseUpdates.name = updates.name;
+      if (updates.address) supabaseUpdates.address = updates.address;
+      if (updates.phone) supabaseUpdates.phone = updates.phone;
+      if (updates.settings) supabaseUpdates.settings = updates.settings;
+      if (updates.isActive !== undefined) supabaseUpdates.is_active = updates.isActive;
 
-    // Vérifier si l'utilisateur n'est pas déjà membre
-    const existingMember = barMembers.find(
-      m => m.userId === userId && m.barId === currentBar.id && m.isActive
-    );
-    if (existingMember) return null;
+      await BarsService.updateBar(barId, supabaseUpdates);
 
-    const newMember: BarMember = {
-      id: `member_${Date.now()}`,
-      userId,
-      barId: currentBar.id,
-      role,
-      assignedBy: currentSession.userId,
-      assignedAt: new Date(),
-      isActive: true,
-    };
+      // Rafraîchir la liste
+      await refreshBars();
 
-    setBarMembers(prev => [...prev, newMember]);
-    return newMember;
-  }, [currentSession, currentBar, hasPermission, barMembers, setBarMembers]);
-
-  const removeBarMember = useCallback((memberId: string) => {
-    if (!currentSession) return;
-
-    const member = barMembers.find(m => m.id === memberId);
-    if (!member) return;
-
-    // Seul le promoteur peut retirer des gérants
-    if (member.role === 'gerant' && !hasPermission('canCreateManagers')) return;
-    // Gérants et promoteurs peuvent retirer des serveurs
-    if (member.role === 'serveur' && !hasPermission('canCreateServers')) return;
-
-    // Désactiver plutôt que supprimer (pour l'historique)
-    setBarMembers(prev => prev.map(m =>
-      m.id === memberId ? { ...m, isActive: false } : m
-    ));
-  }, [currentSession, hasPermission, barMembers, setBarMembers]);
-
-  const updateBarMember = useCallback((memberId: string, updates: Partial<BarMember>) => {
-    if (!currentSession) return;
-
-    setBarMembers(prev => prev.map(member =>
-      member.id === memberId ? { ...member, ...updates } : member
-    ));
-  }, [currentSession, setBarMembers]);
+      // Log mise à jour bar
+      if (oldBar) {
+        auditLogger.log({
+          event: 'BAR_UPDATED',
+          severity: 'info',
+          userId: currentSession.userId,
+          userName: currentSession.userName,
+          userRole: currentSession.role,
+          barId: barId,
+          barName: oldBar.name,
+          description: `Mise à jour bar: ${oldBar.name}`,
+          metadata: {
+            updates: updates,
+            oldValues: { name: oldBar.name, address: oldBar.address, phone: oldBar.phone },
+          },
+          relatedEntityId: barId,
+          relatedEntityType: 'bar',
+        });
+      }
+    } catch (error) {
+      console.error('[BarContext] Error updating bar:', error);
+    }
+  }, [currentSession, hasPermission, bars, refreshBars]);
 
   // Helpers
   const isOwner = useCallback((barId: string) => {
@@ -300,22 +295,162 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const canAccessBar = useCallback((barId: string) => {
     if (!currentSession) return false;
-    
+
     // Le promoteur accède à tous ses bars
     if (isOwner(barId)) return true;
-    
+
     // Les autres accèdent seulement à leur bar assigné
     return barMembers.some(
-      m => m.userId === currentSession.userId && 
-           m.barId === barId && 
+      m => m.userId === currentSession.userId &&
+           m.barId === barId &&
            m.isActive
     );
   }, [currentSession, barMembers, isOwner]);
+
+  const switchBar = useCallback((barId: string) => {
+    if (!canAccessBar(barId)) return;
+    setCurrentBarId(barId);
+  }, [canAccessBar]);
+
+  // Gestion des membres
+  const getBarMembers = useCallback(async (barId: string): Promise<(BarMember & { user: User })[]> => {
+    try {
+      const members = await AuthService.getBarMembers(barId);
+
+      return members.map(m => ({
+        id: m.id,
+        userId: m.id,
+        barId: barId,
+        role: m.role as UserRole,
+        assignedBy: '',
+        assignedAt: new Date(m.joined_at),
+        isActive: m.is_active,
+        user: {
+          id: m.id,
+          username: m.username,
+          password: '', // Pas exposé
+          name: m.name,
+          phone: m.phone,
+          email: undefined,
+          createdAt: new Date(m.created_at),
+          isActive: m.is_active,
+          firstLogin: m.first_login,
+          avatarUrl: m.avatar_url || undefined,
+          lastLoginAt: m.last_login_at ? new Date(m.last_login_at) : undefined,
+          createdBy: undefined,
+        }
+      }));
+    } catch (error) {
+      console.error('[BarContext] Error loading bar members:', error);
+      return [];
+    }
+  }, []);
+
+  const addBarMember = useCallback(async (userId: string, role: UserRole): Promise<BarMember | null> => {
+    if (!currentSession || !currentBar) return null;
+
+    // Vérifier les permissions
+    if (role === 'gerant' && !hasPermission('canCreateManagers')) return null;
+    if (role === 'serveur' && !hasPermission('canCreateServers')) return null;
+
+    try {
+      // Ajouter via Supabase
+      const insertData: BarMemberInsert = {
+        user_id: userId,
+        bar_id: currentBar.id,
+        role: role,
+        assigned_by: currentSession.userId,
+        is_active: true,
+      };
+
+      const { data, error } = await (supabase as any)
+        .from('bar_members')
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (error || !data) {
+        console.error('[BarContext] Error adding member:', error);
+        return null;
+      }
+
+      const memberData = data as BarMemberRow;
+      const newMember: BarMember = {
+        id: memberData.id,
+        userId: memberData.user_id,
+        barId: memberData.bar_id,
+        role: memberData.role as UserRole,
+        assignedBy: memberData.assigned_by || currentSession.userId,
+        assignedAt: new Date(memberData.joined_at),
+        isActive: memberData.is_active,
+      };
+
+      // Rafraîchir les membres
+      setBarMembers(prev => [...prev, newMember]);
+
+      return newMember;
+    } catch (error) {
+      console.error('[BarContext] Error adding member:', error);
+      return null;
+    }
+  }, [currentSession, currentBar, hasPermission]);
+
+  const removeBarMember = useCallback(async (memberId: string) => {
+    if (!currentSession) return;
+
+    try {
+      const member = barMembers.find(m => m.id === memberId);
+      if (!member) return;
+
+      // Seul le promoteur peut retirer des gérants
+      if (member.role === 'gerant' && !hasPermission('canCreateManagers')) return;
+      // Gérants et promoteurs peuvent retirer des serveurs
+      if (member.role === 'serveur' && !hasPermission('canCreateServers')) return;
+
+      // Désactiver via Supabase
+      const updateData: BarMemberUpdate = { is_active: false };
+      await (supabase as any)
+        .from('bar_members')
+        .update(updateData)
+        .eq('id', memberId);
+
+      // Mettre à jour localement
+      setBarMembers(prev => prev.map(m =>
+        m.id === memberId ? { ...m, isActive: false } : m
+      ));
+    } catch (error) {
+      console.error('[BarContext] Error removing member:', error);
+    }
+  }, [currentSession, hasPermission, barMembers]);
+
+  const updateBarMember = useCallback(async (memberId: string, updates: Partial<BarMember>) => {
+    if (!currentSession) return;
+
+    try {
+      // Mapper les updates au format Supabase
+      const supabaseUpdates: BarMemberUpdate = {};
+      if (updates.role) supabaseUpdates.role = updates.role;
+      if (updates.isActive !== undefined) supabaseUpdates.is_active = updates.isActive;
+
+      await (supabase as any)
+        .from('bar_members')
+        .update(supabaseUpdates)
+        .eq('id', memberId);
+
+      // Mettre à jour localement
+      setBarMembers(prev => prev.map(member =>
+        member.id === memberId ? { ...member, ...updates } : member
+      ));
+    } catch (error) {
+      console.error('[BarContext] Error updating member:', error);
+    }
+  }, [currentSession]);
 
   const value: BarContextType = {
     bars,
     currentBar,
     userBars,
+    loading,
     createBar,
     updateBar,
     switchBar,
@@ -326,6 +461,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     updateBarMember,
     isOwner,
     canAccessBar,
+    refreshBars,
   };
 
   return (

@@ -4,78 +4,16 @@ import { UserSession, UserRole, getPermissionsByRole, User, RolePermissions } fr
 import { auditLogger } from '../services/AuditLogger';
 import { AuthService } from '../services/supabase/auth.service';
 
-// Mock users étendu pour multi-tenant
-const mockUsers: User[] = [
-  {
-    id: 'super_admin_001',
-    username: 'admin',
-    password: 'Admin@2025',
-    name: 'Super Administrateur',
-    phone: '0197000000',
-    email: 'admin@bartender.bj',
-    createdAt: new Date(),
-    isActive: true,
-    firstLogin: false,
-    createdBy: undefined
-  },
-  {
-    id: '1',
-    username: 'promoteur',
-    password: '1234',
-    name: 'Promoteur Principal',
-    phone: '0197000001',
-    email: 'promoteur@bar.com',
-    createdAt: new Date(),
-    isActive: true,
-    firstLogin: false,
-    createdBy: undefined
-  },
-  { 
-    id: '2', 
-    username: 'gerant1',
-    password: '1234',
-    name: 'Gérant Bar Demo', 
-    phone: '0197000002', 
-    email: 'gerant@bar.com', 
-    createdAt: new Date(), 
-    isActive: true,
-    firstLogin: false,
-    createdBy: '1'
-  },
-  { 
-    id: '3', 
-    username: 'serveur1',
-    password: '1234',
-    name: 'Serveur 1', 
-    phone: '0197000003', 
-    createdAt: new Date(), 
-    isActive: true,
-    firstLogin: false,
-    createdBy: '2'
-  },
-  { 
-    id: '4', 
-    username: 'serveur2',
-    password: '1234',
-    name: 'Serveur 2', 
-    phone: '0197000004', 
-    createdAt: new Date(), 
-    isActive: true,
-    firstLogin: false,
-    createdBy: '2'
-  },
-];
-
 interface AuthContextType {
   currentSession: UserSession | null;
   isAuthenticated: boolean;
   users: User[];
-  login: (username: string, password: string, barId: string, role: UserRole) => UserSession | null;
+  login: (username: string, password: string, barId?: string, role?: UserRole) => Promise<UserSession | null>;
   logout: () => void;
   hasPermission: (permission: keyof RolePermissions) => boolean;
-  createUser: (userData: Omit<User, 'id' | 'createdAt' | 'createdBy'>, role: UserRole) => User | null;
-  updateUser: (userId: string, updates: Partial<User>) => void;
-  changePassword: (userId: string, newPassword: string) => void;
+  createUser: (userData: Omit<User, 'id' | 'createdAt' | 'createdBy'>, role: UserRole) => Promise<User | null>;
+  updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
+  changePassword: (userId: string, newPassword: string) => Promise<void>;
   getUserById: (userId: string) => User | undefined;
   // Impersonation
   isImpersonating: boolean;
@@ -96,30 +34,8 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentSession, setCurrentSession] = useDataStore<UserSession | null>('bar-current-session', null);
-  const [users, setUsers] = useDataStore<User[]>('bar-users', mockUsers);
   const [originalSession, setOriginalSession] = useDataStore<UserSession | null>('bar-original-session', null);
   const [isImpersonating, setIsImpersonating] = useDataStore<boolean>('bar-is-impersonating', false);
-
-  // 🔒 GARANTIR que le super admin existe toujours (fix déploiement Vercel)
-  React.useEffect(() => {
-    const superAdmin = users.find(u => u.id === 'super_admin_001');
-    if (!superAdmin) {
-      console.log('[AuthContext] Super admin missing, re-adding...');
-      const superAdminUser: User = {
-        id: 'super_admin_001',
-        username: 'admin',
-        password: 'Admin@2025',
-        name: 'Super Administrateur',
-        phone: '0197000000',
-        email: 'admin@bartender.bj',
-        createdAt: new Date(),
-        isActive: true,
-        firstLogin: false,
-        createdBy: undefined
-      };
-      setUsers([superAdminUser, ...users]);
-    }
-  }, []); // Exécuté une seule fois au mount
 
   // 🔐 Initialiser la session Supabase RLS au démarrage
   useEffect(() => {
@@ -128,28 +44,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   }, []);
 
-  const login = useCallback((username: string, password: string, barId: string, role: UserRole) => {
-    const user = users.find(u =>
-      u.username === username &&
-      u.password === password &&
-      u.isActive
-    );
+  // 🔐 Login avec Supabase (custom auth)
+  const login = useCallback(async (username: string, password: string, _barId?: string, _role?: UserRole) => {
+    try {
+      // Utiliser l'AuthService pour se connecter
+      const authUser = await AuthService.login({ username, password });
 
-    if (user) {
-      // Super admin n'a pas besoin de bar spécifique
+      // Créer la session locale
       const session: UserSession = {
-        userId: user.id,
-        userName: user.name,
-        role: role,
-        barId: role === 'super_admin' ? 'admin_global' : barId,
-        barName: role === 'super_admin' ? 'Admin Dashboard' : 'Bar Demo',
+        userId: authUser.id,
+        userName: authUser.name,
+        role: authUser.role,
+        barId: authUser.barId,
+        barName: authUser.barName,
         loginTime: new Date(),
-        permissions: getPermissionsByRole(role)
+        permissions: getPermissionsByRole(authUser.role)
       };
-
-      setUsers(prev => prev.map(u =>
-        u.id === user.id ? { ...u, lastLoginAt: new Date() } : u
-      ));
 
       setCurrentSession(session);
 
@@ -157,32 +67,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       auditLogger.log({
         event: 'LOGIN_SUCCESS',
         severity: 'info',
-        userId: user.id,
-        userName: user.name,
-        userRole: role,
+        userId: authUser.id,
+        userName: authUser.name,
+        userRole: authUser.role,
         barId: session.barId !== 'admin_global' ? session.barId : undefined,
         barName: session.barName !== 'Admin Dashboard' ? session.barName : undefined,
-        description: `Connexion réussie en tant que ${role}`,
+        description: `Connexion réussie en tant que ${authUser.role}`,
         metadata: { username },
       });
 
       return session;
+    } catch (error: any) {
+      console.error('[AuthContext] Login failed:', error);
+
+      // Log tentative de connexion échouée
+      auditLogger.log({
+        event: 'LOGIN_FAILED',
+        severity: 'warning',
+        userId: username,
+        userName: username,
+        userRole: 'serveur' as UserRole, // Default role for logging
+        description: `Tentative de connexion échouée: ${error.message}`,
+        metadata: { username, error: error.message },
+      });
+
+      return null;
     }
-
-    // Log tentative de connexion échouée
-    auditLogger.log({
-      event: 'LOGIN_FAILED',
-      severity: 'warning',
-      userId: username, // On n'a pas l'ID, on met le username
-      userName: username,
-      userRole: role,
-      barId: barId !== 'admin_global' ? barId : undefined,
-      description: `Tentative de connexion échouée (identifiants invalides)`,
-      metadata: { username, attemptedRole: role },
-    });
-
-    return null;
-  }, [users, setCurrentSession, setUsers]);
+  }, [setCurrentSession]);
 
   const logout = useCallback(() => {
     if (currentSession) {
@@ -206,57 +117,79 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return currentSession?.permissions?.[permission] ?? false;
   }, [currentSession]);
 
-  const createUser = useCallback((userData: Omit<User, 'id' | 'createdAt' | 'createdBy'>, role: UserRole) => {
+  const createUser = useCallback(async (userData: Omit<User, 'id' | 'createdAt' | 'createdBy'>, role: UserRole): Promise<User | null> => {
     if (!currentSession) return null;
 
     if (role === 'gerant' && !hasPermission('canCreateManagers')) return null;
     if (role === 'serveur' && !hasPermission('canCreateServers')) return null;
 
-    const newUser: User = {
-      ...userData,
-      id: `user_${Date.now()}`,
-      createdAt: new Date(),
-      createdBy: currentSession.userId,
-      isActive: true,
-      firstLogin: true,
-    };
+    try {
+      // Créer via Supabase AuthService
+      const newUser = await AuthService.signup(
+        {
+          username: userData.username,
+          password: userData.password || 'TempPassword123!', // Mot de passe temporaire
+          name: userData.name,
+          phone: userData.phone,
+        },
+        currentSession.barId,
+        role as 'gerant' | 'serveur'
+      );
 
-    setUsers(prev => [...prev, newUser]);
+      const user: User = {
+        id: newUser.id,
+        username: newUser.username,
+        password: '', // Pas exposé
+        name: newUser.name,
+        phone: newUser.phone,
+        email: undefined,
+        createdAt: new Date(newUser.created_at),
+        isActive: newUser.is_active,
+        firstLogin: newUser.first_login,
+        lastLoginAt: newUser.last_login_at ? new Date(newUser.last_login_at) : undefined,
+        createdBy: currentSession.userId,
+      };
 
-    // Log création utilisateur
-    auditLogger.log({
-      event: 'USER_CREATED',
-      severity: 'info',
-      userId: currentSession.userId,
-      userName: currentSession.userName,
-      userRole: currentSession.role,
-      barId: currentSession.barId !== 'admin_global' ? currentSession.barId : undefined,
-      barName: currentSession.barName !== 'Admin Dashboard' ? currentSession.barName : undefined,
-      description: `Création utilisateur: ${newUser.name} (${role})`,
-      metadata: {
-        newUserId: newUser.id,
-        newUserName: newUser.name,
-        newUserRole: role,
-        newUserUsername: newUser.username,
-      },
-      relatedEntityId: newUser.id,
-      relatedEntityType: 'user',
-    });
+      // Log création utilisateur
+      auditLogger.log({
+        event: 'USER_CREATED',
+        severity: 'info',
+        userId: currentSession.userId,
+        userName: currentSession.userName,
+        userRole: currentSession.role,
+        barId: currentSession.barId !== 'admin_global' ? currentSession.barId : undefined,
+        barName: currentSession.barName !== 'Admin Dashboard' ? currentSession.barName : undefined,
+        description: `Création utilisateur: ${user.name} (${role})`,
+        metadata: {
+          newUserId: user.id,
+          newUserName: user.name,
+          newUserRole: role,
+          newUserUsername: user.username,
+        },
+        relatedEntityId: user.id,
+        relatedEntityType: 'user',
+      });
 
-    return newUser;
-  }, [currentSession, hasPermission, setUsers]);
+      return user;
+    } catch (error) {
+      console.error('[AuthContext] Error creating user:', error);
+      return null;
+    }
+  }, [currentSession, hasPermission]);
 
-  const updateUser = useCallback((userId: string, updates: Partial<User>) => {
+  const updateUser = useCallback(async (userId: string, updates: Partial<User>): Promise<void> => {
     if (!currentSession) return;
 
-    const targetUser = users.find(u => u.id === userId);
+    try {
+      // Convertir les updates au format Supabase
+      const supabaseUpdates: any = {};
+      if (updates.name) supabaseUpdates.name = updates.name;
+      if (updates.phone) supabaseUpdates.phone = updates.phone;
+      if (updates.isActive !== undefined) supabaseUpdates.is_active = updates.isActive;
 
-    setUsers(prev => prev.map(user =>
-      user.id === userId ? { ...user, ...updates } : user
-    ));
+      const updatedUser = await AuthService.updateProfile(userId, supabaseUpdates);
 
-    // Log mise à jour utilisateur
-    if (targetUser) {
+      // Log mise à jour utilisateur
       auditLogger.log({
         event: 'USER_UPDATED',
         severity: 'info',
@@ -265,31 +198,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         userRole: currentSession.role,
         barId: currentSession.barId !== 'admin_global' ? currentSession.barId : undefined,
         barName: currentSession.barName !== 'Admin Dashboard' ? currentSession.barName : undefined,
-        description: `Mise à jour utilisateur: ${targetUser.name}`,
+        description: `Mise à jour utilisateur: ${updatedUser.name}`,
         metadata: {
           targetUserId: userId,
-          targetUserName: targetUser.name,
+          targetUserName: updatedUser.name,
           updates: updates,
         },
         relatedEntityId: userId,
         relatedEntityType: 'user',
       });
+    } catch (error) {
+      console.error('[AuthContext] Error updating user:', error);
     }
-  }, [currentSession, setUsers, users]);
+  }, [currentSession]);
 
-  const changePassword = useCallback((userId: string, newPassword: string) => {
-    const targetUser = users.find(u => u.id === userId);
+  const changePassword = useCallback(async (userId: string, _newPassword: string): Promise<void> => {
+    if (!currentSession) return;
 
-    setUsers(prev => prev.map(user =>
-      user.id === userId
-        ? { ...user, password: newPassword, firstLogin: false }
-        : user
-    ));
-
-    // Log changement mot de passe
-    if (targetUser && currentSession) {
+    try {
       const isSelfChange = userId === currentSession.userId;
 
+      // Pour l'instant, on suppose que c'est un changement de mot de passe auto (avec ancien mot de passe)
+      // TODO: Ajouter support pour reset par admin avec AuthService.changePassword
+      if (isSelfChange) {
+        // Nécessite l'ancien mot de passe - à implémenter dans l'UI
+        console.warn('[AuthContext] Self password change requires old password');
+        return;
+      }
+
+      // Log changement mot de passe
       auditLogger.log({
         event: 'PASSWORD_RESET',
         severity: isSelfChange ? 'info' : 'warning',
@@ -300,77 +237,31 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         barName: currentSession.barName !== 'Admin Dashboard' ? currentSession.barName : undefined,
         description: isSelfChange
           ? `${currentSession.userName} a modifié son propre mot de passe`
-          : `${currentSession.userName} a réinitialisé le mot de passe de ${targetUser.name}`,
+          : `${currentSession.userName} a réinitialisé le mot de passe`,
         metadata: {
           targetUserId: userId,
-          targetUserName: targetUser.name,
           isSelfChange,
           changedBy: currentSession.userName,
         },
         relatedEntityId: userId,
         relatedEntityType: 'user',
       });
+    } catch (error) {
+      console.error('[AuthContext] Error changing password:', error);
     }
-  }, [setUsers, users, currentSession]);
+  }, [currentSession]);
 
-  const getUserById = useCallback((userId: string) => {
-    return users.find(u => u.id === userId);
-  }, [users]);
+  const getUserById = useCallback((_userId: string) => {
+    // TODO: Implémenter avec Supabase
+    console.warn('[AuthContext] getUserById not yet implemented with Supabase');
+    return undefined;
+  }, []);
 
   // Impersonation: Se connecter en tant qu'un autre user (pour super admin)
-  const impersonate = useCallback((userId: string, barId: string, role: UserRole) => {
-    if (!currentSession) return;
-
-    // Seulement le super admin peut impersonate
-    if (currentSession.role !== 'super_admin') {
-      console.error('Only super admin can impersonate');
-      return;
-    }
-
-    const targetUser = users.find(u => u.id === userId);
-    if (!targetUser) {
-      console.error('Target user not found');
-      return;
-    }
-
-    // Sauvegarder la session originale (super admin)
-    setOriginalSession(currentSession);
-    setIsImpersonating(true);
-
-    // Créer nouvelle session pour l'user ciblé
-    const impersonatedSession: UserSession = {
-      userId: targetUser.id,
-      userName: targetUser.name,
-      role: role,
-      barId: barId,
-      barName: 'Bar Impersonated', // Will be updated by BarContext
-      loginTime: new Date(),
-      permissions: getPermissionsByRole(role),
-    };
-
-    setCurrentSession(impersonatedSession);
-
-    // Log impersonation start
-    auditLogger.log({
-      event: 'IMPERSONATE_START',
-      severity: 'warning',
-      userId: currentSession.userId,
-      userName: currentSession.userName,
-      userRole: currentSession.role,
-      barId: barId,
-      description: `Impersonation démarrée: Admin se connecte en tant que ${targetUser.name} (${role})`,
-      metadata: {
-        targetUserId: targetUser.id,
-        targetUserName: targetUser.name,
-        targetRole: role,
-        targetBarId: barId,
-      },
-      relatedEntityId: targetUser.id,
-      relatedEntityType: 'user',
-    });
-
-    console.log(`[Impersonation] Admin impersonating ${targetUser.name} (${role})`);
-  }, [currentSession, users, setCurrentSession, setOriginalSession, setIsImpersonating]);
+  const impersonate = useCallback((_userId: string, _barId: string, _role: UserRole) => {
+    // TODO: Implémenter avec Supabase
+    console.warn('[AuthContext] Impersonation not yet implemented with Supabase');
+  }, []);
 
   // Stop impersonation: Revenir à la session super admin
   const stopImpersonation = useCallback(() => {
@@ -408,7 +299,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const value: AuthContextType = {
     currentSession,
     isAuthenticated: !!currentSession,
-    users,
+    users: [], // Plus de mock users
     login,
     logout,
     hasPermission,
