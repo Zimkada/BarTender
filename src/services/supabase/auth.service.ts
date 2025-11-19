@@ -45,8 +45,8 @@ export class AuthService {
    */
   static async login(credentials: LoginCredentials): Promise<AuthUser> {
     try {
-      // 1. Valider le mot de passe via la fonction SQL
-      const { data, error } = await supabase.rpc('validate_password', {
+      // 1. Utiliser la fonction login_user qui fait tout en une transaction (bypass RLS)
+      const { data, error } = await supabase.rpc('login_user', {
         p_username: credentials.username,
         p_password: credentials.password,
       }) as {
@@ -58,56 +58,45 @@ export class AuthService {
           avatar_url: string | null;
           is_active: boolean;
           first_login: boolean;
+          role: string;
+          bar_id: string;
+          bar_name: string;
         }> | null;
         error: any;
       };
 
-      if (error || !data || data.length === 0) {
+      if (error) {
+        throw new Error(error.message || 'Erreur lors de la connexion');
+      }
+
+      if (!data || data.length === 0) {
         throw new Error('Nom d\'utilisateur ou mot de passe incorrect');
       }
 
-      const userProfile = data[0];
+      const loginData = data[0];
 
-      // 2. Définir la session pour RLS AVANT les requêtes
-      await this.setUserSession(userProfile.user_id);
-
-      // 3. Récupérer le rôle et le bar de l'utilisateur
-      const { data: membership, error: memberError } = await supabase
-        .from('bar_members')
-        .select(`
-          role,
-          bar_id,
-          bars (
-            name
-          )
-        `)
-        .eq('user_id', userProfile.user_id)
-        .eq('is_active', true)
-        .single();
-
-      if (memberError || !membership) {
-        throw new Error('Utilisateur non assigné à un bar');
-      }
-
-      // 4. Construire l'objet AuthUser (sans password_hash)
+      // 2. Construire l'objet AuthUser
       const authUser: AuthUser = {
-        id: userProfile.user_id,
-        username: userProfile.username,
-        name: userProfile.name,
-        phone: userProfile.phone,
-        avatar_url: userProfile.avatar_url,
-        is_active: userProfile.is_active,
-        first_login: userProfile.first_login,
-        created_at: '', // Pas retourné par validate_password
+        id: loginData.user_id,
+        username: loginData.username,
+        name: loginData.name,
+        phone: loginData.phone,
+        avatar_url: loginData.avatar_url,
+        is_active: loginData.is_active,
+        first_login: loginData.first_login,
+        created_at: '', // Pas retourné par login_user
         updated_at: '',
         last_login_at: null,
-        role: membership.role as AuthUser['role'],
-        barId: membership.bar_id,
-        barName: (membership.bars as any).name,
+        role: loginData.role as AuthUser['role'],
+        barId: loginData.bar_id,
+        barName: loginData.bar_name,
       };
 
-      // 5. Stocker dans localStorage
+      // 3. Stocker dans localStorage
       localStorage.setItem('auth_user', JSON.stringify(authUser));
+
+      // 4. Définir la session RLS pour les futures requêtes
+      await this.setUserSession(authUser.id);
 
       return authUser;
     } catch (error: any) {
