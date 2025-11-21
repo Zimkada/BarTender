@@ -1,20 +1,22 @@
 import React, { createContext, useContext, useCallback, ReactNode, useEffect } from 'react';
 import { useDataStore } from '../hooks/useDataStore';
-import { UserSession, UserRole, getPermissionsByRole, User, RolePermissions } from '../types';
+import { UserSession, UserRole, getPermissionsByRole, RolePermissions } from '../types';
 import { auditLogger } from '../services/AuditLogger';
-import { AuthService } from '../services/supabase/auth.service';
+import { AuthService, LoginResult } from '../services/supabase/auth.service'; // Import LoginResult
+import { supabase } from '../lib/supabase';
 
 interface AuthContextType {
   currentSession: UserSession | null;
   isAuthenticated: boolean;
-  users: User[];
-  login: (username: string, password: string, barId?: string, role?: UserRole) => Promise<UserSession | null>;
+  // users: User[]; // Removed as it's not used and not part of AuthContext's core responsibility
+  login: (email: string, password: string) => Promise<LoginResult>; // Updated return type
+  verifyMfa: (factorId: string, code: string) => Promise<LoginResult>; // New MFA verification function
   logout: () => void;
   hasPermission: (permission: keyof RolePermissions) => boolean;
-  createUser: (userData: Omit<User, 'id' | 'createdAt' | 'createdBy'>, role: UserRole) => Promise<User | null>;
-  updateUser: (userId: string, updates: Partial<User>) => Promise<void>;
-  changePassword: (userId: string, oldPassword: string, newPassword: string) => Promise<void>;
-  getUserById: (userId: string) => User | undefined;
+  // createUser: (userData: Omit<User, 'id' | 'createdAt' | 'createdBy'>, role: UserRole) => Promise<User | null>; // Moved out of AuthContext
+  // updateUser: (userId: string, updates: Partial<User>) => Promise<void>; // Moved out of AuthContext
+  changePassword: (newPassword: string) => Promise<void>;
+  // getUserById: (userId: string) => User | undefined; // Moved out of AuthContext
   // Impersonation
   isImpersonating: boolean;
   originalSession: UserSession | null;
@@ -37,66 +39,190 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [originalSession, setOriginalSession] = useDataStore<UserSession | null>('bar-original-session', null);
   const [isImpersonating, setIsImpersonating] = useDataStore<boolean>('bar-is-impersonating', false);
 
+  // 🧹 Nettoyer la session si elle contient des données invalides (ex: ID '1')
+  useEffect(() => {
+    if (currentSession?.userId === '1') {
+      console.warn('[AuthContext] Detected invalid legacy session (ID=1), clearing...');
+      setCurrentSession(null);
+    }
+  }, [currentSession, setCurrentSession]);
+
   // 🔐 Initialiser la session Supabase RLS au démarrage
   useEffect(() => {
-    AuthService.initializeSession().catch(err => {
+    AuthService.initializeSession().then(authUser => {
+      if (authUser) {
+        const session: UserSession = {
+          userId: authUser.id,
+          userName: authUser.name,
+          role: authUser.role,
+          barId: authUser.barId,
+          barName: authUser.barName,
+          loginTime: new Date(),
+          permissions: getPermissionsByRole(authUser.role),
+          firstLogin: authUser.first_login
+        };
+        setCurrentSession(session);
+      }
+    }).catch(err => {
       console.error('[AuthContext] Failed to initialize Supabase session:', err);
     });
-  }, []);
+  }, [setCurrentSession]);
 
-  // 🔐 Login avec Supabase (custom auth)
-  const login = useCallback(async (username: string, password: string, _barId?: string, _role?: UserRole) => {
+  // 🔐 Écouter les changements d'authentification Supabase
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('[AuthContext] Auth state changed:', event, session?.user?.id);
+
+        if (event === 'SIGNED_OUT') {
+          // L'utilisateur vient de se déconnecter
+          setCurrentSession(null);
+        } else if (event === 'TOKEN_REFRESHED') {
+          // Le token JWT a été rafraîchi automatiquement
+          console.log('[AuthContext] Token refreshed');
+        } else if (event === 'SIGNED_IN' && session) {
+          // L'utilisateur vient de se connecter (peut-être via un autre onglet)
+          console.log('[AuthContext] User signed in:', session.user.id);
+          // Re-initialize session to get full AuthUser data
+          AuthService.initializeSession().then(authUser => {
+            if (authUser) {
+              const session: UserSession = {
+                userId: authUser.id,
+                userName: authUser.name,
+                role: authUser.role,
+                barId: authUser.barId,
+                barName: authUser.barName,
+                loginTime: new Date(),
+                permissions: getPermissionsByRole(authUser.role),
+                firstLogin: authUser.first_login
+              };
+              setCurrentSession(session);
+            }
+          });
+        }
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [setCurrentSession]);
+
+  // 🔐 Login avec Supabase Auth (email + password)
+  const login = useCallback(async (email: string, password: string): Promise<LoginResult> => {
     try {
-      // Utiliser l'AuthService pour se connecter
-      const authUser = await AuthService.login({ username, password });
+      const result = await AuthService.login({ email, password });
 
-      // Créer la session locale
-      const session: UserSession = {
-        userId: authUser.id,
-        userName: authUser.name,
-        role: authUser.role,
-        barId: authUser.barId,
-        barName: authUser.barName,
-        loginTime: new Date(),
-        permissions: getPermissionsByRole(authUser.role),
-        firstLogin: authUser.first_login
-      };
+      if (result.user) {
+        const authUser = result.user;
+        const session: UserSession = {
+          userId: authUser.id,
+          userName: authUser.name,
+          role: authUser.role,
+          barId: authUser.barId,
+          barName: authUser.barName,
+          loginTime: new Date(),
+          permissions: getPermissionsByRole(authUser.role),
+          firstLogin: authUser.first_login
+        };
+        setCurrentSession(session);
 
-      setCurrentSession(session);
-
-      // Log connexion réussie
-      auditLogger.log({
-        event: 'LOGIN_SUCCESS',
-        severity: 'info',
-        userId: authUser.id,
-        userName: authUser.name,
-        userRole: authUser.role,
-        barId: session.barId !== 'admin_global' ? session.barId : undefined,
-        barName: session.barName !== 'Admin Dashboard' ? session.barName : undefined,
-        description: `Connexion réussie en tant que ${authUser.role}`,
-        metadata: { username },
-      });
-
-      return session;
+        auditLogger.log({
+          event: 'LOGIN_SUCCESS',
+          severity: 'info',
+          userId: authUser.id,
+          userName: authUser.name,
+          userRole: authUser.role,
+          barId: session.barId !== 'admin_global' ? session.barId : undefined,
+          barName: session.barName !== 'Admin Dashboard' ? session.barName : undefined,
+          description: `Connexion réussie en tant que ${authUser.role}`,
+          metadata: { email },
+        });
+        return { user: authUser };
+      } else if (result.mfaRequired) {
+        // MFA est requis, retourner le résultat pour que le composant de login le gère
+        return result;
+      } else if (result.error) {
+        // Erreur de connexion
+        auditLogger.log({
+          event: 'LOGIN_FAILED',
+          severity: 'warning',
+          userId: email,
+          userName: email,
+          userRole: 'serveur' as UserRole, // Default role for logging
+          description: `Tentative de connexion échouée: ${result.error}`,
+          metadata: { email, error: result.error },
+        });
+        return { error: result.error };
+      }
+      return { error: 'Une erreur inattendue est survenue lors de la connexion.' };
     } catch (error: any) {
       console.error('[AuthContext] Login failed:', error);
-
-      // Log tentative de connexion échouée
       auditLogger.log({
         event: 'LOGIN_FAILED',
         severity: 'warning',
-        userId: username,
-        userName: username,
-        userRole: 'serveur' as UserRole, // Default role for logging
+        userId: email,
+        userName: email,
+        userRole: 'serveur' as UserRole,
         description: `Tentative de connexion échouée: ${error.message}`,
-        metadata: { username, error: error.message },
+        metadata: { email, error: error.message },
       });
-
-      return null;
+      return { error: error.message || 'Erreur lors de la connexion' };
     }
   }, [setCurrentSession]);
 
-  const logout = useCallback(() => {
+  // 🔐 Vérification MFA
+  const verifyMfa = useCallback(async (factorId: string, code: string): Promise<LoginResult> => {
+    try {
+      const result = await AuthService.verifyMfa(factorId, code);
+
+      if (result.user) {
+        const authUser = result.user;
+        const session: UserSession = {
+          userId: authUser.id,
+          userName: authUser.name,
+          role: authUser.role,
+          barId: authUser.barId,
+          barName: authUser.barName,
+          loginTime: new Date(),
+          permissions: getPermissionsByRole(authUser.role),
+          firstLogin: authUser.first_login
+        };
+        setCurrentSession(session);
+
+        auditLogger.log({
+          event: 'LOGIN_SUCCESS',
+          severity: 'info',
+          userId: authUser.id,
+          userName: authUser.name,
+          userRole: authUser.role,
+          barId: session.barId !== 'admin_global' ? session.barId : undefined,
+          barName: session.barName !== 'Admin Dashboard' ? session.barName : undefined,
+          description: `Connexion MFA réussie en tant que ${authUser.role}`,
+          metadata: { userId: authUser.id },
+        });
+        return { user: authUser };
+      } else if (result.error) {
+        auditLogger.log({
+          event: 'LOGIN_FAILED',
+          severity: 'warning',
+          userId: 'unknown', // User ID might not be available yet
+          userName: 'unknown',
+          userRole: 'serveur' as UserRole,
+          description: `Tentative de connexion MFA échouée: ${result.error}`,
+          metadata: { factorId, error: result.error },
+        });
+        return { error: result.error };
+      }
+      return { error: 'Une erreur inattendue est survenue lors de la vérification MFA.' };
+    } catch (error: any) {
+      console.error('[AuthContext] MFA verification failed:', error);
+      return { error: error.message || 'Erreur lors de la vérification MFA' };
+    }
+  }, [setCurrentSession]);
+
+
+  const logout = useCallback(async () => {
     if (currentSession) {
       // Log déconnexion
       auditLogger.log({
@@ -111,6 +237,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
     }
 
+    await AuthService.logout();
     setCurrentSession(null);
   }, [currentSession, setCurrentSession]);
 
@@ -118,119 +245,116 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return currentSession?.permissions?.[permission] ?? false;
   }, [currentSession]);
 
-  const createUser = useCallback(async (userData: Omit<User, 'id' | 'createdAt' | 'createdBy'>, role: UserRole): Promise<User | null> => {
-    if (!currentSession) return null;
+  // const createUser = useCallback(async (userData: Omit<User, 'id' | 'createdAt' | 'createdBy'>, role: UserRole): Promise<User | null> => {
+  //   if (!currentSession) return null;
 
-    if (role === 'gerant' && !hasPermission('canCreateManagers')) return null;
-    if (role === 'serveur' && !hasPermission('canCreateServers')) return null;
+  //   if (role === 'gerant' && !hasPermission('canCreateManagers')) return null;
+  //   if (role === 'serveur' && !hasPermission('canCreateServers')) return null;
 
-    try {
-      // Créer via Supabase AuthService
-      const newUser = await AuthService.signup(
-        {
-          username: userData.username,
-          password: userData.password || 'TempPassword123!', // Mot de passe temporaire
-          name: userData.name,
-          phone: userData.phone,
-        },
-        currentSession.barId,
-        role as 'gerant' | 'serveur'
-      );
+  //   try {
+  //     // Créer via Supabase AuthService
+  //     const newUser = await AuthService.signup(
+  //       {
+  //         email: userData.email || `${userData.username}@bartender.local`, // Email requis
+  //         password: userData.password || 'TempPassword123!', // Mot de passe temporaire
+  //         name: userData.name,
+  //         phone: userData.phone,
+  //         username: userData.username,
+  //       },
+  //       currentSession.barId,
+  //       role as 'gerant' | 'serveur'
+  //     );
 
-      const user: User = {
-        id: newUser.id,
-        username: newUser.username,
-        password: '', // Pas exposé
-        name: newUser.name,
-        phone: newUser.phone,
-        email: undefined,
-        createdAt: new Date(newUser.created_at),
-        isActive: newUser.is_active,
-        firstLogin: newUser.first_login,
-        lastLoginAt: newUser.last_login_at ? new Date(newUser.last_login_at) : undefined,
-        createdBy: currentSession.userId,
-      };
+  //     const user: User = {
+  //       id: newUser.id,
+  //       username: newUser.username,
+  //       password: '', // Pas exposé
+  //       name: newUser.name,
+  //       phone: newUser.phone,
+  //       email: undefined,
+  //       createdAt: new Date(newUser.created_at),
+  //       isActive: newUser.is_active,
+  //       firstLogin: newUser.first_login,
+  //       lastLoginAt: newUser.last_login_at ? new Date(newUser.last_login_at) : undefined,
+  //       createdBy: currentSession.userId,
+  //     };
 
-      // Log création utilisateur
-      auditLogger.log({
-        event: 'USER_CREATED',
-        severity: 'info',
-        userId: currentSession.userId,
-        userName: currentSession.userName,
-        userRole: currentSession.role,
-        barId: currentSession.barId !== 'admin_global' ? currentSession.barId : undefined,
-        barName: currentSession.barName !== 'Admin Dashboard' ? currentSession.barName : undefined,
-        description: `Création utilisateur: ${user.name} (${role})`,
-        metadata: {
-          newUserId: user.id,
-          newUserName: user.name,
-          newUserRole: role,
-          newUserUsername: user.username,
-        },
-        relatedEntityId: user.id,
-        relatedEntityType: 'user',
-      });
+  //     // Log création utilisateur
+  //     auditLogger.log({
+  //       event: 'USER_CREATED',
+  //       severity: 'info',
+  //       userId: currentSession.userId,
+  //       userName: currentSession.userName,
+  //       userRole: currentSession.role,
+  //       barId: currentSession.barId !== 'admin_global' ? currentSession.barId : undefined,
+  //       barName: currentSession.barName !== 'Admin Dashboard' ? currentSession.barName : undefined,
+  //       description: `Création utilisateur: ${user.name} (${role})`,
+  //       metadata: {
+  //         newUserId: user.id,
+  //         newUserName: user.name,
+  //         newUserRole: role,
+  //         newUserUsername: user.username,
+  //       },
+  //       relatedEntityId: user.id,
+  //       relatedEntityType: 'user',
+  //     });
 
-      return user;
-    } catch (error) {
-      console.error('[AuthContext] Error creating user:', error);
-      return null;
-    }
-  }, [currentSession, hasPermission]);
+  //     return user;
+  //   } catch (error) {
+  //     console.error('[AuthContext] Error creating user:', error);
+  //     return null;
+  //   }
+  // }, [currentSession, hasPermission]);
 
-  const updateUser = useCallback(async (userId: string, updates: Partial<User>): Promise<void> => {
-    if (!currentSession) return;
+  // const updateUser = useCallback(async (userId: string, updates: Partial<User>): Promise<void> => {
+  //   if (!currentSession) return;
 
-    try {
-      // Convertir les updates au format Supabase
-      const supabaseUpdates: any = {};
-      if (updates.name) supabaseUpdates.name = updates.name;
-      if (updates.phone) supabaseUpdates.phone = updates.phone;
-      if (updates.isActive !== undefined) supabaseUpdates.is_active = updates.isActive;
+  //   try {
+  //     // Convertir les updates au format Supabase
+  //     const supabaseUpdates: any = {};
+  //     if (updates.name) supabaseUpdates.name = updates.name;
+  //     if (updates.phone) supabaseUpdates.phone = updates.phone;
+  //     if (updates.isActive !== undefined) supabaseUpdates.is_active = updates.isActive;
 
-      const updatedUser = await AuthService.updateProfile(userId, supabaseUpdates);
+  //     const updatedUser = await AuthService.updateProfile(userId, supabaseUpdates);
 
-      // Log mise à jour utilisateur
-      auditLogger.log({
-        event: 'USER_UPDATED',
-        severity: 'info',
-        userId: currentSession.userId,
-        userName: currentSession.userName,
-        userRole: currentSession.role,
-        barId: currentSession.barId !== 'admin_global' ? currentSession.barId : undefined,
-        barName: currentSession.barName !== 'Admin Dashboard' ? currentSession.barName : undefined,
-        description: `Mise à jour utilisateur: ${updatedUser.name}`,
-        metadata: {
-          targetUserId: userId,
-          targetUserName: updatedUser.name,
-          updates: updates,
-        },
-        relatedEntityId: userId,
-        relatedEntityType: 'user',
-      });
-    } catch (error) {
-      console.error('[AuthContext] Error updating user:', error);
-    }
-  }, [currentSession]);
+  //     // Log mise à jour utilisateur
+  //     auditLogger.log({
+  //       event: 'USER_UPDATED',
+  //       severity: 'info',
+  //       userId: currentSession.userId,
+  //       userName: currentSession.userName,
+  //       userRole: currentSession.role,
+  //       barId: currentSession.barId !== 'admin_global' ? currentSession.barId : undefined,
+  //       barName: currentSession.barName !== 'Admin Dashboard' ? currentSession.barName : undefined,
+  //       description: `Mise à jour utilisateur: ${updatedUser.name}`,
+  //       metadata: {
+  //         targetUserId: userId,
+  //         targetUserName: updatedUser.name,
+  //         updates: updates,
+  //       },
+  //       relatedEntityId: userId,
+  //       relatedEntityType: 'user',
+  //     });
+  //   } catch (error) {
+  //     console.error('[AuthContext] Error updating user:', error);
+  //   }
+  // }, [currentSession]);
 
-  const changePassword = useCallback(async (userId: string, oldPassword: string, newPassword: string): Promise<void> => {
+  const changePassword = useCallback(async (newPassword: string): Promise<void> => {
     if (!currentSession) {
       throw new Error('Session non trouvée');
     }
 
     try {
-      // Changer le mot de passe via AuthService
-      await AuthService.changePassword(userId, oldPassword, newPassword);
+      // Changer le mot de passe via AuthService (Supabase Auth)
+      await AuthService.changePassword(newPassword);
 
-      // Mettre à jour firstLogin dans la session si c'est l'utilisateur courant
-      if (userId === currentSession.userId) {
-        setCurrentSession({
-          ...currentSession,
-          firstLogin: false
-        });
-      }
-
-      const isSelfChange = userId === currentSession.userId;
+      // Mettre à jour firstLogin dans la session
+      setCurrentSession({
+        ...currentSession,
+        firstLogin: false
+      });
 
       // Log changement mot de passe
       auditLogger.log({
@@ -241,15 +365,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         userRole: currentSession.role,
         barId: currentSession.barId !== 'admin_global' ? currentSession.barId : undefined,
         barName: currentSession.barName !== 'Admin Dashboard' ? currentSession.barName : undefined,
-        description: isSelfChange
-          ? `${currentSession.userName} a modifié son propre mot de passe`
-          : `${currentSession.userName} a réinitialisé le mot de passe`,
+        description: `${currentSession.userName} a modifié son propre mot de passe`,
         metadata: {
-          targetUserId: userId,
-          isSelfChange,
+          targetUserId: currentSession.userId,
+          isSelfChange: true,
           changedBy: currentSession.userName,
         },
-        relatedEntityId: userId,
+        relatedEntityId: currentSession.userId,
         relatedEntityType: 'user',
       });
     } catch (error: any) {
@@ -258,11 +380,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [currentSession, setCurrentSession]);
 
-  const getUserById = useCallback((_userId: string) => {
-    // TODO: Implémenter avec Supabase
-    console.warn('[AuthContext] getUserById not yet implemented with Supabase');
-    return undefined;
-  }, []);
+  // const getUserById = useCallback((_userId: string) => {
+  //   // TODO: Implémenter avec Supabase
+  //   console.warn('[AuthContext] getUserById not yet implemented with Supabase');
+  //   return undefined;
+  // }, []);
 
   // Impersonation: Se connecter en tant qu'un autre user (pour super admin)
   const impersonate = useCallback((_userId: string, _barId: string, _role: UserRole) => {
@@ -306,14 +428,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const value: AuthContextType = {
     currentSession,
     isAuthenticated: !!currentSession,
-    users: [], // Plus de mock users
+    // users: [], // Plus de mock users
     login,
+    verifyMfa, // Add verifyMfa to context value
     logout,
     hasPermission,
-    createUser,
-    updateUser,
+    // createUser, // Removed from context value
+    // updateUser, // Removed from context value
     changePassword,
-    getUserById,
+    // getUserById, // Removed from context value
     isImpersonating,
     originalSession,
     impersonate,
