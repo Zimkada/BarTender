@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -8,12 +8,11 @@ import {
   RefreshCw,
   Copy,
   Users,
-  Search,
-  Filter,
 } from 'lucide-react';
 import { useBarContext } from '../context/BarContext';
-import { useAuth } from '../context/AuthContext';
 import { useAppContext } from '../context/AppContext';
+import { AuthService } from '../services/supabase/auth.service';
+import { User } from '../types';
 
 interface UsersManagementPanelProps {
   isOpen: boolean;
@@ -42,9 +41,10 @@ const initialFormData: CreatePromoteurForm = {
   barPhone: '',
 };
 
+type PromoterWithBars = User & { bars: { id: string; name: string }[] };
+
 export function UsersManagementPanel({ isOpen, onClose }: UsersManagementPanelProps) {
-  const { bars, createBar, barMembers } = useBarContext();
-  const { users, createUser } = useAuth();
+  const { createBar } = useBarContext();
   const { initializeBarData } = useAppContext();
 
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -52,22 +52,41 @@ export function UsersManagementPanel({ isOpen, onClose }: UsersManagementPanelPr
   const [showPassword, setShowPassword] = useState(false);
   const [formErrors, setFormErrors] = useState<Partial<CreatePromoteurForm>>({});
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<'all' | 'promoteur' | 'gerant' | 'serveur'>('all');
+  const [promoteurs, setPromoteurs] = useState<PromoterWithBars[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Calculer la liste des promoteurs avec leurs bars
-  const promoteurs = useMemo(() => {
-    const promoUsers = users.filter(u => {
-      const memberRoles = barMembers.filter(m => m.userId === u.id).map(m => m.role);
-      return memberRoles.includes('promoteur');
-    });
+  // Charger les promoteurs
+  const loadPromoters = async () => {
+    try {
+      setLoading(true);
+      const data = await AuthService.getAllPromoters();
+      // Map DbUser to AppUser
+      const mappedPromoters = data.map(u => ({
+        id: u.id,
+        username: u.username || '',
+        password: '',
+        name: u.name || '',
+        phone: u.phone || '',
+        email: u.email || '',
+        createdAt: new Date(u.created_at),
+        isActive: u.is_active ?? true,
+        firstLogin: u.first_login ?? false,
+        lastLoginAt: u.last_login_at ? new Date(u.last_login_at) : undefined,
+        bars: u.bars
+      }));
+      setPromoteurs(mappedPromoters);
+    } catch (error) {
+      console.error('Erreur chargement promoteurs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return promoUsers.map(user => {
-      const userBarMemberships = barMembers.filter(m => m.userId === user.id && m.role === 'promoteur');
-      const userBars = userBarMemberships.map(m => bars.find(b => b.id === m.barId)).filter(Boolean);
-      return { user, bars: userBars };
-    });
-  }, [users, barMembers, bars]);
+  useEffect(() => {
+    if (isOpen) {
+      loadPromoters();
+    }
+  }, [isOpen]);
 
   // Générer mot de passe sécurisé
   const generateSecurePassword = () => {
@@ -133,24 +152,19 @@ export function UsersManagementPanel({ isOpen, onClose }: UsersManagementPanelPr
   };
 
   // Créer promoteur + bar
-  const handleCreatePromoteur = () => {
+  const handleCreatePromoteur = async () => {
     if (!validateForm()) return;
 
     try {
-      // 1. Créer utilisateur
-      const username = formData.email.split('@')[0]; // email prefix comme username
-      const newUser = createUser(
-        {
-          username,
-          password: formData.password,
-          name: `${formData.firstName} ${formData.lastName}`,
-          phone: formData.phone,
-          email: formData.email,
-          isActive: true,
-          firstLogin: true,
-        },
-        'promoteur'
-      );
+      // 1. Créer utilisateur via AuthService
+      const username = formData.email.split('@')[0];
+      const newUser = await AuthService.createPromoter({
+        username,
+        password: formData.password,
+        name: `${formData.firstName} ${formData.lastName}`,
+        phone: formData.phone,
+        email: formData.email,
+      });
 
       if (!newUser) {
         alert('Erreur lors de la création du promoteur');
@@ -158,13 +172,12 @@ export function UsersManagementPanel({ isOpen, onClose }: UsersManagementPanelPr
       }
 
       // 2. Créer bar avec le nouveau promoteur comme propriétaire
-      const newBar = createBar({
+      const newBar = await createBar({
         name: formData.barName,
         address: formData.barAddress || undefined,
         phone: formData.barPhone || undefined,
-        email: formData.email,
-        isActive: true,
         ownerId: newUser.id,
+        isActive: true,
         settings: {
           currency: 'FCFA',
           currencySymbol: ' FCFA',
@@ -183,13 +196,14 @@ export function UsersManagementPanel({ isOpen, onClose }: UsersManagementPanelPr
 
       // 3. Initialiser les données du bar (catégories et produits par défaut)
       console.log(`[UsersManagementPanel] Initializing data for new bar: ${newBar.id}`);
-      initializeBarData(newBar.id);
+      await initializeBarData(newBar.id);
 
       // 4. Succès
       alert(`✅ Promoteur créé avec succès!\n\nBar: ${formData.barName}\n\nCredentials:\nUsername: ${username}\nMot de passe: ${formData.password}\nBar: ${formData.barName}\n\n(Envoyez ces informations au promoteur)`);
 
       setFormData(initialFormData);
       setShowCreateForm(false);
+      loadPromoters(); // Rafraîchir la liste
     } catch (error) {
       console.error('Erreur création promoteur:', error);
       alert('Erreur lors de la création');
@@ -451,45 +465,51 @@ export function UsersManagementPanel({ isOpen, onClose }: UsersManagementPanelPr
                 Promoteurs ({promoteurs.length})
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {promoteurs.map(({ user, bars: userBars }) => (
-                  <div
-                    key={user.id}
-                    className="bg-white rounded-lg p-4 border-2 border-purple-200 hover:shadow-lg transition-shadow"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h4 className="font-bold text-gray-900">{user.name}</h4>
-                        <p className="text-xs text-gray-500">{user.email}</p>
-                      </div>
-                      <div className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                      }`}>
-                        {user.isActive ? 'Actif' : 'Suspendu'}
-                      </div>
-                    </div>
-
-                    <div className="space-y-1 text-xs text-gray-600">
-                      <p><span className="font-semibold">Téléphone:</span> {user.phone}</p>
-                      <p><span className="font-semibold">Bars:</span> {userBars.length}</p>
-                      {userBars.length > 0 && (
-                        <div className="mt-2 pt-2 border-t border-gray-200">
-                          <p className="font-semibold text-purple-700 mb-1">Bars gérés:</p>
-                          <ul className="space-y-0.5">
-                            {userBars.map((bar: any) => (
-                              <li key={bar.id} className="text-xs">
-                                • {bar.name}
-                              </li>
-                            ))}
-                          </ul>
+              {loading ? (
+                <div className="text-center py-12">
+                  <RefreshCw className="w-8 h-8 mx-auto animate-spin text-purple-600" />
+                  <p className="mt-2 text-gray-500">Chargement des promoteurs...</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {promoteurs.map((user) => (
+                    <div
+                      key={user.id}
+                      className="bg-white rounded-lg p-4 border-2 border-purple-200 hover:shadow-lg transition-shadow"
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h4 className="font-bold text-gray-900">{user.name}</h4>
+                          <p className="text-xs text-gray-500">{user.email}</p>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                        <div className={`px-2 py-1 rounded-full text-xs font-semibold ${user.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                          }`}>
+                          {user.isActive ? 'Actif' : 'Suspendu'}
+                        </div>
+                      </div>
 
-              {promoteurs.length === 0 && (
+                      <div className="space-y-1 text-xs text-gray-600">
+                        <p><span className="font-semibold">Téléphone:</span> {user.phone}</p>
+                        <p><span className="font-semibold">Bars:</span> {user.bars.length}</p>
+                        {user.bars.length > 0 && (
+                          <div className="mt-2 pt-2 border-t border-gray-200">
+                            <p className="font-semibold text-purple-700 mb-1">Bars gérés:</p>
+                            <ul className="space-y-0.5">
+                              {user.bars.map((bar) => (
+                                <li key={bar.id} className="text-xs">
+                                  • {bar.name}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!loading && promoteurs.length === 0 && (
                 <div className="text-center py-12 text-gray-500">
                   <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                   <p className="text-lg font-semibold">Aucun promoteur créé pour le moment</p>

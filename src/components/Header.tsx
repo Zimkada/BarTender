@@ -19,6 +19,7 @@ import {
   ShieldCheck, // Pour Super Admin
   Bell, // Pour notifications admin
   User, // Pour profil utilisateur
+  Globe, // Pour catalogue global
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
@@ -78,6 +79,7 @@ interface HeaderProps {
   onShowAdminDashboard?: () => void;
   onShowNotifications?: () => void; // A.5: Notifications admin
   unreadNotificationsCount?: number; // A.5: Compteur notifications non lues
+  onShowGlobalCatalog?: () => void;
 }
 
 export function Header({
@@ -90,13 +92,14 @@ export function Header({
   onShowDailyDashboard,
   onShowReturns,
   onShowQuickSale,
-  onShowForecasting = () => {},
-  onToggleMobileSidebar = () => {},
-  onShowAccounting = () => {},
-  onShowConsignment = () => {},
-  onShowAdminDashboard = () => {},
-  onShowNotifications = () => {},
-  unreadNotificationsCount = 0
+  onShowForecasting = () => { },
+  onToggleMobileSidebar = () => { },
+  onShowAccounting = () => { },
+  onShowConsignment = () => { },
+  onShowAdminDashboard = () => { },
+  onShowNotifications = () => { },
+  unreadNotificationsCount = 0,
+  onShowGlobalCatalog = () => { }
 }: HeaderProps) {
   const { getTodayTotal } = useAppContext();
   const { formatPrice } = useCurrencyFormatter();
@@ -323,6 +326,13 @@ export function Header({
             {currentSession?.role === 'super_admin' && (
               <>
                 {/* A.5: Badge notifications admin */}
+                <button
+                  onClick={onShowGlobalCatalog}
+                  className="p-2 bg-blue-600/90 rounded-lg text-white hover:bg-blue-700/90 transition-colors"
+                  title="Catalogue Global"
+                >
+                  <Globe size={20} />
+                </button>
                 <button
                   onClick={onShowNotifications}
                   className="relative p-2 bg-purple-600/90 rounded-lg text-white hover:bg-purple-700/90 transition-colors"

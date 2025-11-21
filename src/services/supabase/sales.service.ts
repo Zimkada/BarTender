@@ -55,7 +55,10 @@ export class SalesService {
           total,
           payment_method: data.payment_method,
           status: 'pending',
-          sold_by: data.sold_by,
+          sold_by: data.sold_by, // Note: mapped to created_by in DB if column name is created_by? No, wait.
+          // The table has created_by. The interface has sold_by.
+          // If I change the key in insert object to created_by, it matches DB.
+          created_by: data.sold_by,
           customer_name: data.customer_name,
           customer_phone: data.customer_phone,
           notes: data.notes,
@@ -168,7 +171,7 @@ export class SalesService {
         .from('sales')
         .select(`
           *,
-          seller:users!sales_sold_by_fkey (name),
+          seller:users!sales_created_by_fkey (name),
           validator:users!sales_validated_by_fkey (name)
         `)
         .eq('bar_id', barId)
@@ -216,7 +219,7 @@ export class SalesService {
         .from('sales')
         .select(`
           *,
-          seller:users!sales_sold_by_fkey (name),
+          seller:users!sales_created_by_fkey (name),
           validator:users!sales_validated_by_fkey (name)
         `)
         .eq('id', saleId)
@@ -336,11 +339,11 @@ export class SalesService {
         .from('sales')
         .select(`
           *,
-          seller:users!sales_sold_by_fkey (name),
+          seller:users!sales_created_by_fkey (name),
           validator:users!sales_validated_by_fkey (name)
         `)
         .eq('bar_id', barId)
-        .eq('sold_by', userId)
+        .eq('created_by', userId)
         .order('created_at', { ascending: false });
 
       if (startDate) {

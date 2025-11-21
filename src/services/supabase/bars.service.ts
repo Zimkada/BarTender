@@ -77,13 +77,6 @@ export class BarsService {
    */
   static async getBarById(barId: string): Promise<BarWithOwner | null> {
     try {
-      // Restaurer la session RLS avant la requête
-      const authUser = localStorage.getItem('auth_user');
-      if (authUser) {
-        const user = JSON.parse(authUser);
-        await supabase.rpc('set_user_session', { user_id: user.id });
-      }
-
       const { data, error } = await supabase
         .from('bars')
         .select('*')
@@ -127,13 +120,6 @@ export class BarsService {
    */
   static async getAllBars(): Promise<BarWithOwner[]> {
     try {
-      // Restaurer la session RLS avant la requête
-      const authUser = localStorage.getItem('auth_user');
-      if (authUser) {
-        const user = JSON.parse(authUser);
-        await supabase.rpc('set_user_session', { user_id: user.id });
-      }
-
       const { data, error } = await supabase
         .from('bars')
         .select('*')
@@ -181,13 +167,6 @@ export class BarsService {
    */
   static async getUserBars(userId: string): Promise<Bar[]> {
     try {
-      // Restaurer la session RLS avant la requête
-      const authUser = localStorage.getItem('auth_user');
-      if (authUser) {
-        const user = JSON.parse(authUser);
-        await supabase.rpc('set_user_session', { user_id: user.id });
-      }
-
       const { data, error } = await supabase
         .from('bar_members')
         .select(`

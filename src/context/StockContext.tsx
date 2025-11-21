@@ -7,8 +7,8 @@ import type { Product, Supply, Consignment, ProductStockInfo } from '../types';
 interface StockContextType {
   // Products
   products: Product[];
-  addProduct: (product: Omit<Product, 'id' | 'createdAt'>) => Product;
-  addProducts: (products: Omit<Product, 'id' | 'createdAt'>[]) => Product[]; // Batch import
+  addProduct: (product: Omit<Product, 'id' | 'createdAt'>) => void;
+  addProducts: (products: Omit<Product, 'id' | 'createdAt'>[]) => void; // Batch import
   updateProduct: (id: string, updates: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
 
@@ -25,7 +25,7 @@ interface StockContextType {
 
   // Consignments
   consignments: Consignment[];
-  createConsignment: (data: Omit<Consignment, 'id' | 'barId' | 'createdAt' | 'createdBy' | 'status'> & { expirationDays?: number }) => Consignment | null;
+  createConsignment: (data: Omit<Consignment, 'id' | 'barId' | 'createdAt' | 'createdBy' | 'status'> & { expirationDays?: number }) => void;
   claimConsignment: (consignmentId: string) => boolean;
   forfeitConsignment: (consignmentId: string) => boolean;
   getActiveConsignments: () => Consignment[];

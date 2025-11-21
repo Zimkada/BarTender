@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -16,10 +16,14 @@ import {
   CheckCircle,
   XCircle,
   Award,
+  Bell,
+  LogOut,
+  Shield
 } from 'lucide-react';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
-import { Sale } from '../types';
+import { Sale, User } from '../types';
+import { AuthService } from '../services/supabase/auth.service';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
 
 interface SuperAdminDashboardProps {
@@ -28,26 +32,51 @@ interface SuperAdminDashboardProps {
 }
 
 export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashboardProps) {
-  const { bars, barMembers } = useBarContext();
-  const { users } = useAuth();
+  const { user, logout } = useAuth();
+  const { bars } = useBarContext();
+  const [users, setUsers] = useState<Array<User & { roles: string[] }>>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadUsers();
+    }
+  }, [isOpen]);
+
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      const usersData = await AuthService.getAllUsersWithRoles();
+
+      // Map Supabase users to App users
+      const mappedUsers = usersData.map(u => ({
+        id: u.id,
+        username: u.username || '',
+        password: '', // Not available
+        name: u.name || '',
+        phone: u.phone || '',
+        email: u.email || '',
+        createdAt: new Date(u.created_at),
+        isActive: u.is_active ?? true,
+        firstLogin: u.first_login ?? false,
+        lastLoginAt: u.last_login_at ? new Date(u.last_login_at) : undefined,
+        roles: u.roles
+      })) as Array<User & { roles: string[] }>;
+
+      setUsers(mappedUsers);
+    } catch (error) {
+      console.error('Erreur chargement utilisateurs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Statistiques complètes
   const stats = useMemo(() => {
     // Users breakdown
-    const promoteurs = users.filter(u => {
-      const memberRoles = barMembers.filter(m => m.userId === u.id).map(m => m.role);
-      return memberRoles.includes('promoteur');
-    });
-
-    const gerants = users.filter(u => {
-      const memberRoles = barMembers.filter(m => m.userId === u.id).map(m => m.role);
-      return memberRoles.includes('gerant');
-    });
-
-    const serveurs = users.filter(u => {
-      const memberRoles = barMembers.filter(m => m.userId === u.id).map(m => m.role);
-      return memberRoles.includes('serveur');
-    });
+    const promoteurs = users.filter(u => u.roles.includes('promoteur'));
+    const gerants = users.filter(u => u.roles.includes('gerant'));
+    const serveurs = users.filter(u => u.roles.includes('serveur'));
 
     const activeUsers = users.filter(u => u.isActive).length;
     const suspendedUsers = users.filter(u => !u.isActive).length;
@@ -96,43 +125,43 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
 
         // Filter sales by time period
         const salesToday = sales.filter(sale => {
-          const saleDate = new Date(sale.date);
+          const saleDate = new Date(sale.createdAt);
           const saleBusinessDay = getBusinessDay(saleDate, closeHour);
           return isSameDay(saleBusinessDay, currentBusinessDay);
         });
 
         const salesYesterday = sales.filter(sale => {
-          const saleDate = new Date(sale.date);
+          const saleDate = new Date(sale.createdAt);
           const saleBusinessDay = getBusinessDay(saleDate, closeHour);
           return isSameDay(saleBusinessDay, yesterday);
         });
 
         const salesLast7Days = sales.filter(sale => {
-          const saleDate = new Date(sale.date);
+          const saleDate = new Date(sale.createdAt);
           const saleBusinessDay = getBusinessDay(saleDate, closeHour);
           return saleBusinessDay >= sevenDaysAgo && saleBusinessDay < currentBusinessDay;
         });
 
         const salesLast30Days = sales.filter(sale => {
-          const saleDate = new Date(sale.date);
+          const saleDate = new Date(sale.createdAt);
           const saleBusinessDay = getBusinessDay(saleDate, closeHour);
           return saleBusinessDay >= thirtyDaysAgo && saleBusinessDay < currentBusinessDay;
         });
 
         // Calculate CA for each period
-        const barCA = salesToday.reduce((sum, sale) => sum + sale.totalAmount, 0);
+        const barCA = salesToday.reduce((sum, sale) => sum + sale.total, 0);
         const barSalesCount = salesToday.length;
 
         totalCAToday += barCA;
         totalSalesToday += barSalesCount;
 
-        totalCAYesterday += salesYesterday.reduce((sum, sale) => sum + sale.totalAmount, 0);
+        totalCAYesterday += salesYesterday.reduce((sum, sale) => sum + sale.total, 0);
         totalSalesYesterday += salesYesterday.length;
 
-        totalCALast7Days += salesLast7Days.reduce((sum, sale) => sum + sale.totalAmount, 0);
+        totalCALast7Days += salesLast7Days.reduce((sum, sale) => sum + sale.total, 0);
         totalSalesLast7Days += salesLast7Days.length;
 
-        totalCALast30Days += salesLast30Days.reduce((sum, sale) => sum + sale.totalAmount, 0);
+        totalCALast30Days += salesLast30Days.reduce((sum, sale) => sum + sale.total, 0);
         totalSalesLast30Days += salesLast30Days.length;
 
         barsPerformance.push({
@@ -207,7 +236,7 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
 
       topBars,
     };
-  }, [bars, users, barMembers]);
+  }, [bars, users]);
 
   if (!isOpen) return null;
 
@@ -400,13 +429,12 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
                           ) : (
                             <TrendingDown className="w-4 h-4 text-red-600" />
                           )}
-                          <span className={`text-xs font-medium ${
-                            Math.abs(stats.caChangeVsYesterday) < 1
-                              ? 'text-gray-600'
-                              : stats.caChangeVsYesterday > 0
-                                ? 'text-green-600'
-                                : 'text-red-600'
-                          }`}>
+                          <span className={`text-xs font-medium ${Math.abs(stats.caChangeVsYesterday) < 1
+                            ? 'text-gray-600'
+                            : stats.caChangeVsYesterday > 0
+                              ? 'text-green-600'
+                              : 'text-red-600'
+                            }`}>
                             {stats.caChangeVsYesterday > 0 ? '+' : ''}{stats.caChangeVsYesterday.toFixed(1)}% vs hier
                           </span>
                           <span className="text-xs text-gray-500">
@@ -423,13 +451,12 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
                           ) : (
                             <TrendingDown className="w-4 h-4 text-red-600" />
                           )}
-                          <span className={`text-xs font-medium ${
-                            Math.abs(stats.caChangeVsLast7Days) < 1
-                              ? 'text-gray-600'
-                              : stats.caChangeVsLast7Days > 0
-                                ? 'text-green-600'
-                                : 'text-red-600'
-                          }`}>
+                          <span className={`text-xs font-medium ${Math.abs(stats.caChangeVsLast7Days) < 1
+                            ? 'text-gray-600'
+                            : stats.caChangeVsLast7Days > 0
+                              ? 'text-green-600'
+                              : 'text-red-600'
+                            }`}>
                             {stats.caChangeVsLast7Days > 0 ? '+' : ''}{stats.caChangeVsLast7Days.toFixed(1)}% vs moy. 7j
                           </span>
                           <span className="text-xs text-gray-500">
@@ -461,13 +488,12 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
                           ) : (
                             <TrendingDown className="w-4 h-4 text-red-600" />
                           )}
-                          <span className={`text-xs font-medium ${
-                            Math.abs(stats.salesChangeVsYesterday) < 1
-                              ? 'text-gray-600'
-                              : stats.salesChangeVsYesterday > 0
-                                ? 'text-green-600'
-                                : 'text-red-600'
-                          }`}>
+                          <span className={`text-xs font-medium ${Math.abs(stats.salesChangeVsYesterday) < 1
+                            ? 'text-gray-600'
+                            : stats.salesChangeVsYesterday > 0
+                              ? 'text-green-600'
+                              : 'text-red-600'
+                            }`}>
                             {stats.salesChangeVsYesterday > 0 ? '+' : ''}{stats.salesChangeVsYesterday.toFixed(1)}% vs hier
                           </span>
                           <span className="text-xs text-gray-500">
@@ -484,13 +510,12 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
                           ) : (
                             <TrendingDown className="w-4 h-4 text-red-600" />
                           )}
-                          <span className={`text-xs font-medium ${
-                            Math.abs(stats.salesChangeVsLast7Days) < 1
-                              ? 'text-gray-600'
-                              : stats.salesChangeVsLast7Days > 0
-                                ? 'text-green-600'
-                                : 'text-red-600'
-                          }`}>
+                          <span className={`text-xs font-medium ${Math.abs(stats.salesChangeVsLast7Days) < 1
+                            ? 'text-gray-600'
+                            : stats.salesChangeVsLast7Days > 0
+                              ? 'text-green-600'
+                              : 'text-red-600'
+                            }`}>
                             {stats.salesChangeVsLast7Days > 0 ? '+' : ''}{stats.salesChangeVsLast7Days.toFixed(1)}% vs moy. 7j
                           </span>
                           <span className="text-xs text-gray-500">
@@ -517,23 +542,21 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
                     {stats.topBars.map((bar, index) => (
                       <div
                         key={bar.barId}
-                        className={`flex items-center justify-between p-3 rounded-lg transition-all ${
-                          index < 3
-                            ? 'bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-300 shadow-sm'
-                            : 'bg-white border border-gray-200'
-                        }`}
+                        className={`flex items-center justify-between p-3 rounded-lg transition-all ${index < 3
+                          ? 'bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-300 shadow-sm'
+                          : 'bg-white border border-gray-200'
+                          }`}
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div
-                            className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                              index === 0
-                                ? 'bg-yellow-400 text-yellow-900'
-                                : index === 1
+                            className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${index === 0
+                              ? 'bg-yellow-400 text-yellow-900'
+                              : index === 1
                                 ? 'bg-gray-300 text-gray-700'
                                 : index === 2
-                                ? 'bg-amber-300 text-amber-900'
-                                : 'bg-gray-100 text-gray-600'
-                            }`}
+                                  ? 'bg-amber-300 text-amber-900'
+                                  : 'bg-gray-100 text-gray-600'
+                              }`}
                           >
                             {index + 1}
                           </div>

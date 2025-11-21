@@ -60,6 +60,7 @@ export interface BarMember {
   assignedBy: string;
   assignedAt: Date;
   isActive: boolean;
+  user?: User; // Enriched data
 }
 
 // ===== PRODUITS & INVENTAIRE =====
@@ -95,6 +96,36 @@ export interface Supply {
   date: Date;
   totalCost: number;
   createdBy: string; // Qui a enregistré l'approv
+}
+
+// ===== CATALOGUE GLOBAL =====
+export interface GlobalCategory {
+  id: string;
+  name: string;
+  color: string;
+  icon?: string;
+  orderIndex: number;
+  isSystem: boolean;
+  createdAt: Date;
+}
+
+export interface GlobalProduct {
+  id: string;
+  name: string;
+  brand?: string;
+  manufacturer?: string;
+  volume: string;
+  volumeMl?: number;
+  category: string; // Nom de la catégorie globale
+  subcategory?: string;
+  officialImage?: string;
+  barcode?: string;
+  description?: string;
+  suggestedPriceMin?: number;
+  suggestedPriceMax?: number;
+  isActive: boolean;
+  createdBy?: string;
+  createdAt: Date;
 }
 
 // ===== COMPTABILITÉ =====

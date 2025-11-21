@@ -9,6 +9,8 @@ import { ProductModal } from './components/ProductModal';
 import { CategoryModal } from './components/CategoryModal';
 import { ServerInterface } from './components/ServerInterface';
 import { LoginScreen } from './components/LoginScreen';
+import { ForgotPasswordScreen } from './components/ForgotPasswordScreen';
+import { ResetPasswordScreen } from './components/ResetPasswordScreen';
 import { UserManagement } from './components/UserManagement';
 import { RoleBasedComponent } from './components/RoleBasedComponent';
 import { NotificationsProvider, useNotifications } from './components/Notifications';
@@ -43,11 +45,13 @@ const UsersManagementPanel = lazy(() => import('./components/UsersManagementPane
 const BarStatsModal = lazy(() => import('./components/BarStatsModal').then(m => ({ default: m.BarStatsModal })));
 
 
+const GlobalCatalogPanel = lazy(() => import('./components/GlobalCatalogPanel').then(m => ({ default: m.GlobalCatalogPanel })));
 
 function AppContent() {
   const {
     categories,
     addCategory,
+    linkCategory,
     updateCategory,
     deleteCategory,
     addSale,
@@ -95,6 +99,7 @@ function AppContent() {
   const [showAuditLogs, setShowAuditLogs] = useState(false);
   const [showBarsManagement, setShowBarsManagement] = useState(false);
   const [showUsersManagement, setShowUsersManagement] = useState(false);
+  const [showGlobalCatalog, setShowGlobalCatalog] = useState(false);
   const [selectedBarForStats, setSelectedBarForStats] = useState<any>(null);
 
   useEffect(() => {
@@ -119,13 +124,10 @@ function AppContent() {
   const handleCategoryModalSave = (categoryData: Omit<Category, 'id' | 'createdAt' | 'barId'>) => {
     if (editingCategory) {
       updateCategory(editingCategory.id, categoryData);
-      showNotification('success', `Catégorie "${categoryData.name}" modifiée.`);
+      // Notification handled in AppContext
     } else {
-      const newCategory = addCategory(categoryData);
-      if (newCategory) {
-        setActiveCategory(newCategory.id);
-        showNotification('success', `Catégorie "${categoryData.name}" créée.`);
-      }
+      addCategory(categoryData);
+      // Notification handled in AppContext
     }
     handleCategoryModalClose();
   };
@@ -141,7 +143,7 @@ function AppContent() {
 
   const addToCart = (product: Product) => {
     const existingItem = cart.find(item => item.product.id === product.id);
-    
+
     if (existingItem) {
       setCart(cart.map(item =>
         item.product.id === product.id
@@ -239,6 +241,7 @@ function AppContent() {
     setShowAccounting(false);
     setShowReturns(false);
     setShowConsignment(false);
+    setShowGlobalCatalog(false);
 
     // Ouvrir la modale demandée
     switch (menu) {
@@ -278,9 +281,28 @@ function AppContent() {
     }
   };
 
-  // Écran de connexion si pas authentifié
+  const [authView, setAuthView] = useState('login'); // 'login', 'forgotPassword', 'resetPassword'
+
+  // Gérer la route de réinitialisation de mot de passe
+  useEffect(() => {
+    // Note: Ceci est une gestion de route simple. Pour une app plus complexe,
+    // une librairie comme react-router-dom serait recommandée.
+    if (window.location.pathname === '/reset-password') {
+      setAuthView('resetPassword');
+    }
+  }, []);
+
+  // Écrans d'authentification si pas connecté
   if (!isAuthenticated) {
-    return <LoginScreen />;
+    switch (authView) {
+      case 'forgotPassword':
+        return <ForgotPasswordScreen onBackToLogin={() => setAuthView('login')} />;
+      case 'resetPassword':
+        return <ResetPasswordScreen />;
+      case 'login':
+      default:
+        return <LoginScreen onNavigateToForgotPassword={() => setAuthView('forgotPassword')} />;
+    }
   }
 
   // Interface serveur simplifiée
@@ -311,6 +333,7 @@ function AppContent() {
           onShowQuickSale={() => setShowQuickSale(true)}
           onShowAdminDashboard={() => setShowAdminDashboard(true)}
           onShowNotifications={() => setShowNotifications(true)}
+          onShowGlobalCatalog={() => setShowGlobalCatalog(true)}
           unreadNotificationsCount={unresolvedNotifications.length}
           onToggleMobileSidebar={() => setShowMobileSidebar(!showMobileSidebar)}
         />
@@ -344,6 +367,16 @@ function AppContent() {
             <SuperAdminDashboard
               isOpen={showAdminDashboard}
               onClose={() => setShowAdminDashboard(false)}
+            />
+          </Suspense>
+        </RoleBasedComponent>
+
+        {/* Global Catalog Panel */}
+        <RoleBasedComponent requiredPermission="canAccessAdminDashboard">
+          <Suspense fallback={<LoadingFallback />}>
+            <GlobalCatalogPanel
+              isOpen={showGlobalCatalog}
+              onClose={() => setShowGlobalCatalog(false)}
             />
           </Suspense>
         </RoleBasedComponent>
@@ -419,6 +452,7 @@ function AppContent() {
           onShowAuditLogs={() => setShowAuditLogs(true)}
           onShowBarsManagement={() => setShowBarsManagement(true)}
           onShowUsersManagement={() => setShowUsersManagement(true)}
+          onShowGlobalCatalog={() => setShowGlobalCatalog(true)}
         />
       </motion.div>
     );
@@ -454,7 +488,7 @@ function AppContent() {
         unreadNotificationsCount={notifStats.unreadCount}
         onToggleMobileSidebar={() => setShowMobileSidebar(!showMobileSidebar)}
       />
-      
+
       <motion.main
         className="container mx-auto px-3 md:px-4 py-4 md:py-6 space-y-4 md:space-y-6"
         initial={{ opacity: 0, y: 20 }}
@@ -475,7 +509,7 @@ function AppContent() {
           onEditCategory={handleEditCategory}
           onDeleteCategory={handleDeleteCategory}
         />
-        
+
         <AnimatePresence mode="wait">
           <motion.div
             key={activeCategory}
@@ -487,7 +521,7 @@ function AppContent() {
             <ProductGrid
               products={currentProducts}
               onAddToCart={addToCart}
-          />
+            />
           </motion.div>
         </AnimatePresence>
       </motion.main>
@@ -531,7 +565,7 @@ function AppContent() {
         onClear={clearCart}
         hideFloatingButton={showQuickSale || showForecasting || showDailyDashboard || showSalesHistory || showInventory || showSettings || showServers || showReturns || showAccounting}
       />
-      
+
       <RoleBasedComponent requiredPermission="canManageUsers">
         <UserManagement
           isOpen={showServers}
@@ -563,6 +597,7 @@ function AppContent() {
           isOpen={showCategoryModal || !!editingCategory}
           onClose={handleCategoryModalClose}
           onSave={handleCategoryModalSave}
+          onLinkGlobal={linkCategory}
           category={editingCategory || undefined}
         />
       </RoleBasedComponent>
@@ -648,6 +683,7 @@ function AppContent() {
         onShowAuditLogs={() => setShowAuditLogs(true)}
         onShowBarsManagement={() => setShowBarsManagement(true)}
         onShowUsersManagement={() => setShowUsersManagement(true)}
+        onShowGlobalCatalog={() => setShowGlobalCatalog(true)}
       />
 
       {/* Mobile Navigation */}

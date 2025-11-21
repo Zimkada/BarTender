@@ -92,6 +92,13 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setUserBars(mappedBars);
       } else {
         // Les autres utilisateurs voient seulement leurs bars
+        if (currentSession.userId === '1') {
+          console.warn('[BarContext] Skipping bar fetch for invalid user ID 1');
+          setBars([]);
+          setUserBars([]);
+          setLoading(false);
+          return;
+        }
         const userBarsData = await BarsService.getUserBars(currentSession.userId);
         const mappedBars: Bar[] = userBarsData.map(b => ({
           id: b.id,
@@ -124,6 +131,20 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           assignedBy: '', // Pas retourné par l'API
           assignedAt: new Date(m.joined_at),
           isActive: m.is_active,
+          user: {
+            id: m.id,
+            username: m.username,
+            password: '', // Pas exposé
+            name: m.name,
+            phone: m.phone,
+            email: undefined,
+            createdAt: new Date(m.created_at),
+            isActive: m.is_active,
+            firstLogin: m.first_login,
+            avatarUrl: m.avatar_url || undefined,
+            lastLoginAt: m.last_login_at ? new Date(m.last_login_at) : undefined,
+            createdBy: undefined,
+          }
         }));
         setBarMembers(mappedMembers);
       }
@@ -302,8 +323,8 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // Les autres accèdent seulement à leur bar assigné
     return barMembers.some(
       m => m.userId === currentSession.userId &&
-           m.barId === barId &&
-           m.isActive
+        m.barId === barId &&
+        m.isActive
     );
   }, [currentSession, barMembers, isOwner]);
 

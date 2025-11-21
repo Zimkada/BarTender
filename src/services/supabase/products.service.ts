@@ -1,15 +1,15 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
+import type { GlobalProduct as GlobalProductType } from '../../types';
 
-type GlobalProduct = Database['public']['Tables']['global_products']['Row'];
+type GlobalProductRow = Database['public']['Tables']['global_products']['Row'];
 type GlobalProductInsert = Database['public']['Tables']['global_products']['Insert'];
 type BarProduct = Database['public']['Tables']['bar_products']['Row'];
-type BarProductInsert = Database['public']['Tables']['bar_products']['Insert'];
 type BarProductUpdate = Database['public']['Tables']['bar_products']['Update'];
 type BarCategory = Database['public']['Tables']['bar_categories']['Row'];
 
 export interface BarProductWithDetails extends BarProduct {
-  global_product?: GlobalProduct | null;
+  global_product?: GlobalProductRow | null;
   category?: BarCategory | null;
   display_name: string;
   display_image: string | null;
@@ -25,6 +25,7 @@ export interface CreateBarProductData {
   stock?: number;
   alert_threshold?: number;
   is_custom_product?: boolean;
+  volume?: string;
 }
 
 /**
@@ -39,7 +40,7 @@ export class ProductsService {
   /**
    * Créer un produit global (super_admin uniquement)
    */
-  static async createGlobalProduct(data: GlobalProductInsert): Promise<GlobalProduct> {
+  static async createGlobalProduct(data: GlobalProductInsert): Promise<GlobalProductType> {
     try {
       const { data: newProduct, error } = await supabase
         .from('global_products')
@@ -51,7 +52,25 @@ export class ProductsService {
         throw new Error('Erreur lors de la création du produit global');
       }
 
-      return newProduct;
+      // Map to GlobalProductType
+      const result = newProduct as GlobalProductRow;
+      return {
+        id: result.id,
+        name: result.name,
+        brand: result.brand || undefined,
+        manufacturer: result.manufacturer || undefined,
+        volume: result.volume,
+        volumeMl: result.volume_ml || undefined,
+        category: result.category,
+        subcategory: result.subcategory || undefined,
+        officialImage: result.official_image || undefined,
+        barcode: result.barcode || undefined,
+        description: result.description || undefined,
+        suggestedPriceMin: result.suggested_price_min || undefined,
+        suggestedPriceMax: result.suggested_price_max || undefined,
+        isActive: result.is_active ?? true,
+        createdAt: new Date(result.created_at || Date.now())
+      };
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
     }
@@ -60,12 +79,14 @@ export class ProductsService {
   /**
    * Récupérer tous les produits globaux
    */
-  static async getGlobalProducts(): Promise<GlobalProduct[]> {
+  /**
+   * Récupérer tous les produits globaux
+   */
+  static async getGlobalProducts(): Promise<GlobalProductType[]> {
     try {
       const { data, error } = await supabase
         .from('global_products')
         .select('*')
-        .eq('is_active', true)
         .order('category', { ascending: true })
         .order('name', { ascending: true });
 
@@ -73,7 +94,23 @@ export class ProductsService {
         throw new Error('Erreur lors de la récupération des produits globaux');
       }
 
-      return data || [];
+      return (data || []).map((p: GlobalProductRow) => ({
+        id: p.id,
+        name: p.name,
+        brand: p.brand || undefined,
+        manufacturer: p.manufacturer || undefined,
+        volume: p.volume,
+        volumeMl: p.volume_ml || undefined,
+        category: p.category,
+        subcategory: p.subcategory || undefined,
+        officialImage: p.official_image || undefined,
+        barcode: p.barcode || undefined,
+        description: p.description || undefined,
+        suggestedPriceMin: p.suggested_price_min || undefined,
+        suggestedPriceMax: p.suggested_price_max || undefined,
+        isActive: p.is_active ?? true,
+        createdAt: new Date(p.created_at || Date.now())
+      }));
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
     }
@@ -82,20 +119,35 @@ export class ProductsService {
   /**
    * Récupérer les produits globaux par catégorie
    */
-  static async getGlobalProductsByCategory(category: string): Promise<GlobalProduct[]> {
+  static async getGlobalProductsByCategory(category: string): Promise<GlobalProductType[]> {
     try {
       const { data, error } = await supabase
         .from('global_products')
         .select('*')
         .eq('category', category)
-        .eq('is_active', true)
         .order('name', { ascending: true });
 
       if (error) {
         throw new Error('Erreur lors de la récupération des produits');
       }
 
-      return data || [];
+      return (data || []).map((p: GlobalProductRow) => ({
+        id: p.id,
+        name: p.name,
+        brand: p.brand || undefined,
+        manufacturer: p.manufacturer || undefined,
+        volume: p.volume,
+        volumeMl: p.volume_ml || undefined,
+        category: p.category,
+        subcategory: p.subcategory || undefined,
+        officialImage: p.official_image || undefined,
+        barcode: p.barcode || undefined,
+        description: p.description || undefined,
+        suggestedPriceMin: p.suggested_price_min || undefined,
+        suggestedPriceMax: p.suggested_price_max || undefined,
+        isActive: p.is_active ?? true,
+        createdAt: new Date(p.created_at || Date.now())
+      }));
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
     }
@@ -107,7 +159,7 @@ export class ProductsService {
   static async updateGlobalProduct(
     productId: string,
     updates: Partial<GlobalProductInsert>
-  ): Promise<GlobalProduct> {
+  ): Promise<GlobalProductType> {
     try {
       const { data, error } = await supabase
         .from('global_products')
@@ -120,7 +172,43 @@ export class ProductsService {
         throw new Error('Erreur lors de la mise à jour du produit global');
       }
 
-      return data;
+      // Map to GlobalProductType
+      const result = data as GlobalProductRow;
+      return {
+        id: result.id,
+        name: result.name,
+        brand: result.brand || undefined,
+        manufacturer: result.manufacturer || undefined,
+        volume: result.volume,
+        volumeMl: result.volume_ml || undefined,
+        category: result.category,
+        subcategory: result.subcategory || undefined,
+        officialImage: result.official_image || undefined,
+        barcode: result.barcode || undefined,
+        description: result.description || undefined,
+        suggestedPriceMin: result.suggested_price_min || undefined,
+        suggestedPriceMax: result.suggested_price_max || undefined,
+        isActive: result.is_active ?? true,
+        createdAt: new Date(result.created_at || Date.now())
+      };
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Supprimer un produit global (Super Admin)
+   */
+  static async deleteGlobalProduct(productId: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('global_products')
+        .delete()
+        .eq('id', productId);
+
+      if (error) {
+        throw new Error('Erreur lors de la suppression du produit global');
+      }
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
     }
@@ -158,6 +246,7 @@ export class ProductsService {
           alert_threshold: data.alert_threshold || 10,
           is_custom_product: data.is_custom_product || false,
           is_active: true,
+          volume: data.volume,
         })
         .select()
         .single();
@@ -194,7 +283,7 @@ export class ProductsService {
 
       // Enrichir avec display_name et display_image
       const enrichedProducts: BarProductWithDetails[] = (data || []).map((product: any) => {
-        const globalProduct = product.global_products as GlobalProduct | null;
+        const globalProduct = product.global_products as GlobalProductRow | null;
 
         return {
           ...product,
@@ -235,7 +324,7 @@ export class ProductsService {
       }
 
       const enrichedProducts: BarProductWithDetails[] = (data || []).map((product: any) => {
-        const globalProduct = product.global_products as GlobalProduct | null;
+        const globalProduct = product.global_products as GlobalProductRow | null;
 
         return {
           ...product,
@@ -271,7 +360,7 @@ export class ProductsService {
         return null;
       }
 
-      const globalProduct = data.global_products as GlobalProduct | null;
+      const globalProduct = data.global_products as GlobalProductRow | null;
 
       return {
         ...data,
@@ -344,7 +433,7 @@ export class ProductsService {
         throw new Error('Produit introuvable');
       }
 
-      const newStock = product.stock + quantity;
+      const newStock = (product.stock ?? 0) + quantity;
 
       await this.updateStock(productId, newStock);
     } catch (error: any) {
@@ -368,7 +457,7 @@ export class ProductsService {
         throw new Error('Produit introuvable');
       }
 
-      const newStock = Math.max(0, product.stock - quantity);
+      const newStock = Math.max(0, (product.stock ?? 0) - quantity);
 
       await this.updateStock(productId, newStock);
     } catch (error: any) {
@@ -415,7 +504,7 @@ export class ProductsService {
       }
 
       const enrichedProducts: BarProductWithDetails[] = (data || []).map((product: any) => {
-        const globalProduct = product.global_products as GlobalProduct | null;
+        const globalProduct = product.global_products as GlobalProductRow | null;
 
         return {
           ...product,

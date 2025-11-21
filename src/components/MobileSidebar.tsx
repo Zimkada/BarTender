@@ -19,6 +19,7 @@ import {
   FileText,
   Building2,
   UserCog,
+  Globe,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -33,6 +34,7 @@ interface MobileSidebarProps {
   onShowAuditLogs?: () => void;
   onShowBarsManagement?: () => void;
   onShowUsersManagement?: () => void;
+  onShowGlobalCatalog?: () => void;
 }
 
 interface MenuItem {
@@ -52,7 +54,8 @@ export function MobileSidebar({
   onShowNotifications,
   onShowAuditLogs,
   onShowBarsManagement,
-  onShowUsersManagement
+  onShowUsersManagement,
+  onShowGlobalCatalog
 }: MobileSidebarProps) {
   const { currentSession, logout } = useAuth();
 
@@ -72,6 +75,16 @@ export function MobileSidebar({
       roles: ['super_admin'],
       action: () => {
         onShowAdminDashboard?.();
+        onClose();
+      }
+    },
+    {
+      id: 'globalCatalog',
+      label: 'Catalogue Global',
+      icon: <Globe size={20} />,
+      roles: ['super_admin'],
+      action: () => {
+        onShowGlobalCatalog?.();
         onClose();
       }
     },
@@ -138,7 +151,7 @@ export function MobileSidebar({
     },
     {
       id: 'dailyDashboard',
-              label: 'Tableau de bord',      icon: <Calendar size={20} />,
+      label: 'Tableau de bord', icon: <Calendar size={20} />,
       roles: ['promoteur', 'gerant', 'serveur'],
       action: () => {
         onNavigate('dailyDashboard');
@@ -251,18 +264,16 @@ export function MobileSidebar({
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className={`fixed top-0 left-0 bottom-0 w-72 shadow-2xl z-50 flex flex-col ${
-              currentSession?.role === 'super_admin'
+            className={`fixed top-0 left-0 bottom-0 w-72 shadow-2xl z-50 flex flex-col ${currentSession?.role === 'super_admin'
                 ? 'bg-gradient-to-br from-purple-50 to-indigo-50'
                 : 'bg-gradient-to-br from-amber-50 to-amber-50'
-            }`}
+              }`}
           >
             {/* Header */}
-            <div className={`flex items-center justify-between p-4 border-b ${
-              currentSession?.role === 'super_admin'
+            <div className={`flex items-center justify-between p-4 border-b ${currentSession?.role === 'super_admin'
                 ? 'border-purple-200 bg-gradient-to-r from-purple-600 to-indigo-600'
                 : 'border-amber-200 bg-gradient-to-r from-amber-500 to-amber-500'
-            }`}>
+              }`}>
               <div>
                 <h2 className="text-white font-bold text-lg">Menu</h2>
                 <p className={currentSession?.role === 'super_admin' ? 'text-purple-100 text-xs' : 'text-amber-100 text-xs'}>
@@ -285,13 +296,12 @@ export function MobileSidebar({
                   onClick={item.action}
                   whileHover={{ scale: 1.02, x: 4 }}
                   whileTap={{ scale: 0.98 }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-2 transition-all ${
-                    currentMenu === item.id
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-2 transition-all ${currentMenu === item.id
                       ? currentSession?.role === 'super_admin'
                         ? 'bg-purple-600 text-white shadow-md'
                         : 'bg-amber-500 text-white shadow-md'
                       : 'bg-white/60 text-gray-700 hover:bg-white hover:shadow-sm'
-                  }`}
+                    }`}
                 >
                   <span className={currentMenu === item.id ? 'text-white' : (currentSession?.role === 'super_admin' ? 'text-purple-600' : 'text-amber-500')}>
                     {item.icon}

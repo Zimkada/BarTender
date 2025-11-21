@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { X, Settings as SettingsIcon, DollarSign, Clock, Users, Plus, Trash2, Building2, Mail, Phone, MapPin } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Settings as SettingsIcon, DollarSign, Clock, Users, Plus, Trash2, Building2, Mail, Phone, MapPin, ShieldCheck, CheckCircle, AlertCircle } from 'lucide-react';
+import { supabase } from '../lib/supabase'; // Import supabase for MFA calls
+import { useNotifications } from './Notifications'; // Import useNotifications for feedback
 import { useSettings } from '../hooks/useSettings';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
@@ -23,7 +25,39 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
   const { currentSession } = useAuth();
 
   // Onglets
-  const [activeTab, setActiveTab] = useState<'bar' | 'operational' | 'general'>('bar');
+  const [activeTab, setActiveTab] = useState<'bar' | 'operational' | 'general' | 'security'>('bar');
+
+  // États pour la 2FA
+  const [isMfaEnabled, setIsMfaEnabled] = useState(false);
+  const [mfaStep, setMfaStep] = useState<'idle' | 'enroll' | 'verify'>('idle'); // idle, enroll (show QR), verify (enter code)
+  const [qrCodeSvg, setQrCodeSvg] = useState<string | null>(null);
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null); // Factor ID from enroll
+  const [mfaSecret, setMfaSecret] = useState<string | null>(null); // Manual setup key
+  const [verifyCode, setVerifyCode] = useState('');
+  const [mfaError, setMfaError] = useState('');
+  const [mfaLoading, setMfaLoading] = useState(false);
+
+  const { showNotification } = useNotifications(); // For user feedback
+
+  // Vérifier l'état initial de la 2FA
+  useEffect(() => {
+    const checkMfaStatus = async () => {
+      if (currentSession?.userId) {
+        const { data, error } = await supabase.auth.mfa.listFactors();
+        if (error) {
+          console.error('Error listing MFA factors:', error);
+          setMfaError(error.message);
+          return;
+        }
+        const totpFactor = data.all.find((f: any) => f.factor_type === 'totp' && f.status === 'verified');
+        setIsMfaEnabled(!!totpFactor);
+        if (totpFactor) {
+          setMfaFactorId(totpFactor.id);
+        }
+      }
+    };
+    checkMfaStatus();
+  }, [currentSession?.userId, isOpen]); // Re-check when modal opens or user changes
 
   // Infos Bar
   const [barName, setBarName] = useState(currentBar?.name ?? '');
@@ -42,6 +76,78 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
     currentBar?.settings?.serversList ?? []
   );
   const [newServerName, setNewServerName] = useState('');
+
+  // Fonctions de gestion de la 2FA
+  const handleEnrollMfa = async () => {
+    setMfaLoading(true);
+    setMfaError('');
+    try {
+      const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' });
+      if (error) throw error;
+
+      setQrCodeSvg(data.totp.qr_code);
+      setMfaSecret(data.totp.secret);
+      setMfaFactorId(data.id);
+      setMfaStep('verify');
+      showNotification('success', 'Scannez le QR code et entrez le code de vérification.');
+    } catch (error: any) {
+      setMfaError(error.message);
+      showNotification('error', `Erreur d'inscription 2FA: ${error.message}`);
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const handleVerifyMfa = async () => {
+    if (!mfaFactorId || !verifyCode) {
+      setMfaError('Veuillez entrer le code de vérification.');
+      return;
+    }
+    setMfaLoading(true);
+    setMfaError('');
+    try {
+      const { error } = await supabase.auth.mfa.challengeAndVerify({
+        factorId: mfaFactorId,
+        code: verifyCode,
+      });
+      if (error) throw error;
+
+      setIsMfaEnabled(true);
+      setMfaStep('idle');
+      setQrCodeSvg(null);
+      setMfaSecret(null);
+      setVerifyCode('');
+      showNotification('success', 'Authentification à deux facteurs activée avec succès !');
+    } catch (error: any) {
+      setMfaError(error.message);
+      showNotification('error', `Erreur de vérification 2FA: ${error.message}`);
+    } finally {
+      setMfaLoading(false);
+    }
+  };
+
+  const handleUnenrollMfa = async () => {
+    if (!mfaFactorId) {
+      setMfaError('Facteur 2FA introuvable.');
+      return;
+    }
+    setMfaLoading(true);
+    setMfaError('');
+    try {
+      const { error } = await supabase.auth.mfa.unenroll({ factorId: mfaFactorId });
+      if (error) throw error;
+
+      setIsMfaEnabled(false);
+      setMfaStep('idle');
+      setMfaFactorId(null);
+      showNotification('success', 'Authentification à deux facteurs désactivée.');
+    } catch (error: any) {
+      setMfaError(error.message);
+      showNotification('error', `Erreur de désactivation 2FA: ${error.message}`);
+    } finally {
+      setMfaLoading(false);
+    }
+  };
 
   const handleAddServer = () => {
     if (newServerName.trim() && !tempServersList.includes(newServerName.trim())) {
@@ -116,41 +222,166 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
             <div className="flex border-b bg-amber-50/50">
               <button
                 onClick={() => setActiveTab('bar')}
-                className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${
-                  activeTab === 'bar'
-                    ? 'bg-white text-amber-600 border-b-2 border-amber-600'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
+                className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${activeTab === 'bar'
+                  ? 'bg-white text-amber-600 border-b-2 border-amber-600'
+                  : 'text-gray-600 hover:text-gray-900'
+                  }`}
               >
                 <Building2 className="w-4 h-4 inline mr-2" />
                 Informations
               </button>
               <button
                 onClick={() => setActiveTab('operational')}
-                className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${
-                  activeTab === 'operational'
-                    ? 'bg-white text-amber-600 border-b-2 border-amber-600'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
+                className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${activeTab === 'operational'
+                  ? 'bg-white text-amber-600 border-b-2 border-amber-600'
+                  : 'text-gray-600 hover:text-gray-900'
+                  }`}
               >
                 <Users className="w-4 h-4 inline mr-2" />
                 Opérationnel
               </button>
               <button
                 onClick={() => setActiveTab('general')}
-                className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${
-                  activeTab === 'general'
-                    ? 'bg-white text-amber-600 border-b-2 border-amber-600'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
+                className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${activeTab === 'general'
+                  ? 'bg-white text-amber-600 border-b-2 border-amber-600'
+                  : 'text-gray-600 hover:text-gray-900'
+                  }`}
               >
                 <DollarSign className="w-4 h-4 inline mr-2" />
                 Général
+              </button>
+              <button
+                onClick={() => setActiveTab('security')}
+                className={`flex-1 py-3 px-4 font-medium text-sm transition-colors ${activeTab === 'security'
+                  ? 'bg-white text-amber-600 border-b-2 border-amber-600'
+                  : 'text-gray-600 hover:text-gray-900'
+                  }`}
+              >
+                <ShieldCheck className="w-4 h-4 inline mr-2" />
+                Sécurité
               </button>
             </div>
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Onglet Sécurité */}
+              {activeTab === 'security' && (
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                    <ShieldCheck size={20} className="text-amber-500" />
+                    Authentification à deux facteurs (2FA)
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Ajoutez une couche de sécurité supplémentaire à votre compte avec la 2FA.
+                    Vous aurez besoin d'une application d'authentification (ex: Google Authenticator, Authy).
+                  </p>
+
+                  {isMfaEnabled ? (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-green-700 font-medium">
+                        <CheckCircle size={20} />
+                        <span>2FA est activée</span>
+                      </div>
+                      <p className="text-sm text-green-800">
+                        Votre compte est protégé par l'authentification à deux facteurs.
+                      </p>
+                      <button
+                        onClick={handleUnenrollMfa}
+                        disabled={mfaLoading}
+                        className="w-full py-2 px-4 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {mfaLoading ? 'Désactivation...' : 'Désactiver la 2FA'}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
+                      {mfaStep === 'idle' && (
+                        <>
+                          <div className="flex items-center gap-2 text-amber-700 font-medium">
+                            <AlertCircle size={20} />
+                            <span>2FA est désactivée</span>
+                          </div>
+                          <p className="text-sm text-amber-800">
+                            Activez la 2FA pour une sécurité renforcée de votre compte.
+                          </p>
+                          <button
+                            onClick={handleEnrollMfa}
+                            disabled={mfaLoading}
+                            className="w-full py-2 px-4 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {mfaLoading ? 'Activation...' : 'Activer la 2FA'}
+                          </button>
+                        </>
+                      )}
+
+                      {mfaStep === 'verify' && (
+                        <>
+                          <h4 className="text-md font-semibold text-gray-800">Étape 1: Configurez votre application</h4>
+                          <p className="text-sm text-gray-600">
+                            Scannez le QR code ci-dessous avec votre application d'authentification (ex: Google Authenticator).
+                            Si vous ne pouvez pas le scanner, copiez la clé manuellement.
+                          </p>
+
+                          {qrCodeSvg && (
+                            <div className="flex flex-col items-center justify-center bg-white p-4 rounded-lg border border-gray-200">
+                              <div dangerouslySetInnerHTML={{ __html: qrCodeSvg }} className="w-40 h-40" />
+                              {mfaSecret && (
+                                <div className="mt-4 text-center">
+                                  <p className="text-xs text-gray-500 mb-1">Clé manuelle (copier/coller) :</p>
+                                  <code className="bg-gray-100 text-gray-800 px-3 py-1 rounded-md text-sm break-all">
+                                    {mfaSecret}
+                                  </code>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          <h4 className="text-md font-semibold text-gray-800 mt-6">Étape 2: Vérifiez le code</h4>
+                          <p className="text-sm text-gray-600">
+                            Entrez le code à 6 chiffres généré par votre application d'authentification.
+                          </p>
+                          <input
+                            type="text"
+                            value={verifyCode}
+                            onChange={(e) => setVerifyCode(e.target.value)}
+                            placeholder="XXXXXX"
+                            maxLength={6}
+                            className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-center text-xl tracking-widest"
+                          />
+                          {mfaError && (
+                            <p className="text-red-500 text-sm mt-2">{mfaError}</p>
+                          )}
+                          <button
+                            onClick={handleVerifyMfa}
+                            disabled={mfaLoading || verifyCode.length !== 6}
+                            className="w-full py-2 px-4 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {mfaLoading ? 'Vérification...' : 'Vérifier et Activer'}
+                          </button>
+                          <button
+                            onClick={() => setMfaStep('idle')}
+                            disabled={mfaLoading}
+                            className="w-full py-2 px-4 mt-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Annuler
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  {mfaError && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-red-50 text-red-600 p-3 rounded-lg flex items-center gap-2"
+                    >
+                      <AlertCircle size={20} />
+                      <span className="text-sm">{mfaError}</span>
+                    </motion.div>
+                  )}
+                </div>
+              )}
+
               {/* Onglet Informations du Bar */}
               {activeTab === 'bar' && (
                 <>

@@ -1,6 +1,7 @@
 // sync.config.ts - Configuration du système de synchronisation
 // Permet de basculer entre mode local et mode cloud
 
+
 /**
  * Configuration de synchronisation
  */
@@ -23,7 +24,7 @@ export const SYNC_CONFIG = {
   /**
    * Clé publique Supabase (anon key)
    */
-  SUPABASE_KEY: import.meta.env.VITE_SUPABASE_KEY || '',
+  SUPABASE_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
 
   /**
    * Intervalle de synchronisation automatique (ms)

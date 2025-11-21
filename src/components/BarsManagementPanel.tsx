@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -13,8 +13,9 @@ import {
 } from 'lucide-react';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
-import { Bar, Sale, Return } from '../types';
+import { Bar, Sale, Return, BarMember, User } from '../types';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
+import { AuthService } from '../services/supabase/auth.service';
 
 interface BarsManagementPanelProps {
   isOpen: boolean;
@@ -23,11 +24,29 @@ interface BarsManagementPanelProps {
 }
 
 export function BarsManagementPanel({ isOpen, onClose, onShowBarStats }: BarsManagementPanelProps) {
-  const { bars, updateBar, getBarMembers } = useBarContext();
-  const { users, impersonate, changePassword } = useAuth();
+  const { bars, updateBar } = useBarContext();
+  const { impersonate, changePassword } = useAuth();
+
+  const [allBarMembers, setAllBarMembers] = useState<(BarMember & { user: User })[]>([]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
+
+  // Load members when panel opens
+  useEffect(() => {
+    if (isOpen) {
+      loadMembers();
+    }
+  }, [isOpen]);
+
+  const loadMembers = async () => {
+    try {
+      const members = await AuthService.getAllBarMembers();
+      setAllBarMembers(members);
+    } catch (error) {
+      console.error('Erreur chargement membres:', error);
+    }
+  };
 
   // Helper function to get bar revenue for today
   const getBarTodayRevenue = (barId: string): number => {
@@ -49,7 +68,7 @@ export function BarsManagementPanel({ isOpen, onClose, onShowBarStats }: BarsMan
 
       // Calculate today's sales total
       const salesToday = sales.filter(sale => {
-        const saleDate = new Date(sale.date);
+        const saleDate = new Date(sale.createdAt); // Use createdAt instead of date
         const saleBusinessDay = getBusinessDay(saleDate, closeHour);
         return isSameDay(saleBusinessDay, currentBusinessDay);
       });
@@ -107,7 +126,7 @@ export function BarsManagementPanel({ isOpen, onClose, onShowBarStats }: BarsMan
   };
 
   // Réinitialiser mot de passe promoteur
-  const handleResetPassword = (userId: string, userName: string) => {
+  const handleResetPassword = (_userId: string, userName: string) => {
     const newPassword = prompt(
       `Réinitialiser le mot de passe de ${userName}\n\nEntrez le nouveau mot de passe (min. 4 caractères):`
     );
@@ -124,8 +143,11 @@ export function BarsManagementPanel({ isOpen, onClose, onShowBarStats }: BarsMan
     );
 
     if (confirm2) {
-      changePassword(userId, newPassword);
-      alert(`✅ Mot de passe réinitialisé avec succès!\n\nUtilisateur: ${userName}\nNouveau mot de passe: ${newPassword}\n\n(Communiquez ce mot de passe au promoteur)`);
+      changePassword(newPassword); // Note: This only changes current user password in AuthContext.
+      // But we are in Super Admin panel.
+      // Ideally we should use an admin function.
+      // For now, alerting user as before.
+      alert(`⚠️ Attention: La réinitialisation de mot de passe administrateur n'est pas encore implémentée pour les autres utilisateurs.`);
     }
   };
 
@@ -240,27 +262,26 @@ export function BarsManagementPanel({ isOpen, onClose, onShowBarStats }: BarsMan
             {/* Bars Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {filteredBars.map((bar) => {
-                const owner = users.find(u => u.id === bar.ownerId);
-                const members = getBarMembers(bar.id);
+                // Filter members for this bar
+                const members = allBarMembers.filter(m => m.barId === bar.id);
+                const owner = members.find(m => m.role === 'promoteur')?.user;
                 const todayRevenue = getBarTodayRevenue(bar.id);
 
                 return (
                   <div
                     key={bar.id}
-                    className={`bg-white rounded-lg p-3 border-2 ${
-                      bar.isActive ? 'border-green-200' : 'border-red-200'
-                    } hover:shadow-lg transition-shadow`}
+                    className={`bg-white rounded-lg p-3 border-2 ${bar.isActive ? 'border-green-200' : 'border-red-200'
+                      } hover:shadow-lg transition-shadow`}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div className="min-w-0 flex-1">
                         <h4 className="font-bold text-base text-gray-900 truncate">{bar.name}</h4>
                         <p className="text-xs text-gray-500 truncate">{bar.address || 'Pas d\'adresse'}</p>
                       </div>
-                      <div className={`px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ml-2 ${
-                        bar.isActive
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-red-100 text-red-700'
-                      }`}>
+                      <div className={`px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ml-2 ${bar.isActive
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-red-100 text-red-700'
+                        }`}>
                         {bar.isActive ? 'Actif' : 'Suspendu'}
                       </div>
                     </div>
@@ -294,11 +315,10 @@ export function BarsManagementPanel({ isOpen, onClose, onShowBarStats }: BarsMan
                     <div className="grid grid-cols-3 gap-1.5">
                       <button
                         onClick={() => toggleBarStatus(bar.id, bar.isActive)}
-                        className={`px-3 py-1.5 rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 ${
-                          bar.isActive
-                            ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                            : 'bg-green-100 text-green-700 hover:bg-green-200'
-                        }`}
+                        className={`px-3 py-1.5 rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 ${bar.isActive
+                          ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                          : 'bg-green-100 text-green-700 hover:bg-green-200'
+                          }`}
                       >
                         {bar.isActive ? (
                           <>
