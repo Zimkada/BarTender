@@ -37,14 +37,21 @@ export class SalesService {
    * Créer une nouvelle vente
    * Statut initial: 'pending' (nécessite validation gérant)
    */
-  static async createSale(data: CreateSaleData): Promise<Sale> {
+  static async createSale(data: CreateSaleData & { status?: 'pending' | 'validated' }): Promise<Sale> {
     try {
       // 1. Calculer les totaux
       const subtotal = data.items.reduce((sum, item) => sum + item.total_price, 0);
       const discount_total = 0; // TODO: Calculer avec les promotions
       const total = subtotal - discount_total;
 
-      // 2. Créer la vente
+      // 2. Déterminer le statut et les champs de validation
+      const status = data.status || 'pending';
+      const validationFields = status === 'validated' ? {
+        validated_by: data.sold_by,
+        validated_at: new Date().toISOString(),
+      } : {};
+
+      // 3. Créer la vente
       const { data: newSale, error: saleError } = await supabase
         .from('sales')
         .insert({
@@ -54,14 +61,13 @@ export class SalesService {
           discount_total,
           total,
           payment_method: data.payment_method,
-          status: 'pending',
-          sold_by: data.sold_by, // Note: mapped to created_by in DB if column name is created_by? No, wait.
-          // The table has created_by. The interface has sold_by.
-          // If I change the key in insert object to created_by, it matches DB.
+          status,
           created_by: data.sold_by,
+          sold_by: data.sold_by,
           customer_name: data.customer_name,
           customer_phone: data.customer_phone,
           notes: data.notes,
+          ...validationFields
         })
         .select()
         .single();
