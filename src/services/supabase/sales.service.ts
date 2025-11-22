@@ -42,11 +42,17 @@ export class SalesService {
       console.log('[SalesService] Creating sale with data:', {
         sold_by: data.sold_by,
         bar_id: data.bar_id,
-        items_count: data.items.length
+        items_count: data.items.length,
+        items: data.items
       });
 
       // 1. Calculer les totaux
-      const subtotal = data.items.reduce((sum, item) => sum + item.total_price, 0);
+      const subtotal = data.items.reduce((sum, item) => {
+        console.log('[SalesService] Item:', item, 'total_price:', item.total_price);
+        return sum + (item.total_price || 0);
+      }, 0);
+
+      console.log('[SalesService] Calculated subtotal:', subtotal);
       const discount_total = 0; // TODO: Calculer avec les promotions
       const total = subtotal - discount_total;
 
