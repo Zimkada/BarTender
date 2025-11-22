@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Globe, PenTool, Check } from 'lucide-react';
+import { X, Globe, PenTool, Check, Info } from 'lucide-react';
 import { Category } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CategoriesService } from '../services/supabase/categories.service';
@@ -51,10 +51,10 @@ export function CategoryModal({ isOpen, onClose, onSave, onLinkGlobal, category 
   }, [category, isOpen]);
 
   useEffect(() => {
-    if (isOpen && mode === 'global') {
+    if (isOpen) {
       loadGlobalCategories();
     }
-  }, [isOpen, mode]);
+  }, [isOpen]);
 
   const loadGlobalCategories = async () => {
     try {
@@ -79,6 +79,11 @@ export function CategoryModal({ isOpen, onClose, onSave, onLinkGlobal, category 
       onClose();
     }
   };
+
+  // Check for duplicate global category name
+  const duplicateGlobal = !category && mode === 'custom' && formData.name.trim()
+    ? globalCategories.find(gc => gc.name.toLowerCase() === formData.name.trim().toLowerCase())
+    : null;
 
   return (
     <AnimatePresence>
@@ -115,8 +120,8 @@ export function CategoryModal({ isOpen, onClose, onSave, onLinkGlobal, category 
                 <button
                   onClick={() => setMode('global')}
                   className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'global'
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'text-gray-500 hover:bg-gray-50'
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'text-gray-500 hover:bg-gray-50'
                     }`}
                 >
                   <Globe size={16} />
@@ -125,8 +130,8 @@ export function CategoryModal({ isOpen, onClose, onSave, onLinkGlobal, category 
                 <button
                   onClick={() => setMode('custom')}
                   className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'custom'
-                      ? 'bg-amber-100 text-amber-700'
-                      : 'text-gray-500 hover:bg-gray-50'
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'text-gray-500 hover:bg-gray-50'
                     }`}
                 >
                   <PenTool size={16} />
@@ -149,8 +154,8 @@ export function CategoryModal({ isOpen, onClose, onSave, onLinkGlobal, category 
                             type="button"
                             onClick={() => setSelectedGlobalId(cat.id)}
                             className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${selectedGlobalId === cat.id
-                                ? 'border-amber-500 bg-amber-50 ring-1 ring-amber-500'
-                                : 'border-gray-200 hover:border-amber-200 hover:bg-gray-50'
+                              ? 'border-amber-500 bg-amber-50 ring-1 ring-amber-500'
+                              : 'border-gray-200 hover:border-amber-200 hover:bg-gray-50'
                               }`}
                           >
                             <div
@@ -185,6 +190,32 @@ export function CategoryModal({ isOpen, onClose, onSave, onLinkGlobal, category 
                       />
                     </div>
 
+                    {duplicateGlobal && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex flex-col gap-3"
+                      >
+                        <div className="flex items-start gap-2">
+                          <Info className="text-blue-500 shrink-0 mt-0.5" size={18} />
+                          <p className="text-sm text-blue-700">
+                            Une catégorie globale <strong>{duplicateGlobal.name}</strong> existe déjà.
+                            Il est recommandé de l'utiliser pour bénéficier des mises à jour automatiques.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMode('global');
+                            setSelectedGlobalId(duplicateGlobal.id);
+                          }}
+                          className="text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 py-2 px-4 rounded-lg self-end transition-colors shadow-sm"
+                        >
+                          Utiliser la catégorie globale
+                        </button>
+                      </motion.div>
+                    )}
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Couleur de la catégorie *
@@ -198,8 +229,8 @@ export function CategoryModal({ isOpen, onClose, onSave, onLinkGlobal, category 
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             className={`w-full h-12 rounded-xl border-2 transition-all duration-200 ${formData.color === color.value
-                                ? 'border-gray-800 scale-110 shadow-lg'
-                                : 'border-gray-300 hover:border-gray-400'
+                              ? 'border-gray-800 scale-110 shadow-lg'
+                              : 'border-gray-300 hover:border-gray-400'
                               }`}
                             style={{ backgroundColor: color.value }}
                             title={color.name}
@@ -230,8 +261,8 @@ export function CategoryModal({ isOpen, onClose, onSave, onLinkGlobal, category 
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className={`flex-1 py-3 text-white rounded-xl font-medium transition-colors ${mode === 'global' && !selectedGlobalId
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-amber-500 hover:bg-amber-600'
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-amber-500 hover:bg-amber-600'
                     }`}
                 >
                   {category ? 'Modifier' : (mode === 'global' ? 'Ajouter la sélection' : 'Créer')}

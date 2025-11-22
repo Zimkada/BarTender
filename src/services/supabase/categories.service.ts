@@ -34,7 +34,7 @@ export class CategoriesService {
                 .from('bar_categories')
                 .select(`
           *,
-          global_categories (*)
+          global_category:global_categories (*)
         `)
                 .eq('bar_id', barId)
                 .eq('is_active', true);
@@ -58,7 +58,7 @@ export class CategoriesService {
                 .from('bar_categories')
                 .select(`
           *,
-          global_categories (*)
+          global_category:global_categories (*)
         `)
                 .eq('bar_id', barId)
                 .eq('is_active', true);
@@ -203,11 +203,11 @@ export class CategoriesService {
             return (data || []).map((cat: GlobalCategoryRow) => ({
                 id: cat.id,
                 name: cat.name,
-                color: cat.color,
-                icon: cat.icon,
-                orderIndex: cat.order_index,
-                isSystem: cat.is_system,
-                createdAt: new Date(cat.created_at)
+                color: cat.color || '#3B82F6',
+                icon: cat.icon || undefined,
+                orderIndex: cat.order_index ?? 0,
+                isSystem: cat.is_system ?? false,
+                createdAt: new Date(cat.created_at || Date.now())
             }));
         } catch (error: any) {
             throw new Error(handleSupabaseError(error));
@@ -232,11 +232,11 @@ export class CategoriesService {
             return {
                 id: result.id,
                 name: result.name,
-                color: result.color,
-                icon: result.icon,
-                orderIndex: result.order_index,
-                isSystem: result.is_system,
-                createdAt: new Date(result.created_at)
+                color: result.color || '#3B82F6',
+                icon: result.icon || undefined,
+                orderIndex: result.order_index ?? 0,
+                isSystem: result.is_system ?? false,
+                createdAt: new Date(result.created_at || Date.now())
             };
         } catch (error: any) {
             throw new Error(handleSupabaseError(error));
@@ -262,11 +262,11 @@ export class CategoriesService {
             return {
                 id: result.id,
                 name: result.name,
-                color: result.color,
-                icon: result.icon,
-                orderIndex: result.order_index,
-                isSystem: result.is_system,
-                createdAt: new Date(result.created_at)
+                color: result.color || '#3B82F6',
+                icon: result.icon || undefined,
+                orderIndex: result.order_index ?? 0,
+                isSystem: result.is_system ?? false,
+                createdAt: new Date(result.created_at || Date.now())
             };
         } catch (error: any) {
             throw new Error(handleSupabaseError(error));

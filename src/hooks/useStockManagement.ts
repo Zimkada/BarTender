@@ -38,7 +38,9 @@ export const useStockManagement = () => {
       stock: productData.stock,
       alert_threshold: productData.alertThreshold, // Mapping camelCase -> snake_case
       local_category_id: productData.categoryId,
-      is_custom_product: true, // Par défaut via l'UI
+      is_custom_product: productData.isCustomProduct ?? true,
+      global_product_id: productData.globalProductId,
+      local_image: productData.image,
       volume: productData.volume,
     };
 

@@ -83,6 +83,8 @@ export interface Product {
   image?: string;
   alertThreshold: number;
   createdAt: Date;
+  globalProductId?: string;
+  isCustomProduct?: boolean;
 }
 
 export interface Supply {
