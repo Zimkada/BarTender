@@ -26,11 +26,11 @@ export const useProducts = (barId: string | undefined) => {
                 name: p.display_name,
                 volume: p.global_product?.volume || 'N/A',
                 price: p.price,
-                stock: p.stock,
+                stock: p.stock ?? 0,
                 categoryId: p.local_category_id || '',
                 image: p.display_image || undefined,
-                alertThreshold: p.alert_threshold,
-                createdAt: new Date(p.created_at),
+                alertThreshold: p.alert_threshold ?? 0,
+                createdAt: new Date(p.created_at || Date.now()),
             }));
         },
         enabled: !!barId,
@@ -52,7 +52,7 @@ export const useSupplies = (barId: string | undefined) => {
                 lotSize: 1, // Valeur par défaut car non stockée en base explicitement (calculée dans unit_cost)
                 lotPrice: s.unit_cost, // Approximation
                 supplier: s.supplier_name || 'Inconnu',
-                date: new Date(s.supplied_at || s.created_at),
+                date: new Date(s.supplied_at || s.created_at || Date.now()),
                 totalCost: s.total_cost,
                 createdBy: s.supplied_by,
             }));
@@ -76,24 +76,24 @@ export const useConsignments = (barId: string | undefined) => {
                 // 'expired' n'est pas un statut DB explicite mais calculé ou mis à jour
 
                 // Calcul date expiration (défaut +7j si non stocké)
-                const createdAt = new Date(c.consigned_at || c.created_at);
-                const expiresAt = new Date(createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
+                const createdAt = new Date(c.created_at || Date.now());
+                const expiresAt = new Date(c.expires_at || createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
 
                 return {
                     id: c.id,
                     barId: c.bar_id,
-                    saleId: '', // Non lié directement dans le modèle actuel simplifié
+                    saleId: c.sale_id,
                     productId: c.product_id,
-                    productName: 'Produit', // Idéalement join avec products
-                    productVolume: '',
-                    quantity: c.quantity_out,
-                    totalAmount: c.quantity_out * c.unit_price,
+                    productName: c.product_name,
+                    productVolume: c.product_volume,
+                    quantity: c.quantity,
+                    totalAmount: c.total_amount,
                     createdAt: createdAt,
                     expiresAt: expiresAt,
-                    claimedAt: c.returned_at ? new Date(c.returned_at) : undefined,
+                    claimedAt: c.claimed_at ? new Date(c.claimed_at) : undefined,
                     status: status,
-                    createdBy: c.consigned_by,
-                    customerName: c.customer_name,
+                    createdBy: c.created_by,
+                    customerName: c.customer_name || undefined,
                     customerPhone: c.customer_phone || undefined,
                     notes: c.notes || undefined,
                 };
@@ -110,13 +110,19 @@ export const useCategories = (barId: string | undefined) => {
             if (!barId) return [];
             const enrichedCategories = await CategoriesService.getCategories(barId);
 
-            return enrichedCategories.map(c => ({
-                id: c.id,
-                barId: c.bar_id,
-                name: c.display_name,
-                color: c.display_color,
-                createdAt: new Date(c.created_at),
-            }));
+            return enrichedCategories.map(c => {
+                // Derive display name and color
+                const name = c.custom_name || c.global_category?.name || 'Sans nom';
+                const color = c.custom_color || c.global_category?.color || '#3B82F6';
+
+                return {
+                    id: c.id,
+                    barId: c.bar_id,
+                    name: name,
+                    color: color,
+                    createdAt: new Date(c.created_at || Date.now()),
+                };
+            });
         },
         enabled: !!barId,
     });

@@ -19,6 +19,7 @@ import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { EnhancedButton } from './EnhancedButton';
 import { Product, CartItem } from '../types';
 import { useViewport } from '../hooks/useViewport';
+import { ProductGrid } from './ProductGrid';
 
 interface QuickSaleFlowProps {
   isOpen: boolean;
@@ -27,10 +28,10 @@ interface QuickSaleFlowProps {
 
 export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   const { categories, addSale, settings } = useAppContext();
-  const { 
-    products, 
-    decreasePhysicalStock, 
-    getProductStockInfo 
+  const {
+    products,
+    decreasePhysicalStock,
+    getProductStockInfo
   } = useStockManagement();
   const { currentBar } = useBarContext();
   const { currentSession } = useAuth();
@@ -77,7 +78,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   const filteredProducts = products.filter(product => {
     const stockInfo = getProductStockInfo(product.id);
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.volume.toLowerCase().includes(searchTerm.toLowerCase());
+      product.volume.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || product.categoryId === selectedCategory;
     return matchesSearch && matchesCategory && (stockInfo?.availableStock ?? 0) > 0;
   });
@@ -240,11 +241,10 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                     <div className="flex gap-2 overflow-x-auto pb-2">
                       <button
                         onClick={() => setSelectedCategory('all')}
-                        className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
-                          selectedCategory === 'all'
+                        className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${selectedCategory === 'all'
                             ? 'bg-amber-500 text-white'
                             : 'bg-gray-200 text-gray-700'
-                        }`}
+                          }`}
                       >
                         Toutes
                       </button>
@@ -252,11 +252,10 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                         <button
                           key={category.id}
                           onClick={() => setSelectedCategory(category.id)}
-                          className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
-                            selectedCategory === category.id
+                          className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${selectedCategory === category.id
                               ? 'bg-amber-500 text-white'
                               : 'bg-gray-200 text-gray-700'
-                          }`}
+                            }`}
                         >
                           {category.name}
                         </button>
@@ -264,44 +263,11 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                     </div>
                   </div>
 
-                  <div className="space-y-3 pb-24">
-                    {filteredProducts.map(product => {
-                      const stockInfo = getProductStockInfo(product.id);
-                      const availableStock = stockInfo?.availableStock ?? 0;
-                      return (
-                        <div
-                          key={product.id}
-                          onClick={() => quickAddToCart(product)}
-                          className="bg-white rounded-xl border border-gray-200 active:scale-[0.98] transition-transform overflow-hidden"
-                        >
-                          <div className="flex items-center gap-3 p-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between mb-1">
-                                <h3 className="font-semibold text-gray-800 text-base truncate">{product.name}</h3>
-                                <span className={`flex-shrink-0 text-xs px-2 py-1 rounded-full ml-2 ${
-                                  availableStock <= product.alertThreshold
-                                    ? 'bg-red-100 text-red-600'
-                                    : 'bg-amber-100 text-amber-600'
-                                }`}>
-                                  {availableStock}
-                                </span>
-                              </div>
-                              <p className="text-gray-600 text-sm mb-2">{product.volume}</p>
-                              <span className="text-amber-600 font-bold text-lg">{formatPrice(product.price)}</span>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                quickAddToCart(product, 1);
-                              }}
-                              className="flex-shrink-0 w-12 h-12 bg-amber-500 text-white rounded-xl flex items-center justify-center active:bg-amber-600 transition-colors"
-                            >
-                              <Plus size={20} strokeWidth={3} />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="pb-24">
+                    <ProductGrid
+                      products={filteredProducts}
+                      onAddToCart={(p) => quickAddToCart(p, 1)}
+                    />
                   </div>
 
                   {filteredProducts.length === 0 && (
@@ -416,11 +382,10 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                               <button
                                 key={method.value}
                                 onClick={() => setPaymentMethod(method.value as any)}
-                                className={`p-3 text-sm rounded-xl border-2 transition-colors ${
-                                  paymentMethod === method.value
+                                className={`p-3 text-sm rounded-xl border-2 transition-colors ${paymentMethod === method.value
                                     ? 'border-amber-500 bg-amber-50 text-amber-700'
                                     : 'border-gray-200 bg-white text-gray-600'
-                                }`}
+                                  }`}
                               >
                                 <div className="text-center">
                                   <div className="text-2xl mb-1">{method.icon}</div>
@@ -509,11 +474,10 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                     <div className="flex gap-2 overflow-x-auto pb-2">
                       <button
                         onClick={() => setSelectedCategory('all')}
-                        className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
-                          selectedCategory === 'all'
+                        className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${selectedCategory === 'all'
                             ? 'bg-amber-500 text-white'
                             : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        }`}
+                          }`}
                       >
                         Toutes
                       </button>
@@ -521,11 +485,10 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                         <button
                           key={category.id}
                           onClick={() => setSelectedCategory(category.id)}
-                          className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${
-                            selectedCategory === category.id
+                          className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${selectedCategory === category.id
                               ? 'bg-amber-500 text-white'
                               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                          }`}
+                            }`}
                         >
                           {category.name}
                         </button>
@@ -533,48 +496,10 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {filteredProducts.map(product => {
-                      const stockInfo = getProductStockInfo(product.id);
-                      const availableStock = stockInfo?.availableStock ?? 0;
-                      return (
-                      <motion.div
-                        key={product.id}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => quickAddToCart(product)}
-                        className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200 hover:border-amber-300 cursor-pointer transition-all"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="font-semibold text-gray-800 text-sm">{product.name}</h3>
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            availableStock <= product.alertThreshold
-                              ? 'bg-red-100 text-red-600'
-                              : 'bg-amber-100 text-amber-600'
-                          }`}>
-
-                            {availableStock}
-                          </span>
-                        </div>
-                        <p className="text-gray-600 text-xs mb-2">{product.volume}</p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-amber-600 font-bold">{formatPrice(product.price)}</span>
-                          <div className="flex gap-1">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                quickAddToCart(product, 1);
-                              }}
-                              className="w-8 h-8 bg-amber-500 text-white rounded-full flex items-center justify-center hover:bg-amber-600 transition-colors"
-                            >
-                              <Plus size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      </motion.div>
-                      );
-                    })}
-                  </div>
+                  <ProductGrid
+                    products={filteredProducts}
+                    onAddToCart={(p) => quickAddToCart(p, 1)}
+                  />
 
                   {filteredProducts.length === 0 && (
                     <div className="text-center py-12">
@@ -585,158 +510,157 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                 </div>
 
                 <div className="w-80 h-full bg-gradient-to-br from-amber-50 to-amber-50 border-l border-amber-200 flex flex-col">
-                <div className="flex-shrink-0 p-4 border-b border-amber-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                      <ShoppingCart size={20} />
-                      Panier ({itemCount})
-                    </h3>
-                    {cart.length > 0 && (
-                      <button
-                        onClick={() => setCart([])}
-                        className="text-red-500 hover:text-red-700 text-sm"
-                      >
-                        Vider
-                      </button>
+                  <div className="flex-shrink-0 p-4 border-b border-amber-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                        <ShoppingCart size={20} />
+                        Panier ({itemCount})
+                      </h3>
+                      {cart.length > 0 && (
+                        <button
+                          onClick={() => setCart([])}
+                          className="text-red-500 hover:text-red-700 text-sm"
+                        >
+                          Vider
+                        </button>
+                      )}
+                    </div>
+
+                    <input
+                      type="text"
+                      placeholder="Client (optionnel)"
+                      value={customerInfo}
+                      onChange={(e) => setCustomerInfo(e.target.value)}
+                      className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm bg-white"
+                    />
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+                    {cart.length === 0 ? (
+                      <div className="text-center py-8">
+                        <ShoppingCart size={48} className="text-gray-300 mx-auto mb-4" />
+                        <p className="text-gray-500 text-sm">Panier vide</p>
+                      </div>
+                    ) : (
+                      cart.map(item => (
+                        <motion.div
+                          key={item.product.id}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                          className="bg-white rounded-lg p-3 border border-amber-100"
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-800 text-sm">{item.product.name}</h4>
+                              <p className="text-gray-600 text-xs">{item.product.volume}</p>
+                            </div>
+                            <button
+                              onClick={() => updateQuantity(item.product.id, 0)}
+                              className="text-red-400 hover:text-red-600"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                                className="w-6 h-6 bg-amber-200 text-amber-700 rounded-full flex items-center justify-center text-xs hover:bg-amber-300"
+                              >
+                                <Minus size={12} />
+                              </button>
+                              <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
+                              <button
+                                onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                                className="w-6 h-6 bg-amber-200 text-amber-700 rounded-full flex items-center justify-center text-xs hover:bg-amber-300"
+                              >
+                                <Plus size={12} />
+                              </button>
+                            </div>
+                            <span className="text-amber-600 font-semibold text-sm">
+                              {formatPrice(item.product.price * item.quantity)}
+                            </span>
+                          </div>
+                        </motion.div>
+                      ))
                     )}
                   </div>
-                  
-                  <input
-                    type="text"
-                    placeholder="Client (optionnel)"
-                    value={customerInfo}
-                    onChange={(e) => setCustomerInfo(e.target.value)}
-                    className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm bg-white"
-                  />
-                </div>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
-                  {cart.length === 0 ? (
-                    <div className="text-center py-8">
-                      <ShoppingCart size={48} className="text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500 text-sm">Panier vide</p>
-                    </div>
-                  ) : (
-                    cart.map(item => (
-                      <motion.div
-                        key={item.product.id}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        className="bg-white rounded-lg p-3 border border-amber-100"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-gray-800 text-sm">{item.product.name}</h4>
-                            <p className="text-gray-600 text-xs">{item.product.volume}</p>
-                          </div>
-                          <button
-                            onClick={() => updateQuantity(item.product.id, 0)}
-                            className="text-red-400 hover:text-red-600"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                              className="w-6 h-6 bg-amber-200 text-amber-700 rounded-full flex items-center justify-center text-xs hover:bg-amber-300"
-                            >
-                              <Minus size={12} />
-                            </button>
-                            <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
-                            <button
-                              onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                              className="w-6 h-6 bg-amber-200 text-amber-700 rounded-full flex items-center justify-center text-xs hover:bg-amber-300"
-                            >
-                              <Plus size={12} />
-                            </button>
-                          </div>
-                          <span className="text-amber-600 font-semibold text-sm">
-                            {formatPrice(item.product.price * item.quantity)}
-                          </span>
-                        </div>
-                      </motion.div>
-                    ))
-                  )}
-                </div>
-
-                <div className="flex-shrink-0 p-4 border-t border-amber-200 space-y-3 bg-gradient-to-br from-amber-50 to-amber-50">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1.5">Mode de paiement</label>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {[
-                        { value: 'cash', label: 'Espèces', icon: '💵' },
-                        { value: 'card', label: 'Carte', icon: '💳' },
-                        { value: 'mobile', label: 'Mobile', icon: '📱' }
-                      ].map(method => (
-                        <button
-                          key={method.value}
-                          onClick={() => setPaymentMethod(method.value as any)}
-                          className={`p-1.5 text-xs rounded-lg border-2 transition-colors ${
-                            paymentMethod === method.value
-                              ? 'border-amber-500 bg-amber-50 text-amber-700'
-                              : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                          }`}
-                        >
-                          <div className="text-center">
-                            <div className="text-base mb-0.5">{method.icon}</div>
-                            <div className="text-xs">{method.label}</div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {currentBar?.settings?.operatingMode === 'simplified' && (
+                  <div className="flex-shrink-0 p-4 border-t border-amber-200 space-y-3 bg-gradient-to-br from-amber-50 to-amber-50">
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1.5 flex items-center gap-1">
-                        <Users size={14} className="text-amber-500" />
-                        Serveur
-                      </label>
-                      <select
-                        value={selectedServer}
-                        onChange={(e) => setSelectedServer(e.target.value)}
-                        className="w-full px-3 py-2 border border-amber-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
-                      >
-                        <option value="">Sélectionner...</option>
-                        <option value={`Moi (${currentSession?.userName})`}>
-                          Moi ({currentSession?.userName})
-                        </option>
-                        {currentBar?.settings?.serversList?.map((serverName) => (
-                          <option key={serverName} value={serverName}>
-                            {serverName}
-                          </option>
+                      <label className="block text-xs font-medium text-gray-700 mb-1.5">Mode de paiement</label>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {[
+                          { value: 'cash', label: 'Espèces', icon: '💵' },
+                          { value: 'card', label: 'Carte', icon: '💳' },
+                          { value: 'mobile', label: 'Mobile', icon: '📱' }
+                        ].map(method => (
+                          <button
+                            key={method.value}
+                            onClick={() => setPaymentMethod(method.value as any)}
+                            className={`p-1.5 text-xs rounded-lg border-2 transition-colors ${paymentMethod === method.value
+                                ? 'border-amber-500 bg-amber-50 text-amber-700'
+                                : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                              }`}
+                          >
+                            <div className="text-center">
+                              <div className="text-base mb-0.5">{method.icon}</div>
+                              <div className="text-xs">{method.label}</div>
+                            </div>
+                          </button>
                         ))}
-                      </select>
+                      </div>
                     </div>
-                  )}
 
-                  <div className="bg-amber-100 rounded-lg p-2.5">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-700 font-medium text-sm">Total:</span>
-                      <span className="text-amber-600 font-bold text-lg">{formatPrice(total)}</span>
+                    {currentBar?.settings?.operatingMode === 'simplified' && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5 flex items-center gap-1">
+                          <Users size={14} className="text-amber-500" />
+                          Serveur
+                        </label>
+                        <select
+                          value={selectedServer}
+                          onChange={(e) => setSelectedServer(e.target.value)}
+                          className="w-full px-3 py-2 border border-amber-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
+                        >
+                          <option value="">Sélectionner...</option>
+                          <option value={`Moi (${currentSession?.userName})`}>
+                            Moi ({currentSession?.userName})
+                          </option>
+                          {currentBar?.settings?.serversList?.map((serverName) => (
+                            <option key={serverName} value={serverName}>
+                              {serverName}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    <div className="bg-amber-100 rounded-lg p-2.5">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-700 font-medium text-sm">Total:</span>
+                        <span className="text-amber-600 font-bold text-lg">{formatPrice(total)}</span>
+                      </div>
                     </div>
+
+                    <EnhancedButton
+                      variant="success"
+                      size="lg"
+                      onClick={handleCheckout}
+                      loading={isProcessing}
+                      success={showSuccess}
+                      disabled={cart.length === 0}
+                      className="w-full"
+                      icon={showSuccess ? <Check size={20} /> : <CreditCard size={20} />}
+                      hapticFeedback={true}
+                    >
+                      {showSuccess ? 'Vente finalisée !' : 'Finaliser la vente'}
+                    </EnhancedButton>
                   </div>
-
-                  <EnhancedButton
-                    variant="success"
-                    size="lg"
-                    onClick={handleCheckout}
-                    loading={isProcessing}
-                    success={showSuccess}
-                    disabled={cart.length === 0}
-                    className="w-full"
-                    icon={showSuccess ? <Check size={20} /> : <CreditCard size={20} />}
-                    hapticFeedback={true}
-                  >
-                    {showSuccess ? 'Vente finalisée !' : 'Finaliser la vente'}
-                  </EnhancedButton>
                 </div>
               </div>
-            </div>
             )}
           </motion.div>
         </motion.div>

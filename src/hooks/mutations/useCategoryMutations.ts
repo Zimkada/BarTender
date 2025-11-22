@@ -16,7 +16,7 @@ export function useCategoryMutations(barId: string) {
             CategoriesService.createCustomCategory(barId, data),
         onSuccess: () => {
             // Invalider le cache des catégories pour forcer un refetch
-            queryClient.invalidateQueries({ queryKey: ['categories', barId] });
+            queryClient.invalidateQueries({ queryKey: ['stock', 'categories', barId] });
         },
     });
 
@@ -27,7 +27,7 @@ export function useCategoryMutations(barId: string) {
         mutationFn: (globalCategoryId: string) =>
             CategoriesService.linkGlobalCategory(barId, globalCategoryId),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['categories', barId] });
+            queryClient.invalidateQueries({ queryKey: ['stock', 'categories', barId] });
         },
     });
 
@@ -38,7 +38,7 @@ export function useCategoryMutations(barId: string) {
         mutationFn: ({ id, updates }: { id: string; updates: { name?: string; color?: string } }) =>
             CategoriesService.updateCustomCategory(id, updates),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['categories', barId] });
+            queryClient.invalidateQueries({ queryKey: ['stock', 'categories', barId] });
         },
     });
 
@@ -48,7 +48,7 @@ export function useCategoryMutations(barId: string) {
     const deleteCategory = useMutation({
         mutationFn: (categoryId: string) => CategoriesService.deleteCategory(categoryId),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['categories', barId] });
+            queryClient.invalidateQueries({ queryKey: ['stock', 'categories', barId] });
         },
     });
 

@@ -264,7 +264,10 @@ export function BarsManagementPanel({ isOpen, onClose, onShowBarStats }: BarsMan
               {filteredBars.map((bar) => {
                 // Filter members for this bar
                 const members = allBarMembers.filter(m => m.barId === bar.id);
-                const owner = members.find(m => m.role === 'promoteur')?.user;
+                // Find owner: match ownerId OR role is promoteur OR role is super_admin
+                const owner = members.find(m => m.userId === bar.ownerId)?.user
+                  || members.find(m => m.role === 'promoteur')?.user
+                  || members.find(m => m.role === 'super_admin')?.user;
                 const todayRevenue = getBarTodayRevenue(bar.id);
 
                 return (
@@ -291,7 +294,7 @@ export function BarsManagementPanel({ isOpen, onClose, onShowBarStats }: BarsMan
                         <span className="font-semibold">Promoteur:</span> {owner?.name || 'Inconnu'}
                       </p>
                       <p className="text-gray-600">
-                        <span className="font-semibold">Email:</span> {bar.email || 'N/A'}
+                        <span className="font-semibold">Email:</span> {owner?.email || bar.email || 'N/A'}
                       </p>
                       <p className="text-gray-600">
                         <span className="font-semibold">Téléphone:</span> {bar.phone || 'N/A'}

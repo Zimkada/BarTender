@@ -1,6 +1,5 @@
 import { ProductCard } from './ProductCard';
 import { Product } from '../types';
-import { useViewport } from '../hooks/useViewport';
 
 interface ProductGridProps {
   products: Product[];
@@ -8,8 +7,6 @@ interface ProductGridProps {
 }
 
 export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
-  const { isMobile } = useViewport();
-
   if (products.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -24,26 +21,8 @@ export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
     );
   }
 
-  // ==================== VERSION MOBILE (99% utilisateurs Bénin) ====================
-  // Liste verticale 1 colonne, cards XXL pour lisibilité soleil africain
-  if (isMobile) {
-    return (
-      <div className="space-y-3">
-        {products.map((product) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            onAddToCart={onAddToCart}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  // ==================== VERSION DESKTOP (1% promoteurs avec PC) ====================
-  // Grid 3 colonnes pour utiliser l'espace disponible
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
       {products.map((product) => (
         <ProductCard
           key={product.id}

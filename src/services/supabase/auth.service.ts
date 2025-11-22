@@ -398,7 +398,7 @@ role,
         .from('bar_members')
         .select(`
   *,
-  user: users!user_id(
+  user: users!fk_bar_members_user(
     id,
     username,
     name,
