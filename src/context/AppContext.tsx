@@ -237,20 +237,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addSale = useCallback((saleData: Partial<Sale>) => {
     if (!hasPermission('canSell') || !currentBar || !currentSession) return;
 
+    console.log('[AppContext] addSale called with saleData:', saleData);
+    console.log('[AppContext] saleData.items:', saleData.items);
+
+    // Mapping CartItem[] (UI) -> SaleItem[] (DB/Service)
+    const formattedItems = saleData.items?.map(item => {
+      console.log('[AppContext] Formatting item:', item);
+      console.log('[AppContext] item.product:', item.product);
+      console.log('[AppContext] item.product.price:', item.product.price);
+      return {
+        product_id: item.product.id,
+        product_name: item.product.name,
+        quantity: item.quantity,
+        unit_price: item.product.price,
+        total_price: item.product.price * item.quantity
+      };
+    }) || [];
+
+    console.log('[AppContext] formattedItems:', formattedItems);
+
     const newSaleData = {
       bar_id: currentBar.id,
-      items: saleData.items,
-      payment_method: saleData.paymentMethod,
+      items: formattedItems,
+      payment_method: saleData.paymentMethod || 'cash', // Default to cash if not provided
       sold_by: currentSession.userId,
       customer_name: saleData.customerName,
       customer_phone: saleData.customerPhone,
       notes: saleData.notes,
+      status: (currentSession.role === 'promoteur' || currentSession.role === 'gerant') ? 'validated' : 'pending'
     };
 
     salesMutations.createSale.mutate(newSaleData as any);
-
-    // Audit log handled in mutation onSuccess or here?
-    // Mutation is better.
   }, [hasPermission, currentBar, currentSession, salesMutations]);
 
   const validateSale = useCallback((saleId: string, validatorId: string) => {
