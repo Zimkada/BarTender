@@ -81,7 +81,12 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
                       </div>
                     </div>
                     <ul className="mt-2 text-xs text-gray-700 space-y-1">
-                      {sale.items.map(item => <li key={item.product.id} className="flex justify-between"><span>{item.quantity}x {item.product.name}</span><span>{formatPrice(item.quantity * item.product.price)}</span></li>)}
+                      {sale.items.map((item: any, idx) => {
+                        const name = item.product?.name || item.product_name || 'Produit';
+                        const price = item.product?.price || item.unit_price || 0;
+                        const productId = item.product?.id || item.product_id || idx;
+                        return <li key={productId} className="flex justify-between"><span>{item.quantity}x {name}</span><span>{formatPrice(item.quantity * price)}</span></li>;
+                      })}
                     </ul>
                   </div>
                 ))}
@@ -120,7 +125,13 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
   const lowStockProducts = getLowStockProducts();
   const totalItems = todayValidatedSales.reduce((sum, sale) => sum + sale.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
   const avgSaleValue = todayValidatedSales.length > 0 ? todayTotal / todayValidatedSales.length : 0;
-  const topProducts = todayValidatedSales.flatMap(sale => sale.items).reduce((acc, item) => { const key = `${item.product.name}-${item.product.volume}`; acc[key] = (acc[key] || 0) + item.quantity; return acc; }, {} as Record<string, number>);
+  const topProducts = todayValidatedSales.flatMap(sale => sale.items).reduce((acc, item: any) => {
+    const name = item.product?.name || item.product_name || 'Produit';
+    const volume = item.product?.volume || item.product_volume || '';
+    const key = `${name}-${volume}`;
+    acc[key] = (acc[key] || 0) + item.quantity;
+    return acc;
+  }, {} as Record<string, number>);
   const topProductsList = Object.entries(topProducts).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
   // 🔒 SERVEURS : Ne voir que les retours de LEURS ventes (même logique que getTodayTotal)

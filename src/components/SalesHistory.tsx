@@ -158,9 +158,10 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
     if (searchTerm) {
       filtered = filtered.filter(sale =>
         sale.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sale.items.some(item =>
-          item.product.name.toLowerCase().includes(searchTerm.toLowerCase())
-        )
+        sale.items.some((item: any) => {
+          const name = item.product?.name || item.product_name || '';
+          return name.toLowerCase().includes(searchTerm.toLowerCase());
+        })
       );
     }
 
@@ -293,18 +294,21 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
     // Top produits
     const productCounts: Record<string, { name: string; volume: string; count: number; revenue: number }> = {};
     filteredSales.forEach(sale => {
-      sale.items.forEach(item => {
-        const key = `${item.product.name}-${item.product.volume}`;
+      sale.items.forEach((item: any) => {
+        const name = item.product?.name || item.product_name || 'Produit';
+        const volume = item.product?.volume || item.product_volume || '';
+        const key = `${name}-${volume}`;
         if (!productCounts[key]) {
           productCounts[key] = {
-            name: item.product.name,
-            volume: item.product.volume,
+            name,
+            volume,
             count: 0,
             revenue: 0
           };
         }
         productCounts[key].count += item.quantity;
-        productCounts[key].revenue += item.product.price * item.quantity;
+        const price = item.product?.price || item.unit_price || 0;
+        productCounts[key].revenue += price * item.quantity;
       });
     });
 
@@ -331,22 +335,26 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
       const role = member?.role || 'serveur';
 
       const saleDate = getSaleDate(sale);
-      sale.items.forEach(item => {
-        const category = categories.find(c => c.id === item.product.categoryId);
+      sale.items.forEach((item: any) => {
+        const name = item.product?.name || item.product_name || 'Produit';
+        const volume = item.product?.volume || item.product_volume || '';
+        const price = item.product?.price || item.unit_price || 0;
+        const categoryId = item.product?.categoryId || item.product_category_id;
+        const category = categories.find(c => c.id === categoryId);
         const cost = 0; // TODO: Calculer depuis Supply
-        const total = item.product.price * item.quantity;
-        const benefice = (item.product.price - cost) * item.quantity;
+        const total = price * item.quantity;
+        const benefice = (price - cost) * item.quantity;
 
         exportData.push({
           'Type': 'Vente',
           'Date': saleDate.toLocaleDateString('fr-FR'),
           'Heure': saleDate.toLocaleTimeString('fr-FR'),
           'ID Transaction': sale.id.slice(-6),
-          'Produit': item.product.name,
+          'Produit': name,
           'Catégorie': category?.name || 'Non classé',
-          'Volume': item.product.volume || '',
+          'Volume': volume,
           'Quantité': item.quantity,
-          'Prix unitaire': item.product.price,
+          'Prix unitaire': price,
           'Coût unitaire': cost,
           'Total': total,
           'Bénéfice': benefice,
@@ -1124,12 +1132,17 @@ function SaleCard({
       </div>
 
       <div className="space-y-2 mb-4">
-        {sale.items.slice(0, 2).map((item, index) => (
-          <div key={index} className="flex justify-between text-sm">
-            <span className="text-gray-700">{item.quantity}x {item.product.name} {item.product.volume ? `(${item.product.volume})` : ''}</span>
-            <span className="text-gray-600">{formatPrice(item.product.price * item.quantity)}</span>
-          </div>
-        ))}
+        {sale.items.slice(0, 2).map((item: any, index) => {
+          const name = item.product?.name || item.product_name || 'Produit';
+          const volume = item.product?.volume || item.product_volume || '';
+          const price = item.product?.price || item.unit_price || 0;
+          return (
+            <div key={index} className="flex justify-between text-sm">
+              <span className="text-gray-700">{item.quantity}x {name} {volume ? `(${volume})` : ''}</span>
+              <span className="text-gray-600">{formatPrice(price * item.quantity)}</span>
+            </div>
+          );
+        })}
         {sale.items.length > 2 && (
           <p className="text-sm text-gray-500">... et {sale.items.length - 2} autres articles</p>
         )}
@@ -1489,10 +1502,12 @@ function AnalyticsView({
     let totalGross = 0;
 
     sales.forEach(sale => {
-      sale.items.forEach(item => {
-        const category = categories.find(c => c.id === item.product.categoryId);
+      sale.items.forEach((item: any) => {
+        const categoryId = item.product?.categoryId || item.product_category_id;
+        const category = categories.find(c => c.id === categoryId);
         const catName = category?.name || 'Autre';
-        const itemRevenue = item.product.price * item.quantity;
+        const price = item.product?.price || item.unit_price || 0;
+        const itemRevenue = price * item.quantity;
         catRevenue[catName] = (catRevenue[catName] || 0) + itemRevenue;
         totalGross += itemRevenue;
       });
@@ -2127,17 +2142,22 @@ function SaleDetailModal({
           <div>
             <p className="text-sm text-gray-600 mb-2">Articles vendus</p>
             <div className="space-y-2">
-              {sale.items.map((item, index) => (
+              {sale.items.map((item: any, index) => {
+                const name = item.product?.name || item.product_name || 'Produit';
+                const volume = item.product?.volume || item.product_volume || '';
+                const price = item.product?.price || item.unit_price || 0;
+                return (
                 <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
                   <div>
-                    <p className="font-medium text-gray-800">{item.product.name} {item.product.volume ? `(${item.product.volume})` : ''}</p>
+                    <p className="font-medium text-gray-800">{name} {volume ? `(${volume})` : ''}</p>
                     <p className="text-sm text-gray-600">Qté: {item.quantity}</p>
                   </div>
                   <span className="font-semibold text-amber-600">
-                    {formatPrice(item.product.price * item.quantity)}
+                    {formatPrice(price * item.quantity)}
                   </span>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

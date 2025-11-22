@@ -109,11 +109,17 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
     const recentSales = sales.filter(sale =>
       sale.status === 'validated' &&
       getSaleDate(sale) >= last30Days &&
-      sale.items.some(item => item.product.id === product.id)
+      sale.items.some((item: any) => {
+        const productId = item.product?.id || item.product_id;
+        return productId === product.id;
+      })
     );
 
     const totalSold = recentSales.reduce((sum, sale) => {
-      const item = sale.items.find(i => i.product.id === product.id);
+      const item = sale.items.find((i: any) => {
+        const productId = i.product?.id || i.product_id;
+        return productId === product.id;
+      });
       return sum + (item?.quantity || 0);
     }, 0);
 
@@ -137,11 +143,17 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
     const recentSales = sales.filter(sale =>
       sale.status === 'validated' &&
       getSaleDate(sale) >= last30Days &&
-      sale.items.some(item => item.product.id === product.id)
+      sale.items.some((item: any) => {
+        const productId = item.product?.id || item.product_id;
+        return productId === product.id;
+      })
     );
 
     const totalSold = recentSales.reduce((sum, sale) => {
-      const item = sale.items.find(i => i.product.id === product.id);
+      const item = sale.items.find((i: any) => {
+        const productId = i.product?.id || i.product_id;
+        return productId === product.id;
+      });
       return sum + (item?.quantity || 0);
     }, 0);
 
