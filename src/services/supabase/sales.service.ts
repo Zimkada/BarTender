@@ -39,6 +39,12 @@ export class SalesService {
    */
   static async createSale(data: CreateSaleData & { status?: 'pending' | 'validated' }): Promise<Sale> {
     try {
+      console.log('[SalesService] Creating sale with data:', {
+        sold_by: data.sold_by,
+        bar_id: data.bar_id,
+        items_count: data.items.length
+      });
+
       // 1. Calculer les totaux
       const subtotal = data.items.reduce((sum, item) => sum + item.total_price, 0);
       const discount_total = 0; // TODO: Calculer avec les promotions
@@ -73,8 +79,11 @@ export class SalesService {
         .single();
 
       if (saleError || !newSale) {
+        console.error('[SalesService] Sale creation error:', saleError);
         throw new Error('Erreur lors de la création de la vente');
       }
+
+      console.log('[SalesService] Sale created successfully with sold_by:', data.sold_by);
 
       // 3. Décrémenter le stock pour chaque produit
       for (const item of data.items) {
