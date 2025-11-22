@@ -1743,20 +1743,26 @@ function AnalyticsView({
 
     // 1. Ajouter les ventes
     sales.forEach(sale => {
-      sale.items.forEach(item => {
-        const product = item.product;
-        if (!productStats[product.id]) {
-          productStats[product.id] = {
-            name: product.name,
-            volume: product.volume,
+      sale.items.forEach((item: any) => {
+        const productId = item.product?.id || item.product_id;
+        const productName = item.product?.name || item.product_name || 'Produit';
+        const productVolume = item.product?.volume || item.product_volume || '';
+        const productPrice = item.product?.price || item.unit_price || 0;
+
+        if (!productId) return; // Skip items without product ID
+
+        if (!productStats[productId]) {
+          productStats[productId] = {
+            name: productName,
+            volume: productVolume,
             units: 0,
             revenue: 0,
             profit: 0
           };
         }
-        productStats[product.id].units += item.quantity;
-        productStats[product.id].revenue += product.price * item.quantity;
-        productStats[product.id].profit += product.price * item.quantity; // TODO: Déduire coût réel
+        productStats[productId].units += item.quantity;
+        productStats[productId].revenue += productPrice * item.quantity;
+        productStats[productId].profit += productPrice * item.quantity; // TODO: Déduire coût réel
       });
     });
 
