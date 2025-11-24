@@ -23,7 +23,8 @@ import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
-import type { Consignment, User as UserType, Sale } from '../types';
+import type { User as UserType } from '../types';
+import { Sale, SaleItem, Consignment } from '../types';
 import { getSaleDate } from '../utils/saleHelpers';
 
 interface ConsignmentSystemProps {
@@ -121,11 +122,10 @@ interface TabButtonProps {
 const TabButton: React.FC<TabButtonProps> = ({ active, onClick, icon, label }) => (
   <button
     onClick={onClick}
-    className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-medium transition-all ${
-      active
-        ? 'text-amber-600 border-b-2 border-amber-600 bg-white'
-        : 'text-gray-600 hover:text-amber-600 hover:bg-white/50'
-    }`}
+    className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-medium transition-all ${active
+      ? 'text-amber-600 border-b-2 border-amber-600 bg-white'
+      : 'text-gray-600 hover:text-amber-600 hover:bg-white/50'
+      }`}
   >
     {icon}
     <span className="hidden sm:inline">{label}</span>
@@ -176,10 +176,12 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
       filtered = filtered.filter(sale => sale.createdBy === filterSeller);
     }
 
-    // Filtre recherche
+    // Filtre recherche (ID ou Nom de produit)
     if (searchTerm) {
+      const lowerTerm = searchTerm.toLowerCase();
       filtered = filtered.filter(sale =>
-        sale.id.toLowerCase().includes(searchTerm.toLowerCase())
+        sale.id.toLowerCase().includes(lowerTerm) ||
+        sale.items.some(item => item.product_name.toLowerCase().includes(lowerTerm))
       );
     }
 
@@ -214,8 +216,8 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
   }
 
   const selectedSale = todaySales.find(s => s.id === selectedSaleId);
-  const selectedProductItem = selectedSale?.items.find((item: any) => {
-    const productId = item.product?.id || item.product_id;
+  const selectedProductItem = selectedSale?.items.find((item: SaleItem) => {
+    const productId = item.product_id;
     return productId === selectedProductId;
   });
 
@@ -232,7 +234,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
   };
 
   const maxQuantity = selectedProductItem
-    ? selectedProductItem.quantity - getAlreadyReturned(selectedSale!.id, selectedProductItem.product.id) - getAlreadyConsigned(selectedSale!.id, selectedProductItem.product.id)
+    ? selectedProductItem.quantity - getAlreadyReturned(selectedSale!.id, selectedProductItem.product_id) - getAlreadyConsigned(selectedSale!.id, selectedProductItem.product_id)
     : 0;
 
   const handleCreateConsignment = () => {
@@ -253,11 +255,11 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
 
     const consignment = stockManager.createConsignment({
       saleId: selectedSale.id,
-      productId: selectedProductItem.product.id,
-      productName: selectedProductItem.product.name,
-      productVolume: selectedProductItem.product.volume,
+      productId: selectedProductItem.product_id,
+      productName: selectedProductItem.product_name,
+      productVolume: selectedProductItem.product_volume,
       quantity,
-      totalAmount: selectedProductItem.product.price * quantity,
+      totalAmount: selectedProductItem.unit_price * quantity,
       customerName: customerName.trim(),
       customerPhone: customerPhone.trim() || undefined,
       notes: notes.trim() || undefined,
@@ -267,7 +269,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
     });
 
     if (consignment) {
-      showSuccess(`Consignation créée: ${quantity} ${selectedProductItem.product.name} ${selectedProductItem.product.volume}`);
+      showSuccess(`Consignation créée: ${quantity} ${selectedProductItem.product_name} ${selectedProductItem.product_volume}`);
       // Reset form
       setSelectedSaleId('');
       setSelectedProductId('');
@@ -332,7 +334,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Rechercher par ID vente..."
+            placeholder="Rechercher par ID ou nom de produit..."
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
           />
         </div>
@@ -352,6 +354,10 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
               // 👤 Trouver le vendeur
               const seller = sale.createdBy ? users.find(u => u.id === sale.createdBy) : null;
 
+              // ✅ Aperçu des produits (Top 2)
+              const productPreview = sale.items.slice(0, 2).map(i => `${i.quantity}x ${i.product_name}`).join(', ');
+              const moreCount = sale.items.length - 2;
+
               return (
                 <button
                   key={sale.id}
@@ -359,16 +365,21 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
                     setSelectedSaleId(sale.id);
                     setSelectedProductId('');
                   }}
-                  className={`p-4 rounded-lg border-2 text-left transition-all ${
-                    selectedSaleId === sale.id
-                      ? 'border-amber-500 bg-amber-50'
-                      : 'border-gray-200 hover:border-amber-300'
-                  }`}
+                  className={`p-4 rounded-lg border-2 text-left transition-all ${selectedSaleId === sale.id
+                    ? 'border-amber-500 bg-amber-50'
+                    : 'border-gray-200 hover:border-amber-300'
+                    }`}
                 >
-                  <div className="font-medium text-gray-900 text-sm mb-1">#{sale.id}</div>
-                  <div className="text-xs text-gray-600">
-                    {sale.items.length} article(s) · {formatPrice(sale.total)}
+                  <div className="flex justify-between items-start">
+                    <div className="font-medium text-gray-900 text-sm mb-1">#{sale.id.slice(-4)}</div>
+                    <div className="text-xs font-bold text-gray-700">{formatPrice(sale.total)}</div>
                   </div>
+
+                  {/* ✅ Aperçu des produits */}
+                  <div className="text-xs text-gray-600 truncate mt-1" title={productPreview}>
+                    {productPreview}{moreCount > 0 ? ` +${moreCount}` : ''}
+                  </div>
+
                   <div className="text-xs text-gray-500 mt-1">
                     {getSaleDate(sale).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                   </div>
@@ -391,11 +402,11 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
             2. Choisir le produit à consigner
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {selectedSale.items.map((item: any, idx: number) => {
-              const productId = item.product?.id || item.product_id;
-              const productName = item.product?.name || item.product_name || 'Produit';
-              const productVolume = item.product?.volume || item.product_volume || '';
-              const productPrice = item.product?.price || item.unit_price || 0;
+            {selectedSale.items.map((item: SaleItem) => {
+              const productId = item.product_id;
+              const productName = item.product_name;
+              const productVolume = item.product_volume || '';
+              const productPrice = item.unit_price;
 
               if (!productId || !item) return null; // Skip invalid items
 
@@ -414,13 +425,12 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
                     }
                   }}
                   disabled={isFullyUnavailable}
-                  className={`p-4 rounded-lg border-2 text-left transition-all ${
-                    isFullyUnavailable
-                      ? 'border-red-200 bg-red-50 opacity-60 cursor-not-allowed'
-                      : selectedProductId === productId
-                        ? 'border-amber-500 bg-amber-50'
-                        : 'border-gray-200 hover:border-amber-300'
-                  }`}
+                  className={`p-4 rounded-lg border-2 text-left transition-all ${isFullyUnavailable
+                    ? 'border-red-200 bg-red-50 opacity-60 cursor-not-allowed'
+                    : selectedProductId === productId
+                      ? 'border-amber-500 bg-amber-50'
+                      : 'border-gray-200 hover:border-amber-300'
+                    }`}
                 >
                   <div className="font-medium text-gray-900">{productName}</div>
                   <div className="text-sm text-gray-600">{productVolume}</div>
@@ -522,9 +532,9 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
           <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
             <h4 className="font-semibold text-amber-900 mb-2">Récapitulatif</h4>
             <div className="space-y-1 text-sm text-amber-800">
-              <p>• Produit: {selectedProductItem.product.name} {selectedProductItem.product.volume}</p>
+              <p>• Produit: {selectedProductItem.product_name} {selectedProductItem.product_volume}</p>
               <p>• Quantité: {quantity}</p>
-              <p>• Montant: {formatPrice(selectedProductItem.product.price * quantity)} (déjà payé)</p>
+              <p>• Montant: {formatPrice(selectedProductItem.unit_price * quantity)} (déjà payé)</p>
               <p>• Client: {customerName || '(non saisi)'}</p>
             </div>
           </div>
@@ -699,9 +709,8 @@ const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim,
             </p>
           )}
         </div>
-        <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-          isExpiringSoon ? 'bg-amber-100 text-amber-700' : 'bg-amber-100 text-amber-700'
-        }`}>
+        <div className={`px-3 py-1 rounded-full text-xs font-medium ${isExpiringSoon ? 'bg-amber-100 text-amber-700' : 'bg-amber-100 text-amber-700'
+          }`}>
           {hoursLeft > 48 ? `${Math.floor(hoursLeft / 24)}j` : `${hoursLeft}h`}
         </div>
       </div>
@@ -794,11 +803,10 @@ const HistoryTab: React.FC = () => {
           <button
             key={filter.value}
             onClick={() => setFilterStatus(filter.value as 'all' | 'claimed' | 'expired' | 'forfeited')}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              filterStatus === filter.value
-                ? 'bg-amber-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterStatus === filter.value
+              ? 'bg-amber-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
           >
             {filter.label}
           </button>

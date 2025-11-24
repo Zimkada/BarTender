@@ -15,7 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
-import { Sale, CartItem, Return, ReturnReason, ReturnReasonConfig } from '../types';
+import { Sale, SaleItem, Return, ReturnReason, ReturnReasonConfig } from '../types';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
 import { getSaleDate } from '../utils/saleHelpers';
 
@@ -644,14 +644,16 @@ function CreateReturnForm({
   const { getReturnsBySale } = useAppContext();
   const { currentBar, barMembers } = useBarContext();
   const { formatPrice } = useCurrencyFormatter();
+  const { showError } = useFeedback();
 
   const users = barMembers.map(m => m.user).filter(Boolean);
-  const [selectedProduct, setSelectedProduct] = useState<CartItem | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<SaleItem | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [reason, setReason] = useState<ReturnReason>('defective');
   const [notes, setNotes] = useState('');
   const [showOtherReasonDialog, setShowOtherReasonDialog] = useState(false);
-  const [filterSeller, setFilterSeller] = useState<string>('all'); // ✅ Filtre vendeur
+  const [filterSeller, setFilterSeller] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState(''); // ✅ Recherche par produit
 
   const reasonConfig = returnReasons[reason];
 
@@ -671,17 +673,31 @@ function CreateReturnForm({
 
   const availableQty = selectedProduct
     ? (() => {
-        const productId = (selectedProduct as any).product?.id || (selectedProduct as any).product_id;
-        if (!productId) return 0;
-        return selectedProduct.quantity - getAlreadyReturned(productId) - getAlreadyConsigned(productId);
-      })()
+      const productId = selectedProduct.product_id;
+      if (!productId) return 0;
+      return selectedProduct.quantity - getAlreadyReturned(productId) - getAlreadyConsigned(productId);
+    })()
     : 0;
 
-  // ✅ Filtrer ventes par vendeur sélectionné
-  const filteredSalesBySeller = useMemo(() => {
-    if (filterSeller === 'all') return returnableSales;
-    return returnableSales.filter(sale => sale.createdBy === filterSeller);
-  }, [returnableSales, filterSeller]);
+  // ✅ Filtrer ventes par vendeur et par produit (Recherche)
+  const filteredSales = useMemo(() => {
+    let filtered = returnableSales;
+
+    // 1. Filtre Vendeur
+    if (filterSeller !== 'all') {
+      filtered = filtered.filter(sale => sale.createdBy === filterSeller);
+    }
+
+    // 2. Filtre Recherche (Produit)
+    if (searchTerm.trim()) {
+      const lowerTerm = searchTerm.toLowerCase();
+      filtered = filtered.filter(sale =>
+        sale.items.some(item => item.product_name.toLowerCase().includes(lowerTerm))
+      );
+    }
+
+    return filtered;
+  }, [returnableSales, filterSeller, searchTerm]);
 
   // ✅ Liste unique des vendeurs ayant des ventes
   const sellersWithSales = useMemo(() => {
@@ -693,7 +709,7 @@ function CreateReturnForm({
   const handleSubmit = () => {
     if (!selectedSale || !selectedProduct) return;
 
-    const productId = (selectedProduct as any).product?.id || (selectedProduct as any).product_id;
+    const productId = selectedProduct.product_id;
     if (!productId) {
       showError('Produit invalide');
       return;
@@ -710,7 +726,7 @@ function CreateReturnForm({
   const handleOtherReasonConfirm = (customRefund: boolean, customRestock: boolean, customNotes: string) => {
     if (!selectedSale || !selectedProduct) return;
 
-    const productId = (selectedProduct as any).product?.id || (selectedProduct as any).product_id;
+    const productId = selectedProduct.product_id;
     if (!productId) {
       showError('Produit invalide');
       return;
@@ -757,7 +773,6 @@ function CreateReturnForm({
               Ventes de la journée commerciale actuelle
             </label>
 
-            {/* ✅ Filtre vendeur */}
             {sellersWithSales.length > 1 && (
               <div className="mb-3">
                 <div className="flex items-center gap-2">
@@ -765,7 +780,7 @@ function CreateReturnForm({
                   <select
                     value={filterSeller}
                     onChange={(e) => setFilterSeller(e.target.value)}
-                    className="px-3 py-2 border border-amber-200 rounded-lg bg-white text-sm"
+                    className="flex-1 px-3 py-2 border border-amber-200 rounded-lg bg-white text-sm"
                   >
                     <option value="all">Tous les vendeurs ({returnableSales.length})</option>
                     {sellersWithSales.map(seller => {
@@ -781,20 +796,36 @@ function CreateReturnForm({
               </div>
             )}
 
-            {filteredSalesBySeller.length === 0 ? (
+            {/* ✅ Barre de recherche par produit (Toujours visible) */}
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="text"
+                placeholder="Rechercher un produit (ex: Guinness)..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 border border-amber-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              />
+            </div>
+
+            {filteredSales.length === 0 ? (
               <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                 <p className="text-gray-500">
                   {returnableSales.length === 0
                     ? 'Aucune vente dans la journée commerciale actuelle'
-                    : 'Aucune vente pour ce vendeur'
+                    : 'Aucune vente trouvée'
                   }
                 </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                {filteredSalesBySeller.map(sale => {
+                {filteredSales.map(sale => {
                   const returnCheck = canReturnSale(sale);
-                  const seller = sale.createdBy ? users.find(u => u.id === sale.createdBy) : null;
+                  const seller = sale.createdBy ? users.find(u => u.id === sale.createdBy) : undefined;
+
+                  // ✅ Aperçu des produits (Top 2)
+                  const productPreview = sale.items.slice(0, 2).map(i => `${i.quantity}x ${i.product_name}`).join(', ');
+                  const moreCount = sale.items.length - 2;
 
                   return (
                     <motion.button
@@ -810,26 +841,34 @@ function CreateReturnForm({
                         }`}
                     >
                       <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-gray-800">
-                            Vente #{sale.id.slice(-6)}
+                        <div className="overflow-hidden">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-800">
+                              #{sale.id.slice(-4)}
+                            </p>
+                            <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                              {getSaleDate(sale).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+
+                          {/* ✅ Aperçu des produits */}
+                          <p className="text-xs text-gray-600 truncate mt-1" title={productPreview}>
+                            {productPreview}{moreCount > 0 ? ` +${moreCount}` : ''}
                           </p>
-                          <p className="text-sm text-gray-600">
-                            {getSaleDate(sale).toLocaleTimeString('fr-FR')} • {sale.items.length} articles
-                          </p>
+
                           {seller && (
-                            <p className="text-xs text-purple-600 mt-0.5">
+                            <p className="text-xs text-purple-600 mt-1">
                               👤 {seller.name}
                             </p>
                           )}
                         </div>
                         {returnCheck.allowed ? (
-                          <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                            ✅ OK
-                          </span>
+                          <div className="text-right">
+                            <span className="text-xs font-bold text-gray-700 block">{formatPrice(sale.total)}</span>
+                          </div>
                         ) : (
                           <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
-                            🚫 Bloqué
+                            Bloqué
                           </span>
                         )}
                       </div>
@@ -849,11 +888,11 @@ function CreateReturnForm({
                 Produit à retourner
               </label>
               <div className="space-y-2">
-                {selectedSale.items.map((item: any, index: number) => {
-                  const productId = item.product?.id || item.product_id;
-                  const productName = item.product?.name || item.product_name || 'Produit';
-                  const productVolume = item.product?.volume || item.product_volume || '';
-                  const productPrice = item.product?.price || item.unit_price || 0;
+                {selectedSale.items.map((item: SaleItem, index: number) => {
+                  const productId = item.product_id;
+                  const productName = item.product_name;
+                  const productVolume = item.product_volume || '';
+                  const productPrice = item.unit_price;
 
                   const alreadyReturned = getAlreadyReturned(productId);
                   const alreadyConsigned = getAlreadyConsigned(productId);
@@ -982,7 +1021,7 @@ function CreateReturnForm({
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-700">Montant retour:</span>
                     <span className="text-lg font-bold text-gray-800">
-                      {formatPrice(selectedProduct.product.price * quantity)}
+                      {formatPrice(selectedProduct.unit_price * quantity)}
                     </span>
                   </div>
 

@@ -220,7 +220,7 @@ export function AccountingOverview() {
 
     // 2. KPI Calculations
     const revenueGrowth = prevTotalRevenue > 0 ? ((totalRevenue - prevTotalRevenue) / prevTotalRevenue) * 100 : 0;
-    
+
     const serverCount = currentBar?.settings?.serversList?.length || 1;
     const revenuePerServer = totalRevenue / serverCount;
 
@@ -240,7 +240,7 @@ export function AccountingOverview() {
       const monthSales = sales
         .filter(s => new Date(s.date) >= monthStart && new Date(s.date) <= monthEnd)
         .reduce((sum, s) => sum + s.total, 0);
-      
+
       const monthReturns = returns
         .filter(r => {
           const rDate = new Date(r.returnedAt);
@@ -559,11 +559,11 @@ export function AccountingOverview() {
         Date: saleDate.toLocaleDateString('fr-FR'),
         Heure: saleDate.toLocaleTimeString('fr-FR'),
         'ID Vente': sale.id.slice(0, 8),
-        Produit: item.product.name,
-        Volume: item.product.volume,
+        Produit: item.product_name,
+        Volume: item.product_volume || '',
         Quantité: item.quantity,
-        'Prix unitaire': item.product.price,
-        Total: item.product.price * item.quantity,
+        'Prix unitaire': item.unit_price,
+        Total: item.total_price,
         'Créé par': sale.createdBy,
         'Validé par': sale.validatedBy || 'N/A',
         'Statut': sale.status,
@@ -582,7 +582,7 @@ export function AccountingOverview() {
       'ID Retour': ret.id.slice(0, 8),
       'ID Vente': ret.saleId.slice(0, 8),
       Produit: ret.productName,
-      Quantité: ret.quantity,
+      Quantité: -ret.quantity, // Négatif pour indiquer retours
       'Montant remboursé': ret.refundAmount,
       Motif: ret.reason,
       Statut: ret.status,
@@ -617,9 +617,9 @@ export function AccountingOverview() {
       .map(exp => ({
         Date: new Date(exp.date).toLocaleDateString('fr-FR'),
         Catégorie: exp.category === 'water' ? 'Eau' :
-                   exp.category === 'electricity' ? 'Électricité' :
-                   exp.category === 'maintenance' ? 'Entretien' :
-                   exp.customCategory || 'Autre',
+          exp.category === 'electricity' ? 'Électricité' :
+            exp.category === 'maintenance' ? 'Entretien' :
+              exp.customCategory || 'Autre',
         Description: exp.description,
         Montant: exp.amount,
       }));
@@ -671,13 +671,13 @@ export function AccountingOverview() {
         Client: cons.customerName,
         Téléphone: cons.customerPhone || 'N/A',
         Statut: cons.status === 'active' ? 'Active' :
-                cons.status === 'claimed' ? 'Récupérée' :
-                cons.status === 'expired' ? 'Expirée' :
-                'Confisquée',
+          cons.status === 'claimed' ? 'Récupérée' :
+            cons.status === 'expired' ? 'Expirée' :
+              'Confisquée',
         'Date expiration': new Date(cons.expiresAt).toLocaleDateString('fr-FR'),
         'Date récup./expir.': cons.claimedAt ? new Date(cons.claimedAt).toLocaleDateString('fr-FR') :
-                              cons.expiredAt ? new Date(cons.expiredAt).toLocaleDateString('fr-FR') :
-                              'N/A',
+          cons.expiredAt ? new Date(cons.expiredAt).toLocaleDateString('fr-FR') :
+            'N/A',
       }));
       const consignmentsSheet = XLSX.utils.json_to_sheet(consignmentsData);
       XLSX.utils.book_append_sheet(workbook, consignmentsSheet, 'Consignations');
@@ -705,10 +705,10 @@ export function AccountingOverview() {
     if (filteredCapitalContributions.length > 0) {
       const capitalContributionsData = filteredCapitalContributions.map(contrib => {
         const sourceLabel = contrib.source === 'owner' ? 'Propriétaire' :
-                           contrib.source === 'partner' ? 'Associé' :
-                           contrib.source === 'investor' ? 'Investisseur' :
-                           contrib.source === 'loan' ? 'Prêt bancaire' :
-                           'Autre';
+          contrib.source === 'partner' ? 'Associé' :
+            contrib.source === 'investor' ? 'Investisseur' :
+              contrib.source === 'loan' ? 'Prêt bancaire' :
+                'Autre';
         return {
           Date: new Date(contrib.date).toLocaleDateString('fr-FR'),
           Montant: contrib.amount,
@@ -776,22 +776,20 @@ export function AccountingOverview() {
         <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
           <button
             onClick={() => setViewMode('tresorerie')}
-            className={`px-3 py-2 rounded-md transition-colors flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} ${
-              viewMode === 'tresorerie'
-                ? 'bg-blue-500 text-white'
-                : 'text-gray-600 hover:bg-gray-200'
-            }`}
+            className={`px-3 py-2 rounded-md transition-colors flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} ${viewMode === 'tresorerie'
+              ? 'bg-blue-500 text-white'
+              : 'text-gray-600 hover:bg-gray-200'
+              }`}
           >
             <DollarSign size={16} />
             Trésorerie
           </button>
           <button
             onClick={() => setViewMode('analytique')}
-            className={`px-3 py-2 rounded-md transition-colors flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} ${
-              viewMode === 'analytique'
-                ? 'bg-purple-500 text-white'
-                : 'text-gray-600 hover:bg-gray-200'
-            }`}
+            className={`px-3 py-2 rounded-md transition-colors flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} ${viewMode === 'analytique'
+              ? 'bg-purple-500 text-white'
+              : 'text-gray-600 hover:bg-gray-200'
+              }`}
           >
             <TrendingUp size={16} />
             Analytique
@@ -805,11 +803,10 @@ export function AccountingOverview() {
           <button
             key={type}
             onClick={() => handlePeriodTypeChange(type)}
-            className={`px-3 py-2 rounded-md transition-colors flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} ${
-              periodType === type
-                ? 'bg-amber-500 text-white'
-                : 'text-gray-600 hover:bg-gray-200'
-            }`}
+            className={`px-3 py-2 rounded-md transition-colors flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} ${periodType === type
+              ? 'bg-amber-500 text-white'
+              : 'text-gray-600 hover:bg-gray-200'
+              }`}
           >
             {type === 'custom' && <CalendarDays size={16} />}
             {type === 'week' ? 'Semaine' : type === 'month' ? 'Mois' : 'Personnalisé'}
@@ -851,11 +848,10 @@ export function AccountingOverview() {
         <button
           onClick={handlePreviousPeriod}
           disabled={periodType === 'custom'}
-          className={`p-2 rounded-lg transition-colors ${
-            periodType === 'custom'
-              ? 'text-gray-300 cursor-not-allowed'
-              : 'text-gray-600 hover:bg-gray-100 active:scale-95'
-          }`}
+          className={`p-2 rounded-lg transition-colors ${periodType === 'custom'
+            ? 'text-gray-300 cursor-not-allowed'
+            : 'text-gray-600 hover:bg-gray-100 active:scale-95'
+            }`}
           title="Période précédente"
         >
           <ChevronLeft size={20} />
@@ -870,11 +866,10 @@ export function AccountingOverview() {
         <button
           onClick={handleNextPeriod}
           disabled={periodType === 'custom'}
-          className={`p-2 rounded-lg transition-colors ${
-            periodType === 'custom'
-              ? 'text-gray-300 cursor-not-allowed'
-              : 'text-gray-600 hover:bg-gray-100 active:scale-95'
-          }`}
+          className={`p-2 rounded-lg transition-colors ${periodType === 'custom'
+            ? 'text-gray-300 cursor-not-allowed'
+            : 'text-gray-600 hover:bg-gray-100 active:scale-95'
+            }`}
           title="Période suivante"
         >
           <ChevronRight size={20} />
@@ -894,11 +889,10 @@ export function AccountingOverview() {
       {viewMode === 'tresorerie' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Operating Profit */}
-          <div className={`bg-gradient-to-br ${
-            operatingProfit >= 0
-              ? 'from-green-500 to-emerald-600'
-              : 'from-red-500 to-pink-600'
-          } text-white rounded-xl p-4`}>
+          <div className={`bg-gradient-to-br ${operatingProfit >= 0
+            ? 'from-green-500 to-emerald-600'
+            : 'from-red-500 to-pink-600'
+            } text-white rounded-xl p-4`}>
             <div className="flex items-center gap-2 mb-2">
               {operatingProfit >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
               <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
@@ -1033,11 +1027,10 @@ export function AccountingOverview() {
             </div>
 
             {/* Solde fin période (final balance) */}
-            <div className={`bg-gradient-to-br ${
-              finalBalance >= 0
-                ? 'from-green-500 to-emerald-600'
-                : 'from-red-500 to-pink-600'
-            } text-white rounded-xl p-4`}>
+            <div className={`bg-gradient-to-br ${finalBalance >= 0
+              ? 'from-green-500 to-emerald-600'
+              : 'from-red-500 to-pink-600'
+              } text-white rounded-xl p-4`}>
               <div className="flex items-center gap-2 mb-2">
                 {finalBalance >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
                 <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
@@ -1246,11 +1239,10 @@ export function AccountingOverview() {
               <button
                 onClick={handleCreateInitialBalance}
                 disabled={!!initialBalanceHook.initialBalance}
-                className={`flex-1 px-4 py-2 rounded-lg transition-colors ${
-                  initialBalanceHook.initialBalance
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-purple-500 text-white hover:bg-purple-600'
-                }`}
+                className={`flex-1 px-4 py-2 rounded-lg transition-colors ${initialBalanceHook.initialBalance
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-purple-500 text-white hover:bg-purple-600'
+                  }`}
               >
                 {initialBalanceHook.initialBalance ? 'Solde déjà défini' : 'Enregistrer'}
               </button>

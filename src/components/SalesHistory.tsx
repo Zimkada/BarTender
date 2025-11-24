@@ -41,7 +41,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 import { EnhancedButton } from './EnhancedButton';
-import { Sale, Category, Product, User, BarMember, Return } from '../types';
+import { Sale, SaleItem, Category, Product, User, BarMember, Return } from '../types';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { getSaleDate } from '../utils/saleHelpers';
@@ -75,7 +75,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
   }, [safeBarMembers]);
 
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('today');
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewMode] = useState<ViewMode>('cards');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [exportFormat, setExportFormat] = useState<'csv' | 'excel'>('excel');
@@ -158,8 +158,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
     if (searchTerm) {
       filtered = filtered.filter(sale =>
         sale.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sale.items.some((item: any) => {
-          const name = item.product?.name || item.product_name || '';
+        sale.items.some((item: SaleItem) => {
+          const name = item.product_name;
           return name.toLowerCase().includes(searchTerm.toLowerCase());
         })
       );
@@ -294,9 +294,9 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
     // Top produits
     const productCounts: Record<string, { name: string; volume: string; count: number; revenue: number }> = {};
     filteredSales.forEach(sale => {
-      sale.items.forEach((item: any) => {
-        const name = item.product?.name || item.product_name || 'Produit';
-        const volume = item.product?.volume || item.product_volume || '';
+      sale.items.forEach((item: SaleItem) => {
+        const name = item.product_name;
+        const volume = item.product_volume || '';
         const key = `${name}-${volume}`;
         if (!productCounts[key]) {
           productCounts[key] = {
@@ -307,7 +307,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
           };
         }
         productCounts[key].count += item.quantity;
-        const price = item.product?.price || item.unit_price || 0;
+        const price = item.unit_price;
         productCounts[key].revenue += price * item.quantity;
       });
     });
@@ -335,12 +335,14 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
       const role = member?.role || 'serveur';
 
       const saleDate = getSaleDate(sale);
-      sale.items.forEach((item: any) => {
-        const name = item.product?.name || item.product_name || 'Produit';
-        const volume = item.product?.volume || item.product_volume || '';
-        const price = item.product?.price || item.unit_price || 0;
-        const categoryId = item.product?.categoryId || item.product_category_id;
-        const category = categories.find(c => c.id === categoryId);
+      sale.items.forEach((item: SaleItem) => {
+        const name = item.product_name;
+        const volume = item.product_volume || '';
+        const price = item.unit_price;
+        const categoryId = item.product_id; // Note: SaleItem doesn't have categoryId directly, might need lookup if critical
+        // For now, we can try to find product to get category
+        const product = products.find(p => p.id === item.product_id);
+        const category = categories.find(c => c.id === product?.categoryId);
         const cost = 0; // TODO: Calculer depuis Supply
         const total = price * item.quantity;
         const benefice = (price - cost) * item.quantity;
@@ -547,8 +549,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             className={`bg-gradient-to-br from-amber-50 to-amber-50 w-full shadow-2xl overflow-hidden ${isMobile
-                ? 'h-full'
-                : 'rounded-2xl max-w-7xl max-h-[85vh] md:max-h-[90vh]'
+              ? 'h-full'
+              : 'rounded-2xl max-w-7xl max-h-[85vh] md:max-h-[90vh]'
               }`}
           >
             {/* ==================== VERSION MOBILE ==================== */}
@@ -585,8 +587,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                     <button
                       onClick={() => setExportFormat('excel')}
                       className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${exportFormat === 'excel'
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-white text-gray-600'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-white text-gray-600'
                         }`}
                     >
                       📊 Excel
@@ -594,8 +596,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                     <button
                       onClick={() => setExportFormat('csv')}
                       className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${exportFormat === 'csv'
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-white text-gray-600'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-white text-gray-600'
                         }`}
                     >
                       📄 CSV
@@ -614,8 +616,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                         key={filter.value}
                         onClick={() => setTimeFilter(filter.value as TimeFilter)}
                         className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium transition-colors ${timeFilter === filter.value
-                            ? 'bg-amber-500 text-white'
-                            : 'bg-white text-gray-700'
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-white text-gray-700'
                           }`}
                       >
                         {filter.label}
@@ -668,8 +670,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                           key={mode.value}
                           onClick={() => setViewMode(mode.value as ViewMode)}
                           className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium transition-colors flex items-center gap-1 ${viewMode === mode.value
-                              ? 'bg-amber-500 text-white'
-                              : 'bg-white text-gray-700'
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-white text-gray-700'
                             }`}
                         >
                           <Icon size={14} />
@@ -751,8 +753,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                       <button
                         onClick={() => setExportFormat('excel')}
                         className={`px-3 py-1.5 text-xs font-medium rounded-l-lg transition-colors ${exportFormat === 'excel'
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           }`}
                       >
                         Excel
@@ -760,8 +762,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                       <button
                         onClick={() => setExportFormat('csv')}
                         className={`px-3 py-1.5 text-xs font-medium rounded-r-lg transition-colors ${exportFormat === 'csv'
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           }`}
                       >
                         CSV
@@ -874,8 +876,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                             key={filter.value}
                             onClick={() => setTimeFilter(filter.value as TimeFilter)}
                             className={`w-full text-left p-2 rounded-lg transition-colors ${timeFilter === filter.value
-                                ? 'bg-amber-500 text-white'
-                                : 'bg-white text-gray-700 hover:bg-amber-50'
+                              ? 'bg-amber-500 text-white'
+                              : 'bg-white text-gray-700 hover:bg-amber-50'
                               }`}
                           >
                             {filter.label}
@@ -961,8 +963,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                                   key={mode.value}
                                   onClick={() => setViewMode(mode.value as ViewMode)}
                                   className={`px-3 py-1.5 text-sm flex items-center gap-1 transition-colors ${viewMode === mode.value
-                                      ? 'bg-amber-500 text-white'
-                                      : 'bg-white text-gray-700 hover:bg-amber-100'
+                                    ? 'bg-amber-500 text-white'
+                                    : 'bg-white text-gray-700 hover:bg-amber-100'
                                     }`}
                                 >
                                   <Icon size={14} />
@@ -2153,15 +2155,15 @@ function SaleDetailModal({
                 const volume = item.product?.volume || item.product_volume || '';
                 const price = item.product?.price || item.unit_price || 0;
                 return (
-                <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-800">{name} {volume ? `(${volume})` : ''}</p>
-                    <p className="text-sm text-gray-600">Qté: {item.quantity}</p>
+                  <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-800">{name} {volume ? `(${volume})` : ''}</p>
+                      <p className="text-sm text-gray-600">Qté: {item.quantity}</p>
+                    </div>
+                    <span className="font-semibold text-amber-600">
+                      {formatPrice(price * item.quantity)}
+                    </span>
                   </div>
-                  <span className="font-semibold text-amber-600">
-                    {formatPrice(price * item.quantity)}
-                  </span>
-                </div>
                 );
               })}
             </div>
