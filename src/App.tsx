@@ -1,6 +1,9 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-//import React, from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ShieldCheck } from 'lucide-react';
+
+// Components
+import { SplashScreen } from './components/SplashScreen';
 import { Header } from './components/Header';
 import { CategoryTabs } from './components/CategoryTabs';
 import { ProductGrid } from './components/ProductGrid';
@@ -13,22 +16,24 @@ import { ForgotPasswordScreen } from './components/ForgotPasswordScreen';
 import { ResetPasswordScreen } from './components/ResetPasswordScreen';
 import { UserManagement } from './components/UserManagement';
 import { RoleBasedComponent } from './components/RoleBasedComponent';
-import { NotificationsProvider, useNotifications } from './components/Notifications';
-import { useAppContext } from './context/AppContext';
-import { useStockManagement } from './hooks/useStockManagement';
-import { useAdminNotifications } from './hooks/useAdminNotifications'; // A.5: Notifications admin
-// StockBridgeProvider moved to main.tsx
-import { CartItem, Product, Category } from './types';
-import { AnimatePresence, motion } from 'framer-motion';
-import { useAuth } from './context/AuthContext';
-import { useBarContext } from './context/BarContext';
-import { syncHandler } from './services/SyncHandler';
 import { QuickSaleFlow } from './components/QuickSaleFlow';
 import { MobileNavigation } from './components/MobileNavigation';
 import { MobileSidebar } from './components/MobileSidebar';
 import { LoadingFallback } from './components/LoadingFallback';
 
-// Lazy load des composants lourds (XLSX, Recharts, etc.)
+// Context & Hooks
+import { NotificationsProvider, useNotifications } from './components/Notifications';
+import { useAppContext } from './context/AppContext';
+import { useStockManagement } from './hooks/useStockManagement';
+import { useAdminNotifications } from './hooks/useAdminNotifications';
+import { useAuth } from './context/AuthContext';
+import { useBarContext } from './context/BarContext';
+import { syncHandler } from './services/SyncHandler';
+
+// Types
+import { CartItem, Product, Category } from './types';
+
+// Lazy load des composants lourds
 const EnhancedSalesHistory = lazy(() => import('./components/SalesHistory').then(m => ({ default: m.EnhancedSalesHistory })));
 const Inventory = lazy(() => import('./components/Inventory').then(m => ({ default: m.Inventory })));
 const Settings = lazy(() => import('./components/Settings').then(m => ({ default: m.Settings })));
@@ -43,8 +48,6 @@ const AuditLogsPanel = lazy(() => import('./components/AuditLogsPanel').then(m =
 const BarsManagementPanel = lazy(() => import('./components/BarsManagementPanel').then(m => ({ default: m.BarsManagementPanel })));
 const UsersManagementPanel = lazy(() => import('./components/UsersManagementPanel').then(m => ({ default: m.UsersManagementPanel })));
 const BarStatsModal = lazy(() => import('./components/BarStatsModal').then(m => ({ default: m.BarStatsModal })));
-
-
 const GlobalCatalogPanel = lazy(() => import('./components/GlobalCatalogPanel').then(m => ({ default: m.GlobalCatalogPanel })));
 
 function AppContent() {
@@ -74,6 +77,8 @@ function AppContent() {
     deleteNotification,
     clearAll,
   } = useAdminNotifications();
+
+  const [isAppReady, setIsAppReady] = useState(false);
   const [showDailyDashboard, setShowDailyDashboard] = useState(false);
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id || '');
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -101,131 +106,150 @@ function AppContent() {
   const [showUsersManagement, setShowUsersManagement] = useState(false);
   const [showGlobalCatalog, setShowGlobalCatalog] = useState(false);
   const [selectedBarForStats, setSelectedBarForStats] = useState<any>(null);
+  const [authView, setAuthView] = useState('login'); // 'login', 'forgotPassword', 'resetPassword'
 
+  // Gestion du chargement initial avec SplashScreen
   useEffect(() => {
-    if (categories.length > 0 && !activeCategory) {
-      setActiveCategory(categories[0].id);
-    }
-  }, [categories, activeCategory]);
-
-  const handleEditCategory = (category: Category) => {
-    setEditingCategory(category);
-  };
-
-  const handleDeleteCategory = (categoryId: string) => {
-    deleteCategory(categoryId);
-  };
-
-  const handleCategoryModalClose = () => {
-    setShowCategoryModal(false);
-    setEditingCategory(null);
-  };
-
-  const handleCategoryModalSave = (categoryData: Omit<Category, 'id' | 'createdAt' | 'barId'>) => {
-    if (editingCategory) {
-      updateCategory(editingCategory.id, categoryData);
-      // Notification handled in AppContext
-    } else {
-      addCategory(categoryData);
-      // Notification handled in AppContext
-    }
-    handleCategoryModalClose();
-  };
-
-  useEffect(() => {
-    // Démarrer le processing automatique de la queue de sync
-    syncHandler.start(5000); // Traiter toutes les 5 secondes
-
-    return () => {
-      syncHandler.stop();
-    };
-  }, []);
-
-  const addToCart = (product: Product) => {
-    const existingItem = cart.find(item => item.product.id === product.id);
-
-    if (existingItem) {
-      setCart(cart.map(item =>
-        item.product.id === product.id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      ));
-    } else {
-      setCart([...cart, { product, quantity: 1 }]);
-    }
-  };
-
-  const updateCartQuantity = (productId: string, quantity: number) => {
-    if (quantity === 0) {
-      setCart(cart.filter(item => item.product.id !== productId));
-    } else {
-      setCart(cart.map(item =>
-        item.product.id === productId
-          ? { ...item, quantity }
-          : item
-      ));
-    }
-  };
-
-  const removeFromCart = (productId: string) => {
-    setCart(cart.filter(item => item.product.id !== productId));
-  };
-
-  const clearCart = () => {
-    setCart([]);
-  };
-
-  const checkout = (assignedTo?: string) => {
-    if (cart.length === 0 || !currentSession) return;
-
-    const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-    const isServerRole = currentSession.role === 'serveur';
-
-    try {
-      if (isServerRole) {
-        addSale({
-          items: cart,
-          total,
-          currency: settings.currency,
-          status: 'pending',
-          createdBy: currentSession.userId,
-          createdAt: new Date(),
-          assignedTo,
-        });
+    if (isAuthenticated && currentBar) {
+      // Si on a des catégories, on affiche pendant 1.5s pour l'animation
+      if (categories.length > 0) {
+        const timer = setTimeout(() => setIsAppReady(true), 1500);
+        return () => clearTimeout(timer);
       } else {
-        // ✅ Vente directe (promoteur/gérant) : validation + stock atomique
-        const success = processSaleValidation(
-          cart,
-          () => {
-            // Callback succès : créer la vente après décrémentation stock
-            addSale({
-              items: cart,
-              total,
-              currency: settings.currency,
-              status: 'validated',
-              createdBy: currentSession.userId,
-              validatedBy: currentSession.userId,
-              createdAt: new Date(),
-              validatedAt: new Date(),
-              assignedTo,
-            });
-          },
-          (error) => {
-            // Callback erreur : stock insuffisant
-            showNotification('error', error);
-          }
-        );
-
-        if (!success) return; // Arrêter si validation échouée
+        // Nouveau bar sans catégories : timeout de 2s
+        const timer = setTimeout(() => setIsAppReady(true), 2000);
+        return () => clearTimeout(timer);
       }
-
-      clearCart();
-      setIsCartOpen(false);
-      // La notification est gérée dans AppContext, pas besoin d'une autre ici.
-    } catch (error) {
-      showNotification('error', error instanceof Error ? error.message : 'Erreur lors de la vente');
+    } else {
+      // Écran de login toujours prêt
+      setIsAppReady(true);
     }
+  }, [categories, isAuthenticated, currentBar]);
+
+useEffect(() => {
+  if (categories.length > 0 && !activeCategory) {
+    setActiveCategory(categories[0].id);
+  }
+}, [categories, activeCategory]);
+
+const handleEditCategory = (category: Category) => {
+  setEditingCategory(category);
+};
+
+const handleDeleteCategory = (categoryId: string) => {
+  deleteCategory(categoryId);
+};
+
+const handleCategoryModalClose = () => {
+  setShowCategoryModal(false);
+  setEditingCategory(null);
+};
+
+const handleCategoryModalSave = (categoryData: Omit<Category, 'id' | 'createdAt' | 'barId'>) => {
+  if (editingCategory) {
+    updateCategory(editingCategory.id, categoryData);
+    // Notification handled in AppContext
+  } else {
+    addCategory(categoryData);
+    // Notification handled in AppContext
+  }
+  handleCategoryModalClose();
+};
+
+useEffect(() => {
+  // Démarrer le processing automatique de la queue de sync
+  syncHandler.start(5000); // Traiter toutes les 5 secondes
+
+  return () => {
+    syncHandler.stop();
   };
+}, []);
+
+const addToCart = (product: Product) => {
+  const existingItem = cart.find(item => item.product.id === product.id);
+
+  if (existingItem) {
+    setCart(cart.map(item =>
+      item.product.id === product.id
+        ? { ...item, quantity: item.quantity + 1 }
+        : item
+    ));
+  } else {
+    setCart([...cart, { product, quantity: 1 }]);
+  }
+};
+
+const updateCartQuantity = (productId: string, quantity: number) => {
+  if (quantity === 0) {
+    setCart(cart.filter(item => item.product.id !== productId));
+  } else {
+    setCart(cart.map(item =>
+      item.product.id === productId
+        ? { ...item, quantity }
+        : item
+    ));
+  }
+};
+
+const removeFromCart = (productId: string) => {
+  setCart(cart.filter(item => item.product.id !== productId));
+};
+
+const clearCart = () => {
+  setCart([]);
+};
+
+const checkout = (assignedTo?: string) => {
+  if (cart.length === 0 || !currentSession) return;
+
+  const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const isServerRole = currentSession.role === 'serveur';
+
+  try {
+    if (isServerRole) {
+      addSale({
+        items: cart,
+        total,
+        currency: settings.currency,
+        status: 'pending',
+        createdBy: currentSession.userId,
+        createdAt: new Date(),
+        assignedTo,
+      });
+    } else {
+      // ✅ Vente directe (promoteur/gérant) : validation + stock atomique
+      const success = processSaleValidation(
+        cart,
+        () => {
+          // Callback succès : créer la vente après décrémentation stock
+          addSale({
+            items: cart,
+            total,
+            currency: settings.currency,
+            status: 'validated',
+            createdBy: currentSession.userId,
+            validatedBy: currentSession.userId,
+            createdAt: new Date(),
+            validatedAt: new Date(),
+            assignedTo,
+          });
+        },
+        (error) => {
+          // Callback erreur : stock insuffisant
+          showNotification('error', error);
+        }
+      );
+
+      if (!success) return; // Arrêter si validation échouée
+    }
+
+    clearCart();
+    setIsCartOpen(false);
+    // La notification est gérée dans AppContext, pas besoin d'une autre ici.
+  } catch (error) {
+    showNotification('error', error instanceof Error ? error.message : 'Erreur lors de la vente');
+  }
+};
 
   const handleMobileNavigation = (menu: string) => {
     setCurrentMenu(menu);
@@ -281,8 +305,6 @@ function AppContent() {
     }
   };
 
-  const [authView, setAuthView] = useState('login'); // 'login', 'forgotPassword', 'resetPassword'
-
   // Gérer la route de réinitialisation de mot de passe
   useEffect(() => {
     // Note: Ceci est une gestion de route simple. Pour une app plus complexe,
@@ -303,6 +325,11 @@ function AppContent() {
       default:
         return <LoginScreen onNavigateToForgotPassword={() => setAuthView('forgotPassword')} />;
     }
+  }
+
+  // Afficher le SplashScreen pendant le chargement initial
+  if (!isAppReady) {
+    return <SplashScreen message="Préparation de votre espace..." />;
   }
 
   // Interface serveur simplifiée
@@ -696,7 +723,6 @@ function AppContent() {
         onShowExcel={() => setShowSalesHistory(true)}
         onShowDashboard={() => setShowDailyDashboard(true)} // ✅ NOUVEAU
       />
-
     </motion.div>
   );
 }
