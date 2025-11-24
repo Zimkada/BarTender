@@ -147,7 +147,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
 
   // 👥 Obtenir les membres de l'équipe du bar actuel
   const barMembers = currentBar ? getBarMembers(currentBar.id) : [];
-  const users = barMembers.map(m => m.user);
+  const users = Array.isArray(barMembers) ? barMembers.map((m: any) => m.user) : [];
 
   const [selectedSaleId, setSelectedSaleId] = useState('');
   const [selectedProductId, setSelectedProductId] = useState('');
@@ -188,7 +188,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
 
   // ✅ Liste unique des vendeurs ayant des ventes
   const sellersWithSales = useMemo(() => {
-    if (!currentBar || !session) return []; // ✅ Protection si pas de bar/session
+    if (!currentBar || !session || !Array.isArray(todaySales) || !Array.isArray(users)) return [];
     const sellerIds = new Set(todaySales.map(sale => sale.createdBy).filter(Boolean));
     return users.filter(user => sellerIds.has(user.id));
   }, [todaySales, users, currentBar, session]);
@@ -551,7 +551,7 @@ const ActiveConsignmentsTab: React.FC = () => {
 
   // 👥 Obtenir les membres de l'équipe du bar actuel
   const barMembers = currentBar ? getBarMembers(currentBar.id) : [];
-  const users = barMembers.map(m => m.user);
+  const users = Array.isArray(barMembers) ? barMembers.map((m: any) => m.user) : [];
 
   const activeConsignments = useMemo(() =>
     stockManager.consignments.filter((c: Consignment) => c.status === 'active'),
@@ -767,7 +767,7 @@ const HistoryTab: React.FC = () => {
 
   // 👥 Obtenir les membres de l'équipe du bar actuel
   const barMembers = currentBar ? getBarMembers(currentBar.id) : [];
-  const users = barMembers.map(m => m.user);
+  const users = Array.isArray(barMembers) ? barMembers.map((m: any) => m.user) : [];
 
   const historyConsignments = useMemo(() => {
     const filtered = stockManager.consignments.filter((c: Consignment) => c.status !== 'active');
