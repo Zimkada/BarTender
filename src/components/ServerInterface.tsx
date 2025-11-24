@@ -17,7 +17,6 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
   const { categories, addSale, settings } = useAppContext();
   const {
     products,
-    decreasePhysicalStock,
     getProductStockInfo
   } = useStockManagement();
   const { currentSession } = useAuth();
@@ -40,15 +39,15 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
       alert('❌ Stock disponible épuisé');
       return;
     }
-    
+
     if (physicalStock <= product.alertThreshold && physicalStock > 0) {
       if (!confirm(`⚠️ Stock physique critique (${physicalStock} restants). Continuer ?`)) {
         return;
       }
     }
-    
+
     const existingItem = cart.find(item => item.product.id === product.id);
-    
+
     if (existingItem) {
       setCart(cart.map(item =>
         item.product.id === product.id
@@ -114,10 +113,6 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
         validatedAt: new Date(),
         tableNumber: tableNumber || undefined,
       });
-
-      cart.forEach(item => {
-        decreasePhysicalStock(item.product.id, item.quantity);
-      });
     } else {
       console.error('Rôle utilisateur non reconnu:', currentSession.role);
       alert('Erreur: Rôle utilisateur non valide');
@@ -137,7 +132,7 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
               Serveur: <span className="text-amber-600 font-semibold">{currentSession?.userName || 'Non défini'}</span>
             </p>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowPendingOrders(true)}
@@ -154,7 +149,7 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
           </div>
         </div>
       </header>
-      
+
       <main className="container mx-auto px-4 py-6 space-y-6">
         <div className="bg-white/60 backdrop-blur-sm border border-amber-100 rounded-2xl p-4 shadow-sm">
           <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
@@ -175,7 +170,7 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
           activeCategory={activeCategory}
           onCategoryChange={setActiveCategory}
         />
-        
+
         <ProductGrid
           products={currentProducts}
           onAddToCart={addToCart}

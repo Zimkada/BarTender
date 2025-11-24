@@ -2,7 +2,7 @@ import { Clock, Check, X, User, ShoppingBag } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
-import { Sale, CartItem } from '../types';
+import { Sale, SaleItem } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EnhancedButton } from './EnhancedButton';
 import { RoleBasedComponent } from './RoleBasedComponent';
@@ -25,7 +25,7 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
     validateSale, // Future fonction du contexte
     rejectSale,   // Future fonction du contexte
   } = useAppContext();
-  
+
   const { currentSession } = useAuth();
   const { formatPrice } = useCurrencyFormatter();
 
@@ -134,15 +134,15 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
                       </div>
 
                       <div className="space-y-2 mb-4 pl-4 border-l-2 border-amber-200">
-                        {sale.items.map((item: CartItem, index: number) => (
+                        {sale.items.map((item: SaleItem, index: number) => (
                           <div key={index} className="flex items-center justify-between text-sm ml-4">
                             <div className="flex items-center gap-2">
-                               <ShoppingBag size={14} className="text-gray-400"/>
-                               <span className="font-medium text-gray-700">{item.quantity}x</span>
-                               <span>{item.product.name} ({item.product.volume})</span>
+                              <ShoppingBag size={14} className="text-gray-400" />
+                              <span className="font-medium text-gray-700">{item.quantity}x</span>
+                              <span>{item.product_name} ({item.product_volume})</span>
                             </div>
                             <span className="font-semibold text-gray-800">
-                              {formatPrice(item.product.price * item.quantity)}
+                              {formatPrice(item.total_price)}
                             </span>
                           </div>
                         ))}

@@ -30,7 +30,6 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   const { categories, addSale, settings } = useAppContext();
   const {
     products,
-    decreasePhysicalStock,
     getProductStockInfo
   } = useStockManagement();
   const { currentBar } = useBarContext();
@@ -151,6 +150,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
           total,
           currency: settings.currency,
           status: 'pending',
+          paymentMethod: 'cash',
           createdBy: currentSession.userId,
           createdAt: new Date(),
           assignedTo: isSimplifiedMode ? selectedServer : undefined,
@@ -161,16 +161,13 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
           total,
           currency: settings.currency,
           status: 'validated',
+          paymentMethod: 'cash',
           createdBy: currentSession.userId,
           validatedBy: currentSession.userId,
           createdAt: new Date(),
           validatedAt: new Date(),
           assignedTo: isSimplifiedMode ? selectedServer : undefined,
         } as any);
-
-        cart.forEach(item => {
-          decreasePhysicalStock(item.product.id, item.quantity);
-        });
       }
 
       setShowSuccess(true);
@@ -242,8 +239,8 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                       <button
                         onClick={() => setSelectedCategory('all')}
                         className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${selectedCategory === 'all'
-                            ? 'bg-amber-500 text-white'
-                            : 'bg-gray-200 text-gray-700'
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-gray-200 text-gray-700'
                           }`}
                       >
                         Toutes
@@ -253,8 +250,8 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                           key={category.id}
                           onClick={() => setSelectedCategory(category.id)}
                           className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${selectedCategory === category.id
-                              ? 'bg-amber-500 text-white'
-                              : 'bg-gray-200 text-gray-700'
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-gray-200 text-gray-700'
                             }`}
                         >
                           {category.name}
@@ -383,8 +380,8 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                                 key={method.value}
                                 onClick={() => setPaymentMethod(method.value as any)}
                                 className={`p-3 text-sm rounded-xl border-2 transition-colors ${paymentMethod === method.value
-                                    ? 'border-amber-500 bg-amber-50 text-amber-700'
-                                    : 'border-gray-200 bg-white text-gray-600'
+                                  ? 'border-amber-500 bg-amber-50 text-amber-700'
+                                  : 'border-gray-200 bg-white text-gray-600'
                                   }`}
                               >
                                 <div className="text-center">
@@ -475,8 +472,8 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                       <button
                         onClick={() => setSelectedCategory('all')}
                         className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${selectedCategory === 'all'
-                            ? 'bg-amber-500 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                           }`}
                       >
                         Toutes
@@ -486,8 +483,8 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                           key={category.id}
                           onClick={() => setSelectedCategory(category.id)}
                           className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${selectedCategory === category.id
-                              ? 'bg-amber-500 text-white'
-                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                             }`}
                         >
                           {category.name}
@@ -601,8 +598,8 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                             key={method.value}
                             onClick={() => setPaymentMethod(method.value as any)}
                             className={`p-1.5 text-xs rounded-lg border-2 transition-colors ${paymentMethod === method.value
-                                ? 'border-amber-500 bg-amber-50 text-amber-700'
-                                : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                              ? 'border-amber-500 bg-amber-50 text-amber-700'
+                              : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                               }`}
                           >
                             <div className="text-center">

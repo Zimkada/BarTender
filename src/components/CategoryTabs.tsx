@@ -9,9 +9,9 @@ interface CategoryTabsProps {
   categories: Category[];
   activeCategory: string;
   onCategoryChange: (categoryId: string) => void;
-  onAddCategory: () => void;
-  onEditCategory: (category: Category) => void;
-  onDeleteCategory: (categoryId: string) => void;
+  onAddCategory?: () => void;
+  onEditCategory?: (category: Category) => void;
+  onDeleteCategory?: (categoryId: string) => void;
 }
 
 export function CategoryTabs({
@@ -26,7 +26,7 @@ export function CategoryTabs({
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; category: Category } | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout>>();
 
-  const canEdit = hasPermission('canEditProducts');
+  const canEdit = hasPermission('canEditProducts') && !!onEditCategory;
 
   const handleMouseDown = (e: React.MouseEvent<HTMLButtonElement>, category: Category) => {
     if (!canEdit) return;
@@ -88,17 +88,16 @@ export function CategoryTabs({
             animate={activeCategory === category.id ? "active" : "inactive"}
             whileHover={{ y: canEdit ? -2 : 0 }}
             whileTap={{ scale: 0.98 }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all ${
-              activeCategory === category.id
+            className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium whitespace-nowrap transition-all ${activeCategory === category.id
                 ? 'bg-gradient-to-br from-amber-50 to-amber-50 text-amber-600 shadow-md border border-amber-300 font-semibold'
                 : 'bg-transparent text-gray-600 hover:bg-white/50'
-            }`}
+              }`}
           >
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: category.color }} />
             {category.name}
           </motion.button>
         ))}
-        {hasPermission('canAddProducts') && (
+        {hasPermission('canAddProducts') && onAddCategory && (
           <motion.button
             onClick={onAddCategory}
             whileHover={{ scale: 1.05, y: -2 }}
@@ -137,17 +136,19 @@ export function CategoryTabs({
                 <p className='text-sm font-semibold truncate text-gray-800'>{contextMenu.category.name}</p>
               </div>
               <div className='py-1'>
-                <button
-                  onClick={() => {
-                    onEditCategory(contextMenu.category);
-                    setContextMenu(null);
-                  }}
-                  className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-700 rounded-md transition-colors"
-                >
-                  <Edit size={16} />
-                  Modifier
-                </button>
-                {hasPermission('canDeleteProducts') && (
+                {onEditCategory && (
+                  <button
+                    onClick={() => {
+                      onEditCategory(contextMenu.category);
+                      setContextMenu(null);
+                    }}
+                    className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-700 rounded-md transition-colors"
+                  >
+                    <Edit size={16} />
+                    Modifier
+                  </button>
+                )}
+                {hasPermission('canDeleteProducts') && onDeleteCategory && (
                   <button
                     onClick={() => {
                       onDeleteCategory(contextMenu.category.id);
