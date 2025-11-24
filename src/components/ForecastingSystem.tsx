@@ -22,6 +22,7 @@ import { useViewport } from '../hooks/useViewport';
 import { EnhancedButton } from './EnhancedButton';
 import { Product } from '../types';
 import { getSaleDate } from '../utils/saleHelpers';
+import * as XLSX from 'xlsx';
 
 interface StockAlert {
   id: string;
@@ -246,31 +247,33 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
   };
 
   // Export bon de commande
+  // Export bon de commande Excel
   const exportOrderList = () => {
-    const csvData = orderSuggestions.map(suggestion => ({
+    const exportData = orderSuggestions.map(suggestion => ({
       'Produit': suggestion.productName,
       'Stock actuel': suggestion.currentStock,
       'Quantité suggérée': suggestion.suggestedQuantity,
-      'Coût estimé': suggestion.estimatedCost,
-      'Urgence': suggestion.urgency,
+      'Coût estimé (FCFA)': suggestion.estimatedCost,
+      'Urgence': suggestion.urgency === 'high' ? 'Haute' : suggestion.urgency === 'medium' ? 'Moyenne' : 'Faible',
       'Raison': suggestion.reasoning
     }));
 
-    const headers = Object.keys(csvData[0] || {});
-    const csvContent = [
-      headers.join(','),
-      ...csvData.map(row => headers.map(header => `"${row[header as keyof typeof row]}"`).join(','))
-    ].join('\n');
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportData);
 
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `bon_commande_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Ajustement largeur colonnes
+    const wscols = [
+      { wch: 30 }, // Produit
+      { wch: 12 }, // Stock actuel
+      { wch: 18 }, // Quantité suggérée
+      { wch: 15 }, // Coût estimé
+      { wch: 10 }, // Urgence
+      { wch: 25 }, // Raison
+    ];
+    ws['!cols'] = wscols;
+
+    XLSX.utils.book_append_sheet(wb, ws, "Commande Suggérée");
+    XLSX.writeFile(wb, `bon_commande_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   if (!isOpen) return null;
@@ -366,7 +369,7 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
             </div>
 
             {/* Content */}
-            <div className={`${isMobile ? 'h-[calc(100vh-140px)]' : 'h-[calc(85vh-140px)] md:h-[calc(90vh-140px)]'} overflow-hidden`}>
+            <div className={`${isMobile ? 'h-[calc(100vh-230px)]' : 'h-[calc(85vh-230px)] md:h-[calc(90vh-230px)]'} overflow-hidden`}>
               {activeTab === 'stock' && (
                 <StockForecastView
                   isMobile={isMobile}
@@ -437,24 +440,8 @@ function StockForecastView({
     <>
       {isMobile ? (
         <div className="flex flex-col h-full">
-          {/* Stats + Filtres compacts en haut */}
+          {/* Filtres compacts en haut */}
           <div className="flex-shrink-0 bg-amber-50 p-3">
-            {/* Stats en 3 colonnes */}
-            <div className="grid grid-cols-3 gap-2 mb-3">
-              <div className="bg-red-100 rounded-lg p-2 text-center">
-                <p className="text-red-600 text-xs font-medium mb-1">Critiques</p>
-                <p className="text-red-800 font-bold text-sm">{stats.critical}</p>
-              </div>
-              <div className="bg-yellow-100 rounded-lg p-2 text-center">
-                <p className="text-yellow-600 text-xs font-medium mb-1">Nouvelles</p>
-                <p className="text-yellow-800 font-bold text-sm">{stats.new}</p>
-              </div>
-              <div className="bg-blue-100 rounded-lg p-2 text-center">
-                <p className="text-blue-600 text-xs font-medium mb-1">Total</p>
-                <p className="text-blue-800 font-bold text-sm">{stats.total}</p>
-              </div>
-            </div>
-
             {/* Bouton toggle suggestions */}
             <button
               onClick={() => setShowOrderSuggestions(!showOrderSuggestions)}
@@ -524,9 +511,18 @@ function StockForecastView({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-sm text-gray-600 mb-2">
-                    Total estimé: <span className="font-bold text-amber-600">{formatPrice(stats.totalOrderValue)}</span>
-                  </p>
+                  {/* Header avec bouton Export uniquement - Mobile */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg sticky top-0 z-10 px-3 py-2 flex justify-end">
+                    <EnhancedButton
+                      variant="primary"
+                      size="sm"
+                      onClick={exportOrderList}
+                      icon={<Download size={14} />}
+                      className="text-xs px-3 py-1.5"
+                    >
+                      Export
+                    </EnhancedButton>
+                  </div>
                   {orderSuggestions.map((suggestion: OrderSuggestion) => (
                     <OrderSuggestionCard
                       key={suggestion.productId}
