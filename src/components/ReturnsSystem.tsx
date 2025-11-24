@@ -80,7 +80,7 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
     consignments
   } = useStockManagement();
   const { currentBar, barMembers } = useBarContext();
-  const users = barMembers.map(m => m.user).filter(Boolean);
+  const users = Array.isArray(barMembers) ? barMembers.map((m: any) => m.user).filter(Boolean) : [];
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession } = useAuth();
   const { showSuccess, showError } = useFeedback();
@@ -670,7 +670,11 @@ function CreateReturnForm({
   };
 
   const availableQty = selectedProduct
-    ? selectedProduct.quantity - getAlreadyReturned(selectedProduct.product.id) - getAlreadyConsigned(selectedProduct.product.id)
+    ? (() => {
+        const productId = (selectedProduct as any).product?.id || (selectedProduct as any).product_id;
+        if (!productId) return 0;
+        return selectedProduct.quantity - getAlreadyReturned(productId) - getAlreadyConsigned(productId);
+      })()
     : 0;
 
   // ✅ Filtrer ventes par vendeur sélectionné
@@ -681,6 +685,7 @@ function CreateReturnForm({
 
   // ✅ Liste unique des vendeurs ayant des ventes
   const sellersWithSales = useMemo(() => {
+    if (!Array.isArray(returnableSales) || !Array.isArray(users)) return [];
     const sellerIds = new Set(returnableSales.map(sale => sale.createdBy).filter(Boolean));
     return users.filter(user => sellerIds.has(user.id));
   }, [returnableSales, users]);
@@ -688,21 +693,33 @@ function CreateReturnForm({
   const handleSubmit = () => {
     if (!selectedSale || !selectedProduct) return;
 
+    const productId = (selectedProduct as any).product?.id || (selectedProduct as any).product_id;
+    if (!productId) {
+      showError('Produit invalide');
+      return;
+    }
+
     if (reason === 'other') {
       setShowOtherReasonDialog(true);
       return;
     }
 
-    onCreateReturn(selectedSale.id, selectedProduct.product.id, quantity, reason, notes || undefined);
+    onCreateReturn(selectedSale.id, productId, quantity, reason, notes || undefined);
   };
 
   const handleOtherReasonConfirm = (customRefund: boolean, customRestock: boolean, customNotes: string) => {
     if (!selectedSale || !selectedProduct) return;
 
+    const productId = (selectedProduct as any).product?.id || (selectedProduct as any).product_id;
+    if (!productId) {
+      showError('Produit invalide');
+      return;
+    }
+
     setShowOtherReasonDialog(false);
     onCreateReturn(
       selectedSale.id,
-      selectedProduct.product.id,
+      productId,
       quantity,
       reason,
       customNotes,
