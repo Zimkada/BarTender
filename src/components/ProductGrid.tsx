@@ -1,26 +1,35 @@
 import { ProductCard } from './ProductCard';
+import { EmptyProductsState } from './EmptyProductsState';
 import { Product } from '../types';
 
 interface ProductGridProps {
   products: Product[];
   onAddToCart: (product: Product) => void;
+  isLoading?: boolean;
+  categoryName?: string;
+  onAddProduct?: () => void;
 }
 
-export function ProductGrid({ products, onAddToCart }: ProductGridProps) {
+export function ProductGrid({
+  products,
+  onAddToCart,
+  isLoading = false,
+  categoryName,
+  onAddProduct
+}: ProductGridProps) {
+  // Option C: Condition intelligente - Afficher l'état vide uniquement si pas de produits
+  // Si des produits existent, les afficher immédiatement (pas de spinner pendant le chargement)
   if (products.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <div className="text-6xl mb-4">🍺</div>
-        <h3 className="text-xl font-semibold text-gray-600 mb-2">
-          Aucun produit dans cette catégorie
-        </h3>
-        <p className="text-gray-500">
-          Ajoutez des produits pour commencer à vendre
-        </p>
-      </div>
+      <EmptyProductsState
+        isLoading={isLoading}
+        categoryName={categoryName}
+        onAddProduct={onAddProduct}
+      />
     );
   }
 
+  // Si on a des produits, les afficher directement (même si isLoading=true)
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
       {products.map((product) => (

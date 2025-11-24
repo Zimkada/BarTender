@@ -81,6 +81,7 @@ function AppContent() {
   const [isAppReady, setIsAppReady] = useState(false);
   const [showDailyDashboard, setShowDailyDashboard] = useState(false);
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id || '');
+  const [isProductsLoading, setIsProductsLoading] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
@@ -110,146 +111,155 @@ function AppContent() {
 
   // Gestion du chargement initial avec SplashScreen
   useEffect(() => {
-    if (isAuthenticated && currentBar) {
-      // Si on a des catégories, on affiche pendant 1.5s pour l'animation
-      if (categories.length > 0) {
-        const timer = setTimeout(() => setIsAppReady(true), 1500);
-        return () => clearTimeout(timer);
-      } else {
-        // Nouveau bar sans catégories : timeout de 2s
-        const timer = setTimeout(() => setIsAppReady(true), 2000);
-        return () => clearTimeout(timer);
-      }
+    if (isAuthenticated) {
+      // Réinitialiser isAppReady à false pour afficher le SplashScreen
+      setIsAppReady(false);
+
+      // Timer de 2.5s dès la connexion réussie
+      const timer = setTimeout(() => setIsAppReady(true), 2500);
+      return () => clearTimeout(timer);
     } else {
       // Écran de login toujours prêt
       setIsAppReady(true);
     }
-  }, [categories, isAuthenticated, currentBar]);
+  }, [isAuthenticated]);
 
-useEffect(() => {
-  if (categories.length > 0 && !activeCategory) {
-    setActiveCategory(categories[0].id);
-  }
-}, [categories, activeCategory]);
-
-const handleEditCategory = (category: Category) => {
-  setEditingCategory(category);
-};
-
-const handleDeleteCategory = (categoryId: string) => {
-  deleteCategory(categoryId);
-};
-
-const handleCategoryModalClose = () => {
-  setShowCategoryModal(false);
-  setEditingCategory(null);
-};
-
-const handleCategoryModalSave = (categoryData: Omit<Category, 'id' | 'createdAt' | 'barId'>) => {
-  if (editingCategory) {
-    updateCategory(editingCategory.id, categoryData);
-    // Notification handled in AppContext
-  } else {
-    addCategory(categoryData);
-    // Notification handled in AppContext
-  }
-  handleCategoryModalClose();
-};
-
-useEffect(() => {
-  // Démarrer le processing automatique de la queue de sync
-  syncHandler.start(5000); // Traiter toutes les 5 secondes
-
-  return () => {
-    syncHandler.stop();
-  };
-}, []);
-
-const addToCart = (product: Product) => {
-  const existingItem = cart.find(item => item.product.id === product.id);
-
-  if (existingItem) {
-    setCart(cart.map(item =>
-      item.product.id === product.id
-        ? { ...item, quantity: item.quantity + 1 }
-        : item
-    ));
-  } else {
-    setCart([...cart, { product, quantity: 1 }]);
-  }
-};
-
-const updateCartQuantity = (productId: string, quantity: number) => {
-  if (quantity === 0) {
-    setCart(cart.filter(item => item.product.id !== productId));
-  } else {
-    setCart(cart.map(item =>
-      item.product.id === productId
-        ? { ...item, quantity }
-        : item
-    ));
-  }
-};
-
-const removeFromCart = (productId: string) => {
-  setCart(cart.filter(item => item.product.id !== productId));
-};
-
-const clearCart = () => {
-  setCart([]);
-};
-
-const checkout = (assignedTo?: string) => {
-  if (cart.length === 0 || !currentSession) return;
-
-  const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-  const isServerRole = currentSession.role === 'serveur';
-
-  try {
-    if (isServerRole) {
-      addSale({
-        items: cart,
-        total,
-        currency: settings.currency,
-        status: 'pending',
-        createdBy: currentSession.userId,
-        createdAt: new Date(),
-        assignedTo,
-      });
-    } else {
-      // ✅ Vente directe (promoteur/gérant) : validation + stock atomique
-      const success = processSaleValidation(
-        cart,
-        () => {
-          // Callback succès : créer la vente après décrémentation stock
-          addSale({
-            items: cart,
-            total,
-            currency: settings.currency,
-            status: 'validated',
-            createdBy: currentSession.userId,
-            validatedBy: currentSession.userId,
-            createdAt: new Date(),
-            validatedAt: new Date(),
-            assignedTo,
-          });
-        },
-        (error) => {
-          // Callback erreur : stock insuffisant
-          showNotification('error', error);
-        }
-      );
-
-      if (!success) return; // Arrêter si validation échouée
+  useEffect(() => {
+    if (categories.length > 0 && !activeCategory) {
+      setActiveCategory(categories[0].id);
     }
+  }, [categories, activeCategory]);
 
-    clearCart();
-    setIsCartOpen(false);
-    // La notification est gérée dans AppContext, pas besoin d'une autre ici.
-  } catch (error) {
-    showNotification('error', error instanceof Error ? error.message : 'Erreur lors de la vente');
-  }
-};
+  // Gérer le chargement des produits lors du changement de catégorie
+  useEffect(() => {
+    if (activeCategory) {
+      setIsProductsLoading(true);
+      // Délai réduit à 150ms pour une transition plus fluide (Option C)
+      const timer = setTimeout(() => {
+        setIsProductsLoading(false);
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [activeCategory]);
+
+  const handleEditCategory = (category: Category) => {
+    setEditingCategory(category);
+  };
+
+  const handleDeleteCategory = (categoryId: string) => {
+    deleteCategory(categoryId);
+  };
+
+  const handleCategoryModalClose = () => {
+    setShowCategoryModal(false);
+    setEditingCategory(null);
+  };
+
+  const handleCategoryModalSave = (categoryData: Omit<Category, 'id' | 'createdAt' | 'barId'>) => {
+    if (editingCategory) {
+      updateCategory(editingCategory.id, categoryData);
+      // Notification handled in AppContext
+    } else {
+      addCategory(categoryData);
+      // Notification handled in AppContext
+    }
+    handleCategoryModalClose();
+  };
+
+  useEffect(() => {
+    // Démarrer le processing automatique de la queue de sync
+    syncHandler.start(5000); // Traiter toutes les 5 secondes
+
+    return () => {
+      syncHandler.stop();
+    };
+  }, []);
+
+  const addToCart = (product: Product) => {
+    const existingItem = cart.find(item => item.product.id === product.id);
+
+    if (existingItem) {
+      setCart(cart.map(item =>
+        item.product.id === product.id
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
+      ));
+    } else {
+      setCart([...cart, { product, quantity: 1 }]);
+    }
+  };
+
+  const updateCartQuantity = (productId: string, quantity: number) => {
+    if (quantity === 0) {
+      setCart(cart.filter(item => item.product.id !== productId));
+    } else {
+      setCart(cart.map(item =>
+        item.product.id === productId
+          ? { ...item, quantity }
+          : item
+      ));
+    }
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCart(cart.filter(item => item.product.id !== productId));
+  };
+
+  const clearCart = () => {
+    setCart([]);
+  };
+
+  const checkout = (assignedTo?: string) => {
+    if (cart.length === 0 || !currentSession) return;
+
+    const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+    const isServerRole = currentSession.role === 'serveur';
+
+    try {
+      if (isServerRole) {
+        addSale({
+          items: cart,
+          total,
+          currency: settings.currency,
+          status: 'pending',
+          createdBy: currentSession.userId,
+          createdAt: new Date(),
+          assignedTo,
+        });
+      } else {
+        // ✅ Vente directe (promoteur/gérant) : validation + stock atomique
+        const success = processSaleValidation(
+          cart,
+          () => {
+            // Callback succès : créer la vente après décrémentation stock
+            addSale({
+              items: cart,
+              total,
+              currency: settings.currency,
+              status: 'validated',
+              createdBy: currentSession.userId,
+              validatedBy: currentSession.userId,
+              createdAt: new Date(),
+              validatedAt: new Date(),
+              assignedTo,
+            });
+          },
+          (error) => {
+            // Callback erreur : stock insuffisant
+            showNotification('error', error);
+          }
+        );
+
+        if (!success) return; // Arrêter si validation échouée
+      }
+
+      clearCart();
+      setIsCartOpen(false);
+      // La notification est gérée dans AppContext, pas besoin d'une autre ici.
+    } catch (error) {
+      showNotification('error', error instanceof Error ? error.message : 'Erreur lors de la vente');
+    }
+  };
 
   const handleMobileNavigation = (menu: string) => {
     setCurrentMenu(menu);
@@ -554,6 +564,9 @@ const checkout = (assignedTo?: string) => {
             <ProductGrid
               products={currentProducts}
               onAddToCart={addToCart}
+              isLoading={isProductsLoading}
+              categoryName={categories.find(c => c.id === activeCategory)?.name}
+              onAddProduct={() => setShowProductModal(true)}
             />
           </motion.div>
         </AnimatePresence>
