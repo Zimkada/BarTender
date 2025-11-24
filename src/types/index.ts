@@ -228,10 +228,19 @@ export interface CartItem {
   returned?: number;
 }
 
+export interface SaleItem {
+  product_id: string;
+  product_name: string;
+  product_volume?: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+}
+
 export interface Sale {
   id: string;
   barId: string;
-  items: CartItem[];
+  items: SaleItem[];
   total: number;
   currency: string;
 
@@ -251,6 +260,12 @@ export interface Sale {
   // Optionnel, pour le mode simplifié ou pour référence
   assignedTo?: string;    // En mode simplifié : nom du serveur qui a servi (ex: "Marie")
   tableNumber?: string;   // Numéro de la table si applicable
+
+  // Informations complémentaires
+  paymentMethod?: 'cash' | 'mobile_money' | 'card' | 'credit';
+  customerName?: string;
+  customerPhone?: string;
+  notes?: string;
 }
 
 // ===== RETOURS =====
