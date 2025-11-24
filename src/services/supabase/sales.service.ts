@@ -207,9 +207,10 @@ export class SalesService {
 
       return (data || []).map((sale: any) => ({
         ...sale,
+        items: (sale.items as unknown) as SaleItem[],
         seller_name: sale.seller?.name || 'Inconnu',
         validator_name: sale.validator?.name || null,
-        items_count: (sale.items as SaleItem[]).length,
+        items_count: ((sale.items as unknown) as any[]).length,
       }));
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));

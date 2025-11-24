@@ -422,20 +422,14 @@ export class ProductsService {
    */
   static async incrementStock(productId: string, quantity: number): Promise<void> {
     try {
-      // Récupérer le stock actuel
-      const { data: product } = await supabase
-        .from('bar_products')
-        .select('stock')
-        .eq('id', productId)
-        .single();
+      const { error } = await supabase.rpc('increment_stock', {
+        p_product_id: productId,
+        p_quantity: quantity
+      });
 
-      if (!product) {
-        throw new Error('Produit introuvable');
+      if (error) {
+        throw new Error('Erreur lors de l\'incrémentation du stock');
       }
-
-      const newStock = (product.stock ?? 0) + quantity;
-
-      await this.updateStock(productId, newStock);
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
     }
@@ -446,20 +440,15 @@ export class ProductsService {
    */
   static async decrementStock(productId: string, quantity: number): Promise<void> {
     try {
-      // Récupérer le stock actuel
-      const { data: product } = await supabase
-        .from('bar_products')
-        .select('stock')
-        .eq('id', productId)
-        .single();
+      const { error } = await supabase.rpc('decrement_stock', {
+        p_product_id: productId,
+        p_quantity: quantity
+      });
 
-      if (!product) {
-        throw new Error('Produit introuvable');
+      if (error) {
+        console.error('Stock decrement error:', error);
+        throw new Error(`Erreur lors de la décrémentation du stock: ${error.message} (${error.details || ''})`);
       }
-
-      const newStock = Math.max(0, (product.stock ?? 0) - quantity);
-
-      await this.updateStock(productId, newStock);
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
     }
