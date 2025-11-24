@@ -20,7 +20,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 import { EnhancedButton } from './EnhancedButton';
-import { Product} from '../types';
+import { Product } from '../types';
 import { getSaleDate } from '../utils/saleHelpers';
 
 interface StockAlert {
@@ -69,6 +69,7 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
   const [alerts, setAlerts] = useState<StockAlert[]>([]);
   const [filterStatus, setFilterStatus] = useState<'all' | 'new' | 'read' | 'resolved'>('all');
   const [showOrderSuggestions, setShowOrderSuggestions] = useState(false);
+  const [coverageDays, setCoverageDays] = useState(7); // Fréquence d'approvisionnement: 7 jours par défaut
 
   // Génération automatique des alertes
   useEffect(() => {
@@ -76,8 +77,8 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
     const newAlerts: StockAlert[] = lowStockProducts.map(product => {
       const severity: StockAlert['severity'] =
         product.stock === 0 ? 'critical' :
-        product.stock <= product.alertThreshold / 2 ? 'critical' :
-        'warning';
+          product.stock <= product.alertThreshold / 2 ? 'critical' :
+            'warning';
 
       return {
         id: `alert_${product.id}_${Date.now()}`,
@@ -99,7 +100,7 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
       const toAdd = newAlerts.filter(alert => !existingIds.includes(alert.productId));
       return [...prev, ...toAdd];
     });
-  }, [products, getLowStockProducts]);
+  }, [products, getLowStockProducts, coverageDays]);
 
   // Calcul prédiction rupture stock
   const calculatePredictedRunout = (product: Product): Date | undefined => {
@@ -157,9 +158,25 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
       return sum + (item?.quantity || 0);
     }, 0);
 
-    const monthlyAverage = totalSold;
+    // Calculer le nombre de jours RÉELS avec des ventes (pas 30 jours fixes)
+    const uniqueDays = new Set(
+      recentSales.map(sale => getSaleDate(sale).toDateString())
+    );
+    const actualDaysWithSales = uniqueDays.size;
+
+    // Si aucune vente, pas de suggestion
+    if (actualDaysWithSales === 0 || totalSold === 0) {
+      return 0;
+    }
+
+    // Moyenne journalière basée sur les jours RÉELS de vente
+    const dailyAverage = totalSold / actualDaysWithSales;
+
+    // Besoin pour la période de couverture choisie
+    const coverageNeeds = dailyAverage * coverageDays;
+
     const safetyStock = product.alertThreshold;
-    const suggestedOrder = monthlyAverage + safetyStock - product.stock;
+    const suggestedOrder = coverageNeeds + safetyStock - product.stock;
 
     return Math.max(0, Math.ceil(suggestedOrder));
   };
@@ -195,7 +212,7 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
         reasoning
       };
     }).filter(suggestion => suggestion.suggestedQuantity > 0);
-  }, [products, getLowStockProducts, getAverageCostPerUnit]);
+  }, [products, getLowStockProducts, getAverageCostPerUnit, coverageDays]);
 
   // Actions sur alertes
   const markAsRead = (alertId: string) => {
@@ -271,11 +288,10 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className={`bg-gradient-to-br from-amber-50 to-amber-50 w-full shadow-2xl ${
-              isMobile
-                ? 'h-full'
-                : 'rounded-2xl max-w-6xl max-h-[85vh] md:max-h-[90vh] overflow-hidden'
-            }`}
+            className={`bg-gradient-to-br from-amber-50 to-amber-50 w-full shadow-2xl ${isMobile
+              ? 'h-full'
+              : 'rounded-2xl max-w-6xl max-h-[85vh] md:max-h-[90vh] overflow-hidden'
+              }`}
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-4">
@@ -295,22 +311,20 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
               <div className="flex gap-2 bg-white/10 backdrop-blur p-1 rounded-lg">
                 <button
                   onClick={() => setActiveTab('stock')}
-                  className={`flex-1 px-3 py-2 rounded-md transition-colors flex items-center justify-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} font-medium ${
-                    activeTab === 'stock'
-                      ? 'bg-white text-amber-600'
-                      : 'text-white hover:bg-white/10'
-                  }`}
+                  className={`flex-1 px-3 py-2 rounded-md transition-colors flex items-center justify-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} font-medium ${activeTab === 'stock'
+                    ? 'bg-white text-amber-600'
+                    : 'text-white hover:bg-white/10'
+                    }`}
                 >
                   <Package size={16} />
                   {!isMobile && <span>Stock</span>}
                 </button>
                 <button
                   onClick={() => setActiveTab('sales')}
-                  className={`flex-1 px-3 py-2 rounded-md transition-colors flex items-center justify-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} font-medium ${
-                    activeTab === 'sales'
-                      ? 'bg-white text-amber-600'
-                      : 'text-white hover:bg-white/10'
-                  }`}
+                  className={`flex-1 px-3 py-2 rounded-md transition-colors flex items-center justify-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} font-medium ${activeTab === 'sales'
+                    ? 'bg-white text-amber-600'
+                    : 'text-white hover:bg-white/10'
+                    }`}
                 >
                   <DollarSign size={16} />
                   {!isMobile && <span>Ventes</span>}
@@ -324,6 +338,31 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
                   {!isMobile && <span>Analyses</span>}
                 </button>
               </div>
+
+              {/* Curseur Fréquence d'approvisionnement - Visible uniquement dans l'onglet Stock */}
+              {activeTab === 'stock' && (
+                <div className="mt-4 bg-white/10 backdrop-blur p-3 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-white">Fréquence d'approvisionnement</span>
+                    <span className="text-sm font-bold text-white bg-white/20 px-2 py-0.5 rounded">
+                      {coverageDays} jours
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="30"
+                    value={coverageDays}
+                    onChange={(e) => setCoverageDays(parseInt(e.target.value))}
+                    className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white"
+                  />
+                  <div className="flex justify-between text-xs text-white/60 mt-1">
+                    <span>1 jour</span>
+                    <span>15 jours</span>
+                    <span>30 jours</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Content */}
@@ -419,11 +458,10 @@ function StockForecastView({
             {/* Bouton toggle suggestions */}
             <button
               onClick={() => setShowOrderSuggestions(!showOrderSuggestions)}
-              className={`w-full px-4 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors mb-3 ${
-                showOrderSuggestions
-                  ? 'bg-white text-amber-600 border-2 border-amber-600'
-                  : 'bg-amber-500 text-white'
-              }`}
+              className={`w-full px-4 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors mb-3 ${showOrderSuggestions
+                ? 'bg-white text-amber-600 border-2 border-amber-600'
+                : 'bg-amber-500 text-white'
+                }`}
             >
               <ShoppingCart size={18} />
               {showOrderSuggestions ? 'Voir alertes' : `Suggestions de commande (${orderSuggestions.length})`}
@@ -441,11 +479,10 @@ function StockForecastView({
                   <button
                     key={filter.value}
                     onClick={() => setFilterStatus(filter.value as typeof filterStatus)}
-                    className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium transition-colors ${
-                      filterStatus === filter.value
-                        ? 'bg-amber-500 text-white'
-                        : 'bg-white text-gray-700'
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium transition-colors ${filterStatus === filter.value
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-white text-gray-700'
+                      }`}
                   >
                     {filter.label}
                   </button>
@@ -545,11 +582,10 @@ function StockForecastView({
                   <button
                     key={filter.value}
                     onClick={() => setFilterStatus(filter.value as typeof filterStatus)}
-                    className={`w-full text-left p-2 rounded-lg transition-colors ${
-                      filterStatus === filter.value
-                        ? 'bg-amber-500 text-white'
-                        : 'bg-white text-gray-700 hover:bg-amber-50'
-                    }`}
+                    className={`w-full text-left p-2 rounded-lg transition-colors ${filterStatus === filter.value
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-white text-gray-700 hover:bg-amber-50'
+                      }`}
                   >
                     {filter.label}
                   </button>
@@ -731,9 +767,8 @@ function AlertCard({
   return (
     <motion.div
       whileHover={{ y: -2 }}
-      className={`rounded-xl p-4 border-2 transition-all ${getSeverityColor(alert.severity)} ${
-        alert.status === 'new' ? 'shadow-md' : 'opacity-75'
-      }`}
+      className={`rounded-xl p-4 border-2 transition-all ${getSeverityColor(alert.severity)} ${alert.status === 'new' ? 'shadow-md' : 'opacity-75'
+        }`}
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
@@ -747,13 +782,12 @@ function AlertCard({
             </p>
           </div>
         </div>
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-          alert.status === 'new' ? 'bg-red-100 text-red-700' :
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${alert.status === 'new' ? 'bg-red-100 text-red-700' :
           alert.status === 'read' ? 'bg-yellow-100 text-yellow-700' :
-          'bg-green-100 text-green-700'
-        }`}>
+            'bg-green-100 text-green-700'
+          }`}>
           {alert.status === 'new' ? 'Nouveau' :
-           alert.status === 'read' ? 'Lu' : 'Résolu'}
+            alert.status === 'read' ? 'Lu' : 'Résolu'}
         </span>
       </div>
 
@@ -837,13 +871,12 @@ function OrderSuggestionCard({
             Stock actuel: {suggestion.currentStock}
           </p>
         </div>
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-          suggestion.urgency === 'high' ? 'bg-red-100 text-red-700' :
+        <span className={`px-2 py-1 rounded-full text-xs font-medium ${suggestion.urgency === 'high' ? 'bg-red-100 text-red-700' :
           suggestion.urgency === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-          'bg-green-100 text-green-700'
-        }`}>
+            'bg-green-100 text-green-700'
+          }`}>
           {suggestion.urgency === 'high' ? 'Urgent' :
-           suggestion.urgency === 'medium' ? 'Moyen' : 'Faible'}
+            suggestion.urgency === 'medium' ? 'Moyen' : 'Faible'}
         </span>
       </div>
 
