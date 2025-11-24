@@ -385,17 +385,19 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
       </div>
 
       {/* Sélection produit */}
-      {selectedSale && (
+      {selectedSale && Array.isArray(selectedSale.items) && selectedSale.items.length > 0 && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             2. Choisir le produit à consigner
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {selectedSale.items.map((item: any) => {
+            {selectedSale.items.map((item: any, idx: number) => {
               const productId = item.product?.id || item.product_id;
               const productName = item.product?.name || item.product_name || 'Produit';
               const productVolume = item.product?.volume || item.product_volume || '';
               const productPrice = item.product?.price || item.unit_price || 0;
+
+              if (!productId || !item) return null; // Skip invalid items
 
               const consignedFromThisSale = getAlreadyConsigned(selectedSale.id, productId);
               const returnedStock = getAlreadyReturned(selectedSale.id, productId);
