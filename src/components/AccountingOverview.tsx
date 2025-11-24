@@ -226,8 +226,9 @@ export function AccountingOverview() {
 
     const investmentRate = totalRevenue > 0 ? (investments / totalRevenue) * 100 : 0;
 
-    // 3. Chart Data (last 12 months)
-    const chartData = Array.from({ length: 12 }).map((_, i) => {
+    // 3. Chart Data (12 months on desktop, 6 months on mobile)
+    const monthsToShow = isMobile ? 6 : 12;
+    const chartData = Array.from({ length: monthsToShow }).map((_, i) => {
       const date = new Date();
       date.setMonth(date.getMonth() - i);
       const month = date.toLocaleString('fr-FR', { month: 'short' });
@@ -268,7 +269,7 @@ export function AccountingOverview() {
     }).reverse();
 
     return { revenueGrowth, revenuePerServer, investmentRate, chartData };
-  }, [totalRevenue, investments, operatingExpenses, sales, returns, expenses, salariesHook.salaries, periodStart, currentBar]);
+  }, [totalRevenue, investments, operatingExpenses, sales, returns, expenses, salariesHook.salaries, periodStart, currentBar, isMobile]);
 
 
   // CALCULATIONS - Cumulative Balance (for Vue Analytique)
@@ -730,7 +731,7 @@ export function AccountingOverview() {
   return (
     <div className={`${isMobile ? 'p-3 space-y-3' : 'p-6 space-y-6'}`}>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className={isMobile ? 'space-y-3' : 'flex items-center justify-between'}>
         <div>
           <h2 className={`font-bold text-gray-800 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
             📊 Vue d'ensemble Comptable
@@ -741,7 +742,7 @@ export function AccountingOverview() {
         </div>
 
         {/* Actions: Export + Solde initial */}
-        <div className="flex items-center gap-2">
+        <div className={`flex items-center gap-2 ${isMobile ? 'justify-end' : ''}`}>
           <button
             onClick={handleExportAccounting}
             className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
@@ -844,21 +845,21 @@ export function AccountingOverview() {
       )}
 
       {/* Period Navigation */}
-      <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-2">
+      <div className={`flex items-center justify-between bg-white border border-gray-200 rounded-lg ${isMobile ? 'p-1' : 'p-2'}`}>
         <button
           onClick={handlePreviousPeriod}
           disabled={periodType === 'custom'}
-          className={`p-2 rounded-lg transition-colors ${periodType === 'custom'
+          className={`${isMobile ? 'p-1.5' : 'p-2'} rounded-lg transition-colors ${periodType === 'custom'
             ? 'text-gray-300 cursor-not-allowed'
             : 'text-gray-600 hover:bg-gray-100 active:scale-95'
             }`}
           title="Période précédente"
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft size={isMobile ? 18 : 20} />
         </button>
 
         <div className="flex-1 text-center">
-          <p className={`font-semibold text-gray-800 ${isMobile ? 'text-sm' : 'text-base'}`}>
+          <p className={`font-semibold text-gray-800 ${isMobile ? 'text-xs' : 'text-base'}`}>
             {periodLabel}
           </p>
         </div>
@@ -866,21 +867,21 @@ export function AccountingOverview() {
         <button
           onClick={handleNextPeriod}
           disabled={periodType === 'custom'}
-          className={`p-2 rounded-lg transition-colors ${periodType === 'custom'
+          className={`${isMobile ? 'p-1.5' : 'p-2'} rounded-lg transition-colors ${periodType === 'custom'
             ? 'text-gray-300 cursor-not-allowed'
             : 'text-gray-600 hover:bg-gray-100 active:scale-95'
             }`}
           title="Période suivante"
         >
-          <ChevronRight size={20} />
+          <ChevronRight size={isMobile ? 18 : 20} />
         </button>
 
         <button
           onClick={handleToday}
-          className="ml-2 px-3 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors active:scale-95 flex items-center gap-1 text-sm"
+          className={`ml-1 ${isMobile ? 'px-2 py-1.5' : 'px-3 py-2'} bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors active:scale-95 flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'}`}
           title="Revenir à aujourd'hui"
         >
-          <Calendar size={16} />
+          <Calendar size={isMobile ? 14 : 16} />
           {!isMobile && <span>Aujourd'hui</span>}
         </button>
       </div>
