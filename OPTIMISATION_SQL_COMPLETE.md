@@ -50,6 +50,25 @@ Créer des **vues SQL matérialisées** qui pré-calculent les statistiques dans
 
 ---
 
+## 🚨 Observations Critiques & Correctifs (Mise à jour V2)
+
+Suite à une analyse approfondie, deux points critiques ont été identifiés et intégrés dans ce plan :
+
+### 1. Gestion de la "Journée Commerciale" (Business Day) 🌙
+*   **Problème :** `DATE(created_at)` coupe à minuit. Or, les bars ferment souvent à 2h ou 4h du matin. Une vente à 01h00 appartient comptablement à la veille.
+*   **Solution :** Appliquer un décalage (offset) avant de grouper par date.
+    *   *Formule :* `DATE(created_at - INTERVAL '4 hours')` (pour une clôture à 04h00).
+    *   *Impact :* Les chiffres correspondront exactement à la caisse physique.
+
+### 2. Sécurité RLS (Row Level Security) 🔒
+*   **Problème :** Les Vues Matérialisées contournent les règles RLS de Supabase. Si exposées directement, elles pourraient fuiter des données entre bars.
+*   **Solution :** Architecture "Vue Sécurisée sur Vue Matérialisée".
+    1.  **Vue Matérialisée (Privée)** : Contient toutes les données pré-calculées (rapide).
+    2.  **Vue Standard (Publique)** : Filtre la Vue Matérialisée selon l'utilisateur connecté (`auth.uid()`).
+    *   *Sécurité :* `GRANT SELECT` uniquement sur la Vue Standard.
+
+---
+
 ## 🔍 Analyse des Composants Problématiques
 
 ### **🔴 CRITIQUE - Nécessite optimisation immédiate**
@@ -352,8 +371,10 @@ const alreadyConsigned = consignments
 **Migration SQL :**
 ```sql
 -- 036_create_product_sales_stats_view.sql
+-- V2: Avec Sécurité RLS
 
-CREATE MATERIALIZED VIEW product_sales_stats AS
+-- 1. Vue Matérialisée (Interne - Données brutes)
+CREATE MATERIALIZED VIEW product_sales_stats_mat AS
 SELECT
   bp.id AS product_id,
   bp.bar_id,
@@ -411,9 +432,16 @@ GROUP BY
   bp.alert_threshold, bp.cost_price, bp.price, bp.created_at;
 
 -- Index pour performance
-CREATE UNIQUE INDEX idx_product_sales_stats_pk ON product_sales_stats(product_id);
-CREATE INDEX idx_product_sales_stats_bar ON product_sales_stats(bar_id);
-CREATE INDEX idx_product_sales_stats_daily_avg ON product_sales_stats(daily_average DESC);
+CREATE UNIQUE INDEX idx_product_sales_stats_mat_pk ON product_sales_stats_mat(product_id);
+CREATE INDEX idx_product_sales_stats_mat_bar ON product_sales_stats_mat(bar_id);
+
+-- 2. Vue Sécurisée (Publique - Filtrée par RLS)
+CREATE OR REPLACE VIEW product_sales_stats AS
+SELECT *
+FROM product_sales_stats_mat
+WHERE bar_id IN (
+  SELECT bar_id FROM bar_members WHERE user_id = auth.uid()
+);
 
 -- Fonction de rafraîchissement
 CREATE OR REPLACE FUNCTION refresh_product_sales_stats()
@@ -422,7 +450,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  REFRESH MATERIALIZED VIEW CONCURRENTLY product_sales_stats;
+  REFRESH MATERIALIZED VIEW CONCURRENTLY product_sales_stats_mat;
 END;
 $$;
 
@@ -433,7 +461,7 @@ LANGUAGE plpgsql
 AS $$
 BEGIN
   -- Rafraîchir de manière asynchrone (ne bloque pas la vente)
-  PERFORM pg_notify('refresh_stats', 'product_sales_stats');
+  PERFORM pg_notify('refresh_stats', 'product_sales_stats_mat');
   RETURN NEW;
 END;
 $$;
@@ -444,8 +472,9 @@ FOR EACH ROW
 WHEN (NEW.status = 'validated')
 EXECUTE FUNCTION trigger_refresh_product_stats();
 
--- Permissions
+-- Permissions (Uniquement sur la vue sécurisée)
 GRANT SELECT ON product_sales_stats TO authenticated;
+-- PAS de permission sur product_sales_stats_mat pour authenticated
 ```
 
 **Gains estimés :**
@@ -462,13 +491,16 @@ GRANT SELECT ON product_sales_stats TO authenticated;
 **Migration SQL :**
 ```sql
 -- 037_create_daily_sales_summary_view.sql
+-- V2: Avec Business Day (-4h) et Sécurité RLS
 
-CREATE MATERIALIZED VIEW daily_sales_summary AS
+-- 1. Vue Matérialisée (Interne)
+CREATE MATERIALIZED VIEW daily_sales_summary_mat AS
 SELECT
   s.bar_id,
-  DATE(s.created_at) AS sale_date,
-  DATE_TRUNC('week', s.created_at) AS sale_week,
-  DATE_TRUNC('month', s.created_at) AS sale_month,
+  -- Business Day: On décale de 4h (clôture à 04:00)
+  DATE(s.created_at - INTERVAL '4 hours') AS sale_date,
+  DATE_TRUNC('week', s.created_at - INTERVAL '4 hours') AS sale_week,
+  DATE_TRUNC('month', s.created_at - INTERVAL '4 hours') AS sale_month,
 
   -- Compteurs
   COUNT(*) FILTER (WHERE s.status = 'pending') AS pending_count,
@@ -508,14 +540,25 @@ SELECT
   NOW() AS updated_at
 
 FROM sales s
-WHERE s.created_at >= NOW() - INTERVAL '365 days'  -- Garder 1 an d'historique
-GROUP BY s.bar_id, DATE(s.created_at), DATE_TRUNC('week', s.created_at), DATE_TRUNC('month', s.created_at);
+WHERE s.created_at >= NOW() - INTERVAL '365 days'
+GROUP BY 
+  s.bar_id, 
+  DATE(s.created_at - INTERVAL '4 hours'), 
+  DATE_TRUNC('week', s.created_at - INTERVAL '4 hours'), 
+  DATE_TRUNC('month', s.created_at - INTERVAL '4 hours');
 
 -- Index
-CREATE UNIQUE INDEX idx_daily_sales_summary_pk ON daily_sales_summary(bar_id, sale_date);
-CREATE INDEX idx_daily_sales_summary_week ON daily_sales_summary(bar_id, sale_week);
-CREATE INDEX idx_daily_sales_summary_month ON daily_sales_summary(bar_id, sale_month);
-CREATE INDEX idx_daily_sales_summary_date ON daily_sales_summary(sale_date DESC);
+CREATE UNIQUE INDEX idx_daily_sales_summary_mat_pk ON daily_sales_summary_mat(bar_id, sale_date);
+CREATE INDEX idx_daily_sales_summary_mat_week ON daily_sales_summary_mat(bar_id, sale_week);
+CREATE INDEX idx_daily_sales_summary_mat_month ON daily_sales_summary_mat(bar_id, sale_month);
+
+-- 2. Vue Sécurisée (Publique)
+CREATE OR REPLACE VIEW daily_sales_summary AS
+SELECT *
+FROM daily_sales_summary_mat
+WHERE bar_id IN (
+  SELECT bar_id FROM bar_members WHERE user_id = auth.uid()
+);
 
 -- Fonction de rafraîchissement
 CREATE OR REPLACE FUNCTION refresh_daily_sales_summary()
@@ -524,7 +567,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  REFRESH MATERIALIZED VIEW CONCURRENTLY daily_sales_summary;
+  REFRESH MATERIALIZED VIEW CONCURRENTLY daily_sales_summary_mat;
 END;
 $$;
 
@@ -532,7 +575,7 @@ $$;
 CREATE TRIGGER after_sale_refresh_daily_summary
 AFTER INSERT OR UPDATE ON sales
 FOR EACH ROW
-EXECUTE FUNCTION trigger_refresh_product_stats();  -- Réutilise le trigger
+EXECUTE FUNCTION trigger_refresh_product_stats();  -- Réutilise le trigger générique
 
 -- Permissions
 GRANT SELECT ON daily_sales_summary TO authenticated;
@@ -569,13 +612,15 @@ const totalRevenue = data.reduce((sum, day) => sum + day.gross_revenue, 0);
 **Migration SQL :**
 ```sql
 -- 038_create_top_products_view.sql
+-- V2: Avec Business Day (-4h) et Sécurité RLS
 
-CREATE MATERIALIZED VIEW top_products_by_period AS
+-- 1. Vue Matérialisée (Interne)
+CREATE MATERIALIZED VIEW top_products_by_period_mat AS
 SELECT
   s.bar_id,
-  DATE(s.created_at) AS sale_date,
-  DATE_TRUNC('week', s.created_at) AS sale_week,
-  DATE_TRUNC('month', s.created_at) AS sale_month,
+  DATE(s.created_at - INTERVAL '4 hours') AS sale_date,
+  DATE_TRUNC('week', s.created_at - INTERVAL '4 hours') AS sale_week,
+  DATE_TRUNC('month', s.created_at - INTERVAL '4 hours') AS sale_month,
 
   -- Produit
   (item->>'product_id')::uuid AS product_id,
@@ -599,17 +644,24 @@ WHERE
 
 GROUP BY
   s.bar_id,
-  DATE(s.created_at),
-  DATE_TRUNC('week', s.created_at),
-  DATE_TRUNC('month', s.created_at),
+  DATE(s.created_at - INTERVAL '4 hours'),
+  DATE_TRUNC('week', s.created_at - INTERVAL '4 hours'),
+  DATE_TRUNC('month', s.created_at - INTERVAL '4 hours'),
   (item->>'product_id')::uuid,
   item->>'product_name',
   item->>'product_volume';
 
 -- Index
-CREATE INDEX idx_top_products_bar_date ON top_products_by_period(bar_id, sale_date);
-CREATE INDEX idx_top_products_quantity ON top_products_by_period(bar_id, total_quantity DESC);
-CREATE INDEX idx_top_products_revenue ON top_products_by_period(bar_id, total_revenue DESC);
+CREATE INDEX idx_top_products_mat_bar_date ON top_products_by_period_mat(bar_id, sale_date);
+CREATE INDEX idx_top_products_mat_quantity ON top_products_by_period_mat(bar_id, total_quantity DESC);
+
+-- 2. Vue Sécurisée (Publique)
+CREATE OR REPLACE VIEW top_products_by_period AS
+SELECT *
+FROM top_products_by_period_mat
+WHERE bar_id IN (
+  SELECT bar_id FROM bar_members WHERE user_id = auth.uid()
+);
 
 -- Permissions
 GRANT SELECT ON top_products_by_period TO authenticated;
@@ -628,41 +680,43 @@ GRANT SELECT ON top_products_by_period TO authenticated;
 **Migration SQL :**
 ```sql
 -- 039_create_bar_stats_multi_period_view.sql
+-- V2: Avec Sécurité RLS
 
-CREATE MATERIALIZED VIEW bar_stats_multi_period AS
+-- 1. Vue Matérialisée (Interne)
+CREATE MATERIALIZED VIEW bar_stats_multi_period_mat AS
 SELECT
   bar_id,
 
   -- Aujourd'hui
   (SELECT COALESCE(SUM(gross_revenue), 0)
-   FROM daily_sales_summary
+   FROM daily_sales_summary_mat
    WHERE bar_id = s.bar_id AND sale_date = CURRENT_DATE) AS revenue_today,
   (SELECT COALESCE(SUM(validated_count), 0)
-   FROM daily_sales_summary
+   FROM daily_sales_summary_mat
    WHERE bar_id = s.bar_id AND sale_date = CURRENT_DATE) AS sales_today,
 
   -- Hier
   (SELECT COALESCE(SUM(gross_revenue), 0)
-   FROM daily_sales_summary
+   FROM daily_sales_summary_mat
    WHERE bar_id = s.bar_id AND sale_date = CURRENT_DATE - 1) AS revenue_yesterday,
   (SELECT COALESCE(SUM(validated_count), 0)
-   FROM daily_sales_summary
+   FROM daily_sales_summary_mat
    WHERE bar_id = s.bar_id AND sale_date = CURRENT_DATE - 1) AS sales_yesterday,
 
   -- 7 derniers jours
   (SELECT COALESCE(SUM(gross_revenue), 0)
-   FROM daily_sales_summary
+   FROM daily_sales_summary_mat
    WHERE bar_id = s.bar_id AND sale_date >= CURRENT_DATE - 7 AND sale_date < CURRENT_DATE) AS revenue_7d,
   (SELECT COALESCE(SUM(validated_count), 0)
-   FROM daily_sales_summary
+   FROM daily_sales_summary_mat
    WHERE bar_id = s.bar_id AND sale_date >= CURRENT_DATE - 7 AND sale_date < CURRENT_DATE) AS sales_7d,
 
   -- 30 derniers jours
   (SELECT COALESCE(SUM(gross_revenue), 0)
-   FROM daily_sales_summary
+   FROM daily_sales_summary_mat
    WHERE bar_id = s.bar_id AND sale_date >= CURRENT_DATE - 30 AND sale_date < CURRENT_DATE) AS revenue_30d,
   (SELECT COALESCE(SUM(validated_count), 0)
-   FROM daily_sales_summary
+   FROM daily_sales_summary_mat
    WHERE bar_id = s.bar_id AND sale_date >= CURRENT_DATE - 30 AND sale_date < CURRENT_DATE) AS sales_30d,
 
   NOW() AS updated_at
@@ -670,7 +724,15 @@ SELECT
 FROM (SELECT DISTINCT bar_id FROM sales) s;
 
 -- Index
-CREATE UNIQUE INDEX idx_bar_stats_multi_period_pk ON bar_stats_multi_period(bar_id);
+CREATE UNIQUE INDEX idx_bar_stats_multi_period_mat_pk ON bar_stats_multi_period_mat(bar_id);
+
+-- 2. Vue Sécurisée (Publique)
+CREATE OR REPLACE VIEW bar_stats_multi_period AS
+SELECT *
+FROM bar_stats_multi_period_mat
+WHERE bar_id IN (
+  SELECT bar_id FROM bar_members WHERE user_id = auth.uid()
+);
 
 -- Permissions
 GRANT SELECT ON bar_stats_multi_period TO authenticated;

@@ -24,7 +24,7 @@ export function UserManagement({ isOpen, onClose }: UserManagementProps) {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
+  // Email removed - auto-generated
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -94,13 +94,16 @@ export function UserManagement({ isOpen, onClose }: UserManagementProps) {
       }
 
       // Créer l'utilisateur et l'assigner au bar
+      // Auto-generate email from username
+      const generatedEmail = `${username}@bartender.local`;
+
       await AuthService.signup(
         {
           username,
           password,
           name,
           phone,
-          email: email || `${username}@bartender.local`,
+          email: generatedEmail,
         },
         currentBar.id,
         selectedRole as 'gerant' | 'serveur'
@@ -115,7 +118,6 @@ export function UserManagement({ isOpen, onClose }: UserManagementProps) {
       setPassword('');
       setName('');
       setPhone('');
-      setEmail('');
       setTimeout(() => {
         setShowAddUser(false);
         setSuccess('');
@@ -303,138 +305,121 @@ export function UserManagement({ isOpen, onClose }: UserManagementProps) {
                         </div>
 
                         <form onSubmit={handleAddUser} className="space-y-4">
-                          {/* Role Selection */}
+                          {/* Role Selection - Compact */}
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-xs font-medium text-gray-700 mb-1.5">
                               Rôle
                             </label>
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="flex bg-gray-100 p-1 rounded-lg">
                               {hasPermission('canCreateManagers') && (
                                 <button
                                   type="button"
                                   onClick={() => setSelectedRole('gerant')}
-                                  className={`p-3 rounded-lg border-2 transition-all ${selectedRole === 'gerant'
-                                    ? 'border-amber-500 bg-amber-50'
-                                    : 'border-gray-200 hover:border-gray-300'
+                                  className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${selectedRole === 'gerant'
+                                    ? 'bg-white text-amber-600 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700'
                                     }`}
                                 >
-                                  <UserIcon className="w-5 h-5 mx-auto mb-1 text-amber-600" />
-                                  <span className="text-sm">Gérant</span>
+                                  Gérant
                                 </button>
                               )}
-
                               {hasPermission('canCreateServers') && (
                                 <button
                                   type="button"
                                   onClick={() => setSelectedRole('serveur')}
-                                  className={`p-3 rounded-lg border-2 transition-all ${selectedRole === 'serveur'
-                                    ? 'border-amber-500 bg-amber-50'
-                                    : 'border-gray-200 hover:border-gray-300'
+                                  className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${selectedRole === 'serveur'
+                                    ? 'bg-white text-amber-600 shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700'
                                     }`}
                                 >
-                                  <Users className="w-5 h-5 mx-auto mb-1 text-amber-600" />
-                                  <span className="text-sm">Serveur</span>
+                                  Serveur
                                 </button>
                               )}
                             </div>
                           </div>
 
-                          {/* Form Fields */}
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Nom d'utilisateur *
-                            </label>
-                            <input
-                              type="text"
-                              value={username}
-                              onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                              placeholder="nom.prenom"
-                            />
-                          </div>
+                          {/* Form Fields - Grid Layout */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="col-span-1">
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Nom d'utilisateur *
+                              </label>
+                              <input
+                                type="text"
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+                                placeholder="nom.prenom"
+                              />
+                            </div>
 
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Mot de passe temporaire *
-                            </label>
-                            <input
-                              type="text"
-                              value={password}
-                              onChange={(e) => setPassword(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                              placeholder="Minimum 4 caractères"
-                            />
-                            <p className="text-xs text-gray-500 mt-1">
-                              L'utilisateur devra le changer à sa première connexion
-                            </p>
-                          </div>
+                            <div className="col-span-1">
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Mot de passe *
+                              </label>
+                              <input
+                                type="text"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+                                placeholder="Min 4 chars"
+                              />
+                            </div>
 
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Nom complet *
-                            </label>
-                            <input
-                              type="text"
-                              value={name}
-                              onChange={(e) => setName(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                              placeholder="Prénom Nom"
-                            />
-                          </div>
+                            <div className="col-span-1">
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Nom complet *
+                              </label>
+                              <input
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+                                placeholder="Prénom Nom"
+                              />
+                            </div>
 
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Téléphone *
-                            </label>
-                            <input
-                              type="tel"
-                              value={phone}
-                              onChange={(e) => setPhone(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                              placeholder="0197000000"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Email (optionnel)
-                            </label>
-                            <input
-                              type="email"
-                              value={email}
-                              onChange={(e) => setEmail(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                              placeholder="email@exemple.com"
-                            />
+                            <div className="col-span-1">
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Téléphone *
+                              </label>
+                              <input
+                                type="tel"
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
+                                placeholder="0197000000"
+                              />
+                            </div>
                           </div>
 
                           {/* Messages */}
                           {error && (
-                            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+                            <div className="bg-red-50 text-red-600 p-2 rounded-lg text-xs">
                               {error}
                             </div>
                           )}
 
                           {success && (
-                            <div className="bg-green-50 text-green-600 p-3 rounded-lg text-sm">
+                            <div className="bg-green-50 text-green-600 p-2 rounded-lg text-xs">
                               {success}
                             </div>
                           )}
 
                           {/* Actions */}
-                          <div className="flex gap-3 pt-4">
+                          <div className="flex gap-3 pt-2">
                             <button
                               type="button"
                               onClick={() => setShowAddUser(false)}
-                              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
                             >
                               Annuler
                             </button>
                             <button
                               type="submit"
-                              className="flex-1 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
+                              className="flex-1 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-sm font-medium"
                             >
-                              Créer le compte
+                              Créer
                             </button>
                           </div>
                         </form>

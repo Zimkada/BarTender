@@ -12,6 +12,7 @@ interface CategoryTabsProps {
   onAddCategory?: () => void;
   onEditCategory?: (category: Category) => void;
   onDeleteCategory?: (categoryId: string) => void;
+  isLoading?: boolean; // Nouveau: pour masquer le bouton "Ajouter" pendant le chargement
 }
 
 export function CategoryTabs({
@@ -20,7 +21,8 @@ export function CategoryTabs({
   onCategoryChange,
   onAddCategory,
   onEditCategory,
-  onDeleteCategory
+  onDeleteCategory,
+  isLoading = false
 }: CategoryTabsProps) {
   const { hasPermission } = useAuth();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; category: Category } | null>(null);
@@ -97,7 +99,7 @@ export function CategoryTabs({
             {category.name}
           </motion.button>
         ))}
-        {hasPermission('canAddProducts') && onAddCategory && (
+        {!isLoading && hasPermission('canAddProducts') && onAddCategory && (
           <motion.button
             onClick={onAddCategory}
             whileHover={{ scale: 1.05, y: -2 }}

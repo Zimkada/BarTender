@@ -3,26 +3,24 @@ import { Building2, User as UserIcon, Lock, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
-import { User } from '../types';
+
 
 export function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgotPassword: () => void }) {
-  const { login, changePassword } = useAuth();
+  const { login, changePassword, verifyMfa } = useAuth();
   const { bars } = useBarContext();
-  
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [selectedBar, setSelectedBar] = useState<string>('');
-  const [barSearchQuery, setBarSearchQuery] = useState(''); // 🔒 Recherche bar par nom au lieu de dropdown
+  const [barSearchQuery] = useState(''); // 🔒 Recherche bar par nom au lieu de dropdown
   const [error, setError] = useState('');
   const [isFirstLogin, setIsFirstLogin] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [currentUserId, setCurrentUserId] = useState<string>('');
 
   // États pour la 2FA
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
-  const [mfaAuthUserId, setMfaAuthUserId] = useState<string | null>(null);
   const [mfaCode, setMfaCode] = useState('');
   const [mfaError, setMfaError] = useState('');
 
@@ -54,18 +52,18 @@ export function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgot
       return;
     }
 
+    // Support login par nom d'utilisateur
+    let loginEmail = email;
     if (!email.includes('@')) {
-      setError('Veuillez entrer une adresse email valide');
-      return;
+      loginEmail = `${email}@bartender.local`;
     }
 
     try {
-      const result = await login(email, password);
+      const result = await login(loginEmail, password);
 
       if (result.mfaRequired) {
         setMfaRequired(true);
         setMfaFactorId(result.mfaFactorId || null);
-        setMfaAuthUserId(result.authUserId || null);
         setError(''); // Clear general login error
         return;
       }
@@ -73,7 +71,6 @@ export function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgot
       if (result.user) {
         if (result.user.first_login) {
           setIsFirstLogin(true);
-          setCurrentUserId(result.user.id);
         }
         // Login successful, context will handle setting currentSession
       } else if (result.error) {
@@ -104,7 +101,6 @@ export function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgot
         // MFA login successful, context will handle setting currentSession
         setMfaRequired(false);
         setMfaFactorId(null);
-        setMfaAuthUserId(null);
         setMfaCode('');
       } else if (result.error) {
         setMfaError(result.error);
@@ -133,14 +129,15 @@ export function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgot
       await changePassword(newPassword);
 
       // Re-login automatique avec le nouveau mot de passe
-      const session = await login(
-        email,
-        newPassword,
-        selectedBar || 'admin_global',
-        undefined
-      );
+      // Support login par nom d'utilisateur pour le re-login aussi
+      let loginEmail = email;
+      if (!email.includes('@')) {
+        loginEmail = `${email}@bartender.local`;
+      }
 
-      if (session) {
+      const result = await login(loginEmail, newPassword);
+
+      if (result.user) {
         // Connexion réussie, l'écran de login disparaîtra automatiquement
         setIsFirstLogin(false);
       }
@@ -204,7 +201,6 @@ export function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgot
               onClick={() => {
                 setMfaRequired(false);
                 setMfaFactorId(null);
-                setMfaAuthUserId(null);
                 setMfaCode('');
                 setMfaError('');
                 setError('Connexion annulée.'); // Optionally show a message
@@ -306,17 +302,17 @@ export function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgot
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email
+              Email ou Nom d'utilisateur
             </label>
             <div className="relative">
               <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
               <input
-                type="email"
+                type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                placeholder="votre.email@example.com"
-                autoComplete="email"
+                placeholder="Email ou nom d'utilisateur"
+                autoComplete="username"
               />
             </div>
           </div>

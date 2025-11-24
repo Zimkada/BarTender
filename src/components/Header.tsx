@@ -50,8 +50,8 @@ const AnimatedBarName: React.FC<{ text: string }> = ({ text }) => {
           initial={{ opacity: 0, y: -20 }}
           animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
           transition={{
-            duration: 0.3,
-            delay: index * 0.05, // 50ms entre chaque lettre
+            duration: 0.4,
+            delay: index * 0.08, // 80ms entre chaque lettre (plus lent et élégant)
             ease: "easeOut"
           }}
         >

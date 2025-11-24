@@ -329,7 +329,12 @@ const checkout = (assignedTo?: string) => {
 
   // Afficher le SplashScreen pendant le chargement initial
   if (!isAppReady) {
-    return <SplashScreen message="Préparation de votre espace..." />;
+    return (
+      <SplashScreen
+        userName={currentSession?.userName}
+        barName={currentBar?.name}
+      />
+    );
   }
 
   // Interface serveur simplifiée
@@ -535,6 +540,7 @@ const checkout = (assignedTo?: string) => {
           onAddCategory={() => setShowCategoryModal(true)}
           onEditCategory={handleEditCategory}
           onDeleteCategory={handleDeleteCategory}
+          isLoading={categories.length === 0}
         />
 
         <AnimatePresence mode="wait">
