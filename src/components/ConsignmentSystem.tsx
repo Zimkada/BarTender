@@ -214,7 +214,10 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
   }
 
   const selectedSale = todaySales.find(s => s.id === selectedSaleId);
-  const selectedProductItem = selectedSale?.items.find(item => item.product.id === selectedProductId);
+  const selectedProductItem = selectedSale?.items.find((item: any) => {
+    const productId = item.product?.id || item.product_id;
+    return productId === selectedProductId;
+  });
 
   const getAlreadyReturned = (saleId: string, productId: string): number => {
     return getReturnsBySale(saleId)
@@ -388,18 +391,23 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
             2. Choisir le produit à consigner
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {selectedSale.items.map(item => {
-              const consignedFromThisSale = getAlreadyConsigned(selectedSale.id, item.product.id);
-              const returnedStock = getAlreadyReturned(selectedSale.id, item.product.id);
+            {selectedSale.items.map((item: any) => {
+              const productId = item.product?.id || item.product_id;
+              const productName = item.product?.name || item.product_name || 'Produit';
+              const productVolume = item.product?.volume || item.product_volume || '';
+              const productPrice = item.product?.price || item.unit_price || 0;
+
+              const consignedFromThisSale = getAlreadyConsigned(selectedSale.id, productId);
+              const returnedStock = getAlreadyReturned(selectedSale.id, productId);
               const available = item.quantity - consignedFromThisSale - returnedStock;
               const isFullyUnavailable = available <= 0;
 
               return (
                 <button
-                  key={item.product.id}
+                  key={productId}
                   onClick={() => {
                     if (!isFullyUnavailable) {
-                      setSelectedProductId(item.product.id);
+                      setSelectedProductId(productId);
                       setQuantity(1);
                     }
                   }}
@@ -407,15 +415,15 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onClose }) 
                   className={`p-4 rounded-lg border-2 text-left transition-all ${
                     isFullyUnavailable
                       ? 'border-red-200 bg-red-50 opacity-60 cursor-not-allowed'
-                      : selectedProductId === item.product.id
+                      : selectedProductId === productId
                         ? 'border-amber-500 bg-amber-50'
                         : 'border-gray-200 hover:border-amber-300'
                   }`}
                 >
-                  <div className="font-medium text-gray-900">{item.product.name}</div>
-                  <div className="text-sm text-gray-600">{item.product.volume}</div>
+                  <div className="font-medium text-gray-900">{productName}</div>
+                  <div className="text-sm text-gray-600">{productVolume}</div>
                   <div className="text-sm text-amber-600 font-medium mt-1">
-                    {formatPrice(item.product.price)} × {item.quantity}
+                    {formatPrice(productPrice)} × {item.quantity}
                   </div>
                   <div className="text-xs text-amber-600 mt-1 space-x-2">
                     {consignedFromThisSale > 0 && <span>⚠️ {consignedFromThisSale} consigné(s)</span>}

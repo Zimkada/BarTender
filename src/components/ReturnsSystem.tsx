@@ -141,12 +141,20 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
     customRestock?: boolean
   ) => {
     const sale = sales.find(s => s.id === saleId);
-    const item = sale?.items.find(i => i.product.id === productId);
+    const item = sale?.items.find((i: any) => {
+      const id = i.product?.id || i.product_id;
+      return id === productId;
+    });
 
     if (!sale || !item || !currentSession) {
       showError('Données invalides');
       return;
     }
+
+    // Extract product info with fallbacks
+    const productName = (item as any).product?.name || (item as any).product_name || 'Produit';
+    const productVolume = (item as any).product?.volume || (item as any).product_volume || '';
+    const productPrice = (item as any).product?.price || (item as any).unit_price || 0;
 
     const returnCheck = canReturnSale(sale);
     if (!returnCheck.allowed) {
@@ -183,14 +191,14 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
     const newReturn = addReturn({
       saleId,
       productId,
-      productName: item.product.name,
-      productVolume: item.product.volume,
+      productName,
+      productVolume,
       quantitySold: item.quantity,
       quantityReturned: quantity,
       reason,
       returnedBy: currentSession.userId,
       returnedAt: new Date(),
-      refundAmount: finalRefund ? (item.product.price * quantity) : 0,
+      refundAmount: finalRefund ? (productPrice * quantity) : 0,
       isRefunded: finalRefund,
       status: 'pending',
       autoRestock: finalRestock,
@@ -203,9 +211,9 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
 
     if (newReturn) {
       const refundMsg = finalRefund
-        ? ` - Remboursement ${formatPrice(item.product.price * quantity)}`
+        ? ` - Remboursement ${formatPrice(productPrice * quantity)}`
         : ' - Sans remboursement';
-      showSuccess(`Retour créé pour ${quantity}x ${item.product.name}${refundMsg}`);
+      showSuccess(`Retour créé pour ${quantity}x ${productName}${refundMsg}`);
       setShowCreateReturn(false);
       setSelectedSale(null);
     }
@@ -824,9 +832,14 @@ function CreateReturnForm({
                 Produit à retourner
               </label>
               <div className="space-y-2">
-                {selectedSale.items.map((item: CartItem, index: number) => {
-                  const alreadyReturned = getAlreadyReturned(item.product.id);
-                  const alreadyConsigned = getAlreadyConsigned(item.product.id);
+                {selectedSale.items.map((item: any, index: number) => {
+                  const productId = item.product?.id || item.product_id;
+                  const productName = item.product?.name || item.product_name || 'Produit';
+                  const productVolume = item.product?.volume || item.product_volume || '';
+                  const productPrice = item.product?.price || item.unit_price || 0;
+
+                  const alreadyReturned = getAlreadyReturned(productId);
+                  const alreadyConsigned = getAlreadyConsigned(productId);
                   const available = item.quantity - alreadyReturned - alreadyConsigned;
                   const isFullyUnavailable = available <= 0;
 
@@ -846,7 +859,7 @@ function CreateReturnForm({
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="font-medium text-gray-800">
-                            {item.product.name} ({item.product.volume})
+                            {productName} ({productVolume})
                           </p>
                           <div className="flex items-center gap-2 mt-1 flex-wrap">
                             <p className="text-sm text-gray-600">
@@ -876,7 +889,7 @@ function CreateReturnForm({
                         </div>
                         <div className="text-right">
                           <p className="text-blue-600 font-semibold">
-                            {item.product.price} FCFA
+                            {productPrice} FCFA
                           </p>
                           {isFullyUnavailable && (
                             <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full mt-1 inline-block">
