@@ -741,32 +741,32 @@ export function AccountingOverview() {
           </p>
         </div>
 
-        {/* Actions: Export + Solde initial */}
-        <div className={`flex items-center gap-2 ${isMobile ? 'justify-end' : ''}`}>
+        {/* Actions: Export + Solde initial - Fixed: flex-wrap for small screens */}
+        <div className={`flex items-center gap-2 ${isMobile ? 'flex-wrap justify-end' : ''}`}>
           <button
             onClick={handleExportAccounting}
-            className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm"
+            className={`flex items-center justify-center gap-1 ${isMobile ? 'px-2 py-1.5' : 'px-3 py-2'} bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors ${isMobile ? 'text-xs' : 'text-sm'}`}
             title="Exporter rapport comptable"
           >
-            <Download size={18} />
+            <Download size={isMobile ? 16 : 18} />
             {!isMobile && <span>Exporter</span>}
           </button>
 
           <button
             onClick={() => setShowInitialBalanceModal(true)}
-            className="flex items-center gap-2 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm"
+            className={`flex items-center justify-center gap-1 ${isMobile ? 'px-2 py-1.5' : 'px-3 py-2'} bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors ${isMobile ? 'text-xs' : 'text-sm'}`}
             title="Définir le solde initial"
           >
-            <PlusCircle size={18} />
+            <PlusCircle size={isMobile ? 16 : 18} />
             {!isMobile && <span>Solde initial</span>}
           </button>
 
           <button
             onClick={() => setShowCapitalContributionModal(true)}
-            className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+            className={`flex items-center justify-center gap-1 ${isMobile ? 'px-2 py-1.5' : 'px-3 py-2'} bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors ${isMobile ? 'text-xs' : 'text-sm'}`}
             title="Ajouter un apport de capital"
           >
-            <DollarSign size={18} />
+            <DollarSign size={isMobile ? 16 : 18} />
             {!isMobile && <span>Apport</span>}
           </button>
         </div>
@@ -798,18 +798,18 @@ export function AccountingOverview() {
         </div>
       </div>
 
-      {/* Period Type Selector */}
-      <div className="flex flex-wrap items-center gap-2 bg-gray-100 p-1 rounded-lg w-fit">
+      {/* Period Type Selector - Fixed: removed w-fit for full width on mobile */}
+      <div className={`flex ${isMobile ? 'flex-row' : 'flex-wrap'} items-center gap-2 bg-gray-100 p-1 rounded-lg`}>
         {(['week', 'month', 'custom'] as PeriodType[]).map(type => (
           <button
             key={type}
             onClick={() => handlePeriodTypeChange(type)}
-            className={`px-3 py-2 rounded-md transition-colors flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} ${periodType === type
+            className={`${isMobile ? 'flex-1 px-2 py-2' : 'px-3 py-2'} rounded-md transition-colors flex items-center justify-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} ${periodType === type
               ? 'bg-amber-500 text-white'
               : 'text-gray-600 hover:bg-gray-200'
               }`}
           >
-            {type === 'custom' && <CalendarDays size={16} />}
+            {type === 'custom' && <CalendarDays size={isMobile ? 14 : 16} />}
             {type === 'week' ? 'Semaine' : type === 'month' ? 'Mois' : 'Personnalisé'}
           </button>
         ))}
