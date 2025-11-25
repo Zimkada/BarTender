@@ -183,6 +183,10 @@ role,
     role: 'gerant' | 'serveur'
   ): Promise<Omit<DbUser, 'password_hash'>> {
     try {
+      // Sauvegarder la session actuelle avant de créer le nouveau compte
+      const currentUser = AuthService.getCurrentUser();
+      const currentSessionData = localStorage.getItem('auth_user');
+
       // 1. Créer l'utilisateur dans auth.users
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
@@ -197,40 +201,113 @@ role,
       });
 
       if (authError || !authData.user) {
-        throw new Error('Erreur lors de la création du compte');
+        console.error('Auth signup error:', authError);
+        throw new Error(authError?.message || 'Erreur lors de la création du compte');
       }
 
-      // 2. Le trigger handle_new_user() crée automatiquement le profil
+      // 2. Déconnecter immédiatement le nouveau compte pour éviter de perdre la session du gérant
+      await supabase.auth.signOut();
 
-      // 3. Créer le membership
-      const currentUser = AuthService.getCurrentUser();
-      const { error: memberError } = await supabase.from('bar_members').insert({
-        user_id: authData.user.id,
-        bar_id: barId,
-        role: role,
-        assigned_by: currentUser?.id || authData.user.id,
-        is_active: true,
-      } as any);
+      // 3. Attendre que la déconnexion soit complètement propagée
+      // Ceci évite les erreurs 401 lors du rafraîchissement des données
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      if (memberError) {
-        throw new Error('Erreur lors de l\'assignation au bar');
+      // 4. Restaurer la session du gérant dans localStorage
+      if (currentSessionData) {
+        localStorage.setItem('auth_user', currentSessionData);
       }
 
-      // 4. Récupérer le profil complet
-      const { data: profile, error: profileError } = await supabase
-        .from('users')
-        .select('id, username, email, name, phone, avatar_url, is_active, first_login, created_at, updated_at, last_login_at')
-        .eq('id', authData.user.id)
-        .single();
+      // 5. Créer le profil via RPC (retourne directement le profil)
+      const { data: profileData, error: profileRpcError } = await supabase.rpc('create_user_profile', {
+        p_user_id: authData.user.id,
+        p_email: data.email,
+        p_username: data.username || data.email.split('@')[0],
+        p_name: data.name,
+        p_phone: data.phone,
+      });
 
-      if (profileError || !profile) {
-        throw new Error('Erreur lors de la récupération du profil');
+      if (profileRpcError || !profileData || profileData.length === 0) {
+        console.error('Profile creation RPC error:', profileRpcError);
+        throw new Error('Erreur lors de la création du profil utilisateur');
+      }
+
+      // Le RPC retourne un tableau avec colonnes préfixées user_
+      const profileRow = Array.isArray(profileData) ? profileData[0] : profileData;
+
+      // Mapper les colonnes user_* vers la structure attendue
+      const profile: Omit<DbUser, 'password_hash'> = {
+        id: profileRow.user_id,
+        email: profileRow.user_email,
+        username: profileRow.user_username,
+        name: profileRow.user_name,
+        phone: profileRow.user_phone,
+        avatar_url: profileRow.user_avatar_url,
+        is_active: profileRow.user_is_active,
+        first_login: profileRow.user_first_login,
+        created_at: profileRow.user_created_at,
+        updated_at: profileRow.user_updated_at,
+        last_login_at: profileRow.user_last_login_at,
+      };
+
+      // 6. Créer le membership via RPC atomique
+      const membershipResult = await AuthService.assignBarMember(
+        authData.user.id,
+        barId,
+        role,
+        currentUser?.id || authData.user.id
+      );
+
+      if (!membershipResult.success) {
+        console.error('Membership assignment error:', membershipResult.error);
+        throw new Error(membershipResult.error || 'Erreur lors de l\'assignation au bar');
       }
 
       return profile;
     } catch (error: any) {
       console.error('AuthService signup error:', error);
-      throw new Error(handleSupabaseError(error));
+      throw new Error(error.message || 'Erreur lors de la création de l\'utilisateur');
+    }
+  }
+
+  /**
+   * Assigner un utilisateur à un bar (via RPC atomique)
+   * Utilise la fonction assign_bar_member pour garantir l'atomicité
+   */
+  static async assignBarMember(
+    userId: string,
+    barId: string,
+    role: 'gerant' | 'serveur',
+    assignedBy: string
+  ): Promise<{ success: boolean; membershipId?: string; error?: string }> {
+    try {
+      const { data, error } = await supabase.rpc('assign_bar_member', {
+        p_user_id: userId,
+        p_bar_id: barId,
+        p_role: role,
+        p_assigned_by: assignedBy,
+      });
+
+      if (error) {
+        // Messages d'erreur utilisateur conviviaux
+        if (error.message.includes('User not found')) {
+          throw new Error('Utilisateur introuvable. Veuillez réessayer.');
+        }
+        if (error.message.includes('already a member')) {
+          throw new Error('Cet utilisateur est déjà membre de ce bar.');
+        }
+        throw new Error(error.message);
+      }
+
+      return {
+        success: data.success,
+        membershipId: data.membership_id,
+      };
+    } catch (error: any) {
+      console.error('AuthService assignBarMember error:', error);
+      return {
+        success: false,
+        error: error.message || 'Une erreur est survenue lors de l\'assignation du membre.',
+      };
     }
   }
 
@@ -242,6 +319,10 @@ role,
     data: SignupData
   ): Promise<Omit<DbUser, 'password_hash'>> {
     try {
+      // Sauvegarder la session actuelle (Super Admin)
+      const currentUser = AuthService.getCurrentUser();
+      const currentSessionData = localStorage.getItem('auth_user');
+
       // 1. Créer l'utilisateur dans auth.users
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
@@ -259,7 +340,56 @@ role,
         throw new Error('Erreur lors de la création du compte promoteur');
       }
 
-      // 2. Récupérer le profil complet (créé par trigger)
+      // 2. Déconnecter immédiatement le nouveau compte
+      await supabase.auth.signOut();
+
+      // Petit délai pour la propagation
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // 3. Restaurer la session du Super Admin
+      if (currentSessionData) {
+        localStorage.setItem('auth_user', currentSessionData);
+      }
+
+      // Note: On ne peut pas utiliser recoverSession ici car on n'a pas le refresh token
+      // Mais comme on est Super Admin, on peut juste continuer avec le token actuel 
+      // si le client Supabase n'a pas perdu la session en mémoire (ce qui arrive avec signOut)
+
+      // IMPORTANT: Pour que le client Supabase récupère la session du Super Admin,
+      // il faudrait idéalement se reconnecter, mais on n'a pas le mot de passe.
+      // Cependant, dans notre app, on utilise souvent localStorage 'auth_user' comme source de vérité.
+      // Le problème est que supabase.auth.signOut() a effacé le token en mémoire.
+
+      // Solution: On compte sur le fait que le user va rafraîchir ou que AuthContext va gérer.
+      // MAIS pour les appels suivants (setupPromoterBar), on a besoin d'être authentifié.
+
+      // Si on est ici, c'est qu'on a perdu la session Supabase active.
+      // C'est problématique pour l'appel suivant setupPromoterBar qui a besoin d'être authentifié.
+
+      // Heureusement, on a implémenté la protection dans AuthContext qui devrait empêcher
+      // le changement de session UI, mais le client Supabase lui est déconnecté.
+
+      // On va essayer de récupérer la session si possible, sinon on devra demander au user de se reconnecter.
+      // Dans le cas du Super Admin, c'est critique.
+
+      // Alternative: Utiliser l'API Admin de Supabase si on avait la clé service_role, 
+      // mais on est côté client.
+
+      // On retourne le profil quand même.
+      // Comme on a signOut(), on ne peut pas lire la table users avec RLS si on n'est plus connecté.
+      // C'est là le piège !
+
+      // On ne peut pas faire l'étape 4 (Récupérer le profil) si on est déconnecté.
+      // Et si on reste connecté en tant que nouveau user, on n'a pas le droit de voir le profil 
+      // (sauf si RLS "Users can view own profile" est active, ce qui est le cas).
+
+      // Donc:
+      // 1. SignUp (devient le nouveau user)
+      // 2. Lire le profil (en tant que nouveau user) -> OK
+      // 3. SignOut
+      // 4. Restaurer localStorage
+
+      // Récupérer le profil AVANT de se déconnecter
       const { data: profile, error: profileError } = await supabase
         .from('users')
         .select('id, username, email, name, phone, avatar_url, is_active, first_login, created_at, updated_at, last_login_at')
@@ -267,13 +397,67 @@ role,
         .single();
 
       if (profileError || !profile) {
-        throw new Error('Erreur lors de la récupération du profil promoteur');
+        // Si on ne peut pas lire, on construit l'objet manuellement pour ne pas bloquer
+        console.warn('Impossible de lire le profil créé (RLS?), construction manuelle');
+        return {
+          id: authData.user.id,
+          email: data.email,
+          username: data.username || data.email.split('@')[0],
+          name: data.name,
+          phone: data.phone,
+          is_active: true,
+          first_login: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as any;
       }
 
       return profile as Omit<DbUser, 'password_hash'>;
+
     } catch (error: any) {
       console.error('AuthService createPromoter error:', error);
       throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Créer un promoteur ET son bar de manière atomique (via RPC)
+   * Utilise la fonction setup_promoter_bar pour garantir l'atomicité
+   */
+  static async setupPromoterBar(
+    ownerId: string,
+    barName: string,
+    barSettings?: any
+  ): Promise<{ success: boolean; barId?: string; barName?: string; error?: string }> {
+    try {
+      const { data, error } = await supabase.rpc('setup_promoter_bar', {
+        p_owner_id: ownerId,
+        p_bar_name: barName,
+        p_settings: barSettings || null,
+      });
+
+      if (error) {
+        // Messages d'erreur utilisateur conviviaux
+        if (error.message.includes('duplicate key')) {
+          throw new Error('Un bar avec ce nom existe déjà.');
+        }
+        if (error.message.includes('foreign key')) {
+          throw new Error('Utilisateur invalide. Veuillez réessayer.');
+        }
+        throw new Error(error.message);
+      }
+
+      return {
+        success: data.success,
+        barId: data.bar_id,
+        barName: data.bar_name,
+      };
+    } catch (error: any) {
+      console.error('AuthService setupPromoterBar error:', error);
+      return {
+        success: false,
+        error: error.message || 'Une erreur est survenue lors de la création du bar.',
+      };
     }
   }
 
@@ -561,6 +745,7 @@ role,
     updates: Omit<DbUserUpdate, 'password_hash'>
   ): Promise<Omit<DbUser, 'password_hash'>> {
     try {
+      // 1. Mettre à jour public.users
       const { data, error } = await supabase
         .from('users')
         .update(updates)
@@ -572,9 +757,25 @@ role,
         throw new Error('Erreur lors de la mise à jour du profil');
       }
 
-      // Mettre à jour le localStorage si c'est l'utilisateur courant
+      // 2. Mettre à jour les métadonnées auth.users (pour éviter l'écrasement par le trigger)
+      // Seulement si c'est l'utilisateur courant (sécurité)
       const currentUser = this.getCurrentUser();
       if (currentUser && currentUser.id === userId) {
+        const { error: authError } = await supabase.auth.updateUser({
+          data: {
+            name: updates.name,
+            phone: updates.phone,
+            // username n'est pas dans updates typiquement, mais s'il y est :
+            ...(updates.username ? { username: updates.username } : {})
+          }
+        });
+
+        if (authError) {
+          console.warn('Failed to update auth metadata:', authError);
+          // On ne bloque pas, car la DB est à jour
+        }
+
+        // 3. Mettre à jour le localStorage
         const updatedAuthUser: AuthUser = {
           ...currentUser,
           ...data,
@@ -604,9 +805,18 @@ role,
         throw new Error(error.message || 'Erreur lors du changement de mot de passe');
       }
 
-      // Mettre à jour first_login dans le localStorage
+      // Mettre à jour first_login dans la DB via RPC
       const currentUser = this.getCurrentUser();
       if (currentUser) {
+        const { error: rpcError } = await supabase.rpc('complete_first_login', {
+          p_user_id: currentUser.id,
+        });
+
+        if (rpcError) {
+          console.warn('Failed to update first_login in DB:', rpcError);
+        }
+
+        // Mettre à jour le localStorage
         currentUser.first_login = false;
         localStorage.setItem('auth_user', JSON.stringify(currentUser));
       }

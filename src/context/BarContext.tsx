@@ -124,20 +124,20 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (currentSession.barId && currentSession.barId !== 'admin_global') {
         const members = await AuthService.getBarMembers(currentSession.barId);
         const mappedMembers: BarMember[] = members.map(m => ({
-          id: m.id,
-          userId: m.id,
+          id: `${currentSession.barId}_${m.id}`, // Générer un ID unique pour le membership
+          userId: m.id, // L'ID utilisateur
           barId: currentSession.barId,
           role: m.role as UserRole,
           assignedBy: '', // Pas retourné par l'API
           assignedAt: new Date(m.joined_at),
-          isActive: m.is_active,
+          isActive: m.member_is_active,
           user: {
             id: m.id,
             username: m.username,
             password: '', // Pas exposé
             name: m.name,
             phone: m.phone,
-            email: undefined,
+            email: m.email,
             createdAt: new Date(m.created_at),
             isActive: m.is_active,
             firstLogin: m.first_login,
@@ -339,20 +339,20 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const members = await AuthService.getBarMembers(barId);
 
       return members.map(m => ({
-        id: m.id,
-        userId: m.id,
+        id: `${barId}_${m.id}`, // Générer un ID unique pour le membership
+        userId: m.id, // L'ID utilisateur
         barId: barId,
         role: m.role as UserRole,
         assignedBy: '',
         assignedAt: new Date(m.joined_at),
-        isActive: m.is_active,
+        isActive: m.member_is_active,
         user: {
           id: m.id,
           username: m.username,
           password: '', // Pas exposé
           name: m.name,
           phone: m.phone,
-          email: undefined,
+          email: m.email,
           createdAt: new Date(m.created_at),
           isActive: m.is_active,
           firstLogin: m.first_login,

@@ -1,8 +1,27 @@
 # Plan d'Optimisation SQL Complète - BarTender
 
-**Date :** 24 Novembre 2025
-**Objectif :** Déplacer les calculs lourds du client vers la base de données PostgreSQL
+**Date :** 24 Novembre 2025  
+**Mise à jour :** 25 Novembre 2025 (Compatibilité Migration 036)  
+**Objectif :** Déplacer les calculs lourds du client vers la base de données PostgreSQL  
 **Impact :** Performance × 100-1000, Scalabilité illimitée
+
+---
+
+## ⚠️ Prérequis - Migration 036
+
+> [!IMPORTANT]
+> Ce plan d'optimisation SQL **dépend** de la migration 036 (Fix Auth Schema & Add Atomic RPCs).
+> 
+> **Raisons** :
+> - Réutilise le pattern RPC introduit par migration 036
+> - Réutilise le format de logging standardisé
+> - S'appuie sur la table `bar_members` modifiée par migration 036
+> 
+> **Ordre de déploiement** :
+> 1. ✅ Migration 036 (Auth) - **À déployer en premier**
+> 2. ⏳ Migrations 037-040 (Vues SQL) - **Ce document**
+> 
+> Voir [MIGRATION_COMPATIBILITY_ANALYSIS.md](MIGRATION_COMPATIBILITY_ANALYSIS.md) pour l'analyse détaillée.
 
 ---
 
@@ -370,8 +389,9 @@ const alreadyConsigned = consignments
 
 **Migration SQL :**
 ```sql
--- 036_create_product_sales_stats_view.sql
+-- 037_create_product_sales_stats_view.sql
 -- V2: Avec Sécurité RLS
+-- Prérequis: Migration 036 (Auth Schema) doit être appliquée
 
 -- 1. Vue Matérialisée (Interne - Données brutes)
 CREATE MATERIALIZED VIEW product_sales_stats_mat AS
@@ -449,8 +469,16 @@ RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
+DECLARE
+  v_row_count INTEGER;
 BEGIN
+  -- Logging inspiré de migration 036
+  RAISE NOTICE '[refresh_product_sales_stats] Starting refresh...';
+  
   REFRESH MATERIALIZED VIEW CONCURRENTLY product_sales_stats_mat;
+  
+  GET DIAGNOSTICS v_row_count = ROW_COUNT;
+  RAISE NOTICE '[refresh_product_sales_stats] ✓ Refreshed % products', v_row_count;
 END;
 $$;
 
@@ -490,8 +518,9 @@ GRANT SELECT ON product_sales_stats TO authenticated;
 
 **Migration SQL :**
 ```sql
--- 037_create_daily_sales_summary_view.sql
+-- 038_create_daily_sales_summary_view.sql
 -- V2: Avec Business Day (-4h) et Sécurité RLS
+-- Prérequis: Migration 036 (Auth Schema) doit être appliquée
 
 -- 1. Vue Matérialisée (Interne)
 CREATE MATERIALIZED VIEW daily_sales_summary_mat AS
@@ -566,8 +595,16 @@ RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
+DECLARE
+  v_row_count INTEGER;
 BEGIN
+  -- Logging inspiré de migration 036
+  RAISE NOTICE '[refresh_daily_sales_summary] Starting refresh...';
+  
   REFRESH MATERIALIZED VIEW CONCURRENTLY daily_sales_summary_mat;
+  
+  GET DIAGNOSTICS v_row_count = ROW_COUNT;
+  RAISE NOTICE '[refresh_daily_sales_summary] ✓ Refreshed % days', v_row_count;
 END;
 $$;
 
@@ -611,8 +648,9 @@ const totalRevenue = data.reduce((sum, day) => sum + day.gross_revenue, 0);
 
 **Migration SQL :**
 ```sql
--- 038_create_top_products_view.sql
+-- 039_create_top_products_view.sql
 -- V2: Avec Business Day (-4h) et Sécurité RLS
+-- Prérequis: Migration 036 (Auth Schema) doit être appliquée
 
 -- 1. Vue Matérialisée (Interne)
 CREATE MATERIALIZED VIEW top_products_by_period_mat AS
@@ -679,8 +717,9 @@ GRANT SELECT ON top_products_by_period TO authenticated;
 
 **Migration SQL :**
 ```sql
--- 039_create_bar_stats_multi_period_view.sql
+-- 040_create_bar_stats_multi_period_view.sql
 -- V2: Avec Sécurité RLS
+-- Prérequis: Migration 036 (Auth Schema) + Migration 038 (daily_sales_summary) doivent être appliquées
 
 -- 1. Vue Matérialisée (Interne)
 CREATE MATERIALIZED VIEW bar_stats_multi_period_mat AS

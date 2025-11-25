@@ -55,7 +55,7 @@ export function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgot
     // Support login par nom d'utilisateur
     let loginEmail = email;
     if (!email.includes('@')) {
-      loginEmail = `${email}@bartender.local`;
+      loginEmail = `${email}@bartender.app`;
     }
 
     try {

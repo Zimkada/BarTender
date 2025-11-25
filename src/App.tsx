@@ -612,7 +612,7 @@ function AppContent() {
         hideFloatingButton={showQuickSale || showForecasting || showDailyDashboard || showSalesHistory || showInventory || showSettings || showServers || showReturns || showAccounting}
       />
 
-      <RoleBasedComponent requiredPermission="canManageUsers">
+      <RoleBasedComponent requiredPermission="canCreateServers">
         <UserManagement
           isOpen={showServers}
           onClose={() => setShowServers(false)}

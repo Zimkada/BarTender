@@ -171,39 +171,38 @@ export function UsersManagementPanel({ isOpen, onClose }: UsersManagementPanelPr
         return;
       }
 
-      // 2. Créer bar avec le nouveau promoteur comme propriétaire
-      const newBar = await createBar({
-        name: formData.barName,
-        address: formData.barAddress || undefined,
-        phone: formData.barPhone || undefined,
-        ownerId: newUser.id,
-        isActive: true,
-        settings: {
-          currency: 'FCFA',
-          currencySymbol: ' FCFA',
-          timezone: 'Africa/Porto-Novo',
-          language: 'fr',
-          businessDayCloseHour: 6,
-          operatingMode: 'full',
-          consignmentExpirationDays: 7,
-        },
-      });
+      // 2. Créer bar ET assigner le promoteur de manière atomique via RPC
+      const barSettings = {
+        currency: 'FCFA',
+        currencySymbol: ' FCFA',
+        timezone: 'Africa/Porto-Novo',
+        language: 'fr',
+        businessDayCloseHour: 6,
+        operatingMode: 'full',
+        consignmentExpirationDays: 7,
+      };
 
-      if (!newBar) {
-        alert('Erreur lors de la création du bar');
+      const result = await AuthService.setupPromoterBar(
+        newUser.id,
+        formData.barName,
+        barSettings
+      );
+
+      if (!result.success || !result.barId) {
+        alert(`Erreur lors de la création du bar: ${result.error || 'Erreur inconnue'}`);
         return;
       }
 
-      // 3. Initialiser les données du bar (catégories et produits par défaut)
-      console.log(`[UsersManagementPanel] Initializing data for new bar: ${newBar.id}`);
-      await initializeBarData(newBar.id);
-
-      // 4. Succès
+      // 3. Succès
       alert(`✅ Promoteur créé avec succès!\n\nBar: ${formData.barName}\n\nCredentials:\nUsername: ${username}\nMot de passe: ${formData.password}\nBar: ${formData.barName}\n\n(Envoyez ces informations au promoteur)`);
 
       setFormData(initialFormData);
       setShowCreateForm(false);
-      loadPromoters(); // Rafraîchir la liste
+
+      // Petit délai pour la propagation
+      setTimeout(() => {
+        loadPromoters();
+      }, 500);
     } catch (error) {
       console.error('Erreur création promoteur:', error);
       alert('Erreur lors de la création');

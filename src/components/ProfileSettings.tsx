@@ -24,7 +24,7 @@ interface ProfileSettingsProps {
 }
 
 export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
-  const { currentSession, changePassword } = useAuth();
+  const { currentSession, changePassword, refreshSession } = useAuth();
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -129,6 +129,9 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
         email: email.trim() || undefined,
         phone: phone.trim(),
       } : null);
+
+      // Refresh global session
+      await refreshSession();
 
       setSuccessMessage('Informations mises à jour avec succès !');
       setTimeout(() => setSuccessMessage(''), 3000);
@@ -237,8 +240,8 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
                   <button
                     onClick={() => setActiveTab('info')}
                     className={`flex-1 py-3 px-4 font-medium transition-colors ${activeTab === 'info'
-                        ? 'bg-white text-indigo-600 border-b-2 border-indigo-600'
-                        : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-white text-indigo-600 border-b-2 border-indigo-600'
+                      : 'text-gray-600 hover:text-gray-900'
                       }`}
                   >
                     <User className="w-4 h-4 inline mr-2" />
@@ -247,8 +250,8 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
                   <button
                     onClick={() => setActiveTab('password')}
                     className={`flex-1 py-3 px-4 font-medium transition-colors ${activeTab === 'password'
-                        ? 'bg-white text-indigo-600 border-b-2 border-indigo-600'
-                        : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-white text-indigo-600 border-b-2 border-indigo-600'
+                      : 'text-gray-600 hover:text-gray-900'
                       }`}
                   >
                     <Lock className="w-4 h-4 inline mr-2" />

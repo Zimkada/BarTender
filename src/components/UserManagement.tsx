@@ -75,27 +75,23 @@ export function UserManagement({ isOpen, onClose }: UserManagementProps) {
       return;
     }
 
-    if (password.length < 4) {
-      setError('Le mot de passe doit contenir au moins 4 caractères');
+    if (password.length < 8) {
+      setError('Le mot de passe doit contenir au moins 8 caractères');
       return;
     }
 
     try {
-      // Vérifier que le username n'existe pas déjà
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('id')
-        .eq('username', username)
-        .single();
+      // Auto-generate email from username
+      // Si le username contient déjà un @, c'est un email, sinon on génère
+      const generatedEmail = username.includes('@')
+        ? username
+        : `${username}@bartender.app`;
 
-      if (existingUser) {
-        setError('Ce nom d\'utilisateur existe déjà');
-        return;
-      }
+      // Note: Les vérifications de doublons sont gérées par les contraintes UNIQUE de la DB
+      // Pas besoin de vérifier côté client (évite les erreurs 406 RLS)
 
       // Créer l'utilisateur et l'assigner au bar
-      // Auto-generate email from username
-      const generatedEmail = `${username}@bartender.local`;
+      const roleLabel = getRoleLabel(selectedRole);
 
       await AuthService.signup(
         {
@@ -109,23 +105,51 @@ export function UserManagement({ isOpen, onClose }: UserManagementProps) {
         selectedRole as 'gerant' | 'serveur'
       );
 
+      // Attendre un peu pour que la session soit complètement restaurée
+      // avant de rafraîchir les données (évite les erreurs 401)
+      await new Promise(resolve => setTimeout(resolve, 200));
+
       // Rafraîchir la liste des membres
       await refreshBars();
 
-      setSuccess(`${getRoleLabel(selectedRole)} créé avec succès`);
+      // Message de succès détaillé
+      const successMessage = selectedRole === 'gerant'
+        ? `✅ Gérant "${name}" créé avec succès !\n📧 Email: ${generatedEmail}\n🔑 Mot de passe: ${password}\n\n⚠️ Communiquez ces identifiants au gérant.`
+        : `✅ Serveur "${name}" créé avec succès !\n📧 Email: ${generatedEmail}\n🔑 Mot de passe: ${password}\n\n⚠️ Communiquez ces identifiants au serveur.`;
+
+      setSuccess(successMessage);
+
       // Reset form
       setUsername('');
       setPassword('');
       setName('');
       setPhone('');
+
+      // Fermer le formulaire après 4 secondes (plus de temps pour lire les identifiants)
       setTimeout(() => {
         setShowAddUser(false);
         setSuccess('');
-      }, 2000);
+      }, 4000);
 
     } catch (err: any) {
       console.error('Error creating user:', err);
-      setError(err.message || 'Erreur lors de la création de l\'utilisateur');
+
+      // Messages d'erreur plus explicites
+      let errorMessage = 'Erreur lors de la création de l\'utilisateur';
+
+      if (err.message.includes('duplicate') || err.message.includes('already exists')) {
+        errorMessage = '❌ Ce nom d\'utilisateur ou cet email existe déjà.';
+      } else if (err.message.includes('Invalid login credentials')) {
+        errorMessage = '❌ Identifiants invalides. Veuillez réessayer.';
+      } else if (err.message.includes('Email not confirmed')) {
+        errorMessage = '❌ L\'email n\'a pas été confirmé. Contactez l\'administrateur.';
+      } else if (err.message.includes('permission')) {
+        errorMessage = '❌ Vous n\'avez pas les permissions nécessaires.';
+      } else if (err.message) {
+        errorMessage = `❌ ${err.message}`;
+      }
+
+      setError(errorMessage);
     }
   };
 
@@ -362,7 +386,7 @@ export function UserManagement({ isOpen, onClose }: UserManagementProps) {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
-                                placeholder="Min 4 chars"
+                                placeholder="Min 8 chars"
                               />
                             </div>
 

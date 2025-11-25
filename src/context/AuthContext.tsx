@@ -13,6 +13,7 @@ interface AuthContextType {
   verifyMfa: (factorId: string, code: string) => Promise<LoginResult>; // New MFA verification function
   logout: () => void;
   hasPermission: (permission: keyof RolePermissions) => boolean;
+  refreshSession: () => Promise<void>;
   // createUser: (userData: Omit<User, 'id' | 'createdAt' | 'createdBy'>, role: UserRole) => Promise<User | null>; // Moved out of AuthContext
   // updateUser: (userId: string, updates: Partial<User>) => Promise<void>; // Moved out of AuthContext
   changePassword: (newPassword: string) => Promise<void>;
@@ -74,19 +75,45 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       async (event, session) => {
         console.log('[AuthContext] Auth state changed:', event, session?.user?.id);
 
+        // Get current user from localStorage (source of truth during transitions)
+        const currentUser = AuthService.getCurrentUser();
+
+        // 🔒 PROTECTION: Ignore SIGNED_IN if someone else is already logged in
+        // This prevents session hijacking during account creation (promoter/manager creating new users)
+        if (event === 'SIGNED_IN' && session && currentUser) {
+          if (currentUser.id !== session.user.id) {
+            console.log(
+              '[AuthContext] 🛡️ Ignoring SIGNED_IN for different user',
+              `(current: ${currentUser.id}, new: ${session.user.id})`,
+              '- Account creation in progress'
+            );
+            return; // ⛔ Ignore this event - account creation flow
+          }
+        }
+
+        // 🔒 PROTECTION: Ignore SIGNED_OUT if we still have a valid session
+        // This prevents session loss during account creation cleanup
         if (event === 'SIGNED_OUT') {
-          // L'utilisateur vient de se déconnecter
+          if (currentUser) {
+            console.log(
+              '[AuthContext] 🛡️ Ignoring SIGNED_OUT - Valid session exists',
+              `(user: ${currentUser.id})`,
+              '- Account creation cleanup in progress'
+            );
+            return; // ⛔ Ignore this event - account creation cleanup
+          }
+          // Legitimate logout - clear session
           setCurrentSession(null);
         } else if (event === 'TOKEN_REFRESHED') {
           // Le token JWT a été rafraîchi automatiquement
           console.log('[AuthContext] Token refreshed');
         } else if (event === 'SIGNED_IN' && session) {
-          // L'utilisateur vient de se connecter (peut-être via un autre onglet)
-          console.log('[AuthContext] User signed in:', session.user.id);
+          // Legitimate login (same user or no one logged in)
+          console.log('[AuthContext] ✅ User signed in:', session.user.id);
           // Re-initialize session to get full AuthUser data
           AuthService.initializeSession().then(authUser => {
             if (authUser) {
-              const session: UserSession = {
+              const newSession: UserSession = {
                 userId: authUser.id,
                 userName: authUser.name,
                 role: authUser.role,
@@ -96,7 +123,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 permissions: getPermissionsByRole(authUser.role),
                 firstLogin: authUser.first_login
               };
-              setCurrentSession(session);
+              setCurrentSession(newSession);
             }
           });
         }
@@ -441,6 +468,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     originalSession,
     impersonate,
     stopImpersonation,
+    refreshSession: async () => {
+      const user = await AuthService.initializeSession();
+      if (user) {
+        const session: UserSession = {
+          userId: user.id,
+          userName: user.name,
+          role: user.role,
+          barId: user.barId,
+          barName: user.barName,
+          loginTime: new Date(),
+          permissions: getPermissionsByRole(user.role),
+          firstLogin: user.first_login
+        };
+        setCurrentSession(session);
+      }
+    }
   };
 
   return (
