@@ -17,7 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { useAppContext } from '../context/AppContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
-import { getWeekRange, getMonthRange} from '../utils/accounting';
+import { getWeekRange, getMonthRange } from '../utils/accounting';
 import { ExpenseCategory } from '../types';
 import { useViewport } from '../hooks/useViewport';
 
@@ -29,9 +29,10 @@ function ExpenseManagerContent() {
   const { formatPrice } = useCurrencyFormatter();
   const { isMobile } = useViewport();
 
-  // ✅ Utiliser AppContext pour les dépenses
+  // ✅ Utiliser AppContext pour les dépenses et les supplies
   const {
     expenses,
+    supplies, // ✨ NOUVEAU
     customExpenseCategories,
     addExpense,
     addCustomExpenseCategory,
@@ -119,13 +120,64 @@ function ExpenseManagerContent() {
 
   const { start: periodStart, end: periodEnd } = getPeriodRange();
 
-  const totalExpenses = getTotalExpenses(expenses, periodStart, periodEnd);
-  const expensesByCategory = getExpensesByCategory(expenses, customExpenseCategories, periodStart, periodEnd);
+  // ✨ Filter Supplies
+  const filteredSupplies = supplies.filter(supply => {
+    const supplyDate = new Date(supply.date);
+    return supplyDate >= periodStart && supplyDate <= periodEnd;
+  });
 
+  const suppliesTotal = filteredSupplies.reduce((sum, s) => sum + (s.lotPrice * s.lotSize), 0);
+
+  // ✨ Filter Expenses
   const filteredExpenses = expenses.filter(exp => {
     const expDate = new Date(exp.date);
     return expDate >= periodStart && expDate <= periodEnd;
-  }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  });
+
+  const expensesTotal = getTotalExpenses(expenses, periodStart, periodEnd);
+
+  // ✨ Total Global
+  const totalExpenses = expensesTotal + suppliesTotal;
+
+  // ✨ Merge Categories
+  const expensesByCategory = getExpensesByCategory(expenses, customExpenseCategories, periodStart, periodEnd);
+
+  if (filteredSupplies.length > 0) {
+    expensesByCategory['supplies'] = {
+      label: 'Approvisionnements',
+      icon: '📦',
+      amount: suppliesTotal,
+      count: filteredSupplies.length
+    };
+  }
+
+  // ✨ Unified Items List for Rendering
+  const getItemsByCategory = (categoryKey: string) => {
+    if (categoryKey === 'supplies') {
+      return filteredSupplies.map(s => ({
+        id: s.id,
+        date: s.date,
+        amount: s.lotPrice * s.lotSize,
+        notes: `${s.productName} (${s.quantity} unités)`,
+        isSupply: true
+      }));
+    }
+
+    return filteredExpenses
+      .filter(exp => {
+        const expKey = exp.category === 'custom' && exp.customCategoryId
+          ? exp.customCategoryId
+          : exp.category;
+        return expKey === categoryKey;
+      })
+      .map(exp => ({
+        id: exp.id,
+        date: exp.date,
+        amount: exp.amount,
+        notes: exp.notes,
+        isSupply: false
+      }));
+  };
 
   const periodLabel = periodType === 'week' ? 'Semaine' : periodType === 'month' ? 'Mois' : 'Tout';
 
@@ -143,9 +195,8 @@ function ExpenseManagerContent() {
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className={`bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors flex items-center gap-2 ${
-            isMobile ? 'px-3 py-2 text-sm' : 'px-4 py-2'
-          }`}
+          className={`bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors flex items-center gap-2 ${isMobile ? 'px-3 py-2 text-sm' : 'px-4 py-2'
+            }`}
         >
           <Plus size={isMobile ? 16 : 20} />
           {!isMobile && 'Ajouter'}
@@ -158,11 +209,10 @@ function ExpenseManagerContent() {
           <button
             key={type}
             onClick={() => setPeriodType(type)}
-            className={`px-3 py-1.5 rounded-md transition-colors ${isMobile ? 'text-xs' : 'text-sm'} ${
-              periodType === type
+            className={`px-3 py-1.5 rounded-md transition-colors ${isMobile ? 'text-xs' : 'text-sm'} ${periodType === type
                 ? 'bg-amber-500 text-white'
                 : 'text-gray-600 hover:bg-gray-200'
-            }`}
+              }`}
           >
             {type === 'week' ? 'Semaine' : type === 'month' ? 'Mois' : 'Tout'}
           </button>
@@ -199,9 +249,8 @@ function ExpenseManagerContent() {
               <div key={key}>
                 <button
                   onClick={() => toggleCategory(key)}
-                  className={`w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors ${
-                    isMobile ? 'text-sm' : ''
-                  }`}
+                  className={`w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors ${isMobile ? 'text-sm' : ''
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{data.icon}</span>
@@ -230,37 +279,33 @@ function ExpenseManagerContent() {
                       className="overflow-hidden bg-gray-50"
                     >
                       <div className="px-4 pb-4 space-y-2">
-                        {filteredExpenses
-                          .filter(exp => {
-                            const expKey = exp.category === 'custom' && exp.customCategoryId
-                              ? exp.customCategoryId
-                              : exp.category;
-                            return expKey === key;
-                          })
-                          .map(exp => (
+                        {getItemsByCategory(key)
+                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                          .map(item => (
                             <div
-                              key={exp.id}
-                              className={`flex items-center justify-between bg-white p-3 rounded-lg ${
-                                isMobile ? 'text-xs' : 'text-sm'
-                              }`}
+                              key={item.id}
+                              className={`flex items-center justify-between bg-white p-3 rounded-lg ${isMobile ? 'text-xs' : 'text-sm'
+                                }`}
                             >
                               <div className="flex-1">
                                 <p className="font-medium text-gray-800">
-                                  {formatPrice(exp.amount)}
+                                  {formatPrice(item.amount)}
                                 </p>
                                 <p className="text-gray-500">
-                                  {new Date(exp.date).toLocaleDateString('fr-FR')}
+                                  {new Date(item.date).toLocaleDateString('fr-FR')}
                                 </p>
-                                {exp.notes && (
-                                  <p className="text-gray-600 mt-1">{exp.notes}</p>
+                                {item.notes && (
+                                  <p className="text-gray-600 mt-1">{item.notes}</p>
                                 )}
                               </div>
-                              <button
-                                onClick={() => handleDeleteExpense(exp.id)}
-                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                              >
-                                <Trash2 size={16} />
-                              </button>
+                              {!item.isSupply && (
+                                <button
+                                  onClick={() => handleDeleteExpense(item.id)}
+                                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
                             </div>
                           ))}
                       </div>
@@ -276,9 +321,8 @@ function ExpenseManagerContent() {
       {/* Custom categories button */}
       <button
         onClick={() => setShowCategoryForm(true)}
-        className={`w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-amber-500 hover:text-amber-500 transition-colors flex items-center justify-center gap-2 ${
-          isMobile ? 'text-sm' : ''
-        }`}
+        className={`w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-amber-500 hover:text-amber-500 transition-colors flex items-center justify-center gap-2 ${isMobile ? 'text-sm' : ''
+          }`}
       >
         <Plus size={isMobile ? 16 : 20} />
         Créer une catégorie personnalisée
@@ -299,9 +343,8 @@ function ExpenseManagerContent() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={e => e.stopPropagation()}
-              className={`bg-white rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto ${
-                isMobile ? 'max-w-sm p-4' : 'max-w-md p-6'
-              }`}
+              className={`bg-white rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto ${isMobile ? 'max-w-sm p-4' : 'max-w-md p-6'
+                }`}
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className={`font-bold text-gray-800 ${isMobile ? 'text-lg' : 'text-xl'}`}>
@@ -326,9 +369,8 @@ function ExpenseManagerContent() {
                     value={amount}
                     onChange={e => setAmount(e.target.value)}
                     placeholder="5000"
-                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${
-                      isMobile ? 'text-sm' : ''
-                    }`}
+                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${isMobile ? 'text-sm' : ''
+                      }`}
                   />
                 </div>
 
@@ -349,9 +391,8 @@ function ExpenseManagerContent() {
                         setCustomCategoryId('');
                       }
                     }}
-                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${
-                      isMobile ? 'text-sm' : ''
-                    }`}
+                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${isMobile ? 'text-sm' : ''
+                      }`}
                   >
                     {/* Standard categories */}
                     {Object.entries(EXPENSE_CATEGORY_LABELS)
@@ -385,9 +426,8 @@ function ExpenseManagerContent() {
                     type="date"
                     value={date}
                     onChange={e => setDate(e.target.value)}
-                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${
-                      isMobile ? 'text-sm' : ''
-                    }`}
+                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${isMobile ? 'text-sm' : ''
+                      }`}
                   />
                 </div>
 
@@ -401,9 +441,8 @@ function ExpenseManagerContent() {
                     onChange={e => setNotes(e.target.value)}
                     placeholder="Détails de la dépense..."
                     rows={3}
-                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none resize-none ${
-                      isMobile ? 'text-sm' : ''
-                    }`}
+                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none resize-none ${isMobile ? 'text-sm' : ''
+                      }`}
                   />
                 </div>
 
@@ -411,17 +450,15 @@ function ExpenseManagerContent() {
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => setShowForm(false)}
-                    className={`flex-1 py-2 border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors ${
-                      isMobile ? 'text-sm' : ''
-                    }`}
+                    className={`flex-1 py-2 border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors ${isMobile ? 'text-sm' : ''
+                      }`}
                   >
                     Annuler
                   </button>
                   <button
                     onClick={handleAddExpense}
-                    className={`flex-1 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors ${
-                      isMobile ? 'text-sm' : ''
-                    }`}
+                    className={`flex-1 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors ${isMobile ? 'text-sm' : ''
+                      }`}
                   >
                     Ajouter
                   </button>
@@ -447,9 +484,8 @@ function ExpenseManagerContent() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={e => e.stopPropagation()}
-              className={`bg-white rounded-2xl shadow-2xl w-full ${
-                isMobile ? 'max-w-sm p-4' : 'max-w-md p-6'
-              }`}
+              className={`bg-white rounded-2xl shadow-2xl w-full ${isMobile ? 'max-w-sm p-4' : 'max-w-md p-6'
+                }`}
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className={`font-bold text-gray-800 ${isMobile ? 'text-lg' : 'text-xl'}`}>
@@ -473,9 +509,8 @@ function ExpenseManagerContent() {
                     value={newCategoryName}
                     onChange={e => setNewCategoryName(e.target.value)}
                     placeholder="Ex: Loyer, Internet, etc."
-                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${
-                      isMobile ? 'text-sm' : ''
-                    }`}
+                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${isMobile ? 'text-sm' : ''
+                      }`}
                   />
                 </div>
 
@@ -488,26 +523,23 @@ function ExpenseManagerContent() {
                     value={newCategoryIcon}
                     onChange={e => setNewCategoryIcon(e.target.value)}
                     placeholder="📝"
-                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${
-                      isMobile ? 'text-sm' : ''
-                    }`}
+                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${isMobile ? 'text-sm' : ''
+                      }`}
                   />
                 </div>
 
                 <div className="flex gap-3 pt-2">
                   <button
                     onClick={() => setShowCategoryForm(false)}
-                    className={`flex-1 py-2 border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors ${
-                      isMobile ? 'text-sm' : ''
-                    }`}
+                    className={`flex-1 py-2 border-2 border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors ${isMobile ? 'text-sm' : ''
+                      }`}
                   >
                     Annuler
                   </button>
                   <button
                     onClick={handleAddCustomCategory}
-                    className={`flex-1 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors ${
-                      isMobile ? 'text-sm' : ''
-                    }`}
+                    className={`flex-1 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors ${isMobile ? 'text-sm' : ''
+                      }`}
                   >
                     Créer
                   </button>

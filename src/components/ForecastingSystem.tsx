@@ -10,20 +10,19 @@ import {
   X,
   Check,
   Download,
-  Plus,
   BarChart3,
   DollarSign
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
+import { useBarContext } from '../context/BarContext';
+import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
 import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
-import { Product } from '../types';
-import { getSaleDate } from '../utils/saleHelpers';
 import * as XLSX from 'xlsx';
+import { ForecastingService, ProductSalesStats, OrderSuggestion } from '../services/supabase/forecasting.service';
 
 interface StockAlert {
   id: string;
@@ -44,177 +43,105 @@ interface ForecastingSystemProps {
   onClose: () => void;
 }
 
-interface OrderSuggestion {
-  productId: string;
-  productName: string;
-  currentStock: number;
-  suggestedQuantity: number;
-  estimatedCost: number;
-  urgency: 'high' | 'medium' | 'low';
-  reasoning: string;
-}
-
 type ForecastView = 'stock' | 'sales' | 'advanced';
 
 export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
-  const {
-    products,
-    sales,
-    getLowStockProducts,
-    getAverageCostPerUnit
-  } = useAppContext();
   const { formatPrice } = useCurrencyFormatter();
   const { hasPermission } = useAuth();
   const { isMobile } = useViewport();
+  const { currentBar } = useBarContext();
+  const { showSuccess, showError } = useFeedback();
 
   const [activeTab, setActiveTab] = useState<ForecastView>('stock');
   const [alerts, setAlerts] = useState<StockAlert[]>([]);
   const [filterStatus, setFilterStatus] = useState<'all' | 'new' | 'read' | 'resolved'>('all');
   const [showOrderSuggestions, setShowOrderSuggestions] = useState(false);
-  const [coverageDays, setCoverageDays] = useState(7); // Fréquence d'approvisionnement: 7 jours par défaut
+  const [coverageDays, setCoverageDays] = useState(7);
 
-  // Génération automatique des alertes
+  // SQL Data State
+  const [productStats, setProductStats] = useState<ProductSalesStats[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Charger les données SQL
+  const loadStats = async () => {
+    if (!currentBar) return;
+
+    try {
+      setIsLoading(true);
+      const stats = await ForecastingService.getProductSalesStats(currentBar.id);
+      setProductStats(stats);
+
+      // Générer les alertes basées sur les données SQL
+      const newAlerts: StockAlert[] = stats
+        .filter(stat => stat.current_stock <= stat.alert_threshold)
+        .map(stat => {
+          const severity: StockAlert['severity'] =
+            stat.current_stock === 0 ? 'critical' :
+              stat.current_stock <= stat.alert_threshold / 2 ? 'critical' :
+                'warning';
+
+          // Calculer suggestion pour l'alerte
+          const suggestion = ForecastingService.calculateOrderSuggestion(stat, coverageDays);
+
+          return {
+            id: `alert_${stat.product_id}_${new Date().toISOString().split('T')[0]}`,
+            productId: stat.product_id,
+            productName: stat.product_name,
+            productVolume: stat.product_volume,
+            currentStock: stat.current_stock,
+            threshold: stat.alert_threshold,
+            severity,
+            createdAt: new Date(),
+            status: 'new',
+            // Estimation rupture: stock / moyenne journalière
+            predictedRunout: stat.daily_average > 0
+              ? new Date(Date.now() + (stat.current_stock / stat.daily_average) * 86400000)
+              : undefined,
+            suggestedOrder: suggestion.suggestedQuantity
+          };
+        });
+
+      setAlerts(prev => {
+        // Fusionner avec les alertes existantes pour ne pas perdre le statut 'read'/'resolved'
+        const existingMap = new Map(prev.map(a => [a.productId, a]));
+        return newAlerts.map(newAlert => {
+          const existing = existingMap.get(newAlert.productId);
+          if (existing && existing.status !== 'new') {
+            return { ...newAlert, status: existing.status, id: existing.id };
+          }
+          return newAlert;
+        });
+      });
+
+    } catch (error) {
+      console.error('Error loading forecasting stats:', error);
+      showError('Erreur lors du chargement des prévisions');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Charger au montage et quand le bar change
   useEffect(() => {
-    const lowStockProducts = getLowStockProducts();
-    const newAlerts: StockAlert[] = lowStockProducts.map(product => {
-      const severity: StockAlert['severity'] =
-        product.stock === 0 ? 'critical' :
-          product.stock <= product.alertThreshold / 2 ? 'critical' :
-            'warning';
-
-      return {
-        id: `alert_${product.id}_${Date.now()}`,
-        productId: product.id,
-        productName: product.name,
-        productVolume: product.volume,
-        currentStock: product.stock,
-        threshold: product.alertThreshold,
-        severity,
-        createdAt: new Date(),
-        status: 'new',
-        predictedRunout: calculatePredictedRunout(product),
-        suggestedOrder: calculateSuggestedOrder(product)
-      };
-    });
-
-    setAlerts(prev => {
-      const existingIds = prev.map(a => a.productId);
-      const toAdd = newAlerts.filter(alert => !existingIds.includes(alert.productId));
-      return [...prev, ...toAdd];
-    });
-  }, [products, getLowStockProducts, coverageDays]);
-
-  // Calcul prédiction rupture stock
-  const calculatePredictedRunout = (product: Product): Date | undefined => {
-    const last30Days = new Date();
-    last30Days.setDate(last30Days.getDate() - 30);
-
-    const recentSales = sales.filter(sale =>
-      sale.status === 'validated' &&
-      getSaleDate(sale) >= last30Days &&
-      sale.items.some((item: any) => {
-        const productId = item.product?.id || item.product_id;
-        return productId === product.id;
-      })
-    );
-
-    const totalSold = recentSales.reduce((sum, sale) => {
-      const item = sale.items.find((i: any) => {
-        const productId = i.product?.id || i.product_id;
-        return productId === product.id;
-      });
-      return sum + (item?.quantity || 0);
-    }, 0);
-
-    const dailyAverage = totalSold / 30;
-
-    if (dailyAverage > 0 && product.stock > 0) {
-      const daysRemaining = product.stock / dailyAverage;
-      const runoutDate = new Date();
-      runoutDate.setDate(runoutDate.getDate() + Math.floor(daysRemaining));
-      return runoutDate;
+    if (isOpen && currentBar) {
+      loadStats();
     }
+  }, [isOpen, currentBar]);
 
-    return undefined;
-  };
-
-  // Calcul suggestion commande
-  const calculateSuggestedOrder = (product: Product): number => {
-    const last30Days = new Date();
-    last30Days.setDate(last30Days.getDate() - 30);
-
-    const recentSales = sales.filter(sale =>
-      sale.status === 'validated' &&
-      getSaleDate(sale) >= last30Days &&
-      sale.items.some((item: any) => {
-        const productId = item.product?.id || item.product_id;
-        return productId === product.id;
-      })
-    );
-
-    const totalSold = recentSales.reduce((sum, sale) => {
-      const item = sale.items.find((i: any) => {
-        const productId = i.product?.id || i.product_id;
-        return productId === product.id;
+  // Recalculer les suggestions quand coverageDays change (sans recharger SQL)
+  const orderSuggestions = useMemo(() => {
+    return productStats
+      .map(stat => ForecastingService.calculateOrderSuggestion(stat, coverageDays))
+      .filter(suggestion => suggestion.suggestedQuantity > 0)
+      .sort((a, b) => {
+        // Trier par urgence puis par coût
+        const urgencyScore = { high: 3, medium: 2, low: 1 };
+        if (urgencyScore[a.urgency] !== urgencyScore[b.urgency]) {
+          return urgencyScore[b.urgency] - urgencyScore[a.urgency];
+        }
+        return b.estimatedCost - a.estimatedCost;
       });
-      return sum + (item?.quantity || 0);
-    }, 0);
-
-    // Calculer le nombre de jours RÉELS avec des ventes (pas 30 jours fixes)
-    const uniqueDays = new Set(
-      recentSales.map(sale => getSaleDate(sale).toDateString())
-    );
-    const actualDaysWithSales = uniqueDays.size;
-
-    // Si aucune vente, pas de suggestion
-    if (actualDaysWithSales === 0 || totalSold === 0) {
-      return 0;
-    }
-
-    // Moyenne journalière basée sur les jours RÉELS de vente
-    const dailyAverage = totalSold / actualDaysWithSales;
-
-    // Besoin pour la période de couverture choisie
-    const coverageNeeds = dailyAverage * coverageDays;
-
-    const safetyStock = product.alertThreshold;
-    const suggestedOrder = coverageNeeds + safetyStock - product.stock;
-
-    return Math.max(0, Math.ceil(suggestedOrder));
-  };
-
-  // Suggestions de commande globales
-  const orderSuggestions = useMemo((): OrderSuggestion[] => {
-    return getLowStockProducts().map(product => {
-      const suggestedQuantity = calculateSuggestedOrder(product);
-      const avgCost = getAverageCostPerUnit(product.id);
-      const estimatedCost = suggestedQuantity * avgCost;
-
-      let urgency: OrderSuggestion['urgency'] = 'low';
-      let reasoning = 'Stock normal';
-
-      if (product.stock === 0) {
-        urgency = 'high';
-        reasoning = 'Rupture de stock';
-      } else if (product.stock <= product.alertThreshold / 2) {
-        urgency = 'high';
-        reasoning = 'Stock critique';
-      } else if (product.stock <= product.alertThreshold) {
-        urgency = 'medium';
-        reasoning = 'Stock faible';
-      }
-
-      return {
-        productId: product.id,
-        productName: `${product.name} (${product.volume})`,
-        currentStock: product.stock,
-        suggestedQuantity,
-        estimatedCost,
-        urgency,
-        reasoning
-      };
-    }).filter(suggestion => suggestion.suggestedQuantity > 0);
-  }, [products, getLowStockProducts, getAverageCostPerUnit, coverageDays]);
+  }, [productStats, coverageDays]);
 
   // Actions sur alertes
   const markAsRead = (alertId: string) => {
@@ -247,11 +174,11 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
     totalOrderValue: orderSuggestions.reduce((sum, s) => sum + s.estimatedCost, 0)
   };
 
-  // Export bon de commande
   // Export bon de commande Excel
   const exportOrderList = () => {
     const exportData = orderSuggestions.map(suggestion => ({
       'Produit': suggestion.productName,
+      'Volume': suggestion.productVolume,
       'Stock actuel': suggestion.currentStock,
       'Quantité suggérée': suggestion.suggestedQuantity,
       'Coût estimé (FCFA)': suggestion.estimatedCost,
@@ -265,11 +192,12 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
     // Ajustement largeur colonnes
     const wscols = [
       { wch: 30 }, // Produit
+      { wch: 10 }, // Volume
       { wch: 12 }, // Stock actuel
       { wch: 18 }, // Quantité suggérée
       { wch: 15 }, // Coût estimé
       { wch: 10 }, // Urgence
-      { wch: 25 }, // Raison
+      { wch: 40 }, // Raison
     ];
     ws['!cols'] = wscols;
 
@@ -308,6 +236,10 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
                     </h2>
                     <DataFreshnessIndicatorCompact
                       viewName="product_sales_stats"
+                      onRefreshComplete={async () => {
+                        await loadStats();
+                        showSuccess('✅ Données actualisées avec succès');
+                      }}
                     />
                   </div>
                 </div>
@@ -376,43 +308,51 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
 
             {/* Content */}
             <div className={`${isMobile ? 'h-[calc(100vh-230px)]' : 'h-[calc(85vh-230px)] md:h-[calc(90vh-230px)]'} overflow-hidden`}>
-              {activeTab === 'stock' && (
-                <StockForecastView
-                  isMobile={isMobile}
-                  alerts={alerts}
-                  filteredAlerts={filteredAlerts}
-                  filterStatus={filterStatus}
-                  setFilterStatus={setFilterStatus}
-                  showOrderSuggestions={showOrderSuggestions}
-                  setShowOrderSuggestions={setShowOrderSuggestions}
-                  orderSuggestions={orderSuggestions}
-                  stats={stats}
-                  formatPrice={formatPrice}
-                  markAsRead={markAsRead}
-                  markAsResolved={markAsResolved}
-                  deleteAlert={deleteAlert}
-                  setAlerts={setAlerts}
-                  exportOrderList={exportOrderList}
-                  hasPermission={hasPermission}
-                />
-              )}
-
-              {activeTab === 'sales' && (
-                <SalesForecastView
-                  isMobile={isMobile}
-                  formatPrice={formatPrice}
-                />
-              )}
-
-              {activeTab === 'advanced' && (
+              {isLoading ? (
                 <div className="flex items-center justify-center h-full">
-                  <div className="text-center text-gray-500 py-12">
-                    <BarChart3 size={64} className="mx-auto mb-4 text-gray-300" />
-                    <h3 className="text-lg font-medium mb-2">Analyses Avancées</h3>
-                    <p className="text-sm">🚧 Bientôt disponible</p>
-                    <p className="text-xs mt-2 text-gray-400">Machine Learning & Optimisations</p>
-                  </div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
                 </div>
+              ) : (
+                <>
+                  {activeTab === 'stock' && (
+                    <StockForecastView
+                      isMobile={isMobile}
+                      alerts={alerts}
+                      filteredAlerts={filteredAlerts}
+                      filterStatus={filterStatus}
+                      setFilterStatus={setFilterStatus}
+                      showOrderSuggestions={showOrderSuggestions}
+                      setShowOrderSuggestions={setShowOrderSuggestions}
+                      orderSuggestions={orderSuggestions}
+                      stats={stats}
+                      formatPrice={formatPrice}
+                      markAsRead={markAsRead}
+                      markAsResolved={markAsResolved}
+                      deleteAlert={deleteAlert}
+                      setAlerts={setAlerts}
+                      exportOrderList={exportOrderList}
+                      hasPermission={hasPermission}
+                    />
+                  )}
+
+                  {activeTab === 'sales' && (
+                    <SalesForecastView
+                      isMobile={isMobile}
+                      formatPrice={formatPrice}
+                    />
+                  )}
+
+                  {activeTab === 'advanced' && (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center text-gray-500 py-12">
+                        <BarChart3 size={64} className="mx-auto mb-4 text-gray-300" />
+                        <h3 className="text-lg font-medium mb-2">Analyses Avancées</h3>
+                        <p className="text-sm">🚧 Bientôt disponible</p>
+                        <p className="text-xs mt-2 text-gray-400">Machine Learning & Optimisations</p>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </motion.div>
@@ -802,50 +742,38 @@ function AlertCard({
         </div>
       )}
 
-      {alert.suggestedOrder && alert.suggestedOrder > 0 && (
-        <div className="mb-3 p-2 bg-white/50 rounded-lg">
-          <p className="text-sm text-gray-700">
-            <ShoppingCart size={14} className="inline mr-1" />
-            Suggestion: commander {alert.suggestedOrder} unités
-          </p>
-        </div>
-      )}
-
-      <div className="flex gap-2">
+      <div className="flex justify-end gap-2">
         {alert.status === 'new' && (
-          <EnhancedButton
-            variant="info"
-            size="sm"
+          <button
             onClick={onMarkAsRead}
-            icon={<Check size={14} />}
+            className="p-1.5 text-yellow-600 hover:bg-yellow-100 rounded-lg transition-colors"
+            title="Marquer comme lu"
           >
-            Marquer lu
-          </EnhancedButton>
+            <Check size={16} />
+          </button>
         )}
         {alert.status !== 'resolved' && (
-          <EnhancedButton
-            variant="success"
-            size="sm"
+          <button
             onClick={onMarkAsResolved}
-            icon={<Check size={14} />}
+            className="p-1.5 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
+            title="Marquer comme résolu"
           >
-            Résoudre
-          </EnhancedButton>
+            <Check size={16} className="double" />
+          </button>
         )}
-        <EnhancedButton
-          variant="danger"
-          size="sm"
+        <button
           onClick={onDelete}
-          icon={<X size={14} />}
+          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+          title="Supprimer"
         >
-          Supprimer
-        </EnhancedButton>
+          <X size={16} />
+        </button>
       </div>
     </motion.div>
   );
 }
 
-// Composant suggestion de commande
+// Composant carte suggestion commande
 function OrderSuggestionCard({
   suggestion,
   formatPrice
@@ -855,55 +783,52 @@ function OrderSuggestionCard({
 }) {
   const getUrgencyColor = (urgency: OrderSuggestion['urgency']) => {
     switch (urgency) {
-      case 'high': return 'border-red-500 bg-red-50';
-      case 'medium': return 'border-yellow-500 bg-yellow-50';
-      case 'low': return 'border-green-500 bg-green-50';
+      case 'high': return 'bg-red-50 border-red-200';
+      case 'medium': return 'bg-orange-50 border-orange-200';
+      case 'low': return 'bg-green-50 border-green-200';
+    }
+  };
+
+  const getUrgencyBadge = (urgency: OrderSuggestion['urgency']) => {
+    switch (urgency) {
+      case 'high': return <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-bold">URGENT</span>;
+      case 'medium': return <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs font-bold">NORMAL</span>;
+      case 'low': return <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-bold">FAIBLE</span>;
     }
   };
 
   return (
-    <motion.div
-      whileHover={{ y: -2 }}
-      className={`rounded-xl p-4 border-2 transition-all ${getUrgencyColor(suggestion.urgency)}`}
-    >
-      <div className="flex items-start justify-between mb-3">
+    <div className={`p-4 rounded-xl border ${getUrgencyColor(suggestion.urgency)}`}>
+      <div className="flex justify-between items-start mb-2">
         <div>
-          <h4 className="font-semibold text-gray-800">{suggestion.productName}</h4>
-          <p className="text-sm text-gray-600">
-            Stock actuel: {suggestion.currentStock}
+          <h4 className="font-bold text-gray-800">{suggestion.productName}</h4>
+          <p className="text-xs text-gray-500">{suggestion.productVolume}</p>
+        </div>
+        {getUrgencyBadge(suggestion.urgency)}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 mb-3 text-sm">
+        <div className="bg-white/50 p-2 rounded">
+          <span className="block text-gray-500 text-xs">Stock actuel</span>
+          <span className="font-semibold">{suggestion.currentStock}</span>
+        </div>
+        <div className="bg-white/50 p-2 rounded">
+          <span className="block text-gray-500 text-xs">À commander</span>
+          <span className="font-bold text-amber-600 text-lg">{suggestion.suggestedQuantity}</span>
+        </div>
+      </div>
+
+      <div className="flex justify-between items-end">
+        <div>
+          <p className="text-xs text-gray-500 mb-0.5">Coût estimé</p>
+          <p className="font-bold text-gray-800">{formatPrice(suggestion.estimatedCost)}</p>
+        </div>
+        <div className="text-right max-w-[50%]">
+          <p className="text-xs text-gray-500 italic truncate" title={suggestion.reasoning}>
+            {suggestion.reasoning}
           </p>
         </div>
-        <span className={`px-2 py-1 rounded-full text-xs font-medium ${suggestion.urgency === 'high' ? 'bg-red-100 text-red-700' :
-          suggestion.urgency === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-            'bg-green-100 text-green-700'
-          }`}>
-          {suggestion.urgency === 'high' ? 'Urgent' :
-            suggestion.urgency === 'medium' ? 'Moyen' : 'Faible'}
-        </span>
       </div>
-
-      <div className="space-y-2 mb-4">
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Quantité suggérée:</span>
-          <span className="font-medium">{suggestion.suggestedQuantity}</span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Coût estimé:</span>
-          <span className="font-medium text-green-600">{formatPrice(suggestion.estimatedCost)}</span>
-        </div>
-        <div className="text-sm text-gray-600">
-          <em>{suggestion.reasoning}</em>
-        </div>
-      </div>
-
-      <EnhancedButton
-        variant="primary"
-        size="sm"
-        icon={<Plus size={14} />}
-        className="w-full"
-      >
-        Ajouter à la commande
-      </EnhancedButton>
-    </motion.div>
+    </div>
   );
 }

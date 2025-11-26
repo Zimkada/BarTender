@@ -29,7 +29,7 @@ import { getSaleDate } from '../utils/saleHelpers';
 type PeriodType = 'week' | 'month' | 'custom';
 
 import AnalyticsCharts from './AnalyticsCharts';
-import { AnalyticsService, DailySalesSummary } from '../services/supabase/analytics.service';
+import { AnalyticsService, DailySalesSummary, ExpensesSummary, SalariesSummary } from '../services/supabase/analytics.service';
 import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 
 export function AccountingOverview() {
@@ -73,6 +73,12 @@ export function AccountingOverview() {
   const [chartStats, setChartStats] = useState<DailySalesSummary[]>([]);
   const [historicalRevenue, setHistoricalRevenue] = useState(0);
   const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false);
+
+  // ✨ NEW: SQL State for expenses and salaries
+  const [expensesSummary, setExpensesSummary] = useState<ExpensesSummary[]>([]);
+  const [salariesSummary, setSalariesSummary] = useState<SalariesSummary[]>([]);
+  const [chartExpenses, setChartExpenses] = useState<ExpensesSummary[]>([]);
+  const [chartSalaries, setChartSalaries] = useState<SalariesSummary[]>([]);
 
   // Calculate period range based on type and offset (MUST be before useEffect)
   const { start: periodStart, end: periodEnd } = useMemo(() => {
@@ -158,6 +164,22 @@ export function AccountingOverview() {
         setHistoricalRevenue(0);
       }
 
+      // ✨ 5. Load Expenses Summary (current period)
+      const expenses = await AnalyticsService.getExpensesSummary(currentBar.id, periodStart, periodEnd, 'day');
+      setExpensesSummary(expenses);
+
+      // ✨ 6. Load Salaries Summary (current period)
+      const salaries = await AnalyticsService.getSalariesSummary(currentBar.id, periodStart, periodEnd, 'day');
+      setSalariesSummary(salaries);
+
+      // ✨ 7. Load Chart Expenses (12 months)
+      const chartExpensesData = await AnalyticsService.getExpensesSummary(currentBar.id, chartStart, chartEnd, 'month');
+      setChartExpenses(chartExpensesData);
+
+      // ✨ 8. Load Chart Salaries (12 months)
+      const chartSalariesData = await AnalyticsService.getSalariesSummary(currentBar.id, chartStart, chartEnd, 'month');
+      setChartSalaries(chartSalariesData);
+
     } catch (error) {
       console.error("Error loading analytics:", error);
     } finally {
@@ -172,61 +194,54 @@ export function AccountingOverview() {
     return periodStats.reduce((sum, day) => sum + day.gross_revenue, 0);
   }, [periodStats]);
 
-  // Calculate returns refunds
+  // ✨ Calculate returns refunds (using SQL data from daily_sales_summary)
   const returnsRefunds = useMemo(() => {
-    return returns
-      .filter(ret => {
-        const retDate = new Date(ret.returnedAt);
-        // Seulement retours approuvés/restockés (pas pending ni rejected)
-        if (ret.status !== 'approved' && ret.status !== 'restocked') return false;
-        // Seulement retours remboursés
-        if (!ret.isRefunded) return false;
-        // Dans la période
-        return retDate >= periodStart && retDate <= periodEnd;
-      })
-      .reduce((sum, ret) => sum + ret.refundAmount, 0);
-  }, [returns, periodStart, periodEnd]);
+    return periodStats.reduce((sum, day) => sum + day.refunds_total, 0);
+  }, [periodStats]);
 
-  // Calculate expenses (ALL categories including 'supply')
+  // ✨ Calculate expenses (using SQL data from expenses_summary)
   const expensesCosts = useMemo(() => {
-    return expenses
-      .filter(exp => {
-        const expDate = new Date(exp.date);
-        return expDate >= periodStart && expDate <= periodEnd;
-      })
-      .reduce((sum, exp) => sum + exp.amount, 0);
-  }, [expenses, periodStart, periodEnd]);
+    return expensesSummary.reduce((sum, day) => sum + day.total_expenses, 0);
+  }, [expensesSummary]);
 
   // Get expenses breakdown by category (for detailed view)
   const expensesByCategoryData = useMemo(() => {
-    return getExpensesByCategory(expenses, customExpenseCategories, periodStart, periodEnd);
-  }, [expenses, customExpenseCategories, periodStart, periodEnd]);
+    const categoriesFromExpenses = getExpensesByCategory(expenses, customExpenseCategories, periodStart, periodEnd);
 
-  // Calculate salaries
-  const salariesCosts = salariesHook.getTotalSalaries(periodStart, periodEnd);
+    // ✨ Ajouter les supplies comme une catégorie "Approvisionnements"
+    const suppliesCost = expensesSummary.reduce((sum, day) => sum + day.supplies_cost, 0);
+
+    if (suppliesCost > 0) {
+      categoriesFromExpenses['supplies'] = {
+        label: 'Approvisionnements',
+        icon: '📦',
+        amount: suppliesCost,
+        count: expensesSummary.reduce((sum, day) => sum + day.supply_count, 0),
+      };
+    }
+
+    return categoriesFromExpenses;
+  }, [expenses, customExpenseCategories, periodStart, periodEnd, expensesSummary]);
+
+  // ✨ Calculate salaries (using SQL data from salaries_summary)
+  const salariesCosts = useMemo(() => {
+    return salariesSummary.reduce((sum, day) => sum + day.total_salaries, 0);
+  }, [salariesSummary]);
 
   const totalCosts = expensesCosts + salariesCosts;
 
   // CALCULATIONS - Period
   const totalRevenue = salesRevenue - returnsRefunds; // CA NET = Ventes - Retours remboursés
 
+  // ✨ Operating expenses (using SQL data)
   const operatingExpenses = useMemo(() => {
-    return expenses
-      .filter(exp => {
-        const expDate = new Date(exp.date);
-        return expDate >= periodStart && expDate <= periodEnd && exp.category !== 'investment';
-      })
-      .reduce((sum, exp) => sum + exp.amount, 0);
-  }, [expenses, periodStart, periodEnd]);
+    return expensesSummary.reduce((sum, day) => sum + day.operating_expenses, 0);
+  }, [expensesSummary]);
 
+  // ✨ Investments (using SQL data)
   const investments = useMemo(() => {
-    return expenses
-      .filter(exp => {
-        const expDate = new Date(exp.date);
-        return expDate >= periodStart && expDate <= periodEnd && exp.category === 'investment';
-      })
-      .reduce((sum, exp) => sum + exp.amount, 0);
-  }, [expenses, periodStart, periodEnd]);
+    return expensesSummary.reduce((sum, day) => sum + day.investments, 0);
+  }, [expensesSummary]);
 
   const totalOperatingCosts = operatingExpenses + salariesCosts;
   const operatingProfit = totalRevenue - totalOperatingCosts;
@@ -277,9 +292,6 @@ export function AccountingOverview() {
       const year = date.getFullYear();
       const monthKey = `${month} ${year}`;
 
-      const monthStart = new Date(year, date.getMonth(), 1);
-      const monthEnd = new Date(year, date.getMonth() + 1, 0);
-
       // Find matching stat in chartStats
       // chartStats is grouped by month, so sale_month should match 'YYYY-MM-01'
       // But we need to match carefully.
@@ -292,26 +304,24 @@ export function AccountingOverview() {
         return sDate.getFullYear() === year && sDate.getMonth() === date.getMonth();
       });
 
-      const monthSales = monthStat ? monthStat.gross_revenue : 0;
+      // ✨ Use SQL data for revenue (already includes refunds)
+      const monthRevenue = monthStat ? monthStat.net_revenue : 0;
 
-      const monthReturns = returns
-        .filter(r => {
-          const rDate = new Date(r.returnedAt);
-          if (r.status !== 'approved' && r.status !== 'restocked') return false;
-          if (!r.isRefunded) return false;
-          return rDate >= monthStart && rDate <= monthEnd;
-        })
-        .reduce((sum, r) => sum + r.refundAmount, 0);
+      // ✨ Find matching expense stat in chartExpenses
+      const monthExpenseStat = chartExpenses.find(e => {
+        const eDate = new Date(e.expense_month);
+        return eDate.getFullYear() === year && eDate.getMonth() === date.getMonth();
+      });
 
-      const monthRevenue = monthSales - monthReturns;
+      const monthOperatingExpenses = monthExpenseStat ? monthExpenseStat.operating_expenses : 0;
 
-      const monthOperatingExpenses = expenses
-        .filter(e => new Date(e.date) >= monthStart && new Date(e.date) <= monthEnd && e.category !== 'investment')
-        .reduce((sum, e) => sum + e.amount, 0);
+      // ✨ Find matching salary stat in chartSalaries
+      const monthSalaryStat = chartSalaries.find(s => {
+        const sDate = new Date(s.payment_month);
+        return sDate.getFullYear() === year && sDate.getMonth() === date.getMonth();
+      });
 
-      const monthSalaries = salariesHook.salaries
-        .filter(s => new Date(s.paidAt) >= monthStart && new Date(s.paidAt) <= monthEnd)
-        .reduce((sum, s) => sum + s.amount, 0);
+      const monthSalaries = monthSalaryStat ? monthSalaryStat.total_salaries : 0;
 
       return {
         name: monthKey,
@@ -321,7 +331,7 @@ export function AccountingOverview() {
     }).reverse();
 
     return { revenueGrowth, revenuePerServer, investmentRate, chartData };
-  }, [totalRevenue, investments, operatingExpenses, sales, returns, expenses, salariesHook.salaries, periodStart, currentBar, isMobile]);
+  }, [totalRevenue, investments, periodStats, prevPeriodStats, chartStats, chartExpenses, chartSalaries, currentBar, isMobile]);
 
 
   // CALCULATIONS - Cumulative Balance (for Vue Analytique)
