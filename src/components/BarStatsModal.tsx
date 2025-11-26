@@ -17,7 +17,9 @@ import { Bar } from '../types';
 import { Sale } from '../types';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
 import { useBarContext } from '../context/BarContext';
+import { useFeedback } from '../hooks/useFeedback';
 import { AnalyticsService } from '../services/supabase/analytics.service';
+import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 
 interface BarStatsModalProps {
   isOpen: boolean;
@@ -27,6 +29,7 @@ interface BarStatsModalProps {
 
 export function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
   const { barMembers } = useBarContext();
+  const { showSuccess } = useFeedback();
 
   // SQL Analytics State
   const [multiPeriodStats, setMultiPeriodStats] = useState<any>(null);
@@ -268,7 +271,23 @@ export function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
             <div className="flex items-center gap-3">
               <Award className="w-6 h-6 md:w-8 md:h-8" />
               <div>
-                <h2 className="text-xl md:text-2xl font-bold">Statistiques Détaillées</h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl md:text-2xl font-bold">Statistiques Détaillées</h2>
+                  <DataFreshnessIndicatorCompact
+                    viewName="bar_stats_multi_period"
+                    onRefreshComplete={async () => {
+                      if (bar?.id) {
+                        try {
+                          const stats = await AnalyticsService.getBarStatsMultiPeriod(bar.id);
+                          setMultiPeriodStats(stats);
+                          showSuccess('✅ Données actualisées avec succès');
+                        } catch (error) {
+                          console.error('Error refreshing bar stats:', error);
+                        }
+                      }
+                    }}
+                  />
+                </div>
                 <p className="text-purple-100 text-sm md:text-base">{bar.name}</p>
                 <p className="text-purple-200 text-xs mt-0.5">
                   {bar.isActive ? '✅ Actif' : '❌ Suspendu'} • {bar.location}

@@ -40,7 +40,9 @@ import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
+import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
+import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import { Sale, SaleItem, Category, Product, User, BarMember, Return } from '../types';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
 import { useStockManagement } from '../hooks/useStockManagement';
@@ -61,6 +63,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession } = useAuth();
   const { isMobile } = useViewport();
+  const { showSuccess } = useFeedback();
   const { consignments } = useStockManagement();
 
   // Récupérer l'heure de clôture (défaut: 6h)
@@ -816,7 +819,22 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                     <div className="flex items-center gap-3">
                       <TrendingUp size={28} />
                       <div>
-                        <h2 className="text-xl font-bold">Historique des ventes</h2>
+                        <div className="flex items-center gap-3">
+                          <h2 className="text-xl font-bold">Historique des ventes</h2>
+                          <DataFreshnessIndicatorCompact
+                            viewName="top_products_by_period"
+                            onRefreshComplete={async () => {
+                              if (currentBar) {
+                                const start = new Date();
+                                start.setDate(start.getDate() - 30);
+                                const end = new Date();
+                                const products = await AnalyticsService.getTopProducts(currentBar.id, start, end, 100);
+                                setTopProductsAnalytics(products);
+                                showSuccess('✅ Données actualisées avec succès');
+                              }
+                            }}
+                          />
+                        </div>
                         <p className="text-sm text-amber-100">{filteredSales.length} ventes trouvées</p>
                       </div>
                     </div>

@@ -20,6 +20,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 import { EnhancedButton } from './EnhancedButton';
+import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import { Product } from '../types';
 import { getSaleDate } from '../utils/saleHelpers';
 import * as XLSX from 'xlsx';
@@ -301,9 +302,14 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <TrendingUp size={isMobile ? 20 : 24} />
-                  <h2 className={`font-bold ${isMobile ? 'text-lg' : 'text-xl'}`}>
-                    📈 Prévisions & Analyses
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className={`font-bold ${isMobile ? 'text-lg' : 'text-xl'}`}>
+                      📈 Prévisions & Analyses
+                    </h2>
+                    <DataFreshnessIndicatorCompact
+                      viewName="product_sales_stats"
+                    />
+                  </div>
                 </div>
                 <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg">
                   <X size={24} />

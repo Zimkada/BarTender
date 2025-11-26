@@ -11,6 +11,7 @@ import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
 import { AnimatedCounter } from './AnimatedCounter';
+import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import { Sale, SaleItem, User as UserType } from '../types';
 import { AnalyticsService, DailySalesSummary, TopProduct } from '../services/supabase/analytics.service';
 
@@ -260,7 +261,22 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
               <div className="flex items-center gap-3">
                 <TrendingUp size={24} />
                 <div>
-                  <h2 className="text-xl font-bold">Informations du jour</h2>
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-xl font-bold">Informations du jour</h2>
+                    <DataFreshnessIndicatorCompact
+                      viewName="daily_sales_summary"
+                      onRefreshComplete={async () => {
+                        if (currentBar) {
+                          const today = new Date();
+                          const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                          const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+                          const stats = await AnalyticsService.getDailySummary(currentBar.id, start, end, 'day');
+                          if (stats.length > 0) setTodayStats(stats[0]);
+                          showSuccess('✅ Données actualisées avec succès');
+                        }
+                      }}
+                    />
+                  </div>
                   <p className="text-sm text-amber-100">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                 </div>
               </div>
