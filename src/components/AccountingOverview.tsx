@@ -782,7 +782,7 @@ export function AccountingOverview() {
   };
 
   return (
-    <div className={`${isMobile ? 'p-3 space-y-3' : 'p-6 space-y-6'}`}>
+    <div className={`${isMobile ? 'p-3 space-y-3 pb-24' : 'p-6 space-y-6'}`}>
       {/* Header */}
       <div className={isMobile ? 'space-y-3' : 'flex items-center justify-between'}>
         <div>

@@ -307,7 +307,7 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
             </div>
 
             {/* Content */}
-            <div className={`${isMobile ? 'h-[calc(100vh-230px)]' : 'h-[calc(85vh-230px)] md:h-[calc(90vh-230px)]'} overflow-hidden`}>
+            <div className={`${isMobile ? 'h-[calc(100vh-230px)]' : 'h-[calc(85vh-230px)] md:h-[calc(90vh-230px)]'} overflow-y-auto`}>
               {isLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
@@ -636,7 +636,7 @@ function StockForecastView({
 // Sales Forecast View (Placeholder)
 function SalesForecastView({ isMobile, formatPrice }: any) {
   return (
-    <div className="flex items-center justify-center h-full p-6">
+    <div className="flex items-center justify-center min-h-full p-6">
       <div className="text-center max-w-2xl">
         <DollarSign size={64} className="mx-auto mb-4 text-amber-400" />
         <h3 className="text-xl font-semibold text-gray-800 mb-3">
