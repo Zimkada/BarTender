@@ -98,6 +98,7 @@ export interface Supply {
   date: Date;
   totalCost: number;
   createdBy: string; // Qui a enregistré l'approv
+  productName?: string; // ✨ Pour l'affichage
 }
 
 // ===== CATALOGUE GLOBAL =====

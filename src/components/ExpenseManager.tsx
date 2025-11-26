@@ -126,7 +126,7 @@ function ExpenseManagerContent() {
     return supplyDate >= periodStart && supplyDate <= periodEnd;
   });
 
-  const suppliesTotal = filteredSupplies.reduce((sum, s) => sum + (s.lotPrice * s.lotSize), 0);
+  const suppliesTotal = filteredSupplies.reduce((sum, s) => sum + s.totalCost, 0);
 
   // ✨ Filter Expenses
   const filteredExpenses = expenses.filter(exp => {
@@ -157,7 +157,7 @@ function ExpenseManagerContent() {
       return filteredSupplies.map(s => ({
         id: s.id,
         date: s.date,
-        amount: s.lotPrice * s.lotSize,
+        amount: s.totalCost,
         notes: `${s.productName} (${s.quantity} unités)`,
         isSupply: true
       }));
@@ -210,8 +210,8 @@ function ExpenseManagerContent() {
             key={type}
             onClick={() => setPeriodType(type)}
             className={`px-3 py-1.5 rounded-md transition-colors ${isMobile ? 'text-xs' : 'text-sm'} ${periodType === type
-                ? 'bg-amber-500 text-white'
-                : 'text-gray-600 hover:bg-gray-200'
+              ? 'bg-amber-500 text-white'
+              : 'text-gray-600 hover:bg-gray-200'
               }`}
           >
             {type === 'week' ? 'Semaine' : type === 'month' ? 'Mois' : 'Tout'}

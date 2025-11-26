@@ -15,7 +15,7 @@ export class StockService {
         try {
             const { data, error } = await supabase
                 .from('supplies')
-                .select('*')
+                .select('*, bar_product:bar_products(display_name)')
                 .eq('bar_id', barId)
                 .order('created_at', { ascending: false });
 

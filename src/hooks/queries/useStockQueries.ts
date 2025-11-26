@@ -55,6 +55,7 @@ export const useSupplies = (barId: string | undefined) => {
                 date: new Date(s.supplied_at || s.created_at || Date.now()),
                 totalCost: s.total_cost,
                 createdBy: s.supplied_by,
+                productName: (s.bar_product as any)?.display_name || 'Produit inconnu',
             }));
         },
         enabled: !!barId,
