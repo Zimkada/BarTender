@@ -1345,14 +1345,324 @@ ORDER BY pg_total_relation_size(schemaname||'.'||matviewname) DESC;
 
 ---
 
-## 🎯 Prochaines Étapes Recommandées
+## 💰 Optimisations des Coûts Supabase (Ajout Novembre 2025)
+
+### **Contexte : Économies Potentielles**
+
+**Impact financier de l'optimisation SQL :**
+- Bande passante réduite : ÷1000 (50 MB → 50 KB par requête)
+- Économie estimée : **$4-150/mois** selon usage
+- Stockage supplémentaire : +50 MB (négligeable, inclus jusqu'à 8 GB)
+- CPU calculs SQL : **GRATUIT** (illimité dans tous les plans Supabase)
+
+**Rappel important :** Supabase facture la **bande passante**, pas le **CPU**. Les calculs SQL sont donc gratuits !
+
+---
+
+### **🔧 Optimisation 1 : Refresh CONCURRENT (Obligatoire)**
+
+**Objectif :** Éviter le blocage des lectures pendant le rafraîchissement des vues
+
+**Implémentation :**
+
+```sql
+-- ✅ BON (non-bloquant, recommandé)
+CREATE OR REPLACE FUNCTION refresh_product_sales_stats()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  REFRESH MATERIALIZED VIEW CONCURRENTLY product_sales_stats_mat;
+  RAISE NOTICE '[refresh_product_sales_stats] ✓ Refreshed successfully';
+END;
+$$;
+
+-- ❌ ÉVITER (bloque toutes les lectures)
+REFRESH MATERIALIZED VIEW product_sales_stats_mat;
+```
+
+**Prérequis pour CONCURRENT :**
+```sql
+-- Nécessite un UNIQUE INDEX sur la vue matérialisée
+CREATE UNIQUE INDEX idx_product_sales_stats_mat_pk
+ON product_sales_stats_mat(product_id);
+```
+
+**Gains :**
+- ✅ Utilisateurs continuent de lire pendant refresh
+- ✅ Pas de "freeze" de l'application
+- ✅ Coût CPU identique
+
+**À appliquer sur TOUTES les vues matérialisées :**
+- `product_sales_stats_mat`
+- `daily_sales_summary_mat`
+- `top_products_by_period_mat`
+- `bar_stats_multi_period_mat`
+
+---
+
+### **🔧 Optimisation 2 : Limitation Historique (Recommandé)**
+
+**Objectif :** Réduire le temps de refresh et le stockage en limitant l'historique traité
+
+**Implémentation :**
+
+```sql
+-- ✅ BON (365 jours maximum)
+CREATE MATERIALIZED VIEW product_sales_stats_mat AS
+SELECT
+  bp.id AS product_id,
+  -- ... autres colonnes
+FROM bar_products bp
+LEFT JOIN sales s ON s.bar_id = bp.bar_id
+  AND s.created_at >= NOW() - INTERVAL '365 days'  -- ⭐ LIMITE IMPORTANTE
+LEFT JOIN LATERAL jsonb_array_elements(s.items) AS si ON (si->>'product_id') = bp.id::text
+WHERE bp.active = true
+GROUP BY bp.id, bp.bar_id, ...;
+
+-- ❌ ÉVITER (tout l'historique, lent et coûteux)
+LEFT JOIN sales s ON s.bar_id = bp.bar_id  -- Pas de limite de date
+```
+
+**Recommandations par vue :**
+
+| Vue | Historique Recommandé | Justification |
+|-----|----------------------|---------------|
+| `product_sales_stats_mat` | 90 jours | Prévisions stock à court terme |
+| `daily_sales_summary_mat` | 365 jours | Analytics annuelles |
+| `top_products_by_period_mat` | 365 jours | Comparaisons année N-1 |
+| `bar_stats_multi_period_mat` | 90 jours | Dashboard rapide |
+
+**Gains :**
+- ✅ Refresh 2-5× plus rapide
+- ✅ -30-50% de stockage vues matérialisées
+- ✅ Données anciennes archivées si besoin (table séparée)
+
+---
+
+### **🔧 Optimisation 3 : Debouncing des Refresh (Critique pour coûts)**
+
+**Objectif :** Réduire la fréquence des refresh (de 20×/jour → 3-4×/jour)
+
+**Problème actuel :**
+```sql
+-- ❌ ACTUEL : Refresh après CHAQUE vente validée
+CREATE TRIGGER after_sale_validated_refresh_stats
+AFTER INSERT OR UPDATE OF status ON sales
+FOR EACH ROW
+WHEN (NEW.status = 'validated')
+EXECUTE FUNCTION trigger_refresh_product_stats();
+
+-- Si 20 ventes/jour → 20 refresh/jour → CPU gaspillé
+```
+
+**Solution : Debouncing avec pg_notify**
+
+```sql
+-- Étape 1 : Trigger léger qui envoie seulement une notification
+CREATE OR REPLACE FUNCTION trigger_refresh_with_debounce()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  -- Envoyer notification asynchrone (ne bloque pas la vente)
+  PERFORM pg_notify('refresh_stats_debounced', json_build_object(
+    'bar_id', NEW.bar_id,
+    'timestamp', NOW()
+  )::text);
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER after_sale_validated_notify
+AFTER INSERT OR UPDATE OF status ON sales
+FOR EACH ROW
+WHEN (NEW.status = 'validated')
+EXECUTE FUNCTION trigger_refresh_with_debounce();
+
+-- Étape 2 : Worker backend qui regroupe les notifications (à implémenter côté app)
+-- Pseudo-code TypeScript :
+/*
+const notifications = [];
+supabase.channel('refresh_stats_debounced')
+  .on('postgres_changes', (payload) => {
+    notifications.push(payload);
+  })
+  .subscribe();
+
+// Toutes les 5 minutes, refresh si notifications
+setInterval(async () => {
+  if (notifications.length > 0) {
+    await supabase.rpc('refresh_product_sales_stats');
+    await supabase.rpc('refresh_daily_sales_summary');
+    notifications.length = 0;
+  }
+}, 5 * 60 * 1000);
+*/
+```
+
+**Alternative simple : Cron Job quotidien**
+
+```sql
+-- Option minimaliste : Refresh 1×/jour à 4h du matin (heure creuse)
+-- Configurer dans Supabase Dashboard > Database > Cron Jobs
+-- OU utiliser pg_cron extension
+
+SELECT cron.schedule(
+  'refresh-analytics-views',
+  '0 4 * * *',  -- Tous les jours à 4h00
+  $$
+    REFRESH MATERIALIZED VIEW CONCURRENTLY product_sales_stats_mat;
+    REFRESH MATERIALIZED VIEW CONCURRENTLY daily_sales_summary_mat;
+    REFRESH MATERIALIZED VIEW CONCURRENTLY top_products_by_period_mat;
+    REFRESH MATERIALIZED VIEW CONCURRENTLY bar_stats_multi_period_mat;
+  $$
+);
+```
+
+**Gains :**
+- ✅ Réduit refresh de 20×/jour → 1-4×/jour
+- ✅ Économise 80-95% du CPU de refresh
+- ✅ Données toujours fraîches (max 5 min de retard avec debouncing, 24h avec cron)
+
+**Recommandation :**
+- Phase 1 : Cron quotidien (simple, efficace)
+- Phase 2 : Debouncing 5 min (si besoin temps réel)
+
+---
+
+### **🔧 Optimisation 4 : Index Stratégiques (Performance)**
+
+**Objectif :** Accélérer les refresh et réduire le CPU utilisé
+
+**Index critiques à créer :**
+
+```sql
+-- Index sur colonnes de filtrage fréquent
+CREATE INDEX CONCURRENTLY idx_sales_created_at_bar_status
+ON sales(bar_id, created_at, status)
+WHERE status = 'validated';
+
+-- Index sur JSONB items pour éviter le scan complet
+CREATE INDEX CONCURRENTLY idx_sales_items_product_id
+ON sales USING GIN ((items));
+
+-- Index sur date pour les vues temporelles
+CREATE INDEX CONCURRENTLY idx_sales_created_at_date
+ON sales(DATE(created_at - INTERVAL '4 hours'));
+
+-- Index sur supplies pour forecasting
+CREATE INDEX CONCURRENTLY idx_supplies_product_created
+ON supplies(product_id, created_at);
+```
+
+**Vérifier l'utilisation des index :**
+
+```sql
+-- Analyser une requête pour voir si index utilisé
+EXPLAIN ANALYZE
+SELECT * FROM product_sales_stats_mat WHERE bar_id = 'xxx';
+
+-- Surveiller index inutilisés
+SELECT
+  schemaname,
+  tablename,
+  indexname,
+  idx_scan,  -- Nombre d'utilisations
+  pg_size_pretty(pg_relation_size(indexrelid)) as index_size
+FROM pg_stat_user_indexes
+WHERE idx_scan = 0  -- Index jamais utilisé
+  AND schemaname = 'public'
+ORDER BY pg_relation_size(indexrelid) DESC;
+```
+
+**Gains :**
+- ✅ Refresh 3-10× plus rapide selon la vue
+- ✅ -60-80% CPU utilisé pour refresh
+- ❌ +10-30 MB stockage index (négligeable)
+
+---
+
+### **🔧 Optimisation 5 : Monitoring des Coûts (Préventif)**
+
+**Objectif :** Surveiller l'impact réel et détecter les dérives
+
+**Dashboard Supabase à surveiller :**
+
+```sql
+-- 1. Taille des vues matérialisées
+SELECT
+  schemaname,
+  matviewname,
+  pg_size_pretty(pg_total_relation_size(schemaname||'.'||matviewname)) AS size,
+  pg_total_relation_size(schemaname||'.'||matviewname) / 1024 / 1024 AS size_mb
+FROM pg_matviews
+WHERE schemaname = 'public'
+ORDER BY pg_total_relation_size(schemaname||'.'||matviewname) DESC;
+
+-- Objectif : Rester sous 100 MB total
+
+-- 2. Fréquence des refresh (monitoring CPU)
+SELECT
+  query,
+  calls,
+  total_exec_time / 1000 as total_seconds,
+  mean_exec_time as avg_ms,
+  max_exec_time as max_ms
+FROM pg_stat_statements
+WHERE query LIKE '%REFRESH MATERIALIZED VIEW%'
+ORDER BY calls DESC;
+
+-- Objectif : <50 calls/jour, <500ms avg
+
+-- 3. Bande passante économisée (estimation)
+-- Comparer avant/après via Supabase Dashboard > Settings > Usage
+-- Objectif : -80% bande passante minimum
+```
+
+**Alertes recommandées :**
+
+| Métrique | Seuil Alerte | Action |
+|----------|--------------|--------|
+| Taille vues > 200 MB | ⚠️ Warning | Réduire historique à 180j |
+| Refresh > 100×/jour | 🔴 Critical | Activer debouncing |
+| Temps refresh > 2s | ⚠️ Warning | Optimiser requêtes/index |
+| Bande passante > 50 GB/mois | 🔴 Critical | Vérifier fuites données |
+
+---
+
+### **📊 Récapitulatif des Optimisations et Impact Coût**
+
+| Optimisation | Difficulté | Impact Coût | Impact Performance | Priorité |
+|--------------|------------|-------------|--------------------|----------|
+| **1. CONCURRENT Refresh** | Facile | Indirect (UX) | Critique | 🔴 P0 |
+| **2. Limite historique 365j** | Facile | -30% stockage | +100% vitesse | 🟠 P1 |
+| **3. Debouncing refresh** | Moyenne | -80% CPU | Neutre | 🟠 P1 |
+| **4. Index stratégiques** | Facile | +10 MB storage | +300% vitesse | 🟡 P2 |
+| **5. Monitoring coûts** | Facile | Préventif | Détection issues | 🟢 P3 |
+
+**Estimation économies totales avec TOUTES les optimisations :**
+- Bande passante : -95% → **-$10-140/mois**
+- Stockage : +50 MB → **+$0/mois** (inclus)
+- CPU refresh : -80% → **+$0/mois** (gratuit)
+- **TOTAL : -$10-140/mois d'économies** 💰
+
+---
+
+## 🎯 Prochaines Étapes Recommandées (MISE À JOUR)
 
 ### **Immédiat (Cette Semaine)**
 
 1. ✅ **Valider l'approche** avec l'équipe
-2. ✅ **Créer les migrations SQL** (Phase 1)
+2. ✅ **Créer les migrations SQL** (Phase 1) **+ Optimisations coûts intégrées**
+   - ✅ CONCURRENT sur tous les refresh
+   - ✅ Limite 365j sur daily_sales_summary et top_products
+   - ✅ Limite 90j sur product_sales_stats
+   - ✅ Index stratégiques
 3. ✅ **Tester en local** avec données de production anonymisées
-4. ✅ **Documenter les résultats** de tests
+4. ✅ **Documenter les résultats** de tests + mesures coûts
 
 ### **Court Terme (2 Semaines)**
 
@@ -1360,6 +1670,8 @@ ORDER BY pg_total_relation_size(schemaname||'.'||matviewname) DESC;
 2. ✅ **Migrer ForecastingSystem** (plus critique)
 3. ✅ **Migrer AccountingOverview**
 4. ✅ **Tests approfondis**
+5. 🆕 **Implémenter Cron Job quotidien** (refresh 4h du matin)
+6. 🆕 **Configurer monitoring coûts** (dashboard Supabase)
 
 ### **Moyen Terme (1 Mois)**
 
@@ -1367,13 +1679,17 @@ ORDER BY pg_total_relation_size(schemaname||'.'||matviewname) DESC;
 2. ✅ **Déploiement production**
 3. ✅ **Monitoring pendant 1 semaine**
 4. ✅ **Documentation finale**
+5. 🆕 **Analyser économies réelles** (comparer factures avant/après)
+6. 🆕 **Ajuster limites historique** selon usage réel
 
 ### **Long Terme (Améliorations Futures)**
 
-1. 🚀 **Vue agrégée par heure** (analytics temps réel)
-2. 🚀 **Détection anomalies** (ventes inhabituelles)
-3. 🚀 **Prévisions ML** (tendances futures)
-4. 🚀 **Dashboard SuperAdmin temps réel** (tous les bars)
+1. 🚀 **Debouncing intelligent** (refresh 5 min si activité)
+2. 🚀 **Vue agrégée par heure** (analytics temps réel)
+3. 🚀 **Détection anomalies** (ventes inhabituelles)
+4. 🚀 **Prévisions ML** (tendances futures)
+5. 🚀 **Dashboard SuperAdmin temps réel** (tous les bars)
+6. 🚀 **Archivage données anciennes** (>2 ans) vers stockage froid
 
 ---
 

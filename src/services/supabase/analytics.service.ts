@@ -11,6 +11,8 @@ export interface DailySalesSummary {
     gross_revenue: number;
     gross_subtotal: number;
     total_discounts: number;
+    refunds_total: number;        // ✨ NOUVEAU
+    net_revenue: number;          // ✨ NOUVEAU
     total_items_sold: number;
     avg_basket_value: number;
     cash_revenue: number;
@@ -34,6 +36,44 @@ export interface TopProduct {
     total_quantity: number;
     total_revenue: number;
     avg_unit_price: number;
+}
+
+export interface ExpensesSummary {
+    bar_id: string;
+    expense_date: string;
+    expense_week: string;
+    expense_month: string;
+    total_expenses: number;
+    operating_expenses: number;
+    investments: number;
+    water_expenses: number;
+    electricity_expenses: number;
+    maintenance_expenses: number;
+    supply_expenses: number;
+    supplies_cost: number;        // ✨ NOUVEAU
+    custom_expenses: number;
+    expense_count: number;
+    investment_count: number;
+    supply_count: number;         // ✨ NOUVEAU
+    first_expense_time: string;
+    last_expense_time: string;
+    updated_at: string;
+}
+
+export interface SalariesSummary {
+    bar_id: string;
+    payment_date: string;
+    payment_week: string;
+    payment_month: string;
+    total_salaries: number;
+    payment_count: number;
+    unique_members_paid: number;
+    avg_salary_amount: number;
+    min_salary_amount: number;
+    max_salary_amount: number;
+    first_payment_time: string;
+    last_payment_time: string;
+    updated_at: string;
 }
 
 export const AnalyticsService = {
@@ -197,5 +237,53 @@ export const AnalyticsService = {
         }
 
         return data || [];
+    },
+
+    /**
+     * Récupère le résumé des dépenses par jour/semaine/mois
+     */
+    async getExpensesSummary(
+        barId: string,
+        startDate: Date,
+        endDate: Date,
+        groupBy: 'day' | 'week' | 'month' = 'day'
+    ): Promise<ExpensesSummary[]> {
+        const dateColumn = groupBy === 'day' ? 'expense_date' :
+            groupBy === 'week' ? 'expense_week' : 'expense_month';
+
+        const { data, error } = await supabase
+            .from('expenses_summary' as any)
+            .select('*')
+            .eq('bar_id', barId)
+            .gte(dateColumn, startDate.toISOString())
+            .lte(dateColumn, endDate.toISOString())
+            .order(dateColumn, { ascending: false });
+
+        if (error) throw error;
+        return (data as any) || [];
+    },
+
+    /**
+     * Récupère le résumé des salaires par jour/semaine/mois
+     */
+    async getSalariesSummary(
+        barId: string,
+        startDate: Date,
+        endDate: Date,
+        groupBy: 'day' | 'week' | 'month' = 'day'
+    ): Promise<SalariesSummary[]> {
+        const dateColumn = groupBy === 'day' ? 'payment_date' :
+            groupBy === 'week' ? 'payment_week' : 'payment_month';
+
+        const { data, error } = await supabase
+            .from('salaries_summary' as any)
+            .select('*')
+            .eq('bar_id', barId)
+            .gte(dateColumn, startDate.toISOString())
+            .lte(dateColumn, endDate.toISOString())
+            .order(dateColumn, { ascending: false });
+
+        if (error) throw error;
+        return (data as any) || [];
     }
 };
