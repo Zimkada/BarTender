@@ -289,7 +289,7 @@ export class ProductsService {
           ...product,
           global_product: globalProduct,
           category: product.bar_categories,
-          display_name: product.local_name || globalProduct?.name || 'Produit sans nom',
+          display_name: product.display_name,
           display_image: product.local_image || globalProduct?.official_image || null,
         };
       });
@@ -330,7 +330,7 @@ export class ProductsService {
           ...product,
           global_product: globalProduct,
           category: product.bar_categories,
-          display_name: product.local_name || globalProduct?.name || 'Produit sans nom',
+          display_name: product.display_name,
           display_image: product.local_image || globalProduct?.official_image || null,
         };
       });
@@ -366,7 +366,7 @@ export class ProductsService {
         ...data,
         global_product: globalProduct,
         category: data.bar_categories,
-        display_name: data.local_name || globalProduct?.name || 'Produit sans nom',
+        display_name: data.display_name,
         display_image: data.local_image || globalProduct?.official_image || null,
       };
     } catch (error: any) {
@@ -499,7 +499,7 @@ export class ProductsService {
           ...product,
           global_product: globalProduct,
           category: product.bar_categories,
-          display_name: product.local_name || globalProduct?.name || 'Produit sans nom',
+          display_name: product.display_name,
           display_image: product.local_image || globalProduct?.official_image || null,
         };
       });
