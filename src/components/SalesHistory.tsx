@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import {
   TrendingUp,
@@ -45,6 +45,7 @@ import { Sale, SaleItem, Category, Product, User, BarMember, Return } from '../t
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { getSaleDate } from '../utils/saleHelpers';
+import { AnalyticsService, TopProduct } from '../services/supabase/analytics.service';
 
 interface EnhancedSalesHistoryProps {
   isOpen: boolean;
@@ -83,6 +84,72 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
     start: new Date().toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0]
   });
+
+  // SQL Analytics State
+  const [topProductsData, setTopProductsData] = useState<TopProduct[]>([]);
+  const [isLoadingTopProducts, setIsLoadingTopProducts] = useState(false);
+
+  // Load top products from SQL view when filters change
+  useEffect(() => {
+    if (!currentBar || !isOpen) return;
+
+    const loadTopProducts = async () => {
+      setIsLoadingTopProducts(true);
+      try {
+        let startDate: Date;
+        let endDate: Date;
+
+        const today = new Date();
+        switch (timeFilter) {
+          case 'today': {
+            const businessDay = getCurrentBusinessDay(closeHour);
+            startDate = businessDay;
+            endDate = new Date();
+            break;
+          }
+          case 'week': {
+            const currentDay = today.getDay();
+            const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
+            const monday = new Date();
+            monday.setDate(monday.getDate() - daysFromMonday);
+            monday.setHours(0, 0, 0, 0);
+            startDate = monday;
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            sunday.setHours(23, 59, 59, 999);
+            endDate = sunday;
+            break;
+          }
+          case 'month': {
+            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+            firstDay.setHours(0, 0, 0, 0);
+            startDate = firstDay;
+            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            lastDay.setHours(23, 59, 59, 999);
+            endDate = lastDay;
+            break;
+          }
+          case 'custom': {
+            startDate = new Date(customDateRange.start);
+            startDate.setHours(0, 0, 0, 0);
+            endDate = new Date(customDateRange.end);
+            endDate.setHours(23, 59, 59, 999);
+            break;
+          }
+        }
+
+        const products = await AnalyticsService.getTopProducts(currentBar.id, startDate, endDate, 5);
+        setTopProductsData(products);
+      } catch (error) {
+        console.error('Error loading top products:', error);
+        setTopProductsData([]);
+      } finally {
+        setIsLoadingTopProducts(false);
+      }
+    };
+
+    loadTopProducts();
+  }, [currentBar, timeFilter, customDateRange, closeHour, isOpen]);
 
   // Filtrage des ventes
   const filteredSales = useMemo(() => {
@@ -291,33 +358,43 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
       kpiLabel = 'CA moyen/jour';
     }
 
-    // Top produits
-    const productCounts: Record<string, { name: string; volume: string; count: number; revenue: number }> = {};
-    filteredSales.forEach(sale => {
-      sale.items.forEach((item: SaleItem) => {
-        const name = item.product_name;
-        const volume = item.product_volume || '';
-        const key = `${name}-${volume}`;
-        if (!productCounts[key]) {
-          productCounts[key] = {
-            name,
-            volume,
-            count: 0,
-            revenue: 0
-          };
-        }
-        productCounts[key].count += item.quantity;
-        const price = item.unit_price;
-        productCounts[key].revenue += price * item.quantity;
-      });
-    });
+    // Top produits (using SQL view data with fallback to client-side)
+    const topProducts = topProductsData.length > 0
+      ? topProductsData.map(p => ({
+        name: p.product_name,
+        volume: p.product_volume || '',
+        count: p.total_quantity,
+        revenue: p.total_revenue
+      }))
+      : (() => {
+        // Fallback: client-side calculation if SQL data not available
+        const productCounts: Record<string, { name: string; volume: string; count: number; revenue: number }> = {};
+        filteredSales.forEach(sale => {
+          sale.items.forEach((item: SaleItem) => {
+            const name = item.product_name;
+            const volume = item.product_volume || '';
+            const key = `${name}-${volume}`;
+            if (!productCounts[key]) {
+              productCounts[key] = {
+                name,
+                volume,
+                count: 0,
+                revenue: 0
+              };
+            }
+            productCounts[key].count += item.quantity;
+            const price = item.unit_price;
+            productCounts[key].revenue += price * item.quantity;
+          });
+        });
 
-    const topProducts = Object.values(productCounts)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
+        return Object.values(productCounts)
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5);
+      })();
 
     return { totalRevenue, totalItems, kpiValue, kpiLabel, topProducts };
-  }, [filteredSales, returns, timeFilter, customDateRange, closeHour]);
+  }, [filteredSales, returns, timeFilter, customDateRange, closeHour, topProductsData]);
 
   // Export des données
   const exportSales = () => {

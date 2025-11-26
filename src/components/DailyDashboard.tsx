@@ -1,16 +1,18 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   TrendingUp, DollarSign, ShoppingCart, Package, Share, Lock, Eye, EyeOff, RotateCcw, Archive, Check, X, User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import { useBarContext } from '../context/BarContext';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
 import { AnimatedCounter } from './AnimatedCounter';
 import { Sale, SaleItem, User as UserType } from '../types';
+import { AnalyticsService, DailySalesSummary, TopProduct } from '../services/supabase/analytics.service';
 
 interface DailyDashboardProps {
   isOpen: boolean;
@@ -100,6 +102,7 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
 
 export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
   const { sales, getTodaySales, getTodayTotal, getLowStockProducts, returns, validateSale, rejectSale, users } = useAppContext();
+  const { currentBar } = useBarContext();
   const { consignments } = useStockManagement();
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession } = useAuth();
@@ -108,8 +111,31 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [cashClosed, setCashClosed] = useState(false);
 
+  // Analytics State
+  const [todayStats, setTodayStats] = useState<DailySalesSummary | null>(null);
+  const [topProductsData, setTopProductsData] = useState<TopProduct[]>([]);
+
+  useEffect(() => {
+    if (isOpen && currentBar) {
+      const today = new Date();
+      const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+
+      AnalyticsService.getDailySummary(currentBar.id, start, end, 'day').then(stats => {
+        if (stats.length > 0) setTodayStats(stats[0]);
+        else setTodayStats(null);
+      });
+
+      // Fetch top 100 products to calculate total items accurately
+      AnalyticsService.getTopProducts(currentBar.id, start, end, 100).then(products => {
+        setTopProductsData(products);
+      });
+    }
+  }, [isOpen, currentBar]);
+
   const todayValidatedSales = getTodaySales();
-  const todayTotal = getTodayTotal();
+  // Use SQL stats if available, otherwise fallback to context
+  const todayTotal = todayStats ? todayStats.gross_revenue : getTodayTotal();
 
   const pendingSales = useMemo(() => {
     const isManager = currentSession?.role === 'gerant' || currentSession?.role === 'promoteur';
@@ -122,16 +148,24 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
   }, [sales, currentSession]);
 
   const lowStockProducts = getLowStockProducts();
-  const totalItems = todayValidatedSales.reduce((sum, sale) => sum + sale.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
-  const avgSaleValue = todayValidatedSales.length > 0 ? todayTotal / todayValidatedSales.length : 0;
-  const topProducts = todayValidatedSales.flatMap(sale => sale.items).reduce((acc, item: SaleItem) => {
-    const name = item.product_name;
-    const volume = item.product_volume || '';
-    const key = `${name}-${volume}`;
-    acc[key] = (acc[key] || 0) + item.quantity;
-    return acc;
-  }, {} as Record<string, number>);
-  const topProductsList = Object.entries(topProducts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+
+  const totalItems = topProductsData.length > 0
+    ? topProductsData.reduce((sum, p) => sum + p.total_quantity, 0)
+    : todayValidatedSales.reduce((sum, sale) => sum + sale.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
+
+  const avgSaleValue = todayStats
+    ? (todayStats.validated_count > 0 ? todayStats.gross_revenue / todayStats.validated_count : 0)
+    : (todayValidatedSales.length > 0 ? todayTotal / todayValidatedSales.length : 0);
+
+  const topProductsList = topProductsData.length > 0
+    ? topProductsData.slice(0, 3).map(p => [p.product_name, p.total_quantity] as [string, number])
+    : Object.entries(todayValidatedSales.flatMap(sale => sale.items).reduce((acc, item: SaleItem) => {
+      const name = item.product_name;
+      const volume = item.product_volume || '';
+      const key = `${name}-${volume}`;
+      acc[key] = (acc[key] || 0) + item.quantity;
+      return acc;
+    }, {} as Record<string, number>)).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
   // 🔒 SERVEURS : Ne voir que les retours de LEURS ventes (même logique que getTodayTotal)
   const todaySaleIds = useMemo(() => new Set(todayValidatedSales.map(s => s.id)), [todayValidatedSales]);

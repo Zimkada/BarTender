@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import {
@@ -29,6 +29,8 @@ import { getSaleDate } from '../utils/saleHelpers';
 type PeriodType = 'week' | 'month' | 'custom';
 
 import AnalyticsCharts from './AnalyticsCharts';
+import { AnalyticsService, DailySalesSummary } from '../services/supabase/analytics.service';
+import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 
 export function AccountingOverview() {
   const { currentSession } = useAuth();
@@ -65,65 +67,110 @@ export function AccountingOverview() {
     sourceDetails: '',
   });
 
-  if (!currentBar || !currentSession) return null;
+  // Analytics State
+  const [periodStats, setPeriodStats] = useState<DailySalesSummary[]>([]);
+  const [prevPeriodStats, setPrevPeriodStats] = useState<DailySalesSummary[]>([]);
+  const [chartStats, setChartStats] = useState<DailySalesSummary[]>([]);
+  const [historicalRevenue, setHistoricalRevenue] = useState(0);
+  const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false);
 
-  // Calculate period range based on type and offset
+  // Calculate period range based on type and offset (MUST be before useEffect)
   const { start: periodStart, end: periodEnd } = useMemo(() => {
     const today = new Date();
+    let start: Date, end: Date;
 
-    if (periodType === 'custom' && customDateRange.start && customDateRange.end) {
-      const start = new Date(customDateRange.start);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(customDateRange.end);
-      end.setHours(23, 59, 59, 999);
-      return { start, end };
+    switch (periodType) {
+      case 'day':
+        start = new Date(today.getFullYear(), today.getMonth(), today.getDate() + periodOffset);
+        end = new Date(start);
+        end.setHours(23, 59, 59, 999);
+        break;
+      case 'week': {
+        const currentDay = today.getDay();
+        const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
+        const monday = new Date(today);
+        monday.setDate(today.getDate() - daysFromMonday + (periodOffset * 7));
+        monday.setHours(0, 0, 0, 0);
+        start = monday;
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        sunday.setHours(23, 59, 59, 999);
+        end = sunday;
+        break;
+      }
+      case 'month':
+        start = new Date(today.getFullYear(), today.getMonth() + periodOffset, 1);
+        end = new Date(today.getFullYear(), today.getMonth() + periodOffset + 1, 0);
+        end.setHours(23, 59, 59, 999);
+        break;
+      case 'custom':
+        start = new Date(customDateRange.start);
+        start.setHours(0, 0, 0, 0);
+        end = new Date(customDateRange.end);
+        end.setHours(23, 59, 59, 999);
+        break;
     }
 
-    if (periodType === 'week') {
-      // Calcul semaine calendaire (Lundi-Dimanche)
-      const targetDate = new Date(today);
-      targetDate.setDate(today.getDate() + (periodOffset * 7));
-
-      const currentDay = targetDate.getDay();
-      const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
-
-      const monday = new Date(targetDate);
-      monday.setDate(targetDate.getDate() - daysFromMonday);
-      monday.setHours(0, 0, 0, 0);
-
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
-      sunday.setHours(23, 59, 59, 999);
-
-      return { start: monday, end: sunday };
-    }
-
-    if (periodType === 'month') {
-      // Calcul mois calendrier (1er - dernier jour)
-      const targetDate = new Date(today.getFullYear(), today.getMonth() + periodOffset, 1);
-
-      const firstDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
-      firstDay.setHours(0, 0, 0, 0);
-
-      const lastDay = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0);
-      lastDay.setHours(23, 59, 59, 999);
-
-      return { start: firstDay, end: lastDay };
-    }
-
-    // Fallback (should not happen)
-    return { start: today, end: today };
+    return { start, end };
   }, [periodType, periodOffset, customDateRange]);
 
-  // Calculate sales revenue
+  // Load Analytics Data
+  useEffect(() => {
+    if (currentBar && periodStart && periodEnd) {
+      loadAnalyticsData();
+    }
+  }, [currentBar, periodStart, periodEnd]);
+
+  const loadAnalyticsData = async () => {
+    if (!currentBar) return;
+    setIsAnalyticsLoading(true);
+    try {
+      // 1. Current Period Stats
+      const current = await AnalyticsService.getDailySummary(currentBar.id, periodStart, periodEnd, 'day');
+      setPeriodStats(current);
+
+      // 2. Previous Period Stats (for Growth)
+      const prevPeriodDate = new Date(periodStart);
+      prevPeriodDate.setMonth(prevPeriodDate.getMonth() - 1);
+      const prevStart = new Date(prevPeriodDate.getFullYear(), prevPeriodDate.getMonth(), 1);
+      const prevEnd = new Date(prevPeriodDate.getFullYear(), prevPeriodDate.getMonth() + 1, 0);
+      const prev = await AnalyticsService.getDailySummary(currentBar.id, prevStart, prevEnd, 'day');
+      setPrevPeriodStats(prev);
+
+      // 3. Chart Stats (12 months)
+      const chartStart = new Date();
+      chartStart.setMonth(chartStart.getMonth() - 12);
+      chartStart.setDate(1);
+      const chartEnd = new Date();
+      const chartData = await AnalyticsService.getDailySummary(currentBar.id, chartStart, chartEnd, 'month');
+      setChartStats(chartData);
+
+      // 4. Historical Revenue (for Balance) - All time up to periodStart
+      const historyStart = new Date('2020-01-01'); // Assume start of app usage
+      // Subtract 1 day from periodStart to get end of previous period
+      const historyEnd = new Date(periodStart);
+      historyEnd.setDate(historyEnd.getDate() - 1);
+
+      if (historyEnd > historyStart) {
+        const history = await AnalyticsService.getRevenueSummary(currentBar.id, historyStart, historyEnd);
+        setHistoricalRevenue(history.totalRevenue);
+      } else {
+        setHistoricalRevenue(0);
+      }
+
+    } catch (error) {
+      console.error("Error loading analytics:", error);
+    } finally {
+      setIsAnalyticsLoading(false);
+    }
+  };
+
+  if (!currentBar || !currentSession) return null;
+
+  // Calculate sales revenue (using SQL Stats)
   const salesRevenue = useMemo(() => {
-    return sales
-      .filter(sale => {
-        const saleDate = getSaleDate(sale);
-        return sale.status === 'validated' && saleDate >= periodStart && saleDate <= periodEnd;
-      })
-      .reduce((sum, sale) => sum + sale.total, 0);
-  }, [sales, periodStart, periodEnd]);
+    return periodStats.reduce((sum, day) => sum + day.gross_revenue, 0);
+  }, [periodStats]);
 
   // Calculate returns refunds
   const returnsRefunds = useMemo(() => {
@@ -200,12 +247,7 @@ export function AccountingOverview() {
     const prevPeriodStart = new Date(prevPeriodDate.getFullYear(), prevPeriodDate.getMonth(), 1);
     const prevPeriodEnd = new Date(prevPeriodDate.getFullYear(), prevPeriodDate.getMonth() + 1, 0);
 
-    const prevSalesRevenue = sales
-      .filter(sale => {
-        const saleDate = getSaleDate(sale);
-        return sale.status === 'validated' && saleDate >= prevPeriodStart && saleDate <= prevPeriodEnd;
-      })
-      .reduce((sum, sale) => sum + sale.total, 0);
+    const prevSalesRevenue = prevPeriodStats.reduce((sum, day) => sum + day.gross_revenue, 0);
 
     const prevReturnsRefunds = returns
       .filter(ret => {
@@ -238,9 +280,19 @@ export function AccountingOverview() {
       const monthStart = new Date(year, date.getMonth(), 1);
       const monthEnd = new Date(year, date.getMonth() + 1, 0);
 
-      const monthSales = sales
-        .filter(s => new Date(s.date) >= monthStart && new Date(s.date) <= monthEnd)
-        .reduce((sum, s) => sum + s.total, 0);
+      // Find matching stat in chartStats
+      // chartStats is grouped by month, so sale_month should match 'YYYY-MM-01'
+      // But we need to match carefully.
+      // Let's just filter by date range on the client for the few chart points
+      // Or better, match by sale_month string if available.
+      // The view returns sale_month as date string (start of month).
+
+      const monthStat = chartStats.find(s => {
+        const sDate = new Date(s.sale_month);
+        return sDate.getFullYear() === year && sDate.getMonth() === date.getMonth();
+      });
+
+      const monthSales = monthStat ? monthStat.gross_revenue : 0;
 
       const monthReturns = returns
         .filter(r => {
@@ -283,13 +335,8 @@ export function AccountingOverview() {
     // ✅ 2. Add capital contributions before period
     const previousCapitalContributions = capitalContributionsHook.getTotalContributions(periodStart);
 
-    // 3. Sum all sales before period
-    const previousSales = sales
-      .filter(sale => {
-        const saleDate = getSaleDate(sale);
-        return sale.status === 'validated' && saleDate < periodStart;
-      })
-      .reduce((sum, sale) => sum + sale.total, 0);
+    // 3. Sum all sales before period (Using SQL Stats)
+    const previousSales = historicalRevenue;
 
     // 3. Sum all returns before period
     const previousReturns = returns
@@ -324,12 +371,8 @@ export function AccountingOverview() {
     const initialBalanceAmount = initialBalanceHook.getInitialBalanceAmount();
     const previousCapitalContributions = capitalContributionsHook.getTotalContributions(periodStart);
 
-    const previousSales = sales
-      .filter(sale => {
-        const saleDate = getSaleDate(sale);
-        return sale.status === 'validated' && saleDate < periodStart;
-      })
-      .reduce((sum, sale) => sum + sale.total, 0);
+    // 3. Sum all sales before period (Using SQL Stats)
+    const previousSales = historicalRevenue;
 
     const previousReturns = returns
       .filter(ret => {
@@ -733,9 +776,15 @@ export function AccountingOverview() {
       {/* Header */}
       <div className={isMobile ? 'space-y-3' : 'flex items-center justify-between'}>
         <div>
-          <h2 className={`font-bold text-gray-800 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
-            📊 Vue d'ensemble Comptable
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className={`font-bold text-gray-800 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
+              📊 Vue d'ensemble Comptable
+            </h2>
+            <DataFreshnessIndicatorCompact
+              viewName="daily_sales_summary"
+              onRefreshComplete={loadAnalyticsData}
+            />
+          </div>
           <p className={`text-gray-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>
             {currentBar?.name}
           </p>

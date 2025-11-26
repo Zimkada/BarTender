@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -17,6 +17,7 @@ import { Bar } from '../types';
 import { Sale } from '../types';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
 import { useBarContext } from '../context/BarContext';
+import { AnalyticsService } from '../services/supabase/analytics.service';
 
 interface BarStatsModalProps {
   isOpen: boolean;
@@ -27,9 +28,84 @@ interface BarStatsModalProps {
 export function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
   const { barMembers } = useBarContext();
 
+  // SQL Analytics State
+  const [multiPeriodStats, setMultiPeriodStats] = useState<any>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+
+  // Load multi-period stats from SQL view
+  useEffect(() => {
+    if (!isOpen || !bar?.id) return;
+
+    const loadStats = async () => {
+      setIsLoadingStats(true);
+      try {
+        const stats = await AnalyticsService.getBarStatsMultiPeriod(bar.id);
+        setMultiPeriodStats(stats);
+      } catch (error) {
+        console.error('Error loading bar stats:', error);
+        setMultiPeriodStats(null);
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+
+    loadStats();
+  }, [isOpen, bar?.id]);
+
   const stats = useMemo(() => {
     try {
-      // Get sales data for this bar
+      // Use SQL stats if available, otherwise fallback to localStorage
+      if (multiPeriodStats) {
+        // Calculate percentage changes
+        const caChangeVsYesterday = multiPeriodStats.revenue_yesterday > 0
+          ? ((multiPeriodStats.revenue_today - multiPeriodStats.revenue_yesterday) / multiPeriodStats.revenue_yesterday * 100)
+          : (multiPeriodStats.revenue_today > 0 ? 100 : 0);
+
+        const avgCALast7Days = multiPeriodStats.revenue_7d / 7;
+        const caChangeVsLast7Days = avgCALast7Days > 0
+          ? ((multiPeriodStats.revenue_today - avgCALast7Days) / avgCALast7Days * 100)
+          : (multiPeriodStats.revenue_today > 0 ? 100 : 0);
+
+        const salesChangeVsYesterday = multiPeriodStats.sales_yesterday > 0
+          ? ((multiPeriodStats.sales_today - multiPeriodStats.sales_yesterday) / multiPeriodStats.sales_yesterday * 100)
+          : (multiPeriodStats.sales_today > 0 ? 100 : 0);
+
+        const avgSalesLast7Days = multiPeriodStats.sales_7d / 7;
+        const salesChangeVsLast7Days = avgSalesLast7Days > 0
+          ? ((multiPeriodStats.sales_today - avgSalesLast7Days) / avgSalesLast7Days * 100)
+          : (multiPeriodStats.sales_today > 0 ? 100 : 0);
+
+        // Team info
+        const teamMembers = barMembers.filter(m => m.barId === bar.id);
+        const gerants = teamMembers.filter(m => m.role === 'gerant').length;
+        const serveurs = teamMembers.filter(m => m.role === 'serveur').length;
+
+        return {
+          caToday: multiPeriodStats.revenue_today,
+          caYesterday: multiPeriodStats.revenue_yesterday,
+          caLast7Days: multiPeriodStats.revenue_7d,
+          caLast30Days: multiPeriodStats.revenue_30d,
+          caChangeVsYesterday,
+          caChangeVsLast7Days,
+          avgCALast7Days,
+
+          salesToday: multiPeriodStats.sales_today,
+          salesYesterday: multiPeriodStats.sales_yesterday,
+          salesLast7Days: multiPeriodStats.sales_7d,
+          salesLast30Days: multiPeriodStats.sales_30d,
+          salesChangeVsYesterday,
+          salesChangeVsLast7Days,
+          avgSalesLast7Days,
+
+          topProducts: [], // Top products not in multi-period view
+          teamMembers: teamMembers.length,
+          gerants,
+          serveurs,
+          lowStockItems: 0, // Stock alerts not in multi-period view
+        };
+      }
+
+      // Fallback: localStorage calculation
       const salesKey = `sales_${bar.id}`;
       const salesData = localStorage.getItem(salesKey);
       const sales: Sale[] = salesData ? JSON.parse(salesData) : [];
@@ -161,7 +237,7 @@ export function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
       console.error('Error calculating bar stats:', error);
       return null;
     }
-  }, [bar, barMembers]);
+  }, [bar, barMembers, multiPeriodStats]);
 
   if (!isOpen || !stats) return null;
 
@@ -231,13 +307,12 @@ export function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
                           ) : (
                             <TrendingDown className="w-4 h-4 text-red-600" />
                           )}
-                          <span className={`text-xs font-medium ${
-                            Math.abs(stats.caChangeVsYesterday) < 1
-                              ? 'text-gray-600'
-                              : stats.caChangeVsYesterday > 0
-                                ? 'text-green-600'
-                                : 'text-red-600'
-                          }`}>
+                          <span className={`text-xs font-medium ${Math.abs(stats.caChangeVsYesterday) < 1
+                            ? 'text-gray-600'
+                            : stats.caChangeVsYesterday > 0
+                              ? 'text-green-600'
+                              : 'text-red-600'
+                            }`}>
                             {stats.caChangeVsYesterday > 0 ? '+' : ''}{stats.caChangeVsYesterday.toFixed(1)}% vs hier
                           </span>
                           <span className="text-xs text-gray-500">
@@ -253,13 +328,12 @@ export function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
                           ) : (
                             <TrendingDown className="w-4 h-4 text-red-600" />
                           )}
-                          <span className={`text-xs font-medium ${
-                            Math.abs(stats.caChangeVsLast7Days) < 1
-                              ? 'text-gray-600'
-                              : stats.caChangeVsLast7Days > 0
-                                ? 'text-green-600'
-                                : 'text-red-600'
-                          }`}>
+                          <span className={`text-xs font-medium ${Math.abs(stats.caChangeVsLast7Days) < 1
+                            ? 'text-gray-600'
+                            : stats.caChangeVsLast7Days > 0
+                              ? 'text-green-600'
+                              : 'text-red-600'
+                            }`}>
                             {stats.caChangeVsLast7Days > 0 ? '+' : ''}{stats.caChangeVsLast7Days.toFixed(1)}% vs moy. 7j
                           </span>
                           <span className="text-xs text-gray-500">
@@ -290,13 +364,12 @@ export function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
                           ) : (
                             <TrendingDown className="w-4 h-4 text-red-600" />
                           )}
-                          <span className={`text-xs font-medium ${
-                            Math.abs(stats.salesChangeVsYesterday) < 1
-                              ? 'text-gray-600'
-                              : stats.salesChangeVsYesterday > 0
-                                ? 'text-green-600'
-                                : 'text-red-600'
-                          }`}>
+                          <span className={`text-xs font-medium ${Math.abs(stats.salesChangeVsYesterday) < 1
+                            ? 'text-gray-600'
+                            : stats.salesChangeVsYesterday > 0
+                              ? 'text-green-600'
+                              : 'text-red-600'
+                            }`}>
                             {stats.salesChangeVsYesterday > 0 ? '+' : ''}{stats.salesChangeVsYesterday.toFixed(1)}% vs hier
                           </span>
                           <span className="text-xs text-gray-500">
@@ -312,13 +385,12 @@ export function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
                           ) : (
                             <TrendingDown className="w-4 h-4 text-red-600" />
                           )}
-                          <span className={`text-xs font-medium ${
-                            Math.abs(stats.salesChangeVsLast7Days) < 1
-                              ? 'text-gray-600'
-                              : stats.salesChangeVsLast7Days > 0
-                                ? 'text-green-600'
-                                : 'text-red-600'
-                          }`}>
+                          <span className={`text-xs font-medium ${Math.abs(stats.salesChangeVsLast7Days) < 1
+                            ? 'text-gray-600'
+                            : stats.salesChangeVsLast7Days > 0
+                              ? 'text-green-600'
+                              : 'text-red-600'
+                            }`}>
                             {stats.salesChangeVsLast7Days > 0 ? '+' : ''}{stats.salesChangeVsLast7Days.toFixed(1)}% vs moy. 7j
                           </span>
                           <span className="text-xs text-gray-500">
@@ -372,23 +444,21 @@ export function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
                   {stats.topProducts.map((product, index) => (
                     <div
                       key={index}
-                      className={`flex items-center justify-between p-3 rounded-lg ${
-                        index < 3
-                          ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200'
-                          : 'bg-white border border-gray-200'
-                      }`}
+                      className={`flex items-center justify-between p-3 rounded-lg ${index < 3
+                        ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200'
+                        : 'bg-white border border-gray-200'
+                        }`}
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <div
-                          className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm ${
-                            index === 0
-                              ? 'bg-yellow-400 text-yellow-900'
-                              : index === 1
+                          className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center font-bold text-sm ${index === 0
+                            ? 'bg-yellow-400 text-yellow-900'
+                            : index === 1
                               ? 'bg-gray-300 text-gray-700'
                               : index === 2
-                              ? 'bg-amber-300 text-amber-900'
-                              : 'bg-gray-100 text-gray-600'
-                          }`}
+                                ? 'bg-amber-300 text-amber-900'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}
                         >
                           {index + 1}
                         </div>
@@ -440,11 +510,10 @@ export function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
                   <Package className="w-5 h-5 text-amber-600" />
                   <h3 className="text-lg font-bold text-gray-900">Alertes Stock</h3>
                 </div>
-                <div className={`rounded-xl p-4 border ${
-                  stats.lowStockItems > 0
-                    ? 'bg-gradient-to-br from-red-50 to-amber-50 border-red-200'
-                    : 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200'
-                }`}>
+                <div className={`rounded-xl p-4 border ${stats.lowStockItems > 0
+                  ? 'bg-gradient-to-br from-red-50 to-amber-50 border-red-200'
+                  : 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200'
+                  }`}>
                   {stats.lowStockItems > 0 ? (
                     <div className="flex items-start gap-3">
                       <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />

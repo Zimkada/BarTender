@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useCallback } from 'react';
+import React, { createContext, useContext, useCallback, useEffect } from 'react';
 import { useBarContext } from '../context/BarContext';
+import { useCacheWarming } from '../hooks/useViewMonitoring';
 import { useAuth } from '../context/AuthContext';
 import { useStockBridge } from '../context/StockBridgeProvider';
 import { useStock } from '../context/StockContext';
@@ -108,6 +109,15 @@ export const useAppContext = () => {
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentSession, hasPermission } = useAuth();
   const { currentBar } = useBarContext();
+
+  // Cache Warming: Rafraîchir les vues matérialisées au démarrage
+  const { isWarming } = useCacheWarming(true);
+
+  useEffect(() => {
+    if (isWarming) {
+      console.log('[AppProvider] Cache warming in progress...');
+    }
+  }, [isWarming]);
   const { processSaleValidation } = useStockBridge();
 
   const barId = currentBar?.id || '';

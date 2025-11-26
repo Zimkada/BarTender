@@ -55,6 +55,15 @@ export function UsersManagementPanel({ isOpen, onClose }: UsersManagementPanelPr
   const [promoteurs, setPromoteurs] = useState<PromoterWithBars[]>([]);
   const [loading, setLoading] = useState(false);
 
+  const [createdCredentials, setCreatedCredentials] = useState<{
+    username: string;
+    password: string;
+    barName: string;
+    name: string;
+    email: string;
+    phone: string;
+  } | null>(null);
+
   // Charger les promoteurs
   const loadPromoters = async () => {
     try {
@@ -112,9 +121,10 @@ export function UsersManagementPanel({ isOpen, onClose }: UsersManagementPanelPr
   };
 
   // Copier credentials dans presse-papier
-  const copyCredentials = () => {
-    const username = formData.email.split('@')[0];
-    const credentials = `Bar: ${formData.barName}\nNom: ${formData.firstName} ${formData.lastName}\nEmail: ${formData.email}\nTéléphone: ${formData.phone}\n\nCREDENTIALS:\nUsername: ${username}\nMot de passe: ${formData.password}`;
+  const copyCredentials = (creds: any = formData) => {
+    const username = creds.email.split('@')[0];
+    const fullName = creds.name || `${creds.firstName} ${creds.lastName}`;
+    const credentials = `Bar: ${creds.barName}\nNom: ${fullName}\nEmail: ${creds.email}\nTéléphone: ${creds.phone}\n\nCREDENTIALS:\nUsername: ${username}\nMot de passe: ${creds.password}`;
 
     navigator.clipboard.writeText(credentials).then(() => {
       alert('✅ Credentials copiés dans le presse-papier!');
@@ -193,8 +203,15 @@ export function UsersManagementPanel({ isOpen, onClose }: UsersManagementPanelPr
         return;
       }
 
-      // 3. Succès
-      alert(`✅ Promoteur créé avec succès!\n\nBar: ${formData.barName}\n\nCredentials:\nUsername: ${username}\nMot de passe: ${formData.password}\nBar: ${formData.barName}\n\n(Envoyez ces informations au promoteur)`);
+      // 3. Succès - Afficher modal de confirmation
+      setCreatedCredentials({
+        username,
+        password: formData.password,
+        barName: formData.barName,
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        phone: formData.phone,
+      });
 
       setFormData(initialFormData);
       setShowCreateForm(false);
@@ -225,8 +242,64 @@ export function UsersManagementPanel({ isOpen, onClose }: UsersManagementPanelPr
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[90vh] overflow-hidden flex flex-col"
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[90vh] overflow-hidden flex flex-col relative"
         >
+          {/* Modal Succès Création */}
+          <AnimatePresence>
+            {createdCredentials && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="absolute inset-0 z-50 bg-white/95 backdrop-blur flex items-center justify-center p-4"
+              >
+                <div className="bg-white rounded-2xl shadow-2xl border border-green-100 p-8 max-w-md w-full text-center">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <UserPlus className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Promoteur Créé !</h3>
+                  <p className="text-gray-600 mb-6">
+                    Le compte promoteur et son bar ont été créés avec succès.
+                  </p>
+
+                  <div className="bg-gray-50 rounded-xl p-4 text-left mb-6 border border-gray-200">
+                    <p className="text-xs text-gray-500 uppercase font-semibold mb-2">Identifiants de connexion</p>
+                    <div className="space-y-2 font-mono text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Bar:</span>
+                        <span className="font-bold text-gray-900">{createdCredentials.barName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Username:</span>
+                        <span className="font-bold text-purple-600">{createdCredentials.username}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Password:</span>
+                        <span className="font-bold text-purple-600">{createdCredentials.password}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    <button
+                      onClick={() => copyCredentials(createdCredentials as any)}
+                      className="w-full bg-green-600 text-white py-3 rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Copy className="w-5 h-5" />
+                      Copier les informations
+                    </button>
+                    <button
+                      onClick={() => setCreatedCredentials(null)}
+                      className="w-full py-3 text-gray-500 hover:text-gray-700 font-medium"
+                    >
+                      Fermer
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Header */}
           <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white relative">
             <button
@@ -434,7 +507,7 @@ export function UsersManagementPanel({ isOpen, onClose }: UsersManagementPanelPr
                     </button>
                     <button
                       type="button"
-                      onClick={copyCredentials}
+                      onClick={() => copyCredentials()}
                       disabled={!formData.email || !formData.password}
                       className="px-6 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                       title="Copier les credentials dans le presse-papier"
