@@ -362,13 +362,78 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
     }
 
     // Top produits (using SQL view data with fallback to client-side)
-    const topProducts = topProductsData.length > 0
-      ? topProductsData.map(p => ({
-        name: p.product_name,
-        volume: p.product_volume || '',
-        count: p.total_quantity,
-        revenue: p.total_revenue
-      }))
+    // Filter topProductsData by current timeFilter (DRY approach matching filteredSales logic)
+    const filteredTopProducts = (() => {
+      if (topProductsData.length === 0) return [];
+
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      switch (timeFilter) {
+        case 'today': {
+          const todayDateStr = getBusinessDayDateString(new Date(), closeHour);
+          return topProductsData.filter(p => p.sale_date === todayDateStr);
+        }
+        case 'week': {
+          const currentDay = today.getDay();
+          const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
+          const monday = new Date();
+          monday.setDate(monday.getDate() - daysFromMonday);
+          monday.setHours(0, 0, 0, 0);
+          const sunday = new Date(monday);
+          sunday.setDate(monday.getDate() + 6);
+          sunday.setHours(23, 59, 59, 999);
+
+          // sale_date is Business Day format (YYYY-MM-DD), compare as strings
+          const mondayStr = getBusinessDayDateString(monday, closeHour);
+          const sundayStr = getBusinessDayDateString(sunday, closeHour);
+          return topProductsData.filter(p => p.sale_date >= mondayStr && p.sale_date <= sundayStr);
+        }
+        case 'month': {
+          const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+          const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+          const firstDayStr = getBusinessDayDateString(firstDay, closeHour);
+          const lastDayStr = getBusinessDayDateString(lastDay, closeHour);
+          return topProductsData.filter(p => p.sale_date >= firstDayStr && p.sale_date <= lastDayStr);
+        }
+        case 'custom': {
+          const startDate = new Date(customDateRange.start);
+          const endDate = new Date(customDateRange.end);
+
+          const startDateStr = getBusinessDayDateString(startDate, closeHour);
+          const endDateStr = getBusinessDayDateString(endDate, closeHour);
+          return topProductsData.filter(p => p.sale_date >= startDateStr && p.sale_date <= endDateStr);
+        }
+        default:
+          return topProductsData;
+      }
+    })();
+
+    const topProducts = filteredTopProducts.length > 0
+      ? (() => {
+        // Aggregate by product (multiple days may have same product)
+        const aggregated = filteredTopProducts.reduce((acc, p) => {
+          const volume = p.product_volume || '';
+          const key = `${p.product_name}|${volume}`; // Use pipe as separator
+          if (!acc[key]) {
+            acc[key] = {
+              name: p.product_name,
+              volume,
+              count: 0,
+              revenue: 0
+            };
+          }
+          acc[key].count += p.total_quantity;
+          acc[key].revenue += p.total_revenue;
+          return acc;
+        }, {} as Record<string, { name: string; volume: string; count: number; revenue: number }>);
+
+        // Sort by count and return top 5
+        return Object.values(aggregated)
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5);
+      })()
       : (() => {
         // Fallback: client-side calculation if SQL data not available
         const productCounts: Record<string, { name: string; volume: string; count: number; revenue: number }> = {};
