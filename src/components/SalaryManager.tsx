@@ -25,7 +25,7 @@ export function SalaryManager() {
 
   if (!currentBar || !currentSession) return null;
 
-  const members = getBarMembers(currentBar.id); // ✅ FIX: Passer barId en paramètre
+  const members = getBarMembers(currentBar.id) || []; // ✅ FIX: Passer barId en paramètre
   const {
     salaries,
     addSalary,

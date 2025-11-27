@@ -299,9 +299,9 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowCreateReturn(true)}
-                  className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors flex items-center gap-2"
+                  className="px-4 py-2 bg-white text-amber-600 font-bold hover:bg-amber-50 rounded-lg transition-colors flex items-center gap-2"
                 >
-                  <RotateCcw size={16} />
+                  {isMobile ? null : <RotateCcw size={16} />}
                   <span className="text-sm font-medium">Nouveau retour</span>
                 </button>
                 <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
