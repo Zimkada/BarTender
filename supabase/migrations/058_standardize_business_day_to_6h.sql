@@ -137,7 +137,8 @@ GROUP BY
   item->>'product_name',
   item->>'product_volume';
 
--- Index
+-- Index UNIQUE requis pour REFRESH CONCURRENTLY
+CREATE UNIQUE INDEX idx_top_products_mat_pk ON top_products_by_period_mat(bar_id, sale_date, product_id);
 CREATE INDEX idx_top_products_mat_bar_date ON top_products_by_period_mat(bar_id, sale_date);
 CREATE INDEX idx_top_products_mat_quantity ON top_products_by_period_mat(bar_id, total_quantity DESC);
 
