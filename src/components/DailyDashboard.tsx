@@ -13,7 +13,7 @@ import { EnhancedButton } from './EnhancedButton';
 import { AnimatedCounter } from './AnimatedCounter';
 import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import { Sale, SaleItem, User as UserType } from '../types';
-import { AnalyticsService, TopProduct } from '../services/supabase/analytics.service';
+import { AnalyticsService, DailySalesSummary, TopProduct } from '../services/supabase/analytics.service';
 
 interface DailyDashboardProps {
   isOpen: boolean;
@@ -112,7 +112,8 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [cashClosed, setCashClosed] = useState(false);
 
-  // Top products data from SQL (more performant for aggregations)
+  // Analytics State - SQL for performance
+  const [todayStats, setTodayStats] = useState<DailySalesSummary | null>(null);
   const [topProductsData, setTopProductsData] = useState<TopProduct[]>([]);
 
   useEffect(() => {
@@ -120,6 +121,12 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
       const today = new Date();
       const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
       const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+
+      // Fetch SQL stats for performance
+      AnalyticsService.getDailySummary(currentBar.id, start, end, 'day').then(stats => {
+        if (stats.length > 0) setTodayStats(stats[0]);
+        else setTodayStats(null);
+      });
 
       // Fetch top 100 products to calculate total items accurately
       AnalyticsService.getTopProducts(currentBar.id, start, end, 100).then(products => {
@@ -129,8 +136,8 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
   }, [isOpen, currentBar]);
 
   const todayValidatedSales = getTodaySales();
-  // Use context as single source of truth for consistency
-  const todayTotal = getTodayTotal();
+  // Use SQL stats if available, otherwise fallback to context
+  const todayTotal = todayStats ? todayStats.gross_revenue : getTodayTotal();
 
   const pendingSales = useMemo(() => {
     const isManager = currentSession?.role === 'gerant' || currentSession?.role === 'promoteur';
@@ -148,7 +155,9 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
     ? topProductsData.reduce((sum, p) => sum + p.total_quantity, 0)
     : todayValidatedSales.reduce((sum, sale) => sum + sale.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
 
-  const avgSaleValue = todayValidatedSales.length > 0 ? todayTotal / todayValidatedSales.length : 0;
+  const avgSaleValue = todayStats
+    ? (todayStats.validated_count > 0 ? todayStats.gross_revenue / todayStats.validated_count : 0)
+    : (todayValidatedSales.length > 0 ? todayTotal / todayValidatedSales.length : 0);
 
   const topProductsList = topProductsData.length > 0
     ? topProductsData.slice(0, 3).map(p => [p.product_name, p.total_quantity] as [string, number])
@@ -259,9 +268,11 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
                       viewName="daily_sales_summary"
                       onRefreshComplete={async () => {
                         if (currentBar) {
-                          // Refresh context data if needed, or just show success
-                          // Since we use context data now, we rely on React Query invalidation or manual refetch if available
-                          // For now just show success as the view refresh is backend side
+                          const today = new Date();
+                          const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                          const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+                          const stats = await AnalyticsService.getDailySummary(currentBar.id, start, end, 'day');
+                          if (stats.length > 0) setTodayStats(stats[0]);
                           showSuccess('✅ Données actualisées avec succès');
                         }
                       }}
