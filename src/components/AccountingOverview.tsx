@@ -249,6 +249,9 @@ export function AccountingOverview() {
 
   const netProfit = operatingProfit - investments;
 
+  // ✅ Safety checks for NaN
+  const safeOperatingProfitMargin = isNaN(operatingProfitMargin) || !isFinite(operatingProfitMargin) ? 0 : operatingProfitMargin;
+
   // CALCULATIONS - KPIs and Chart Data
   const {
     revenueGrowth,
@@ -279,9 +282,14 @@ export function AccountingOverview() {
     const revenueGrowth = prevTotalRevenue > 0 ? ((totalRevenue - prevTotalRevenue) / prevTotalRevenue) * 100 : 0;
 
     const serverCount = currentBar?.settings?.serversList?.length || 1;
-    const revenuePerServer = totalRevenue / serverCount;
+    const revenuePerServer = serverCount > 0 ? totalRevenue / serverCount : 0;
 
     const investmentRate = totalRevenue > 0 ? (investments / totalRevenue) * 100 : 0;
+
+    // ✅ Safety checks for NaN in KPIs
+    const safeRevenueGrowth = isNaN(revenueGrowth) || !isFinite(revenueGrowth) ? 0 : revenueGrowth;
+    const safeRevenuePerServer = isNaN(revenuePerServer) || !isFinite(revenuePerServer) ? 0 : revenuePerServer;
+    const safeInvestmentRate = isNaN(investmentRate) || !isFinite(investmentRate) ? 0 : investmentRate;
 
     // 3. Chart Data (12 months on desktop, 6 months on mobile)
     const monthsToShow = isMobile ? 6 : 12;
@@ -330,7 +338,12 @@ export function AccountingOverview() {
       };
     }).reverse();
 
-    return { revenueGrowth, revenuePerServer, investmentRate, chartData };
+    return {
+      revenueGrowth: safeRevenueGrowth,
+      revenuePerServer: safeRevenuePerServer,
+      investmentRate: safeInvestmentRate,
+      chartData
+    };
   }, [totalRevenue, investments, periodStats, prevPeriodStats, chartStats, chartExpenses, chartSalaries, currentBar, isMobile]);
 
 
@@ -414,8 +427,9 @@ export function AccountingOverview() {
 
   // Cash Runway (Fonds de roulement) - Nombre de mois de couverture
   const cashRunway = useMemo(() => {
-    const averageMonthlyOperatingCosts = totalOperatingCosts > 0 ? totalOperatingCosts : 1;
-    return finalBalance / averageMonthlyOperatingCosts;
+    if (totalOperatingCosts <= 0) return 0;
+    const result = finalBalance / totalOperatingCosts;
+    return isNaN(result) || !isFinite(result) ? 0 : result;
   }, [finalBalance, totalOperatingCosts]);
 
   // Period label generation
@@ -952,7 +966,7 @@ export function AccountingOverview() {
           <div className={`bg-gradient-to-br ${operatingProfit >= 0
             ? 'from-green-500 to-emerald-600'
             : 'from-red-500 to-pink-600'
-            } text-white rounded-xl p-4`}>
+            } text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'}`}>
             <div className="flex items-center gap-2 mb-2">
               {operatingProfit >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
               <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
@@ -963,12 +977,13 @@ export function AccountingOverview() {
               {formatPrice(operatingProfit)}
             </p>
             <p className={`mt-1 opacity-80 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-              Marge: {operatingProfitMargin.toFixed(1)}%
+              Marge: {safeOperatingProfitMargin.toFixed(1)}%
             </p>
           </div>
 
           {/* Total Revenue */}
-          <div className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl p-4">
+          <div className={`bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'}`}>
+
             <div className="flex items-center gap-2 mb-2">
               <DollarSign size={20} />
               <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
@@ -981,7 +996,7 @@ export function AccountingOverview() {
           </div>
 
           {/* Operating Costs */}
-          <div className="bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-xl p-4">
+          <div className={`bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'}`}>
             <div className="flex items-center gap-2 mb-2">
               <Receipt size={20} />
               <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
@@ -994,7 +1009,7 @@ export function AccountingOverview() {
           </div>
 
           {/* Investments */}
-          <div className="bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white rounded-xl p-4 relative">
+          <div className={`bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'} relative`}>
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp size={20} />
               <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
@@ -1021,7 +1036,7 @@ export function AccountingOverview() {
         <div className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Solde début période avec détail */}
-            <div className="bg-gradient-to-br from-gray-500 to-slate-600 text-white rounded-xl p-4">
+            <div className={`bg-gradient-to-br from-gray-500 to-slate-600 text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'}`}>
               <div className="flex items-center gap-2 mb-2">
                 <Calendar size={20} />
                 <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
@@ -1032,7 +1047,7 @@ export function AccountingOverview() {
                 {formatPrice(previousBalance)}
               </p>
               {/* Détail de la composition */}
-              <div className={`mt-2 pt-2 border-t border-white/20 space-y-1 ${isMobile ? 'text-[9px]' : 'text-[10px]'} opacity-80`}>
+              <div className={`hidden lg:block mt-2 pt-2 border-t border-white/20 space-y-1 opacity-80 ${isMobile ? 'text-[9px]' : 'text-[10px]'}`}>
                 <div className="flex justify-between">
                   <span>• Capital initial:</span>
                   <span>{formatPrice(previousBalanceDetails.initialBalance)}</span>
@@ -1055,7 +1070,7 @@ export function AccountingOverview() {
             </div>
 
             {/* Revenus période */}
-            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl p-4">
+            <div className={`bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'}`}>
               <div className="flex items-center gap-2 mb-2">
                 <DollarSign size={20} />
                 <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
@@ -1071,7 +1086,7 @@ export function AccountingOverview() {
             </div>
 
             {/* Dépenses période */}
-            <div className="bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-xl p-4">
+            <div className={`bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'}`}>
               <div className="flex items-center gap-2 mb-2">
                 <Receipt size={20} />
                 <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
@@ -1090,7 +1105,7 @@ export function AccountingOverview() {
             <div className={`bg-gradient-to-br ${finalBalance >= 0
               ? 'from-green-500 to-emerald-600'
               : 'from-red-500 to-pink-600'
-              } text-white rounded-xl p-4`}>
+              } text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'}`}>
               <div className="flex items-center gap-2 mb-2">
                 {finalBalance >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
                 <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
@@ -1107,11 +1122,11 @@ export function AccountingOverview() {
           </div>
 
           {/* KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
               <p className="text-xs text-gray-600">Marge Opérationnelle</p>
-              <p className={`text-lg font-bold ${operatingProfitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {operatingProfitMargin.toFixed(1)}%
+              <p className={`text-lg font-bold ${safeOperatingProfitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {safeOperatingProfitMargin.toFixed(1)}%
               </p>
             </div>
             <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
@@ -1186,7 +1201,7 @@ export function AccountingOverview() {
                 ✅ Excellente rentabilité
               </p>
               <p className={`mt-1 text-green-700 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                Votre marge bénéficiaire de {operatingProfitMargin.toFixed(1)}% est très bonne. Continuez ainsi!
+                Votre marge bénéficiaire de {safeOperatingProfitMargin.toFixed(1)}% est très bonne. Continuez ainsi!
               </p>
             </div>
           </div>

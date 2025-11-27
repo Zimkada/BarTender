@@ -87,23 +87,25 @@ export function Accounting({ isOpen, onClose }: AccountingProps) {
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200 font-medium'
                         }`}
                       >
-                        {tab.icon}
+                        {!isMobile && tab.icon} {/* Conditionally render icon */}
                         <span>{tab.label}</span>
                       </button>
                     ))}
                   </div>
                 </div>
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {activeTab === 'overview' && <AccountingOverview />}
-                  {activeTab === 'expenses' && <ExpenseManager />}
-                  {activeTab === 'salaries' && <SalaryManager />}
-                </motion.div>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeTab}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {activeTab === 'overview' && <AccountingOverview />}
+                    {activeTab === 'expenses' && <ExpenseManager />}
+                    {activeTab === 'salaries' && <SalaryManager />}
+                  </motion.div>
+                </AnimatePresence>
               </div>
             </div>
           </motion.div>
