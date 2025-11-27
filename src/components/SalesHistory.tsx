@@ -44,7 +44,7 @@ import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
 import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import { Sale, SaleItem, Category, Product, User, BarMember, Return } from '../types';
-import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
+import { getBusinessDay, getCurrentBusinessDay, isSameDay, getBusinessDayDateString } from '../utils/businessDay';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { getSaleDate } from '../utils/saleHelpers';
 import { AnalyticsService, TopProduct } from '../services/supabase/analytics.service';
