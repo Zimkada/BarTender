@@ -7,6 +7,7 @@ import { useBarContext } from '../context/BarContext';
 import { UserRole } from '../types';
 import { supabase } from '../lib/supabase';
 import { AuthService } from '../services/supabase/auth.service';
+import { useViewport } from '../hooks/useViewport';
 
 interface UserManagementProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface UserManagementProps {
 export function UserManagement({ isOpen, onClose }: UserManagementProps) {
   const { hasPermission } = useAuth();
   const { currentBar, barMembers, removeBarMember, refreshBars } = useBarContext();
+  const { isMobile } = useViewport();
   const [showAddUser, setShowAddUser] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole>('serveur');
 
@@ -177,13 +179,15 @@ export function UserManagement({ isOpen, onClose }: UserManagementProps) {
             className="bg-gradient-to-br from-amber-50 to-amber-50 rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden shadow-2xl"
           >
             {/* Header avec bouton fermer */}
-            <div className="bg-gradient-to-r from-amber-500 to-amber-500 p-6 flex justify-between items-center">
+            <div className="bg-gradient-to-r from-amber-500 to-amber-500 p-4 flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                   <Users className="text-white" size={24} />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white">Équipe du bar</h2>
+                  <h2 className="text-2xl font-bold text-white">
+                    {isMobile ? 'Équipe' : 'Équipe du bar'}
+                  </h2>
                   <p className="text-amber-100">{currentBar?.name}</p>
                 </div>
               </div>
