@@ -14,6 +14,7 @@ import { AnimatedCounter } from './AnimatedCounter';
 import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import { Sale, SaleItem, User as UserType } from '../types';
 import { AnalyticsService, DailySalesSummary, TopProduct } from '../services/supabase/analytics.service';
+import { getBusinessDayDateString } from '../utils/businessDay';
 
 interface DailyDashboardProps {
   isOpen: boolean;
@@ -174,8 +175,10 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
     : (todayValidatedSales.length > 0 ? todayTotal / todayValidatedSales.length : 0);
 
   // Top products list - Filter for TODAY only (SQL may return multi-day data)
-  // Filter topProductsData to only include today's date
-  const todayDateStr = new Date().toISOString().split('T')[0];
+  // Use Business Day logic to match SQL materialized view (INTERVAL '4 hours')
+  // CRITICAL: SQL uses fixed 4h interval, but this should ideally match bar's businessDayCloseHour
+  const sqlBusinessDayCloseHour = 4; // Fixed in SQL migrations (INTERVAL '4 hours')
+  const todayDateStr = getBusinessDayDateString(new Date(), sqlBusinessDayCloseHour);
   const todayTopProducts = topProductsData.filter(p => p.sale_date === todayDateStr);
 
   const topProductsList = todayTopProducts.length > 0

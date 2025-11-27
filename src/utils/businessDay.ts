@@ -84,3 +84,28 @@ export function filterSalesByBusinessDay<T extends { date: string | Date }>(
     return isSameDay(saleBusinessDay, targetDay);
   });
 }
+
+/**
+ * Convertit une date locale en format SQL compatible avec les vues matérialisées
+ * Applique le décalage Business Day (-closeHour) pour correspondre au SQL
+ *
+ * @param date - Date locale à convertir
+ * @param closeHour - Heure de clôture Business Day (doit correspondre à INTERVAL SQL)
+ * @returns Date au format 'YYYY-MM-DD' compatible avec sale_date SQL
+ *
+ * @example
+ * // Avec closeHour = 4 (correspondant à INTERVAL '4 hours' en SQL)
+ * // Aujourd'hui: 2025-11-27 02:00 (locale)
+ * getBusinessDayDateString(new Date(), 4) // -> "2025-11-26" (journée d'hier car avant 4h)
+ *
+ * // Aujourd'hui: 2025-11-27 10:00 (locale)
+ * getBusinessDayDateString(new Date(), 4) // -> "2025-11-27" (journée actuelle car après 4h)
+ */
+export function getBusinessDayDateString(date: Date = new Date(), closeHour: number = 4): string {
+  const businessDay = getBusinessDay(date, closeHour);
+  // Format YYYY-MM-DD en local (pas UTC)
+  const year = businessDay.getFullYear();
+  const month = String(businessDay.getMonth() + 1).padStart(2, '0');
+  const day = String(businessDay.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
