@@ -18,6 +18,7 @@ import { EnhancedButton } from './EnhancedButton';
 import { Sale, SaleItem, Return, ReturnReason, ReturnReasonConfig } from '../types';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
 import { getSaleDate } from '../utils/saleHelpers';
+import { useViewport } from '../hooks/useViewport'; // Added import
 
 interface ReturnsSystemProps {
   isOpen: boolean;
@@ -84,6 +85,7 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession } = useAuth();
   const { showSuccess, showError } = useFeedback();
+  const { isMobile } = useViewport(); // Added isMobile instantiation
 
   const [showCreateReturn, setShowCreateReturn] = useState(false);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
@@ -288,7 +290,9 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
               <div className="flex items-center gap-3">
                 <RotateCcw size={28} />
                 <div>
-                  <h2 className="text-xl font-bold">Système de retours</h2>
+                  <h2 className="text-xl font-bold">
+                    {isMobile ? 'Retours' : 'Système de retours'}
+                  </h2>
                   <p className="text-sm text-amber-100">Gérer les retours produits</p>
                 </div>
               </div>
