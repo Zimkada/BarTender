@@ -56,7 +56,9 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
   const [alerts, setAlerts] = useState<StockAlert[]>([]);
   const [filterStatus, setFilterStatus] = useState<'all' | 'new' | 'read' | 'resolved'>('all');
   const [showOrderSuggestions, setShowOrderSuggestions] = useState(false);
-  const [coverageDays, setCoverageDays] = useState(7);
+
+  // Récupérer la fréquence depuis les settings du bar (défaut: 7 jours)
+  const coverageDays = currentBar?.settings?.supplyFrequency ?? 7;
 
   // SQL Data State
   const [productStats, setProductStats] = useState<ProductSalesStats[]>([]);
@@ -232,7 +234,7 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
                   <TrendingUp size={isMobile ? 20 : 24} />
                   <div className="flex items-center gap-2">
                     <h2 className={`font-bold ${isMobile ? 'text-lg' : 'text-xl'}`}>
-                      📈 Prévisions & Analyses
+                      📈 Prévisions
                     </h2>
                     <DataFreshnessIndicatorCompact
                       viewName="product_sales_stats"
@@ -279,31 +281,6 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
                   {!isMobile && <span>Analyses</span>}
                 </button>
               </div>
-
-              {/* Curseur Fréquence d'approvisionnement - Visible uniquement dans l'onglet Stock */}
-              {activeTab === 'stock' && (
-                <div className="mt-4 bg-white/10 backdrop-blur p-3 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-white">Fréquence d'approvisionnement</span>
-                    <span className="text-sm font-bold text-white bg-white/20 px-2 py-0.5 rounded">
-                      {coverageDays} jours
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="30"
-                    value={coverageDays}
-                    onChange={(e) => setCoverageDays(parseInt(e.target.value))}
-                    className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white"
-                  />
-                  <div className="flex justify-between text-xs text-white/60 mt-1">
-                    <span>1 jour</span>
-                    <span>15 jours</span>
-                    <span>30 jours</span>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Content */}

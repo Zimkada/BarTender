@@ -42,6 +42,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [customerInfo, setCustomerInfo] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'mobile'>('cash');
+  const [showPaymentMethod, setShowPaymentMethod] = useState(false);
   const [selectedServer, setSelectedServer] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -75,11 +76,16 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   }, [isOpen, cart]);
 
   const filteredProducts = products.filter(product => {
-    const stockInfo = getProductStockInfo(product.id);
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.volume.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || product.categoryId === selectedCategory;
-    return matchesSearch && matchesCategory && (stockInfo?.availableStock ?? 0) > 0;
+    return matchesSearch && matchesCategory;
+  }).map(product => {
+    const stockInfo = getProductStockInfo(product.id);
+    return {
+      ...product,
+      stock: stockInfo?.availableStock ?? 0
+    };
   });
 
   const quickAddToCart = (product: Product, quantity = 1) => {
@@ -369,28 +375,66 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                         ))}
 
                         <div className="pt-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Mode de paiement</label>
-                          <div className="grid grid-cols-3 gap-2">
-                            {[
-                              { value: 'cash', label: 'Espèces', icon: '💵' },
-                              { value: 'card', label: 'Carte', icon: '💳' },
-                              { value: 'mobile', label: 'Mobile', icon: '📱' }
-                            ].map(method => (
-                              <button
-                                key={method.value}
-                                onClick={() => setPaymentMethod(method.value as any)}
-                                className={`p-3 text-sm rounded-xl border-2 transition-colors ${paymentMethod === method.value
-                                  ? 'border-amber-500 bg-amber-50 text-amber-700'
-                                  : 'border-gray-200 bg-white text-gray-600'
-                                  }`}
-                              >
-                                <div className="text-center">
-                                  <div className="text-2xl mb-1">{method.icon}</div>
-                                  <div className="font-medium">{method.label}</div>
+                          <button
+                            onClick={() => setShowPaymentMethod(!showPaymentMethod)}
+                            className="w-full flex items-center justify-between px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-left transition-colors hover:bg-amber-100"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl">
+                                {paymentMethod === 'cash' ? '💵' : paymentMethod === 'card' ? '💳' : '📱'}
+                              </span>
+                              <div>
+                                <div className="text-xs text-gray-600">Mode de paiement</div>
+                                <div className="font-medium text-gray-800">
+                                  {paymentMethod === 'cash' ? 'Espèces' : paymentMethod === 'card' ? 'Carte' : 'Mobile'}
                                 </div>
-                              </button>
-                            ))}
-                          </div>
+                              </div>
+                            </div>
+                            <motion.div
+                              animate={{ rotate: showPaymentMethod ? 180 : 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="text-amber-500"
+                            >
+                              ▼
+                            </motion.div>
+                          </button>
+
+                          <AnimatePresence>
+                            {showPaymentMethod && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="grid grid-cols-3 gap-2 mt-2">
+                                  {[
+                                    { value: 'cash', label: 'Espèces', icon: '💵' },
+                                    { value: 'card', label: 'Carte', icon: '💳' },
+                                    { value: 'mobile', label: 'Mobile', icon: '📱' }
+                                  ].map(method => (
+                                    <button
+                                      key={method.value}
+                                      onClick={() => {
+                                        setPaymentMethod(method.value as any);
+                                        setShowPaymentMethod(false);
+                                      }}
+                                      className={`p-3 text-sm rounded-xl border-2 transition-colors ${paymentMethod === method.value
+                                        ? 'border-amber-500 bg-amber-50 text-amber-700'
+                                        : 'border-gray-200 bg-white text-gray-600'
+                                        }`}
+                                    >
+                                      <div className="text-center">
+                                        <div className="text-2xl mb-1">{method.icon}</div>
+                                        <div className="font-medium">{method.label}</div>
+                                      </div>
+                                    </button>
+                                  ))}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
 
                         {currentBar?.settings?.operatingMode === 'simplified' && (
@@ -587,28 +631,66 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
 
                   <div className="flex-shrink-0 p-4 border-t border-amber-200 space-y-3 bg-gradient-to-br from-amber-50 to-amber-50">
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1.5">Mode de paiement</label>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {[
-                          { value: 'cash', label: 'Espèces', icon: '💵' },
-                          { value: 'card', label: 'Carte', icon: '💳' },
-                          { value: 'mobile', label: 'Mobile', icon: '📱' }
-                        ].map(method => (
-                          <button
-                            key={method.value}
-                            onClick={() => setPaymentMethod(method.value as any)}
-                            className={`p-1.5 text-xs rounded-lg border-2 transition-colors ${paymentMethod === method.value
-                              ? 'border-amber-500 bg-amber-50 text-amber-700'
-                              : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                              }`}
-                          >
-                            <div className="text-center">
-                              <div className="text-base mb-0.5">{method.icon}</div>
-                              <div className="text-xs">{method.label}</div>
+                      <button
+                        onClick={() => setShowPaymentMethod(!showPaymentMethod)}
+                        className="w-full flex items-center justify-between px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-left transition-colors hover:bg-amber-100"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-base">
+                            {paymentMethod === 'cash' ? '💵' : paymentMethod === 'card' ? '💳' : '📱'}
+                          </span>
+                          <div>
+                            <div className="text-xs text-gray-600">Mode de paiement</div>
+                            <div className="text-xs font-medium text-gray-800">
+                              {paymentMethod === 'cash' ? 'Espèces' : paymentMethod === 'card' ? 'Carte' : 'Mobile'}
                             </div>
-                          </button>
-                        ))}
-                      </div>
+                          </div>
+                        </div>
+                        <motion.div
+                          animate={{ rotate: showPaymentMethod ? 180 : 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="text-amber-500 text-xs"
+                        >
+                          ▼
+                        </motion.div>
+                      </button>
+
+                      <AnimatePresence>
+                        {showPaymentMethod && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="grid grid-cols-3 gap-1.5 mt-1.5">
+                              {[
+                                { value: 'cash', label: 'Espèces', icon: '💵' },
+                                { value: 'card', label: 'Carte', icon: '💳' },
+                                { value: 'mobile', label: 'Mobile', icon: '📱' }
+                              ].map(method => (
+                                <button
+                                  key={method.value}
+                                  onClick={() => {
+                                    setPaymentMethod(method.value as any);
+                                    setShowPaymentMethod(false);
+                                  }}
+                                  className={`p-1.5 text-xs rounded-lg border-2 transition-colors ${paymentMethod === method.value
+                                    ? 'border-amber-500 bg-amber-50 text-amber-700'
+                                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                                    }`}
+                                >
+                                  <div className="text-center">
+                                    <div className="text-base mb-0.5">{method.icon}</div>
+                                    <div className="text-xs">{method.label}</div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
 
                     {currentBar?.settings?.operatingMode === 'simplified' && (

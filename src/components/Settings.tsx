@@ -43,16 +43,25 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
   useEffect(() => {
     const checkMfaStatus = async () => {
       if (currentSession?.userId) {
-        const { data, error } = await supabase.auth.mfa.listFactors();
-        if (error) {
-          console.error('Error listing MFA factors:', error);
-          setMfaError(error.message);
-          return;
-        }
-        const totpFactor = data.all.find((f: any) => f.factor_type === 'totp' && f.status === 'verified');
-        setIsMfaEnabled(!!totpFactor);
-        if (totpFactor) {
-          setMfaFactorId(totpFactor.id);
+        try {
+          const { data, error } = await supabase.auth.mfa.listFactors();
+          if (error) {
+            console.error('Error listing MFA factors:', error);
+            setMfaError(error.message);
+            return;
+          }
+          const totpFactor = data.all.find((f: any) => f.factor_type === 'totp' && f.status === 'verified');
+          setIsMfaEnabled(!!totpFactor);
+          if (totpFactor) {
+            setMfaFactorId(totpFactor.id);
+          }
+        } catch (err: any) {
+          console.error('Exception checking MFA status:', err);
+          if (err.message?.includes('Auth session missing')) {
+            setMfaError("Session expirée. Veuillez vous reconnecter pour gérer la sécurité.");
+          } else {
+            setMfaError(err.message || "Erreur lors de la vérification MFA");
+          }
         }
       }
     };
@@ -69,6 +78,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
   const [tempSettings, setTempSettings] = useState(settings);
   const [tempCloseHour, setTempCloseHour] = useState(currentBar?.settings?.businessDayCloseHour ?? 6);
   const [tempConsignmentExpirationDays, setTempConsignmentExpirationDays] = useState(currentBar?.settings?.consignmentExpirationDays ?? 7);
+  const [tempSupplyFrequency, setTempSupplyFrequency] = useState(currentBar?.settings?.supplyFrequency ?? 7);
   const [tempOperatingMode, setTempOperatingMode] = useState<'full' | 'simplified'>(
     currentBar?.settings?.operatingMode ?? 'full'
   );
@@ -174,6 +184,7 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
           ...currentBar.settings,
           businessDayCloseHour: tempCloseHour,
           consignmentExpirationDays: tempConsignmentExpirationDays,
+          supplyFrequency: tempSupplyFrequency,
           operatingMode: tempOperatingMode,
           serversList: tempOperatingMode === 'simplified' ? tempServersList : undefined,
         }
@@ -504,6 +515,33 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
                       </div>
                     </div>
                   </div>
+
+                  {/* Fréquence d'approvisionnement */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                      <Clock size={16} className="text-amber-500" />
+                      Fréquence d'approvisionnement
+                    </label>
+                    <p className="text-xs text-gray-600 mb-3">
+                      Nombre de jours de stock que vous souhaitez maintenir pour vos suggestions de commande.
+                    </p>
+                    <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100">
+                      <input
+                        type="range"
+                        min="1"
+                        max="30"
+                        value={tempSupplyFrequency}
+                        onChange={(e) => setTempSupplyFrequency(Number(e.target.value))}
+                        className="flex-1 h-2 bg-amber-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                      />
+                      <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-amber-200 min-w-[90px] justify-center">
+                        <span className="text-lg font-bold text-gray-800">
+                          {tempSupplyFrequency} jour(s)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
 
                   {/* Mode de fonctionnement */}
                   <div>

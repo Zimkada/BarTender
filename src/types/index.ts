@@ -50,6 +50,7 @@ export interface BarSettings {
   operatingMode?: 'full' | 'simplified'; // Mode de fonctionnement : complet (avec comptes serveurs) ou simplifié (gérant attribue)
   serversList?: string[]; // Liste des serveurs (mode simplifié uniquement)
   consignmentExpirationDays?: number; // Nombre de jours avant expiration consignation (défaut: 7)
+  supplyFrequency?: number; // Fréquence d'approvisionnement en jours (1-30, défaut: 7)
 }
 
 export interface BarMember {

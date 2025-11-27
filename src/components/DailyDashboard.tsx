@@ -13,7 +13,7 @@ import { EnhancedButton } from './EnhancedButton';
 import { AnimatedCounter } from './AnimatedCounter';
 import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import { Sale, SaleItem, User as UserType } from '../types';
-import { AnalyticsService, DailySalesSummary, TopProduct } from '../services/supabase/analytics.service';
+import { AnalyticsService, TopProduct } from '../services/supabase/analytics.service';
 
 interface DailyDashboardProps {
   isOpen: boolean;
@@ -112,8 +112,7 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [cashClosed, setCashClosed] = useState(false);
 
-  // Analytics State
-  const [todayStats, setTodayStats] = useState<DailySalesSummary | null>(null);
+  // Top products data from SQL (more performant for aggregations)
   const [topProductsData, setTopProductsData] = useState<TopProduct[]>([]);
 
   useEffect(() => {
@@ -121,11 +120,6 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
       const today = new Date();
       const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
       const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
-
-      AnalyticsService.getDailySummary(currentBar.id, start, end, 'day').then(stats => {
-        if (stats.length > 0) setTodayStats(stats[0]);
-        else setTodayStats(null);
-      });
 
       // Fetch top 100 products to calculate total items accurately
       AnalyticsService.getTopProducts(currentBar.id, start, end, 100).then(products => {
@@ -135,8 +129,8 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
   }, [isOpen, currentBar]);
 
   const todayValidatedSales = getTodaySales();
-  // Use SQL stats if available, otherwise fallback to context
-  const todayTotal = todayStats ? todayStats.gross_revenue : getTodayTotal();
+  // Use context as single source of truth for consistency
+  const todayTotal = getTodayTotal();
 
   const pendingSales = useMemo(() => {
     const isManager = currentSession?.role === 'gerant' || currentSession?.role === 'promoteur';
@@ -154,9 +148,7 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
     ? topProductsData.reduce((sum, p) => sum + p.total_quantity, 0)
     : todayValidatedSales.reduce((sum, sale) => sum + sale.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
 
-  const avgSaleValue = todayStats
-    ? (todayStats.validated_count > 0 ? todayStats.gross_revenue / todayStats.validated_count : 0)
-    : (todayValidatedSales.length > 0 ? todayTotal / todayValidatedSales.length : 0);
+  const avgSaleValue = todayValidatedSales.length > 0 ? todayTotal / todayValidatedSales.length : 0;
 
   const topProductsList = topProductsData.length > 0
     ? topProductsData.slice(0, 3).map(p => [p.product_name, p.total_quantity] as [string, number])
@@ -267,11 +259,9 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
                       viewName="daily_sales_summary"
                       onRefreshComplete={async () => {
                         if (currentBar) {
-                          const today = new Date();
-                          const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                          const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
-                          const stats = await AnalyticsService.getDailySummary(currentBar.id, start, end, 'day');
-                          if (stats.length > 0) setTodayStats(stats[0]);
+                          // Refresh context data if needed, or just show success
+                          // Since we use context data now, we rely on React Query invalidation or manual refetch if available
+                          // For now just show success as the view refresh is backend side
                           showSuccess('✅ Données actualisées avec succès');
                         }
                       }}
@@ -292,13 +282,13 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
 
                 <div>
                   <h3 className="font-semibold text-gray-800 text-lg mb-4">Point du jour</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                    <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-xl p-4 border border-green-200"><div className="flex items-center justify-between mb-2"><DollarSign className="w-8 h-8 text-green-600" /><span className="text-green-600 text-sm font-medium">Total</span></div><AnimatedCounter value={todayTotal} className="text-2xl font-bold text-gray-800" /><p className="text-xs text-gray-600 mt-1">{formatPrice(todayTotal)}</p></motion.div>
-                    <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-blue-100 to-cyan-100 rounded-xl p-4 border border-blue-200"><div className="flex items-center justify-between mb-2"><ShoppingCart className="w-8 h-8 text-blue-600" /><span className="text-blue-600 text-sm font-medium">Ventes</span></div><AnimatedCounter value={todayValidatedSales.length} className="text-2xl font-bold text-gray-800" /><p className="text-xs text-amber-600 mt-1 font-semibold">{pendingSales.length > 0 ? `${pendingSales.length} en attente` : ''}</p></motion.div>
-                    <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-purple-100 to-violet-100 rounded-xl p-4 border border-purple-200"><div className="flex items-center justify-between mb-2"><Package className="w-8 h-8 text-purple-600" /><span className="text-purple-600 text-sm font-medium">Articles</span></div><AnimatedCounter value={totalItems} className="text-2xl font-bold text-gray-800" /><p className="text-xs text-gray-600 mt-1">vendus aujourd'hui</p></motion.div>
-                    <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-amber-100 to-amber-100 rounded-xl p-4 border border-amber-200"><div className="flex items-center justify-between mb-2"><TrendingUp className="w-8 h-8 text-amber-600" /><span className="text-amber-600 text-sm font-medium">Moyenne</span></div><AnimatedCounter value={Math.round(avgSaleValue)} className="text-2xl font-bold text-gray-800" /><p className="text-xs text-gray-600 mt-1">{formatPrice(avgSaleValue)}</p></motion.div>
-                    <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-red-100 to-pink-100 rounded-xl p-4 border border-red-200"><div className="flex items-center justify-between mb-2"><RotateCcw className="w-8 h-8 text-red-600" /><span className="text-red-600 text-sm font-medium">Retours</span></div><AnimatedCounter value={todayReturnsCount} className="text-2xl font-bold text-gray-800" /><div className="flex items-center justify-between mt-1"><p className="text-xs text-gray-600">{todayReturnsPending > 0 && `${todayReturnsPending} en attente`}</p>{todayReturnsRefunded > 0 && <p className="text-xs text-red-600 font-medium">-{formatPrice(todayReturnsRefunded).replace(/\s/g, '')}</p>}</div></motion.div>
-                    <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-indigo-100 to-purple-100 rounded-xl p-4 border border-indigo-200"><div className="flex items-center justify-between mb-2"><Archive className="w-8 h-8 text-indigo-600" /><span className="text-indigo-600 text-sm font-medium">Consignations</span></div><AnimatedCounter value={activeConsignmentsCount} className="text-2xl font-bold text-gray-800" /><div className="flex items-center justify-between mt-1"><p className="text-xs text-gray-600">{activeConsignmentsCount > 0 ? `actives` : `aucune`}</p>{activeConsignmentsValue > 0 && <p className="text-xs text-indigo-600 font-medium">{formatPrice(activeConsignmentsValue).replace(/\s/g, '')}</p>}</div></motion.div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+                    <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-xl p-3 sm:p-4 border border-green-200"><div className="flex items-center justify-between mb-2"><DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" /><span className="text-green-600 text-xs sm:text-sm font-medium">Total</span></div><AnimatedCounter value={todayTotal} className="text-xl sm:text-2xl font-bold text-gray-800" /><p className="text-xs text-gray-600 mt-1">{formatPrice(todayTotal)}</p></motion.div>
+                    <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-blue-100 to-cyan-100 rounded-xl p-3 sm:p-4 border border-blue-200"><div className="flex items-center justify-between mb-2"><ShoppingCart className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" /><span className="text-blue-600 text-xs sm:text-sm font-medium">Ventes</span></div><AnimatedCounter value={todayValidatedSales.length} className="text-xl sm:text-2xl font-bold text-gray-800" /><p className="text-xs text-amber-600 mt-1 font-semibold">{pendingSales.length > 0 ? `${pendingSales.length} en attente` : ''}</p></motion.div>
+                    <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-purple-100 to-violet-100 rounded-xl p-3 sm:p-4 border border-purple-200"><div className="flex items-center justify-between mb-2"><Package className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" /><span className="text-purple-600 text-xs sm:text-sm font-medium">Articles</span></div><AnimatedCounter value={totalItems} className="text-xl sm:text-2xl font-bold text-gray-800" /><p className="text-xs text-gray-600 mt-1">vendus aujourd'hui</p></motion.div>
+                    <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-amber-100 to-amber-100 rounded-xl p-3 sm:p-4 border border-amber-200"><div className="flex items-center justify-between mb-2"><TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-amber-600" /><span className="text-amber-600 text-xs sm:text-sm font-medium">Moyenne</span></div><AnimatedCounter value={Math.round(avgSaleValue)} className="text-xl sm:text-2xl font-bold text-gray-800" /><p className="text-xs text-gray-600 mt-1">{formatPrice(avgSaleValue)}</p></motion.div>
+                    <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-red-100 to-pink-100 rounded-xl p-3 sm:p-4 border border-red-200"><div className="flex items-center justify-between mb-2"><RotateCcw className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" /><span className="text-red-600 text-xs sm:text-sm font-medium">Retours</span></div><AnimatedCounter value={todayReturnsCount} className="text-xl sm:text-2xl font-bold text-gray-800" /><div className="flex items-center justify-between mt-1"><p className="text-xs text-gray-600">{todayReturnsPending > 0 && `${todayReturnsPending} en attente`}</p>{todayReturnsRefunded > 0 && <p className="text-xs text-red-600 font-medium">-{formatPrice(todayReturnsRefunded).replace(/\s/g, '')}</p>}</div></motion.div>
+                    <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-indigo-100 to-purple-100 rounded-xl p-3 sm:p-4 border border-indigo-200"><div className="flex items-center justify-between mb-2"><Archive className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600" /><span className="text-indigo-600 text-xs sm:text-sm font-medium">Consignations</span></div><AnimatedCounter value={activeConsignmentsCount} className="text-xl sm:text-2xl font-bold text-gray-800" /><div className="flex items-center justify-between mt-1"><p className="text-xs text-gray-600">{activeConsignmentsCount > 0 ? `actives` : `aucune`}</p>{activeConsignmentsValue > 0 && <p className="text-xs text-indigo-600 font-medium">{formatPrice(activeConsignmentsValue).replace(/\s/g, '')}</p>}</div></motion.div>
                   </div>
                 </div>
 
@@ -310,11 +300,11 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
                   <AnimatePresence>{showDetails && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-6"><div className="bg-white rounded-xl p-4 border border-amber-100"><h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">🏆 Top produits</h3><div className="space-y-2">{topProductsList.map(([product, qty], index) => <div key={product} className="flex items-center justify-between"><span className="text-sm text-gray-700">{index + 1}. {product}</span><span className="text-sm font-medium text-amber-600">{qty} vendus</span></div>)}{topProductsList.length === 0 && <p className="text-sm text-gray-500">Aucune vente aujourd'hui</p>}</div></div><div className="bg-white rounded-xl p-4 border border-red-100"><h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">⚠️ Alertes stock</h3><div className="space-y-2">{lowStockProducts.slice(0, 5).map(product => <div key={product.id} className="flex items-center justify-between"><span className="text-sm text-gray-700">{product.name} ({product.volume})</span><span className="text-sm font-medium text-red-600">{product.stock} restants</span></div>)}{lowStockProducts.length === 0 && <p className="text-sm text-green-600">✅ Tous les stocks sont OK</p>}</div></div></motion.div>}</AnimatePresence>
                 </div>
 
-                <div className="p-6 border-t border-amber-200 bg-gradient-to-r from-amber-50 to-amber-50 sticky bottom-0">
-                  <div className="flex flex-wrap gap-3 justify-center">
-                    <EnhancedButton onClick={exportToWhatsApp} className="flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 shadow-lg"><Share size={18} />Exporter WhatsApp</EnhancedButton>
-                    {!cashClosed ? <EnhancedButton onClick={closeCash} loading={isLoading('closeCash')} className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 shadow-lg"><Lock size={18} />Fermer la caisse</EnhancedButton> : <div className="flex items-center gap-2 px-6 py-3 bg-gray-500 text-white rounded-xl font-medium opacity-75"><Lock size={18} />Caisse fermée</div>}
-                    <button onClick={onClose} className="flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300">Fermer</button>
+                <div className="p-4 sm:p-6 border-t border-amber-200 bg-gradient-to-r from-amber-50 to-amber-50 sticky bottom-0">
+                  <div className="flex flex-wrap gap-2 sm:gap-3 justify-center">
+                    <EnhancedButton onClick={exportToWhatsApp} className="flex items-center gap-1.5 sm:gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 shadow-lg text-sm sm:text-base"><Share size={16} className="sm:w-[18px] sm:h-[18px]" />Exporter WhatsApp</EnhancedButton>
+                    {!cashClosed ? <EnhancedButton onClick={closeCash} loading={isLoading('closeCash')} className="flex items-center gap-1.5 sm:gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 shadow-lg text-sm sm:text-base"><Lock size={16} className="sm:w-[18px] sm:h-[18px]" />Fermer la caisse</EnhancedButton> : <div className="flex items-center gap-1.5 sm:gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-gray-500 text-white rounded-xl font-medium opacity-75 text-sm sm:text-base"><Lock size={16} className="sm:w-[18px] sm:h-[18px]" />Caisse fermée</div>}
+                    <button onClick={onClose} className="flex items-center gap-1.5 sm:gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 text-sm sm:text-base">Fermer</button>
                   </div>
                   {cashClosed && <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-4 bg-green-100 border border-green-200 rounded-lg p-3 text-center"><p className="text-green-700 font-medium">✅ Caisse fermée - Rapport automatiquement exporté</p></motion.div>}
                 </div>
