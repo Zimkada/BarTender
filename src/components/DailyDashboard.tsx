@@ -183,13 +183,13 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
 
   const topProductsList = todayTopProducts.length > 0
     ? Object.entries(
-        todayTopProducts.reduce((acc, p) => {
-          const volume = p.product_volume || '';  // Handle NULL volumes
-          const key = volume ? `${p.product_name} ${volume}` : p.product_name;
-          acc[key] = (acc[key] || 0) + p.total_quantity;
-          return acc;
-        }, {} as Record<string, number>)
-      ).sort((a, b) => b[1] - a[1]).slice(0, 3)
+      todayTopProducts.reduce((acc, p) => {
+        const volume = p.product_volume || '';  // Handle NULL volumes
+        const key = volume ? `${p.product_name} ${volume}` : p.product_name;
+        acc[key] = (acc[key] || 0) + p.total_quantity;
+        return acc;
+      }, {} as Record<string, number>)
+    ).sort((a, b) => b[1] - a[1]).slice(0, 3)
     : Object.entries(todayValidatedSales.flatMap(sale => sale.items).reduce((acc, item: SaleItem) => {
       const name = item.product_name;
       const volume = item.product_volume || '';
@@ -292,7 +292,10 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
                 <TrendingUp size={24} />
                 <div>
                   <div className="flex items-center gap-3">
-                    <h2 className="text-xl font-bold">Informations du jour</h2>
+                    <h2 className="text-lg sm:text-xl font-bold">
+                      <span className="hidden sm:inline">Informations du jour</span>
+                      <span className="sm:hidden">Infos du jour</span>
+                    </h2>
                     <DataFreshnessIndicatorCompact
                       viewName="daily_sales_summary"
                       onRefreshComplete={async () => {
@@ -341,10 +344,32 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
                 </div>
 
                 <div className="p-4 sm:p-6 border-t border-amber-200 bg-gradient-to-r from-amber-50 to-amber-50 sticky bottom-0">
-                  <div className="flex flex-wrap gap-2 sm:gap-3 justify-center">
-                    <EnhancedButton onClick={exportToWhatsApp} className="flex items-center gap-1.5 sm:gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 shadow-lg text-sm sm:text-base"><Share size={16} className="sm:w-[18px] sm:h-[18px]" />Exporter WhatsApp</EnhancedButton>
-                    {!cashClosed ? <EnhancedButton onClick={closeCash} loading={isLoading('closeCash')} className="flex items-center gap-1.5 sm:gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 shadow-lg text-sm sm:text-base"><Lock size={16} className="sm:w-[18px] sm:h-[18px]" />Fermer la caisse</EnhancedButton> : <div className="flex items-center gap-1.5 sm:gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-gray-500 text-white rounded-xl font-medium opacity-75 text-sm sm:text-base"><Lock size={16} className="sm:w-[18px] sm:h-[18px]" />Caisse fermée</div>}
-                    <button onClick={onClose} className="flex items-center gap-1.5 sm:gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 text-sm sm:text-base">Fermer</button>
+                  <div className="flex gap-2 sm:gap-3 justify-center">
+                    <EnhancedButton
+                      onClick={exportToWhatsApp}
+                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-6 sm:py-3 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 shadow-lg text-xs sm:text-base"
+                    >
+                      <Share size={14} className="sm:w-[18px] sm:h-[18px]" />
+                      <span className="hidden sm:inline">Exporter </span>
+                      <span>WhatsApp</span>
+                    </EnhancedButton>
+                    {!cashClosed ? (
+                      <EnhancedButton
+                        onClick={closeCash}
+                        loading={isLoading('closeCash')}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-6 sm:py-3 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 shadow-lg text-xs sm:text-base"
+                      >
+                        <Lock size={14} className="sm:w-[18px] sm:h-[18px]" />
+                        <span className="hidden sm:inline">Fermer </span>
+                        <span>caisse</span>
+                      </EnhancedButton>
+                    ) : (
+                      <div className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-6 sm:py-3 bg-gray-500 text-white rounded-xl font-medium opacity-75 text-xs sm:text-base">
+                        <Lock size={14} className="sm:w-[18px] sm:h-[18px]" />
+                        <span className="hidden sm:inline">Caisse </span>
+                        <span>fermée</span>
+                      </div>
+                    )}
                   </div>
                   {cashClosed && <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-4 bg-green-100 border border-green-200 rounded-lg p-3 text-center"><p className="text-green-700 font-medium">✅ Caisse fermée - Rapport automatiquement exporté</p></motion.div>}
                 </div>
