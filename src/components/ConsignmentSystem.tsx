@@ -26,6 +26,7 @@ import { EnhancedButton } from './EnhancedButton';
 import type { User as UserType } from '../types';
 import { Sale, SaleItem, Consignment } from '../types';
 import { getSaleDate } from '../utils/saleHelpers';
+import { useViewport } from '../hooks/useViewport'; // Added import
 
 interface ConsignmentSystemProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ type TabType = 'create' | 'active' | 'history';
 
 export const ConsignmentSystem: React.FC<ConsignmentSystemProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<TabType>('active');
+  const { isMobile } = useViewport(); // Added isMobile instantiation
   // formatPrice non utilisé ici, mais dans les tabs enfants
 
   if (!isOpen) return null;
@@ -57,12 +59,14 @@ export const ConsignmentSystem: React.FC<ConsignmentSystemProps> = ({ isOpen, on
           className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col"
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6 flex items-center justify-between">
+          <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Package className="w-8 h-8" />
               <div>
-                <h2 className="text-2xl font-bold">Gestion des Consignations</h2>
-                <p className="text-amber-100 text-sm">
+                <h2 className="text-2xl font-bold">
+                  {isMobile ? 'Consignations' : 'Gestion des Consignations'}
+                </h2>
+                <p className="hidden lg:block text-amber-100 text-sm">
                   Gérer les produits consignés et récupérations
                 </p>
               </div>
