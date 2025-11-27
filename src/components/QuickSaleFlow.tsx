@@ -216,6 +216,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                   <Zap size={24} />
                   <div>
                     <h2 className="text-xl font-bold">Vente rapide</h2>
+                    <p className="hidden lg:block text-sm opacity-90">Ctrl+Enter: Finaliser | Esc: Vider | F1: Recherche</p>
                   </div>
                 </div>
                 <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg">

@@ -19,6 +19,7 @@ import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 import { useBarContext } from '../context/BarContext';
 import { useFeedback } from '../hooks/useFeedback';
+import { useStockManagement } from '../hooks/useStockManagement';
 import { EnhancedButton } from './EnhancedButton';
 import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import * as XLSX from 'xlsx';
@@ -51,6 +52,7 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
   const { isMobile } = useViewport();
   const { currentBar } = useBarContext();
   const { showSuccess, showError } = useFeedback();
+  const { products } = useStockManagement();
 
   const [activeTab, setActiveTab] = useState<ForecastView>('stock');
   const [alerts, setAlerts] = useState<StockAlert[]>([]);
@@ -123,12 +125,12 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
     }
   };
 
-  // Charger au montage et quand le bar change
+  // Charger au montage et quand le bar change OU quand les produits changent
   useEffect(() => {
     if (isOpen && currentBar) {
       loadStats();
     }
-  }, [isOpen, currentBar]);
+  }, [isOpen, currentBar, products]); // ✅ Ajout de products pour recharger après approvisionnement
 
   // Recalculer les suggestions quand coverageDays change (sans recharger SQL)
   const orderSuggestions = useMemo(() => {
