@@ -1004,7 +1004,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                         <h3 className="font-semibold text-gray-800 mb-3">Top produits</h3>
                         <div className="space-y-2">
                           {stats.topProducts.map((product, index) => (
-                            <div key={`${product.name}-${product.volume}`} className="bg-white rounded-lg p-2">
+                            <div key={`top-product-${index}`} className="bg-white rounded-lg p-2">
                               <div className="flex items-center justify-between">
                                 <div>
                                   <p className="text-sm font-medium text-gray-800">
@@ -1604,7 +1604,7 @@ function AnalyticsView({
         const productId = item.product?.id || item.product_id;
 
         // ✅ Look up the product to get its category
-        const product = products.find(p => p.id === productId);
+        const product = _products.find(p => p.id === productId);
         const categoryId = product?.categoryId;
 
         const category = categories.find(c => c.id === categoryId);
@@ -1622,7 +1622,7 @@ function AnalyticsView({
       value,
       percentage: totalGross > 0 ? (value / totalGross) * 100 : 0
     }));
-  }, [sales, categories, products]);
+  }, [sales, categories, _products]);
 
   // Performance par utilisateur
   const [userFilter, setUserFilter] = useState<'all' | 'servers' | 'management'>('all');
