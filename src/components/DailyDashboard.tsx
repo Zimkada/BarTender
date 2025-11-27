@@ -165,11 +165,11 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
   // Top products list - ALWAYS use SQL data filtered by today's date (set in useEffect)
   // topProductsData is already filtered for today in the query
   const topProductsList = topProductsData.length > 0
-    ? topProductsData.slice(0, 3).map(p => [p.product_name, p.total_quantity] as [string, number])
+    ? topProductsData.slice(0, 3).map(p => [`${p.product_name} ${p.product_volume}`, p.total_quantity] as [string, number])
     : Object.entries(todayValidatedSales.flatMap(sale => sale.items).reduce((acc, item: SaleItem) => {
       const name = item.product_name;
       const volume = item.product_volume || '';
-      const key = `${name}-${volume}`;
+      const key = `${name} ${volume}`;  // Display key with space instead of dash
       acc[key] = (acc[key] || 0) + item.quantity;
       return acc;
     }, {} as Record<string, number>)).sort((a, b) => b[1] - a[1]).slice(0, 3);
@@ -313,7 +313,7 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
                     {showDetails ? <EyeOff size={16} /> : <Eye size={16} />}
                     <span className="font-medium">{showDetails ? 'Masquer' : 'Voir'} les détails</span>
                   </button>
-                  <AnimatePresence>{showDetails && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-6"><div className="bg-white rounded-xl p-4 border border-amber-100"><h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">🏆 Top produits</h3><div className="space-y-2">{topProductsList.map(([product, qty], index) => <div key={product} className="flex items-center justify-between"><span className="text-sm text-gray-700">{index + 1}. {product}</span><span className="text-sm font-medium text-amber-600">{qty} vendus</span></div>)}{topProductsList.length === 0 && <p className="text-sm text-gray-500">Aucune vente aujourd'hui</p>}</div></div><div className="bg-white rounded-xl p-4 border border-red-100"><h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">⚠️ Alertes stock</h3><div className="space-y-2">{lowStockProducts.slice(0, 5).map(product => <div key={product.id} className="flex items-center justify-between"><span className="text-sm text-gray-700">{product.name} ({product.volume})</span><span className="text-sm font-medium text-red-600">{product.stock} restants</span></div>)}{lowStockProducts.length === 0 && <p className="text-sm text-green-600">✅ Tous les stocks sont OK</p>}</div></div></motion.div>}</AnimatePresence>
+                  <AnimatePresence>{showDetails && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-6"><div className="bg-white rounded-xl p-4 border border-amber-100"><h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">🏆 Top produits</h3><div className="space-y-2">{topProductsList.map(([product, qty], index) => <div key={`top-product-${index}`} className="flex items-center justify-between"><span className="text-sm text-gray-700">{index + 1}. {product}</span><span className="text-sm font-medium text-amber-600">{qty} vendus</span></div>)}{topProductsList.length === 0 && <p className="text-sm text-gray-500">Aucune vente aujourd'hui</p>}</div></div><div className="bg-white rounded-xl p-4 border border-red-100"><h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">⚠️ Alertes stock</h3><div className="space-y-2">{lowStockProducts.slice(0, 5).map(product => <div key={product.id} className="flex items-center justify-between"><span className="text-sm text-gray-700">{product.name} ({product.volume})</span><span className="text-sm font-medium text-red-600">{product.stock} restants</span></div>)}{lowStockProducts.length === 0 && <p className="text-sm text-green-600">✅ Tous les stocks sont OK</p>}</div></div></motion.div>}</AnimatePresence>
                 </div>
 
                 <div className="p-4 sm:p-6 border-t border-amber-200 bg-gradient-to-r from-amber-50 to-amber-50 sticky bottom-0">
