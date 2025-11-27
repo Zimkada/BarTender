@@ -19,6 +19,7 @@ import {
   ExpenseCategoryCustom,
 } from '../types';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
+import { BUSINESS_DAY_CLOSE_HOUR } from '../constants/businessDay';
 
 // React Query Hooks
 import { useCategories } from '../hooks/queries/useStockQueries';
@@ -306,13 +307,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [sales, currentSession]);
 
   const getTodaySales = useCallback(() => {
-    const closeHour = currentBar?.settings?.businessDayCloseHour ?? 6;
-    const currentBusinessDay = getCurrentBusinessDay(closeHour);
+    // Utilise la constante globale (6h) - synchronisée avec SQL
+    const currentBusinessDay = getCurrentBusinessDay(BUSINESS_DAY_CLOSE_HOUR);
 
     const todaySales = sales.filter(sale => {
       if (sale.status !== 'validated') return false;
       const saleDate = sale.validatedAt ? new Date(sale.validatedAt) : new Date(sale.createdAt);
-      const saleBusinessDay = getBusinessDay(saleDate, closeHour);
+      const saleBusinessDay = getBusinessDay(saleDate, BUSINESS_DAY_CLOSE_HOUR);
       return isSameDay(saleBusinessDay, currentBusinessDay);
     });
 
@@ -320,14 +321,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return todaySales.filter(sale => sale.createdBy === currentSession.userId);
     }
     return todaySales;
-  }, [sales, currentBar, currentSession]);
+  }, [sales, currentSession]);
 
   const getTodayTotal = useCallback(() => {
     const todaySales = getTodaySales();
     const salesTotal = todaySales.reduce((sum, sale) => sum + sale.total, 0);
 
-    const closeHour = currentBar?.settings?.businessDayCloseHour ?? 6;
-    const currentBusinessDay = getCurrentBusinessDay(closeHour);
+    // Utilise la constante globale (6h) - synchronisée avec SQL
+    const currentBusinessDay = getCurrentBusinessDay(BUSINESS_DAY_CLOSE_HOUR);
     const todaySaleIds = new Set(todaySales.map(s => s.id));
 
     const returnsTotal = returns
@@ -336,13 +337,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (!r.isRefunded) return false;
         if (!todaySaleIds.has(r.saleId)) return false;
         const returnDate = new Date(r.returnedAt);
-        const returnBusinessDay = getBusinessDay(returnDate, closeHour);
+        const returnBusinessDay = getBusinessDay(returnDate, BUSINESS_DAY_CLOSE_HOUR);
         return isSameDay(returnBusinessDay, currentBusinessDay);
       })
       .reduce((sum, r) => sum + r.refundAmount, 0);
 
     return salesTotal - returnsTotal;
-  }, [getTodaySales, returns, currentBar]);
+  }, [getTodaySales, returns]);
 
   const getSalesByUser = useCallback((userId: string) => {
     if (!hasPermission('canViewAllSales')) return [];
