@@ -293,7 +293,7 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
                   <h2 className="text-xl font-bold">
                     {isMobile ? 'Retours' : 'Système de retours'}
                   </h2>
-                  <p className="text-sm text-amber-100">Gérer les retours produits</p>
+                  <p className="hidden lg:block text-sm text-amber-100">Gérer les retours produits</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
