@@ -6,6 +6,7 @@ import { useSettings } from '../hooks/useSettings';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { BUSINESS_DAY_CLOSE_HOUR } from '../constants/businessDay';
 
 interface SettingsProps {
   isOpen: boolean;
@@ -76,7 +77,8 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
 
   // Settings
   const [tempSettings, setTempSettings] = useState(settings);
-  const [tempCloseHour, setTempCloseHour] = useState(currentBar?.settings?.businessDayCloseHour ?? 6);
+  // Business Day Close Hour est maintenant fixe (synchronisé avec SQL)
+  const tempCloseHour = BUSINESS_DAY_CLOSE_HOUR;
   const [tempConsignmentExpirationDays, setTempConsignmentExpirationDays] = useState(currentBar?.settings?.consignmentExpirationDays ?? 7);
   const [tempSupplyFrequency, setTempSupplyFrequency] = useState(currentBar?.settings?.supplyFrequency ?? 7);
   const [tempOperatingMode, setTempOperatingMode] = useState<'full' | 'simplified'>(
@@ -463,30 +465,24 @@ export function Settings({ isOpen, onClose }: SettingsProps) {
               {/* Onglet Opérationnel */}
               {activeTab === 'operational' && (
                 <>
-                  {/* Heure de clôture */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                  {/* Heure de clôture - LECTURE SEULE */}
+                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                       <Clock size={16} className="text-amber-500" />
                       Heure de clôture de la journée commerciale
                     </label>
                     <p className="text-xs text-gray-600 mb-3">
-                      Les ventes après minuit seront comptabilisées dans la journée précédente jusqu'à cette heure.
+                      Les ventes réalisées avant {BUSINESS_DAY_CLOSE_HOUR}h du matin sont comptabilisées dans la journée commerciale précédente.
+                      Cette valeur est fixe pour garantir la cohérence des statistiques.
                     </p>
-                    <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100">
-                      <input
-                        type="range"
-                        min="0"
-                        max="23"
-                        value={tempCloseHour}
-                        onChange={(e) => setTempCloseHour(Number(e.target.value))}
-                        className="flex-1 h-2 bg-amber-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
-                      />
-                      <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-amber-200 min-w-[80px] justify-center">
-                        <Clock size={18} className="text-amber-500" />
+                    <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-300">
+                      <div className="flex items-center gap-2 px-4 py-2 bg-amber-50 rounded-lg border border-amber-200 min-w-[80px] justify-center">
+                        <Clock size={18} className="text-amber-600" />
                         <span className="text-lg font-bold text-gray-800">
-                          {tempCloseHour.toString().padStart(2, '0')}h
+                          {BUSINESS_DAY_CLOSE_HOUR.toString().padStart(2, '0')}h
                         </span>
                       </div>
+                      <span className="text-sm text-gray-500 italic">(fixe - synchronisé avec statistiques SQL)</span>
                     </div>
                   </div>
 
