@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -25,7 +25,6 @@ export function SalaryManager() {
 
   if (!currentBar || !currentSession) return null;
 
-  const members = getBarMembers(currentBar.id) || []; // ✅ FIX: Passer barId en paramètre
   const {
     salaries,
     addSalary,
@@ -39,10 +38,25 @@ export function SalaryManager() {
   const [showForm, setShowForm] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState(getCurrentPeriod());
   const [expandedPeriods, setExpandedPeriods] = useState<Set<string>>(new Set([getCurrentPeriod()]));
+  const [members, setMembers] = useState<any[]>([]);
 
   // Form states
   const [selectedMemberId, setSelectedMemberId] = useState('');
   const [amount, setAmount] = useState('');
+
+  // Load members
+  useEffect(() => {
+    const loadMembers = async () => {
+      try {
+        const data = await getBarMembers(currentBar.id);
+        setMembers(data || []);
+      } catch (error) {
+        console.error('Error loading members:', error);
+        setMembers([]);
+      }
+    };
+    loadMembers();
+  }, [currentBar.id, getBarMembers]);
 
   const activeMembers = members.filter(m => m.isActive);
   const unpaidMembers = getUnpaidMembers(activeMembers, selectedPeriod);

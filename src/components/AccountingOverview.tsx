@@ -191,17 +191,20 @@ export function AccountingOverview() {
 
   // Calculate sales revenue (using SQL Stats)
   const salesRevenue = useMemo(() => {
-    return periodStats.reduce((sum, day) => sum + day.gross_revenue, 0);
+    const total = periodStats.reduce((sum, day) => sum + (day.gross_revenue || 0), 0);
+    return isNaN(total) || !isFinite(total) ? 0 : total;
   }, [periodStats]);
 
   // ✨ Calculate returns refunds (using SQL data from daily_sales_summary)
   const returnsRefunds = useMemo(() => {
-    return periodStats.reduce((sum, day) => sum + day.refunds_total, 0);
+    const total = periodStats.reduce((sum, day) => sum + (day.refunds_total || 0), 0);
+    return isNaN(total) || !isFinite(total) ? 0 : total;
   }, [periodStats]);
 
   // ✨ Calculate expenses (using SQL data from expenses_summary)
   const expensesCosts = useMemo(() => {
-    return expensesSummary.reduce((sum, day) => sum + day.total_expenses, 0);
+    const total = expensesSummary.reduce((sum, day) => sum + (day.total_expenses || 0), 0);
+    return isNaN(total) || !isFinite(total) ? 0 : total;
   }, [expensesSummary]);
 
   // Get expenses breakdown by category (for detailed view)
@@ -209,14 +212,14 @@ export function AccountingOverview() {
     const categoriesFromExpenses = getExpensesByCategory(expenses, customExpenseCategories, periodStart, periodEnd);
 
     // ✨ Ajouter les supplies comme une catégorie "Approvisionnements"
-    const suppliesCost = expensesSummary.reduce((sum, day) => sum + day.supplies_cost, 0);
+    const suppliesCost = expensesSummary.reduce((sum, day) => sum + (day.supplies_cost || 0), 0);
 
     if (suppliesCost > 0) {
       categoriesFromExpenses['supplies'] = {
         label: 'Approvisionnements',
         icon: '📦',
         amount: suppliesCost,
-        count: expensesSummary.reduce((sum, day) => sum + day.supply_count, 0),
+        count: expensesSummary.reduce((sum, day) => sum + (day.supply_count || 0), 0),
       };
     }
 
@@ -225,7 +228,8 @@ export function AccountingOverview() {
 
   // ✨ Calculate salaries (using SQL data from salaries_summary)
   const salariesCosts = useMemo(() => {
-    return salariesSummary.reduce((sum, day) => sum + day.total_salaries, 0);
+    const total = salariesSummary.reduce((sum, day) => sum + (day.total_salaries || 0), 0);
+    return isNaN(total) || !isFinite(total) ? 0 : total;
   }, [salariesSummary]);
 
   const totalCosts = expensesCosts + salariesCosts;
@@ -235,12 +239,14 @@ export function AccountingOverview() {
 
   // ✨ Operating expenses (using SQL data)
   const operatingExpenses = useMemo(() => {
-    return expensesSummary.reduce((sum, day) => sum + day.operating_expenses, 0);
+    const total = expensesSummary.reduce((sum, day) => sum + (day.operating_expenses || 0), 0);
+    return isNaN(total) || !isFinite(total) ? 0 : total;
   }, [expensesSummary]);
 
   // ✨ Investments (using SQL data)
   const investments = useMemo(() => {
-    return expensesSummary.reduce((sum, day) => sum + day.investments, 0);
+    const total = expensesSummary.reduce((sum, day) => sum + (day.investments || 0), 0);
+    return isNaN(total) || !isFinite(total) ? 0 : total;
   }, [expensesSummary]);
 
   const totalOperatingCosts = operatingExpenses + salariesCosts;
@@ -265,7 +271,7 @@ export function AccountingOverview() {
     const prevPeriodStart = new Date(prevPeriodDate.getFullYear(), prevPeriodDate.getMonth(), 1);
     const prevPeriodEnd = new Date(prevPeriodDate.getFullYear(), prevPeriodDate.getMonth() + 1, 0);
 
-    const prevSalesRevenue = prevPeriodStats.reduce((sum, day) => sum + day.gross_revenue, 0);
+    const prevSalesRevenue = prevPeriodStats.reduce((sum, day) => sum + (day.gross_revenue || 0), 0);
 
     const prevReturnsRefunds = returns
       .filter(ret => {
@@ -274,7 +280,7 @@ export function AccountingOverview() {
         if (!ret.isRefunded) return false;
         return retDate >= prevPeriodStart && retDate <= prevPeriodEnd;
       })
-      .reduce((sum, ret) => sum + ret.refundAmount, 0);
+      .reduce((sum, ret) => sum + (ret.refundAmount || 0), 0);
 
     const prevTotalRevenue = prevSalesRevenue - prevReturnsRefunds;
 
@@ -313,7 +319,7 @@ export function AccountingOverview() {
       });
 
       // ✨ Use SQL data for revenue (already includes refunds)
-      const monthRevenue = monthStat ? monthStat.net_revenue : 0;
+      const monthRevenue = monthStat ? (monthStat.net_revenue || 0) : 0;
 
       // ✨ Find matching expense stat in chartExpenses
       const monthExpenseStat = chartExpenses.find(e => {
@@ -321,7 +327,7 @@ export function AccountingOverview() {
         return eDate.getFullYear() === year && eDate.getMonth() === date.getMonth();
       });
 
-      const monthOperatingExpenses = monthExpenseStat ? monthExpenseStat.operating_expenses : 0;
+      const monthOperatingExpenses = monthExpenseStat ? (monthExpenseStat.operating_expenses || 0) : 0;
 
       // ✨ Find matching salary stat in chartSalaries
       const monthSalaryStat = chartSalaries.find(s => {
@@ -329,7 +335,7 @@ export function AccountingOverview() {
         return sDate.getFullYear() === year && sDate.getMonth() === date.getMonth();
       });
 
-      const monthSalaries = monthSalaryStat ? monthSalaryStat.total_salaries : 0;
+      const monthSalaries = monthSalaryStat ? (monthSalaryStat.total_salaries || 0) : 0;
 
       return {
         name: monthKey,
