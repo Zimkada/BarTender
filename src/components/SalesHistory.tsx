@@ -1600,7 +1600,13 @@ function AnalyticsView({
 
     sales.forEach(sale => {
       sale.items.forEach((item: any) => {
-        const categoryId = item.product?.categoryId || item.product_category_id;
+        // ✅ Handle dual format: extract product_id
+        const productId = item.product?.id || item.product_id;
+
+        // ✅ Look up the product to get its category
+        const product = products.find(p => p.id === productId);
+        const categoryId = product?.categoryId;
+
         const category = categories.find(c => c.id === categoryId);
         const catName = category?.name || 'Autre';
         const price = item.product?.price || item.unit_price || 0;
@@ -1616,7 +1622,7 @@ function AnalyticsView({
       value,
       percentage: totalGross > 0 ? (value / totalGross) * 100 : 0
     }));
-  }, [sales, categories]);
+  }, [sales, categories, products]);
 
   // Performance par utilisateur
   const [userFilter, setUserFilter] = useState<'all' | 'servers' | 'management'>('all');
