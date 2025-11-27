@@ -210,13 +210,12 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             className="w-full max-w-4xl bg-white h-full overflow-hidden flex flex-col"
           >
-            <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-4">
+            <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white py-3 px-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Zap size={24} />
                   <div>
                     <h2 className="text-xl font-bold">Vente rapide</h2>
-                    <p className="text-sm opacity-90">Ctrl+Enter: Finaliser | Esc: Vider | F1: Recherche</p>
                   </div>
                 </div>
                 <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg">

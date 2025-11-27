@@ -10,9 +10,10 @@ interface CategoryStat {
 
 interface CategoryStatsListProps {
     stats: CategoryStat[];
+    showAlerts?: boolean;
 }
 
-export const CategoryStatsList: React.FC<CategoryStatsListProps> = ({ stats }) => {
+export const CategoryStatsList: React.FC<CategoryStatsListProps> = ({ stats, showAlerts = true }) => {
     return (
         <div className="space-y-2">
             {stats.map(stat => (
@@ -28,7 +29,7 @@ export const CategoryStatsList: React.FC<CategoryStatsListProps> = ({ stats }) =
                         <span className="text-sm text-gray-600">
                             {stat.totalProducts} produit{stat.totalProducts > 1 ? 's' : ''}
                         </span>
-                        {stat.alertsCount > 0 && (
+                        {showAlerts && stat.alertsCount > 0 && (
                             <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">
                                 {stat.alertsCount} alerte{stat.alertsCount > 1 ? 's' : ''}
                             </span>

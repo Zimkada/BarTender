@@ -239,12 +239,12 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                   <div className="space-y-3 mb-4">
                     {/* Stats par catégorie (Mobile) */}
                     <CollapsibleSection
-                      title="Stats"
+                      title="Nombre Produits"
                       icon={<BarChart3 size={16} className="text-amber-600" />}
                       badge={`${sortedProducts.length}/${products.length}`}
                       defaultOpen={false}
                     >
-                      <CategoryStatsList stats={categoryStats} />
+                      <CategoryStatsList stats={categoryStats} showAlerts={false} />
                     </CollapsibleSection>
 
                     {/* Alertes stock adaptatives (Mobile) */}
@@ -444,12 +444,12 @@ export function Inventory({ isOpen, onClose }: InventoryProps) {
                   <div className="space-y-4 mb-6">
                     {/* Stats par catégorie */}
                     <CollapsibleSection
-                      title="Statistiques par catégorie"
+                      title="Nombre de produits par catégorie"
                       icon={<BarChart3 size={18} className="text-amber-600" />}
                       badge={`${sortedProducts.length}/${products.length} produits`}
                       defaultOpen={false}
                     >
-                      <CategoryStatsList stats={categoryStats} />
+                      <CategoryStatsList stats={categoryStats} showAlerts={false} />
                     </CollapsibleSection>
 
                     {/* Alertes stock adaptatives */}
