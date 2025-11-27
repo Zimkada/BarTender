@@ -130,6 +130,17 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
 
       // Fetch top 100 products to calculate total items accurately
       AnalyticsService.getTopProducts(currentBar.id, start, end, 100).then(products => {
+        console.log('🔍 DEBUG Top Products Query:', {
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
+          productsCount: products.length,
+          products: products.map(p => ({
+            name: p.product_name,
+            volume: p.product_volume,
+            date: p.sale_date,
+            qty: p.total_quantity
+          }))
+        });
         setTopProductsData(products);
       });
     }
@@ -162,14 +173,24 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
     ? (todayStats.validated_count > 0 ? todayStats.gross_revenue / todayStats.validated_count : 0)
     : (todayValidatedSales.length > 0 ? todayTotal / todayValidatedSales.length : 0);
 
-  // Top products list - ALWAYS use SQL data filtered by today's date (set in useEffect)
-  // topProductsData is already filtered for today in the query
-  const topProductsList = topProductsData.length > 0
-    ? topProductsData.slice(0, 3).map(p => [`${p.product_name} ${p.product_volume}`, p.total_quantity] as [string, number])
+  // Top products list - Filter for TODAY only (SQL may return multi-day data)
+  // Filter topProductsData to only include today's date
+  const todayDateStr = new Date().toISOString().split('T')[0];
+  const todayTopProducts = topProductsData.filter(p => p.sale_date === todayDateStr);
+
+  const topProductsList = todayTopProducts.length > 0
+    ? Object.entries(
+        todayTopProducts.reduce((acc, p) => {
+          const volume = p.product_volume || '';  // Handle NULL volumes
+          const key = volume ? `${p.product_name} ${volume}` : p.product_name;
+          acc[key] = (acc[key] || 0) + p.total_quantity;
+          return acc;
+        }, {} as Record<string, number>)
+      ).sort((a, b) => b[1] - a[1]).slice(0, 3)
     : Object.entries(todayValidatedSales.flatMap(sale => sale.items).reduce((acc, item: SaleItem) => {
       const name = item.product_name;
       const volume = item.product_volume || '';
-      const key = `${name} ${volume}`;  // Display key with space instead of dash
+      const key = volume ? `${name} ${volume}` : name;  // Handle NULL volumes
       acc[key] = (acc[key] || 0) + item.quantity;
       return acc;
     }, {} as Record<string, number>)).sort((a, b) => b[1] - a[1]).slice(0, 3);
