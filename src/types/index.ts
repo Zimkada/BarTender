@@ -649,3 +649,144 @@ export interface AuditLog {
   relatedEntityId?: string;
   relatedEntityType?: 'bar' | 'user' | 'product' | 'sale' | 'expense';
 }
+
+// ===== PROMOTIONS =====
+
+/**
+ * Type de promotion
+ */
+export type PromotionType =
+  | 'bundle'          // Lot : X unités à prix fixe (ex: 3 bières à 1000 FCFA)
+  | 'fixed_discount'  // Réduction montant fixe (ex: -50 FCFA)
+  | 'percentage'      // Réduction pourcentage (ex: -10%)
+  | 'special_price';  // Prix spécial avec horaires optionnels (ex: Happy Hour)
+
+/**
+ * Statut d'une promotion
+ */
+export type PromotionStatus =
+  | 'draft'      // Brouillon (non visible clients)
+  | 'scheduled'  // Programmée (pas encore active)
+  | 'active'     // Active (visible et applicable)
+  | 'paused'     // En pause (temporairement désactivée)
+  | 'expired'    // Expirée (date fin dépassée)
+  | 'cancelled'; // Annulée (définitivement)
+
+/**
+ * Type de ciblage d'une promotion
+ */
+export type PromotionTargetType =
+  | 'product'   // Produits spécifiques
+  | 'category'  // Catégories spécifiques
+  | 'all';      // Tous les produits
+
+/**
+ * Promotion commerciale
+ */
+export interface Promotion {
+  id: string;
+  barId: string;
+
+  // Informations générales
+  name: string;
+  description?: string;
+  type: PromotionType;
+  status: PromotionStatus;
+
+  // Ciblage
+  targetType: PromotionTargetType;
+  targetProductIds?: string[];
+  targetCategoryIds?: string[];
+
+  // Configuration BUNDLE (ex: 3 bières à 1000 FCFA)
+  bundleQuantity?: number;
+  bundlePrice?: number;
+
+  // Configuration FIXED_DISCOUNT (ex: -50 FCFA)
+  discountAmount?: number;
+
+  // Configuration PERCENTAGE (ex: -10%)
+  discountPercentage?: number;
+
+  // Configuration SPECIAL_PRICE (ex: Bière à 300 FCFA)
+  specialPrice?: number;
+  timeStart?: string;  // Format: 'HH:MM' (ex: '17:00')
+  timeEnd?: string;    // Format: 'HH:MM' (ex: '19:00')
+
+  // Planification temporelle
+  startDate: string;   // Format: 'YYYY-MM-DD'
+  endDate?: string;    // Format: 'YYYY-MM-DD'
+  isRecurring: boolean;
+  recurrenceDays?: number[];  // [0-6] : 0=Dimanche, 1=Lundi, ..., 6=Samedi
+
+  // Limites d'utilisation
+  maxUsesPerCustomer?: number;
+  maxTotalUses?: number;
+  currentUses: number;
+
+  // Priorité (si plusieurs promos applicables)
+  priority: number;
+
+  // Traçabilité
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Application d'une promotion à une vente (historique)
+ */
+export interface PromotionApplication {
+  id: string;
+  barId: string;
+  promotionId: string;
+  saleId: string;
+  productId: string;
+  quantitySold: number;
+  originalPrice: number;
+  discountedPrice: number;
+  discountAmount: number;
+  appliedAt: Date;
+  appliedBy: string;
+}
+
+/**
+ * Résultat du calcul de prix avec promotion
+ */
+export interface PromotionPriceResult {
+  finalPrice: number;
+  originalPrice: number;
+  discount: number;
+  appliedPromotion?: Promotion;
+}
+
+// ===== ÉVÉNEMENTS =====
+
+/**
+ * Type d'événement
+ */
+export type EventType =
+  | 'holiday'      // Jour férié (Nouvel An, Noël, etc.)
+  | 'anniversary'  // Anniversaire bar
+  | 'sports'       // Événement sportif (match important)
+  | 'theme_night'  // Soirée thématique
+  | 'custom';      // Personnalisé
+
+/**
+ * Événement spécial impactant les ventes
+ */
+export interface BarEvent {
+  id: string;
+  barId: string;
+  eventType: EventType;
+  eventName: string;
+  eventDate: string;  // Format: 'YYYY-MM-DD'
+  impactMultiplier: number;  // 1.5 = +50%, 2.0 = +100%
+  isRecurring: boolean;
+  recurrenceRule?: string;  // Format: 'yearly_12_25', 'monthly_15', 'weekly_5'
+  notes?: string;
+  isActive: boolean;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
