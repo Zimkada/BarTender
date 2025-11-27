@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
-  TrendingUp, DollarSign, ShoppingCart, Package, Share, Lock, Eye, EyeOff, RotateCcw, Archive, Check, X, User
+  TrendingUp, DollarSign, ShoppingCart, Package, Share, Lock, Eye, EyeOff, RotateCcw, Archive, Check, X, User, AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
@@ -102,7 +102,7 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
 };
 
 export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
-  const { sales, getTodaySales, getTodayTotal, getLowStockProducts, returns, validateSale, rejectSale, users } = useAppContext();
+  const { sales, products, getTodaySales, getTodayTotal, getLowStockProducts, returns, validateSale, rejectSale, users } = useAppContext();
   const { currentBar } = useBarContext();
   const { consignments } = useStockManagement();
   const { formatPrice } = useCurrencyFormatter();
@@ -150,15 +150,20 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
   }, [sales, currentSession]);
 
   const lowStockProducts = getLowStockProducts();
+  const totalProducts = products.length;
+  const lowStockCount = lowStockProducts.length;
 
-  const totalItems = topProductsData.length > 0
-    ? topProductsData.reduce((sum, p) => sum + p.total_quantity, 0)
+  // Calculate total items sold TODAY only (SQL data is already filtered by date in useEffect)
+  const totalItems = todayStats
+    ? todayStats.total_items_sold  // Use SQL if available
     : todayValidatedSales.reduce((sum, sale) => sum + sale.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
 
   const avgSaleValue = todayStats
     ? (todayStats.validated_count > 0 ? todayStats.gross_revenue / todayStats.validated_count : 0)
     : (todayValidatedSales.length > 0 ? todayTotal / todayValidatedSales.length : 0);
 
+  // Top products list - ALWAYS use SQL data filtered by today's date (set in useEffect)
+  // topProductsData is already filtered for today in the query
   const topProductsList = topProductsData.length > 0
     ? topProductsData.slice(0, 3).map(p => [p.product_name, p.total_quantity] as [string, number])
     : Object.entries(todayValidatedSales.flatMap(sale => sale.items).reduce((acc, item: SaleItem) => {
@@ -293,11 +298,11 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
 
                 <div>
                   <h3 className="font-semibold text-gray-800 text-lg mb-4">Point du jour</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
                     <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-xl p-3 sm:p-4 border border-green-200"><div className="flex items-center justify-between mb-2"><DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" /><span className="text-green-600 text-xs sm:text-sm font-medium">Total</span></div><AnimatedCounter value={todayTotal} className="text-xl sm:text-2xl font-bold text-gray-800" /><p className="text-xs text-gray-600 mt-1">{formatPrice(todayTotal)}</p></motion.div>
                     <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-blue-100 to-cyan-100 rounded-xl p-3 sm:p-4 border border-blue-200"><div className="flex items-center justify-between mb-2"><ShoppingCart className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" /><span className="text-blue-600 text-xs sm:text-sm font-medium">Ventes</span></div><AnimatedCounter value={todayValidatedSales.length} className="text-xl sm:text-2xl font-bold text-gray-800" /><p className="text-xs text-amber-600 mt-1 font-semibold">{pendingSales.length > 0 ? `${pendingSales.length} en attente` : ''}</p></motion.div>
                     <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-purple-100 to-violet-100 rounded-xl p-3 sm:p-4 border border-purple-200"><div className="flex items-center justify-between mb-2"><Package className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" /><span className="text-purple-600 text-xs sm:text-sm font-medium">Articles</span></div><AnimatedCounter value={totalItems} className="text-xl sm:text-2xl font-bold text-gray-800" /><p className="text-xs text-gray-600 mt-1">vendus aujourd'hui</p></motion.div>
-                    <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-amber-100 to-amber-100 rounded-xl p-3 sm:p-4 border border-amber-200"><div className="flex items-center justify-between mb-2"><TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-amber-600" /><span className="text-amber-600 text-xs sm:text-sm font-medium">Moyenne</span></div><AnimatedCounter value={Math.round(avgSaleValue)} className="text-xl sm:text-2xl font-bold text-gray-800" /><p className="text-xs text-gray-600 mt-1">{formatPrice(avgSaleValue)}</p></motion.div>
+                    <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-orange-100 to-amber-100 rounded-xl p-3 sm:p-4 border border-orange-200"><div className="flex items-center justify-between mb-2"><AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" /><span className="text-orange-600 text-xs sm:text-sm font-medium">Alertes</span></div><div className="text-xl sm:text-2xl font-bold text-gray-800">{lowStockCount}</div><p className="text-xs text-gray-600 mt-1">sur {totalProducts} produits</p></motion.div>
                     <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-red-100 to-pink-100 rounded-xl p-3 sm:p-4 border border-red-200"><div className="flex items-center justify-between mb-2"><RotateCcw className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" /><span className="text-red-600 text-xs sm:text-sm font-medium">Retours</span></div><AnimatedCounter value={todayReturnsCount} className="text-xl sm:text-2xl font-bold text-gray-800" /><div className="flex items-center justify-between mt-1"><p className="text-xs text-gray-600">{todayReturnsPending > 0 && `${todayReturnsPending} en attente`}</p>{todayReturnsRefunded > 0 && <p className="text-xs text-red-600 font-medium">-{formatPrice(todayReturnsRefunded).replace(/\s/g, '')}</p>}</div></motion.div>
                     <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-indigo-100 to-purple-100 rounded-xl p-3 sm:p-4 border border-indigo-200"><div className="flex items-center justify-between mb-2"><Archive className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600" /><span className="text-indigo-600 text-xs sm:text-sm font-medium">Consignations</span></div><AnimatedCounter value={activeConsignmentsCount} className="text-xl sm:text-2xl font-bold text-gray-800" /><div className="flex items-center justify-between mt-1"><p className="text-xs text-gray-600">{activeConsignmentsCount > 0 ? `actives` : `aucune`}</p>{activeConsignmentsValue > 0 && <p className="text-xs text-indigo-600 font-medium">{formatPrice(activeConsignmentsValue).replace(/\s/g, '')}</p>}</div></motion.div>
                   </div>
