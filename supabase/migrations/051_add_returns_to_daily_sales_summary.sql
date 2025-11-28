@@ -1,4 +1,7 @@
 -- 051_add_returns_to_daily_sales_summary.sql
+-- ⚠️ OBSOLÈTE: Cette migration utilise INTERVAL '4 hours'
+-- ⚠️ Remplacée par migration 058_standardize_business_day_to_6h.sql
+-- ⚠️ Conservée pour historique uniquement
 -- Ajoute les retours remboursés à daily_sales_summary (Principe DRY)
 -- Cette modification permet à tous les composants d'utiliser la même source pour les retours
 

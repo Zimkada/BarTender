@@ -6,6 +6,8 @@
  * une vente à 3h du matin est comptée dans la journée d'hier.
  */
 
+import { BUSINESS_DAY_CLOSE_HOUR } from '../config/constants';
+
 /**
  * Calcule la date de la journée commerciale pour une vente donnée
  *
@@ -18,7 +20,7 @@
  * getBusinessDay(new Date('2025-01-05 02:00'), 6) // -> 2025-01-04 (journée d'avant)
  * getBusinessDay(new Date('2025-01-05 08:00'), 6) // -> 2025-01-05 (journée actuelle)
  */
-export function getBusinessDay(saleDate: Date, closeHour: number = 6): Date {
+export function getBusinessDay(saleDate: Date, closeHour: number = BUSINESS_DAY_CLOSE_HOUR): Date {
   const businessDay = new Date(saleDate);
   const hour = saleDate.getHours();
 
@@ -61,7 +63,7 @@ export function isSameDay(date1: Date, date2: Date): boolean {
  * // Il est 10h du matin le 05/01 avec closeHour = 6
  * getCurrentBusinessDay(6) // -> 2025-01-05 (nouvelle journée commerciale)
  */
-export function getCurrentBusinessDay(closeHour: number = 6): Date {
+export function getCurrentBusinessDay(closeHour: number = BUSINESS_DAY_CLOSE_HOUR): Date {
   return getBusinessDay(new Date(), closeHour);
 }
 
@@ -76,7 +78,7 @@ export function getCurrentBusinessDay(closeHour: number = 6): Date {
 export function filterSalesByBusinessDay<T extends { date: string | Date }>(
   sales: T[],
   targetDay: Date,
-  closeHour: number = 6
+  closeHour: number = BUSINESS_DAY_CLOSE_HOUR
 ): T[] {
   return sales.filter(sale => {
     const saleDate = typeof sale.date === 'string' ? new Date(sale.date) : sale.date;
@@ -94,14 +96,14 @@ export function filterSalesByBusinessDay<T extends { date: string | Date }>(
  * @returns Date au format 'YYYY-MM-DD' compatible avec sale_date SQL
  *
  * @example
- * // Avec closeHour = 4 (correspondant à INTERVAL '4 hours' en SQL)
+ * // Avec closeHour = 6 (correspondant à INTERVAL '6 hours' en SQL)
  * // Aujourd'hui: 2025-11-27 02:00 (locale)
- * getBusinessDayDateString(new Date(), 4) // -> "2025-11-26" (journée d'hier car avant 4h)
+ * getBusinessDayDateString(new Date(), 6) // -> "2025-11-26" (journée d'hier car avant 6h)
  *
  * // Aujourd'hui: 2025-11-27 10:00 (locale)
- * getBusinessDayDateString(new Date(), 4) // -> "2025-11-27" (journée actuelle car après 4h)
+ * getBusinessDayDateString(new Date(), 6) // -> "2025-11-27" (journée actuelle car après 6h)
  */
-export function getBusinessDayDateString(date: Date = new Date(), closeHour: number = 4): string {
+export function getBusinessDayDateString(date: Date = new Date(), closeHour: number = BUSINESS_DAY_CLOSE_HOUR): string {
   const businessDay = getBusinessDay(date, closeHour);
   // Format YYYY-MM-DD en local (pas UTC)
   const year = businessDay.getFullYear();

@@ -1,4 +1,7 @@
 -- 044_create_top_products_view.sql
+-- ⚠️ OBSOLÈTE: Cette migration utilise INTERVAL '4 hours'
+-- ⚠️ Remplacée par migration 058_standardize_business_day_to_6h.sql
+-- ⚠️ Conservée pour historique uniquement
 -- V2: Avec Business Day (-4h) et Sécurité RLS
 -- Prérequis: Migration 036 (Auth Schema) doit être appliquée
 
