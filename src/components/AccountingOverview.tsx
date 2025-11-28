@@ -7,8 +7,6 @@ import {
   DollarSign,
   Calendar,
   Receipt,
-  ChevronLeft,
-  ChevronRight,
   CalendarDays,
   PlusCircle,
   X,
@@ -25,8 +23,6 @@ import { useStockManagement } from '../hooks/useStockManagement';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 import { getSaleDate } from '../utils/saleHelpers';
-
-type PeriodType = 'week' | 'month' | 'custom';
 
 import AnalyticsCharts from './AnalyticsCharts';
 import { AnalyticsService, DailySalesSummary, ExpensesSummary, SalariesSummary } from '../services/supabase/analytics.service';
@@ -61,7 +57,6 @@ export function AccountingOverview() {
   const { consignments } = useStockManagement();
   const { returns, expenses, customExpenseCategories } = useAppContext(); // ✅ Use expenses from AppContext
 
-  const [periodOffset, setPeriodOffset] = useState(0); // 0 = current, -1 = previous, +1 = next
   const [expensesExpanded, setExpensesExpanded] = useState(false);
   const [viewMode, setViewMode] = useState<'tresorerie' | 'analytique'>('tresorerie');
   const [showInitialBalanceModal, setShowInitialBalanceModal] = useState(false);
@@ -413,52 +408,29 @@ export function AccountingOverview() {
 
   // Period label generation
   const periodLabel = useMemo(() => {
-    if (periodType === 'custom') {
-      if (!customDateRange.start || !customDateRange.end) return 'Personnalisé';
-      const start = new Date(customDateRange.start);
-      const end = new Date(customDateRange.end);
+    if (timeRange === 'custom') {
+      if (!customRange.start || !customRange.end) return 'Personnalisé';
+      const start = new Date(customRange.start);
+      const end = new Date(customRange.end);
       return `${start.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} - ${end.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`;
     }
 
-    if (periodType === 'week') {
+    if (timeRange === 'this_week') {
       const start = periodStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
       const end = periodEnd.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
       return `${start} - ${end}`;
     }
 
-    if (periodType === 'month') {
+    if (timeRange === 'this_month') {
       return periodStart.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
     }
 
+    if (timeRange === 'this_year') {
+      return periodStart.toLocaleDateString('fr-FR', { year: 'numeric' });
+    }
+
     return '';
-  }, [periodType, periodStart, periodEnd, customDateRange]);
-
-  // Navigation handlers
-  const handlePreviousPeriod = () => {
-    if (periodType === 'custom') return; // No navigation in custom mode
-    setPeriodOffset(prev => prev - 1);
-  };
-
-  const handleNextPeriod = () => {
-    if (periodType === 'custom') return;
-    setPeriodOffset(prev => prev + 1);
-  };
-
-  const handleToday = () => {
-    setPeriodOffset(0);
-    if (periodType === 'custom') {
-      setPeriodType('month'); // Switch to month view when clicking "Aujourd'hui"
-      setCustomDateRange({ start: '', end: '' });
-    }
-  };
-
-  const handlePeriodTypeChange = (type: PeriodType) => {
-    setPeriodType(type);
-    setPeriodOffset(0); // Reset to current period
-    if (type !== 'custom') {
-      setCustomDateRange({ start: '', end: '' });
-    }
-  };
+  }, [timeRange, periodStart, periodEnd, customRange]);
 
   // Initial Balance handlers
   const handleCreateInitialBalance = () => {
@@ -852,23 +824,23 @@ export function AccountingOverview() {
 
       {/* Period Type Selector - Fixed: removed w-fit for full width on mobile */}
       <div className={`flex ${isMobile ? 'flex-row' : 'flex-wrap'} items-center gap-2 bg-gray-100 p-1 rounded-lg`}>
-        {(['week', 'month', 'custom'] as PeriodType[]).map(type => (
+        {ACCOUNTING_FILTERS.map(filter => (
           <button
-            key={type}
-            onClick={() => handlePeriodTypeChange(type)}
-            className={`${isMobile ? 'flex-1 px-2 py-2' : 'px-3 py-2'} rounded-md transition-colors flex items-center justify-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} ${periodType === type
+            key={filter}
+            onClick={() => setTimeRange(filter)}
+            className={`${isMobile ? 'flex-1 px-2 py-2' : 'px-3 py-2'} rounded-md transition-colors flex items-center justify-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} ${timeRange === filter
               ? 'bg-amber-500 text-white'
               : 'text-gray-600 hover:bg-gray-200'
               }`}
           >
-            {type === 'custom' && <CalendarDays size={isMobile ? 14 : 16} />}
-            {type === 'week' ? 'Semaine' : type === 'month' ? 'Mois' : 'Personnalisé'}
+            {filter === 'custom' && <CalendarDays size={isMobile ? 14 : 16} />}
+            {TIME_RANGE_CONFIGS[filter].label}
           </button>
         ))}
       </div>
 
       {/* Custom Date Range Pickers (only when custom selected) */}
-      {periodType === 'custom' && (
+      {timeRange === 'custom' && (
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
           <p className={`text-gray-700 font-medium mb-2 ${isMobile ? 'text-xs' : 'text-sm'}`}>
             Sélectionner la période
@@ -878,8 +850,8 @@ export function AccountingOverview() {
               <label className="block text-xs text-gray-600 mb-1">Date début</label>
               <input
                 type="date"
-                value={customDateRange.start}
-                onChange={(e) => setCustomDateRange(prev => ({ ...prev, start: e.target.value }))}
+                value={customRange.start}
+                onChange={(e) => updateCustomRange('start', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               />
             </div>
@@ -887,8 +859,8 @@ export function AccountingOverview() {
               <label className="block text-xs text-gray-600 mb-1">Date fin</label>
               <input
                 type="date"
-                value={customDateRange.end}
-                onChange={(e) => setCustomDateRange(prev => ({ ...prev, end: e.target.value }))}
+                value={customRange.end}
+                onChange={(e) => updateCustomRange('end', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               />
             </div>
@@ -896,46 +868,11 @@ export function AccountingOverview() {
         </div>
       )}
 
-      {/* Period Navigation */}
-      <div className={`flex items-center justify-between bg-white border border-gray-200 rounded-lg ${isMobile ? 'p-1' : 'p-2'}`}>
-        <button
-          onClick={handlePreviousPeriod}
-          disabled={periodType === 'custom'}
-          className={`${isMobile ? 'p-1.5' : 'p-2'} rounded-lg transition-colors ${periodType === 'custom'
-            ? 'text-gray-300 cursor-not-allowed'
-            : 'text-gray-600 hover:bg-gray-100 active:scale-95'
-            }`}
-          title="Période précédente"
-        >
-          <ChevronLeft size={isMobile ? 18 : 20} />
-        </button>
-
-        <div className="flex-1 text-center">
-          <p className={`font-semibold text-gray-800 ${isMobile ? 'text-xs' : 'text-base'}`}>
-            {periodLabel}
-          </p>
-        </div>
-
-        <button
-          onClick={handleNextPeriod}
-          disabled={periodType === 'custom'}
-          className={`${isMobile ? 'p-1.5' : 'p-2'} rounded-lg transition-colors ${periodType === 'custom'
-            ? 'text-gray-300 cursor-not-allowed'
-            : 'text-gray-600 hover:bg-gray-100 active:scale-95'
-            }`}
-          title="Période suivante"
-        >
-          <ChevronRight size={isMobile ? 18 : 20} />
-        </button>
-
-        <button
-          onClick={handleToday}
-          className={`ml-1 ${isMobile ? 'px-2 py-1.5' : 'px-3 py-2'} bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors active:scale-95 flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'}`}
-          title="Revenir à aujourd'hui"
-        >
-          <Calendar size={isMobile ? 14 : 16} />
-          {!isMobile && <span>Aujourd'hui</span>}
-        </button>
+      {/* Period Label */}
+      <div className={`bg-white border border-gray-200 rounded-lg ${isMobile ? 'p-2' : 'p-3'}`}>
+        <p className={`text-center font-semibold text-gray-800 ${isMobile ? 'text-sm' : 'text-base'}`}>
+          {periodLabel}
+        </p>
       </div>
 
       {/* Main Stats */}
@@ -1145,7 +1082,7 @@ export function AccountingOverview() {
           <Calendar className="text-blue-500 flex-shrink-0" size={20} />
           <div className="flex-1">
             <p className={`font-medium text-blue-800 ${isMobile ? 'text-sm' : ''}`}>
-              Période: {periodType === 'week' ? 'Semaine' : 'Mois'} en cours
+              Période: {TIME_RANGE_CONFIGS[timeRange].label}
             </p>
             <p className={`mt-1 text-blue-700 ${isMobile ? 'text-xs' : 'text-sm'}`}>
               Du {periodStart.toLocaleDateString('fr-FR')} au {periodEnd.toLocaleDateString('fr-FR')}

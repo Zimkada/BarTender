@@ -180,7 +180,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    switch (timeFilter) {
+    switch (timeRange) {
       case 'today': {
         const currentBusinessDay = getCurrentBusinessDay(closeHour);
         filtered = baseConsignments.filter(c => {
@@ -217,9 +217,9 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
         break;
       }
       case 'custom': {
-        const startDate = new Date(customDateRange.start);
+        const startDate = new Date(customRange.start);
         startDate.setHours(0, 0, 0, 0);
-        const endDate = new Date(customDateRange.end);
+        const endDate = new Date(customRange.end);
         endDate.setDate(endDate.getDate() + 1);
         filtered = baseConsignments.filter(c => {
           const consignDate = new Date(c.createdAt);
@@ -230,7 +230,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
     }
 
     return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [consignments, timeFilter, customDateRange, currentSession, closeHour]);
+  }, [consignments, timeRange, customRange, currentSession, closeHour]);
 
   // Statistiques
   const stats = useMemo(() => {
@@ -258,41 +258,41 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
     let kpiValue = 0;
     let kpiLabel = 'Panier moyen';
 
-    if (timeFilter === 'today') {
+    if (timeRange === 'today') {
       // CA moyen/heure pour aujourd'hui
       const now = new Date();
       const barToday = getCurrentBusinessDay(closeHour);
       const hoursElapsed = (now.getTime() - barToday.getTime()) / (1000 * 60 * 60);
       kpiValue = hoursElapsed > 0 ? totalRevenue / hoursElapsed : 0;
       kpiLabel = 'CA moyen/heure';
-    } else if (timeFilter === 'week') {
+    } else if (timeRange === 'week') {
       // CA moyen/jour pour semaine calendaire (lundi-dimanche = 7 jours)
       kpiValue = totalRevenue / 7;
       kpiLabel = 'CA moyen/jour';
-    } else if (timeFilter === 'month') {
+    } else if (timeRange === 'month') {
       // CA moyen/jour pour mois calendaire (nombre réel de jours du mois)
       const today = new Date();
       const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
       kpiValue = totalRevenue / daysInMonth;
       kpiLabel = 'CA moyen/jour';
-    } else if (timeFilter === 'custom') {
+    } else if (timeRange === 'custom') {
       // CA moyen/jour pour période personnalisée
-      const startDate = new Date(customDateRange.start);
-      const endDate = new Date(customDateRange.end);
+      const startDate = new Date(customRange.start);
+      const endDate = new Date(customRange.end);
       const dayCount = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
       kpiValue = totalRevenue / dayCount;
       kpiLabel = 'CA moyen/jour';
     }
 
     // Top produits (using SQL view data with fallback to client-side)
-    // Filter topProductsData by current timeFilter (DRY approach matching filteredSales logic)
+    // Filter topProductsData by current timeRange (DRY approach matching filteredSales logic)
     const filteredTopProducts = (() => {
       if (topProductsData.length === 0) return [];
 
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-      switch (timeFilter) {
+      switch (timeRange) {
         case 'today': {
           const todayDateStr = getBusinessDayDateString(new Date(), closeHour);
           return topProductsData.filter(p => p.sale_date === todayDateStr);
@@ -321,8 +321,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
           return topProductsData.filter(p => p.sale_date >= firstDayStr && p.sale_date <= lastDayStr);
         }
         case 'custom': {
-          const startDate = new Date(customDateRange.start);
-          const endDate = new Date(customDateRange.end);
+          const startDate = new Date(customRange.start);
+          const endDate = new Date(customRange.end);
 
           const startDateStr = getBusinessDayDateString(startDate, closeHour);
           const endDateStr = getBusinessDayDateString(endDate, closeHour);
@@ -385,7 +385,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
       })();
 
     return { totalRevenue, totalItems, kpiValue, kpiLabel, topProducts };
-  }, [filteredSales, returns, timeFilter, customDateRange, closeHour, topProductsData]);
+  }, [filteredSales, returns, timeRange, customRange, closeHour, topProductsData]);
 
   // Export des données
   const exportSales = () => {
@@ -782,13 +782,13 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                       products={products}
                       users={safeUsers}
                       barMembers={safeBarMembers}
-                      timeFilter={timeFilter}
+                      timeRange={timeRange}
                       isMobile={isMobile}
                       returns={returns}
                       closeHour={closeHour}
                       filteredConsignments={filteredConsignments}
                       currentSession={currentSession}
-                      customDateRange={customDateRange}
+                      customRange={customRange}
                     />
                   )}
                 </div>
@@ -889,11 +889,11 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
 
                             const returnDate = new Date(r.returnedAt);
 
-                            if (timeFilter === 'today') {
+                            if (timeRange === 'today') {
                               const currentBusinessDay = getCurrentBusinessDay(closeHour);
                               const returnBusinessDay = getBusinessDay(returnDate, closeHour);
                               return isSameDay(returnBusinessDay, currentBusinessDay);
-                            } else if (timeFilter === 'week') {
+                            } else if (timeRange === 'week') {
                               const currentDay = new Date().getDay();
                               const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
                               const monday = new Date();
@@ -903,16 +903,16 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                               sunday.setDate(monday.getDate() + 6);
                               sunday.setHours(23, 59, 59, 999);
                               return returnDate >= monday && returnDate <= sunday;
-                            } else if (timeFilter === 'month') {
+                            } else if (timeRange === 'month') {
                               const today = new Date();
                               const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
                               firstDay.setHours(0, 0, 0, 0);
                               const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
                               lastDay.setHours(23, 59, 59, 999);
                               return returnDate >= firstDay && returnDate <= lastDay;
-                            } else if (timeFilter === 'custom') {
-                              const start = new Date(customDateRange.start);
-                              const end = new Date(customDateRange.end);
+                            } else if (timeRange === 'custom') {
+                              const start = new Date(customRange.start);
+                              const end = new Date(customRange.end);
                               return returnDate >= start && returnDate <= end;
                             }
                             return false;
@@ -953,7 +953,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                           <button
                             key={filter.value}
                             onClick={() => setTimeFilter(filter.value as TimeFilter)}
-                            className={`w-full text-left p-2 rounded-lg transition-colors ${timeFilter === filter.value
+                            className={`w-full text-left p-2 rounded-lg transition-colors ${timeRange === filter.value
                               ? 'bg-amber-500 text-white'
                               : 'bg-white text-gray-700 hover:bg-amber-50'
                               }`}
@@ -963,18 +963,18 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                         ))}
                       </div>
 
-                      {timeFilter === 'custom' && (
+                      {timeRange === 'custom' && (
                         <div className="mt-3 space-y-2">
                           <input
                             type="date"
-                            value={customDateRange.start}
-                            onChange={(e) => setCustomDateRange(prev => ({ ...prev, start: e.target.value }))}
+                            value={customRange.start}
+                            onChange={(e) => updateCustomRange('start', e.target.value)}
                             className="w-full p-2 border border-amber-200 rounded-lg bg-white text-sm"
                           />
                           <input
                             type="date"
-                            value={customDateRange.end}
-                            onChange={(e) => setCustomDateRange(prev => ({ ...prev, end: e.target.value }))}
+                            value={customRange.end}
+                            onChange={(e) => updateCustomRange('end', e.target.value)}
                             className="w-full p-2 border border-amber-200 rounded-lg bg-white text-sm"
                           />
                         </div>
@@ -1111,13 +1111,13 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                             products={products}
                             users={safeUsers}
                             barMembers={safeBarMembers}
-                            timeFilter={timeFilter}
+                            timeRange={timeRange}
                             isMobile={isMobile}
                             returns={returns}
                             closeHour={closeHour}
                             filteredConsignments={filteredConsignments}
                             currentSession={currentSession}
-                            customDateRange={customDateRange}
+                            customRange={customRange}
                           />
                         );
                       })()}
@@ -1403,13 +1403,13 @@ function AnalyticsView({
   products: _products,
   users,
   barMembers,
-  timeFilter,
+  timeRange,
   isMobile,
   returns,
   closeHour,
   filteredConsignments,
   currentSession,
-  customDateRange
+  customRange
 }: {
   sales: Sale[];
   stats: Stats;
@@ -1418,13 +1418,13 @@ function AnalyticsView({
   products: Product[];
   users: User[];
   barMembers: BarMember[];
-  timeFilter: string;
+  timeRange: string;
   isMobile: boolean;
   returns: Return[];
   closeHour: number;
   filteredConsignments: any[];
   currentSession: any;
-  customDateRange: { start: string; end: string };
+  customRange: { start: string; end: string };
 }) {
   // Protection: s'assurer que tous les tableaux sont définis
   const safeUsers = users || [];
@@ -1435,18 +1435,18 @@ function AnalyticsView({
     const now = new Date();
     let currentStart: Date, previousStart: Date, previousEnd: Date;
 
-    if (timeFilter === 'today') {
+    if (timeRange === 'today') {
       currentStart = new Date(now.setHours(0, 0, 0, 0));
       previousStart = new Date(currentStart);
       previousStart.setDate(previousStart.getDate() - 1);
       previousEnd = new Date(currentStart);
-    } else if (timeFilter === 'week') {
+    } else if (timeRange === 'week') {
       currentStart = new Date(now);
       currentStart.setDate(currentStart.getDate() - 7);
       previousStart = new Date(currentStart);
       previousStart.setDate(previousStart.getDate() - 7);
       previousEnd = new Date(currentStart);
-    } else if (timeFilter === 'month') {
+    } else if (timeRange === 'month') {
       currentStart = new Date(now);
       currentStart.setDate(currentStart.getDate() - 30);
       previousStart = new Date(currentStart);
@@ -1462,7 +1462,7 @@ function AnalyticsView({
     });
 
     return { currentPeriodSales: sales, previousPeriodSales: previous };
-  }, [sales, timeFilter]);
+  }, [sales, timeRange]);
 
   // KPIs avec tendances
   const kpis = useMemo(() => {
@@ -1526,14 +1526,14 @@ function AnalyticsView({
       let label: string;
       const saleDate = getSaleDate(sale);
 
-      if (timeFilter === 'today') {
+      if (timeRange === 'today') {
         // Mode Aujourd'hui → Par heure (groupement)
         const hour = saleDate.getHours();
         label = `${hour.toString().padStart(2, '0')}h`;
-      } else if (timeFilter === 'week') {
+      } else if (timeRange === 'week') {
         // Mode Semaine → Par jour
         label = saleDate.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit' });
-      } else if (timeFilter === 'month') {
+      } else if (timeRange === 'month') {
         // Mode Mois → Par semaine calendaire (Lun-Dim)
         // Trouver le lundi de la semaine de cette vente
         const day = saleDate.getDay();
@@ -1574,7 +1574,7 @@ function AnalyticsView({
 
     // Trier par timestamp chronologique (ancien → récent)
     return Object.values(grouped).sort((a, b) => a.timestamp - b.timestamp);
-  }, [sales, timeFilter]);
+  }, [sales, timeRange]);
 
   // Répartition par catégorie (sur CA BRUT pour avoir le détail des ventes)
   const categoryData = useMemo(() => {
@@ -1627,7 +1627,7 @@ function AnalyticsView({
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    switch (timeFilter) {
+    switch (timeRange) {
       case 'today': {
         const currentBusinessDay = getCurrentBusinessDay(closeHour);
         performanceSales = baseSales.filter(sale => {
@@ -1664,9 +1664,9 @@ function AnalyticsView({
         break;
       }
       case 'custom': {
-        const startDate = new Date(customDateRange.start);
+        const startDate = new Date(customRange.start);
         startDate.setHours(0, 0, 0, 0);
-        const endDate = new Date(customDateRange.end);
+        const endDate = new Date(customRange.end);
         endDate.setHours(23, 59, 59, 999);
         performanceSales = baseSales.filter(sale => {
           const saleDate = getSaleDate(sale);
@@ -1752,11 +1752,11 @@ function AnalyticsView({
 
       const returnDate = new Date(r.returnedAt);
 
-      if (timeFilter === 'today') {
+      if (timeRange === 'today') {
         const currentBusinessDay = getCurrentBusinessDay(closeHour);
         const returnBusinessDay = getBusinessDay(returnDate, closeHour);
         return isSameDay(returnBusinessDay, currentBusinessDay);
-      } else if (timeFilter === 'week') {
+      } else if (timeRange === 'week') {
         const currentDay = new Date().getDay();
         const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
         const monday = new Date();
@@ -1766,15 +1766,15 @@ function AnalyticsView({
         sunday.setDate(monday.getDate() + 6);
         sunday.setHours(23, 59, 59, 999);
         return returnDate >= monday && returnDate <= sunday;
-      } else if (timeFilter === 'month') {
+      } else if (timeRange === 'month') {
         const today = new Date();
         const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
         firstDay.setHours(0, 0, 0, 0);
         const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
         lastDay.setHours(23, 59, 59, 999);
         return returnDate >= firstDay && returnDate <= lastDay;
-      } else if (timeFilter === 'custom') {
-        // Custom range - on ne peut pas filtrer car on n'a pas accès à customDateRange ici
+      } else if (timeRange === 'custom') {
+        // Custom range - on ne peut pas filtrer car on n'a pas accès à customRange ici
         // On inclut tous les retours de la période des ventes affichées
         return true;
       }
@@ -1821,7 +1821,7 @@ function AnalyticsView({
     }
 
     return allUsers;
-  }, [sales, returns, safeUsers, safeBarMembers, userFilter, timeFilter, closeHour, currentSession, customDateRange]);
+  }, [sales, returns, safeUsers, safeBarMembers, userFilter, timeRange, closeHour, currentSession, customRange]);
 
   // Top produits - 3 analyses (CA NET = Ventes - Retours)
   const topProductsData = useMemo(() => {
@@ -1859,11 +1859,11 @@ function AnalyticsView({
 
       const returnDate = new Date(r.returnedAt);
 
-      if (timeFilter === 'today') {
+      if (timeRange === 'today') {
         const currentBusinessDay = getCurrentBusinessDay(closeHour);
         const returnBusinessDay = getBusinessDay(returnDate, closeHour);
         return isSameDay(returnBusinessDay, currentBusinessDay);
-      } else if (timeFilter === 'week') {
+      } else if (timeRange === 'week') {
         const currentDay = new Date().getDay();
         const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
         const monday = new Date();
@@ -1873,14 +1873,14 @@ function AnalyticsView({
         sunday.setDate(monday.getDate() + 6);
         sunday.setHours(23, 59, 59, 999);
         return returnDate >= monday && returnDate <= sunday;
-      } else if (timeFilter === 'month') {
+      } else if (timeRange === 'month') {
         const today = new Date();
         const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
         firstDay.setHours(0, 0, 0, 0);
         const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
         lastDay.setHours(23, 59, 59, 999);
         return returnDate >= firstDay && returnDate <= lastDay;
-      } else if (timeFilter === 'custom') {
+      } else if (timeRange === 'custom') {
         return true;
       }
       return false;
@@ -1904,7 +1904,7 @@ function AnalyticsView({
       byRevenue: products.sort((a, b) => b.revenue - a.revenue).slice(0, 5),
       byProfit: products.sort((a, b) => b.profit - a.profit).slice(0, 5)
     };
-  }, [sales, returns, timeFilter, closeHour]);
+  }, [sales, returns, timeRange, closeHour]);
 
   const TrendIcon = ({ change }: { change: number }) => {
     if (change > 0) return <ArrowUp className="w-4 h-4 text-green-600" />;
@@ -1989,7 +1989,7 @@ function AnalyticsView({
           <h4 className="text-sm font-semibold text-gray-800 mb-3">
             Évolution du CA
             <span className="text-xs text-gray-500 ml-2">
-              ({timeFilter === 'today' ? 'par heure' : timeFilter === 'week' ? 'par jour' : timeFilter === 'month' ? 'par semaine' : 'par jour'})
+              ({timeRange === 'today' ? 'par heure' : timeRange === 'week' ? 'par jour' : timeRange === 'month' ? 'par semaine' : 'par jour'})
             </span>
           </h4>
           <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
