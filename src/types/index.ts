@@ -794,3 +794,5 @@ export interface BarEvent {
   createdAt: Date;
   updatedAt: Date;
 }
+// ===== DATE FILTERS (FILTRES TEMPORELS) =====
+export * from './dateFilters';

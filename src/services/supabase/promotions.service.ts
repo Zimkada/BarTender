@@ -433,16 +433,27 @@ export const PromotionsService = {
     /**
      * Récupère les statistiques globales des promotions pour un bar
      * Utilise une fonction RPC optimisée côté base de données
+     *
+     * @param barId - ID du bar
+     * @param startDate - Date de début (optionnel, NULL = toutes les données)
+     * @param endDate - Date de fin (optionnel, NULL = toutes les données)
      */
-    async getGlobalStats(barId: string): Promise<{
+    async getGlobalStats(
+        barId: string,
+        startDate?: Date,
+        endDate?: Date
+    ): Promise<{
         totalRevenue: number;
         totalDiscount: number;
         totalApplications: number;
         roi: number;
     }> {
         try {
-            const { data, error } = await (supabase.rpc as any)('get_bar_global_promotion_stats', { p_bar_id: barId })
-                .single();
+            const { data, error } = await (supabase.rpc as any)('get_bar_global_promotion_stats', {
+                p_bar_id: barId,
+                p_start_date: startDate?.toISOString() || null,
+                p_end_date: endDate?.toISOString() || null
+            }).single();
 
             if (error) throw error;
 
@@ -471,10 +482,22 @@ export const PromotionsService = {
     /**
      * Récupère les performances par promotion
      * Utilise une fonction RPC optimisée
+     *
+     * @param barId - ID du bar
+     * @param startDate - Date de début (optionnel, NULL = toutes les données)
+     * @param endDate - Date de fin (optionnel, NULL = toutes les données)
      */
-    async getPromotionsPerformance(barId: string): Promise<any[]> {
+    async getPromotionsPerformance(
+        barId: string,
+        startDate?: Date,
+        endDate?: Date
+    ): Promise<any[]> {
         try {
-            const { data, error } = await (supabase.rpc as any)('get_bar_promotion_stats', { p_bar_id: barId });
+            const { data, error } = await (supabase.rpc as any)('get_bar_promotion_stats', {
+                p_bar_id: barId,
+                p_start_date: startDate?.toISOString() || null,
+                p_end_date: endDate?.toISOString() || null
+            });
 
             if (error) throw error;
 
