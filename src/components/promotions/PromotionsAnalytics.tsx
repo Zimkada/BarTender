@@ -1,19 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import {
     BarChart3,
     TrendingUp,
     DollarSign,
     ShoppingBag,
-    Calendar,
-    ArrowUpRight,
-    ArrowDownRight,
-    Filter
+    ArrowUpRight
 } from 'lucide-react';
 import { useBarContext } from '../../context/BarContext';
 import { PromotionsService } from '../../services/supabase/promotions.service';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 
 export function PromotionsAnalytics() {
@@ -30,29 +24,22 @@ export function PromotionsAnalytics() {
     }, [currentBar, timeRange]);
 
     const loadStats = async () => {
+        if (!currentBar) return;
         setIsLoading(true);
         try {
-            // TODO: Implement actual stats fetching from service
-            // For now, we'll simulate some data or fetch basic stats
-            // const data = await PromotionsService.getGlobalStats(currentBar.id, timeRange);
+            const [globalStats, performanceStats] = await Promise.all([
+                PromotionsService.getGlobalStats(currentBar.id),
+                PromotionsService.getPromotionsPerformance(currentBar.id)
+            ]);
 
-            // Mock data for UI development
-            setTimeout(() => {
-                setStats({
-                    totalRevenue: 150000,
-                    totalDiscount: 25000,
-                    totalUses: 142,
-                    roi: 600, // 600% return
-                    topPromotions: [
-                        { name: 'Happy Hour', revenue: 80000, uses: 45, discount: 12000 },
-                        { name: '3 Bières = 1000F', revenue: 45000, uses: 60, discount: 8000 },
-                        { name: 'Promo Whisky', revenue: 25000, uses: 37, discount: 5000 },
-                    ]
-                });
-                setIsLoading(false);
-            }, 1000);
+            setStats({
+                ...globalStats,
+                totalUses: globalStats.totalApplications,
+                topPromotions: performanceStats
+            });
         } catch (error) {
             console.error('Error loading stats:', error);
+        } finally {
             setIsLoading(false);
         }
     };

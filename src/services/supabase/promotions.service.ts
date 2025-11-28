@@ -431,78 +431,89 @@ export const PromotionsService = {
     },
 
     /**
-     * Obtient les statistiques d'une promotion
-     * 
-     * @param promotionId - ID de la promotion
-     * @returns Statistiques (applications, CA, réductions, moyenne)
-     * 
-     * @example
-     * const stats = await PromotionsService.getPromotionStats('promo-123');
-     * console.log(`CA généré: ${stats.totalRevenue} FCFA`);
+     * Récupère les statistiques globales des promotions pour un bar
+     * Utilise une fonction RPC optimisée côté base de données
      */
-    async getPromotionStats(promotionId: string): Promise<{
-        totalApplications: number;
+    async getGlobalStats(barId: string): Promise<{
         totalRevenue: number;
         totalDiscount: number;
-        averageDiscount: number;
+        totalApplications: number;
+        roi: number;
     }> {
         try {
-            const { data, error } = await supabase
-                .from('promotion_applications')
-                .select('discount_amount, discounted_price')
-                .eq('promotion_id', promotionId);
+            const { data, error } = await (supabase.rpc as any)('get_bar_global_promotion_stats', { p_bar_id: barId })
+                .single();
 
             if (error) throw error;
 
-            const totalApplications = data?.length || 0;
-            const totalDiscount = data?.reduce((sum, app) => sum + Number(app.discount_amount), 0) || 0;
-            const totalRevenue = data?.reduce((sum, app) => sum + Number(app.discounted_price), 0) || 0;
+            const totalRevenue = Number(data?.total_revenue || 0);
+            const totalDiscount = Number(data?.total_discount || 0);
+
+            // Calcul ROI: (Gain - Coût) / Coût * 100
+            // Ici Gain = CA généré, Coût = Réduction offerte (manque à gagner)
+            // C'est une approximation, le vrai ROI dépendrait de la marge
+            const roi = totalDiscount > 0
+                ? Math.round(((totalRevenue - totalDiscount) / totalDiscount) * 100)
+                : 0;
 
             return {
-                totalApplications,
-                totalRevenue: Math.round(totalRevenue * 100) / 100,
-                totalDiscount: Math.round(totalDiscount * 100) / 100,
-                averageDiscount: totalApplications > 0
-                    ? Math.round((totalDiscount / totalApplications) * 100) / 100
-                    : 0
+                totalRevenue,
+                totalDiscount,
+                totalApplications: Number(data?.total_applications || 0),
+                roi
             };
         } catch (error) {
-            console.error('Erreur récupération stats promotion:', error);
-            throw error;
+            console.error('Erreur stats globales:', error);
+            return { totalRevenue: 0, totalDiscount: 0, totalApplications: 0, roi: 0 };
+        }
+    },
+
+    /**
+     * Récupère les performances par promotion
+     * Utilise une fonction RPC optimisée
+     */
+    async getPromotionsPerformance(barId: string): Promise<any[]> {
+        try {
+            const { data, error } = await (supabase.rpc as any)('get_bar_promotion_stats', { p_bar_id: barId });
+
+            if (error) throw error;
+
+            return (data || []).map((stat: any) => ({
+                id: stat.promotion_id,
+                name: stat.promotion_name,
+                uses: Number(stat.total_applications),
+                revenue: Number(stat.total_revenue),
+                discount: Number(stat.total_discount)
+            }));
+        } catch (error) {
+            console.error('Erreur performance promotions:', error);
+            return [];
         }
     },
 
     /**
      * Active automatiquement les promotions programmées
      * À appeler périodiquement (ex: au démarrage de l'app)
-     * 
-     * @example
-     * await PromotionsService.autoActivateScheduled();
      */
     async autoActivateScheduled(): Promise<void> {
         try {
-            const { error } = await supabase.rpc('auto_activate_scheduled_promotions');
+            const { error } = await (supabase.rpc as any)('auto_activate_scheduled_promotions');
             if (error) throw error;
         } catch (error) {
             console.error('Erreur activation automatique:', error);
-            // Ne pas bloquer l'application
         }
     },
 
     /**
      * Expire automatiquement les promotions dont la date de fin est dépassée
      * À appeler périodiquement (ex: au démarrage de l'app)
-     * 
-     * @example
-     * await PromotionsService.autoExpirePromotions();
      */
     async autoExpirePromotions(): Promise<void> {
         try {
-            const { error } = await supabase.rpc('auto_expire_promotions');
+            const { error } = await (supabase.rpc as any)('auto_expire_promotions');
             if (error) throw error;
         } catch (error) {
             console.error('Erreur expiration automatique:', error);
-            // Ne pas bloquer l'application
         }
     }
 };
