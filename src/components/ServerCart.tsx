@@ -1,11 +1,14 @@
-import React from 'react';
-import { ShoppingCart, Plus, Minus, Trash2, Send } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { ShoppingCart, Plus, Minus, Trash2, Send, Tag } from 'lucide-react';
 import { CartItem } from '../types';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { FeedbackButton } from './FeedbackButton';
 import { EnhancedButton } from './EnhancedButton';
 import { AnimatedCounter } from './AnimatedCounter';
+import { usePromotions } from '../hooks/usePromotions';
+import { useBarContext } from '../context/BarContext';
+import { FEATURES } from '../config/features';
 
 interface ServerCartProps {
   items: CartItem[];
@@ -16,17 +19,37 @@ interface ServerCartProps {
   onClear: () => void;
 }
 
-export function ServerCart({ 
-  items, 
+export function ServerCart({
+  items,
   tableNumber,
-  onUpdateQuantity, 
-  onRemoveItem, 
+  onUpdateQuantity,
+  onRemoveItem,
   onLaunchOrder,
   onClear
 }: ServerCartProps) {
   const { formatPrice } = useCurrencyFormatter();
   const { setLoading, isLoading, showSuccess } = useFeedback();
-  const total = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const { currentBar } = useBarContext();
+  const { calculatePrice, isEnabled: promotionsEnabled } = usePromotions(currentBar?.id);
+
+  // ✨ Calculer total avec promotions
+  const { total, totalDiscount } = useMemo(() => {
+    let finalTotal = 0;
+    let discount = 0;
+
+    items.forEach(item => {
+      if (promotionsEnabled && FEATURES.PROMOTIONS_AUTO_APPLY) {
+        const priceInfo = calculatePrice(item.product, item.quantity);
+        finalTotal += priceInfo.finalPrice;
+        discount += priceInfo.discount;
+      } else {
+        finalTotal += item.product.price * item.quantity;
+      }
+    });
+
+    return { total: finalTotal, totalDiscount: discount };
+  }, [items, calculatePrice, promotionsEnabled]);
+
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   if (items.length === 0) return null;
@@ -63,7 +86,7 @@ export function ServerCart({
                   <Trash2 size={16} />
                 </button>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <button
@@ -80,24 +103,58 @@ export function ServerCart({
                     <Plus size={16} />
                   </button>
                 </div>
-                <span className="text-amber-600 font-semibold">
-                  {formatPrice(item.product.price * item.quantity)}
-                </span>
+
+                {/* Prix avec promotion */}
+                {(() => {
+                  if (promotionsEnabled && FEATURES.PROMOTIONS_AUTO_APPLY) {
+                    const priceInfo = calculatePrice(item.product, item.quantity);
+                    if (priceInfo.hasPromotion) {
+                      return (
+                        <div className="text-right">
+                          <div className="flex items-center gap-1 justify-end mb-1">
+                            <Tag size={12} className="text-green-600" />
+                            <span className="text-xs text-green-600 font-medium">PROMO</span>
+                          </div>
+                          <div className="text-xs text-gray-400 line-through">
+                            {formatPrice(priceInfo.originalPrice)}
+                          </div>
+                          <div className="text-green-600 font-semibold">
+                            {formatPrice(priceInfo.finalPrice)}
+                          </div>
+                        </div>
+                      );
+                    }
+                  }
+                  return (
+                    <span className="text-amber-600 font-semibold">
+                      {formatPrice(item.product.price * item.quantity)}
+                    </span>
+                  );
+                })()}
               </div>
             </div>
           ))}
         </div>
 
         {/* Total */}
+        {totalDiscount > 0 && (
+          <div className="flex justify-between items-center text-green-600 text-sm mb-2">
+            <span className="flex items-center gap-1">
+              <Tag size={14} />
+              Économie:
+            </span>
+            <span className="font-semibold">-{formatPrice(totalDiscount)}</span>
+          </div>
+        )}
         <div className="flex justify-between items-center text-lg font-semibold mb-4 pt-3 border-t border-amber-200">
           <span className="text-gray-800">Total:</span>
-          <AnimatedCounter 
-            value={total} 
-            prefix="FCFA " 
+          <AnimatedCounter
+            value={total}
+            prefix="FCFA "
             className="text-amber-600"
           />
         </div>
-        
+
         {/* Actions */}
         <div className="flex gap-2">
           <EnhancedButton

@@ -9,8 +9,14 @@ export interface SaleItem {
   product_id: string;
   product_name: string;
   quantity: number;
-  unit_price: number;
-  total_price: number;
+  unit_price: number;           // Prix unitaire FINAL (après promo)
+  total_price: number;           // Prix total FINAL (après promo)
+
+  // ✨ NOUVEAU : Champs pour traçabilité des promotions
+  original_unit_price?: number;  // Prix unitaire AVANT promo
+  discount_amount?: number;      // Montant de la réduction TOTALE
+  promotion_id?: string;         // ID de la promotion appliquée
+  promotion_name?: string;       // Nom de la promotion (pour affichage)
 }
 
 export interface CreateSaleData {
@@ -35,54 +41,40 @@ export interface SaleWithDetails extends Sale {
 export class SalesService {
   /**
    * Créer une nouvelle vente
+   * Utilise une fonction RPC atomique pour garantir la cohérence des données
    * Statut initial: 'pending' (nécessite validation gérant)
    */
   static async createSale(data: CreateSaleData & { status?: 'pending' | 'validated' }): Promise<Sale> {
     try {
-      // 1. Calculer les totaux
-      const subtotal = data.items.reduce((sum, item) => sum + (item.total_price || 0), 0);
-      const discount_total = 0; // TODO: Calculer avec les promotions
-      const total = subtotal - discount_total;
-
-      // 2. Déterminer le statut et les champs de validation
       const status = data.status || 'pending';
-      const validationFields = status === 'validated' ? {
-        validated_by: data.sold_by,
-        validated_at: new Date().toISOString(),
-      } : {};
 
-      // 3. Créer la vente
-      const { data: newSale, error: saleError } = await supabase
-        .from('sales')
-        .insert({
-          bar_id: data.bar_id,
-          items: data.items as any,
-          subtotal,
-          discount_total,
-          total,
-          payment_method: data.payment_method,
-          status,
-          created_by: data.sold_by,
-          sold_by: data.sold_by,
-          customer_name: data.customer_name,
-          customer_phone: data.customer_phone,
-          notes: data.notes,
-          ...validationFields
-        })
-        .select()
-        .single();
+      // ✨ Utiliser la fonction RPC atomique pour créer la vente avec promotions
+      const { data: newSale, error: rpcError } = await (supabase.rpc as any)(
+        'create_sale_with_promotions',
+        {
+          p_bar_id: data.bar_id,
+          p_items: data.items,
+          p_payment_method: data.payment_method,
+          p_sold_by: data.sold_by,
+          p_status: status,
+          p_customer_name: data.customer_name,
+          p_customer_phone: data.customer_phone,
+          p_notes: data.notes
+        }
+      ).single();
 
-      if (saleError || !newSale) {
-        throw new Error('Erreur lors de la création de la vente');
+      if (rpcError) {
+        console.error('[SalesService] RPC error:', rpcError);
+        throw new Error(`Erreur lors de la création de la vente: ${rpcError.message}`);
       }
 
-      // 3. Décrémenter le stock pour chaque produit
-      for (const item of data.items) {
-        await ProductsService.decrementStock(item.product_id, item.quantity);
+      if (!newSale) {
+        throw new Error('Erreur lors de la création de la vente: aucune donnée retournée');
       }
 
       return newSale;
     } catch (error: any) {
+      console.error('[SalesService] createSale error:', error);
       throw new Error(handleSupabaseError(error));
     }
   }

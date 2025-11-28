@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ShoppingCart, Plus, Minus, Trash2, X, Users } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { ShoppingCart, Plus, Minus, Trash2, X, Users, Tag } from 'lucide-react';
 import { CartItem } from '../types';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
@@ -7,6 +7,8 @@ import { EnhancedButton } from './EnhancedButton';
 import { useViewport } from '../hooks/useViewport';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
+import { usePromotions } from '../hooks/usePromotions';
+import { FEATURES } from '../config/features';
 
 interface CartProps {
   items: CartItem[];
@@ -34,7 +36,30 @@ export function Cart({
   const { isMobile } = useViewport();
   const { currentBar } = useBarContext();
   const { currentSession } = useAuth();
-  const total = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const { calculatePrice, isEnabled: promotionsEnabled } = usePromotions(currentBar?.id);
+
+  // ✨ Calculer total avec promotions
+  const { total, totalDiscount, totalOriginal } = useMemo(() => {
+    let finalTotal = 0;
+    let discount = 0;
+    let original = 0;
+
+    items.forEach(item => {
+      if (promotionsEnabled && FEATURES.PROMOTIONS_AUTO_APPLY) {
+        const priceInfo = calculatePrice(item.product, item.quantity);
+        finalTotal += priceInfo.finalPrice;
+        discount += priceInfo.discount;
+        original += priceInfo.originalPrice;
+      } else {
+        const itemTotal = item.product.price * item.quantity;
+        finalTotal += itemTotal;
+        original += itemTotal;
+      }
+    });
+
+    return { total: finalTotal, totalDiscount: discount, totalOriginal: original };
+  }, [items, calculatePrice, promotionsEnabled]);
+
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   const [selectedServer, setSelectedServer] = useState<string>('');
@@ -136,10 +161,33 @@ export function Cart({
                           </button>
                         </div>
 
-                        {/* Prix total item */}
-                        <span className="text-amber-600 font-bold text-xl font-mono">
-                          {formatPrice(item.product.price * item.quantity)}
-                        </span>
+                        {/* Prix total item avec promotion */}
+                        {(() => {
+                          if (promotionsEnabled && FEATURES.PROMOTIONS_AUTO_APPLY) {
+                            const priceInfo = calculatePrice(item.product, item.quantity);
+                            if (priceInfo.hasPromotion) {
+                              return (
+                                <div className="text-right">
+                                  <div className="flex items-center gap-2 justify-end">
+                                    <Tag size={14} className="text-green-600" />
+                                    <span className="text-xs text-green-600 font-medium">PROMO</span>
+                                  </div>
+                                  <div className="text-sm text-gray-400 line-through">
+                                    {formatPrice(priceInfo.originalPrice)}
+                                  </div>
+                                  <div className="text-green-600 font-bold text-xl font-mono">
+                                    {formatPrice(priceInfo.finalPrice)}
+                                  </div>
+                                </div>
+                              );
+                            }
+                          }
+                          return (
+                            <span className="text-amber-600 font-bold text-xl font-mono">
+                              {formatPrice(item.product.price * item.quantity)}
+                            </span>
+                          );
+                        })()}
                       </div>
                     </div>
                   ))}
@@ -176,6 +224,15 @@ export function Cart({
                 )}
 
                 {/* Total */}
+                {totalDiscount > 0 && (
+                  <div className="flex justify-between items-center mb-2 text-green-600 text-sm">
+                    <span className="flex items-center gap-1">
+                      <Tag size={14} />
+                      Économie:
+                    </span>
+                    <span className="font-semibold">-{formatPrice(totalDiscount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-gray-900 text-lg font-semibold">Total:</span>
                   <span className="text-amber-600 font-bold text-2xl font-mono">
@@ -251,9 +308,8 @@ export function Cart({
 
       {/* Panel desktop (slide-in from right) */}
       <div
-        className={`fixed bottom-0 right-0 top-0 w-full max-w-md bg-white border-l border-amber-200 shadow-2xl transition-transform duration-300 z-40 ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
+        className={`fixed bottom-0 right-0 top-0 w-full max-w-md bg-white border-l border-amber-200 shadow-2xl transition-transform duration-300 z-40 ${isOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
       >
         <div className="flex flex-col h-full">
           {/* Header */}
