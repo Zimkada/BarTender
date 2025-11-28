@@ -31,12 +31,27 @@ type PeriodType = 'week' | 'month' | 'custom';
 import AnalyticsCharts from './AnalyticsCharts';
 import { AnalyticsService, DailySalesSummary, ExpensesSummary, SalariesSummary } from '../services/supabase/analytics.service';
 import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
+import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
+import { ACCOUNTING_FILTERS, TIME_RANGE_CONFIGS } from '../config/dateFilters';
 
 export function AccountingOverview() {
   const { currentSession } = useAuth();
   const { currentBar } = useBarContext();
   const { formatPrice } = useCurrencyFormatter();
   const { isMobile } = useViewport();
+
+  // ✨ Utiliser le hook de filtrage temporel
+  const {
+    timeRange,
+    setTimeRange,
+    startDate: periodStart,
+    endDate: periodEnd,
+    customRange,
+    updateCustomRange,
+    isCustom
+  } = useDateRangeFilter({
+    defaultRange: 'this_month'
+  });
 
   // ✅ Utiliser AppContext et StockContext (sources uniques)
   const { sales, supplies } = useAppContext();
@@ -46,9 +61,7 @@ export function AccountingOverview() {
   const { consignments } = useStockManagement();
   const { returns, expenses, customExpenseCategories } = useAppContext(); // ✅ Use expenses from AppContext
 
-  const [periodType, setPeriodType] = useState<PeriodType>('month');
   const [periodOffset, setPeriodOffset] = useState(0); // 0 = current, -1 = previous, +1 = next
-  const [customDateRange, setCustomDateRange] = useState({ start: '', end: '' });
   const [expensesExpanded, setExpensesExpanded] = useState(false);
   const [viewMode, setViewMode] = useState<'tresorerie' | 'analytique'>('tresorerie');
   const [showInitialBalanceModal, setShowInitialBalanceModal] = useState(false);

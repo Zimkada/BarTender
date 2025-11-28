@@ -48,13 +48,15 @@ import { getBusinessDay, getCurrentBusinessDay, isSameDay, getBusinessDayDateStr
 import { useStockManagement } from '../hooks/useStockManagement';
 import { getSaleDate } from '../utils/saleHelpers';
 import { AnalyticsService, TopProduct } from '../services/supabase/analytics.service';
+import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
+import { SALES_HISTORY_FILTERS, TIME_RANGE_CONFIGS } from '../config/dateFilters';
+import type { TimeRange } from '../types/dateFilters';
 
 interface EnhancedSalesHistoryProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-type TimeFilter = 'today' | 'week' | 'month' | 'custom';
 type ViewMode = 'list' | 'cards' | 'analytics';
 
 export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryProps) {
@@ -69,6 +71,21 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
   // Récupérer l'heure de clôture (défaut: 6h)
   const closeHour = currentBar?.settings?.businessDayCloseHour ?? 6;
 
+  // ✨ Utiliser le hook de filtrage temporel avec Business Day
+  const {
+    timeRange,
+    setTimeRange,
+    startDate,
+    endDate,
+    customRange,
+    updateCustomRange,
+    isCustom
+  } = useDateRangeFilter({
+    defaultRange: 'today',
+    includeBusinessDay: true,
+    closeHour
+  });
+
   // Protection: s'assurer que tous les tableaux sont définis
   const safeBarMembers = barMembers || [];
   // Derive users from barMembers for backward compatibility with child components
@@ -78,15 +95,10 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
       .filter((u): u is User => !!u);
   }, [safeBarMembers]);
 
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>('today');
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [exportFormat, setExportFormat] = useState<'csv' | 'excel'>('excel');
-  const [customDateRange, setCustomDateRange] = useState({
-    start: new Date().toISOString().split('T')[0],
-    end: new Date().toISOString().split('T')[0]
-  });
 
   // SQL Analytics State
   const [topProductsData, setTopProductsData] = useState<TopProduct[]>([]);
@@ -99,48 +111,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
     const loadTopProducts = async () => {
       setIsLoadingTopProducts(true);
       try {
-        let startDate: Date;
-        let endDate: Date;
-
-        const today = new Date();
-        switch (timeFilter) {
-          case 'today': {
-            const businessDay = getCurrentBusinessDay(closeHour);
-            startDate = businessDay;
-            endDate = new Date();
-            break;
-          }
-          case 'week': {
-            const currentDay = today.getDay();
-            const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
-            const monday = new Date();
-            monday.setDate(monday.getDate() - daysFromMonday);
-            monday.setHours(0, 0, 0, 0);
-            startDate = monday;
-            const sunday = new Date(monday);
-            sunday.setDate(monday.getDate() + 6);
-            sunday.setHours(23, 59, 59, 999);
-            endDate = sunday;
-            break;
-          }
-          case 'month': {
-            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-            firstDay.setHours(0, 0, 0, 0);
-            startDate = firstDay;
-            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-            lastDay.setHours(23, 59, 59, 999);
-            endDate = lastDay;
-            break;
-          }
-          case 'custom': {
-            startDate = new Date(customDateRange.start);
-            startDate.setHours(0, 0, 0, 0);
-            endDate = new Date(customDateRange.end);
-            endDate.setHours(23, 59, 59, 999);
-            break;
-          }
-        }
-
+        // ✨ Utiliser directement startDate et endDate du hook
         const products = await AnalyticsService.getTopProducts(currentBar.id, startDate, endDate, 5);
         setTopProductsData(products);
       } catch (error) {
@@ -152,7 +123,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
     };
 
     loadTopProducts();
-  }, [currentBar, timeFilter, customDateRange, closeHour, isOpen]);
+  }, [currentBar, startDate, endDate, isOpen]);
 
   // Filtrage des ventes
   const filteredSales = useMemo(() => {
@@ -169,64 +140,16 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
       }
     });
 
-    // 2. Appliquer les filtres de date et de recherche sur la liste pré-filtrée
-    let filtered = baseSales;
+    // 2. Appliquer le filtre de date (utiliser startDate et endDate du hook)
+    const filtered = baseSales.filter(sale => {
+      const saleDate = getSaleDate(sale);
+      return saleDate >= startDate && saleDate <= endDate;
+    });
 
-    // Filtre par date avec logique journée commerciale
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    switch (timeFilter) {
-      case 'today': {
-        const currentBusinessDay = getCurrentBusinessDay(closeHour);
-        filtered = baseSales.filter(sale => {
-          const saleDate = getSaleDate(sale);
-          const saleBusinessDay = getBusinessDay(saleDate, closeHour);
-          return isSameDay(saleBusinessDay, currentBusinessDay);
-        });
-        break;
-      }
-      case 'week': {
-        const currentDay = today.getDay();
-        const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
-        const monday = new Date(today);
-        monday.setDate(monday.getDate() - daysFromMonday);
-        monday.setHours(0, 0, 0, 0);
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
-        sunday.setHours(23, 59, 59, 999);
-        filtered = baseSales.filter(sale => {
-          const saleDate = getSaleDate(sale);
-          return saleDate >= monday && saleDate <= sunday;
-        });
-        break;
-      }
-      case 'month': {
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        firstDayOfMonth.setHours(0, 0, 0, 0);
-        const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        lastDayOfMonth.setHours(23, 59, 59, 999);
-        filtered = baseSales.filter(sale => {
-          const saleDate = getSaleDate(sale);
-          return saleDate >= firstDayOfMonth && saleDate <= lastDayOfMonth;
-        });
-        break;
-      }
-      case 'custom': {
-        const startDate = new Date(customDateRange.start);
-        const endDate = new Date(customDateRange.end);
-        endDate.setDate(endDate.getDate() + 1);
-        filtered = baseSales.filter(sale => {
-          const saleDate = getSaleDate(sale);
-          return saleDate >= startDate && saleDate < endDate;
-        });
-        break;
-      }
-    }
-
-    // Filtre par recherche
+    // 3. Filtre par recherche
+    let finalFiltered = filtered;
     if (searchTerm) {
-      filtered = filtered.filter(sale =>
+      finalFiltered = filtered.filter(sale =>
         sale.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         sale.items.some((item: SaleItem) => {
           const name = item.product_name;
@@ -235,8 +158,8 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
       );
     }
 
-    return filtered.sort((a, b) => getSaleDate(b).getTime() - getSaleDate(a).getTime());
-  }, [sales, timeFilter, searchTerm, customDateRange, currentSession, closeHour]);
+    return finalFiltered.sort((a, b) => getSaleDate(b).getTime() - getSaleDate(a).getTime());
+  }, [sales, startDate, endDate, searchTerm, currentSession]);
 
   // Filtrage des consignations par période
   const filteredConsignments = useMemo(() => {
@@ -751,39 +674,34 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
 
                   {/* Filtres période horizontaux */}
                   <div className="flex gap-2 overflow-x-auto pb-2 mb-3">
-                    {[
-                      { value: 'today', label: "Aujourd'hui" },
-                      { value: 'week', label: '7 jours' },
-                      { value: 'month', label: '30 jours' },
-                      { value: 'custom', label: 'Personnalisée' }
-                    ].map(filter => (
+                    {SALES_HISTORY_FILTERS.map(filter => (
                       <button
-                        key={filter.value}
-                        onClick={() => setTimeFilter(filter.value as TimeFilter)}
-                        className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium transition-colors ${timeFilter === filter.value
+                        key={filter}
+                        onClick={() => setTimeRange(filter)}
+                        className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium transition-colors ${timeRange === filter
                           ? 'bg-amber-500 text-white'
                           : 'bg-white text-gray-700'
                           }`}
                       >
-                        {filter.label}
+                        {TIME_RANGE_CONFIGS[filter].label}
                       </button>
                     ))}
                   </div>
 
                   {/* Date range personnalisée */}
-                  {timeFilter === 'custom' && (
+                  {isCustom && (
                     <div className="flex gap-2 mb-3">
                       <input
                         type="date"
-                        value={customDateRange.start}
-                        onChange={(e) => setCustomDateRange(prev => ({ ...prev, start: e.target.value }))}
+                        value={customRange.start}
+                        onChange={(e) => updateCustomRange('start', e.target.value)}
                         className="flex-1 p-2 border border-amber-200 rounded-lg bg-white text-sm"
                         placeholder="Début"
                       />
                       <input
                         type="date"
-                        value={customDateRange.end}
-                        onChange={(e) => setCustomDateRange(prev => ({ ...prev, end: e.target.value }))}
+                        value={customRange.end}
+                        onChange={(e) => updateCustomRange('end', e.target.value)}
                         className="flex-1 p-2 border border-amber-200 rounded-lg bg-white text-sm"
                         placeholder="Fin"
                       />
