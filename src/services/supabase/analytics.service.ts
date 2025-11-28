@@ -33,8 +33,12 @@ export interface TopProduct {
     product_name: string;
     product_volume: string;
     transaction_count: number;
-    total_quantity: number;
-    total_revenue: number;
+    total_quantity: number;       // NET (Ventes - Retours)
+    total_revenue: number;        // NET (Ventes - Retours)
+    total_quantity_gross?: number; // Brut
+    total_revenue_gross?: number;  // Brut
+    total_quantity_returned?: number;
+    total_refunded?: number;
     avg_unit_price: number;
 }
 
@@ -155,7 +159,7 @@ export const AnalyticsService = {
         const summaries = await this.getDailySummary(barId, startDate, endDate);
 
         return {
-            totalRevenue: summaries.reduce((sum, s) => sum + s.gross_revenue, 0),
+            totalRevenue: summaries.reduce((sum, s) => sum + (s.net_revenue || 0), 0),
             totalSales: summaries.reduce((sum, s) => sum + s.validated_count, 0),
             avgBasketValue: summaries.length > 0
                 ? summaries.reduce((sum, s) => sum + s.avg_basket_value, 0) / summaries.length

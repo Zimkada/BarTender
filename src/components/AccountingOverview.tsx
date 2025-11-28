@@ -157,17 +157,7 @@ export function AccountingOverview() {
 
   if (!currentBar || !currentSession) return null;
 
-  // Calculate sales revenue (using SQL Stats)
-  const salesRevenue = useMemo(() => {
-    const total = periodStats.reduce((sum, day) => sum + (day.gross_revenue || 0), 0);
-    return isNaN(total) || !isFinite(total) ? 0 : total;
-  }, [periodStats]);
 
-  // ✨ Calculate returns refunds (using SQL data from daily_sales_summary)
-  const returnsRefunds = useMemo(() => {
-    const total = periodStats.reduce((sum, day) => sum + (day.refunds_total || 0), 0);
-    return isNaN(total) || !isFinite(total) ? 0 : total;
-  }, [periodStats]);
 
   // ✨ Calculate expenses (using SQL data from expenses_summary)
   const expensesCosts = useMemo(() => {
@@ -203,7 +193,11 @@ export function AccountingOverview() {
   const totalCosts = expensesCosts + salariesCosts;
 
   // CALCULATIONS - Period
-  const totalRevenue = salesRevenue - returnsRefunds; // CA NET = Ventes - Retours remboursés
+  // ✨ Use SQL Net Revenue directly (DRY)
+  const totalRevenue = useMemo(() => {
+    const total = periodStats.reduce((sum, day) => sum + (day.net_revenue || 0), 0);
+    return isNaN(total) || !isFinite(total) ? 0 : total;
+  }, [periodStats]);
 
   // ✨ Operating expenses (using SQL data)
   const operatingExpenses = useMemo(() => {
@@ -239,18 +233,8 @@ export function AccountingOverview() {
     const prevPeriodStart = new Date(prevPeriodDate.getFullYear(), prevPeriodDate.getMonth(), 1);
     const prevPeriodEnd = new Date(prevPeriodDate.getFullYear(), prevPeriodDate.getMonth() + 1, 0);
 
-    const prevSalesRevenue = prevPeriodStats.reduce((sum, day) => sum + (day.gross_revenue || 0), 0);
-
-    const prevReturnsRefunds = returns
-      .filter(ret => {
-        const retDate = new Date(ret.returnedAt);
-        if (ret.status !== 'approved' && ret.status !== 'restocked') return false;
-        if (!ret.isRefunded) return false;
-        return retDate >= prevPeriodStart && retDate <= prevPeriodEnd;
-      })
-      .reduce((sum, ret) => sum + (ret.refundAmount || 0), 0);
-
-    const prevTotalRevenue = prevSalesRevenue - prevReturnsRefunds;
+    // ✨ Use SQL Net Revenue directly for previous period (DRY)
+    const prevTotalRevenue = prevPeriodStats.reduce((sum, day) => sum + (day.net_revenue || 0), 0);
 
     // 2. KPI Calculations
     const revenueGrowth = prevTotalRevenue > 0 ? ((totalRevenue - prevTotalRevenue) / prevTotalRevenue) * 100 : 0;
@@ -332,17 +316,9 @@ export function AccountingOverview() {
     // ✅ 2. Add capital contributions before period
     const previousCapitalContributions = capitalContributionsHook.getTotalContributions(periodStart);
 
-    // 3. Sum all sales before period (Using SQL Stats)
-    const previousSales = historicalRevenue;
-
-    // 3. Sum all returns before period
-    const previousReturns = returns
-      .filter(ret => {
-        if (ret.status !== 'approved' && ret.status !== 'restocked') return false;
-        if (!ret.isRefunded) return false;
-        return new Date(ret.returnedAt) < periodStart;
-      })
-      .reduce((sum, ret) => sum + ret.refundAmount, 0);
+    // 3. Sum all sales before period (Using SQL Stats - NET REVENUE)
+    // historicalRevenue is now NET (updated in AnalyticsService)
+    const previousRevenue = historicalRevenue;
 
     // 4. Sum all expenses before period
     const previousExpenses = expenses
@@ -354,7 +330,7 @@ export function AccountingOverview() {
       .filter(sal => new Date(sal.paidAt) < periodStart)
       .reduce((sum, sal) => sum + sal.amount, 0);
 
-    const previousRevenue = previousSales - previousReturns;
+
     const previousCosts = previousExpenses + previousSalaries;
 
     // ✅ Total = Solde initial + Apports capital + (Revenus - Coûts) des périodes antérieures
@@ -368,16 +344,8 @@ export function AccountingOverview() {
     const initialBalanceAmount = initialBalanceHook.getInitialBalanceAmount();
     const previousCapitalContributions = capitalContributionsHook.getTotalContributions(periodStart);
 
-    // 3. Sum all sales before period (Using SQL Stats)
-    const previousSales = historicalRevenue;
-
-    const previousReturns = returns
-      .filter(ret => {
-        if (ret.status !== 'approved' && ret.status !== 'restocked') return false;
-        if (!ret.isRefunded) return false;
-        return new Date(ret.returnedAt) < periodStart;
-      })
-      .reduce((sum, ret) => sum + ret.refundAmount, 0);
+    // 3. Sum all sales before period (Using SQL Stats - NET REVENUE)
+    const previousRevenue = historicalRevenue;
 
     const previousExpenses = expenses
       .filter(exp => new Date(exp.date) < periodStart)
@@ -387,7 +355,7 @@ export function AccountingOverview() {
       .filter(sal => new Date(sal.paidAt) < periodStart)
       .reduce((sum, sal) => sum + sal.amount, 0);
 
-    const activityResult = (previousSales - previousReturns) - (previousExpenses + previousSalaries);
+    const activityResult = previousRevenue - (previousExpenses + previousSalaries);
 
     return {
       initialBalance: initialBalanceAmount,

@@ -387,10 +387,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
     return { totalRevenue, totalItems, kpiValue, kpiLabel, topProducts };
   }, [filteredSales, returns, timeRange, customRange, closeHour, topProductsData]);
 
-  // Export des données
   const exportSales = () => {
-    console.log('🔄 Export déclenché - Format:', exportFormat);
-    console.log('📊 Ventes filtrées:', filteredSales.length);
 
     // Préparer les données avec la nouvelle structure: lignes pour ventes + lignes pour retours
     const exportData: any[] = [];
@@ -540,15 +537,13 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
 
     const fileName = `ventes_${new Date().toISOString().split('T')[0]}`;
 
-    console.log('📦 Données export:', exportData.length, 'lignes');
+
+
 
     if (exportData.length === 0) {
-      console.warn('⚠️ Aucune donnée à exporter');
       alert('Aucune donnée à exporter pour la période sélectionnée');
       return;
     }
-
-    console.log('💾 Export en cours...', exportFormat);
 
     if (exportFormat === 'excel') {
       // Export Excel
@@ -578,7 +573,6 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
 
       try {
         XLSX.writeFile(workbook, `${fileName}.xlsx`);
-        console.log('✅ Export Excel réussi:', `${fileName}.xlsx`);
       } catch (error) {
         console.error('❌ Erreur export Excel:', error);
         alert(`Erreur lors de l'export Excel: ${error}`);
@@ -1058,7 +1052,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                     {/* Contenu ventes */}
                     <div className="flex-1 overflow-y-auto p-4">
                       {(() => {
-                        console.log('🔄 SalesHistory - Mode actuel:', viewMode, '| Ventes filtrées:', filteredSales.length);
+
 
                         if (filteredSales.length === 0) {
                           return (
@@ -1071,7 +1065,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                         }
 
                         if (viewMode === 'cards') {
-                          console.log('📋 Affichage mode Cartes');
+
                           return (
                             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                               {filteredSales.map(sale => (
@@ -1089,7 +1083,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                         }
 
                         if (viewMode === 'list') {
-                          console.log('📝 Affichage mode Liste');
+
                           return (
                             <SalesList
                               sales={filteredSales}
@@ -1101,7 +1095,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                           );
                         }
 
-                        console.log('📊 Affichage mode Analytics avec', filteredSales.length, 'ventes');
+
                         return (
                           <AnalyticsView
                             sales={filteredSales}
@@ -1676,13 +1670,6 @@ function AnalyticsView({
       }
     }
 
-    console.log('🔍 Performance équipe - Analyse:', {
-      nbVentes: performanceSales.length,
-      nbRetours: returns.length,
-      nbUsers: safeUsers.length,
-      nbBarMembers: safeBarMembers.length,
-      ventes: performanceSales.map(s => ({ id: s.id.slice(-6), createdBy: s.createdBy, assignedTo: s.assignedTo }))
-    });
 
     // 1. Ajouter les ventes (FILTÉES par période)
     performanceSales.forEach(sale => {
@@ -1716,7 +1703,7 @@ function AnalyticsView({
         // Mode complet - utiliser createdBy (userId)
         const user = safeUsers.find(u => u.id === sale.createdBy);
         if (!user) {
-          console.log('⚠️ Utilisateur non trouvé pour vente:', sale.id.slice(-6), 'createdBy:', sale.createdBy);
+
           return;
         }
 
@@ -1787,26 +1774,15 @@ function AnalyticsView({
       // ✅ IMPORTANT: Chercher dans performanceSales (même période)
       const originalSale = performanceSales.find(s => s.id === ret.saleId);
       if (!originalSale) {
-        console.log('⚠️ Vente originale non trouvée pour retour:', ret.id.slice(-6), 'saleId:', ret.saleId);
+
         return; // Vente hors période, ignorer
       }
 
       const identifier = originalSale.assignedTo || originalSale.createdBy;
 
-      console.log('🔍 Retour déduction:', {
-        retourId: ret.id.slice(-6),
-        montant: ret.refundAmount,
-        venteOriginale: originalSale.id.slice(-6),
-        assignedTo: originalSale.assignedTo,
-        createdBy: originalSale.createdBy,
-        identifierUtilisé: identifier,
-        existeDansStats: !!userStats[identifier],
-        statsKeys: Object.keys(userStats)
-      });
 
       if (userStats[identifier]) {
         userStats[identifier].revenue -= ret.refundAmount;
-        console.log('✅ Déduit', ret.refundAmount, 'FCFA du CA de', identifier);
       } else {
         console.warn('❌ Identifier non trouvé dans userStats:', identifier);
       }
@@ -1920,7 +1896,6 @@ function AnalyticsView({
 
   // Message si pas de données
   if (sales.length === 0) {
-    console.log('⚠️ AnalyticsView - Aucune vente, affichage message vide');
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <BarChart3 size={64} className="text-gray-300 mb-4" />
@@ -1930,10 +1905,6 @@ function AnalyticsView({
     );
   }
 
-  console.log('✅ AnalyticsView - Rendu du tableau de bord avec', sales.length, 'ventes');
-  console.log('📊 KPIs:', kpis);
-  console.log('📈 CategoryData:', categoryData);
-  console.log('👥 UserPerformance:', userPerformance);
 
   return (
     <div className="space-y-4">

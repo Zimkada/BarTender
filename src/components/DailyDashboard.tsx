@@ -132,25 +132,24 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
 
       // Fetch top 100 products to calculate total items accurately
       AnalyticsService.getTopProducts(currentBar.id, start, end, 100).then(products => {
-        console.log('🔍 DEBUG Top Products Query:', {
-          startDate: start.toISOString(),
-          endDate: end.toISOString(),
-          productsCount: products.length,
-          products: products.map(p => ({
-            name: p.product_name,
-            volume: p.product_volume,
-            date: p.sale_date,
-            qty: p.total_quantity
-          }))
-        });
         setTopProductsData(products);
       });
     }
   }, [isOpen, currentBar]);
 
   const todayValidatedSales = getTodaySales();
-  // Use SQL stats if available, otherwise fallback to context
-  const todayTotal = todayStats ? todayStats.gross_revenue : getTodayTotal();
+
+  // 🔒 SERVEURS : Ne voir que les retours de LEURS ventes (même logique que getTodayTotal)
+  const todaySaleIds = useMemo(() => new Set(todayValidatedSales.map(s => s.id)), [todayValidatedSales]);
+  const todayReturns = returns.filter(r =>
+    new Date(r.returnedAt).toDateString() === new Date().toDateString() &&
+    (currentSession?.role !== 'serveur' || todaySaleIds.has(r.saleId))
+  );
+  const todayReturnsCount = todayReturns.length;
+  const todayReturnsRefunded = todayReturns.filter(r => r.isRefunded && (r.status === 'approved' || r.status === 'restocked')).reduce((sum, r) => sum + r.refundAmount, 0);
+
+  // Use SQL stats if available (NET REVENUE), otherwise fallback to context (Gross - Refunds)
+  const todayTotal = todayStats ? todayStats.net_revenue : (getTodayTotal() - todayReturnsRefunded);
 
   const pendingSales = useMemo(() => {
     const isManager = currentSession?.role === 'gerant' || currentSession?.role === 'promoteur';
@@ -172,7 +171,7 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
     : todayValidatedSales.reduce((sum, sale) => sum + sale.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
 
   const avgSaleValue = todayStats
-    ? (todayStats.validated_count > 0 ? todayStats.gross_revenue / todayStats.validated_count : 0)
+    ? (todayStats.validated_count > 0 ? todayStats.net_revenue / todayStats.validated_count : 0)
     : (todayValidatedSales.length > 0 ? todayTotal / todayValidatedSales.length : 0);
 
   // Top products list - Filter for TODAY only (SQL may return multi-day data)
@@ -198,14 +197,7 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
       return acc;
     }, {} as Record<string, number>)).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
-  // 🔒 SERVEURS : Ne voir que les retours de LEURS ventes (même logique que getTodayTotal)
-  const todaySaleIds = useMemo(() => new Set(todayValidatedSales.map(s => s.id)), [todayValidatedSales]);
-  const todayReturns = returns.filter(r =>
-    new Date(r.returnedAt).toDateString() === new Date().toDateString() &&
-    (currentSession?.role !== 'serveur' || todaySaleIds.has(r.saleId))
-  );
-  const todayReturnsCount = todayReturns.length;
-  const todayReturnsRefunded = todayReturns.filter(r => r.isRefunded && (r.status === 'approved' || r.status === 'restocked')).reduce((sum, r) => sum + r.refundAmount, 0);
+
 
   const activeConsignments = useMemo(() => {
     const allActive = consignments.filter(c => c.status === 'active');

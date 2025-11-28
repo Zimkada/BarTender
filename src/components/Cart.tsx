@@ -170,9 +170,9 @@ export function Cart({
                                 <div className="text-right">
                                   <div className="flex items-center gap-2 justify-end">
                                     <Tag size={14} className="text-green-600" />
-                                    <span className="text-xs text-green-600 font-medium">PROMO</span>
+                                    <span className="text-sm text-green-600 font-semibold">PROMO</span>
                                   </div>
-                                  <div className="text-sm text-gray-400 line-through">
+                                  <div className="text-base text-gray-400 line-through">
                                     {formatPrice(priceInfo.originalPrice)}
                                   </div>
                                   <div className="text-green-600 font-bold text-xl font-mono">
