@@ -17,9 +17,10 @@ import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { EnhancedButton } from './EnhancedButton';
-import { Product, CartItem } from '../types';
+import { Product, CartItem, Promotion } from '../types';
 import { useViewport } from '../hooks/useViewport';
 import { ProductGrid } from './ProductGrid';
+import { PromotionsService } from '../services/supabase/promotions.service';
 
 interface QuickSaleFlowProps {
   isOpen: boolean;
@@ -47,13 +48,25 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCartMobile, setShowCartMobile] = useState(false);
+  const [activePromotions, setActivePromotions] = useState<Promotion[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
+    if (isOpen) {
+      searchInputRef.current?.focus();
+      loadActivePromotions();
     }
   }, [isOpen]);
+
+  const loadActivePromotions = async () => {
+    if (!currentBar?.id) return;
+    try {
+      const promos = await PromotionsService.getActivePromotions(currentBar.id);
+      setActivePromotions(promos);
+    } catch (error) {
+      console.error('Erreur chargement promotions:', error);
+    }
+  };
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -88,23 +101,48 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     };
   });
 
+  const calculateItemWithPromo = (product: Product, quantity: number): CartItem => {
+    const applicablePromos = activePromotions.filter(p =>
+      p.targetType === 'all' ||
+      (p.targetType === 'product' && p.targetProductIds?.includes(product.id)) ||
+      (p.targetType === 'category' && p.targetCategoryIds?.includes(product.categoryId))
+    );
+
+    const priceInfo = PromotionsService.calculateBestPrice(
+      product,
+      quantity,
+      applicablePromos
+    );
+
+    return {
+      product,
+      quantity,
+      originalPrice: product.price,
+      discountAmount: priceInfo.discount,
+      promotionId: priceInfo.appliedPromotion?.id
+    };
+  };
+
   const quickAddToCart = (product: Product, quantity = 1) => {
     const stockInfo = getProductStockInfo(product.id);
     const availableStock = stockInfo?.availableStock ?? 0;
     if (availableStock < quantity) return;
 
     const existingItem = cart.find(item => item.product.id === product.id);
+    let newCart: CartItem[];
 
     if (existingItem) {
-      setCart(cart.map(item =>
+      const newQuantity = Math.min(existingItem.quantity + quantity, availableStock);
+      newCart = cart.map(item =>
         item.product.id === product.id
-          ? { ...item, quantity: Math.min(item.quantity + quantity, availableStock) }
+          ? calculateItemWithPromo(product, newQuantity)
           : item
-      ));
+      );
     } else {
-      setCart([...cart, { product, quantity }]);
+      newCart = [...cart, calculateItemWithPromo(product, quantity)];
     }
 
+    setCart(newCart);
     setSearchTerm('');
     if (!isMobile) {
       searchInputRef.current?.focus();
@@ -118,15 +156,22 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     if (newQuantity === 0) {
       setCart(cart.filter(item => item.product.id !== productId));
     } else {
-      setCart(cart.map(item =>
-        item.product.id === productId
-          ? { ...item, quantity: Math.min(newQuantity, availableStock) }
-          : item
+      const item = cart.find(i => i.product.id === productId);
+      if (!item) return;
+
+      const validQuantity = Math.min(newQuantity, availableStock);
+      setCart(cart.map(cartItem =>
+        cartItem.product.id === productId
+          ? calculateItemWithPromo(cartItem.product, validQuantity)
+          : cartItem
       ));
     }
   };
 
-  const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const total = cart.reduce((sum, item) => {
+    const itemTotal = (item.product.price * item.quantity) - (item.discountAmount || 0);
+    return sum + itemTotal;
+  }, 0);
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleCheckout = async () => {
@@ -150,30 +195,41 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
 
       const isServerRole = currentSession.role === 'serveur';
 
-      if (isServerRole) {
-        await addSale({
-          items: cart,
-          total,
-          currency: settings.currency,
-          status: 'pending',
-          paymentMethod: 'cash',
-          createdBy: currentSession.userId,
-          createdAt: new Date(),
-          assignedTo: isSimplifiedMode ? selectedServer : undefined,
-        } as any);
-      } else {
-        await addSale({
-          items: cart,
-          total,
-          currency: settings.currency,
-          status: 'validated',
-          paymentMethod: 'cash',
-          createdBy: currentSession.userId,
+      // 1. Créer la vente
+      const saleData = {
+        items: cart,
+        total,
+        currency: settings.currency,
+        status: isServerRole ? 'pending' : 'validated',
+        paymentMethod: 'cash',
+        createdBy: currentSession.userId,
+        createdAt: new Date(),
+        assignedTo: isSimplifiedMode ? selectedServer : undefined,
+        ...(isServerRole ? {} : {
           validatedBy: currentSession.userId,
-          createdAt: new Date(),
           validatedAt: new Date(),
-          assignedTo: isSimplifiedMode ? selectedServer : undefined,
-        } as any);
+        })
+      };
+
+      const newSale = await addSale(saleData as any);
+
+      // 2. Enregistrer les applications de promotion (si vente créée avec succès)
+      if (newSale && newSale.id) {
+        for (const item of cart) {
+          if (item.promotionId && item.discountAmount && item.discountAmount > 0) {
+            await PromotionsService.recordApplication({
+              barId: currentBar.id,
+              promotionId: item.promotionId,
+              saleId: newSale.id,
+              productId: item.product.id,
+              quantitySold: item.quantity,
+              originalPrice: item.product.price * item.quantity,
+              discountedPrice: (item.product.price * item.quantity) - item.discountAmount,
+              discountAmount: item.discountAmount,
+              appliedBy: currentSession.userId
+            });
+          }
+        }
       }
 
       setShowSuccess(true);
@@ -367,131 +423,138 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                                   <Plus size={16} />
                                 </button>
                               </div>
-                              <span className="text-amber-600 font-bold text-base">
-                                {formatPrice(item.product.price * item.quantity)}
+                            </div>
+                            <div className="text-right">
+                              {item.discountAmount && item.discountAmount > 0 && (
+                                <div className="text-xs text-gray-400 line-through">
+                                  {formatPrice(item.product.price * item.quantity)}
+                                </div>
+                              )}
+                              <span className={`${item.discountAmount ? 'text-green-600' : 'text-amber-600'} font-bold text-base`}>
+                                {formatPrice((item.product.price * item.quantity) - (item.discountAmount || 0))}
                               </span>
                             </div>
                           </div>
                         ))}
+                      </div>
 
-                        <div className="pt-4">
-                          <button
-                            onClick={() => setShowPaymentMethod(!showPaymentMethod)}
-                            className="w-full flex items-center justify-between px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-left transition-colors hover:bg-amber-100"
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="text-2xl">
-                                {paymentMethod === 'cash' ? '💵' : paymentMethod === 'card' ? '💳' : '📱'}
-                              </span>
-                              <div>
-                                <div className="text-xs text-gray-600">Mode de paiement</div>
-                                <div className="font-medium text-gray-800">
-                                  {paymentMethod === 'cash' ? 'Espèces' : paymentMethod === 'card' ? 'Carte' : 'Mobile'}
-                                </div>
+                      <div className="pt-4">
+                        <button
+                          onClick={() => setShowPaymentMethod(!showPaymentMethod)}
+                          className="w-full flex items-center justify-between px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-left transition-colors hover:bg-amber-100"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl">
+                              {paymentMethod === 'cash' ? '💵' : paymentMethod === 'card' ? '💳' : '📱'}
+                            </span>
+                            <div>
+                              <div className="text-xs text-gray-600">Mode de paiement</div>
+                              <div className="font-medium text-gray-800">
+                                {paymentMethod === 'cash' ? 'Espèces' : paymentMethod === 'card' ? 'Carte' : 'Mobile'}
                               </div>
                             </div>
-                            <motion.div
-                              animate={{ rotate: showPaymentMethod ? 180 : 0 }}
-                              transition={{ duration: 0.2 }}
-                              className="text-amber-500"
-                            >
-                              ▼
-                            </motion.div>
-                          </button>
-
-                          <AnimatePresence>
-                            {showPaymentMethod && (
-                              <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="overflow-hidden"
-                              >
-                                <div className="grid grid-cols-3 gap-2 mt-2">
-                                  {[
-                                    { value: 'cash', label: 'Espèces', icon: '💵' },
-                                    { value: 'card', label: 'Carte', icon: '💳' },
-                                    { value: 'mobile', label: 'Mobile', icon: '📱' }
-                                  ].map(method => (
-                                    <button
-                                      key={method.value}
-                                      onClick={() => {
-                                        setPaymentMethod(method.value as any);
-                                        setShowPaymentMethod(false);
-                                      }}
-                                      className={`p-3 text-sm rounded-xl border-2 transition-colors ${paymentMethod === method.value
-                                        ? 'border-amber-500 bg-amber-50 text-amber-700'
-                                        : 'border-gray-200 bg-white text-gray-600'
-                                        }`}
-                                    >
-                                      <div className="text-center">
-                                        <div className="text-2xl mb-1">{method.icon}</div>
-                                        <div className="font-medium">{method.label}</div>
-                                      </div>
-                                    </button>
-                                  ))}
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-
-                        {currentBar?.settings?.operatingMode === 'simplified' && (
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                              <Users size={16} className="text-amber-500" />
-                              Serveur qui a servi
-                            </label>
-                            <select
-                              value={selectedServer}
-                              onChange={(e) => setSelectedServer(e.target.value)}
-                              className="w-full px-4 py-3 border border-amber-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-base"
-                            >
-                              <option value="">Sélectionner un serveur...</option>
-                              <option value={`Moi (${currentSession?.userName})`}>
-                                Moi ({currentSession?.userName})
-                              </option>
-                              {currentBar?.settings?.serversList?.map((serverName) => (
-                                <option key={serverName} value={serverName}>
-                                  {serverName}
-                                </option>
-                              ))}
-                            </select>
                           </div>
-                        )}
+                          <motion.div
+                            animate={{ rotate: showPaymentMethod ? 180 : 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="text-amber-500"
+                          >
+                            ▼
+                          </motion.div>
+                        </button>
 
-                        <input
-                          type="text"
-                          placeholder="Client (optionnel)"
-                          value={customerInfo}
-                          onChange={(e) => setCustomerInfo(e.target.value)}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl"
-                        />
+                        <AnimatePresence>
+                          {showPaymentMethod && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="grid grid-cols-3 gap-2 mt-2">
+                                {[
+                                  { value: 'cash', label: 'Espèces', icon: '💵' },
+                                  { value: 'card', label: 'Carte', icon: '💳' },
+                                  { value: 'mobile', label: 'Mobile', icon: '📱' }
+                                ].map(method => (
+                                  <button
+                                    key={method.value}
+                                    onClick={() => {
+                                      setPaymentMethod(method.value as any);
+                                      setShowPaymentMethod(false);
+                                    }}
+                                    className={`p-3 text-sm rounded-xl border-2 transition-colors ${paymentMethod === method.value
+                                      ? 'border-amber-500 bg-amber-50 text-amber-700'
+                                      : 'border-gray-200 bg-white text-gray-600'
+                                      }`}
+                                  >
+                                    <div className="text-center">
+                                      <div className="text-2xl mb-1">{method.icon}</div>
+                                      <div className="font-medium">{method.label}</div>
+                                    </div>
+                                  </button>
+                                ))}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
 
-                      <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-white space-y-3">
-                        <div className="flex items-center justify-between bg-amber-50 rounded-xl p-4">
-                          <span className="text-gray-700 font-semibold">Total</span>
-                          <span className="text-amber-600 font-bold text-xl">{formatPrice(total)}</span>
+                      {currentBar?.settings?.operatingMode === 'simplified' && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                            <Users size={16} className="text-amber-500" />
+                            Serveur qui a servi
+                          </label>
+                          <select
+                            value={selectedServer}
+                            onChange={(e) => setSelectedServer(e.target.value)}
+                            className="w-full px-4 py-3 border border-amber-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-base"
+                          >
+                            <option value="">Sélectionner un serveur...</option>
+                            <option value={`Moi (${currentSession?.userName})`}>
+                              Moi ({currentSession?.userName})
+                            </option>
+                            {currentBar?.settings?.serversList?.map((serverName) => (
+                              <option key={serverName} value={serverName}>
+                                {serverName}
+                              </option>
+                            ))}
+                          </select>
                         </div>
+                      )}
 
-                        <EnhancedButton
-                          variant="success"
-                          size="lg"
-                          onClick={() => {
-                            setShowCartMobile(false);
-                            handleCheckout();
-                          }}
-                          loading={isProcessing}
-                          success={showSuccess}
-                          className="w-full"
-                          icon={showSuccess ? <Check size={20} /> : <CreditCard size={20} />}
-                          hapticFeedback={true}
-                        >
-                          {showSuccess ? 'Vente finalisée !' : 'Finaliser la vente'}
-                        </EnhancedButton>
+                      <input
+                        type="text"
+                        placeholder="Client (optionnel)"
+                        value={customerInfo}
+                        onChange={(e) => setCustomerInfo(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl"
+                      />
+                    </div>
+
+                    <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-white space-y-3">
+                      <div className="flex items-center justify-between bg-amber-50 rounded-xl p-4">
+                        <span className="text-gray-700 font-semibold">Total</span>
+                        <span className="text-amber-600 font-bold text-xl">{formatPrice(total)}</span>
                       </div>
+
+                      <EnhancedButton
+                        variant="success"
+                        size="lg"
+                        onClick={() => {
+                          setShowCartMobile(false);
+                          handleCheckout();
+                        }}
+                        loading={isProcessing}
+                        success={showSuccess}
+                        className="w-full"
+                        icon={showSuccess ? <Check size={20} /> : <CreditCard size={20} />}
+                        hapticFeedback={true}
+                      >
+                        {showSuccess ? 'Vente finalisée !' : 'Finaliser la vente'}
+                      </EnhancedButton>
                     </div>
                   </div>
                 )}
@@ -620,9 +683,16 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                                 <Plus size={12} />
                               </button>
                             </div>
-                            <span className="text-amber-600 font-semibold text-sm">
-                              {formatPrice(item.product.price * item.quantity)}
-                            </span>
+                            <div className="text-right">
+                              {item.discountAmount && item.discountAmount > 0 && (
+                                <div className="text-xs text-gray-400 line-through">
+                                  {formatPrice(item.product.price * item.quantity)}
+                                </div>
+                              )}
+                              <span className={`${item.discountAmount ? 'text-green-600' : 'text-amber-600'} font-bold text-sm`}>
+                                {formatPrice((item.product.price * item.quantity) - (item.discountAmount || 0))}
+                              </span>
+                            </div>
                           </div>
                         </motion.div>
                       ))

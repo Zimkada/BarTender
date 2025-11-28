@@ -228,6 +228,10 @@ export interface CartItem {
   product: Product;
   quantity: number;
   returned?: number;
+  // Champs pour les promotions
+  originalPrice?: number;    // Prix unitaire original avant promo
+  discountAmount?: number;   // Montant de la réduction totale
+  promotionId?: string;      // ID de la promotion appliquée
 }
 
 export interface SaleItem {

@@ -20,6 +20,7 @@ import { QuickSaleFlow } from './components/QuickSaleFlow';
 import { MobileNavigation } from './components/MobileNavigation';
 import { MobileSidebar } from './components/MobileSidebar';
 import { LoadingFallback } from './components/LoadingFallback';
+import { PromotionsManager } from './components/promotions/PromotionsManager';
 
 // Context & Hooks
 import { NotificationsProvider, useNotifications } from './components/Notifications';
@@ -106,6 +107,7 @@ function AppContent() {
   const [showBarsManagement, setShowBarsManagement] = useState(false);
   const [showUsersManagement, setShowUsersManagement] = useState(false);
   const [showGlobalCatalog, setShowGlobalCatalog] = useState(false);
+  const [showPromotionsManager, setShowPromotionsManager] = useState(false);
   const [selectedBarForStats, setSelectedBarForStats] = useState<any>(null);
   const [authView, setAuthView] = useState('login'); // 'login', 'forgotPassword', 'resetPassword'
 
@@ -275,7 +277,9 @@ function AppContent() {
     setShowAccounting(false);
     setShowReturns(false);
     setShowConsignment(false);
+    setShowConsignment(false);
     setShowGlobalCatalog(false);
+    setShowPromotionsManager(false);
 
     // Ouvrir la modale demandée
     switch (menu) {
@@ -308,6 +312,9 @@ function AppContent() {
         break;
       case 'accounting':
         setShowAccounting(true);
+        break;
+      case 'promotions':
+        setShowPromotionsManager(true);
         break;
       // Le cas 'home' ne fait plus rien, car tout est déjà fermé.
       default:
@@ -741,6 +748,11 @@ function AppContent() {
         onShowForecasting={() => setShowForecasting(true)}
         onShowExcel={() => setShowSalesHistory(true)}
         onShowDashboard={() => setShowDailyDashboard(true)} // ✅ NOUVEAU
+      />
+
+      <PromotionsManager
+        isOpen={showPromotionsManager}
+        onClose={() => setShowPromotionsManager(false)}
       />
     </motion.div>
   );

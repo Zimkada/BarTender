@@ -7,7 +7,8 @@ import { useAppContext } from '../context/AppContext';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { useAuth } from '../context/AuthContext';
 import { CartItem, Product } from '../types';
-import { Users } from 'lucide-react';
+import { Users, Gift } from 'lucide-react';
+import { PromotionsManager } from './promotions/PromotionsManager';
 
 interface ServerInterfaceProps {
   onSwitchToManager: () => void;
@@ -25,6 +26,7 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [tableNumber, setTableNumber] = useState('');
   const [showPendingOrders, setShowPendingOrders] = useState(false);
+  const [showPromotionsManager, setShowPromotionsManager] = useState(false);
 
   const currentProducts = useMemo(() => {
     return products.filter(product => product.categoryId === activeCategory);
@@ -135,6 +137,13 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setShowPromotionsManager(true)}
+              className="px-4 py-2 bg-purple-100 text-purple-700 rounded-xl font-medium hover:bg-purple-200 transition-colors flex items-center gap-2"
+            >
+              <Gift size={18} />
+              Promotions
+            </button>
+            <button
               onClick={() => setShowPendingOrders(true)}
               className="px-4 py-2 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 transition-colors"
             >
@@ -189,6 +198,11 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
       <PendingOrders
         isOpen={showPendingOrders}
         onClose={() => setShowPendingOrders(false)}
+      />
+
+      <PromotionsManager
+        isOpen={showPromotionsManager}
+        onClose={() => setShowPromotionsManager(false)}
       />
     </div>
   );

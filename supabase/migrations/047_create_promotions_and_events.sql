@@ -4,6 +4,18 @@
 --              et les événements (jours fériés, anniversaires, matchs, etc.)
 
 -- ============================================================================
+-- CLEANUP (Pour idempotence et correction de schéma)
+-- ============================================================================
+
+DROP TABLE IF EXISTS promotion_applications CASCADE;
+DROP TABLE IF EXISTS promotions CASCADE;
+DROP TABLE IF EXISTS bar_events CASCADE;
+
+DROP TYPE IF EXISTS promotion_type CASCADE;
+DROP TYPE IF EXISTS promotion_status CASCADE;
+DROP TYPE IF EXISTS event_type CASCADE;
+
+-- ============================================================================
 -- TYPES ENUM
 -- ============================================================================
 
@@ -38,7 +50,7 @@ CREATE TYPE event_type AS ENUM (
 -- TABLE: promotions
 -- ============================================================================
 
-CREATE TABLE promotions (
+CREATE TABLE IF NOT EXISTS promotions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   bar_id UUID NOT NULL REFERENCES bars(id) ON DELETE CASCADE,
   
@@ -135,22 +147,22 @@ CREATE TABLE promotions (
 );
 
 -- Index pour performance
-CREATE INDEX idx_promotions_bar_id ON promotions(bar_id);
-CREATE INDEX idx_promotions_status ON promotions(status);
-CREATE INDEX idx_promotions_dates ON promotions(start_date, end_date);
-CREATE INDEX idx_promotions_type ON promotions(type);
-CREATE INDEX idx_promotions_target_products ON promotions USING GIN (target_product_ids);
-CREATE INDEX idx_promotions_target_categories ON promotions USING GIN (target_category_ids);
+CREATE INDEX IF NOT EXISTS idx_promotions_bar_id ON promotions(bar_id);
+CREATE INDEX IF NOT EXISTS idx_promotions_status ON promotions(status);
+CREATE INDEX IF NOT EXISTS idx_promotions_dates ON promotions(start_date, end_date);
+CREATE INDEX IF NOT EXISTS idx_promotions_type ON promotions(type);
+CREATE INDEX IF NOT EXISTS idx_promotions_target_products ON promotions USING GIN (target_product_ids);
+CREATE INDEX IF NOT EXISTS idx_promotions_target_categories ON promotions USING GIN (target_category_ids);
 
 -- Index composite pour requêtes fréquentes
-CREATE INDEX idx_promotions_active_lookup ON promotions(bar_id, status, start_date, end_date)
+CREATE INDEX IF NOT EXISTS idx_promotions_active_lookup ON promotions(bar_id, status, start_date, end_date)
 WHERE status = 'active';
 
 -- ============================================================================
 -- TABLE: promotion_applications (Historique)
 -- ============================================================================
 
-CREATE TABLE promotion_applications (
+CREATE TABLE IF NOT EXISTS promotion_applications (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   bar_id UUID NOT NULL REFERENCES bars(id) ON DELETE CASCADE,
   promotion_id UUID NOT NULL REFERENCES promotions(id) ON DELETE CASCADE,
@@ -169,20 +181,20 @@ CREATE TABLE promotion_applications (
 );
 
 -- Index
-CREATE INDEX idx_promo_apps_bar_id ON promotion_applications(bar_id);
-CREATE INDEX idx_promo_apps_promotion_id ON promotion_applications(promotion_id);
-CREATE INDEX idx_promo_apps_sale_id ON promotion_applications(sale_id);
-CREATE INDEX idx_promo_apps_applied_at ON promotion_applications(applied_at);
-CREATE INDEX idx_promo_apps_product_id ON promotion_applications(product_id);
+CREATE INDEX IF NOT EXISTS idx_promo_apps_bar_id ON promotion_applications(bar_id);
+CREATE INDEX IF NOT EXISTS idx_promo_apps_promotion_id ON promotion_applications(promotion_id);
+CREATE INDEX IF NOT EXISTS idx_promo_apps_sale_id ON promotion_applications(sale_id);
+CREATE INDEX IF NOT EXISTS idx_promo_apps_applied_at ON promotion_applications(applied_at);
+CREATE INDEX IF NOT EXISTS idx_promo_apps_product_id ON promotion_applications(product_id);
 
 -- Index composite pour analytics
-CREATE INDEX idx_promo_apps_analytics ON promotion_applications(promotion_id, applied_at);
+CREATE INDEX IF NOT EXISTS idx_promo_apps_analytics ON promotion_applications(promotion_id, applied_at);
 
 -- ============================================================================
 -- TABLE: bar_events (Événements spéciaux)
 -- ============================================================================
 
-CREATE TABLE bar_events (
+CREATE TABLE IF NOT EXISTS bar_events (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   bar_id UUID NOT NULL REFERENCES bars(id) ON DELETE CASCADE,
   
@@ -206,9 +218,9 @@ CREATE TABLE bar_events (
 );
 
 -- Index
-CREATE INDEX idx_bar_events_bar_date ON bar_events(bar_id, event_date);
-CREATE INDEX idx_bar_events_type ON bar_events(event_type);
-CREATE INDEX idx_bar_events_active ON bar_events(bar_id, is_active, event_date)
+CREATE INDEX IF NOT EXISTS idx_bar_events_bar_date ON bar_events(bar_id, event_date);
+CREATE INDEX IF NOT EXISTS idx_bar_events_type ON bar_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_bar_events_active ON bar_events(bar_id, is_active, event_date)
 WHERE is_active = true;
 
 -- ============================================================================
@@ -259,41 +271,65 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Table: promotions
 ALTER TABLE promotions ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view promotions for their bars"
-ON promotions FOR SELECT
-USING (bar_id IN (SELECT bar_id FROM bar_members WHERE user_id = auth.uid()));
+DO $$ BEGIN
+  CREATE POLICY "Users can view promotions for their bars"
+  ON promotions FOR SELECT
+  USING (bar_id IN (SELECT bar_id FROM bar_members WHERE user_id = auth.uid()));
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
-CREATE POLICY "Admins can manage promotions for their bars"
-ON promotions FOR ALL
-USING (bar_id IN (
-  SELECT bar_id FROM bar_members
-  WHERE user_id = auth.uid() AND role IN ('admin', 'owner', 'promoteur')
-));
+DO $$ BEGIN
+  CREATE POLICY "Admins can manage promotions for their bars"
+  ON promotions FOR ALL
+  USING (bar_id IN (
+    SELECT bar_id FROM bar_members
+    WHERE user_id = auth.uid() AND role IN ('admin', 'owner', 'promoteur')
+  ));
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- Table: promotion_applications
 ALTER TABLE promotion_applications ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view promotion applications for their bars"
-ON promotion_applications FOR SELECT
-USING (bar_id IN (SELECT bar_id FROM bar_members WHERE user_id = auth.uid()));
+DO $$ BEGIN
+  CREATE POLICY "Users can view promotion applications for their bars"
+  ON promotion_applications FOR SELECT
+  USING (bar_id IN (SELECT bar_id FROM bar_members WHERE user_id = auth.uid()));
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
-CREATE POLICY "Users can insert promotion applications for their bars"
-ON promotion_applications FOR INSERT
-WITH CHECK (bar_id IN (SELECT bar_id FROM bar_members WHERE user_id = auth.uid()));
+DO $$ BEGIN
+  CREATE POLICY "Users can insert promotion applications for their bars"
+  ON promotion_applications FOR INSERT
+  WITH CHECK (bar_id IN (SELECT bar_id FROM bar_members WHERE user_id = auth.uid()));
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- Table: bar_events
 ALTER TABLE bar_events ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view events for their bars"
-ON bar_events FOR SELECT
-USING (bar_id IN (SELECT bar_id FROM bar_members WHERE user_id = auth.uid()));
+DO $$ BEGIN
+  CREATE POLICY "Users can view events for their bars"
+  ON bar_events FOR SELECT
+  USING (bar_id IN (SELECT bar_id FROM bar_members WHERE user_id = auth.uid()));
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
-CREATE POLICY "Admins can manage events for their bars"
-ON bar_events FOR ALL
-USING (bar_id IN (
-  SELECT bar_id FROM bar_members
-  WHERE user_id = auth.uid() AND role IN ('admin', 'owner', 'promoteur')
-));
+DO $$ BEGIN
+  CREATE POLICY "Admins can manage events for their bars"
+  ON bar_events FOR ALL
+  USING (bar_id IN (
+    SELECT bar_id FROM bar_members
+    WHERE user_id = auth.uid() AND role IN ('admin', 'owner', 'promoteur')
+  ));
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- ============================================================================
 -- GRANTS

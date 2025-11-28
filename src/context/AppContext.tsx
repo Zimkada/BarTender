@@ -65,7 +65,7 @@ interface AppContextType {
   getAverageCostPerUnit: (productId: string) => number;
 
   // Ventes
-  addSale: (saleData: Partial<Sale>) => void;
+  addSale: (saleData: Partial<Sale>) => Promise<Sale | null>;
   validateSale: (saleId: string, validatorId: string) => void;
   rejectSale: (saleId: string, rejectorId: string) => void;
   getSalesByDate: (startDate: Date, endDate: Date) => Sale[];
@@ -245,8 +245,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [getSuppliesByProduct]);
 
   // --- SALES ---
-  const addSale = useCallback((saleData: Partial<Sale>) => {
-    if (!hasPermission('canSell') || !currentBar || !currentSession) return;
+  const addSale = useCallback(async (saleData: Partial<Sale>) => {
+    if (!hasPermission('canSell') || !currentBar || !currentSession) return null;
 
     // Mapping CartItem[] (UI) -> SaleItem[] (DB/Service)
     const formattedItems = saleData.items?.map(item => ({
@@ -268,7 +268,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       status: (currentSession.role === 'promoteur' || currentSession.role === 'gerant') ? 'validated' : 'pending'
     };
 
-    salesMutations.createSale.mutate(newSaleData as any);
+    return await salesMutations.createSale.mutateAsync(newSaleData as any);
   }, [hasPermission, currentBar, currentSession, salesMutations]);
 
   const validateSale = useCallback((saleId: string, validatorId: string) => {
