@@ -7,7 +7,7 @@
  * @module promotions.service
  */
 
-import { supabase } from './client';
+import { supabase } from '../../lib/supabase';
 import { Promotion, PromotionApplication, Product, PromotionPriceResult } from '../../types';
 
 /**

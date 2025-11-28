@@ -7,7 +7,7 @@
  * @module events.service
  */
 
-import { supabase } from './client';
+import { supabase } from '../../lib/supabase';
 import { BarEvent } from '../../types';
 
 /**
