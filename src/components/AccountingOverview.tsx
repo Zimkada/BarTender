@@ -93,46 +93,6 @@ export function AccountingOverview() {
   const [chartExpenses, setChartExpenses] = useState<ExpensesSummary[]>([]);
   const [chartSalaries, setChartSalaries] = useState<SalariesSummary[]>([]);
 
-  // Calculate period range based on type and offset (MUST be before useEffect)
-  const { start: periodStart, end: periodEnd } = useMemo(() => {
-    const today = new Date();
-    let start: Date, end: Date;
-
-    switch (periodType) {
-      case 'day':
-        start = new Date(today.getFullYear(), today.getMonth(), today.getDate() + periodOffset);
-        end = new Date(start);
-        end.setHours(23, 59, 59, 999);
-        break;
-      case 'week': {
-        const currentDay = today.getDay();
-        const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
-        const monday = new Date(today);
-        monday.setDate(today.getDate() - daysFromMonday + (periodOffset * 7));
-        monday.setHours(0, 0, 0, 0);
-        start = monday;
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
-        sunday.setHours(23, 59, 59, 999);
-        end = sunday;
-        break;
-      }
-      case 'month':
-        start = new Date(today.getFullYear(), today.getMonth() + periodOffset, 1);
-        end = new Date(today.getFullYear(), today.getMonth() + periodOffset + 1, 0);
-        end.setHours(23, 59, 59, 999);
-        break;
-      case 'custom':
-        start = new Date(customDateRange.start);
-        start.setHours(0, 0, 0, 0);
-        end = new Date(customDateRange.end);
-        end.setHours(23, 59, 59, 999);
-        break;
-    }
-
-    return { start, end };
-  }, [periodType, periodOffset, customDateRange]);
-
   // Load Analytics Data
   useEffect(() => {
     if (currentBar && periodStart && periodEnd) {
