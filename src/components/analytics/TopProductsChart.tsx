@@ -94,7 +94,7 @@ export function TopProductsChart({
             <select
               value={limit}
               onChange={(e) => onLimitChange(Number(e.target.value))}
-              className="px-2 py-1 text-sm font-semibold text-gray-800 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+              className="px-2 py-1 text-sm font-semibold text-white bg-amber-500 border border-amber-600 rounded-lg hover:bg-amber-600 transition-colors"
             >
               <option value={5}>5</option>
               <option value={10}>10</option>
@@ -105,7 +105,10 @@ export function TopProductsChart({
           </div>
 
           {/* Contrôles : Métrique */}
-          <div className="flex flex-wrap gap-2">
+          <div className="flex items-center flex-wrap gap-2">
+            {!isMobile && (
+              <span className="text-sm font-medium text-gray-600">Affiché par :</span>
+            )}
           <button
             onClick={() => onMetricChange('units')}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
