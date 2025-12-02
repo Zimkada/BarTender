@@ -521,9 +521,9 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className={`bg-gradient-to-br from-amber-50 to-amber-50 w-full shadow-2xl overflow-hidden ${isMobile
+            className={`bg-gradient-to-br from-amber-50 to-amber-50 w-full shadow-2xl overflow-hidden flex flex-col ${isMobile
               ? 'h-full'
-              : 'rounded-2xl max-w-7xl max-h-[85vh] md:max-h-[90vh]'
+              : 'rounded-2xl max-w-7xl h-[85vh] md:h-[90vh]'
               }`}
           >
             {/* ==================== VERSION MOBILE ==================== */}
@@ -802,7 +802,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                   </div>
                 </div>
                 {/* Barre de filtres Desktop */}
-                <div className="bg-white border-b border-amber-200 p-4 flex items-center gap-4 flex-wrap">
+                <div className="flex-shrink-0 bg-white border-b border-amber-200 p-4 flex items-center gap-4 flex-wrap">
                   
                   {/* Filtres de date */}
                   <div className="flex bg-gray-100 rounded-lg p-1">
@@ -855,13 +855,13 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
 
 
                 </div>
-                <div className="flex h-[calc(85vh-120px)] md:h-[calc(90vh-120px)]">
+                <div className="flex flex-1 overflow-hidden">
 
 
                   {/* Contenu principal */}
-                  <div className="flex-1 flex flex-col">
+                  <div className="flex-1 flex flex-col overflow-hidden">
                     {/* Toolbar */}
-                    <div className="p-4 border-b border-amber-200 bg-amber-50">
+                    <div className="flex-shrink-0 p-4 border-b border-amber-200 bg-amber-50">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="text-sm text-gray-600">Mode d'affichage:</span>
