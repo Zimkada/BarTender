@@ -22,6 +22,7 @@ import {
   Globe, // Pour catalogue global
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useRevenueStats } from '../hooks/useRevenueStats';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from "../context/AuthContext";
 import { useBarContext } from '../context/BarContext';
@@ -101,7 +102,6 @@ export function Header({
   unreadNotificationsCount = 0,
   onShowGlobalCatalog = () => { }
 }: HeaderProps) {
-  const { getTodayTotal } = useAppContext();
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession, logout, isImpersonating, stopImpersonation } = useAuth();
   const { currentBar } = useBarContext();
@@ -109,8 +109,8 @@ export function Header({
 
   const [showProfileSettings, setShowProfileSettings] = useState(false);
 
-  const todayTotal = getTodayTotal();
-  const alertCount = 0; // TODO: Implémenter compteur alertes réel
+  // ✨ HYBRID DRY REVENUE
+  const { netRevenue: todayTotal } = useRevenueStats();
 
   const getRoleIcon = () => {
     switch (currentSession?.role) {

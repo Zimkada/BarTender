@@ -38,6 +38,7 @@ export interface Bar {
   ownerId: string;
   createdAt: Date;
   isActive: boolean;
+  closingHour: number;
   settings: BarSettings;
 }
 
@@ -46,7 +47,8 @@ export interface BarSettings {
   currencySymbol: string;
   timezone?: string;
   language?: string;
-  businessDayCloseHour?: number; // Heure de clôture de la journée commerciale (0-23, défaut: 6h)
+  // Heure de clôture déplacée au niveau Bar (closingHour)
+  taxRate?: number; // Pourcentage TVA (ex: 18)
   operatingMode?: 'full' | 'simplified'; // Mode de fonctionnement : complet (avec comptes serveurs) ou simplifié (gérant attribue)
   serversList?: string[]; // Liste des serveurs (mode simplifié uniquement)
   consignmentExpirationDays?: number; // Nombre de jours avant expiration consignation (défaut: 7)
@@ -263,6 +265,9 @@ export interface Sale {
   validatedAt?: Date;     // Date de validation par le gérant
   rejectedAt?: Date;      // Date de rejet par le gérant
 
+  // ✅ NOUVEAU : Date commerciale (synchronisée avec DB)
+  businessDate: Date;
+
   // Optionnel, pour le mode simplifié ou pour référence
   assignedTo?: string;    // En mode simplifié : nom du serveur qui a servi (ex: "Marie")
   tableNumber?: string;   // Numéro de la table si applicable
@@ -298,6 +303,7 @@ export interface Return {
   reason: ReturnReason;
   returnedBy: string; // userId
   returnedAt: Date;
+  businessDate: Date; // ✅ NOUVEAU : Date commerciale (synchronisée avec DB)
   refundAmount: number;
   isRefunded: boolean; // ✅ Le client a-t-il été remboursé ?
   status: 'pending' | 'approved' | 'rejected' | 'restocked';
@@ -341,6 +347,7 @@ export interface Consignment {
   createdAt: Date;                // Date consignation
   expiresAt: Date;                // Date expiration (7-30j configurable)
   claimedAt?: Date;               // Date récupération
+  businessDate: Date;            // ✅ NOUVEAU : Date commerciale (synchronisée avec DB)
 
   // Statut
   status: ConsignmentStatus;

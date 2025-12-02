@@ -18,7 +18,7 @@ import {
   Expense,
   ExpenseCategoryCustom,
 } from '../types';
-import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
+import { filterByBusinessDateRange, getBusinessDate, getCurrentBusinessDateString, dateToYYYYMMDD } from '../utils/businessDateHelpers';
 import { BUSINESS_DAY_CLOSE_HOUR } from '../constants/businessDay';
 
 // React Query Hooks
@@ -248,14 +248,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addSale = useCallback(async (saleData: Partial<Sale>) => {
     if (!hasPermission('canSell') || !currentBar || !currentSession) return null;
 
+    // Vérifier si items est déjà au format SaleItem[] (a product_id) ou CartItem[] (a product.id)
+    const isAlreadyFormatted = saleData.items?.[0]?.hasOwnProperty('product_id');
+
     // Mapping CartItem[] (UI) -> SaleItem[] (DB/Service)
-    const formattedItems = saleData.items?.map(item => ({
-      product_id: item.product.id,
-      product_name: item.product.name,
-      quantity: item.quantity,
-      unit_price: item.product.price,
-      total_price: item.product.price * item.quantity
-    })) || [];
+    const formattedItems = isAlreadyFormatted
+      ? (saleData.items as any)
+      : saleData.items?.map((item: any) => ({
+        product_id: item.product.id,
+        product_name: item.product.name,
+        quantity: item.quantity,
+        unit_price: item.product.price,
+        total_price: item.product.price * item.quantity
+      })) || [];
 
     const newSaleData = {
       bar_id: currentBar.id,
@@ -274,19 +279,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const validateSale = useCallback((saleId: string, validatorId: string) => {
     if (!hasPermission('canManageInventory')) return;
 
-    // Validation stock via processSaleValidation (StockBridge)
-    // Mais processSaleValidation utilise useStockMutations.validateSale
-    // Ici on veut valider la vente (statut) ET décrémenter le stock.
-    // SalesService.validateSale ne fait que le statut.
-    // SalesService.createSale décrémente le stock (si immédiat).
-    // Le workflow actuel : Create (Pending) -> Validate (Stock update?).
-    // Wait, SalesService.createSale decrements stock IMMEDIATELY in the service I wrote?
-    // Let's check SalesService.createSale.
-    // Yes: "3. Décrémenter le stock pour chaque produit".
-    // So if status is pending, stock is ALREADY decremented?
-    // If so, validateSale just updates status.
-    // If rejectSale, we increment stock back.
-
+    // Le stock est décrémenté atomiquement lors de la création de la vente via RPC.
+    // Cette fonction ne fait que changer le statut de 'pending' à 'validated'.
     salesMutations.validateSale.mutate({ id: saleId, validatorId });
   }, [hasPermission, salesMutations]);
 
@@ -296,54 +290,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [hasPermission, salesMutations]);
 
   const getSalesByDate = useCallback((startDate: Date, endDate: Date) => {
-    const filteredSales = sales.filter(sale => {
-      const saleDate = sale.validatedAt ? new Date(sale.validatedAt) : new Date(sale.createdAt);
-      return sale.status === 'validated' && saleDate >= startDate && saleDate <= endDate;
-    });
+    const closeHour = currentBar?.closingHour ?? BUSINESS_DAY_CLOSE_HOUR;
+    const startDateStr = dateToYYYYMMDD(startDate);
+    const endDateStr = dateToYYYYMMDD(endDate);
+
+    const baseSales = sales.filter(sale => sale.status === 'validated');
+    const filteredSales = filterByBusinessDateRange(baseSales, startDateStr, endDateStr, closeHour);
+    
     if (currentSession?.role === 'serveur') {
       return filteredSales.filter(sale => sale.createdBy === currentSession.userId);
     }
     return filteredSales;
-  }, [sales, currentSession]);
+  }, [sales, currentSession, currentBar]);
 
   const getTodaySales = useCallback(() => {
-    // Utilise la constante globale (6h) - synchronisée avec SQL
-    const currentBusinessDay = getCurrentBusinessDay(BUSINESS_DAY_CLOSE_HOUR);
-
-    const todaySales = sales.filter(sale => {
-      if (sale.status !== 'validated') return false;
-      const saleDate = sale.validatedAt ? new Date(sale.validatedAt) : new Date(sale.createdAt);
-      const saleBusinessDay = getBusinessDay(saleDate, BUSINESS_DAY_CLOSE_HOUR);
-      return isSameDay(saleBusinessDay, currentBusinessDay);
-    });
+    const closeHour = currentBar?.closingHour ?? BUSINESS_DAY_CLOSE_HOUR;
+    const todayStr = getCurrentBusinessDateString(closeHour);
+    
+    const baseSales = sales.filter(sale => sale.status === 'validated');
+    const todaySales = filterByBusinessDateRange(baseSales, todayStr, todayStr, closeHour);
 
     if (currentSession?.role === 'serveur') {
       return todaySales.filter(sale => sale.createdBy === currentSession.userId);
     }
     return todaySales;
-  }, [sales, currentSession]);
+  }, [sales, currentSession, currentBar]);
 
+  /**
+   * @deprecated Utiliser useRevenueStats() à la place pour garantir la cohérence DRY (SQL/Local)
+   */
   const getTodayTotal = useCallback(() => {
     const todaySales = getTodaySales();
     const salesTotal = todaySales.reduce((sum, sale) => sum + sale.total, 0);
 
-    // Utilise la constante globale (6h) - synchronisée avec SQL
-    const currentBusinessDay = getCurrentBusinessDay(BUSINESS_DAY_CLOSE_HOUR);
-    const todaySaleIds = new Set(todaySales.map(s => s.id));
+    const closeHour = currentBar?.closingHour ?? BUSINESS_DAY_CLOSE_HOUR;
+    const todayStr = getCurrentBusinessDateString(closeHour);
 
-    const returnsTotal = returns
-      .filter(r => {
-        // TODO: Check return status if implemented
-        if (!r.isRefunded) return false;
-        if (!todaySaleIds.has(r.saleId)) return false;
-        const returnDate = new Date(r.returnedAt);
-        const returnBusinessDay = getBusinessDay(returnDate, BUSINESS_DAY_CLOSE_HOUR);
-        return isSameDay(returnBusinessDay, currentBusinessDay);
-      })
-      .reduce((sum, r) => sum + r.refundAmount, 0);
+    const todayRefunds = filterByBusinessDateRange(
+        returns.filter(r => r.isRefunded), 
+        todayStr, 
+        todayStr, 
+        closeHour
+    );
+
+    const returnsTotal = todayRefunds.reduce((sum, r) => sum => sum + r.refundAmount, 0);
 
     return salesTotal - returnsTotal;
-  }, [getTodaySales, returns]);
+  }, [getTodaySales, returns, currentBar]);
 
   const getSalesByUser = useCallback((userId: string) => {
     if (!hasPermission('canViewAllSales')) return [];
@@ -351,27 +344,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [sales, hasPermission]);
 
   const getServerRevenue = useCallback((userId: string, startDate?: Date, endDate?: Date): number => {
-    const serverSales = sales.filter(sale => {
-      if (sale.status !== 'validated' || sale.createdBy !== userId) return false;
-      if (startDate && new Date(sale.createdAt) < startDate) return false;
-      if (endDate && new Date(sale.createdAt) > endDate) return false;
-      return true;
-    });
+    const closeHour = currentBar?.closingHour ?? BUSINESS_DAY_CLOSE_HOUR;
+    const startDateStr = startDate ? dateToYYYYMMDD(startDate) : undefined;
+    const endDateStr = endDate ? dateToYYYYMMDD(endDate) : undefined;
 
-    const salesTotal = serverSales.reduce((sum, s) => sum + s.total, 0);
-    const serverSaleIds = serverSales.map(s => s.id);
+    let baseSales = sales.filter(sale => sale.status === 'validated' && sale.createdBy === userId);
+    if (startDateStr && endDateStr) {
+        baseSales = filterByBusinessDateRange(baseSales, startDateStr, endDateStr, closeHour);
+    }
+    const salesTotal = baseSales.reduce((sum, s) => sum + s.total, 0);
+    const serverSaleIds = new Set(baseSales.map(s => s.id));
 
-    const serverReturns = returns.filter(r => {
-      if (!serverSaleIds.includes(r.saleId)) return false;
-      if (!r.isRefunded) return false;
-      if (startDate && new Date(r.returnedAt) < startDate) return false;
-      if (endDate && new Date(r.returnedAt) > endDate) return false;
-      return true;
-    });
+    let baseReturns = returns.filter(r => r.isRefunded);
+    if (startDateStr && endDateStr) {
+        baseReturns = filterByBusinessDateRange(baseReturns, startDateStr, endDateStr, closeHour);
+    }
+    
+    const serverReturns = baseReturns.filter(r => serverSaleIds.has(r.saleId));
 
     const returnsTotal = serverReturns.reduce((sum, r) => sum + r.refundAmount, 0);
     return salesTotal - returnsTotal;
-  }, [sales, returns]);
+  }, [sales, returns, currentBar]);
 
   const getServerReturns = useCallback((userId: string): Return[] => {
     const serverSaleIds = sales

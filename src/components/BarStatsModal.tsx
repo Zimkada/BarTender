@@ -13,9 +13,9 @@ import {
   Award,
   Calendar,
 } from 'lucide-react';
-import { Bar } from '../types';
-import { Sale } from '../types';
-import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
+import { Bar, Sale, Return } from '../types';
+import { getBusinessDate, getCurrentBusinessDay, isSameDay, dateToYYYYMMDD, filterByBusinessDateRange } from '../utils/businessDateHelpers';
+import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { useFeedback } from '../hooks/useFeedback';
 import { AnalyticsService } from '../services/supabase/analytics.service';
@@ -28,6 +28,7 @@ interface BarStatsModalProps {
 }
 
 export function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
+  const { sales: allSales, returns: allReturns } = useAppContext();
   const { barMembers } = useBarContext();
   const { showSuccess } = useFeedback();
 
@@ -57,190 +58,101 @@ export function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
 
   const stats = useMemo(() => {
     try {
-      // Use SQL stats if available, otherwise fallback to localStorage
+      // Use SQL stats if available, otherwise fallback to client-side calculation
       if (multiPeriodStats) {
-        // Calculate percentage changes
-        const caChangeVsYesterday = multiPeriodStats.revenue_yesterday > 0
-          ? ((multiPeriodStats.revenue_today - multiPeriodStats.revenue_yesterday) / multiPeriodStats.revenue_yesterday * 100)
-          : (multiPeriodStats.revenue_today > 0 ? 100 : 0);
-
+        // This part is mostly correct, using pre-aggregated SQL data
+        const caChangeVsYesterday = multiPeriodStats.revenue_yesterday > 0 ? ((multiPeriodStats.revenue_today - multiPeriodStats.revenue_yesterday) / multiPeriodStats.revenue_yesterday * 100) : (multiPeriodStats.revenue_today > 0 ? 100 : 0);
         const avgCALast7Days = multiPeriodStats.revenue_7d / 7;
-        const caChangeVsLast7Days = avgCALast7Days > 0
-          ? ((multiPeriodStats.revenue_today - avgCALast7Days) / avgCALast7Days * 100)
-          : (multiPeriodStats.revenue_today > 0 ? 100 : 0);
-
-        const salesChangeVsYesterday = multiPeriodStats.sales_yesterday > 0
-          ? ((multiPeriodStats.sales_today - multiPeriodStats.sales_yesterday) / multiPeriodStats.sales_yesterday * 100)
-          : (multiPeriodStats.sales_today > 0 ? 100 : 0);
-
+        const caChangeVsLast7Days = avgCALast7Days > 0 ? ((multiPeriodStats.revenue_today - avgCALast7Days) / avgCALast7Days * 100) : (multiPeriodStats.revenue_today > 0 ? 100 : 0);
+        const salesChangeVsYesterday = multiPeriodStats.sales_yesterday > 0 ? ((multiPeriodStats.sales_today - multiPeriodStats.sales_yesterday) / multiPeriodStats.sales_yesterday * 100) : (multiPeriodStats.sales_today > 0 ? 100 : 0);
         const avgSalesLast7Days = multiPeriodStats.sales_7d / 7;
-        const salesChangeVsLast7Days = avgSalesLast7Days > 0
-          ? ((multiPeriodStats.sales_today - avgSalesLast7Days) / avgSalesLast7Days * 100)
-          : (multiPeriodStats.sales_today > 0 ? 100 : 0);
-
-        // Team info
+        const salesChangeVsLast7Days = avgSalesLast7Days > 0 ? ((multiPeriodStats.sales_today - avgSalesLast7Days) / avgSalesLast7Days * 100) : (multiPeriodStats.sales_today > 0 ? 100 : 0);
         const teamMembers = barMembers.filter(m => m.barId === bar.id);
         const gerants = teamMembers.filter(m => m.role === 'gerant').length;
         const serveurs = teamMembers.filter(m => m.role === 'serveur').length;
 
         return {
-          caToday: multiPeriodStats.revenue_today,
-          caYesterday: multiPeriodStats.revenue_yesterday,
-          caLast7Days: multiPeriodStats.revenue_7d,
-          caLast30Days: multiPeriodStats.revenue_30d,
-          caChangeVsYesterday,
-          caChangeVsLast7Days,
-          avgCALast7Days,
-
-          salesToday: multiPeriodStats.sales_today,
-          salesYesterday: multiPeriodStats.sales_yesterday,
-          salesLast7Days: multiPeriodStats.sales_7d,
-          salesLast30Days: multiPeriodStats.sales_30d,
-          salesChangeVsYesterday,
-          salesChangeVsLast7Days,
-          avgSalesLast7Days,
-
-          topProducts: [], // Top products not in multi-period view
-          teamMembers: teamMembers.length,
-          gerants,
-          serveurs,
-          lowStockItems: 0, // Stock alerts not in multi-period view
+          caToday: multiPeriodStats.revenue_today, caYesterday: multiPeriodStats.revenue_yesterday, caLast7Days: multiPeriodStats.revenue_7d, caLast30Days: multiPeriodStats.revenue_30d,
+          caChangeVsYesterday, caChangeVsLast7Days, avgCALast7Days,
+          salesToday: multiPeriodStats.sales_today, salesYesterday: multiPeriodStats.sales_yesterday, salesLast7Days: multiPeriodStats.sales_7d, salesLast30Days: multiPeriodStats.sales_30d,
+          salesChangeVsYesterday, salesChangeVsLast7Days, avgSalesLast7Days,
+          topProducts: [], teamMembers: teamMembers.length, gerants, serveurs, lowStockItems: 0,
         };
       }
 
-      // Fallback: localStorage calculation
-      const salesKey = `sales_${bar.id}`;
-      const salesData = localStorage.getItem(salesKey);
-      const sales: Sale[] = salesData ? JSON.parse(salesData) : [];
+      // Fallback: client-side calculation using AppContext data
+      const closeHour = bar.closingHour ?? 6;
+      
+      const todayStr = getCurrentBusinessDateString(closeHour);
+      const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = dateToYYYYMMDD(yesterday);
+      const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const sevenDaysAgoStr = dateToYYYYMMDD(sevenDaysAgo);
+      const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const thirtyDaysAgoStr = dateToYYYYMMDD(thirtyDaysAgo);
 
-      const closeHour = bar.settings?.businessDayCloseHour ?? 6;
-      const currentBusinessDay = getCurrentBusinessDay(closeHour);
+      const salesForBar = allSales.filter(s => s.barId === bar.id && s.status === 'validated');
+      const returnsForBar = allReturns.filter(r => r.barId === bar.id && r.isRefunded);
 
-      // Calculate yesterday's date
-      const yesterday = new Date(currentBusinessDay);
-      yesterday.setDate(yesterday.getDate() - 1);
+      const salesToday = filterByBusinessDateRange(salesForBar, todayStr, todayStr);
+      const salesYesterday = filterByBusinessDateRange(salesForBar, yesterdayStr, yesterdayStr);
+      const salesLast7Days = filterByBusinessDateRange(salesForBar, sevenDaysAgoStr, todayStr);
+      const salesLast30Days = filterByBusinessDateRange(salesForBar, thirtyDaysAgoStr, todayStr);
+      
+      const returnsToday = filterByBusinessDateRange(returnsForBar, todayStr, todayStr);
+      const returnsYesterday = filterByBusinessDateRange(returnsForBar, yesterdayStr, yesterdayStr);
+      const returnsLast7Days = filterByBusinessDateRange(returnsForBar, sevenDaysAgoStr, todayStr);
+      const returnsLast30Days = filterByBusinessDateRange(returnsForBar, thirtyDaysAgoStr, todayStr);
 
-      // Calculate dates for 7 days ago and 30 days ago
-      const sevenDaysAgo = new Date(currentBusinessDay);
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const getNetRevenue = (sales: Sale[], returns: Return[]): number => {
+        const salesTotal = sales.reduce((sum, sale) => sum + sale.total, 0);
+        const returnsTotal = returns.reduce((sum, ret) => sum + ret.refundAmount, 0);
+        return salesTotal - returnsTotal;
+      };
 
-      const thirtyDaysAgo = new Date(currentBusinessDay);
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const caToday = getNetRevenue(salesToday, returnsToday);
+      const caYesterday = getNetRevenue(salesYesterday, returnsYesterday);
+      const caLast7Days = getNetRevenue(salesLast7Days, returnsLast7Days);
+      const caLast30Days = getNetRevenue(salesLast30Days, returnsLast30Days);
 
-      // Filter sales by time period
-      const salesToday = sales.filter(sale => {
-        const saleDate = new Date(sale.date);
-        const saleBusinessDay = getBusinessDay(saleDate, closeHour);
-        return isSameDay(saleBusinessDay, currentBusinessDay);
-      });
-
-      const salesYesterday = sales.filter(sale => {
-        const saleDate = new Date(sale.date);
-        const saleBusinessDay = getBusinessDay(saleDate, closeHour);
-        return isSameDay(saleBusinessDay, yesterday);
-      });
-
-      const salesLast7Days = sales.filter(sale => {
-        const saleDate = new Date(sale.date);
-        const saleBusinessDay = getBusinessDay(saleDate, closeHour);
-        return saleBusinessDay >= sevenDaysAgo && saleBusinessDay < currentBusinessDay;
-      });
-
-      const salesLast30Days = sales.filter(sale => {
-        const saleDate = new Date(sale.date);
-        const saleBusinessDay = getBusinessDay(saleDate, closeHour);
-        return saleBusinessDay >= thirtyDaysAgo && saleBusinessDay < currentBusinessDay;
-      });
-
-      // Calculate CA for each period
-      const caToday = salesToday.reduce((sum, sale) => sum + sale.totalAmount, 0);
-      const caYesterday = salesYesterday.reduce((sum, sale) => sum + sale.totalAmount, 0);
-      const caLast7Days = salesLast7Days.reduce((sum, sale) => sum + sale.totalAmount, 0);
-      const caLast30Days = salesLast30Days.reduce((sum, sale) => sum + sale.totalAmount, 0);
-
-      // Calculate percentage changes
-      const caChangeVsYesterday = caYesterday > 0
-        ? ((caToday - caYesterday) / caYesterday * 100)
-        : (caToday > 0 ? 100 : 0);
-
+      const caChangeVsYesterday = caYesterday > 0 ? ((caToday - caYesterday) / caYesterday * 100) : (caToday > 0 ? 100 : 0);
       const avgCALast7Days = caLast7Days / 7;
-      const caChangeVsLast7Days = avgCALast7Days > 0
-        ? ((caToday - avgCALast7Days) / avgCALast7Days * 100)
-        : (caToday > 0 ? 100 : 0);
-
-      const salesChangeVsYesterday = salesYesterday.length > 0
-        ? ((salesToday.length - salesYesterday.length) / salesYesterday.length * 100)
-        : (salesToday.length > 0 ? 100 : 0);
-
+      const caChangeVsLast7Days = avgCALast7Days > 0 ? ((caToday - avgCALast7Days) / avgCALast7Days * 100) : (caToday > 0 ? 100 : 0);
+      const salesChangeVsYesterday = salesYesterday.length > 0 ? ((salesToday.length - salesYesterday.length) / salesYesterday.length * 100) : (salesToday.length > 0 ? 100 : 0);
       const avgSalesLast7Days = salesLast7Days.length / 7;
-      const salesChangeVsLast7Days = avgSalesLast7Days > 0
-        ? ((salesToday.length - avgSalesLast7Days) / avgSalesLast7Days * 100)
-        : (salesToday.length > 0 ? 100 : 0);
+      const salesChangeVsLast7Days = avgSalesLast7Days > 0 ? ((salesToday.length - avgSalesLast7Days) / avgSalesLast7Days * 100) : (salesToday.length > 0 ? 100 : 0);
 
-      // Top products today
       const productSales = new Map<string, { name: string; quantity: number; revenue: number }>();
       salesToday.forEach(sale => {
         sale.items.forEach(item => {
-          const existing = productSales.get(item.productId);
+          const key = item.product_id;
+          const existing = productSales.get(key);
           if (existing) {
             existing.quantity += item.quantity;
-            existing.revenue += item.quantity * item.unitPrice;
+            existing.revenue += item.total_price;
           } else {
-            productSales.set(item.productId, {
-              name: item.productName,
-              quantity: item.quantity,
-              revenue: item.quantity * item.unitPrice,
-            });
+            productSales.set(key, { name: item.product_name, quantity: item.quantity, revenue: item.total_price });
           }
         });
       });
+      const topProducts = Array.from(productSales.values()).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
 
-      const topProducts = Array.from(productSales.values())
-        .sort((a, b) => b.revenue - a.revenue)
-        .slice(0, 5);
-
-      // Team info
       const teamMembers = barMembers.filter(m => m.barId === bar.id);
       const gerants = teamMembers.filter(m => m.role === 'gerant').length;
       const serveurs = teamMembers.filter(m => m.role === 'serveur').length;
 
-      // Stock alerts
-      const inventoryKey = `inventory_${bar.id}`;
-      const inventoryData = localStorage.getItem(inventoryKey);
-      const inventory = inventoryData ? JSON.parse(inventoryData) : [];
-      const lowStockItems = inventory.filter((item: any) => {
-        const stockLevel = item.stock / (item.parLevel || 1);
-        return stockLevel < 0.2; // Below 20% of par level
-      });
-
       return {
-        caToday,
-        caYesterday,
-        caLast7Days,
-        caLast30Days,
-        caChangeVsYesterday,
-        caChangeVsLast7Days,
-        avgCALast7Days,
-
-        salesToday: salesToday.length,
-        salesYesterday: salesYesterday.length,
-        salesLast7Days: salesLast7Days.length,
-        salesLast30Days: salesLast30Days.length,
-        salesChangeVsYesterday,
-        salesChangeVsLast7Days,
-        avgSalesLast7Days,
-
-        topProducts,
-        teamMembers: teamMembers.length,
-        gerants,
-        serveurs,
-        lowStockItems: lowStockItems.length,
+        caToday, caYesterday, caLast7Days, caLast30Days,
+        caChangeVsYesterday, caChangeVsLast7Days, avgCALast7Days,
+        salesToday: salesToday.length, salesYesterday: salesYesterday.length, salesLast7Days: salesLast7Days.length, salesLast30Days: salesLast30Days.length,
+        salesChangeVsYesterday, salesChangeVsLast7Days, avgSalesLast7Days,
+        topProducts, teamMembers: teamMembers.length, gerants, serveurs, lowStockItems: 0, // Simplified
       };
     } catch (error) {
       console.error('Error calculating bar stats:', error);
       return null;
     }
-  }, [bar, barMembers, multiPeriodStats]);
+  }, [bar, barMembers, multiPeriodStats, allSales, allReturns]);
 
   if (!isOpen || !stats) return null;
 
@@ -568,7 +480,7 @@ export function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                 <div>
                   <p className="text-gray-500 text-xs">Heure de fermeture</p>
-                  <p className="font-semibold text-gray-900">{bar.settings?.businessDayCloseHour ?? 6}h</p>
+                  <p className="font-semibold text-gray-900">{bar.closingHour ?? 6}h</p>
                 </div>
                 <div>
                   <p className="text-gray-500 text-xs">TVA</p>

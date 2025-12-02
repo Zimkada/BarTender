@@ -33,6 +33,7 @@ import { syncHandler } from './services/SyncHandler';
 
 // Types
 import { CartItem, Product, Category } from './types';
+import { PaymentMethod } from './components/cart/PaymentMethodSelector';
 
 // Lazy load des composants lourds
 const EnhancedSalesHistory = lazy(() => import('./components/SalesHistory').then(m => ({ default: m.EnhancedSalesHistory })));
@@ -211,54 +212,24 @@ function AppContent() {
     setCart([]);
   };
 
-  const checkout = (assignedTo?: string) => {
+  const checkout = async (assignedTo?: string, paymentMethod: PaymentMethod = 'cash') => {
     if (cart.length === 0 || !currentSession) return;
 
-    const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-    const isServerRole = currentSession.role === 'serveur';
-
+    // Utiliser `addSale` comme source de vérité unique.
+    // `addSale` gère le statut, le formatage des items, et la mutation.
     try {
-      if (isServerRole) {
-        addSale({
-          items: cart,
-          total,
-          currency: settings.currency,
-          status: 'pending',
-          createdBy: currentSession.userId,
-          createdAt: new Date(),
-          assignedTo,
-        });
-      } else {
-        // ✅ Vente directe (promoteur/gérant) : validation + stock atomique
-        const success = processSaleValidation(
-          cart,
-          () => {
-            // Callback succès : créer la vente après décrémentation stock
-            addSale({
-              items: cart,
-              total,
-              currency: settings.currency,
-              status: 'validated',
-              createdBy: currentSession.userId,
-              validatedBy: currentSession.userId,
-              createdAt: new Date(),
-              validatedAt: new Date(),
-              assignedTo,
-            });
-          },
-          (error) => {
-            // Callback erreur : stock insuffisant
-            showNotification('error', error);
-          }
-        );
+      await addSale({
+        items: cart, // `addSale` s'attend à des CartItem[] et les formatera
+        paymentMethod: paymentMethod,
+        // `assignedTo` peut être ajouté comme `notes` si nécessaire ou géré dans `addSale`
+      });
 
-        if (!success) return; // Arrêter si validation échouée
-      }
-
+      // Le succès de la promesse de `addSale` signifie que la mutation a réussi.
       clearCart();
       setIsCartOpen(false);
-      // La notification est gérée dans AppContext, pas besoin d'une autre ici.
+      // La notification de succès est déjà gérée par le hook de mutation.
     } catch (error) {
+      // La mutation `mutateAsync` rejette une erreur en cas d'échec.
       showNotification('error', error instanceof Error ? error.message : 'Erreur lors de la vente');
     }
   };

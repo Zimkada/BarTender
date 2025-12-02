@@ -12,12 +12,12 @@ export const BAR_TEMPLATE: Omit<Bar, 'id' | 'createdAt' | 'ownerId'> = {
   phone: '+229 XX XX XX XX',
   email: 'contact@bar.bj',
   isActive: true,
+  closingHour: 6, // ✅ Heure de clôture (propriété directe, pas dans settings)
   settings: {
     currency: 'XOF',
     currencySymbol: ' FCFA',
     timezone: 'Africa/Porto-Novo',
     language: 'fr',
-    businessDayCloseHour: 6, // Clôture à 6h du matin
     operatingMode: 'full', // Mode complet (avec comptes serveurs)
     consignmentExpirationDays: 7, // Consignations expirent après 7 jours
   },

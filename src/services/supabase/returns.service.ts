@@ -26,13 +26,36 @@ export class ReturnsService {
     /**
      * Récupérer les retours d'un bar
      */
-    static async getReturns(barId: string): Promise<Return[]> {
+    static async getReturns(
+        barId: string,
+        startDate?: Date | string,
+        endDate?: Date | string
+    ): Promise<Return[]> {
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('returns')
                 .select('*')
                 .eq('bar_id', barId)
                 .order('returned_at', { ascending: false });
+
+            // Helper pour formater la date au format YYYY-MM-DD attendu par PostgreSQL
+            const formatToYYYYMMDD = (date: Date | string): string => {
+                if (typeof date === 'string') return date; // Si c'est déjà une chaîne, on la retourne
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+            if (startDate) {
+                query = query.gte('business_date', formatToYYYYMMDD(startDate));
+            }
+
+            if (endDate) {
+                query = query.lte('business_date', formatToYYYYMMDD(endDate));
+            }
+
+            const { data, error } = await query;
 
             if (error) throw error;
             return data || [];

@@ -124,7 +124,7 @@ BEGIN
   FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
   LOOP
     UPDATE bar_products
-    SET current_stock = current_stock - (v_item->>'quantity')::INT
+    SET stock = stock - (v_item->>'quantity')::INT
     WHERE id = (v_item->>'product_id')::UUID;
   END LOOP;
   

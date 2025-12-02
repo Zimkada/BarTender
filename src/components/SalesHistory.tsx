@@ -50,6 +50,7 @@ import { getSaleDate } from '../utils/saleHelpers';
 import { AnalyticsService, TopProduct } from '../services/supabase/analytics.service';
 import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
 import { SALES_HISTORY_FILTERS, TIME_RANGE_CONFIGS } from '../config/dateFilters';
+import { dateToYYYYMMDD, filterByBusinessDateRange, getBusinessDate } from '../utils/businessDateHelpers';
 import type { TimeRange } from '../types/dateFilters';
 
 interface EnhancedSalesHistoryProps {
@@ -69,7 +70,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
   const { consignments } = useStockManagement();
 
   // Récupérer l'heure de clôture (défaut: 6h)
-  const closeHour = currentBar?.settings?.businessDayCloseHour ?? 6;
+  const closeHour = currentBar?.closingHour ?? 6;
 
   // ✨ Utiliser le hook de filtrage temporel avec Business Day
   const {
@@ -99,6 +100,11 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [exportFormat, setExportFormat] = useState<'csv' | 'excel'>('excel');
+  
+  // NOUVEAU : Limite Top Produits
+  const [topProductsLimit, setTopProductsLimit] = useState<number>(5);
+  // NOUVEAU : Metrique Top Produits
+  const [topProductMetric, setTopProductMetric] = useState<'units' | 'revenue' | 'profit'>('units');
 
   // SQL Analytics State
   const [topProductsData, setTopProductsData] = useState<TopProduct[]>([]);
@@ -112,7 +118,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
       setIsLoadingTopProducts(true);
       try {
         // ✨ Utiliser directement startDate et endDate du hook
-        const products = await AnalyticsService.getTopProducts(currentBar.id, startDate, endDate, 5);
+        const products = await AnalyticsService.getTopProducts(currentBar.id, startDate, endDate, topProductsLimit);
         setTopProductsData(products);
       } catch (error) {
         console.error('Error loading top products:', error);
@@ -123,7 +129,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
     };
 
     loadTopProducts();
-  }, [currentBar, startDate, endDate, isOpen]);
+  }, [currentBar, startDate, endDate, isOpen, viewMode, topProductsLimit]);
 
   // Filtrage des ventes
   const filteredSales = useMemo(() => {
@@ -141,10 +147,11 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
     });
 
     // 2. Appliquer le filtre de date (utiliser startDate et endDate du hook)
-    const filtered = baseSales.filter(sale => {
-      const saleDate = getSaleDate(sale);
-      return saleDate >= startDate && saleDate <= endDate;
-    });
+    // Convertir les Dates en strings YYYY-MM-DD pour filterByBusinessDateRange
+    const startDateStr = dateToYYYYMMDD(startDate);
+    const endDateStr = dateToYYYYMMDD(endDate);
+
+    const filtered = filterByBusinessDateRange(baseSales, startDateStr, endDateStr, closeHour);
 
     // 3. Filtre par recherche
     let finalFiltered = filtered;
@@ -258,108 +265,32 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
     let kpiValue = 0;
     let kpiLabel = 'Panier moyen';
 
+    // Calculer le nombre de jours dans la période sélectionnée
+    const dayCount = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+
     if (timeRange === 'today') {
-      // CA moyen/heure pour aujourd'hui
       const now = new Date();
-      const barToday = getCurrentBusinessDay(closeHour);
-      const hoursElapsed = (now.getTime() - barToday.getTime()) / (1000 * 60 * 60);
+      // Assurer que "now" ne soit pas avant le début de la journée commerciale
+      const effectiveNow = now < startDate ? startDate : now;
+      const hoursElapsed = (effectiveNow.getTime() - startDate.getTime()) / (1000 * 60 * 60);
       kpiValue = hoursElapsed > 0 ? totalRevenue / hoursElapsed : 0;
       kpiLabel = 'CA moyen/heure';
-    } else if (timeRange === 'week') {
-      // CA moyen/jour pour semaine calendaire (lundi-dimanche = 7 jours)
-      kpiValue = totalRevenue / 7;
-      kpiLabel = 'CA moyen/jour';
-    } else if (timeRange === 'month') {
-      // CA moyen/jour pour mois calendaire (nombre réel de jours du mois)
-      const today = new Date();
-      const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-      kpiValue = totalRevenue / daysInMonth;
-      kpiLabel = 'CA moyen/jour';
-    } else if (timeRange === 'custom') {
-      // CA moyen/jour pour période personnalisée
-      const startDate = new Date(customRange.start);
-      const endDate = new Date(customRange.end);
-      const dayCount = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+    } else {
       kpiValue = totalRevenue / dayCount;
       kpiLabel = 'CA moyen/jour';
     }
 
-    // Top produits (using SQL view data with fallback to client-side)
-    // Filter topProductsData by current timeRange (DRY approach matching filteredSales logic)
-    const filteredTopProducts = (() => {
-      if (topProductsData.length === 0) return [];
-
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-      switch (timeRange) {
-        case 'today': {
-          const todayDateStr = getBusinessDayDateString(new Date(), closeHour);
-          return topProductsData.filter(p => p.sale_date === todayDateStr);
-        }
-        case 'week': {
-          const currentDay = today.getDay();
-          const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
-          const monday = new Date();
-          monday.setDate(monday.getDate() - daysFromMonday);
-          monday.setHours(0, 0, 0, 0);
-          const sunday = new Date(monday);
-          sunday.setDate(monday.getDate() + 6);
-          sunday.setHours(23, 59, 59, 999);
-
-          // sale_date is Business Day format (YYYY-MM-DD), compare as strings
-          const mondayStr = getBusinessDayDateString(monday, closeHour);
-          const sundayStr = getBusinessDayDateString(sunday, closeHour);
-          return topProductsData.filter(p => p.sale_date >= mondayStr && p.sale_date <= sundayStr);
-        }
-        case 'month': {
-          const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-          const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
-          const firstDayStr = getBusinessDayDateString(firstDay, closeHour);
-          const lastDayStr = getBusinessDayDateString(lastDay, closeHour);
-          return topProductsData.filter(p => p.sale_date >= firstDayStr && p.sale_date <= lastDayStr);
-        }
-        case 'custom': {
-          const startDate = new Date(customRange.start);
-          const endDate = new Date(customRange.end);
-
-          const startDateStr = getBusinessDayDateString(startDate, closeHour);
-          const endDateStr = getBusinessDayDateString(endDate, closeHour);
-          return topProductsData.filter(p => p.sale_date >= startDateStr && p.sale_date <= endDateStr);
-        }
-        default:
-          return topProductsData;
-      }
-    })();
-
-    const topProducts = filteredTopProducts.length > 0
-      ? (() => {
-        // Aggregate by product (multiple days may have same product)
-        const aggregated = filteredTopProducts.reduce((acc, p) => {
-          const volume = p.product_volume || '';
-          const key = `${p.product_name}|${volume}`; // Use pipe as separator
-          if (!acc[key]) {
-            acc[key] = {
-              name: p.product_name,
-              volume,
-              count: 0,
-              revenue: 0
-            };
-          }
-          acc[key].count += p.total_quantity;
-          acc[key].revenue += p.total_revenue;
-          return acc;
-        }, {} as Record<string, { name: string; volume: string; count: number; revenue: number }>);
-
-        // Sort by count and return top 5
-        return Object.values(aggregated)
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 5);
-      })()
+    const topProductsResult = (topProductsData && topProductsData.length > 0)
+      ? topProductsData.map(p => ({
+          name: p.product_name,
+          volume: p.product_volume || '',
+          units: p.total_quantity, // Renommé 'count' en 'units'
+          revenue: p.total_revenue,
+          profit: p.total_revenue // Approximation sans coût réel
+        }))
       : (() => {
-        // Fallback: client-side calculation if SQL data not available
-        const productCounts: Record<string, { name: string; volume: string; count: number; revenue: number }> = {};
+        // Fallback: client-side calculation if SQL data is not available
+        const productCounts: Record<string, { name: string; volume: string; units: number; revenue: number; profit: number }> = {};
         filteredSales.forEach(sale => {
           sale.items.forEach((item: SaleItem) => {
             const name = item.product_name;
@@ -369,22 +300,27 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
               productCounts[key] = {
                 name,
                 volume,
-                count: 0,
-                revenue: 0
+                units: 0,
+                revenue: 0,
+                profit: 0
               };
             }
-            productCounts[key].count += item.quantity;
-            const price = item.unit_price;
-            productCounts[key].revenue += price * item.quantity;
+            productCounts[key].units += item.quantity;
+            const price = item.unit_price; // Get unit_price for calculation
+            productCounts[key].revenue += price * item.quantity; // Calculate revenue
+            productCounts[key].profit += price * item.quantity; // Approximation sans coût réel
           });
         });
 
-        return Object.values(productCounts)
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 5);
+        return Object.values(productCounts);
       })();
 
-    return { totalRevenue, totalItems, kpiValue, kpiLabel, topProducts };
+    // Créer les 3 listes triées
+    const byUnits = [...topProductsResult].sort((a, b) => b.units - a.units).slice(0, topProductsLimit);
+    const byRevenue = [...topProductsResult].sort((a, b) => b.revenue - a.revenue).slice(0, topProductsLimit);
+    const byProfit = [...topProductsResult].sort((a, b) => b.profit - a.profit).slice(0, topProductsLimit);
+
+    return { totalRevenue, totalItems, kpiValue, kpiLabel, topProducts: { byUnits, byRevenue, byProfit } };
   }, [filteredSales, returns, timeRange, customRange, closeHour, topProductsData]);
 
   const exportSales = () => {
@@ -702,16 +638,49 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                     </div>
                   )}
 
-                  {/* Recherche */}
-                  <div className="relative mb-3">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                    <input
-                      type="text"
-                      placeholder="ID vente ou produit..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 border border-amber-200 rounded-lg bg-white text-sm"
-                    />
+                  {/* Recherche et Sélecteurs Top Produits (mobile) */}
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    {/* Recherche */}
+                    <div className="relative flex-1 min-w-[150px]">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                      <input
+                        type="text"
+                        placeholder="ID vente ou produit..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 border border-amber-200 rounded-lg bg-white text-sm"
+                      />
+                    </div>
+
+                    {/* Sélecteurs Top Produits Mobile */}
+                    {viewMode === 'analytics' && (
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center bg-amber-100 rounded-lg p-1">
+                          <span className="text-sm font-medium text-amber-700 px-2">Top:</span>
+                          <select
+                            value={topProductsLimit}
+                            onChange={(e) => setTopProductsLimit(Number(e.target.value))}
+                            className="bg-white border border-amber-200 text-amber-700 text-sm rounded-lg p-1"
+                          >
+                            <option value={5}>5</option>
+                            <option value={10}>10</option>
+                            <option value={20}>20</option>
+                          </select>
+                        </div>
+                        <div className="flex items-center bg-amber-100 rounded-lg p-1">
+                          <span className="text-sm font-medium text-amber-700 px-2">Par:</span>
+                          <select
+                            value={topProductMetric}
+                            onChange={(e) => setTopProductMetric(e.target.value as 'units' | 'revenue' | 'profit')}
+                            className="bg-white border border-amber-200 text-amber-700 text-sm rounded-lg p-1"
+                          >
+                            <option value="units">Unités</option>
+                            <option value="revenue">CA</option>
+                            <option value="profit">Bénéfices</option>
+                          </select>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Mode d'affichage */}
@@ -783,6 +752,12 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                       filteredConsignments={filteredConsignments}
                       currentSession={currentSession}
                       customRange={customRange}
+                      startDate={startDate}
+                      endDate={endDate}
+                      topProductMetric={topProductMetric}
+                      setTopProductMetric={setTopProductMetric}
+                      topProductsLimit={topProductsLimit}
+                      viewMode={viewMode}
                     />
                   )}
                 </div>
@@ -851,170 +826,62 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                     </button>
                   </div>
                 </div>
-                <div className="flex h-[calc(85vh-120px)] md:h-[calc(90vh-120px)]">
-                  {/* Sidebar filtres */}
-                  <div className="w-80 border-r border-amber-200 p-6 overflow-y-auto">
-                    {/* Statistiques */}
-                    <div className="mb-6">
-                      <h3 className="font-semibold text-gray-800 mb-3">Statistiques</h3>
-                      <div className="space-y-3">
-                        <div className="bg-amber-100 rounded-lg p-3">
-                          <p className="text-amber-600 text-sm font-medium">Chiffre d'affaires (NET)</p>
-                          <p className="text-amber-800 font-bold text-lg">{formatPrice(stats.totalRevenue)}</p>
-                        </div>
-                        <div className="bg-amber-100 rounded-lg p-3">
-                          <p className="text-amber-600 text-sm font-medium">Articles vendus</p>
-                          <p className="text-amber-800 font-bold text-lg">{stats.totalItems}</p>
-                        </div>
-                        <div className="bg-amber-100 rounded-lg p-3">
-                          <p className="text-amber-600 text-sm font-medium">{stats.kpiLabel}</p>
-                          <p className="text-amber-800 font-bold text-lg">{formatPrice(stats.kpiValue)}</p>
-                        </div>
-                        {(() => {
-                          // Calculer les retours de la période filtrée
-                          // 🔒 SERVEURS : Seulement retours de LEURS ventes (même logique que getTodayTotal)
-                          const filteredSaleIds = new Set(filteredSales.map(s => s.id));
-
-                          const periodReturns = returns.filter(r => {
-                            if (r.status !== 'approved' && r.status !== 'restocked') return false;
-                            if (!r.isRefunded) return false;
-                            // 🔒 IMPORTANT: Seulement retours des ventes affichées (filtrage par serveur)
-                            if (!filteredSaleIds.has(r.saleId)) return false;
-
-                            const returnDate = new Date(r.returnedAt);
-
-                            if (timeRange === 'today') {
-                              const currentBusinessDay = getCurrentBusinessDay(closeHour);
-                              const returnBusinessDay = getBusinessDay(returnDate, closeHour);
-                              return isSameDay(returnBusinessDay, currentBusinessDay);
-                            } else if (timeRange === 'week') {
-                              const currentDay = new Date().getDay();
-                              const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
-                              const monday = new Date();
-                              monday.setDate(monday.getDate() - daysFromMonday);
-                              monday.setHours(0, 0, 0, 0);
-                              const sunday = new Date(monday);
-                              sunday.setDate(monday.getDate() + 6);
-                              sunday.setHours(23, 59, 59, 999);
-                              return returnDate >= monday && returnDate <= sunday;
-                            } else if (timeRange === 'month') {
-                              const today = new Date();
-                              const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-                              firstDay.setHours(0, 0, 0, 0);
-                              const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-                              lastDay.setHours(23, 59, 59, 999);
-                              return returnDate >= firstDay && returnDate <= lastDay;
-                            } else if (timeRange === 'custom') {
-                              const start = new Date(customRange.start);
-                              const end = new Date(customRange.end);
-                              return returnDate >= start && returnDate <= end;
-                            }
-                            return false;
-                          });
-
-                          const returnsCount = periodReturns.length;
-                          const returnsAmount = periodReturns.reduce((sum, r) => sum + r.refundAmount, 0);
-
-                          if (returnsCount > 0) {
-                            return (
-                              <div className="bg-red-100 border border-red-200 rounded-lg p-3">
-                                <div className="flex items-center justify-between mb-1">
-                                  <p className="text-red-600 text-sm font-medium flex items-center gap-1">
-                                    <RotateCcw size={14} />
-                                    Retours remboursés
-                                  </p>
-                                  <span className="text-red-700 text-xs font-medium">{returnsCount}</span>
-                                </div>
-                                <p className="text-red-800 font-bold text-lg">-{formatPrice(returnsAmount)}</p>
-                              </div>
-                            );
-                          }
-                          return null;
-                        })()}
-                      </div>
-                    </div>
-
-                    {/* Filtres temporels */}
-                    <div className="mb-6">
-                      <h3 className="font-semibold text-gray-800 mb-3">Période</h3>
-                      <div className="space-y-2">
-                        {[
-                          { value: 'today', label: "Aujourd'hui" },
-                          { value: 'week', label: 'Cette semaine (Lun-Dim)' },
-                          { value: 'month', label: 'Ce mois' },
-                          { value: 'custom', label: 'Personnalisée' }
-                        ].map(filter => (
-                          <button
-                            key={filter.value}
-                            onClick={() => setTimeFilter(filter.value as TimeFilter)}
-                            className={`w-full text-left p-2 rounded-lg transition-colors ${timeRange === filter.value
-                              ? 'bg-amber-500 text-white'
-                              : 'bg-white text-gray-700 hover:bg-amber-50'
-                              }`}
-                          >
-                            {filter.label}
-                          </button>
-                        ))}
-                      </div>
-
-                      {timeRange === 'custom' && (
-                        <div className="mt-3 space-y-2">
-                          <input
-                            type="date"
-                            value={customRange.start}
-                            onChange={(e) => updateCustomRange('start', e.target.value)}
-                            className="w-full p-2 border border-amber-200 rounded-lg bg-white text-sm"
-                          />
-                          <input
-                            type="date"
-                            value={customRange.end}
-                            onChange={(e) => updateCustomRange('end', e.target.value)}
-                            className="w-full p-2 border border-amber-200 rounded-lg bg-white text-sm"
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Top produits */}
-                    {stats.topProducts.length > 0 && (
-                      <div className="mb-6">
-                        <h3 className="font-semibold text-gray-800 mb-3">Top produits</h3>
-                        <div className="space-y-2">
-                          {stats.topProducts.map((product, index) => (
-                            <div key={`top-product-${index}`} className="bg-white rounded-lg p-2">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <p className="text-sm font-medium text-gray-800">
-                                    {index + 1}. {product.name}
-                                  </p>
-                                  <p className="text-xs text-gray-600">{product.volume}</p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-sm font-bold text-amber-600">{product.count}</p>
-                                  <p className="text-xs text-gray-500">{formatPrice(product.revenue)}</p>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Recherche */}
-                    <div>
-                      <h3 className="font-semibold text-gray-800 mb-3">Recherche</h3>
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                        <input
-                          type="text"
-                          placeholder="ID vente ou produit..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="w-full pl-9 pr-3 py-2 border border-amber-200 rounded-lg bg-white text-sm"
-                        />
-                      </div>
-                    </div>
+                {/* Barre de filtres Desktop */}
+                <div className="bg-white border-b border-amber-200 p-4 flex items-center gap-4 flex-wrap">
+                  
+                  {/* Filtres de date */}
+                  <div className="flex bg-gray-100 rounded-lg p-1">
+                    {SALES_HISTORY_FILTERS.map(filter => (
+                      <button
+                        key={filter}
+                        onClick={() => setTimeRange(filter)}
+                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${timeRange === filter
+                          ? 'bg-white text-amber-600 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                          }`}
+                      >
+                        {TIME_RANGE_CONFIGS[filter].label}
+                      </button>
+                    ))}
                   </div>
+
+                  {/* Date Range Custom */}
+                  {isCustom && (
+                    <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-200">
+                      <input
+                        type="date"
+                        value={customRange.start}
+                        onChange={(e) => updateCustomRange('start', e.target.value)}
+                        className="p-1.5 bg-transparent text-sm outline-none"
+                      />
+                      <span className="text-gray-400">-</span>
+                      <input
+                        type="date"
+                        value={customRange.end}
+                        onChange={(e) => updateCustomRange('end', e.target.value)}
+                        className="p-1.5 bg-transparent text-sm outline-none"
+                      />
+                    </div>
+                  )}
+
+                  {/* Recherche */}
+                  <div className="relative w-64">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+                    <input
+                      type="text"
+                      placeholder="ID vente ou produit..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2 border border-amber-200 rounded-lg bg-gray-50 text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="flex-1"></div>
+
+
+                </div>
+                <div className="flex h-[calc(85vh-120px)] md:h-[calc(90vh-120px)]">
+
 
                   {/* Contenu principal */}
                   <div className="flex-1 flex flex-col">
@@ -1045,6 +912,36 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                               );
                             })}
                           </div>
+                          {/* Sélecteur Limite Top Produits (Visible seulement en Analytics) */}
+                          {viewMode === 'analytics' && (
+                            <>
+                              <div className="flex bg-gray-100 rounded-lg p-1">
+                                <span className="text-sm font-medium text-gray-600 py-1.5 px-3">Nombre de Top produits:</span>
+                                <select
+                                  value={topProductsLimit}
+                                  onChange={(e) => setTopProductsLimit(Number(e.target.value))}
+                                  className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors bg-white text-amber-600 shadow-sm"
+                                >
+                                  <option value={5}>5</option>
+                                  <option value={10}>10</option>
+                                  <option value={20}>20</option>
+                                  <option value={50}>50</option>
+                                </select>
+                              </div>
+                              <div className="flex bg-gray-100 rounded-lg p-1">
+                                <span className="text-sm font-medium text-gray-600 py-1.5 px-3">Afficher par:</span>
+                                <select
+                                  value={topProductMetric}
+                                  onChange={(e) => setTopProductMetric(e.target.value as 'units' | 'revenue' | 'profit')}
+                                  className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors bg-white text-amber-600 shadow-sm"
+                                >
+                                  <option value="units">Unités vendues</option>
+                                  <option value="revenue">Chiffre d'affaires</option>
+                                  <option value="profit">Bénéfices</option>
+                                </select>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1096,33 +993,34 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                         }
 
 
-                        return (
-                          <AnalyticsView
-                            sales={filteredSales}
-                            stats={stats}
-                            formatPrice={formatPrice}
-                            categories={categories}
-                            products={products}
-                            users={safeUsers}
-                            barMembers={safeBarMembers}
-                            timeRange={timeRange}
-                            isMobile={isMobile}
-                            returns={returns}
-                            closeHour={closeHour}
-                            filteredConsignments={filteredConsignments}
-                            currentSession={currentSession}
-                            customRange={customRange}
-                          />
-                        );
-                      })()}
-                    </div>
-                  </div>
-                </div>
-              </>
-            )}
-          </motion.div>
-
-          {/* Détail vente */}
+                                                return (
+                                                  <AnalyticsView
+                                                    sales={filteredSales}
+                                                    stats={stats}
+                                                    formatPrice={formatPrice}
+                                                    categories={categories}
+                                                    products={products}
+                                                    users={safeUsers}
+                                                    barMembers={safeBarMembers}
+                                                    timeRange={timeRange}
+                                                    isMobile={isMobile}
+                                                    returns={returns}
+                                                    closeHour={closeHour}
+                                                    filteredConsignments={filteredConsignments}
+                                                    currentSession={currentSession}
+                                                    customRange={customRange}
+                                                    startDate={startDate}
+                                                    endDate={endDate}
+                                                  />
+                                                );
+                                              })()}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </>
+                                    )}
+                                  </motion.div>
+                                          {/* Détail vente */}
           {selectedSale && (
             <SaleDetailModal
               sale={selectedSale}
@@ -1403,7 +1301,13 @@ function AnalyticsView({
   closeHour,
   filteredConsignments,
   currentSession,
-  customRange
+  customRange,
+  startDate,
+  endDate,
+  topProductMetric,
+  setTopProductMetric,
+  topProductsLimit,
+  viewMode
 }: {
   sales: Sale[];
   stats: Stats;
@@ -1419,44 +1323,44 @@ function AnalyticsView({
   filteredConsignments: any[];
   currentSession: any;
   customRange: { start: string; end: string };
+  startDate: Date;
+  endDate: Date;
+  topProductMetric: 'units' | 'revenue' | 'profit';
+  setTopProductMetric: (metric: 'units' | 'revenue' | 'profit') => void;
+  topProductsLimit: number;
+  viewMode: ViewMode;
 }) {
+  console.log('AnalyticsView - viewMode:', viewMode);
+  console.log('AnalyticsView - topProductsData (stats.topProducts):', stats.topProducts);
+  console.log('AnalyticsView - topProductsData (byUnits):', stats.topProducts.byUnits); // Correction ici, topProductsData est directement dans stats
+  console.log('AnalyticsView - topProductMetric:', topProductMetric);
+  console.log('AnalyticsView - topProductsLimit:', topProductsLimit);
   // Protection: s'assurer que tous les tableaux sont définis
   const safeUsers = users || [];
   const safeBarMembers = barMembers || [];
 
+  const { sales: allSales } = useAppContext();
+
   // Calculer période précédente pour comparaison
-  const { currentPeriodSales: _currentPeriodSales, previousPeriodSales } = useMemo(() => {
-    const now = new Date();
-    let currentStart: Date, previousStart: Date, previousEnd: Date;
+  const { previousPeriodSales } = useMemo(() => {
+    // 1. Calculer la durée de la période actuelle
+    const currentDuration = endDate.getTime() - startDate.getTime();
+    if (currentDuration <= 0) return { previousPeriodSales: [] };
 
-    if (timeRange === 'today') {
-      currentStart = new Date(now.setHours(0, 0, 0, 0));
-      previousStart = new Date(currentStart);
-      previousStart.setDate(previousStart.getDate() - 1);
-      previousEnd = new Date(currentStart);
-    } else if (timeRange === 'week') {
-      currentStart = new Date(now);
-      currentStart.setDate(currentStart.getDate() - 7);
-      previousStart = new Date(currentStart);
-      previousStart.setDate(previousStart.getDate() - 7);
-      previousEnd = new Date(currentStart);
-    } else if (timeRange === 'month') {
-      currentStart = new Date(now);
-      currentStart.setDate(currentStart.getDate() - 30);
-      previousStart = new Date(currentStart);
-      previousStart.setDate(previousStart.getDate() - 30);
-      previousEnd = new Date(currentStart);
-    } else {
-      return { currentPeriodSales: sales, previousPeriodSales: [] };
-    }
+    // 2. Déterminer les dates de la période précédente
+    const previousEnd = startDate;
+    const previousStart = new Date(previousEnd.getTime() - currentDuration);
+    
+    // 3. Convertir en strings YYYY-MM-DD pour le filtrage
+    const prevStartDateStr = dateToYYYYMMDD(previousStart);
+    // `-1` milliseconde pour garantir que la date de fin est exclusive et éviter tout chevauchement avec la `startDate` de la période actuelle.
+    const prevEndDateStr = dateToYYYYMMDD(new Date(previousEnd.getTime() - 1));
 
-    const previous = sales.filter(s => {
-      const saleDate = getSaleDate(s);
-      return saleDate >= previousStart && saleDate < previousEnd;
-    });
-
-    return { currentPeriodSales: sales, previousPeriodSales: previous };
-  }, [sales, timeRange]);
+    // 4. Filtrer les ventes GLOBALES avec le helper centralisé
+    const previous = filterByBusinessDateRange(allSales, prevStartDateStr, prevEndDateStr, closeHour);
+    
+    return { previousPeriodSales: previous };
+  }, [allSales, startDate, endDate, closeHour]);
 
   // KPIs avec tendances
   const kpis = useMemo(() => {
@@ -1513,47 +1417,20 @@ function AnalyticsView({
   // Données pour graphique d'évolution - granularité adaptative
   const evolutionChartData = useMemo(() => {
     const grouped: Record<string, { label: string; revenue: number; sales: number; timestamp: number }> = {};
+    const dayCount = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
 
-    sales.forEach(sale => {
+    sales.forEach(sale => { // 'sales' here is the filtered list from props
       if (sale.status !== 'validated') return;
-
+      
       let label: string;
       const saleDate = getSaleDate(sale);
 
-      if (timeRange === 'today') {
-        // Mode Aujourd'hui → Par heure (groupement)
+      if (dayCount <= 2) { // Today, Yesterday -> group by hour
         const hour = saleDate.getHours();
         label = `${hour.toString().padStart(2, '0')}h`;
-      } else if (timeRange === 'week') {
-        // Mode Semaine → Par jour
+      } else if (dayCount <= 14) { // Up to 2 weeks -> group by day
         label = saleDate.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit' });
-      } else if (timeRange === 'month') {
-        // Mode Mois → Par semaine calendaire (Lun-Dim)
-        // Trouver le lundi de la semaine de cette vente
-        const day = saleDate.getDay();
-        const diff = (day === 0 ? -6 : 1) - day; // Décalage pour trouver le lundi
-        const monday = new Date(saleDate);
-        monday.setDate(saleDate.getDate() + diff);
-        monday.setHours(0, 0, 0, 0);
-
-        // Calculer le dimanche
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
-
-        // Format du label: "Lun 6 - Dim 12"
-        const mondayDay = monday.getDate();
-        const sundayDay = sunday.getDate();
-        const mondayMonth = monday.getMonth();
-        const sundayMonth = sunday.getMonth();
-
-        // Si la semaine chevauche deux mois, afficher les mois
-        if (mondayMonth !== sundayMonth) {
-          label = `${mondayDay}/${mondayMonth + 1} - ${sundayDay}/${sundayMonth + 1}`;
-        } else {
-          label = `${mondayDay} - ${sundayDay}`;
-        }
-      } else {
-        // Mode Custom → Par jour
+      } else { // More than 2 weeks -> group by day (DD/MM)
         label = saleDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
       }
 
@@ -1562,31 +1439,26 @@ function AnalyticsView({
       }
       grouped[label].revenue += sale.total;
       grouped[label].sales += 1;
-      // Garder le timestamp le plus ancien pour ce label
       grouped[label].timestamp = Math.min(grouped[label].timestamp, saleDate.getTime());
     });
 
-    // Trier par timestamp chronologique (ancien → récent)
     return Object.values(grouped).sort((a, b) => a.timestamp - b.timestamp);
-  }, [sales, timeRange]);
+  }, [sales, startDate, endDate]);
 
   // Répartition par catégorie (sur CA BRUT pour avoir le détail des ventes)
   const categoryData = useMemo(() => {
     const catRevenue: Record<string, number> = {};
     let totalGross = 0;
 
-    sales.forEach(sale => {
+    sales.forEach(sale => { // 'sales' is now the filtered list passed in props
       sale.items.forEach((item: any) => {
-        // ✅ Handle dual format: extract product_id
         const productId = item.product?.id || item.product_id;
-
-        // ✅ Look up the product to get its category
         const product = _products.find(p => p.id === productId);
         const categoryId = product?.categoryId;
 
         const category = categories.find(c => c.id === categoryId);
         const catName = category?.name || 'Autre';
-        const price = item.product?.price || item.unit_price || 0;
+        const price = item.unit_price || 0;
         const itemRevenue = price * item.quantity;
         catRevenue[catName] = (catRevenue[catName] || 0) + itemRevenue;
         totalGross += itemRevenue;
@@ -2118,50 +1990,28 @@ function AnalyticsView({
         </div>
       </div>
 
-      {/* Top produits - 3 graphiques */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Top par unités vendues */}
+      {/* Top produits - Sélecteur et graphique */}
+      {viewMode === 'analytics' && (
         <div className="bg-white rounded-xl p-4 border border-amber-100">
-          <h4 className="text-sm font-semibold text-gray-800 mb-3">Top 5 - Unités vendues</h4>
-          <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
-            <BarChart data={topProductsData.byUnits}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" />
-              <XAxis dataKey="displayName" tick={{ fill: '#9ca3af', fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
-              <YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} />
-              <Tooltip />
-              <Bar dataKey="units" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-sm font-semibold text-gray-800">Top {topProductsLimit} produits</h4>
+          </div>
 
-        {/* Top par CA */}
-        <div className="bg-white rounded-xl p-4 border border-amber-100">
-          <h4 className="text-sm font-semibold text-gray-800 mb-3">Top 5 - Chiffre d'affaires</h4>
           <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
-            <BarChart data={topProductsData.byRevenue}>
+            <BarChart data={
+              topProductMetric === 'units' ? stats.topProducts.byUnits :
+              topProductMetric === 'revenue' ? stats.topProducts.byRevenue :
+              topProductMetric === 'profit' ? stats.topProducts.byProfit : []
+            }>
               <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" />
               <XAxis dataKey="displayName" tick={{ fill: '#9ca3af', fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
               <YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} />
               <Tooltip formatter={(value: number) => formatPrice(value)} />
-              <Bar dataKey="revenue" fill="#f97316" radius={[8, 8, 0, 0]} />
+              <Bar dataKey={topProductMetric} fill="#f97316" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
-
-        {/* Top par bénéfice */}
-        <div className="bg-white rounded-xl p-4 border border-amber-100">
-          <h4 className="text-sm font-semibold text-gray-800 mb-3">Top 5 - Bénéfices</h4>
-          <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
-            <BarChart data={topProductsData.byProfit}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" />
-              <XAxis dataKey="displayName" tick={{ fill: '#9ca3af', fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
-              <YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} />
-              <Tooltip formatter={(value: number) => formatPrice(value)} />
-              <Bar dataKey="profit" fill="#10b981" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

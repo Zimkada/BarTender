@@ -16,7 +16,7 @@ import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
 import { Sale, SaleItem, Return, ReturnReason, ReturnReasonConfig } from '../types';
-import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
+import { getBusinessDate, getCurrentBusinessDateString } from '../utils/businessDateHelpers';
 import { getSaleDate } from '../utils/saleHelpers';
 import { useViewport } from '../hooks/useViewport'; // Added import
 
@@ -92,22 +92,24 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const closeHour = currentBar?.settings?.businessDayCloseHour ?? 6;
+  const closeHour = currentBar?.closingHour ?? 6;
 
   const canReturnSale = (sale: Sale): { allowed: boolean; reason: string } => {
-    const saleBusinessDay = getBusinessDay(getSaleDate(sale), closeHour);
-    const currentBusinessDay = getCurrentBusinessDay(closeHour);
+    // ✅ Utiliser la comparaison de strings YYYY-MM-DD (plus fiable)
+    const saleBusinessDate = getBusinessDate(sale, closeHour);
+    const currentBusinessDate = getCurrentBusinessDateString(closeHour);
     const now = new Date();
 
-    if (!isSameDay(saleBusinessDay, currentBusinessDay)) {
+    if (saleBusinessDate !== currentBusinessDate) {
       return {
         allowed: false,
-        reason: `Caisse du ${saleBusinessDay.toLocaleDateString('fr-FR')} déjà clôturée. Retours impossibles.`
+        reason: `Caisse du ${saleBusinessDate} déjà clôturée. Retours impossibles.`
       };
     }
 
-    const nextCloseTime = new Date(currentBusinessDay);
-    nextCloseTime.setDate(nextCloseTime.getDate() + 1);
+    // Calculer l'heure de clôture exacte pour aujourd'hui
+    const nextCloseTime = new Date(currentBusinessDate);
+    nextCloseTime.setDate(nextCloseTime.getDate() + 1); // Le lendemain de la date commerciale
     nextCloseTime.setHours(closeHour, 0, 0, 0);
 
     if (now >= nextCloseTime) {
@@ -124,12 +126,11 @@ export function ReturnsSystem({ isOpen, onClose }: ReturnsSystemProps) {
   };
 
   const getReturnableSales = useMemo((): Sale[] => {
-    const currentBusinessDay = getCurrentBusinessDay(closeHour);
+    const currentBusinessDate = getCurrentBusinessDateString(closeHour);
     return sales.filter(sale => {
       if (sale.status !== 'validated') return false;
-      const saleDate = getSaleDate(sale);
-      const saleBusinessDay = getBusinessDay(saleDate, closeHour);
-      return isSameDay(saleBusinessDay, currentBusinessDay);
+      const saleBusinessDate = getBusinessDate(sale, closeHour);
+      return saleBusinessDate === currentBusinessDate;
     });
   }, [sales, closeHour]);
 

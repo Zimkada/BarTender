@@ -2,27 +2,19 @@
 import type { Sale } from '../types';
 
 /**
- * Obtient la date "effective" d'une vente selon son statut
- *
- * Pour une vente VALIDÉE : utilise validatedAt (date de validation = date de sortie stock)
- * Pour une vente PENDING/REJECTED : utilise createdAt (date de création)
- *
+ * Obtient la date commerciale d'une vente
+ * 
+ * ✅ SIMPLIFIÉ : Utilise uniquement businessDate (toujours remplie après migration 067)
+ * - Mode online : Calculée par le trigger SQL
+ * - Mode offline : Calculée par le frontend avant insertion
+ * 
  * @param sale - La vente
- * @returns Date effective de la vente
+ * @returns Date commerciale de la vente
  */
 export function getSaleDate(sale: Sale): Date {
-  // Pour les ventes validées, la date effective est la validation (= date CA + sortie stock)
-  if (sale.status === 'validated' && sale.validatedAt) {
-    return new Date(sale.validatedAt);
-  }
-
-  // Pour les ventes rejetées, utiliser la date de rejet
-  if (sale.status === 'rejected' && sale.rejectedAt) {
-    return new Date(sale.rejectedAt);
-  }
-
-  // Par défaut (pending ou absence de date validation), utiliser date création
-  return new Date(sale.createdAt);
+  return typeof sale.businessDate === 'string'
+    ? new Date(sale.businessDate)
+    : sale.businessDate;
 }
 
 /**

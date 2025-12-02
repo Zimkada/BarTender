@@ -27,6 +27,7 @@ export interface CreateSaleData {
   customer_name?: string;
   customer_phone?: string;
   notes?: string;
+  business_date?: string; // Ajouté pour le mode offline-first
 }
 
 export interface SaleWithDetails extends Sale {
@@ -49,7 +50,7 @@ export class SalesService {
       const status = data.status || 'pending';
 
       // ✨ Utiliser la fonction RPC atomique pour créer la vente avec promotions
-      const { data: newSale, error: rpcError } = await (supabase.rpc as any)(
+      const { data: newSale, error: rpcError } = await supabase.rpc(
         'create_sale_with_promotions',
         {
           p_bar_id: data.bar_id,
@@ -57,9 +58,10 @@ export class SalesService {
           p_payment_method: data.payment_method,
           p_sold_by: data.sold_by,
           p_status: status,
-          p_customer_name: data.customer_name,
-          p_customer_phone: data.customer_phone,
-          p_notes: data.notes
+          p_customer_name: data.customer_name || null,
+          p_customer_phone: data.customer_phone || null,
+          p_notes: data.notes || null,
+          p_business_date: data.business_date || null // ✅ Passage du paramètre
         }
       ).single();
 
@@ -173,18 +175,18 @@ export class SalesService {
           validator:users!sales_validated_by_fkey (name)
         `)
         .eq('bar_id', barId)
-        .order('created_at', { ascending: false });
+        .order('business_date', { ascending: false }); // ✅ Tri par business_date
 
       if (options?.status) {
         query = query.eq('status', options.status);
       }
 
       if (options?.startDate) {
-        query = query.gte('created_at', options.startDate);
+        query = query.gte('business_date', options.startDate); // ✅ Filtre par business_date
       }
 
       if (options?.endDate) {
-        query = query.lte('created_at', options.endDate);
+        query = query.lte('business_date', options.endDate); // ✅ Filtre par business_date
       }
 
       if (options?.limit) {
@@ -262,7 +264,8 @@ export class SalesService {
    */
   static async getSalesStats(
     barId: string,
-    period: 'today' | 'week' | 'month' | 'all' = 'today'
+    startDate?: string,
+    endDate?: string
   ): Promise<{
     totalSales: number;
     totalRevenue: number;
@@ -270,26 +273,7 @@ export class SalesService {
     averageSale: number;
   }> {
     try {
-      // Calculer la date de début selon la période
-      let startDate: Date | null = null;
-      const now = new Date();
-
-      switch (period) {
-        case 'today':
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          break;
-        case 'week':
-          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          break;
-        case 'month':
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-          break;
-        case 'all':
-          startDate = null;
-          break;
-      }
-
-      // Ventes validées
+      // Ventes validées (Filtre sur business_date)
       let validatedQuery = supabase
         .from('sales')
         .select('total')
@@ -297,7 +281,11 @@ export class SalesService {
         .eq('status', 'validated');
 
       if (startDate) {
-        validatedQuery = validatedQuery.gte('created_at', startDate.toISOString());
+        validatedQuery = validatedQuery.gte('business_date', startDate);
+      }
+
+      if (endDate) {
+        validatedQuery = validatedQuery.lte('business_date', endDate);
       }
 
       const { data: validatedSales } = await validatedQuery;
@@ -306,7 +294,7 @@ export class SalesService {
       const totalSales = validatedSales?.length || 0;
       const averageSale = totalSales > 0 ? totalRevenue / totalSales : 0;
 
-      // Ventes en attente
+      // Ventes en attente (Toujours temps réel, pas de filtre date nécessaire généralement, ou created_at)
       const { count: pendingCount } = await supabase
         .from('sales')
         .select('*', { count: 'exact', head: true })
@@ -339,18 +327,18 @@ export class SalesService {
         .select(`
           *,
           seller:users!sales_created_by_fkey (name),
-          validator:users!sales_validated_by_fkey (name)
+          validator:users!sales_validated_by_fkey (name) // Correction fkey
         `)
         .eq('bar_id', barId)
         .eq('created_by', userId)
-        .order('created_at', { ascending: false });
+        .order('business_date', { ascending: false }); // Tri par business_date
 
       if (startDate) {
-        query = query.gte('created_at', startDate);
+        query = query.gte('business_date', startDate); // Filtre par business_date
       }
 
       if (endDate) {
-        query = query.lte('created_at', endDate);
+        query = query.lte('business_date', endDate); // Filtre par business_date
       }
 
       const { data, error } = await query;
@@ -362,7 +350,7 @@ export class SalesService {
       return (data || []).map((sale: any) => ({
         ...sale,
         seller_name: sale.seller?.name || 'Inconnu',
-        validator_name: sale.validator?.name || null,
+        validator_name: sale.validator?.name || null, // Accès correct
         items_count: (sale.items as SaleItem[]).length,
       }));
     } catch (error: any) {
@@ -387,11 +375,11 @@ export class SalesService {
         .eq('status', 'validated');
 
       if (startDate) {
-        query = query.gte('created_at', startDate);
+        query = query.gte('business_date', startDate);
       }
 
       if (endDate) {
-        query = query.lte('created_at', endDate);
+        query = query.lte('business_date', endDate);
       }
 
       const { data: sales } = await query;

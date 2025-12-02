@@ -1,8 +1,9 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
+import { Bar } from '../../types';
 
-type Bar = Database['public']['Tables']['bars']['Row'];
-type BarInsert = Database['public']['Tables']['bars']['Insert'];
+type BarRow = Database['public']['Tables']['bars']['Row'];
+// type BarInsert = Database['public']['Tables']['bars']['Insert']; // Unused
 type BarUpdate = Database['public']['Tables']['bars']['Update'];
 
 export interface BarWithOwner extends Bar {
@@ -18,12 +19,32 @@ export interface CreateBarData {
   phone?: string;
   logo_url?: string;
   settings?: Record<string, any>;
+  closing_hour?: number;
 }
 
 /**
  * Service de gestion des bars
  */
 export class BarsService {
+  /**
+   * Helper pour convertir une ligne Supabase en objet Bar frontend
+   */
+  private static mapToBar(row: BarRow): Bar {
+    return {
+      id: row.id,
+      name: row.name,
+      address: row.address || undefined,
+      phone: row.phone || undefined,
+      email: undefined, // Pas dans la table bars actuelle
+      ownerId: row.owner_id || '',
+      createdAt: new Date(row.created_at || Date.now()),
+      isActive: row.is_active || false,
+      closingHour: (row as any).closing_hour ?? 6, // ✅ Mappage explicite
+      settings: row.settings as any,
+      // logoUrl: row.logo_url || undefined // ❌ Pas dans l'interface Bar actuelle
+    };
+  }
+
   /**
    * Créer un nouveau bar
    * Réservé aux promoteurs et super_admins
@@ -41,6 +62,7 @@ export class BarsService {
           logo_url: data.logo_url,
           settings: data.settings,
           is_active: true,
+          closing_hour: data.closing_hour ?? 6,
         })
         .select()
         .single();
@@ -66,7 +88,7 @@ export class BarsService {
         throw new Error('Erreur lors de l\'assignation du propriétaire');
       }
 
-      return newBar;
+      return this.mapToBar(newBar);
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
     }
@@ -92,7 +114,7 @@ export class BarsService {
       const { data: owner } = await supabase
         .from('users')
         .select('name, phone')
-        .eq('id', data.owner_id)
+        .eq('id', data.owner_id || '') // ✅ Fix null check
         .single();
 
       // Compter les membres actifs
@@ -102,8 +124,10 @@ export class BarsService {
         .eq('bar_id', barId)
         .eq('is_active', true);
 
+      const bar = this.mapToBar(data);
+
       const barWithOwner: BarWithOwner = {
-        ...data,
+        ...bar,
         owner_name: owner?.name || '',
         owner_phone: owner?.phone || '',
         member_count: count || 0,
@@ -132,20 +156,22 @@ export class BarsService {
 
       // Pour chaque bar, récupérer owner et compter les membres
       const barsWithOwner: BarWithOwner[] = await Promise.all(
-        (data || []).map(async (bar) => {
+        (data || []).map(async (row) => {
           // Récupérer le owner
           const { data: owner } = await supabase
             .from('users')
             .select('name, phone')
-            .eq('id', bar.owner_id)
+            .eq('id', row.owner_id || '') // ✅ Fix null check
             .single();
 
           // Compter les membres
           const { count } = await supabase
             .from('bar_members')
             .select('*', { count: 'exact', head: true })
-            .eq('bar_id', bar.id)
+            .eq('bar_id', row.id)
             .eq('is_active', true);
+
+          const bar = this.mapToBar(row);
 
           return {
             ...bar,
@@ -179,7 +205,10 @@ export class BarsService {
         throw new Error('Erreur lors de la récupération des bars');
       }
 
-      return (data || []).map((member: any) => member.bars);
+      return (data || [])
+        .map((member: any) => member.bars)
+        .filter((bar: any) => bar !== null)
+        .map((barRow: any) => this.mapToBar(barRow));
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
     }
@@ -188,11 +217,18 @@ export class BarsService {
   /**
    * Mettre à jour un bar
    */
-  static async updateBar(barId: string, updates: BarUpdate): Promise<Bar> {
+  static async updateBar(barId: string, updates: BarUpdate & { closingHour?: number }): Promise<Bar> {
     try {
+      // Mapper closingHour vers closing_hour si présent
+      const dbUpdates: any = { ...updates };
+      if (updates.closingHour !== undefined) {
+        dbUpdates.closing_hour = updates.closingHour;
+        delete dbUpdates.closingHour;
+      }
+
       const { data, error } = await supabase
         .from('bars')
-        .update(updates)
+        .update(dbUpdates)
         .eq('id', barId)
         .select()
         .single();
@@ -201,7 +237,7 @@ export class BarsService {
         throw new Error('Erreur lors de la mise à jour du bar');
       }
 
-      return data;
+      return this.mapToBar(data); // ✅ Mapper le retour
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
     }

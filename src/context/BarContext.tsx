@@ -86,6 +86,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             language: 'fr',
           },
           isActive: b.is_active,
+          closingHour: (b as any).closing_hour ?? 6,
           createdAt: new Date(b.created_at),
         }));
         setBars(mappedBars);
@@ -114,6 +115,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             language: 'fr',
           },
           isActive: b.is_active,
+          closingHour: (b as any).closing_hour ?? 6,
           createdAt: new Date(b.created_at),
         }));
         setBars(mappedBars);
@@ -219,6 +221,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         address: barData.address,
         phone: barData.phone,
         settings: barData.settings,
+        closing_hour: barData.closingHour,
       };
 
       const createdBar = await BarsService.createBar(newBarData);
@@ -231,6 +234,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         phone: createdBar.phone || undefined,
         settings: (createdBar.settings as any) || barData.settings,
         isActive: createdBar.is_active,
+        closingHour: (createdBar as any).closing_hour ?? 6,
         createdAt: new Date(createdBar.created_at),
       };
 
@@ -277,6 +281,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (updates.phone) supabaseUpdates.phone = updates.phone;
       if (updates.settings) supabaseUpdates.settings = updates.settings;
       if (updates.isActive !== undefined) supabaseUpdates.is_active = updates.isActive;
+      if (updates.closingHour !== undefined) supabaseUpdates.closing_hour = updates.closingHour;
 
       await BarsService.updateBar(barId, supabaseUpdates);
 

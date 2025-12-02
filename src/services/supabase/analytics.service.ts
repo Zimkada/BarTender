@@ -81,24 +81,34 @@ export interface SalariesSummary {
 }
 
 export const AnalyticsService = {
+    formatDate(d: Date): string {
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    },
+
     /**
      * Récupère le résumé des ventes par jour/semaine/mois
      */
     async getDailySummary(
         barId: string,
-        startDate: Date,
-        endDate: Date,
+        startDate: Date | string,
+        endDate: Date | string,
         groupBy: 'day' | 'week' | 'month' = 'day'
     ): Promise<DailySalesSummary[]> {
         const dateColumn = groupBy === 'day' ? 'sale_date' :
             groupBy === 'week' ? 'sale_week' : 'sale_month';
 
+        const startStr = typeof startDate === 'string' ? startDate : this.formatDate(startDate);
+        const endStr = typeof endDate === 'string' ? endDate : this.formatDate(endDate);
+
         const { data, error } = await supabase
             .from('daily_sales_summary' as any)
             .select('*')
             .eq('bar_id', barId)
-            .gte(dateColumn, startDate.toISOString())
-            .lte(dateColumn, endDate.toISOString())
+            .gte(dateColumn, startStr)
+            .lte(dateColumn, endStr)
             .order(dateColumn, { ascending: false });
 
         if (error) throw error;
@@ -110,17 +120,24 @@ export const AnalyticsService = {
      */
     async getTopProducts(
         barId: string,
-        startDate: Date,
-        endDate: Date,
-        limit: number = 10
+        startDate: Date | string,
+        endDate: Date | string,
+        limit: number = 10,
+        sortBy: 'quantity' | 'revenue' = 'quantity'
     ): Promise<TopProduct[]> {
+
+        const startStr = typeof startDate === 'string' ? startDate : this.formatDate(startDate);
+        const endStr = typeof endDate === 'string' ? endDate : this.formatDate(endDate);
+
+        const sortColumn = sortBy === 'revenue' ? 'total_revenue' : 'total_quantity';
+
         const { data, error } = await supabase
             .from('top_products_by_period' as any)
             .select('*')
             .eq('bar_id', barId)
-            .gte('sale_date', startDate.toISOString().split('T')[0])
-            .lte('sale_date', endDate.toISOString().split('T')[0])
-            .order('total_quantity', { ascending: false })
+            .gte('sale_date', startStr)
+            .lte('sale_date', endStr)
+            .order(sortColumn, { ascending: false })
             .limit(limit);
 
         if (error) throw error;

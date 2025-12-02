@@ -9,13 +9,14 @@ import { AnimatedCounter } from './AnimatedCounter';
 import { usePromotions } from '../hooks/usePromotions';
 import { useBarContext } from '../context/BarContext';
 import { FEATURES } from '../config/features';
+import { PaymentMethodSelector, PaymentMethod } from './cart/PaymentMethodSelector';
 
 interface ServerCartProps {
   items: CartItem[];
   tableNumber: string;
   onUpdateQuantity: (productId: string, quantity: number) => void;
   onRemoveItem: (productId: string) => void;
-  onLaunchOrder: () => void;
+  onLaunchOrder: (paymentMethod?: PaymentMethod) => void;
   onClear: () => void;
 }
 
@@ -31,6 +32,7 @@ export function ServerCart({
   const { setLoading, isLoading, showSuccess } = useFeedback();
   const { currentBar } = useBarContext();
   const { calculatePrice, isEnabled: promotionsEnabled } = usePromotions(currentBar?.id);
+  const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>('cash');
 
   // ✨ Calculer total avec promotions
   const { total, totalDiscount } = useMemo(() => {
@@ -146,6 +148,14 @@ export function ServerCart({
             <span className="font-semibold">-{formatPrice(totalDiscount)}</span>
           </div>
         )}
+
+        {/* Mode de paiement */}
+        <PaymentMethodSelector
+          value={paymentMethod}
+          onChange={setPaymentMethod}
+          className="mb-4"
+        />
+
         <div className="flex justify-between items-center text-lg font-semibold mb-4 pt-3 border-t border-amber-200">
           <span className="text-gray-800">Total:</span>
           <AnimatedCounter
@@ -160,7 +170,7 @@ export function ServerCart({
           <EnhancedButton
             onClick={async () => {
               setLoading('launchOrder', true);
-              await onLaunchOrder();
+              await onLaunchOrder(paymentMethod);
               showSuccess('🚀 Commande lancée !');
               setLoading('launchOrder', false);
             }}

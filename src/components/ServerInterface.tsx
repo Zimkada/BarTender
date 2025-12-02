@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { CartItem, Product } from '../types';
 import { Users, Gift } from 'lucide-react';
 import { PromotionsManager } from './promotions/PromotionsManager';
+import { PaymentMethod } from './cart/PaymentMethodSelector';
 
 interface ServerInterfaceProps {
   onSwitchToManager: () => void;
@@ -85,27 +86,37 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
     setTableNumber('');
   };
 
-  const launchOrder = () => {
+  const launchOrder = (paymentMethod: PaymentMethod = 'cash') => {
     if (cart.length === 0 || !currentSession) return;
 
     const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+
+    // Mapper les items du panier vers le format SaleItem
+    const saleItems = cart.map(item => ({
+      product_id: item.product.id,
+      product_name: item.product.name,
+      product_volume: item.product.volume,
+      quantity: item.quantity,
+      unit_price: item.product.price,
+      total_price: item.product.price * item.quantity
+    }));
 
     const isServerRole = currentSession.role === 'serveur';
     const isManagerOrPromoter = currentSession.role === 'gerant' || currentSession.role === 'promoteur';
 
     if (isServerRole) {
       addSale({
-        items: cart,
+        items: saleItems,
         total,
         currency: settings.currency,
         status: 'pending',
-        createdBy: currentSession.userId,
-        createdAt: new Date(),
+        assignedTo: currentSession.userName, // Le serveur s'assigne la vente
         tableNumber: tableNumber || undefined,
+        paymentMethod,
       });
     } else if (isManagerOrPromoter) {
       addSale({
-        items: cart,
+        items: saleItems,
         total,
         currency: settings.currency,
         status: 'validated',
@@ -114,6 +125,7 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
         createdAt: new Date(),
         validatedAt: new Date(),
         tableNumber: tableNumber || undefined,
+        paymentMethod,
       });
     } else {
       console.error('Rôle utilisateur non reconnu:', currentSession.role);

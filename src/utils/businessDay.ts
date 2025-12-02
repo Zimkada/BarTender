@@ -1,4 +1,5 @@
 /**
+ * @deprecated Ce fichier est déprécié. Utilisez les fonctions de `src/utils/businessDateHelpers.ts`.
  * Utilitaires pour la gestion de la journée commerciale
  *
  * Un bar qui ferme après minuit doit comptabiliser les ventes de la nuit
@@ -9,38 +10,25 @@
 import { BUSINESS_DAY_CLOSE_HOUR } from '../config/constants';
 
 /**
+ * @deprecated Utilisez `calculateBusinessDate` dans `businessDateHelpers.ts`.
  * Calcule la date de la journée commerciale pour une vente donnée
- *
- * @param saleDate - Date/heure de la vente
- * @param closeHour - Heure de clôture de la journée commerciale (0-23, défaut: 6h)
- * @returns Date de la journée commerciale (sans heure, juste la date)
- *
- * @example
- * // Avec closeHour = 6
- * getBusinessDay(new Date('2025-01-05 02:00'), 6) // -> 2025-01-04 (journée d'avant)
- * getBusinessDay(new Date('2025-01-05 08:00'), 6) // -> 2025-01-05 (journée actuelle)
  */
 export function getBusinessDay(saleDate: Date, closeHour: number = BUSINESS_DAY_CLOSE_HOUR): Date {
   const businessDay = new Date(saleDate);
   const hour = saleDate.getHours();
 
-  // Si la vente est avant l'heure de clôture, c'est la journée commerciale d'avant
   if (hour < closeHour) {
     businessDay.setDate(businessDay.getDate() - 1);
   }
 
-  // Retourner la date sans l'heure (minuit du jour)
   businessDay.setHours(0, 0, 0, 0);
 
   return businessDay;
 }
 
 /**
+ * @deprecated Ne plus utiliser. La comparaison doit se faire sur des chaînes de caractères au format YYYY-MM-DD.
  * Vérifie si deux dates sont le même jour (sans tenir compte de l'heure)
- *
- * @param date1 - Première date
- * @param date2 - Deuxième date
- * @returns true si les deux dates sont le même jour
  */
 export function isSameDay(date1: Date, date2: Date): boolean {
   return (
@@ -51,29 +39,16 @@ export function isSameDay(date1: Date, date2: Date): boolean {
 }
 
 /**
+ * @deprecated Utilisez `getCurrentBusinessDateString` dans `businessDateHelpers.ts`.
  * Obtient la journée commerciale actuelle
- *
- * @param closeHour - Heure de clôture de la journée commerciale (0-23, défaut: 6h)
- * @returns Date de la journée commerciale en cours
- *
- * @example
- * // Il est 3h du matin le 05/01 avec closeHour = 6
- * getCurrentBusinessDay(6) // -> 2025-01-04 (on est encore dans la journée d'hier)
- *
- * // Il est 10h du matin le 05/01 avec closeHour = 6
- * getCurrentBusinessDay(6) // -> 2025-01-05 (nouvelle journée commerciale)
  */
 export function getCurrentBusinessDay(closeHour: number = BUSINESS_DAY_CLOSE_HOUR): Date {
   return getBusinessDay(new Date(), closeHour);
 }
 
 /**
+ * @deprecated Utilisez `filterByBusinessDateRange` dans `businessDateHelpers.ts`.
  * Filtre les ventes pour une journée commerciale donnée
- *
- * @param sales - Liste des ventes
- * @param targetDay - Date de la journée commerciale cible
- * @param closeHour - Heure de clôture de la journée commerciale
- * @returns Liste des ventes de cette journée commerciale
  */
 export function filterSalesByBusinessDay<T extends { date: string | Date }>(
   sales: T[],
@@ -88,24 +63,11 @@ export function filterSalesByBusinessDay<T extends { date: string | Date }>(
 }
 
 /**
+ * @deprecated Utilisez `dateToYYYYMMDD` dans `businessDateHelpers.ts`.
  * Convertit une date locale en format SQL compatible avec les vues matérialisées
- * Applique le décalage Business Day (-closeHour) pour correspondre au SQL
- *
- * @param date - Date locale à convertir
- * @param closeHour - Heure de clôture Business Day (doit correspondre à INTERVAL SQL)
- * @returns Date au format 'YYYY-MM-DD' compatible avec sale_date SQL
- *
- * @example
- * // Avec closeHour = 6 (correspondant à INTERVAL '6 hours' en SQL)
- * // Aujourd'hui: 2025-11-27 02:00 (locale)
- * getBusinessDayDateString(new Date(), 6) // -> "2025-11-26" (journée d'hier car avant 6h)
- *
- * // Aujourd'hui: 2025-11-27 10:00 (locale)
- * getBusinessDayDateString(new Date(), 6) // -> "2025-11-27" (journée actuelle car après 6h)
  */
 export function getBusinessDayDateString(date: Date = new Date(), closeHour: number = BUSINESS_DAY_CLOSE_HOUR): string {
   const businessDay = getBusinessDay(date, closeHour);
-  // Format YYYY-MM-DD en local (pas UTC)
   const year = businessDay.getFullYear();
   const month = String(businessDay.getMonth() + 1).padStart(2, '0');
   const day = String(businessDay.getDate()).padStart(2, '0');

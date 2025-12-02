@@ -23,12 +23,14 @@ import { useStockManagement } from '../hooks/useStockManagement';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 import { getSaleDate } from '../utils/saleHelpers';
+import { dateToInputValue } from '../utils/dateRangeCalculator';
 
 import AnalyticsCharts from './AnalyticsCharts';
 import { AnalyticsService, DailySalesSummary, ExpensesSummary, SalariesSummary } from '../services/supabase/analytics.service';
 import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
 import { ACCOUNTING_FILTERS, TIME_RANGE_CONFIGS } from '../config/dateFilters';
+import { useRevenueStats } from '../hooks/useRevenueStats';
 
 export function AccountingOverview() {
   const { currentSession } = useAuth();
@@ -57,6 +59,12 @@ export function AccountingOverview() {
   const { consignments } = useStockManagement();
   const { returns, expenses, customExpenseCategories } = useAppContext(); // ✅ Use expenses from AppContext
 
+  // ✨ HOOK CENTRALISÉ POUR LE REVENU - Convertir les dates en strings
+  const { netRevenue: totalRevenue, isLoading: isAnalyticsLoading } = useRevenueStats({
+    startDate: dateToInputValue(periodStart),
+    endDate: dateToInputValue(periodEnd)
+  });
+
   const [expensesExpanded, setExpensesExpanded] = useState(false);
   const [viewMode, setViewMode] = useState<'tresorerie' | 'analytique'>('tresorerie');
   const [showInitialBalanceModal, setShowInitialBalanceModal] = useState(false);
@@ -75,12 +83,10 @@ export function AccountingOverview() {
     sourceDetails: '',
   });
 
-  // Analytics State
-  const [periodStats, setPeriodStats] = useState<DailySalesSummary[]>([]);
+  // Analytics State (pour les données NON-REVENU)
   const [prevPeriodStats, setPrevPeriodStats] = useState<DailySalesSummary[]>([]);
   const [chartStats, setChartStats] = useState<DailySalesSummary[]>([]);
   const [historicalRevenue, setHistoricalRevenue] = useState(0);
-  const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false);
 
   // ✨ NEW: SQL State for expenses and salaries
   const [expensesSummary, setExpensesSummary] = useState<ExpensesSummary[]>([]);
@@ -88,22 +94,18 @@ export function AccountingOverview() {
   const [chartExpenses, setChartExpenses] = useState<ExpensesSummary[]>([]);
   const [chartSalaries, setChartSalaries] = useState<SalariesSummary[]>([]);
 
-  // Load Analytics Data
+  // Load ancillary analytics data (everything except current period revenue)
   useEffect(() => {
     if (currentBar && periodStart && periodEnd) {
-      loadAnalyticsData();
+      loadAncillaryAnalyticsData();
     }
   }, [currentBar, periodStart, periodEnd]);
 
-  const loadAnalyticsData = async () => {
+  const loadAncillaryAnalyticsData = async () => {
     if (!currentBar) return;
-    setIsAnalyticsLoading(true);
+    // isAnalyticsLoading is now handled by useRevenueStats
     try {
-      // 1. Current Period Stats
-      const current = await AnalyticsService.getDailySummary(currentBar.id, periodStart, periodEnd, 'day');
-      setPeriodStats(current);
-
-      // 2. Previous Period Stats (for Growth)
+      // Previous Period Stats (for Growth)
       const prevPeriodDate = new Date(periodStart);
       prevPeriodDate.setMonth(prevPeriodDate.getMonth() - 1);
       const prevStart = new Date(prevPeriodDate.getFullYear(), prevPeriodDate.getMonth(), 1);
@@ -111,7 +113,7 @@ export function AccountingOverview() {
       const prev = await AnalyticsService.getDailySummary(currentBar.id, prevStart, prevEnd, 'day');
       setPrevPeriodStats(prev);
 
-      // 3. Chart Stats (12 months)
+      // Chart Stats (12 months)
       const chartStart = new Date();
       chartStart.setMonth(chartStart.getMonth() - 12);
       chartStart.setDate(1);
@@ -119,9 +121,8 @@ export function AccountingOverview() {
       const chartData = await AnalyticsService.getDailySummary(currentBar.id, chartStart, chartEnd, 'month');
       setChartStats(chartData);
 
-      // 4. Historical Revenue (for Balance) - All time up to periodStart
+      // Historical Revenue (for Balance) - All time up to periodStart
       const historyStart = new Date('2020-01-01'); // Assume start of app usage
-      // Subtract 1 day from periodStart to get end of previous period
       const historyEnd = new Date(periodStart);
       historyEnd.setDate(historyEnd.getDate() - 1);
 
@@ -132,26 +133,18 @@ export function AccountingOverview() {
         setHistoricalRevenue(0);
       }
 
-      // ✨ 5. Load Expenses Summary (current period)
+      // Load Expenses and Salaries summaries
       const expenses = await AnalyticsService.getExpensesSummary(currentBar.id, periodStart, periodEnd, 'day');
       setExpensesSummary(expenses);
-
-      // ✨ 6. Load Salaries Summary (current period)
       const salaries = await AnalyticsService.getSalariesSummary(currentBar.id, periodStart, periodEnd, 'day');
       setSalariesSummary(salaries);
-
-      // ✨ 7. Load Chart Expenses (12 months)
       const chartExpensesData = await AnalyticsService.getExpensesSummary(currentBar.id, chartStart, chartEnd, 'month');
       setChartExpenses(chartExpensesData);
-
-      // ✨ 8. Load Chart Salaries (12 months)
       const chartSalariesData = await AnalyticsService.getSalariesSummary(currentBar.id, chartStart, chartEnd, 'month');
       setChartSalaries(chartSalariesData);
 
     } catch (error) {
-      console.error("Error loading analytics:", error);
-    } finally {
-      setIsAnalyticsLoading(false);
+      console.error("Error loading ancillary analytics:", error);
     }
   };
 
@@ -190,14 +183,8 @@ export function AccountingOverview() {
     return isNaN(total) || !isFinite(total) ? 0 : total;
   }, [salariesSummary]);
 
+  // Le totalRevenue est maintenant fourni directement par le hook `useRevenueStats`.
   const totalCosts = expensesCosts + salariesCosts;
-
-  // CALCULATIONS - Period
-  // ✨ Use SQL Net Revenue directly (DRY)
-  const totalRevenue = useMemo(() => {
-    const total = periodStats.reduce((sum, day) => sum + (day.net_revenue || 0), 0);
-    return isNaN(total) || !isFinite(total) ? 0 : total;
-  }, [periodStats]);
 
   // ✨ Operating expenses (using SQL data)
   const operatingExpenses = useMemo(() => {
@@ -302,7 +289,7 @@ export function AccountingOverview() {
       investmentRate: safeInvestmentRate,
       chartData
     };
-  }, [totalRevenue, investments, periodStats, prevPeriodStats, chartStats, chartExpenses, chartSalaries, currentBar, isMobile]);
+  }, [totalRevenue, investments, prevPeriodStats, chartStats, chartExpenses, chartSalaries, currentBar, isMobile, periodStart]);
 
 
   // CALCULATIONS - Cumulative Balance (for Vue Analytique)
@@ -485,6 +472,8 @@ export function AccountingOverview() {
       const salaryDate = new Date(salary.paidAt);
       return salaryDate >= periodStart && salaryDate <= periodEnd;
     });
+
+    const returnsRefunds = filteredReturns.reduce((sum, r) => sum + r.refundAmount, 0);
 
     // Calculer les coûts d'approvisionnement
     // ✅ FIX: Utiliser totalCost qui est calculé correctement dans useSupplies
@@ -725,7 +714,7 @@ export function AccountingOverview() {
             </h2>
             <DataFreshnessIndicatorCompact
               viewName="daily_sales_summary"
-              onRefreshComplete={loadAnalyticsData}
+              onRefreshComplete={loadAncillaryAnalyticsData}
             />
           </div>
           <p className={`text-gray-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>

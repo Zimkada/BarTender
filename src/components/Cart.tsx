@@ -9,6 +9,7 @@ import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { usePromotions } from '../hooks/usePromotions';
 import { FEATURES } from '../config/features';
+import { PaymentMethodSelector, PaymentMethod } from './cart/PaymentMethodSelector';
 
 interface CartProps {
   items: CartItem[];
@@ -16,7 +17,7 @@ interface CartProps {
   onToggle: () => void;
   onUpdateQuantity: (productId: string, quantity: number) => void;
   onRemoveItem: (productId: string) => void;
-  onCheckout: (assignedTo?: string) => void;
+  onCheckout: (assignedTo?: string, paymentMethod?: PaymentMethod) => void;
   onClear: () => void;
   hideFloatingButton?: boolean; // Masquer le bouton quand QuickSale est ouvert
 }
@@ -63,6 +64,7 @@ export function Cart({
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   const [selectedServer, setSelectedServer] = useState<string>('');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
 
   // ==================== VERSION MOBILE (99% utilisateurs Bénin) ====================
@@ -222,6 +224,13 @@ export function Cart({
                     </select>
                   </div>
                 )}
+
+                {/* Mode de paiement */}
+                <PaymentMethodSelector
+                  value={paymentMethod}
+                  onChange={setPaymentMethod}
+                  className="mb-4"
+                />
 
                 {/* Total */}
                 {totalDiscount > 0 && (
@@ -409,13 +418,19 @@ export function Cart({
                 </div>
               )}
 
+              {/* Mode de paiement */}
+              <PaymentMethodSelector
+                value={paymentMethod}
+                onChange={setPaymentMethod}
+                className="mb-4"
+              />
+
               <div className="flex justify-between items-center">
                 <span className="text-gray-800 text-lg font-semibold">Total:</span>
                 <span className="text-amber-600 text-2xl font-bold font-mono">
                   {formatPrice(total)}
                 </span>
               </div>
-
               <div className="flex gap-2">
                 <EnhancedButton
                   onClick={async () => {
@@ -424,7 +439,7 @@ export function Cart({
                       return;
                     }
                     setLoading('checkout', true);
-                    await onCheckout(isSimplifiedMode ? selectedServer : undefined);
+                    await onCheckout(isSimplifiedMode ? selectedServer : undefined, paymentMethod);
                     setSelectedServer(''); // Reset
                     showSuccess('🎉 Vente finalisée !', 1000);
                     setLoading('checkout', false);
@@ -457,12 +472,14 @@ export function Cart({
       </div>
 
       {/* Overlay desktop */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-20 z-30"
-          onClick={onToggle}
-        />
-      )}
+      {
+        isOpen && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-20 z-30"
+            onClick={onToggle}
+          />
+        )
+      }
     </>
   );
 }

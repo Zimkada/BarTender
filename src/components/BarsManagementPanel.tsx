@@ -11,10 +11,11 @@ import {
   Search,
   Filter,
 } from 'lucide-react';
+import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { Bar, Sale, Return, BarMember, User } from '../types';
-import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../utils/businessDay';
+import { getBusinessDate, getCurrentBusinessDateString } from '../utils/businessDateHelpers';
 import { AuthService } from '../services/supabase/auth.service';
 
 interface BarsManagementPanelProps {
@@ -24,6 +25,7 @@ interface BarsManagementPanelProps {
 }
 
 export function BarsManagementPanel({ isOpen, onClose, onShowBarStats }: BarsManagementPanelProps) {
+  const { sales: allSales, returns: allReturns } = useAppContext();
   const { bars, updateBar } = useBarContext();
   const { impersonate, changePassword } = useAuth();
 
@@ -51,41 +53,25 @@ export function BarsManagementPanel({ isOpen, onClose, onShowBarStats }: BarsMan
   // Helper function to get bar revenue for today
   const getBarTodayRevenue = (barId: string): number => {
     try {
-      // Get sales for this bar from localStorage
-      const salesKey = `sales_${barId}`;
-      const salesData = localStorage.getItem(salesKey);
-      const sales: Sale[] = salesData ? JSON.parse(salesData) : [];
-
-      // Get returns for this bar
-      const returnsKey = `returns_${barId}`;
-      const returnsData = localStorage.getItem(returnsKey);
-      const returns: Return[] = returnsData ? JSON.parse(returnsData) : [];
-
-      // Get bar settings for business day calculation
       const bar = bars.find(b => b.id === barId);
-      const closeHour = bar?.settings?.businessDayCloseHour ?? 6;
-      const currentBusinessDay = getCurrentBusinessDay(closeHour);
+      const closeHour = bar?.closingHour ?? 6;
+      const currentBusinessDateStr = getCurrentBusinessDateString(closeHour);
 
-      // Calculate today's sales total
-      const salesToday = sales.filter(sale => {
-        const saleDate = new Date(sale.createdAt); // Use createdAt instead of date
-        const saleBusinessDay = getBusinessDay(saleDate, closeHour);
-        return isSameDay(saleBusinessDay, currentBusinessDay);
-      });
-
+      // Filter global sales for this bar and the current business day
+      const salesToday = allSales.filter(sale =>
+        sale.barId === barId &&
+        getBusinessDate(sale, closeHour) === currentBusinessDateStr &&
+        sale.status === 'validated'
+      );
       const salesTotal = salesToday.reduce((sum, sale) => sum + sale.total, 0);
 
-      // Calculate today's returns (only refunded returns)
-      const returnsToday = returns.filter(ret => {
-        if (ret.status === 'rejected' || !ret.isRefunded) return false;
-        const returnDate = new Date(ret.returnedAt);
-        const returnBusinessDay = getBusinessDay(returnDate, closeHour);
-        return isSameDay(returnBusinessDay, currentBusinessDay);
+      // Filter global returns for this bar and the current business day
+      const returnsToday = allReturns.filter(ret => {
+        if (ret.barId !== barId || ret.status === 'rejected' || !ret.isRefunded) return false;
+        return getBusinessDate(ret, closeHour) === currentBusinessDateStr;
       });
-
       const returnsTotal = returnsToday.reduce((sum, ret) => sum + ret.refundAmount, 0);
 
-      // Net revenue = Sales - Refunded Returns
       return salesTotal - returnsTotal;
     } catch (error) {
       console.error(`Error calculating revenue for bar ${barId}:`, error);

@@ -3,6 +3,7 @@ import {
   TrendingUp, DollarSign, ShoppingCart, Package, Share, Lock, Eye, EyeOff, RotateCcw, Archive, Check, X, User, AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRevenueStats } from '../hooks/useRevenueStats';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
@@ -13,9 +14,8 @@ import { EnhancedButton } from './EnhancedButton';
 import { AnimatedCounter } from './AnimatedCounter';
 import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import { Sale, SaleItem, User as UserType } from '../types';
-import { AnalyticsService, DailySalesSummary, TopProduct } from '../services/supabase/analytics.service';
-import { getBusinessDayDateString } from '../utils/businessDay';
-import { BUSINESS_DAY_CLOSE_HOUR } from '../constants/businessDay';
+import { AnalyticsService, DailySalesSummary } from '../services/supabase/analytics.service';
+import { useTopProducts } from '../hooks/queries/useTopProductsQuery';
 
 interface DailyDashboardProps {
   isOpen: boolean;
@@ -103,8 +103,12 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
   );
 };
 
+import { getCurrentBusinessDateString } from '../utils/dateRangeCalculator';
+
+// ... (imports existants)
+
 export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
-  const { sales, products, getTodaySales, getTodayTotal, getLowStockProducts, returns, validateSale, rejectSale, users } = useAppContext();
+  const { sales, products, getTodaySales, getLowStockProducts, returns, validateSale, rejectSale, users } = useAppContext();
   const { currentBar } = useBarContext();
   const { consignments } = useStockManagement();
   const { formatPrice } = useCurrencyFormatter();
@@ -116,26 +120,29 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
 
   // Analytics State - SQL for performance
   const [todayStats, setTodayStats] = useState<DailySalesSummary | null>(null);
-  const [topProductsData, setTopProductsData] = useState<TopProduct[]>([]);
+
+  // Dates for today (Business Date)
+  // On utilise une string YYYY-MM-DD qui représente le jour commercial actuel
+  const todayDateStr = useMemo(() => getCurrentBusinessDateString(), []);
+
+  // ✨ TOP PRODUCTS (Hook unifié)
+  const { data: topProductsData = [] } = useTopProducts({
+    barId: currentBar?.id || '',
+    startDate: todayDateStr,
+    endDate: todayDateStr,
+    limit: 5,
+    enabled: isOpen && !!currentBar,
+  });
 
   useEffect(() => {
     if (isOpen && currentBar) {
-      const today = new Date();
-      const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
-
-      // Fetch SQL stats for performance
-      AnalyticsService.getDailySummary(currentBar.id, start, end, 'day').then(stats => {
+      // Fetch SQL stats for performance (non-top-products)
+      AnalyticsService.getDailySummary(currentBar.id, todayDateStr, todayDateStr, 'day').then(stats => {
         if (stats.length > 0) setTodayStats(stats[0]);
         else setTodayStats(null);
       });
-
-      // Fetch top 100 products to calculate total items accurately
-      AnalyticsService.getTopProducts(currentBar.id, start, end, 100).then(products => {
-        setTopProductsData(products);
-      });
     }
-  }, [isOpen, currentBar]);
+  }, [isOpen, currentBar, todayDateStr]);
 
   const todayValidatedSales = getTodaySales();
 
@@ -148,8 +155,8 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
   const todayReturnsCount = todayReturns.length;
   const todayReturnsRefunded = todayReturns.filter(r => r.isRefunded && (r.status === 'approved' || r.status === 'restocked')).reduce((sum, r) => sum + r.refundAmount, 0);
 
-  // Use SQL stats if available (NET REVENUE), otherwise fallback to context (Gross - Refunds)
-  const todayTotal = todayStats ? todayStats.net_revenue : (getTodayTotal() - todayReturnsRefunded);
+  // ✨ HYBRID DRY REVENUE (Hook unifié)
+  const { netRevenue: todayTotal } = useRevenueStats({ startDate: todayDateStr, endDate: todayDateStr, enabled: isOpen });
 
   const pendingSales = useMemo(() => {
     const isManager = currentSession?.role === 'gerant' || currentSession?.role === 'promoteur';
@@ -165,44 +172,25 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
   const totalProducts = products.length;
   const lowStockCount = lowStockProducts.length;
 
-  // Calculate total items sold TODAY only (SQL data is already filtered by date in useEffect)
   const totalItems = todayStats
-    ? todayStats.total_items_sold  // Use SQL if available
+    ? todayStats.total_items_sold
     : todayValidatedSales.reduce((sum, sale) => sum + sale.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
 
   const avgSaleValue = todayStats
     ? (todayStats.validated_count > 0 ? todayStats.net_revenue / todayStats.validated_count : 0)
     : (todayValidatedSales.length > 0 ? todayTotal / todayValidatedSales.length : 0);
 
-  // Top products list - Filter for TODAY only (SQL may return multi-day data)
-  // Use Business Day logic to match SQL materialized view (INTERVAL '6 hours')
-  // Synchronized with BUSINESS_DAY_CLOSE_HOUR constant (6h)
-  const todayDateStr = getBusinessDayDateString(new Date(), BUSINESS_DAY_CLOSE_HOUR);
-  const todayTopProducts = topProductsData.filter(p => p.sale_date === todayDateStr);
-
-  const topProductsList = todayTopProducts.length > 0
-    ? Object.entries(
-      todayTopProducts.reduce((acc, p) => {
-        const volume = p.product_volume || '';  // Handle NULL volumes
-        const key = volume ? `${p.product_name} ${volume}` : p.product_name;
-        acc[key] = (acc[key] || 0) + p.total_quantity;
-        return acc;
-      }, {} as Record<string, number>)
-    ).sort((a, b) => b[1] - a[1]).slice(0, 3)
-    : Object.entries(todayValidatedSales.flatMap(sale => sale.items).reduce((acc, item: SaleItem) => {
-      const name = item.product_name;
-      const volume = item.product_volume || '';
-      const key = volume ? `${name} ${volume}` : name;  // Handle NULL volumes
-      acc[key] = (acc[key] || 0) + item.quantity;
-      return acc;
-    }, {} as Record<string, number>)).sort((a, b) => b[1] - a[1]).slice(0, 3);
-
-
+  // ✨ Top products list (nouvelle version, simplifiée)
+  const topProductsList = useMemo(() =>
+    topProductsData.map(p => {
+      const displayName = p.product_volume ? `${p.product_name} (${p.product_volume})` : p.product_name;
+      return [displayName, p.total_quantity];
+    }),
+    [topProductsData]);
 
   const activeConsignments = useMemo(() => {
     const allActive = consignments.filter(c => c.status === 'active');
     if (currentSession?.role === 'serveur') {
-      // 🔒 SERVEURS : Voir consignations de LEURS ventes (via originalSeller)
       return allActive.filter(c => c.originalSeller === currentSession.userId);
     }
     return allActive;
@@ -224,7 +212,6 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
     const date = new Date().toLocaleDateString('fr-FR');
     const time = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
-    // Construction du message sans emojis pour WhatsApp
     let message = `*Rapport de caisse - ${date}*\n`;
     message += `Heure: ${time}\n`;
     message += `${currentSession?.role}: ${currentSession?.userName}\n\n`;
@@ -253,7 +240,6 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
 
     message += `Envoye depuis BarTender Pro`;
 
-    // Encodage correct pour WhatsApp (sans encodeURIComponent pour les emojis)
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
     showSuccess('📱 Rapport exporté vers WhatsApp');

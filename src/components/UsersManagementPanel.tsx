@@ -187,7 +187,6 @@ export function UsersManagementPanel({ isOpen, onClose }: UsersManagementPanelPr
         currencySymbol: ' FCFA',
         timezone: 'Africa/Porto-Novo',
         language: 'fr',
-        businessDayCloseHour: 6,
         operatingMode: 'full',
         consignmentExpirationDays: 7,
       };

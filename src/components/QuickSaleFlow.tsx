@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Search,
   ShoppingCart,
@@ -21,6 +21,8 @@ import { Product, CartItem, Promotion } from '../types';
 import { useViewport } from '../hooks/useViewport';
 import { ProductGrid } from './ProductGrid';
 import { PromotionsService } from '../services/supabase/promotions.service';
+import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
+import { PaymentMethodSelector, PaymentMethod } from './cart/PaymentMethodSelector';
 
 interface QuickSaleFlowProps {
   isOpen: boolean;
@@ -28,7 +30,7 @@ interface QuickSaleFlowProps {
 }
 
 export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
-  const { categories, addSale, settings } = useAppContext();
+  const { categories, settings } = useAppContext();
   const {
     products,
     getProductStockInfo
@@ -37,15 +39,14 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   const { currentSession } = useAuth();
   const { formatPrice } = useCurrencyFormatter();
   const { isMobile } = useViewport();
+  const { createSale } = useSalesMutations(currentBar?.id || '');
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [customerInfo, setCustomerInfo] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'mobile'>('cash');
-  const [showPaymentMethod, setShowPaymentMethod] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [selectedServer, setSelectedServer] = useState<string>('');
-  const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCartMobile, setShowCartMobile] = useState(false);
   const [activePromotions, setActivePromotions] = useState<Promotion[]>([]);
@@ -68,6 +69,60 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     }
   };
 
+  const handleCheckout = useCallback(async () => {
+    if (cart.length === 0 || !currentSession || !currentBar || createSale.isPending) return;
+
+    const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
+    if (isSimplifiedMode && !selectedServer) {
+      alert('Veuillez sélectionner le serveur qui a effectué la vente');
+      return;
+    }
+
+    try {
+      for (const item of cart) {
+        const stockInfo = getProductStockInfo(item.product.id);
+        if (!stockInfo || stockInfo.availableStock < item.quantity) {
+          throw new Error(`Stock disponible insuffisant pour ${item.product.name}`);
+        }
+      }
+
+      const isServerRole = currentSession.role === 'serveur';
+
+      const saleItems = cart.map(item => ({
+        product_id: item.product.id,
+        product_name: item.product.name,
+        quantity: item.quantity,
+        unit_price: item.product.price - ((item.discountAmount || 0) / item.quantity),
+        total_price: (item.product.price * item.quantity) - (item.discountAmount || 0),
+        original_unit_price: item.product.price,
+        discount_amount: item.discountAmount || 0,
+        promotion_id: item.promotionId
+      }));
+
+      await createSale.mutateAsync({
+        bar_id: currentBar.id,
+        items: saleItems,
+        payment_method: paymentMethod,
+        sold_by: currentSession.userId,
+        status: isServerRole ? 'pending' : 'validated',
+        customer_name: customerInfo || undefined,
+        notes: isSimplifiedMode ? `Serveur: ${selectedServer}` : undefined
+      });
+
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        setCart([]);
+        setCustomerInfo('');
+        setSelectedServer('');
+        onClose();
+      }, 1000);
+
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Erreur lors de la vente');
+    }
+  }, [cart, currentSession, currentBar, createSale, getProductStockInfo, paymentMethod, customerInfo, selectedServer, onClose]);
+
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (!isOpen) return;
@@ -86,7 +141,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     };
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isOpen, cart]);
+  }, [isOpen, cart, handleCheckout]);
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -173,80 +228,6 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     return sum + itemTotal;
   }, 0);
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-
-  const handleCheckout = async () => {
-    if (cart.length === 0 || !currentSession) return;
-
-    const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
-    if (isSimplifiedMode && !selectedServer) {
-      alert('Veuillez sélectionner le serveur qui a effectué la vente');
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      for (const item of cart) {
-        const stockInfo = getProductStockInfo(item.product.id);
-        if (!stockInfo || stockInfo.availableStock < item.quantity) {
-          throw new Error(`Stock disponible insuffisant pour ${item.product.name}`);
-        }
-      }
-
-      const isServerRole = currentSession.role === 'serveur';
-
-      // 1. Créer la vente
-      const saleData = {
-        items: cart,
-        total,
-        currency: settings.currency,
-        status: isServerRole ? 'pending' : 'validated',
-        paymentMethod: 'cash',
-        createdBy: currentSession.userId,
-        createdAt: new Date(),
-        assignedTo: isSimplifiedMode ? selectedServer : undefined,
-        ...(isServerRole ? {} : {
-          validatedBy: currentSession.userId,
-          validatedAt: new Date(),
-        })
-      };
-
-      const newSale = await addSale(saleData as any);
-
-      // 2. Enregistrer les applications de promotion (si vente créée avec succès)
-      if (newSale && newSale.id) {
-        for (const item of cart) {
-          if (item.promotionId && item.discountAmount && item.discountAmount > 0) {
-            await PromotionsService.recordApplication({
-              barId: currentBar.id,
-              promotionId: item.promotionId,
-              saleId: newSale.id,
-              productId: item.product.id,
-              quantitySold: item.quantity,
-              originalPrice: item.product.price * item.quantity,
-              discountedPrice: (item.product.price * item.quantity) - item.discountAmount,
-              discountAmount: item.discountAmount,
-              appliedBy: currentSession.userId
-            });
-          }
-        }
-      }
-
-      setShowSuccess(true);
-      setTimeout(() => {
-        setShowSuccess(false);
-        setCart([]);
-        setCustomerInfo('');
-        setSelectedServer('');
-        onClose();
-      }, 1000);
-
-    } catch (error) {
-      alert(error instanceof Error ? error.message : 'Erreur lors de la vente');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
   if (!isOpen) return null;
 
@@ -362,7 +343,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                           variant="success"
                           size="lg"
                           onClick={handleCheckout}
-                          loading={isProcessing}
+                          loading={createSale.isPending}
                           success={showSuccess}
                           className="flex-1"
                           icon={showSuccess ? <Check size={20} /> : <CreditCard size={20} />}
@@ -376,9 +357,9 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                 )}
 
                 {showCartMobile && (
-                  <div className="fixed inset-0 bg-black/50 z-60 flex items-end" onClick={() => setShowCartMobile(false)}>
+                  <div className="fixed inset-0 bg-black/50 z-[60] flex items-end" onClick={() => setShowCartMobile(false)}>
                     <div
-                      className="bg-white w-full rounded-t-3xl max-h-[80vh] flex flex-col"
+                      className="bg-white w-full rounded-t-3xl max-h-[80vh] flex flex-col relative z-[61]"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-4 flex items-center justify-between rounded-t-3xl">
@@ -430,89 +411,224 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                                   {formatPrice(item.product.price * item.quantity)}
                                 </div>
                               )}
-                              <span className={`${item.discountAmount ? 'text-green-600' : 'text-amber-600'} font-bold text-base`}>
+                              <div className="text-lg font-bold text-amber-600">
                                 {formatPrice((item.product.price * item.quantity) - (item.discountAmount || 0))}
-                              </span>
+                              </div>
                             </div>
                           </div>
                         ))}
+
+                        {currentBar?.settings?.enableServerTracking && (
+                          <div className="mt-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Serveur
+                            </label>
+                            <select
+                              value={selectedServer}
+                              onChange={(e) => setSelectedServer(e.target.value)}
+                            className="w-full px-4 py-3 border border-amber-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-base"
+                          >
+                              <option value="">Sélectionner un serveur...</option>
+                              <option value={`Moi (${currentSession?.userName})`}>
+                                Moi ({currentSession?.userName})
+                              </option>
+                              {currentBar?.settings?.serversList?.map((serverName) => (
+                                <option key={serverName} value={serverName}>
+                                  {serverName}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        <div className="mt-6">
+                          <PaymentMethodSelector
+                            value={paymentMethod}
+                            onChange={setPaymentMethod}
+                          />
+                        </div>
                       </div>
 
-                      <div className="pt-4">
-                        <button
-                          onClick={() => setShowPaymentMethod(!showPaymentMethod)}
-                          className="w-full flex items-center justify-between px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-left transition-colors hover:bg-amber-100"
+                      <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-white space-y-3">
+                        <div className="flex items-center justify-between bg-amber-50 rounded-xl p-4">
+                          <span className="text-gray-700 font-semibold">Total</span>
+                          <span className="text-amber-600 font-bold text-xl">{formatPrice(total)}</span>
+                        </div>
+
+                        <EnhancedButton
+                          variant="success"
+                          size="lg"
+                          onClick={() => {
+                            setShowCartMobile(false);
+                            handleCheckout();
+                          }}
+                          loading={createSale.isPending}
+                          success={showSuccess}
+                          className="w-full"
+                          icon={showSuccess ? <Check size={20} /> : <CreditCard size={20} />}
+                          hapticFeedback={true}
                         >
-                          <div className="flex items-center gap-2">
-                            <span className="text-2xl">
-                              {paymentMethod === 'cash' ? '💵' : paymentMethod === 'card' ? '💳' : '📱'}
-                            </span>
-                            <div>
-                              <div className="text-xs text-gray-600">Mode de paiement</div>
-                              <div className="font-medium text-gray-800">
-                                {paymentMethod === 'cash' ? 'Espèces' : paymentMethod === 'card' ? 'Carte' : 'Mobile'}
+                          {showSuccess ? 'Vente finalisée !' : 'Finaliser la vente'}
+                        </EnhancedButton>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+                <div className="flex-1 flex overflow-hidden">
+                  <div className="flex-1 p-4 overflow-y-auto">
+                    <div className="space-y-4 mb-6">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                        <input
+                          ref={searchInputRef}
+                          type="text"
+                          placeholder="Rechercher un produit (nom ou volume)..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                        />
+                      </div>
+
+                      <div className="flex gap-2 overflow-x-auto pb-2">
+                        <button
+                          onClick={() => setSelectedCategory('all')}
+                          className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${selectedCategory === 'all'
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                            }`}
+                        >
+                          Toutes
+                        </button>
+                        {categories.map(category => (
+                          <button
+                            key={category.id}
+                            onClick={() => setSelectedCategory(category.id)}
+                            className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${selectedCategory === category.id
+                              ? 'bg-amber-500 text-white'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                              }`}
+                          >
+                            {category.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <ProductGrid
+                      products={filteredProducts}
+                      onAddToCart={(p) => quickAddToCart(p, 1)}
+                    />
+
+                    {filteredProducts.length === 0 && (
+                      <div className="text-center py-12">
+                        <Search size={48} className="text-gray-300 mx-auto mb-4" />
+                        <p className="text-gray-500">Aucun produit trouvé</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="w-80 h-full bg-gradient-to-br from-amber-50 to-amber-50 border-l border-amber-200 flex flex-col">
+                    <div className="flex-shrink-0 p-4 border-b border-amber-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                          <ShoppingCart size={20} />
+                          Panier ({itemCount})
+                        </h3>
+                        {cart.length > 0 && (
+                          <button
+                            onClick={() => setCart([])}
+                            className="text-red-500 hover:text-red-700 text-sm"
+                          >
+                            Vider
+                          </button>
+                        )}
+                      </div>
+
+                      <input
+                        type="text"
+                        placeholder="Client (optionnel)"
+                        value={customerInfo}
+                        onChange={(e) => setCustomerInfo(e.target.value)}
+                        className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm bg-white"
+                      />
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+                      {cart.length === 0 ? (
+                        <div className="text-center py-8">
+                          <ShoppingCart size={48} className="text-gray-300 mx-auto mb-4" />
+                          <p className="text-gray-500 text-sm">Panier vide</p>
+                        </div>
+                      ) : (
+                        cart.map(item => (
+                          <motion.div
+                            key={item.product.id}
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="bg-white rounded-lg p-3 border border-amber-100"
+                          >
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <h4 className="font-medium text-gray-800 text-sm">{item.product.name}</h4>
+                                <p className="text-gray-600 text-xs">{item.product.volume}</p>
+                              </div>
+                              <button
+                                onClick={() => updateQuantity(item.product.id, 0)}
+                                className="text-red-400 hover:text-red-600"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                                  className="w-6 h-6 bg-amber-200 text-amber-700 rounded-full flex items-center justify-center text-xs hover:bg-amber-300"
+                                >
+                                  <Minus size={12} />
+                                </button>
+                                <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
+                                <button
+                                  onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                                  className="w-6 h-6 bg-amber-200 text-amber-700 rounded-full flex items-center justify-center text-xs hover:bg-amber-300"
+                                >
+                                  <Plus size={12} />
+                                </button>
+                              </div>
+                              <div className="text-right">
+                                {item.discountAmount && item.discountAmount > 0 && (
+                                  <div className="text-xs text-gray-400 line-through mb-0.5">
+                                    {formatPrice(item.product.price * item.quantity)}
+                                  </div>
+                                )}
+                                <span className={`${item.discountAmount ? 'text-green-600' : 'text-amber-600'} font-bold text-sm`}>
+                                  {formatPrice((item.product.price * item.quantity) - (item.discountAmount || 0))}
+                                </span>
                               </div>
                             </div>
-                          </div>
-                          <motion.div
-                            animate={{ rotate: showPaymentMethod ? 180 : 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="text-amber-500"
-                          >
-                            ▼
                           </motion.div>
-                        </button>
+                        ))
+                      )}
+                    </div>
 
-                        <AnimatePresence>
-                          {showPaymentMethod && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.2 }}
-                              className="overflow-hidden"
-                            >
-                              <div className="grid grid-cols-3 gap-2 mt-2">
-                                {[
-                                  { value: 'cash', label: 'Espèces', icon: '💵' },
-                                  { value: 'card', label: 'Carte', icon: '💳' },
-                                  { value: 'mobile', label: 'Mobile', icon: '📱' }
-                                ].map(method => (
-                                  <button
-                                    key={method.value}
-                                    onClick={() => {
-                                      setPaymentMethod(method.value as any);
-                                      setShowPaymentMethod(false);
-                                    }}
-                                    className={`p-3 text-sm rounded-xl border-2 transition-colors ${paymentMethod === method.value
-                                      ? 'border-amber-500 bg-amber-50 text-amber-700'
-                                      : 'border-gray-200 bg-white text-gray-600'
-                                      }`}
-                                  >
-                                    <div className="text-center">
-                                      <div className="text-2xl mb-1">{method.icon}</div>
-                                      <div className="font-medium">{method.label}</div>
-                                    </div>
-                                  </button>
-                                ))}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
+                    <div className="flex-shrink-0 p-4 border-t border-amber-200 space-y-3 bg-gradient-to-br from-amber-50 to-amber-50">
 
                       {currentBar?.settings?.operatingMode === 'simplified' && (
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                            <Users size={16} className="text-amber-500" />
-                            Serveur qui a servi
+                          <label className="block text-xs font-medium text-gray-700 mb-1.5 flex items-center gap-1">
+                            <Users size={14} className="text-amber-500" />
+                            Serveur
                           </label>
                           <select
                             value={selectedServer}
                             onChange={(e) => setSelectedServer(e.target.value)}
-                            className="w-full px-4 py-3 border border-amber-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-base"
+                            className="w-full px-3 py-2 border border-amber-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
                           >
-                            <option value="">Sélectionner un serveur...</option>
+                            <option value="">Sélectionner...</option>
                             <option value={`Moi (${currentSession?.userName})`}>
                               Moi ({currentSession?.userName})
                             </option>
@@ -525,30 +641,26 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                         </div>
                       )}
 
-                      <input
-                        type="text"
-                        placeholder="Client (optionnel)"
-                        value={customerInfo}
-                        onChange={(e) => setCustomerInfo(e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl"
+                      <PaymentMethodSelector
+                        value={paymentMethod}
+                        onChange={setPaymentMethod}
+                        className="mb-2"
                       />
-                    </div>
 
-                    <div className="flex-shrink-0 p-4 border-t border-gray-200 bg-white space-y-3">
-                      <div className="flex items-center justify-between bg-amber-50 rounded-xl p-4">
-                        <span className="text-gray-700 font-semibold">Total</span>
-                        <span className="text-amber-600 font-bold text-xl">{formatPrice(total)}</span>
+                      <div className="bg-amber-100 rounded-lg p-2.5">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-700 font-medium text-sm">Total:</span>
+                          <span className="text-amber-600 font-bold text-lg">{formatPrice(total)}</span>
+                        </div>
                       </div>
 
                       <EnhancedButton
                         variant="success"
                         size="lg"
-                        onClick={() => {
-                          setShowCartMobile(false);
-                          handleCheckout();
-                        }}
-                        loading={isProcessing}
+                        onClick={handleCheckout}
+                        loading={createSale.isPending}
                         success={showSuccess}
+                        disabled={cart.length === 0}
                         className="w-full"
                         icon={showSuccess ? <Check size={20} /> : <CreditCard size={20} />}
                         hapticFeedback={true}
@@ -557,263 +669,11 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                       </EnhancedButton>
                     </div>
                   </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex-1 flex overflow-hidden">
-                <div className="flex-1 p-4 overflow-y-auto">
-                  <div className="space-y-4 mb-6">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                      <input
-                        ref={searchInputRef}
-                        type="text"
-                        placeholder="Rechercher un produit (nom ou volume)..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                      />
-                    </div>
-
-                    <div className="flex gap-2 overflow-x-auto pb-2">
-                      <button
-                        onClick={() => setSelectedCategory('all')}
-                        className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${selectedCategory === 'all'
-                          ? 'bg-amber-500 text-white'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                          }`}
-                      >
-                        Toutes
-                      </button>
-                      {categories.map(category => (
-                        <button
-                          key={category.id}
-                          onClick={() => setSelectedCategory(category.id)}
-                          className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${selectedCategory === category.id
-                            ? 'bg-amber-500 text-white'
-                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
-                        >
-                          {category.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <ProductGrid
-                    products={filteredProducts}
-                    onAddToCart={(p) => quickAddToCart(p, 1)}
-                  />
-
-                  {filteredProducts.length === 0 && (
-                    <div className="text-center py-12">
-                      <Search size={48} className="text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-500">Aucun produit trouvé</p>
-                    </div>
-                  )}
                 </div>
-
-                <div className="w-80 h-full bg-gradient-to-br from-amber-50 to-amber-50 border-l border-amber-200 flex flex-col">
-                  <div className="flex-shrink-0 p-4 border-b border-amber-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                        <ShoppingCart size={20} />
-                        Panier ({itemCount})
-                      </h3>
-                      {cart.length > 0 && (
-                        <button
-                          onClick={() => setCart([])}
-                          className="text-red-500 hover:text-red-700 text-sm"
-                        >
-                          Vider
-                        </button>
-                      )}
-                    </div>
-
-                    <input
-                      type="text"
-                      placeholder="Client (optionnel)"
-                      value={customerInfo}
-                      onChange={(e) => setCustomerInfo(e.target.value)}
-                      className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm bg-white"
-                    />
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
-                    {cart.length === 0 ? (
-                      <div className="text-center py-8">
-                        <ShoppingCart size={48} className="text-gray-300 mx-auto mb-4" />
-                        <p className="text-gray-500 text-sm">Panier vide</p>
-                      </div>
-                    ) : (
-                      cart.map(item => (
-                        <motion.div
-                          key={item.product.id}
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -20 }}
-                          className="bg-white rounded-lg p-3 border border-amber-100"
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-800 text-sm">{item.product.name}</h4>
-                              <p className="text-gray-600 text-xs">{item.product.volume}</p>
-                            </div>
-                            <button
-                              onClick={() => updateQuantity(item.product.id, 0)}
-                              className="text-red-400 hover:text-red-600"
-                            >
-                              <X size={16} />
-                            </button>
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                                className="w-6 h-6 bg-amber-200 text-amber-700 rounded-full flex items-center justify-center text-xs hover:bg-amber-300"
-                              >
-                                <Minus size={12} />
-                              </button>
-                              <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
-                              <button
-                                onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                                className="w-6 h-6 bg-amber-200 text-amber-700 rounded-full flex items-center justify-center text-xs hover:bg-amber-300"
-                              >
-                                <Plus size={12} />
-                              </button>
-                            </div>
-                            <div className="text-right">
-                              {item.discountAmount && item.discountAmount > 0 && (
-                                <div className="text-xs text-gray-400 line-through">
-                                  {formatPrice(item.product.price * item.quantity)}
-                                </div>
-                              )}
-                              <span className={`${item.discountAmount ? 'text-green-600' : 'text-amber-600'} font-bold text-sm`}>
-                                {formatPrice((item.product.price * item.quantity) - (item.discountAmount || 0))}
-                              </span>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))
-                    )}
-                  </div>
-
-                  <div className="flex-shrink-0 p-4 border-t border-amber-200 space-y-3 bg-gradient-to-br from-amber-50 to-amber-50">
-                    <div>
-                      <button
-                        onClick={() => setShowPaymentMethod(!showPaymentMethod)}
-                        className="w-full flex items-center justify-between px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-left transition-colors hover:bg-amber-100"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-base">
-                            {paymentMethod === 'cash' ? '💵' : paymentMethod === 'card' ? '💳' : '📱'}
-                          </span>
-                          <div>
-                            <div className="text-xs text-gray-600">Mode de paiement</div>
-                            <div className="text-xs font-medium text-gray-800">
-                              {paymentMethod === 'cash' ? 'Espèces' : paymentMethod === 'card' ? 'Carte' : 'Mobile'}
-                            </div>
-                          </div>
-                        </div>
-                        <motion.div
-                          animate={{ rotate: showPaymentMethod ? 180 : 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="text-amber-500 text-xs"
-                        >
-                          ▼
-                        </motion.div>
-                      </button>
-
-                      <AnimatePresence>
-                        {showPaymentMethod && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="grid grid-cols-3 gap-1.5 mt-1.5">
-                              {[
-                                { value: 'cash', label: 'Espèces', icon: '💵' },
-                                { value: 'card', label: 'Carte', icon: '💳' },
-                                { value: 'mobile', label: 'Mobile', icon: '📱' }
-                              ].map(method => (
-                                <button
-                                  key={method.value}
-                                  onClick={() => {
-                                    setPaymentMethod(method.value as any);
-                                    setShowPaymentMethod(false);
-                                  }}
-                                  className={`p-1.5 text-xs rounded-lg border-2 transition-colors ${paymentMethod === method.value
-                                    ? 'border-amber-500 bg-amber-50 text-amber-700'
-                                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                                    }`}
-                                >
-                                  <div className="text-center">
-                                    <div className="text-base mb-0.5">{method.icon}</div>
-                                    <div className="text-xs">{method.label}</div>
-                                  </div>
-                                </button>
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-
-                    {currentBar?.settings?.operatingMode === 'simplified' && (
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1.5 flex items-center gap-1">
-                          <Users size={14} className="text-amber-500" />
-                          Serveur
-                        </label>
-                        <select
-                          value={selectedServer}
-                          onChange={(e) => setSelectedServer(e.target.value)}
-                          className="w-full px-3 py-2 border border-amber-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
-                        >
-                          <option value="">Sélectionner...</option>
-                          <option value={`Moi (${currentSession?.userName})`}>
-                            Moi ({currentSession?.userName})
-                          </option>
-                          {currentBar?.settings?.serversList?.map((serverName) => (
-                            <option key={serverName} value={serverName}>
-                              {serverName}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    <div className="bg-amber-100 rounded-lg p-2.5">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-700 font-medium text-sm">Total:</span>
-                        <span className="text-amber-600 font-bold text-lg">{formatPrice(total)}</span>
-                      </div>
-                    </div>
-
-                    <EnhancedButton
-                      variant="success"
-                      size="lg"
-                      onClick={handleCheckout}
-                      loading={isProcessing}
-                      success={showSuccess}
-                      disabled={cart.length === 0}
-                      className="w-full"
-                      icon={showSuccess ? <Check size={20} /> : <CreditCard size={20} />}
-                      hapticFeedback={true}
-                    >
-                      {showSuccess ? 'Vente finalisée !' : 'Finaliser la vente'}
-                    </EnhancedButton>
-                  </div>
-                </div>
-              </div>
             )}
-          </motion.div>
+              </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
-  );
+        </AnimatePresence>
+      );
 }

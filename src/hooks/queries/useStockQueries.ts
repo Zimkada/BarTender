@@ -92,6 +92,7 @@ export const useConsignments = (barId: string | undefined) => {
                     createdAt: createdAt,
                     expiresAt: expiresAt,
                     claimedAt: c.claimed_at ? new Date(c.claimed_at) : undefined,
+                    businessDate: c.business_date ? new Date(c.business_date) : undefined,
                     status: status,
                     createdBy: c.created_by,
                     customerName: c.customer_name || undefined,

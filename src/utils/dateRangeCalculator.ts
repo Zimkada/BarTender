@@ -1,46 +1,53 @@
 /**
- * Utilitaire pour calculer les plages de dates selon différents filtres
+ * Utilitaire pour calculer les plages de dates
+ * SIMPLIFIÉ : Plus de gestion d'heures ou de décalages complexes.
+ * Le backend utilise 'business_date', donc on envoie juste des dates YYYY-MM-DD.
  */
 
 import { TimeRange, DateRangePeriod, PeriodComparison } from '../types/dateFilters';
 import { TIME_RANGE_CONFIGS } from '../config/dateFilters';
 import { BUSINESS_DAY_CLOSE_HOUR } from '../config/constants';
-import { getCurrentBusinessDay } from './businessDay';
+
+/**
+ * Retourne la date "Commerciale" actuelle sous forme YYYY-MM-DD
+ * Si il est 02:00 du matin et que la clôture est à 06:00, on retourne la date d'hier.
+ */
+export function getCurrentBusinessDateString(closeHour: number = BUSINESS_DAY_CLOSE_HOUR): string {
+  const now = new Date();
+  const currentHour = now.getHours();
+
+  // Si on est avant l'heure de clôture (ex: 03h00 < 06h00), on est encore "hier"
+  if (currentHour < closeHour) {
+    now.setDate(now.getDate() - 1);
+  }
+
+  return dateToInputValue(now);
+}
 
 /**
  * Calcule la plage de dates pour un filtre temporel donné
- *
- * @param timeRange - Type de filtre temporel
- * @param customRange - Plage personnalisée (si timeRange = 'custom')
- * @param options - Options additionnelles
- * @returns Période avec dates de début et fin
  */
 export function calculateDateRange(
   timeRange: TimeRange,
   customRange?: { start: string; end: string },
   options?: {
-    includeBusinessDay?: boolean;
-    closeHour?: number;
+    closeHour?: number; // Juste pour déterminer "Aujourd'hui" commercialement
   }
 ): DateRangePeriod {
-  const now = new Date();
   const closeHour = options?.closeHour ?? BUSINESS_DAY_CLOSE_HOUR;
 
-  // Pour Business Day, utiliser la journée commerciale comme référence
-  const referenceDate = options?.includeBusinessDay
-    ? getCurrentBusinessDay(closeHour)
-    : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  // Date de référence = Aujourd'hui (Commercial)
+  const todayStr = getCurrentBusinessDateString(closeHour);
+  const referenceDate = new Date(todayStr); // Minuit pile ce jour là
 
   let startDate: Date;
   let endDate: Date;
   let label: string;
 
   switch (timeRange) {
-    // Rapide
     case 'today': {
       startDate = new Date(referenceDate);
-      startDate.setHours(0, 0, 0, 0);
-      endDate = new Date();
+      endDate = new Date(referenceDate);
       label = "Aujourd'hui";
       break;
     }
@@ -48,9 +55,7 @@ export function calculateDateRange(
     case 'yesterday': {
       startDate = new Date(referenceDate);
       startDate.setDate(startDate.getDate() - 1);
-      startDate.setHours(0, 0, 0, 0);
       endDate = new Date(startDate);
-      endDate.setHours(23, 59, 59, 999);
       label = 'Hier';
       break;
     }
@@ -63,27 +68,24 @@ export function calculateDateRange(
       const config = TIME_RANGE_CONFIGS[timeRange];
       const days = config.days || 7;
 
-      endDate = new Date();
-      startDate = new Date();
+      endDate = new Date(referenceDate);
+      startDate = new Date(referenceDate);
       startDate.setDate(startDate.getDate() - days);
-      startDate.setHours(0, 0, 0, 0);
 
       label = config.label;
       break;
     }
 
-    // Calendaire
+    // Calendaire (Semaine Lundi-Dimanche)
     case 'this_week': {
-      const currentDay = referenceDate.getDay();
+      const currentDay = referenceDate.getDay(); // 0 = Dimanche
       const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
 
       startDate = new Date(referenceDate);
       startDate.setDate(startDate.getDate() - daysFromMonday);
-      startDate.setHours(0, 0, 0, 0);
 
       endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + 6);
-      endDate.setHours(23, 59, 59, 999);
 
       label = 'Cette semaine';
       break;
@@ -91,10 +93,7 @@ export function calculateDateRange(
 
     case 'this_month': {
       startDate = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
-      startDate.setHours(0, 0, 0, 0);
-
       endDate = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 0);
-      endDate.setHours(23, 59, 59, 999);
 
       const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
         'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
@@ -104,46 +103,36 @@ export function calculateDateRange(
 
     case 'this_year': {
       startDate = new Date(referenceDate.getFullYear(), 0, 1);
-      startDate.setHours(0, 0, 0, 0);
-
       endDate = new Date(referenceDate.getFullYear(), 11, 31);
-      endDate.setHours(23, 59, 59, 999);
-
       label = `Année ${referenceDate.getFullYear()}`;
       break;
     }
 
-    // Personnalisé
     case 'custom': {
       if (!customRange?.start || !customRange?.end) {
-        // Fallback: dernier mois par défaut
         return calculateDateRange('last_30days', undefined, options);
       }
-
       startDate = new Date(customRange.start);
-      startDate.setHours(0, 0, 0, 0);
-
       endDate = new Date(customRange.end);
-      endDate.setHours(23, 59, 59, 999);
-
       label = `Du ${formatDate(startDate)} au ${formatDate(endDate)}`;
       break;
     }
 
     default: {
-      // Fallback sécurisé
       return calculateDateRange('last_30days', undefined, options);
     }
   }
+
+  // Normalisation : On s'assure que les heures sont ignorées (le backend attend des dates YYYY-MM-DD)
+  // Mais pour l'objet Date JS, on met minuit/23h59 pour l'affichage UI si besoin
+  startDate.setHours(0, 0, 0, 0);
+  endDate.setHours(23, 59, 59, 999);
 
   return { startDate, endDate, label };
 }
 
 /**
- * Calcule la période précédente de même durée pour comparaison
- *
- * @param current - Période actuelle
- * @returns Comparaison avec période précédente
+ * Calcule la période précédente de même durée
  */
 export function calculatePreviousPeriod(current: DateRangePeriod): PeriodComparison {
   const durationMs = current.endDate.getTime() - current.startDate.getTime();
@@ -166,9 +155,6 @@ export function calculatePreviousPeriod(current: DateRangePeriod): PeriodCompari
   };
 }
 
-/**
- * Formate une date au format court français
- */
 function formatDate(date: Date): string {
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -176,9 +162,6 @@ function formatDate(date: Date): string {
   return `${day}/${month}/${year}`;
 }
 
-/**
- * Convertit une Date en ISO string pour les inputs date HTML
- */
 export function dateToInputValue(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');

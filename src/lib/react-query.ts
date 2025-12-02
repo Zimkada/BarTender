@@ -1,4 +1,6 @@
 import { QueryClient, MutationCache, QueryCache } from '@tanstack/react-query';
+import { persistQueryClient } from '@tanstack/query-persist-client-core';
+import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import toast from 'react-hot-toast';
 
 /**
@@ -7,6 +9,7 @@ import toast from 'react-hot-toast';
  * 1. Stabilité réseau (retry intelligent)
  * 2. UX (Toast en cas d'erreur globale)
  * 3. Performance (Stale time agressif pour éviter les refetchs inutiles)
+ * 4. Persistance Offline (sauvegarde du cache)
  */
 
 // Fonction de retry personnalisée
@@ -60,4 +63,15 @@ export const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError,
   }),
+});
+
+// CONFIGURATION DE LA PERSISTANCE DU CACHE (OFFLINE-FIRST)
+const localStoragePersister = createSyncStoragePersister({
+  storage: window.localStorage,
+});
+
+persistQueryClient({
+  queryClient,
+  persister: localStoragePersister,
+  maxAge: 24 * 60 * 60 * 1000, // Garder le cache pendant 24h (identique à gcTime)
 });
