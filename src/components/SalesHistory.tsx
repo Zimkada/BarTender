@@ -1884,17 +1884,15 @@ function AnalyticsView({
       </div>
 
       {/* Top produits - Composant dédié */}
-      {viewMode === 'analytics' && (
-        <TopProductsChart
-          data={stats.topProducts}
-          metric={topProductMetric}
-          onMetricChange={setTopProductMetric}
-          limit={topProductsLimit}
-          isLoading={isLoadingTopProducts}
-          isMobile={isMobile}
-          formatPrice={formatPrice}
-        />
-      )}
+      <TopProductsChart
+        data={stats.topProducts}
+        metric={topProductMetric}
+        onMetricChange={setTopProductMetric}
+        limit={topProductsLimit}
+        isLoading={isLoadingTopProducts}
+        isMobile={isMobile}
+        formatPrice={formatPrice}
+      />
     </div>
   );
 }
