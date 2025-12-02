@@ -27,6 +27,7 @@ interface TopProductsChartProps {
   metric: 'units' | 'revenue' | 'profit';
   onMetricChange: (metric: 'units' | 'revenue' | 'profit') => void;
   limit: number;
+  onLimitChange: (limit: number) => void;
   isLoading?: boolean;
   isMobile?: boolean;
   formatPrice: (price: number) => string;
@@ -37,6 +38,7 @@ export function TopProductsChart({
   metric,
   onMetricChange,
   limit,
+  onLimitChange,
   isLoading = false,
   isMobile = false,
   formatPrice
@@ -85,14 +87,25 @@ export function TopProductsChart({
     <div className="bg-white rounded-xl p-4 border border-amber-100">
       {/* Header avec contrôles */}
       <div className="flex flex-col gap-3 mb-4">
-        <div className="flex items-center justify-between">
-          <h4 className="text-sm font-semibold text-gray-800">
-            Top {limit} produits
-          </h4>
-        </div>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          {/* Titre avec sélecteur de limite */}
+          <div className="flex items-center gap-2">
+            <h4 className="text-sm font-semibold text-gray-800">Top</h4>
+            <select
+              value={limit}
+              onChange={(e) => onLimitChange(Number(e.target.value))}
+              className="px-2 py-1 text-sm font-semibold text-gray-800 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+            </select>
+            <h4 className="text-sm font-semibold text-gray-800">produits</h4>
+          </div>
 
-        {/* Contrôles : Métrique */}
-        <div className="flex flex-wrap gap-2">
+          {/* Contrôles : Métrique */}
+          <div className="flex flex-wrap gap-2">
           <button
             onClick={() => onMetricChange('units')}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
@@ -120,6 +133,7 @@ export function TopProductsChart({
           >
             📈 Marge
           </button>
+          </div>
         </div>
       </div>
 

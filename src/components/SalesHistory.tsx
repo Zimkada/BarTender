@@ -626,36 +626,6 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                         className="w-full pl-9 pr-3 py-2 border border-amber-200 rounded-lg bg-white text-sm"
                       />
                     </div>
-
-                    {/* Sélecteurs Top Produits Mobile */}
-                    {viewMode === 'analytics' && (
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center bg-amber-100 rounded-lg p-1">
-                          <span className="text-sm font-medium text-amber-700 px-2">Top:</span>
-                          <select
-                            value={topProductsLimit}
-                            onChange={(e) => setTopProductsLimit(Number(e.target.value))}
-                            className="bg-white border border-amber-200 text-amber-700 text-sm rounded-lg p-1"
-                          >
-                            <option value={5}>5</option>
-                            <option value={10}>10</option>
-                            <option value={20}>20</option>
-                          </select>
-                        </div>
-                        <div className="flex items-center bg-amber-100 rounded-lg p-1">
-                          <span className="text-sm font-medium text-amber-700 px-2">Par:</span>
-                          <select
-                            value={topProductMetric}
-                            onChange={(e) => setTopProductMetric(e.target.value as 'units' | 'revenue' | 'profit')}
-                            className="bg-white border border-amber-200 text-amber-700 text-sm rounded-lg p-1"
-                          >
-                            <option value="units">Unités</option>
-                            <option value="revenue">CA</option>
-                            <option value="profit">Bénéfices</option>
-                          </select>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   {/* Mode d'affichage */}
@@ -887,36 +857,6 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                               );
                             })}
                           </div>
-                          {/* Sélecteur Limite Top Produits (Visible seulement en Analytics) */}
-                          {viewMode === 'analytics' && (
-                            <>
-                              <div className="flex bg-gray-100 rounded-lg p-1">
-                                <span className="text-sm font-medium text-gray-600 py-1.5 px-3">Nombre de Top produits:</span>
-                                <select
-                                  value={topProductsLimit}
-                                  onChange={(e) => setTopProductsLimit(Number(e.target.value))}
-                                  className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors bg-white text-amber-600 shadow-sm"
-                                >
-                                  <option value={5}>5</option>
-                                  <option value={10}>10</option>
-                                  <option value={20}>20</option>
-                                  <option value={50}>50</option>
-                                </select>
-                              </div>
-                              <div className="flex bg-gray-100 rounded-lg p-1">
-                                <span className="text-sm font-medium text-gray-600 py-1.5 px-3">Afficher par:</span>
-                                <select
-                                  value={topProductMetric}
-                                  onChange={(e) => setTopProductMetric(e.target.value as 'units' | 'revenue' | 'profit')}
-                                  className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors bg-white text-amber-600 shadow-sm"
-                                >
-                                  <option value="units">Unités vendues</option>
-                                  <option value="revenue">Chiffre d'affaires</option>
-                                  <option value="profit">Bénéfices</option>
-                                </select>
-                              </div>
-                            </>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -1889,6 +1829,7 @@ function AnalyticsView({
         metric={topProductMetric}
         onMetricChange={setTopProductMetric}
         limit={topProductsLimit}
+        onLimitChange={setTopProductsLimit}
         isLoading={isLoadingTopProducts}
         isMobile={isMobile}
         formatPrice={formatPrice}
