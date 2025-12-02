@@ -8,8 +8,8 @@
 -- =====================================================
 
 -- Supprimer l'ancienne vue (matérialisée ou normale)
-DROP MATERIALIZED VIEW IF EXISTS daily_sales_summary_mat CASCADE;
 DROP VIEW IF EXISTS daily_sales_summary_mat CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS daily_sales_summary_mat CASCADE;
 
 -- Créer une vue normale (auto-refresh en temps réel)
 CREATE OR REPLACE VIEW daily_sales_summary_mat AS

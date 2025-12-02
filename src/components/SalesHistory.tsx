@@ -20,8 +20,6 @@ import {
   //ChevronDown
 } from 'lucide-react';
 import {
-  BarChart,
-  Bar,
   LineChart,
   Line,
   PieChart,
@@ -52,6 +50,7 @@ import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
 import { SALES_HISTORY_FILTERS, TIME_RANGE_CONFIGS } from '../config/dateFilters';
 import { dateToYYYYMMDD, filterByBusinessDateRange, getBusinessDate } from '../utils/businessDateHelpers';
 import type { TimeRange } from '../types/dateFilters';
+import { TopProductsChart } from './analytics/TopProductsChart';
 
 interface EnhancedSalesHistoryProps {
   isOpen: boolean;
@@ -107,7 +106,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
   const [topProductMetric, setTopProductMetric] = useState<'units' | 'revenue' | 'profit'>('units');
 
   // SQL Analytics State
-  const [topProductsData, setTopProductsData] = useState<TopProduct[]>([]);
+  const [sqlTopProducts, setSqlTopProducts] = useState<TopProduct[]>([]);
   const [isLoadingTopProducts, setIsLoadingTopProducts] = useState(false);
 
   // Load top products from SQL view when filters change
@@ -119,10 +118,10 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
       try {
         // ✨ Utiliser directement startDate et endDate du hook
         const products = await AnalyticsService.getTopProducts(currentBar.id, startDate, endDate, topProductsLimit);
-        setTopProductsData(products);
+        setSqlTopProducts(products);
       } catch (error) {
         console.error('Error loading top products:', error);
-        setTopProductsData([]);
+        setSqlTopProducts([]);
       } finally {
         setIsLoadingTopProducts(false);
       }
@@ -280,40 +279,16 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
       kpiLabel = 'CA moyen/jour';
     }
 
-    const topProductsResult = (topProductsData && topProductsData.length > 0)
-      ? topProductsData.map(p => ({
+    const topProductsResult = (sqlTopProducts && sqlTopProducts.length > 0)
+      ? sqlTopProducts.map(p => ({
           name: p.product_name,
           volume: p.product_volume || '',
-          units: p.total_quantity, // Renommé 'count' en 'units'
+          displayName: `${p.product_name}${p.product_volume ? ' (' + p.product_volume + ')' : ''}`,
+          units: p.total_quantity,
           revenue: p.total_revenue,
           profit: p.total_revenue // Approximation sans coût réel
         }))
-      : (() => {
-        // Fallback: client-side calculation if SQL data is not available
-        const productCounts: Record<string, { name: string; volume: string; units: number; revenue: number; profit: number }> = {};
-        filteredSales.forEach(sale => {
-          sale.items.forEach((item: SaleItem) => {
-            const name = item.product_name;
-            const volume = item.product_volume || '';
-            const key = `${name}-${volume}`;
-            if (!productCounts[key]) {
-              productCounts[key] = {
-                name,
-                volume,
-                units: 0,
-                revenue: 0,
-                profit: 0
-              };
-            }
-            productCounts[key].units += item.quantity;
-            const price = item.unit_price; // Get unit_price for calculation
-            productCounts[key].revenue += price * item.quantity; // Calculate revenue
-            productCounts[key].profit += price * item.quantity; // Approximation sans coût réel
-          });
-        });
-
-        return Object.values(productCounts);
-      })();
+      : [];
 
     // Créer les 3 listes triées
     const byUnits = [...topProductsResult].sort((a, b) => b.units - a.units).slice(0, topProductsLimit);
@@ -321,7 +296,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
     const byProfit = [...topProductsResult].sort((a, b) => b.profit - a.profit).slice(0, topProductsLimit);
 
     return { totalRevenue, totalItems, kpiValue, kpiLabel, topProducts: { byUnits, byRevenue, byProfit } };
-  }, [filteredSales, returns, timeRange, customRange, closeHour, topProductsData]);
+  }, [filteredSales, returns, timeRange, sqlTopProducts, topProductsLimit, startDate, endDate]);
 
   const exportSales = () => {
 
@@ -1007,10 +982,12 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                                                     returns={returns}
                                                     closeHour={closeHour}
                                                     filteredConsignments={filteredConsignments}
-                                                    currentSession={currentSession}
-                                                    customRange={customRange}
                                                     startDate={startDate}
                                                     endDate={endDate}
+                                                    topProductMetric={topProductMetric}
+                                                    setTopProductMetric={setTopProductMetric}
+                                                    topProductsLimit={topProductsLimit}
+                                                    isLoadingTopProducts={isLoadingTopProducts}
                                                   />
                                                 );
                                               })()}
@@ -1300,13 +1277,12 @@ function AnalyticsView({
   returns,
   closeHour,
   filteredConsignments,
-  currentSession,
-  customRange,
   startDate,
   endDate,
   topProductMetric,
   setTopProductMetric,
   topProductsLimit,
+  isLoadingTopProducts,
   viewMode
 }: {
   sales: Sale[];
@@ -1321,13 +1297,12 @@ function AnalyticsView({
   returns: Return[];
   closeHour: number;
   filteredConsignments: any[];
-  currentSession: any;
-  customRange: { start: string; end: string };
   startDate: Date;
   endDate: Date;
   topProductMetric: 'units' | 'revenue' | 'profit';
   setTopProductMetric: (metric: 'units' | 'revenue' | 'profit') => void;
   topProductsLimit: number;
+  isLoadingTopProducts: boolean;
   viewMode: ViewMode;
 }) {
   console.log('AnalyticsView - viewMode:', viewMode);
@@ -1479,71 +1454,11 @@ function AnalyticsView({
   const userPerformance = useMemo(() => {
     const userStats: Record<string, { name: string; role: string; revenue: number; sales: number; items: number }> = {};
 
-    // Filtrer les ventes selon la période (duplication nécessaire car useMemo séparé)
-    const isServer = currentSession?.role === 'serveur';
-    const baseSales = sales.filter(sale => {
-      if (isServer) {
-        return sale.createdBy === currentSession?.userId;
-      } else {
-        return sale.status === 'validated';
-      }
-    });
+    // Les ventes sont déjà filtrées par période via useDateRangeFilter
+    // On n'a plus besoin de refiltrer, juste d'utiliser 'sales' directement
+    const performanceSales = sales;
 
-    let performanceSales = baseSales;
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    switch (timeRange) {
-      case 'today': {
-        const currentBusinessDay = getCurrentBusinessDay(closeHour);
-        performanceSales = baseSales.filter(sale => {
-          const saleDate = getSaleDate(sale);
-          const saleBusinessDay = getBusinessDay(saleDate, closeHour);
-          return isSameDay(saleBusinessDay, currentBusinessDay);
-        });
-        break;
-      }
-      case 'week': {
-        const currentDay = today.getDay();
-        const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
-        const monday = new Date(today);
-        monday.setDate(monday.getDate() - daysFromMonday);
-        monday.setHours(0, 0, 0, 0);
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
-        sunday.setHours(23, 59, 59, 999);
-        performanceSales = baseSales.filter(sale => {
-          const saleDate = getSaleDate(sale);
-          return saleDate >= monday && saleDate <= sunday;
-        });
-        break;
-      }
-      case 'month': {
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        firstDayOfMonth.setHours(0, 0, 0, 0);
-        const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        lastDayOfMonth.setHours(23, 59, 59, 999);
-        performanceSales = baseSales.filter(sale => {
-          const saleDate = getSaleDate(sale);
-          return saleDate >= firstDayOfMonth && saleDate <= lastDayOfMonth;
-        });
-        break;
-      }
-      case 'custom': {
-        const startDate = new Date(customRange.start);
-        startDate.setHours(0, 0, 0, 0);
-        const endDate = new Date(customRange.end);
-        endDate.setHours(23, 59, 59, 999);
-        performanceSales = baseSales.filter(sale => {
-          const saleDate = getSaleDate(sale);
-          return saleDate >= startDate && saleDate <= endDate;
-        });
-        break;
-      }
-    }
-
-
-    // 1. Ajouter les ventes (FILTÉES par période)
+    // 1. Ajouter les ventes (déjà filtrées par période)
     performanceSales.forEach(sale => {
       // Mode simplifié : utiliser assignedTo si présent
       // Mode complet : utiliser createdBy (userId)
@@ -1603,41 +1518,19 @@ function AnalyticsView({
     // 🔒 SERVEURS : Seulement retours de LEURS ventes (même logique que getTodayTotal)
     const performanceSaleIds = new Set(performanceSales.map(s => s.id));
 
+    // Filtrer les retours par business_date (même logique que les ventes)
+    const startDateStr = dateToYYYYMMDD(startDate);
+    const endDateStr = dateToYYYYMMDD(endDate);
+
     const filteredReturns = returns.filter(r => {
       if (r.status !== 'approved' && r.status !== 'restocked') return false;
       if (!r.isRefunded) return false;
-      // 🔒 IMPORTANT: Seulement retours des ventes affichées (filtrage par serveur)
+      // 🔒 IMPORTANT: Seulement retours des ventes affichées
       if (!performanceSaleIds.has(r.saleId)) return false;
 
-      const returnDate = new Date(r.returnedAt);
-
-      if (timeRange === 'today') {
-        const currentBusinessDay = getCurrentBusinessDay(closeHour);
-        const returnBusinessDay = getBusinessDay(returnDate, closeHour);
-        return isSameDay(returnBusinessDay, currentBusinessDay);
-      } else if (timeRange === 'week') {
-        const currentDay = new Date().getDay();
-        const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
-        const monday = new Date();
-        monday.setDate(monday.getDate() - daysFromMonday);
-        monday.setHours(0, 0, 0, 0);
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
-        sunday.setHours(23, 59, 59, 999);
-        return returnDate >= monday && returnDate <= sunday;
-      } else if (timeRange === 'month') {
-        const today = new Date();
-        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-        firstDay.setHours(0, 0, 0, 0);
-        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        lastDay.setHours(23, 59, 59, 999);
-        return returnDate >= firstDay && returnDate <= lastDay;
-      } else if (timeRange === 'custom') {
-        // Custom range - on ne peut pas filtrer car on n'a pas accès à customRange ici
-        // On inclut tous les retours de la période des ventes affichées
-        return true;
-      }
-      return false;
+      // Filtrer par business_date du retour
+      const returnBusinessDate = getBusinessDate(r, closeHour);
+      return returnBusinessDate >= startDateStr && returnBusinessDate <= endDateStr;
     });
 
     // Déduire les retours du revenue de chaque vendeur
@@ -1669,7 +1562,7 @@ function AnalyticsView({
     }
 
     return allUsers;
-  }, [sales, returns, safeUsers, safeBarMembers, userFilter, timeRange, closeHour, currentSession, customRange]);
+  }, [sales, returns, safeUsers, safeBarMembers, userFilter, closeHour, startDate, endDate]);
 
   // Top produits - 3 analyses (CA NET = Ventes - Retours)
   const topProductsData = useMemo(() => {
@@ -1990,27 +1883,17 @@ function AnalyticsView({
         </div>
       </div>
 
-      {/* Top produits - Sélecteur et graphique */}
+      {/* Top produits - Composant dédié */}
       {viewMode === 'analytics' && (
-        <div className="bg-white rounded-xl p-4 border border-amber-100">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-sm font-semibold text-gray-800">Top {topProductsLimit} produits</h4>
-          </div>
-
-          <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
-            <BarChart data={
-              topProductMetric === 'units' ? stats.topProducts.byUnits :
-              topProductMetric === 'revenue' ? stats.topProducts.byRevenue :
-              topProductMetric === 'profit' ? stats.topProducts.byProfit : []
-            }>
-              <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" />
-              <XAxis dataKey="displayName" tick={{ fill: '#9ca3af', fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
-              <YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} />
-              <Tooltip formatter={(value: number) => formatPrice(value)} />
-              <Bar dataKey={topProductMetric} fill="#f97316" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <TopProductsChart
+          data={stats.topProducts}
+          metric={topProductMetric}
+          onMetricChange={setTopProductMetric}
+          limit={topProductsLimit}
+          isLoading={isLoadingTopProducts}
+          isMobile={isMobile}
+          formatPrice={formatPrice}
+        />
       )}
     </div>
   );
