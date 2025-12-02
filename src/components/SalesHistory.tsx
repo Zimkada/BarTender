@@ -702,6 +702,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                       topProductMetric={topProductMetric}
                       setTopProductMetric={setTopProductMetric}
                       topProductsLimit={topProductsLimit}
+                      setTopProductsLimit={setTopProductsLimit}
                       viewMode={viewMode}
                     />
                   )}
@@ -927,7 +928,9 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                                                     topProductMetric={topProductMetric}
                                                     setTopProductMetric={setTopProductMetric}
                                                     topProductsLimit={topProductsLimit}
+                                                    setTopProductsLimit={setTopProductsLimit}
                                                     isLoadingTopProducts={isLoadingTopProducts}
+                                                    viewMode={viewMode}
                                                   />
                                                 );
                                               })()}
@@ -1222,6 +1225,7 @@ function AnalyticsView({
   topProductMetric,
   setTopProductMetric,
   topProductsLimit,
+  setTopProductsLimit,
   isLoadingTopProducts,
   viewMode
 }: {
@@ -1242,6 +1246,7 @@ function AnalyticsView({
   topProductMetric: 'units' | 'revenue' | 'profit';
   setTopProductMetric: (metric: 'units' | 'revenue' | 'profit') => void;
   topProductsLimit: number;
+  setTopProductsLimit: (limit: number) => void;
   isLoadingTopProducts: boolean;
   viewMode: ViewMode;
 }) {
