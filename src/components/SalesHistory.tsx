@@ -782,7 +782,7 @@ export function EnhancedSalesHistory({ isOpen, onClose }: EnhancedSalesHistoryPr
                         key={filter}
                         onClick={() => setTimeRange(filter)}
                         className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${timeRange === filter
-                          ? 'bg-white text-amber-600 shadow-sm'
+                          ? 'bg-amber-500 text-white shadow-sm'
                           : 'text-gray-600 hover:text-gray-900'
                           }`}
                       >
