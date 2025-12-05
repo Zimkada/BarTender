@@ -1336,34 +1336,65 @@ function AnalyticsView({
 
   // Données pour graphique d'évolution - granularité adaptative
   const evolutionChartData = useMemo(() => {
-    const grouped: Record<string, { label: string; revenue: number; sales: number; timestamp: number }> = {};
     const dayCount = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
 
-    sales.forEach(sale => { // 'sales' here is the filtered list from props
+    // NOUVELLE LOGIQUE POUR VUE HORAIRE (<= 2 jours)
+    if (dayCount <= 2) {
+      const grouped = new Map<number, { label: string; revenue: number; sales: number; sortKey: number }>();
+
+      // 1. Créer la "matrice" horaire de la journée commerciale, en démarrant de closeHour
+      for (let i = 0; i < 24; i++) {
+        const hour = (closeHour + i) % 24;
+        const label = `${String(hour).padStart(2, '0')}h`;
+        // Clé de tri pour respecter l'ordre de la journée commerciale
+        grouped.set(hour, { label, revenue: 0, sales: 0, sortKey: i });
+      }
+
+      // 2. Peupler la matrice avec les ventes en utilisant l'heure de création réelle
+      sales.forEach(sale => {
+        if (sale.status !== 'validated') return;
+
+        const saleCreationDate = new Date(sale.createdAt);
+        const hour = saleCreationDate.getHours();
+
+        if (grouped.has(hour)) {
+          const existing = grouped.get(hour)!;
+          existing.revenue += sale.total;
+          existing.sales += 1;
+        }
+      });
+      
+      // 3. Convertir la map en tableau trié par la clé de tri
+      return Array.from(grouped.values()).sort((a, b) => a.sortKey - b.sortKey);
+    }
+    
+    // ANCIENNE LOGIQUE (CORRECTE POUR VUES > 2 JOURS)
+    const grouped: Record<string, { label: string; revenue: number; sales: number; timestamp: number }> = {};
+    sales.forEach(sale => {
       if (sale.status !== 'validated') return;
       
       let label: string;
-      const saleDate = getSaleDate(sale);
-
-      if (dayCount <= 2) { // Today, Yesterday -> group by hour
-        const hour = saleDate.getHours();
-        label = `${hour.toString().padStart(2, '0')}h`;
-      } else if (dayCount <= 14) { // Up to 2 weeks -> group by day
+      const saleDate = getSaleDate(sale); // Utilise le business day normalisé à minuit
+      
+      if (dayCount <= 14) { // Jusqu'à 2 semaines -> grouper par jour
         label = saleDate.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit' });
-      } else { // More than 2 weeks -> group by day (DD/MM)
+      } else { // Plus de 2 semaines -> grouper par jour (DD/MM)
         label = saleDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
       }
 
+      const timestamp = saleDate.getTime();
       if (!grouped[label]) {
-        grouped[label] = { label, revenue: 0, sales: 0, timestamp: saleDate.getTime() };
+        grouped[label] = { label, revenue: 0, sales: 0, timestamp };
       }
       grouped[label].revenue += sale.total;
       grouped[label].sales += 1;
-      grouped[label].timestamp = Math.min(grouped[label].timestamp, saleDate.getTime());
+      // Le timestamp est utilisé pour le tri chronologique des jours
+      grouped[label].timestamp = Math.min(grouped[label].timestamp, timestamp);
     });
 
     return Object.values(grouped).sort((a, b) => a.timestamp - b.timestamp);
-  }, [sales, startDate, endDate]);
+
+  }, [sales, startDate, endDate, closeHour]);
 
   // Répartition par catégorie (sur CA BRUT pour avoir le détail des ventes)
   const categoryData = useMemo(() => {
