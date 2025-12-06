@@ -46,7 +46,7 @@ export function AccountingOverview() {
     endDate: periodEnd,
     customRange,
     updateCustomRange,
-    // isCustom // REMOVED
+    periodLabel,
   } = useDateRangeFilter({
     defaultRange: 'this_month'
   });
