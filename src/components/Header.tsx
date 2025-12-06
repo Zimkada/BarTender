@@ -63,7 +63,7 @@ interface HeaderProps {
   onShowQuickSale: () => void;
   onShowProductModal: () => void;
   onShowCategoryModal: () => void;
-  onShowUserManagement: () => void;
+  // onShowUserManagement removed
   onShowSupplyModal: () => void;
   onShowBarStatsModal: (bar: Bar) => void; // MODIFIED: now takes a bar object
 
@@ -80,7 +80,7 @@ export function Header({
   onShowQuickSale,
   onShowProductModal,
   onShowCategoryModal,
-  onShowUserManagement,
+  // onShowUserManagement removed
   onShowSupplyModal,
   onShowBarStatsModal,
   onToggleMobileSidebar = () => { },
@@ -317,7 +317,7 @@ export function Header({
             {currentSession?.role === 'promoteur' && (
               <BarSelector onCreateNew={onShowCreateBar} />
             )}
-            
+
             {/* NEW: Desktop buttons for common modals */}
             {currentSession?.role !== 'super_admin' && (
               <>
@@ -392,7 +392,7 @@ export function Header({
                 </button>
                 {/* NEW: Admin Modals */}
                 <button
-                  onClick={onShowUserManagement}
+                  onClick={() => navigate('/team')}
                   className="p-2 bg-pink-600/90 rounded-lg text-white hover:bg-pink-700/90 transition-colors"
                   title="Gestion Utilisateurs"
                 >
