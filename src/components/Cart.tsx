@@ -7,29 +7,20 @@ import { EnhancedButton } from './EnhancedButton';
 import { useViewport } from '../hooks/useViewport';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
+import { useAppContext } from '../context/AppContext'; // NEW
 import { usePromotions } from '../hooks/usePromotions';
 import { FEATURES } from '../config/features';
 import { PaymentMethodSelector, PaymentMethod } from './cart/PaymentMethodSelector';
 
 interface CartProps {
-  items: CartItem[];
   isOpen: boolean;
   onToggle: () => void;
-  onUpdateQuantity: (productId: string, quantity: number) => void;
-  onRemoveItem: (productId: string) => void;
-  onCheckout: (assignedTo?: string, paymentMethod?: PaymentMethod) => void;
-  onClear: () => void;
   hideFloatingButton?: boolean; // Masquer le bouton quand QuickSale est ouvert
 }
 
 export function Cart({
-  items,
   isOpen,
   onToggle,
-  onUpdateQuantity,
-  onRemoveItem,
-  onCheckout,
-  onClear,
   hideFloatingButton = false
 }: CartProps) {
   const { formatPrice } = useCurrencyFormatter();
@@ -38,6 +29,26 @@ export function Cart({
   const { currentBar } = useBarContext();
   const { currentSession } = useAuth();
   const { calculatePrice, isEnabled: promotionsEnabled } = usePromotions(currentBar?.id);
+
+  // NEW: Get cart data and functions from AppContext
+  const { 
+    cart: items, 
+    updateCartQuantity: onUpdateQuantity, // aliasing to match existing code
+    removeFromCart: onRemoveItem,        // aliasing to match existing code
+    addSale, 
+    clearCart: onClear                       // aliasing to match existing code
+  } = useAppContext();
+
+  // NEW: Wrapper for onCheckout
+  const onCheckout = async (assignedTo?: string, paymentMethod?: PaymentMethod) => {
+    if (items.length === 0) return;
+
+    await addSale({
+      items,
+      paymentMethod,
+      assignedTo: assignedTo // Pass assignedTo, which might be used by addSale logic
+    });
+  };
 
   // ✨ Calculer total avec promotions
   const { total, totalDiscount, totalOriginal } = useMemo(() => {
@@ -167,7 +178,7 @@ export function Cart({
                         {(() => {
                           if (promotionsEnabled && FEATURES.PROMOTIONS_AUTO_APPLY) {
                             const priceInfo = calculatePrice(item.product, item.quantity);
-                            if (priceInfo.hasPromotion) {
+                            if (priceInfo.appliedPromotion) { // Fixed: check for appliedPromotion object
                               return (
                                 <div className="text-right">
                                   <div className="flex items-center gap-2 justify-end">
