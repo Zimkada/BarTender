@@ -42,6 +42,14 @@ export function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgot
     setError('');
   }, [email, password, selectedBar, barSearchQuery]);
 
+  // Vérifier si la session a expiré
+  useEffect(() => {
+    if (sessionStorage.getItem('session_expired') === 'true') {
+      setError('Votre session a expiré. Veuillez vous reconnecter.');
+      sessionStorage.removeItem('session_expired');
+    }
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -373,4 +381,5 @@ export function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgot
       </motion.div>
     </div>
   );
-}
+
+  export default LoginScreen;

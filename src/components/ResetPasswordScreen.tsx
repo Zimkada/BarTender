@@ -51,7 +51,7 @@ export function ResetPasswordScreen() {
         throw updateError;
       }
       setSuccess('Votre mot de passe a été mis à jour avec succès ! Vous allez être redirigé.');
-      
+
       // Rediriger vers la page de connexion après un court délai en rechargeant la page
       setTimeout(() => {
         window.location.reload();
@@ -80,7 +80,7 @@ export function ResetPasswordScreen() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-50 flex items-center justify-center p-4">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md"
@@ -146,3 +146,5 @@ export function ResetPasswordScreen() {
     </div>
   );
 }
+
+export default ResetPasswordScreen;
