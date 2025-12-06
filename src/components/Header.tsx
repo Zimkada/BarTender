@@ -1,33 +1,26 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom'; // NEW: Import useNavigate and Link
 import {
-  BarChart3,
   Settings,
-  Package,
   Users,
   UserCog,
   LogOut,
   Crown,
-  Building2,
-  DollarSign,
-  RotateCcw,
-  Zap,
-  TrendingUp, // Pour les prévisions (anciennement AlertTriangle)
-  FileSpreadsheet,
   Menu,
-  Calendar,
-  Archive, // Pour les consignations
   ShieldCheck, // Pour Super Admin
   Bell, // Pour notifications admin
   User, // Pour profil utilisateur
   Globe, // Pour catalogue global
+  PlusCircle, // Added for "Add Product" button (ProductModal)
+  Edit, // Added for "Edit Category" button (CategoryModal)
+  ShoppingCart, // Added for "Quick Sale" button
+  Package, // ✅ FIX: Added for "Supply" button
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useRevenueStats } from '../hooks/useRevenueStats';
-import { useAppContext } from '../context/AppContext';
 import { useAuth } from "../context/AuthContext";
 import { useBarContext } from '../context/BarContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
-import { RoleBasedComponent } from './RoleBasedComponent';
 import { BarSelector } from './BarSelector';
 import { SyncStatusBadge } from './SyncStatusBadge'; // ✅ Badge sync unifié (remplace OfflineIndicator, NetworkIndicator, SyncButton)
 import { useViewport } from '../hooks/useViewport';
@@ -63,49 +56,43 @@ const AnimatedBarName: React.FC<{ text: string }> = ({ text }) => {
   );
 };
 
+import { Bar } from '../types'; // NEW: Import Bar type
+
 interface HeaderProps {
-  onShowSales: () => void;
-  onShowSettings: () => void;
-  onShowInventory: () => void;
-  onShowServers: () => void;
-  onShowCreateBar?: () => void;
-  onSwitchToServer?: () => void;
-  onShowDailyDashboard: () => void;
-  onShowReturns: () => void;
+  // Modal triggers
   onShowQuickSale: () => void;
-  onShowForecasting?: () => void;
+  onShowProductModal: () => void;
+  onShowCategoryModal: () => void;
+  onShowUserManagement: () => void;
+  onShowSupplyModal: () => void;
+  onShowBarStatsModal: (bar: Bar) => void; // MODIFIED: now takes a bar object
+
+  // Other persistent callbacks
   onToggleMobileSidebar?: () => void;
-  onShowAccounting?: () => void;
-  onShowConsignment?: () => void;
-  onShowAdminDashboard?: () => void;
-  onShowNotifications?: () => void; // A.5: Notifications admin
-  unreadNotificationsCount?: number; // A.5: Compteur notifications non lues
-  onShowGlobalCatalog?: () => void;
+  onShowCreateBar?: () => void; // Kept for BarSelector
+  unreadNotificationsCount?: number;
+
+  // Note: All onShowX props for pages will be removed as navigation will use React Router directly
+  // This will require modifying the Header's internal navigation elements to use <Link> or useNavigate()
 }
 
 export function Header({
-  onShowSales,
-  onShowSettings,
-  onShowInventory,
-  onShowServers,
-  onShowCreateBar,
-  onSwitchToServer,
-  onShowDailyDashboard,
-  onShowReturns,
   onShowQuickSale,
-  onShowForecasting = () => { },
+  onShowProductModal,
+  onShowCategoryModal,
+  onShowUserManagement,
+  onShowSupplyModal,
+  onShowBarStatsModal,
   onToggleMobileSidebar = () => { },
-  onShowAccounting = () => { },
-  onShowConsignment = () => { },
-  onShowAdminDashboard = () => { },
-  onShowNotifications = () => { },
+  onShowCreateBar,
+  // onSwitchToServer, // REMOVED
   unreadNotificationsCount = 0,
-  onShowGlobalCatalog = () => { }
 }: HeaderProps) {
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession, logout, isImpersonating, stopImpersonation } = useAuth();
   const { currentBar } = useBarContext();
   const { isMobile } = useViewport();
+  const navigate = useNavigate(); // NEW: Initialize useNavigate
 
   const [showProfileSettings, setShowProfileSettings] = useState(false);
 
@@ -165,7 +152,7 @@ export function Header({
                   <>
                     {/* A.5: Badge notifications admin */}
                     <button
-                      onClick={onShowNotifications}
+                      onClick={() => navigate('/admin/notifications')} // NEW: Use navigate
                       className="relative p-1.5 bg-purple-600/90 rounded-lg text-white active:scale-95 transition-transform"
                       aria-label="Notifications Admin"
                     >
@@ -177,11 +164,40 @@ export function Header({
                       )}
                     </button>
                     <button
-                      onClick={onShowAdminDashboard}
+                      onClick={() => navigate('/admin')} // NEW: Use navigate
                       className="p-1.5 bg-purple-600/90 rounded-lg text-white active:scale-95 transition-transform"
                       aria-label="Admin Dashboard"
                     >
                       <ShieldCheck size={16} />
+                    </button>
+                  </>
+                )}
+                {/* NEW: Add buttons for common modals from header (Product, Category, QuickSale) */}
+                {currentSession?.role !== 'super_admin' && (
+                  <>
+                    <button
+                      onClick={onShowProductModal}
+                      className="p-1.5 bg-blue-500/90 rounded-lg text-white active:scale-95 transition-transform"
+                      aria-label="Ajouter Produit"
+                      title="Ajouter Produit"
+                    >
+                      <PlusCircle size={16} />
+                    </button>
+                    <button
+                      onClick={onShowCategoryModal}
+                      className="p-1.5 bg-green-500/90 rounded-lg text-white active:scale-95 transition-transform"
+                      aria-label="Gérer Catégories"
+                      title="Gérer Catégories"
+                    >
+                      <Edit size={16} />
+                    </button>
+                    <button
+                      onClick={onShowQuickSale}
+                      className="p-1.5 bg-orange-500/90 rounded-lg text-white active:scale-95 transition-transform"
+                      aria-label="Vente Rapide"
+                      title="Vente Rapide"
+                    >
+                      <ShoppingCart size={16} />
                     </button>
                   </>
                 )}
@@ -301,6 +317,36 @@ export function Header({
             {currentSession?.role === 'promoteur' && (
               <BarSelector onCreateNew={onShowCreateBar} />
             )}
+            
+            {/* NEW: Desktop buttons for common modals */}
+            {currentSession?.role !== 'super_admin' && (
+              <>
+                <button
+                  onClick={onShowProductModal}
+                  className="p-2 bg-blue-500/90 rounded-lg text-white hover:bg-blue-600/90 transition-colors"
+                  aria-label="Ajouter Produit"
+                  title="Ajouter Produit"
+                >
+                  <PlusCircle size={20} />
+                </button>
+                <button
+                  onClick={onShowCategoryModal}
+                  className="p-2 bg-green-500/90 rounded-lg text-white hover:bg-green-600/90 transition-colors"
+                  aria-label="Gérer Catégories"
+                  title="Gérer Catégories"
+                >
+                  <Edit size={20} />
+                </button>
+                <button
+                  onClick={onShowQuickSale}
+                  className="p-2 bg-orange-500/90 rounded-lg text-white hover:bg-orange-600/90 transition-colors"
+                  aria-label="Vente Rapide"
+                  title="Vente Rapide"
+                >
+                  <ShoppingCart size={20} />
+                </button>
+              </>
+            )}
           </div>
 
           {/* Droite: Stats + User + Déconnexion */}
@@ -325,16 +371,15 @@ export function Header({
             {/* Admin Actions (super_admin uniquement) */}
             {currentSession?.role === 'super_admin' && (
               <>
-                {/* A.5: Badge notifications admin */}
                 <button
-                  onClick={onShowGlobalCatalog}
+                  onClick={() => navigate('/admin/catalog')} // Use navigate for Admin Catalog
                   className="p-2 bg-blue-600/90 rounded-lg text-white hover:bg-blue-700/90 transition-colors"
                   title="Catalogue Global"
                 >
                   <Globe size={20} />
                 </button>
                 <button
-                  onClick={onShowNotifications}
+                  onClick={() => navigate('/admin/notifications')} // Use navigate for Admin Notifications
                   className="relative p-2 bg-purple-600/90 rounded-lg text-white hover:bg-purple-700/90 transition-colors"
                   title="Notifications Admin"
                 >
@@ -345,8 +390,23 @@ export function Header({
                     </span>
                   )}
                 </button>
+                {/* NEW: Admin Modals */}
                 <button
-                  onClick={onShowAdminDashboard}
+                  onClick={onShowUserManagement}
+                  className="p-2 bg-pink-600/90 rounded-lg text-white hover:bg-pink-700/90 transition-colors"
+                  title="Gestion Utilisateurs"
+                >
+                  <Users size={20} />
+                </button>
+                <button
+                  onClick={onShowSupplyModal}
+                  className="p-2 bg-cyan-600/90 rounded-lg text-white hover:bg-cyan-700/90 transition-colors"
+                  title="Gestion des Approv."
+                >
+                  <Package size={20} />
+                </button>
+                <button
+                  onClick={() => navigate('/admin')} // Use navigate for Admin Dashboard
                   className="p-2 bg-purple-600/90 rounded-lg text-white hover:bg-purple-700/90 transition-colors"
                   title="Admin Dashboard"
                 >

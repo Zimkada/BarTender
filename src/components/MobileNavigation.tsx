@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   BarChart3,
   Package,
@@ -11,35 +12,24 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useViewport } from '../hooks/useViewport';
 
-interface MobileNavigationProps {
-  onShowSales: () => void;
-  onShowInventory: () => void;
-  onShowQuickSale: () => void;
-  onShowReturns: () => void;
-  onShowForecasting: () => void;
-  onShowExcel: () => void;
-  onShowDashboard: () => void; // ✅ NOUVEAU
-}
-
 interface NavItem {
   icon: React.ReactNode;
   label: string;
-  onClick: () => void;
+  path?: string;
+  onClick?: () => void;
   color: string;
   roles: Array<'promoteur' | 'gerant' | 'serveur'>;
 }
 
-export function MobileNavigation({
-  onShowSales,
-  onShowInventory,
-  onShowQuickSale,
-  onShowReturns,
-  onShowForecasting,
-  onShowExcel,
-  onShowDashboard
-}: MobileNavigationProps) {
+// ✅ FIX: Interface ajoutée pour les props du composant
+interface MobileNavigationProps {
+  onShowQuickSale: () => void;
+}
+
+export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
   const { currentSession } = useAuth();
   const { isMobile } = useViewport();
+  const navigate = useNavigate();
 
   if (!isMobile) {
     return null;
@@ -51,49 +41,49 @@ export function MobileNavigation({
       label: 'Vente',
       onClick: onShowQuickSale,
       color: 'text-amber-600',
-      roles: ['serveur', 'gerant', 'promoteur']
+      roles: ['promoteur', 'gerant', 'serveur']
     },
     {
       icon: <LayoutDashboard size={24} />,
       label: 'Dashboard',
-      onClick: onShowDashboard,
+      path: '/dashboard',
       color: 'text-blue-600',
-      roles: ['serveur', 'gerant', 'promoteur'] // ✅ Serveurs voient LEURS stats
+      roles: ['promoteur', 'gerant', 'serveur']
     },
     {
       icon: <BarChart3 size={24} />,
       label: 'Historique',
-      onClick: onShowSales,
+      path: '/sales',
       color: 'text-purple-600',
-      roles: ['serveur', 'gerant', 'promoteur'] // ✅ Serveurs voient LEURS ventes
+      roles: ['promoteur', 'gerant', 'serveur']
     },
     {
       icon: <Package size={24} />,
       label: 'Inventaire',
-      onClick: onShowInventory,
+      path: '/inventory',
       color: 'text-green-600',
-      roles: ['gerant', 'promoteur']
+      roles: ['promoteur', 'gerant']
     },
     {
       icon: <TrendingUp size={24} />,
       label: 'Prévisions',
-      onClick: onShowForecasting,
+      path: '/forecasting',
       color: 'text-indigo-600',
-      roles: ['gerant', 'promoteur']
+      roles: ['promoteur', 'gerant']
     },
     {
       icon: <RotateCcw size={24} />,
       label: 'Retours',
-      onClick: onShowReturns,
+      path: '/returns',
       color: 'text-red-600',
-      roles: ['gerant', 'promoteur']
+      roles: ['promoteur', 'gerant']
     },
     {
       icon: <FileSpreadsheet size={24} />,
       label: 'Import/Export',
-      onClick: onShowExcel,
+      path: '/settings',
       color: 'text-teal-600',
-      roles: ['gerant', 'promoteur']
+      roles: ['promoteur', 'gerant']
     }
   ];
 
@@ -109,7 +99,7 @@ export function MobileNavigation({
         {displayedItems.map((item, index) => (
           <button
             key={index}
-            onClick={item.onClick}
+            onClick={item.path ? () => navigate(item.path!) : item.onClick}
             className="flex-1 flex flex-col items-center justify-center gap-1 h-full active:bg-amber-50 transition-colors"
             aria-label={item.label}
           >

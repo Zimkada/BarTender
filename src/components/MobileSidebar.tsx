@@ -23,19 +23,13 @@ import {
   Gift,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface MobileSidebarProps {
   isOpen: boolean;
   onClose: () => void;
-  onNavigate: (menu: string) => void;
   currentMenu?: string;
-  // Super admin handlers (optional)
-  onShowAdminDashboard?: () => void;
-  onShowNotifications?: () => void;
-  onShowAuditLogs?: () => void;
-  onShowBarsManagement?: () => void;
-  onShowUsersManagement?: () => void;
-  onShowGlobalCatalog?: () => void;
+  onShowQuickSale: () => void;
 }
 
 interface MenuItem {
@@ -43,22 +37,18 @@ interface MenuItem {
   label: string;
   icon: React.ReactNode;
   roles: ('super_admin' | 'promoteur' | 'gerant' | 'serveur')[];
-  action: () => void;
+  action?: () => void;
+  path?: string;
 }
 
 export function MobileSidebar({
   isOpen,
   onClose,
-  onNavigate,
   currentMenu,
-  onShowAdminDashboard,
-  onShowNotifications,
-  onShowAuditLogs,
-  onShowBarsManagement,
-  onShowUsersManagement,
-  onShowGlobalCatalog
+  onShowQuickSale,
 }: MobileSidebarProps) {
   const { currentSession, logout } = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     if (confirm('Voulez-vous vraiment vous déconnecter ?')) {
@@ -68,187 +58,27 @@ export function MobileSidebar({
   };
 
   const menuItems: MenuItem[] = [
-    // Super Admin menus - Ordered by usage frequency
-    {
-      id: 'adminDashboard',
-      label: 'Dashboard Admin',
-      icon: <ShieldCheck size={20} />,
-      roles: ['super_admin'],
-      action: () => {
-        onShowAdminDashboard?.();
-        onClose();
-      }
-    },
-    {
-      id: 'globalCatalog',
-      label: 'Catalogue Global',
-      icon: <Globe size={20} />,
-      roles: ['super_admin'],
-      action: () => {
-        onShowGlobalCatalog?.();
-        onClose();
-      }
-    },
-    {
-      id: 'barsManagement',
-      label: 'Gestion des Bars',
-      icon: <Building2 size={20} />,
-      roles: ['super_admin'],
-      action: () => {
-        onShowBarsManagement?.();
-        onClose();
-      }
-    },
-    {
-      id: 'usersManagement',
-      label: 'Gestion des Utilisateurs',
-      icon: <UserCog size={20} />,
-      roles: ['super_admin'],
-      action: () => {
-        onShowUsersManagement?.();
-        onClose();
-      }
-    },
-    {
-      id: 'notifications',
-      label: 'Notifications',
-      icon: <Bell size={20} />,
-      roles: ['super_admin'],
-      action: () => {
-        onShowNotifications?.();
-        onClose();
-      }
-    },
-    {
-      id: 'auditLogs',
-      label: 'Audit Logs',
-      icon: <FileText size={20} />,
-      roles: ['super_admin'],
-      action: () => {
-        onShowAuditLogs?.();
-        onClose();
-      }
-    },
+    // Super Admin menus
+    { id: 'adminDashboard', label: 'Dashboard Admin', icon: <ShieldCheck size={20} />, roles: ['super_admin'], path: '/admin' },
+    { id: 'globalCatalog', label: 'Catalogue Global', icon: <Globe size={20} />, roles: ['super_admin'], path: '/admin/catalog' },
+    { id: 'barsManagement', label: 'Gestion des Bars', icon: <Building2 size={20} />, roles: ['super_admin'], path: '/admin/bars' },
+    { id: 'usersManagement', label: 'Gestion des Utilisateurs', icon: <UserCog size={20} />, roles: ['super_admin'], path: '/admin/users' },
+    { id: 'notifications', label: 'Notifications', icon: <Bell size={20} />, roles: ['super_admin'], path: '/admin/notifications' },
+    { id: 'auditLogs', label: 'Audit Logs', icon: <FileText size={20} />, roles: ['super_admin'], path: '/admin/audit-logs' },
+    
     // Regular menus
-    {
-      id: 'home',
-      label: 'Accueil',
-      icon: <Home size={20} />,
-      roles: ['promoteur', 'gerant', 'serveur'],
-      action: () => {
-        onNavigate('home');
-        onClose();
-      }
-    },
-    {
-      id: 'quickSale',
-      label: 'Vente rapide',
-      icon: <Zap size={20} />,
-      roles: ['promoteur', 'gerant', 'serveur'],
-      action: () => {
-        onNavigate('quickSale');
-        onClose();
-      }
-    },
-    {
-      id: 'dailyDashboard',
-      label: 'Tableau de bord', icon: <Calendar size={20} />,
-      roles: ['promoteur', 'gerant', 'serveur'],
-      action: () => {
-        onNavigate('dailyDashboard');
-        onClose();
-      }
-    },
-    {
-      id: 'history',
-      label: 'Historique',
-      icon: <BarChart3 size={20} />,
-      roles: ['promoteur', 'gerant', 'serveur'],
-      action: () => {
-        onNavigate('history');
-        onClose();
-      }
-    },
-    {
-      id: 'inventory',
-      label: 'Inventaire',
-      icon: <Package size={20} />,
-      roles: ['promoteur', 'gerant'],
-      action: () => {
-        onNavigate('inventory');
-        onClose();
-      }
-    },
-    {
-      id: 'stockAlerts',
-      label: 'Prévisions',
-      icon: <TrendingUp size={20} />,
-      roles: ['promoteur', 'gerant'],
-      action: () => {
-        onNavigate('stockAlerts');
-        onClose();
-      }
-    },
-    {
-      id: 'returns',
-      label: 'Retours',
-      icon: <RotateCcw size={20} />,
-      roles: ['promoteur', 'gerant'],
-      action: () => {
-        onNavigate('returns');
-        onClose();
-      }
-    },
-    {
-      id: 'consignments',
-      label: 'Consignations',
-      icon: <Archive size={20} />,
-      roles: ['promoteur', 'gerant'],
-      action: () => {
-        onNavigate('consignments');
-        onClose();
-      }
-    },
-    {
-      id: 'teamManagement',
-      label: "Gestion de l'Équipe",
-      icon: <Users size={20} />,
-      roles: ['promoteur', 'gerant'],
-      action: () => {
-        onNavigate('teamManagement');
-        onClose();
-      }
-    },
-    {
-      id: 'promotions',
-      label: 'Promotions',
-      icon: <Gift size={20} />,
-      roles: ['promoteur', 'gerant'],
-      action: () => {
-        onNavigate('promotions');
-        onClose();
-      }
-    },
-    {
-      id: 'settings',
-      label: 'Paramètres',
-      icon: <Settings size={20} />,
-      roles: ['promoteur', 'gerant'],
-      action: () => {
-        onNavigate('settings');
-        onClose();
-      }
-    },
-    {
-      id: 'accounting',
-      label: 'Comptabilité',
-      icon: <DollarSign size={20} />,
-      roles: ['promoteur'],
-      action: () => {
-        onNavigate('accounting');
-        onClose();
-      }
-    }
+    { id: 'home', label: 'Accueil', icon: <Home size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/' },
+    { id: 'quickSale', label: 'Vente rapide', icon: <Zap size={20} />, roles: ['promoteur', 'gerant', 'serveur'], action: onShowQuickSale },
+    { id: 'dailyDashboard', label: 'Tableau de bord', icon: <Calendar size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/dashboard' },
+    { id: 'history', label: 'Historique', icon: <BarChart3 size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/sales' },
+    { id: 'inventory', label: 'Inventaire', icon: <Package size={20} />, roles: ['promoteur', 'gerant'], path: '/inventory' },
+    { id: 'stockAlerts', label: 'Prévisions', icon: <TrendingUp size={20} />, roles: ['promoteur', 'gerant'], path: '/forecasting' },
+    { id: 'returns', label: 'Retours', icon: <RotateCcw size={20} />, roles: ['promoteur', 'gerant'], path: '/returns' },
+    { id: 'consignments', label: 'Consignations', icon: <Archive size={20} />, roles: ['promoteur', 'gerant'], path: '/consignments' },
+    { id: 'teamManagement', label: "Gestion de l'Équipe", icon: <Users size={20} />, roles: ['promoteur', 'gerant'], path: '/team' }, // Placeholder path
+    { id: 'promotions', label: 'Promotions', icon: <Gift size={20} />, roles: ['promoteur', 'gerant'], path: '/promotions' }, // Placeholder path
+    { id: 'settings', label: 'Paramètres', icon: <Settings size={20} />, roles: ['promoteur', 'gerant'], path: '/settings' },
+    { id: 'accounting', label: 'Comptabilité', icon: <DollarSign size={20} />, roles: ['promoteur'], path: '/accounting' }
   ];
 
   // Filtrer les menus selon le rôle
@@ -304,7 +134,14 @@ export function MobileSidebar({
               {visibleMenus.map((item) => (
                 <motion.button
                   key={item.id}
-                  onClick={item.action}
+                  onClick={() => {
+                    if (item.path) {
+                      navigate(item.path);
+                    } else if (item.action) {
+                      item.action();
+                    }
+                    onClose();
+                  }}
                   whileHover={{ scale: 1.02, x: 4 }}
                   whileTap={{ scale: 0.98 }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-2 transition-all ${currentMenu === item.id
@@ -340,3 +177,4 @@ export function MobileSidebar({
     </AnimatePresence>
   );
 }
+
