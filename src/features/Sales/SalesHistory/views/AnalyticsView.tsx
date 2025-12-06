@@ -39,6 +39,7 @@ import {
   Crown, // For promoteur
   Settings, // For gerant
   Users, // For serveur
+  Clock // NEW
 } from 'lucide-react';
 import { Sale, Category, Product, User, BarMember, Return } from '../../../../types';
 
@@ -124,7 +125,7 @@ export function AnalyticsView({
     // 2. Déterminer les dates de la période précédente
     const previousEnd = startDate;
     const previousStart = new Date(previousEnd.getTime() - currentDuration);
-    
+
     // 3. Convertir en strings YYYY-MM-DD pour le filtrage
     const prevStartDateStr = dateToYYYYMMDD(previousStart);
     // `-1` milliseconde pour garantir que la date de fin est exclusive et éviter tout chevauchement avec la `startDate` de la période actuelle.
@@ -132,7 +133,7 @@ export function AnalyticsView({
 
     // 4. Filtrer les ventes GLOBALES avec le helper centralisé
     const previous = filterByBusinessDateRange(allSales, prevStartDateStr, prevEndDateStr, closeHour);
-    
+
     return { previousPeriodSales: previous };
   }, [allSales, startDate, endDate, closeHour]);
 
@@ -217,19 +218,19 @@ export function AnalyticsView({
           existing.sales += 1;
         }
       });
-      
+
       // 3. Convertir la map en tableau trié par la clé de tri
       return Array.from(grouped.values()).sort((a, b) => a.sortKey - b.sortKey);
     }
-    
+
     // ANCIENNE LOGIQUE (CORRECTE POUR VUES > 2 JOURS)
     const grouped: Record<string, { label: string; revenue: number; sales: number; timestamp: number }> = {};
     sales.forEach(sale => {
       if (sale.status !== 'validated') return;
-      
+
       let label: string;
       const saleDate = getSaleDate(sale); // Utilise le business day normalisé à minuit
-      
+
       if (dayCount <= 14) { // Jusqu'à 2 semaines -> grouper par jour
         label = saleDate.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit' });
       } else { // Plus de 2 semaines -> grouper par jour (DD/MM)
@@ -315,7 +316,7 @@ export function AnalyticsView({
 
         userStats[serverName].revenue += sale.total;
         userStats[serverName].sales += 1;
-        userStats[serverName].items += sale.items.reduce((sum, item) => itemSum + item.quantity, 0);
+        userStats[serverName].items += sale.items.reduce((sum, item) => sum + item.quantity, 0);
       } else {
         // Mode complet - utiliser createdBy (userId)
         const user = safeUsers.find(u => u.id === sale.createdBy);
@@ -340,7 +341,7 @@ export function AnalyticsView({
 
         userStats[user.id].revenue += sale.total;
         userStats[user.id].sales += 1;
-        userStats[user.id].items += sale.items.reduce((sum, item) => itemSum + item.quantity, 0);
+        userStats[user.id].items += sale.items.reduce((sum, item) => sum + item.quantity, 0);
       }
     });
 

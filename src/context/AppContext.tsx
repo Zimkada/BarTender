@@ -2,11 +2,8 @@ import React, { createContext, useContext, useCallback, useEffect, useState } fr
 import { useBarContext } from '../context/BarContext';
 import { useCacheWarming } from '../hooks/useViewMonitoring';
 import { useAuth } from '../context/AuthContext';
-import { useStockBridge } from '../context/StockBridgeProvider';
 import { useStock } from '../context/StockContext';
 import { useNotifications } from '../components/Notifications';
-import { NOTIFICATION_DURATION } from '../config/notifications';
-import { auditLogger } from '../services/AuditLogger';
 import {
   Category,
   Product,
@@ -17,9 +14,9 @@ import {
   User,
   Expense,
   ExpenseCategoryCustom,
-  CartItem, // NEW: Add CartItem
+  CartItem,
 } from '../types';
-import { filterByBusinessDateRange, getBusinessDate, getCurrentBusinessDateString, dateToYYYYMMDD } from '../utils/businessDateHelpers';
+import { filterByBusinessDateRange, getCurrentBusinessDateString, dateToYYYYMMDD } from '../utils/businessDateHelpers';
 import { BUSINESS_DAY_CLOSE_HOUR } from '../constants/businessDay';
 
 // React Query Hooks
@@ -127,7 +124,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.log('[AppProvider] Cache warming in progress...');
     }
   }, [isWarming]);
-  const { processSaleValidation } = useStockBridge();
 
   const barId = currentBar?.id || '';
 
@@ -193,7 +189,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const products = allProducts; // Déjà filtré par StockContext/useStockQueries
   const supplies = allSupplies;
 
-  const initializeBarData = useCallback((barId: string) => {
+  const initializeBarData = useCallback(() => {
     // Plus nécessaire avec React Query qui fetch automatiquement
     console.log('initializeBarData called - handled by React Query');
   }, []);
@@ -320,8 +316,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       status: (currentSession.role === 'promoteur' || currentSession.role === 'gerant') ? 'validated' : 'pending'
     };
 
-    return await salesMutations.createSale.mutateAsync(newSaleData as any);
-  }, [hasPermission, currentBar, currentSession, salesMutations]);
+    const result = await salesMutations.createSale.mutateAsync(newSaleData as any);
+
+    // Clear cart after successful sale creation
+    if (result) {
+      clearCart();
+    }
+
+    return result;
+  }, [hasPermission, currentBar, currentSession, salesMutations, clearCart]);
 
   const validateSale = useCallback((saleId: string, validatorId: string) => {
     if (!hasPermission('canManageInventory')) return;
@@ -343,7 +346,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const baseSales = sales.filter(sale => sale.status === 'validated');
     const filteredSales = filterByBusinessDateRange(baseSales, startDateStr, endDateStr, closeHour);
-    
+
     if (currentSession?.role === 'serveur') {
       return filteredSales.filter(sale => sale.createdBy === currentSession.userId);
     }
@@ -353,7 +356,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const getTodaySales = useCallback(() => {
     const closeHour = currentBar?.closingHour ?? BUSINESS_DAY_CLOSE_HOUR;
     const todayStr = getCurrentBusinessDateString(closeHour);
-    
+
     const baseSales = sales.filter(sale => sale.status === 'validated');
     const todaySales = filterByBusinessDateRange(baseSales, todayStr, todayStr, closeHour);
 
@@ -374,13 +377,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const todayStr = getCurrentBusinessDateString(closeHour);
 
     const todayRefunds = filterByBusinessDateRange(
-        returns.filter(r => r.isRefunded), 
-        todayStr, 
-        todayStr, 
-        closeHour
+      returns.filter(r => r.isRefunded),
+      todayStr,
+      todayStr,
+      closeHour
     );
 
-    const returnsTotal = todayRefunds.reduce((sum, r) => sum => sum + r.refundAmount, 0);
+    const returnsTotal = todayRefunds.reduce((sum, r) => sum + r.refundAmount, 0);
 
     return salesTotal - returnsTotal;
   }, [getTodaySales, returns, currentBar]);
@@ -397,16 +400,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     let baseSales = sales.filter(sale => sale.status === 'validated' && sale.createdBy === userId);
     if (startDateStr && endDateStr) {
-        baseSales = filterByBusinessDateRange(baseSales, startDateStr, endDateStr, closeHour);
+      baseSales = filterByBusinessDateRange(baseSales, startDateStr, endDateStr, closeHour);
     }
     const salesTotal = baseSales.reduce((sum, s) => sum + s.total, 0);
     const serverSaleIds = new Set(baseSales.map(s => s.id));
 
     let baseReturns = returns.filter(r => r.isRefunded);
     if (startDateStr && endDateStr) {
-        baseReturns = filterByBusinessDateRange(baseReturns, startDateStr, endDateStr, closeHour);
+      baseReturns = filterByBusinessDateRange(baseReturns, startDateStr, endDateStr, closeHour);
     }
-    
+
     const serverReturns = baseReturns.filter(r => serverSaleIds.has(r.saleId));
 
     const returnsTotal = serverReturns.reduce((sum, r) => sum + r.refundAmount, 0);
@@ -461,7 +464,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     expensesMutations.deleteExpense.mutate(expenseId);
   }, [hasPermission, expensesMutations]);
 
-  const addCustomExpenseCategory = useCallback((name: string, icon: string, createdBy: string) => {
+  const addCustomExpenseCategory = useCallback((name: string, icon: string) => {
     if (!hasPermission('canManageInventory') || !currentBar) return;
     expensesMutations.createCustomCategory.mutate({ name, icon });
   }, [hasPermission, currentBar, expensesMutations]);
