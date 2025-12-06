@@ -23,6 +23,7 @@ import { ProductGrid } from './ProductGrid';
 import { PromotionsService } from '../services/supabase/promotions.service';
 import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
 import { PaymentMethodSelector, PaymentMethod } from './cart/PaymentMethodSelector';
+import { useFilteredProducts } from '../hooks/useFilteredProducts';
 
 interface QuickSaleFlowProps {
   isOpen: boolean;
@@ -143,17 +144,24 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [isOpen, cart, handleCheckout]);
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.volume.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || product.categoryId === selectedCategory;
-    return matchesSearch && matchesCategory;
-  }).map(product => {
+
+  // 1. Préparer les produits avec stock
+  const productsWithStock = products.map(product => {
     const stockInfo = getProductStockInfo(product.id);
     return {
       ...product,
       stock: stockInfo?.availableStock ?? 0
     };
+  });
+
+  // 2. Utiliser le hook centralisé (qui filtre maintenant aussi sur le stock calculé)
+  const filteredProducts = useFilteredProducts({
+    products: productsWithStock,
+    searchQuery: searchTerm,
+    selectedCategory,
+    onlyInStock: false // On ne filtre pas ici car le hook attend "stock" property qui est déjà settée
+    // Note: Le hook filtre par default 'stock > 0' si onlyInStock est true.
+    // Nos produits enrichis ont 'stock'. Donc on peut laisser le hook faire le filtrage final.
   });
 
   const calculateItemWithPromo = (product: Product, quantity: number): CartItem => {
@@ -426,8 +434,8 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                             <select
                               value={selectedServer}
                               onChange={(e) => setSelectedServer(e.target.value)}
-                            className="w-full px-4 py-3 border border-amber-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-base"
-                          >
+                              className="w-full px-4 py-3 border border-amber-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-base"
+                            >
                               <option value="">Sélectionner un serveur...</option>
                               <option value={`Moi (${currentSession?.userName})`}>
                                 Moi ({currentSession?.userName})
@@ -476,204 +484,204 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                 )}
               </div>
             ) : (
-                <div className="flex-1 flex overflow-hidden">
-                  <div className="flex-1 p-4 overflow-y-auto">
-                    <div className="space-y-4 mb-6">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                        <input
-                          ref={searchInputRef}
-                          type="text"
-                          placeholder="Rechercher un produit (nom ou volume)..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                        />
-                      </div>
+              <div className="flex-1 flex overflow-hidden">
+                <div className="flex-1 p-4 overflow-y-auto">
+                  <div className="space-y-4 mb-6">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                      <input
+                        ref={searchInputRef}
+                        type="text"
+                        placeholder="Rechercher un produit (nom ou volume)..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                      />
+                    </div>
 
-                      <div className="flex gap-2 overflow-x-auto pb-2">
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      <button
+                        onClick={() => setSelectedCategory('all')}
+                        className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${selectedCategory === 'all'
+                          ? 'bg-amber-500 text-white'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
+                      >
+                        Toutes
+                      </button>
+                      {categories.map(category => (
                         <button
-                          onClick={() => setSelectedCategory('all')}
-                          className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${selectedCategory === 'all'
+                          key={category.id}
+                          onClick={() => setSelectedCategory(category.id)}
+                          className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${selectedCategory === category.id
                             ? 'bg-amber-500 text-white'
                             : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                             }`}
                         >
-                          Toutes
+                          {category.name}
                         </button>
-                        {categories.map(category => (
-                          <button
-                            key={category.id}
-                            onClick={() => setSelectedCategory(category.id)}
-                            className={`px-4 py-2 rounded-full whitespace-nowrap transition-colors ${selectedCategory === category.id
-                              ? 'bg-amber-500 text-white'
-                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                              }`}
-                          >
-                            {category.name}
-                          </button>
-                        ))}
-                      </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <ProductGrid
+                    products={filteredProducts}
+                    onAddToCart={(p) => quickAddToCart(p, 1)}
+                  />
+
+                  {filteredProducts.length === 0 && (
+                    <div className="text-center py-12">
+                      <Search size={48} className="text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">Aucun produit trouvé</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="w-80 h-full bg-gradient-to-br from-amber-50 to-amber-50 border-l border-amber-200 flex flex-col">
+                  <div className="flex-shrink-0 p-4 border-b border-amber-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                        <ShoppingCart size={20} />
+                        Panier ({itemCount})
+                      </h3>
+                      {cart.length > 0 && (
+                        <button
+                          onClick={() => setCart([])}
+                          className="text-red-500 hover:text-red-700 text-sm"
+                        >
+                          Vider
+                        </button>
+                      )}
                     </div>
 
-                    <ProductGrid
-                      products={filteredProducts}
-                      onAddToCart={(p) => quickAddToCart(p, 1)}
+                    <input
+                      type="text"
+                      placeholder="Client (optionnel)"
+                      value={customerInfo}
+                      onChange={(e) => setCustomerInfo(e.target.value)}
+                      className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm bg-white"
                     />
+                  </div>
 
-                    {filteredProducts.length === 0 && (
-                      <div className="text-center py-12">
-                        <Search size={48} className="text-gray-300 mx-auto mb-4" />
-                        <p className="text-gray-500">Aucun produit trouvé</p>
+                  <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+                    {cart.length === 0 ? (
+                      <div className="text-center py-8">
+                        <ShoppingCart size={48} className="text-gray-300 mx-auto mb-4" />
+                        <p className="text-gray-500 text-sm">Panier vide</p>
                       </div>
+                    ) : (
+                      cart.map(item => (
+                        <motion.div
+                          key={item.product.id}
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                          className="bg-white rounded-lg p-3 border border-amber-100"
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-gray-800 text-sm">{item.product.name}</h4>
+                              <p className="text-gray-600 text-xs">{item.product.volume}</p>
+                            </div>
+                            <button
+                              onClick={() => updateQuantity(item.product.id, 0)}
+                              className="text-red-400 hover:text-red-600"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                                className="w-6 h-6 bg-amber-200 text-amber-700 rounded-full flex items-center justify-center text-xs hover:bg-amber-300"
+                              >
+                                <Minus size={12} />
+                              </button>
+                              <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
+                              <button
+                                onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                                className="w-6 h-6 bg-amber-200 text-amber-700 rounded-full flex items-center justify-center text-xs hover:bg-amber-300"
+                              >
+                                <Plus size={12} />
+                              </button>
+                            </div>
+                            <div className="text-right">
+                              {item.discountAmount && item.discountAmount > 0 && (
+                                <div className="text-xs text-gray-400 line-through mb-0.5">
+                                  {formatPrice(item.product.price * item.quantity)}
+                                </div>
+                              )}
+                              <span className={`${item.discountAmount ? 'text-green-600' : 'text-amber-600'} font-bold text-sm`}>
+                                {formatPrice((item.product.price * item.quantity) - (item.discountAmount || 0))}
+                              </span>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))
                     )}
                   </div>
 
-                  <div className="w-80 h-full bg-gradient-to-br from-amber-50 to-amber-50 border-l border-amber-200 flex flex-col">
-                    <div className="flex-shrink-0 p-4 border-b border-amber-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                          <ShoppingCart size={20} />
-                          Panier ({itemCount})
-                        </h3>
-                        {cart.length > 0 && (
-                          <button
-                            onClick={() => setCart([])}
-                            className="text-red-500 hover:text-red-700 text-sm"
-                          >
-                            Vider
-                          </button>
-                        )}
-                      </div>
+                  <div className="flex-shrink-0 p-4 border-t border-amber-200 space-y-3 bg-gradient-to-br from-amber-50 to-amber-50">
 
-                      <input
-                        type="text"
-                        placeholder="Client (optionnel)"
-                        value={customerInfo}
-                        onChange={(e) => setCustomerInfo(e.target.value)}
-                        className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm bg-white"
-                      />
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
-                      {cart.length === 0 ? (
-                        <div className="text-center py-8">
-                          <ShoppingCart size={48} className="text-gray-300 mx-auto mb-4" />
-                          <p className="text-gray-500 text-sm">Panier vide</p>
-                        </div>
-                      ) : (
-                        cart.map(item => (
-                          <motion.div
-                            key={item.product.id}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            className="bg-white rounded-lg p-3 border border-amber-100"
-                          >
-                            <div className="flex items-start justify-between mb-2">
-                              <div className="flex-1">
-                                <h4 className="font-medium text-gray-800 text-sm">{item.product.name}</h4>
-                                <p className="text-gray-600 text-xs">{item.product.volume}</p>
-                              </div>
-                              <button
-                                onClick={() => updateQuantity(item.product.id, 0)}
-                                className="text-red-400 hover:text-red-600"
-                              >
-                                <X size={16} />
-                              </button>
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                                  className="w-6 h-6 bg-amber-200 text-amber-700 rounded-full flex items-center justify-center text-xs hover:bg-amber-300"
-                                >
-                                  <Minus size={12} />
-                                </button>
-                                <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
-                                <button
-                                  onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                                  className="w-6 h-6 bg-amber-200 text-amber-700 rounded-full flex items-center justify-center text-xs hover:bg-amber-300"
-                                >
-                                  <Plus size={12} />
-                                </button>
-                              </div>
-                              <div className="text-right">
-                                {item.discountAmount && item.discountAmount > 0 && (
-                                  <div className="text-xs text-gray-400 line-through mb-0.5">
-                                    {formatPrice(item.product.price * item.quantity)}
-                                  </div>
-                                )}
-                                <span className={`${item.discountAmount ? 'text-green-600' : 'text-amber-600'} font-bold text-sm`}>
-                                  {formatPrice((item.product.price * item.quantity) - (item.discountAmount || 0))}
-                                </span>
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))
-                      )}
-                    </div>
-
-                    <div className="flex-shrink-0 p-4 border-t border-amber-200 space-y-3 bg-gradient-to-br from-amber-50 to-amber-50">
-
-                      {currentBar?.settings?.operatingMode === 'simplified' && (
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1.5 flex items-center gap-1">
-                            <Users size={14} className="text-amber-500" />
-                            Serveur
-                          </label>
-                          <select
-                            value={selectedServer}
-                            onChange={(e) => setSelectedServer(e.target.value)}
-                            className="w-full px-3 py-2 border border-amber-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
-                          >
-                            <option value="">Sélectionner...</option>
-                            <option value={`Moi (${currentSession?.userName})`}>
-                              Moi ({currentSession?.userName})
+                    {currentBar?.settings?.operatingMode === 'simplified' && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1.5 flex items-center gap-1">
+                          <Users size={14} className="text-amber-500" />
+                          Serveur
+                        </label>
+                        <select
+                          value={selectedServer}
+                          onChange={(e) => setSelectedServer(e.target.value)}
+                          className="w-full px-3 py-2 border border-amber-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
+                        >
+                          <option value="">Sélectionner...</option>
+                          <option value={`Moi (${currentSession?.userName})`}>
+                            Moi ({currentSession?.userName})
+                          </option>
+                          {currentBar?.settings?.serversList?.map((serverName) => (
+                            <option key={serverName} value={serverName}>
+                              {serverName}
                             </option>
-                            {currentBar?.settings?.serversList?.map((serverName) => (
-                              <option key={serverName} value={serverName}>
-                                {serverName}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
-
-                      <PaymentMethodSelector
-                        value={paymentMethod}
-                        onChange={setPaymentMethod}
-                        className="mb-2"
-                      />
-
-                      <div className="bg-amber-100 rounded-lg p-2.5">
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-700 font-medium text-sm">Total:</span>
-                          <span className="text-amber-600 font-bold text-lg">{formatPrice(total)}</span>
-                        </div>
+                          ))}
+                        </select>
                       </div>
+                    )}
 
-                      <EnhancedButton
-                        variant="success"
-                        size="lg"
-                        onClick={handleCheckout}
-                        loading={createSale.isPending}
-                        success={showSuccess}
-                        disabled={cart.length === 0}
-                        className="w-full"
-                        icon={showSuccess ? <Check size={20} /> : <CreditCard size={20} />}
-                        hapticFeedback={true}
-                      >
-                        {showSuccess ? 'Vente finalisée !' : 'Finaliser la vente'}
-                      </EnhancedButton>
+                    <PaymentMethodSelector
+                      value={paymentMethod}
+                      onChange={setPaymentMethod}
+                      className="mb-2"
+                    />
+
+                    <div className="bg-amber-100 rounded-lg p-2.5">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-700 font-medium text-sm">Total:</span>
+                        <span className="text-amber-600 font-bold text-lg">{formatPrice(total)}</span>
+                      </div>
                     </div>
+
+                    <EnhancedButton
+                      variant="success"
+                      size="lg"
+                      onClick={handleCheckout}
+                      loading={createSale.isPending}
+                      success={showSuccess}
+                      disabled={cart.length === 0}
+                      className="w-full"
+                      icon={showSuccess ? <Check size={20} /> : <CreditCard size={20} />}
+                      hapticFeedback={true}
+                    >
+                      {showSuccess ? 'Vente finalisée !' : 'Finaliser la vente'}
+                    </EnhancedButton>
                   </div>
                 </div>
+              </div>
             )}
-              </motion.div>
+          </motion.div>
         </motion.div>
       )}
-        </AnimatePresence>
-      );
+    </AnimatePresence>
+  );
 }

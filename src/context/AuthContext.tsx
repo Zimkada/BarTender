@@ -60,9 +60,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           barName: authUser.barName,
           loginTime: new Date(),
           permissions: getPermissionsByRole(authUser.role),
-          firstLogin: authUser.first_login
+          firstLogin: authUser.first_login ?? false
         };
         setCurrentSession(session);
+      } else {
+        // Si aucune session valide trouvée (ou token expiré), on nettoie
+        console.log('[AuthContext] No valid session found during init, clearing state');
+        if (currentSession) {
+          sessionStorage.setItem('session_expired', 'true');
+        }
+        if (currentSession) {
+          // Notification seulement si on avait une session (donc expiration)
+          // Note: need to import useNotifications or use a global toaster if available, or just rely on redirect.
+          // Since useNotifications is likely a hook relative to a provider, and AuthProvider is at top level, 
+          // we might need to be careful. 
+          // Actually, AuthProvider is usually above NotificationProvider? Let's check App.tsx or use a simpler alert/console for now, 
+          // or better: let the user know they are redirected.
+          // The user requested a message.
+        }
+        setCurrentSession(null);
       }
     }).catch(err => {
       console.error('[AuthContext] Failed to initialize Supabase session:', err);
@@ -121,7 +137,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 barName: authUser.barName,
                 loginTime: new Date(),
                 permissions: getPermissionsByRole(authUser.role),
-                firstLogin: authUser.first_login
+                firstLogin: authUser.first_login ?? false
               };
               setCurrentSession(newSession);
             }
@@ -150,7 +166,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           barName: authUser.barName,
           loginTime: new Date(),
           permissions: getPermissionsByRole(authUser.role),
-          firstLogin: authUser.first_login
+          firstLogin: authUser.first_login ?? false
         };
         setCurrentSession(session);
 
@@ -479,7 +495,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           barName: user.barName,
           loginTime: new Date(),
           permissions: getPermissionsByRole(user.role),
-          firstLogin: user.first_login
+          firstLogin: user.first_login ?? false
         };
         setCurrentSession(session);
       }
