@@ -23,7 +23,7 @@ export function SalaryManager() {
   const { formatPrice } = useCurrencyFormatter();
   const { isMobile } = useViewport();
 
-  if (!currentBar || !currentSession) return null;
+
 
   const {
     salaries,
@@ -137,6 +137,9 @@ export function SalaryManager() {
     }
     return options;
   }, []);
+
+  // Conditional early return moved here
+  if (!currentBar || !currentSession) return null;
 
   return (
     <div className={`${isMobile ? 'p-3 space-y-3' : 'p-6 space-y-6'}`}>

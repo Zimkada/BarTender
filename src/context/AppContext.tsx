@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useCallback, useEffect, useState } from 'react';
 import { useBarContext } from '../context/BarContext';
 import { useCacheWarming } from '../hooks/useViewMonitoring';
 import { useAuth } from '../context/AuthContext';
@@ -17,6 +17,7 @@ import {
   User,
   Expense,
   ExpenseCategoryCustom,
+  CartItem, // NEW: Add CartItem
 } from '../types';
 import { filterByBusinessDateRange, getBusinessDate, getCurrentBusinessDateString, dateToYYYYMMDD } from '../utils/businessDateHelpers';
 import { BUSINESS_DAY_CLOSE_HOUR } from '../constants/businessDay';
@@ -46,6 +47,13 @@ interface AppContextType {
   sales: Sale[];
   settings: AppSettings;
   users: User[];
+
+  // PANIER (NEW)
+  cart: CartItem[];
+  addToCart: (product: Product) => void;
+  updateCartQuantity: (productId: string, quantity: number) => void;
+  removeFromCart: (productId: string) => void;
+  clearCart: () => void;
 
   // Catégories
   addCategory: (category: Omit<Category, 'id' | 'createdAt' | 'barId'>) => void;
@@ -141,6 +149,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const { showNotification } = useNotifications();
   const settings = defaultSettings;
   const users: User[] = []; // Should come from Auth/BarContext
+
+  // --- CART STATE & LOGIC ---
+  const [cart, setCart] = useState<CartItem[]>([]);
+
+  const addToCart = useCallback((product: Product) => {
+    setCart(currentCart => {
+      const existingItem = currentCart.find(item => item.product.id === product.id);
+      if (existingItem) {
+        return currentCart.map(item =>
+          item.product.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...currentCart, { product, quantity: 1 }];
+    });
+  }, []);
+
+  const updateCartQuantity = useCallback((productId: string, quantity: number) => {
+    setCart(currentCart => {
+      if (quantity === 0) {
+        return currentCart.filter(item => item.product.id !== productId);
+      }
+      return currentCart.map(item =>
+        item.product.id === productId
+          ? { ...item, quantity }
+          : item
+      );
+    });
+  }, []);
+
+  const removeFromCart = useCallback((productId: string) => {
+    setCart(currentCart => currentCart.filter(item => item.product.id !== productId));
+  }, []);
+
+  const clearCart = useCallback(() => {
+    setCart([]);
+  }, []);
+  // --- END CART STATE & LOGIC ---
 
   // Filtrage automatique (déjà fait par les hooks qui prennent barId)
   const products = allProducts; // Déjà filtré par StockContext/useStockQueries
@@ -429,6 +476,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const value: AppContextType = {
     categories, products, supplies, sales, returns, settings, users,
     expenses, customExpenseCategories,
+    cart, addToCart, updateCartQuantity, removeFromCart, clearCart, // NEW: Add cart state and functions
     addCategory,
     linkCategory,
     addCategories, updateCategory, deleteCategory,

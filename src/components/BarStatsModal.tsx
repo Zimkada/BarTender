@@ -202,7 +202,7 @@ export function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
                 </div>
                 <p className="text-purple-100 text-sm md:text-base">{bar.name}</p>
                 <p className="text-purple-200 text-xs mt-0.5">
-                  {bar.isActive ? '✅ Actif' : '❌ Suspendu'} • {bar.location}
+                  {bar.isActive ? '✅ Actif' : '❌ Suspendu'} • {bar.address}
                 </p>
               </div>
             </div>

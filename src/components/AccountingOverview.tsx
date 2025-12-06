@@ -46,7 +46,7 @@ export function AccountingOverview() {
     endDate: periodEnd,
     customRange,
     updateCustomRange,
-    isCustom
+    // isCustom // REMOVED
   } = useDateRangeFilter({
     defaultRange: 'this_month'
   });
@@ -60,7 +60,7 @@ export function AccountingOverview() {
   const { returns, expenses, customExpenseCategories } = useAppContext(); // ✅ Use expenses from AppContext
 
   // ✨ HOOK CENTRALISÉ POUR LE REVENU - Convertir les dates en strings
-  const { netRevenue: totalRevenue, isLoading: isAnalyticsLoading } = useRevenueStats({
+  const { netRevenue: totalRevenue /*, isLoading: isAnalyticsLoading */ } = useRevenueStats({ // isAnalyticsLoading REMOVED
     startDate: dateToInputValue(periodStart),
     endDate: dateToInputValue(periodEnd)
   });
@@ -148,7 +148,7 @@ export function AccountingOverview() {
     }
   };
 
-  if (!currentBar || !currentSession) return null;
+
 
 
 
@@ -361,31 +361,12 @@ export function AccountingOverview() {
     return isNaN(result) || !isFinite(result) ? 0 : result;
   }, [finalBalance, totalOperatingCosts]);
 
-  // Period label generation
-  const periodLabel = useMemo(() => {
-    if (timeRange === 'custom') {
-      if (!customRange.start || !customRange.end) return 'Personnalisé';
-      const start = new Date(customRange.start);
-      const end = new Date(customRange.end);
-      return `${start.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} - ${end.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`;
-    }
+  if (!currentBar || !currentSession) return null; // MOVED HERE
 
-    if (timeRange === 'this_week') {
-      const start = periodStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-      const end = periodEnd.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
-      return `${start} - ${end}`;
-    }
 
-    if (timeRange === 'this_month') {
-      return periodStart.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-    }
 
-    if (timeRange === 'this_year') {
-      return periodStart.toLocaleDateString('fr-FR', { year: 'numeric' });
-    }
-
-    return '';
-  }, [timeRange, periodStart, periodEnd, customRange]);
+  // Conditional early return moved here (AFTER all hook declarations)
+  if (!currentBar || !currentSession) return null;
 
   // Initial Balance handlers
   const handleCreateInitialBalance = () => {
