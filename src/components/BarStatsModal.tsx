@@ -14,7 +14,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { Bar, Sale, Return } from '../types';
-import { getBusinessDate, getCurrentBusinessDay, isSameDay, dateToYYYYMMDD, filterByBusinessDateRange } from '../utils/businessDateHelpers';
+import { getBusinessDate, getCurrentBusinessDateString, dateToYYYYMMDD, filterByBusinessDateRange } from '../utils/businessDateHelpers';
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { useFeedback } from '../hooks/useFeedback';
@@ -27,7 +27,7 @@ interface BarStatsModalProps {
   bar: Bar;
 }
 
-export function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
+export default function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
   const { sales: allSales, returns: allReturns } = useAppContext();
   const { barMembers } = useBarContext();
   const { showSuccess } = useFeedback();
@@ -82,7 +82,7 @@ export function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
 
       // Fallback: client-side calculation using AppContext data
       const closeHour = bar.closingHour ?? 6;
-      
+
       const todayStr = getCurrentBusinessDateString(closeHour);
       const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayStr = dateToYYYYMMDD(yesterday);
@@ -98,7 +98,7 @@ export function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
       const salesYesterday = filterByBusinessDateRange(salesForBar, yesterdayStr, yesterdayStr);
       const salesLast7Days = filterByBusinessDateRange(salesForBar, sevenDaysAgoStr, todayStr);
       const salesLast30Days = filterByBusinessDateRange(salesForBar, thirtyDaysAgoStr, todayStr);
-      
+
       const returnsToday = filterByBusinessDateRange(returnsForBar, todayStr, todayStr);
       const returnsYesterday = filterByBusinessDateRange(returnsForBar, yesterdayStr, yesterdayStr);
       const returnsLast7Days = filterByBusinessDateRange(returnsForBar, sevenDaysAgoStr, todayStr);

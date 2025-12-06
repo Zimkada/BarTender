@@ -9,7 +9,7 @@ interface GlobalCatalogPanelProps {
     onClose: () => void;
 }
 
-export function GlobalCatalogPanel({ isOpen, onClose }: GlobalCatalogPanelProps) {
+export default function GlobalCatalogPanel({ isOpen, onClose }: GlobalCatalogPanelProps) {
     const [activeTab, setActiveTab] = useState<'categories' | 'products'>('categories');
 
     if (!isOpen) return null;
@@ -51,8 +51,8 @@ export function GlobalCatalogPanel({ isOpen, onClose }: GlobalCatalogPanelProps)
                             <button
                                 onClick={() => setActiveTab('categories')}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-medium transition-colors ${activeTab === 'categories'
-                                        ? 'bg-white text-blue-600'
-                                        : 'bg-blue-700/50 text-blue-100 hover:bg-blue-700/70'
+                                    ? 'bg-white text-blue-600'
+                                    : 'bg-blue-700/50 text-blue-100 hover:bg-blue-700/70'
                                     }`}
                             >
                                 <Layers className="w-4 h-4" />
@@ -61,8 +61,8 @@ export function GlobalCatalogPanel({ isOpen, onClose }: GlobalCatalogPanelProps)
                             <button
                                 onClick={() => setActiveTab('products')}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-medium transition-colors ${activeTab === 'products'
-                                        ? 'bg-white text-blue-600'
-                                        : 'bg-blue-700/50 text-blue-100 hover:bg-blue-700/70'
+                                    ? 'bg-white text-blue-600'
+                                    : 'bg-blue-700/50 text-blue-100 hover:bg-blue-700/70'
                                     }`}
                             >
                                 <Package className="w-4 h-4" />

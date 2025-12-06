@@ -43,7 +43,7 @@ const initialFormData: CreatePromoteurForm = {
 
 type PromoterWithBars = User & { bars: { id: string; name: string }[] };
 
-export function UsersManagementPanel({ isOpen, onClose }: UsersManagementPanelProps) {
+export default function UsersManagementPanel({ isOpen, onClose }: UsersManagementPanelProps) {
   const { createBar } = useBarContext();
   const { initializeBarData } = useAppContext();
 
@@ -77,7 +77,7 @@ export function UsersManagementPanel({ isOpen, onClose }: UsersManagementPanelPr
         name: u.name || '',
         phone: u.phone || '',
         email: u.email || '',
-        createdAt: new Date(u.created_at),
+        createdAt: new Date(u.created_at || new Date()),
         isActive: u.is_active ?? true,
         firstLogin: u.first_login ?? false,
         lastLoginAt: u.last_login_at ? new Date(u.last_login_at) : undefined,

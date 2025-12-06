@@ -21,7 +21,7 @@ interface AuditLogsPanelProps {
   onClose: () => void;
 }
 
-export function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
+export default function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [severityFilter, setSeverityFilter] = useState<AuditLogSeverity | 'all'>('all');
   const [eventFilter, setEventFilter] = useState<AuditLogEvent | 'all'>('all');

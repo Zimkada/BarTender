@@ -24,7 +24,7 @@ interface BarsManagementPanelProps {
   onShowBarStats: (bar: Bar) => void;
 }
 
-export function BarsManagementPanel({ isOpen, onClose, onShowBarStats }: BarsManagementPanelProps) {
+export default function BarsManagementPanel({ isOpen, onClose, onShowBarStats }: BarsManagementPanelProps) {
   const { sales: allSales, returns: allReturns } = useAppContext();
   const { bars, updateBar } = useBarContext();
   const { impersonate, changePassword } = useAuth();
