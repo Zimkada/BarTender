@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 
 
-export function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgotPassword: () => void }) {
+function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgotPassword: () => void }) {
   const { login, changePassword, verifyMfa } = useAuth();
   const { bars } = useBarContext();
 
@@ -381,5 +381,6 @@ export function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgot
       </motion.div>
     </div>
   );
+}
 
-  export default LoginScreen;
+export default LoginScreen;

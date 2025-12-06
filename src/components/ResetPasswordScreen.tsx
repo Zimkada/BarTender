@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Lock, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase'; // Import direct de supabase
 
-export function ResetPasswordScreen() {
+function ResetPasswordScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');

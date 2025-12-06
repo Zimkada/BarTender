@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Mail, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-export function ForgotPasswordScreen({ onBackToLogin }: { onBackToLogin: () => void }) {
+function ForgotPasswordScreen({ onBackToLogin }: { onBackToLogin: () => void }) {
   const { resetPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
