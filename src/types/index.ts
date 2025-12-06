@@ -415,6 +415,9 @@ export interface RolePermissions {
   canClaimConsignment: boolean;
   canViewConsignments: boolean;
 
+  // Promotions (NEW)
+  canManagePromotions: boolean;
+
   // Paramètres
   canManageSettings: boolean;
   canManageBarInfo: boolean;
@@ -454,6 +457,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canCreateConsignment: true,
     canClaimConsignment: true,
     canViewConsignments: true,
+    canManagePromotions: true, // NEW
     canManageSettings: true,
     canManageBarInfo: true,
     canCreateBars: true,
@@ -486,6 +490,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canCreateConsignment: true,
     canClaimConsignment: true,
     canViewConsignments: true,
+    canManagePromotions: true, // NEW
     canManageSettings: true,
     canManageBarInfo: true,
     canCreateBars: true,
@@ -512,6 +517,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canCreateConsignment: true,
     canClaimConsignment: true,
     canViewConsignments: true,
+    canManagePromotions: true, // NEW
     canManageSettings: true,
     canManageBarInfo: true,
     canCreateBars: false,
@@ -538,6 +544,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canCreateConsignment: false,
     canClaimConsignment: false,
     canViewConsignments: false,
+    canManagePromotions: false, // NEW
     canManageSettings: false,
     canManageBarInfo: false,
     canCreateBars: false,
