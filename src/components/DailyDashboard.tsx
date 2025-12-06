@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  TrendingUp, DollarSign, ShoppingCart, Package, Share, Lock, Eye, EyeOff, RotateCcw, Archive, Check, X, User, AlertTriangle
+  TrendingUp, DollarSign, ShoppingCart, Package, Share, Lock, Eye, EyeOff, RotateCcw, Archive, Check, X, User, AlertTriangle, ArrowLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRevenueStats } from '../hooks/useRevenueStats';
@@ -16,12 +17,9 @@ import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import { Sale, SaleItem, User as UserType } from '../types';
 import { AnalyticsService, DailySalesSummary } from '../services/supabase/analytics.service';
 import { useTopProducts } from '../hooks/queries/useTopProductsQuery';
+import { getCurrentBusinessDateString } from '../utils/dateRangeCalculator';
 
-interface DailyDashboardProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
+// Sous-composant pour les ventes en attente
 const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users }: {
   sales: Sale[];
   onValidate: (saleId: string) => void;
@@ -34,21 +32,17 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
   const salesByServer = useMemo(() => {
     return sales.reduce((acc, sale) => {
       const serverId = sale.createdBy;
-      if (!acc[serverId]) {
-        acc[serverId] = [];
-      }
+      if (!acc[serverId]) acc[serverId] = [];
       acc[serverId].push(sale);
       return acc;
     }, {} as Record<string, Sale[]>);
   }, [sales]);
 
-  const sortedServerIds = useMemo(() => {
-    return Object.keys(salesByServer).sort((a, b) => {
-      const userA = users.find(u => u.id === a)?.name || '';
-      const userB = users.find(u => u.id === b)?.name || '';
-      return userA.localeCompare(userB);
-    });
-  }, [salesByServer, users]);
+  const sortedServerIds = Object.keys(salesByServer).sort((a, b) => {
+    const userA = users.find(u => u.id === a)?.name || '';
+    const userB = users.find(u => u.id === b)?.name || '';
+    return userA.localeCompare(userB);
+  });
 
   if (sales.length === 0) return null;
 
@@ -56,58 +50,46 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
     <div className="bg-white rounded-xl p-4 border border-amber-200">
       <div className="flex justify-between items-center mb-4">
         <h3 className="font-semibold text-gray-800 text-lg">Commandes en attente ({sales.length})</h3>
-        <EnhancedButton onClick={() => onValidateAll(sales)} size="sm" variant="primary">
-          Tout Valider
-        </EnhancedButton>
+        <EnhancedButton onClick={() => onValidateAll(sales)} size="sm" variant="primary">Tout Valider</EnhancedButton>
       </div>
-      <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
+      <div className="space-y-4 max-h-96 overflow-y-auto">
         {sortedServerIds.map(serverId => {
           const serverSales = salesByServer[serverId];
           const server = users.find(u => u.id === serverId);
-          const sortedSales = serverSales.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
           return (
             <div key={serverId} className="bg-gray-50 rounded-lg p-3">
               <div className="flex justify-between items-center mb-3">
-                <h4 className="font-semibold text-gray-700 flex items-center gap-2"><User size={16} /> {server?.name || 'Serveur Inconnu'}</h4>
-                <EnhancedButton onClick={() => onValidateAll(sortedSales)} size="sm">Valider pour {server?.name.split(' ')[0]}</EnhancedButton>
+                <h4 className="font-semibold text-gray-700 flex items-center gap-2"><User size={16} /> {server?.name || 'Inconnu'}</h4>
+                <EnhancedButton onClick={() => onValidateAll(serverSales)} size="sm">Valider tout</EnhancedButton>
               </div>
-              <div className="space-y-3">
-                {sortedSales.map(sale => (
-                  <div key={sale.id} className="bg-amber-50 p-3 rounded-lg border border-amber-100">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-xs text-gray-500">{new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                        <p className="font-bold text-xl text-amber-600 mt-1">{formatPrice(sale.total)}</p>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <EnhancedButton onClick={() => onValidate(sale.id)} size="sm" className="bg-green-500 hover:bg-green-600 text-white p-2"><Check size={16} /></EnhancedButton>
-                        <EnhancedButton onClick={() => onReject(sale.id)} size="sm" className="bg-red-500 hover:bg-red-600 text-white p-2"><X size={16} /></EnhancedButton>
-                      </div>
+              <div className="space-y-2">
+                {serverSales.map(sale => (
+                  <div key={sale.id} className="bg-amber-50 p-3 rounded-lg border border-amber-100 flex justify-between items-center">
+                    <div>
+                      <p className="text-xs text-gray-500">{new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                      <p className="font-bold text-amber-600">{formatPrice(sale.total)}</p>
                     </div>
-                    <ul className="mt-2 text-xs text-gray-700 space-y-1">
-                      {sale.items.map((item: SaleItem, idx) => {
-                        const name = item.product_name;
-                        const productId = item.product_id;
-                        return <li key={productId} className="flex justify-between"><span>{item.quantity}x {name}</span><span>{formatPrice(item.total_price)}</span></li>;
-                      })}
-                    </ul>
+                    <div className="flex gap-2">
+                      <button onClick={() => onValidate(sale.id)} className="p-2 bg-green-500 text-white rounded-lg"><Check size={16} /></button>
+                      <button onClick={() => onReject(sale.id)} className="p-2 bg-red-500 text-white rounded-lg"><X size={16} /></button>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
-          )
+          );
         })}
       </div>
     </div>
   );
 };
 
-import { getCurrentBusinessDateString } from '../utils/dateRangeCalculator';
-
-// ... (imports existants)
-
-export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
+/**
+ * DailyDashboard - Page tableau de bord quotidien
+ * Route: /dashboard
+ */
+export function DailyDashboard() {
+  const navigate = useNavigate();
   const { sales, products, getTodaySales, getLowStockProducts, returns, validateSale, rejectSale, users } = useAppContext();
   const { currentBar } = useBarContext();
   const { consignments } = useStockManagement();
@@ -117,245 +99,197 @@ export function DailyDashboard({ isOpen, onClose }: DailyDashboardProps) {
 
   const [showDetails, setShowDetails] = useState(false);
   const [cashClosed, setCashClosed] = useState(false);
-
-  // Analytics State - SQL for performance
   const [todayStats, setTodayStats] = useState<DailySalesSummary | null>(null);
 
-  // Dates for today (Business Date)
-  // On utilise une string YYYY-MM-DD qui représente le jour commercial actuel
   const todayDateStr = useMemo(() => getCurrentBusinessDateString(), []);
 
-  // ✨ TOP PRODUCTS (Hook unifié)
   const { data: topProductsData = [] } = useTopProducts({
     barId: currentBar?.id || '',
     startDate: todayDateStr,
     endDate: todayDateStr,
     limit: 5,
-    enabled: isOpen && !!currentBar,
+    enabled: !!currentBar,
   });
 
   useEffect(() => {
-    if (isOpen && currentBar) {
-      // Fetch SQL stats for performance (non-top-products)
+    if (currentBar) {
       AnalyticsService.getDailySummary(currentBar.id, todayDateStr, todayDateStr, 'day').then(stats => {
         if (stats.length > 0) setTodayStats(stats[0]);
-        else setTodayStats(null);
       });
     }
-  }, [isOpen, currentBar, todayDateStr]);
+  }, [currentBar, todayDateStr]);
 
   const todayValidatedSales = getTodaySales();
-
-  // 🔒 SERVEURS : Ne voir que les retours de LEURS ventes (même logique que getTodayTotal)
   const todaySaleIds = useMemo(() => new Set(todayValidatedSales.map(s => s.id)), [todayValidatedSales]);
+
   const todayReturns = returns.filter(r =>
     new Date(r.returnedAt).toDateString() === new Date().toDateString() &&
     (currentSession?.role !== 'serveur' || todaySaleIds.has(r.saleId))
   );
-  const todayReturnsCount = todayReturns.length;
-  const todayReturnsRefunded = todayReturns.filter(r => r.isRefunded && (r.status === 'approved' || r.status === 'restocked')).reduce((sum, r) => sum + r.refundAmount, 0);
 
-  // ✨ HYBRID DRY REVENUE (Hook unifié)
-  const { netRevenue: todayTotal } = useRevenueStats({ startDate: todayDateStr, endDate: todayDateStr, enabled: isOpen });
+  const { netRevenue: todayTotal } = useRevenueStats({ startDate: todayDateStr, endDate: todayDateStr, enabled: true });
 
   const pendingSales = useMemo(() => {
     const isManager = currentSession?.role === 'gerant' || currentSession?.role === 'promoteur';
-    const isServer = currentSession?.role === 'serveur';
-
-    return sales.filter(s =>
-      s.status === 'pending' &&
-      (isManager || (isServer && s.createdBy === currentSession.userId))
-    );
+    return sales.filter(s => s.status === 'pending' && (isManager || s.createdBy === currentSession?.userId));
   }, [sales, currentSession]);
 
   const lowStockProducts = getLowStockProducts();
-  const totalProducts = products.length;
-  const lowStockCount = lowStockProducts.length;
+  const totalItems = todayStats?.total_items_sold ?? todayValidatedSales.reduce((sum, sale) => sum + sale.items.reduce((s, i) => s + i.quantity, 0), 0);
 
-  const totalItems = todayStats
-    ? todayStats.total_items_sold
-    : todayValidatedSales.reduce((sum, sale) => sum + sale.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
+  const topProductsList = topProductsData.map(p => ({
+    name: p.product_volume ? `${p.product_name} (${p.product_volume})` : p.product_name,
+    qty: p.total_quantity
+  }));
 
-  const avgSaleValue = todayStats
-    ? (todayStats.validated_count > 0 ? todayStats.net_revenue / todayStats.validated_count : 0)
-    : (todayValidatedSales.length > 0 ? todayTotal / todayValidatedSales.length : 0);
+  const activeConsignments = consignments.filter(c => c.status === 'active' && (currentSession?.role !== 'serveur' || c.originalSeller === currentSession?.userId));
 
-  // ✨ Top products list (nouvelle version, simplifiée)
-  const topProductsList = useMemo(() =>
-    topProductsData.map(p => {
-      const displayName = p.product_volume ? `${p.product_name} (${p.product_volume})` : p.product_name;
-      return [displayName, p.total_quantity];
-    }),
-    [topProductsData]);
-
-  const activeConsignments = useMemo(() => {
-    const allActive = consignments.filter(c => c.status === 'active');
-    if (currentSession?.role === 'serveur') {
-      return allActive.filter(c => c.originalSeller === currentSession.userId);
-    }
-    return allActive;
-  }, [consignments, currentSession]);
-  const activeConsignmentsCount = activeConsignments.length;
-  const activeConsignmentsValue = activeConsignments.reduce((sum, c) => sum + c.totalAmount, 0);
-  const todayReturnsPending = todayReturns.filter(r => r.status === 'pending').length;
-
-  const handleValidateSale = (saleId: string) => { if (!currentSession) return; validateSale(saleId, currentSession.userId); };
-  const handleRejectSale = (saleId: string) => { if (!currentSession) return; rejectSale(saleId, currentSession.userId); };
-  const handleValidateAll = (salesToValidate: Sale[]) => {
-    if (!currentSession || salesToValidate.length === 0) return;
-    if (confirm(`Valider les ${salesToValidate.length} ventes sélectionnées ?`)) {
-      salesToValidate.forEach(sale => { validateSale(sale.id, currentSession.userId); });
+  const handleValidateSale = (id: string) => currentSession && validateSale(id, currentSession.userId);
+  const handleRejectSale = (id: string) => currentSession && rejectSale(id, currentSession.userId);
+  const handleValidateAll = (list: Sale[]) => {
+    if (currentSession && list.length && confirm(`Valider ${list.length} ventes ?`)) {
+      list.forEach(s => validateSale(s.id, currentSession.userId));
     }
   };
 
   const exportToWhatsApp = () => {
-    const date = new Date().toLocaleDateString('fr-FR');
-    const time = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-
-    let message = `*Rapport de caisse - ${date}*\n`;
-    message += `Heure: ${time}\n`;
-    message += `${currentSession?.role}: ${currentSession?.userName}\n\n`;
-
-    message += `*RESUME FINANCIER*\n`;
-    message += `- Total des ventes: *${formatPrice(todayTotal)}*\n`;
-    message += `- Nombre de ventes: ${todayValidatedSales.length}\n`;
-    message += `- Articles vendus: ${totalItems}\n`;
-    message += `- Panier moyen: ${formatPrice(avgSaleValue)}\n\n`;
-
-    if (topProductsList.length > 0) {
-      message += `*TOP PRODUITS*\n`;
-      topProductsList.forEach(([product, qty], index) => {
-        message += `${index + 1}. ${product}: ${qty} vendus\n`;
-      });
-      message += `\n`;
+    let msg = `*Rapport - ${new Date().toLocaleDateString('fr-FR')}*\n\n`;
+    msg += `Total: *${formatPrice(todayTotal)}*\nVentes: ${todayValidatedSales.length}\nArticles: ${totalItems}\n`;
+    if (topProductsList.length) {
+      msg += `\n*Top produits:*\n`;
+      topProductsList.slice(0, 3).forEach((p, i) => msg += `${i + 1}. ${p.name}: ${p.qty}\n`);
     }
-
-    if (lowStockProducts.length > 0) {
-      message += `*ALERTES STOCK*\n`;
-      lowStockProducts.slice(0, 5).forEach(product => {
-        message += `- ${product.name} (${product.volume}): ${product.stock} restants\n`;
-      });
-      message += `\n`;
-    }
-
-    message += `Envoye depuis BarTender Pro`;
-
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-    showSuccess('📱 Rapport exporté vers WhatsApp');
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    showSuccess('📱 Rapport exporté');
   };
 
   const closeCash = async () => {
-    if (!confirm('Confirmer la fermeture de caisse ? Cette action est définitive.')) return;
+    if (!confirm('Fermer la caisse ?')) return;
     setLoading('closeCash', true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setCashClosed(true);
-      showSuccess('✅ Caisse fermée avec succès');
-      setTimeout(() => { exportToWhatsApp(); }, 1000);
-    } catch {
-      showError('❌ Erreur lors de la fermeture');
-    } finally { setLoading('closeCash', false); }
+    await new Promise(r => setTimeout(r, 1000));
+    setCashClosed(true);
+    showSuccess('✅ Caisse fermée');
+    setLoading('closeCash', false);
+    exportToWhatsApp();
   };
 
-  if (!isOpen) return null;
+  if (!currentBar) return <div className="text-center py-20 text-gray-500">Sélectionnez un bar</div>;
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }} className="bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] md:max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
-            <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6 flex items-center justify-between flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <TrendingUp size={24} />
-                <div>
-                  <div className="flex items-center gap-3">
-                    <h2 className="text-lg sm:text-xl font-bold">
-                      <span className="hidden sm:inline">Informations du jour</span>
-                      <span className="sm:hidden">Infos du jour</span>
-                    </h2>
-                    <DataFreshnessIndicatorCompact
-                      viewName="daily_sales_summary"
-                      onRefreshComplete={async () => {
-                        if (currentBar) {
-                          const today = new Date();
-                          const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-                          const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
-                          const stats = await AnalyticsService.getDailySummary(currentBar.id, start, end, 'day');
-                          if (stats.length > 0) setTodayStats(stats[0]);
-                          showSuccess('✅ Données actualisées avec succès');
-                        }
-                      }}
-                    />
-                  </div>
-                  <p className="text-sm text-amber-100">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+    <div className="max-w-5xl mx-auto">
+      {/* Header */}
+      <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden">
+        <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
+          <div className="flex items-center gap-4">
+            <button onClick={() => navigate(-1)} className="p-2 hover:bg-white/20 rounded-lg"><ArrowLeft size={24} /></button>
+            <div className="flex items-center gap-3">
+              <TrendingUp size={24} />
+              <div>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-xl font-bold">Tableau de bord</h1>
+                  <DataFreshnessIndicatorCompact
+                    viewName="daily_sales_summary"
+                    onRefreshComplete={async () => {
+                      if (currentBar) {
+                        const stats = await AnalyticsService.getDailySummary(currentBar.id, todayDateStr, todayDateStr, 'day');
+                        if (stats.length > 0) setTodayStats(stats[0]);
+                        showSuccess('✅ Données actualisées avec succès');
+                      }
+                    }}
+                  />
                 </div>
-              </div>
-              <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
-                <X size={24} />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto bg-gradient-to-br from-amber-50 to-amber-50">
-
-              <div className="p-6 space-y-6">
-                {pendingSales.length > 0 && <PendingSalesSection sales={pendingSales} onValidate={handleValidateSale} onReject={handleRejectSale} onValidateAll={handleValidateAll} users={users} />}
-
-                <div>
-                  <h3 className="font-semibold text-gray-800 text-lg mb-4">Point du jour</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-                    <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-xl p-3 sm:p-4 border border-green-200"><div className="flex items-center justify-between mb-2"><DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" /><span className="text-green-600 text-xs sm:text-sm font-medium">Total</span></div><AnimatedCounter value={todayTotal} className="text-xl sm:text-2xl font-bold text-gray-800" /><p className="text-xs text-gray-600 mt-1">{formatPrice(todayTotal)}</p></motion.div>
-                    <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-blue-100 to-cyan-100 rounded-xl p-3 sm:p-4 border border-blue-200"><div className="flex items-center justify-between mb-2"><ShoppingCart className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" /><span className="text-blue-600 text-xs sm:text-sm font-medium">Ventes</span></div><AnimatedCounter value={todayValidatedSales.length} className="text-xl sm:text-2xl font-bold text-gray-800" /><p className="text-xs text-amber-600 mt-1 font-semibold">{pendingSales.length > 0 ? `${pendingSales.length} en attente` : ''}</p></motion.div>
-                    <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-purple-100 to-violet-100 rounded-xl p-3 sm:p-4 border border-purple-200"><div className="flex items-center justify-between mb-2"><Package className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" /><span className="text-purple-600 text-xs sm:text-sm font-medium">Articles</span></div><AnimatedCounter value={totalItems} className="text-xl sm:text-2xl font-bold text-gray-800" /><p className="text-xs text-gray-600 mt-1">vendus aujourd'hui</p></motion.div>
-                    <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-orange-100 to-amber-100 rounded-xl p-3 sm:p-4 border border-orange-200"><div className="flex items-center justify-between mb-2"><AlertTriangle className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" /><span className="text-orange-600 text-xs sm:text-sm font-medium">Alertes</span></div><div className="text-xl sm:text-2xl font-bold text-gray-800">{lowStockCount}</div><p className="text-xs text-gray-600 mt-1">sur {totalProducts} produits</p></motion.div>
-                    <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-red-100 to-pink-100 rounded-xl p-3 sm:p-4 border border-red-200"><div className="flex items-center justify-between mb-2"><RotateCcw className="w-6 h-6 sm:w-8 sm:h-8 text-red-600" /><span className="text-red-600 text-xs sm:text-sm font-medium">Retours</span></div><AnimatedCounter value={todayReturnsCount} className="text-xl sm:text-2xl font-bold text-gray-800" /><div className="flex items-center justify-between mt-1"><p className="text-xs text-gray-600">{todayReturnsPending > 0 && `${todayReturnsPending} en attente`}</p>{todayReturnsRefunded > 0 && <p className="text-xs text-red-600 font-medium">-{formatPrice(todayReturnsRefunded).replace(/\s/g, '')}</p>}</div></motion.div>
-                    <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-indigo-100 to-purple-100 rounded-xl p-3 sm:p-4 border border-indigo-200"><div className="flex items-center justify-between mb-2"><Archive className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-600" /><span className="text-indigo-600 text-xs sm:text-sm font-medium">Consignations</span></div><AnimatedCounter value={activeConsignmentsCount} className="text-xl sm:text-2xl font-bold text-gray-800" /><div className="flex items-center justify-between mt-1"><p className="text-xs text-gray-600">{activeConsignmentsCount > 0 ? `actives` : `aucune`}</p>{activeConsignmentsValue > 0 && <p className="text-xs text-indigo-600 font-medium">{formatPrice(activeConsignmentsValue).replace(/\s/g, '')}</p>}</div></motion.div>
-                  </div>
-                </div>
-
-                <div className="px-6 mb-6">
-                  <button onClick={() => setShowDetails(!showDetails)} className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition-colors">
-                    {showDetails ? <EyeOff size={16} /> : <Eye size={16} />}
-                    <span className="font-medium">{showDetails ? 'Masquer' : 'Voir'} les détails</span>
-                  </button>
-                  <AnimatePresence>{showDetails && <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-6"><div className="bg-white rounded-xl p-4 border border-amber-100"><h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">🏆 Top produits</h3><div className="space-y-2">{topProductsList.map(([product, qty], index) => <div key={`top-product-${index}`} className="flex items-center justify-between"><span className="text-sm text-gray-700">{index + 1}. {product}</span><span className="text-sm font-medium text-amber-600">{qty} vendus</span></div>)}{topProductsList.length === 0 && <p className="text-sm text-gray-500">Aucune vente aujourd'hui</p>}</div></div><div className="bg-white rounded-xl p-4 border border-red-100"><h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">⚠️ Alertes stock</h3><div className="space-y-2">{lowStockProducts.slice(0, 5).map(product => <div key={product.id} className="flex items-center justify-between"><span className="text-sm text-gray-700">{product.name} ({product.volume})</span><span className="text-sm font-medium text-red-600">{product.stock} restants</span></div>)}{lowStockProducts.length === 0 && <p className="text-sm text-green-600">✅ Tous les stocks sont OK</p>}</div></div></motion.div>}</AnimatePresence>
-                </div>
-
-                <div className="p-4 sm:p-6 border-t border-amber-200 bg-gradient-to-r from-amber-50 to-amber-50 sticky bottom-0">
-                  <div className="flex gap-2 sm:gap-3 justify-center">
-                    <EnhancedButton
-                      onClick={exportToWhatsApp}
-                      className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-6 sm:py-3 bg-green-500 text-white rounded-xl font-medium hover:bg-green-600 shadow-lg text-xs sm:text-base"
-                    >
-                      <Share size={14} className="sm:w-[18px] sm:h-[18px]" />
-                      <span className="hidden sm:inline">Exporter </span>
-                      <span>WhatsApp</span>
-                    </EnhancedButton>
-                    {!cashClosed ? (
-                      <EnhancedButton
-                        onClick={closeCash}
-                        loading={isLoading('closeCash')}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-6 sm:py-3 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 shadow-lg text-xs sm:text-base"
-                      >
-                        <Lock size={14} className="sm:w-[18px] sm:h-[18px]" />
-                        <span className="hidden sm:inline">Fermer </span>
-                        <span>caisse</span>
-                      </EnhancedButton>
-                    ) : (
-                      <div className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-6 sm:py-3 bg-gray-500 text-white rounded-xl font-medium opacity-75 text-xs sm:text-base">
-                        <Lock size={14} className="sm:w-[18px] sm:h-[18px]" />
-                        <span className="hidden sm:inline">Caisse </span>
-                        <span>fermée</span>
-                      </div>
-                    )}
-                  </div>
-                  {cashClosed && <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-4 bg-green-100 border border-green-200 rounded-lg p-3 text-center"><p className="text-green-700 font-medium">✅ Caisse fermée - Rapport automatiquement exporté</p></motion.div>}
-                </div>
+                <p className="text-sm text-amber-100">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
               </div>
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
+      </div>
+
+      {/* Pending Sales */}
+      {pendingSales.length > 0 && (
+        <div className="mb-6">
+          <PendingSalesSection sales={pendingSales} onValidate={handleValidateSale} onReject={handleRejectSale} onValidateAll={handleValidateAll} users={users} />
+        </div>
       )}
-    </AnimatePresence>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+        <div className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-xl p-4 border border-green-200">
+          <div className="flex items-center justify-between mb-2"><DollarSign className="w-8 h-8 text-green-600" /><span className="text-green-600 text-sm">Total</span></div>
+          <AnimatedCounter value={todayTotal} className="text-2xl font-bold text-gray-800" />
+          <p className="text-xs text-gray-600">{formatPrice(todayTotal)}</p>
+        </div>
+        <div className="bg-gradient-to-br from-blue-100 to-cyan-100 rounded-xl p-4 border border-blue-200">
+          <div className="flex items-center justify-between mb-2"><ShoppingCart className="w-8 h-8 text-blue-600" /><span className="text-blue-600 text-sm">Ventes</span></div>
+          <AnimatedCounter value={todayValidatedSales.length} className="text-2xl font-bold text-gray-800" />
+          {pendingSales.length > 0 && <p className="text-xs text-amber-600">{pendingSales.length} en attente</p>}
+        </div>
+        <div className="bg-gradient-to-br from-purple-100 to-violet-100 rounded-xl p-4 border border-purple-200">
+          <div className="flex items-center justify-between mb-2"><Package className="w-8 h-8 text-purple-600" /><span className="text-purple-600 text-sm">Articles</span></div>
+          <AnimatedCounter value={totalItems} className="text-2xl font-bold text-gray-800" />
+        </div>
+        <div className="bg-gradient-to-br from-orange-100 to-amber-100 rounded-xl p-4 border border-orange-200">
+          <div className="flex items-center justify-between mb-2"><AlertTriangle className="w-8 h-8 text-orange-600" /><span className="text-orange-600 text-sm">Alertes</span></div>
+          <div className="text-2xl font-bold text-gray-800">{lowStockProducts.length}</div>
+          <p className="text-xs text-gray-600">sur {products.length} produits</p>
+        </div>
+        <div className="bg-gradient-to-br from-red-100 to-pink-100 rounded-xl p-4 border border-red-200">
+          <div className="flex items-center justify-between mb-2"><RotateCcw className="w-8 h-8 text-red-600" /><span className="text-red-600 text-sm">Retours</span></div>
+          <div className="text-2xl font-bold text-gray-800">{todayReturns.length}</div>
+        </div>
+        <div className="bg-gradient-to-br from-indigo-100 to-purple-100 rounded-xl p-4 border border-indigo-200">
+          <div className="flex items-center justify-between mb-2"><Archive className="w-8 h-8 text-indigo-600" /><span className="text-indigo-600 text-sm">Consignations</span></div>
+          <div className="text-2xl font-bold text-gray-800">{activeConsignments.length}</div>
+        </div>
+      </div>
+
+      {/* Details Toggle */}
+      <div className="mb-6">
+        <button onClick={() => setShowDetails(!showDetails)} className="flex items-center gap-2 text-gray-700 hover:text-gray-900">
+          {showDetails ? <EyeOff size={16} /> : <Eye size={16} />}
+          <span className="font-medium">{showDetails ? 'Masquer' : 'Voir'} les détails</span>
+        </button>
+        <AnimatePresence>
+          {showDetails && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white rounded-xl p-4 border border-amber-100">
+                <h3 className="font-semibold text-gray-800 mb-3">🏆 Top produits</h3>
+                {topProductsList.length > 0 ? topProductsList.map((p, i) => (
+                  <div key={i} className="flex justify-between text-sm py-1">
+                    <span>{i + 1}. {p.name}</span>
+                    <span className="text-amber-600 font-medium">{p.qty}</span>
+                  </div>
+                )) : <p className="text-sm text-gray-500">Aucune vente</p>}
+              </div>
+              <div className="bg-white rounded-xl p-4 border border-red-100">
+                <h3 className="font-semibold text-gray-800 mb-3">⚠️ Alertes stock</h3>
+                {lowStockProducts.length > 0 ? lowStockProducts.slice(0, 5).map(p => (
+                  <div key={p.id} className="flex justify-between text-sm py-1">
+                    <span>{p.name}</span>
+                    <span className="text-red-600 font-medium">{p.stock}</span>
+                  </div>
+                )) : <p className="text-sm text-green-600">✅ Stocks OK</p>}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Actions */}
+      <div className="bg-white rounded-xl p-4 border border-amber-100 flex gap-3 justify-center">
+        <EnhancedButton onClick={exportToWhatsApp} className="flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl">
+          <Share size={18} /> WhatsApp
+        </EnhancedButton>
+        {!cashClosed ? (
+          <EnhancedButton onClick={closeCash} loading={isLoading('closeCash')} className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-xl">
+            <Lock size={18} /> Fermer caisse
+          </EnhancedButton>
+        ) : (
+          <div className="flex items-center gap-2 px-6 py-3 bg-gray-400 text-white rounded-xl">
+            <Lock size={18} /> Caisse fermée
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   AlertTriangle,
   Bell,
@@ -11,9 +11,11 @@ import {
   Check,
   Download,
   BarChart3,
-  DollarSign
+  DollarSign,
+  ArrowLeft
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
@@ -39,14 +41,10 @@ interface StockAlert {
   suggestedOrder?: number;
 }
 
-interface ForecastingSystemProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
 type ForecastView = 'stock' | 'sales' | 'advanced';
 
-export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
+export function ForecastingSystem() {
+  const navigate = useNavigate();
   const { formatPrice } = useCurrencyFormatter();
   const { hasPermission } = useAuth();
   const { isMobile } = useViewport();
@@ -127,10 +125,10 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
 
   // Charger au montage et quand le bar change OU quand les produits changent
   useEffect(() => {
-    if (isOpen && currentBar) {
+    if (currentBar) {
       loadStats();
     }
-  }, [isOpen, currentBar, products]); // ✅ Ajout de products pour recharger après approvisionnement
+  }, [currentBar, products]); // Removed isOpen - now a pure page component
 
   // Recalculer les suggestions quand coverageDays change (sans recharger SQL)
   const orderSuggestions = useMemo(() => {
@@ -209,135 +207,114 @@ export function ForecastingSystem({ isOpen, onClose }: ForecastingSystemProps) {
     XLSX.writeFile(wb, `bon_commande_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  if (!isOpen) return null;
+  // Removed: if (!isOpen) return null; - Now a pure page component
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 ${isMobile ? '' : 'p-4'}`}
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className={`bg-gradient-to-br from-amber-50 to-amber-50 w-full shadow-2xl ${isMobile
-              ? 'h-full'
-              : 'rounded-2xl max-w-6xl max-h-[85vh] md:max-h-[90vh] overflow-hidden'
+    <div className="bg-gradient-to-br from-amber-50 to-amber-50 w-full shadow-xl rounded-2xl overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <button onClick={() => navigate(-1)} className="p-1 hover:bg-white/20 rounded-lg transition-colors">
+              <ArrowLeft size={isMobile ? 20 : 24} />
+            </button>
+            <TrendingUp size={isMobile ? 20 : 24} />
+            <div className="flex items-center gap-2">
+              <h2 className={`font-bold ${isMobile ? 'text-lg' : 'text-xl'}`}>
+                📈 Prévisions
+              </h2>
+              <DataFreshnessIndicatorCompact
+                viewName="product_sales_stats"
+                onRefreshComplete={async () => {
+                  await loadStats();
+                  showSuccess('✅ Données actualisées avec succès');
+                }}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs Navigation */}
+        <div className="flex gap-2 bg-white/10 backdrop-blur p-1 rounded-lg">
+          <button
+            onClick={() => setActiveTab('stock')}
+            className={`flex-1 px-3 py-2 rounded-md transition-colors flex items-center justify-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} font-medium ${activeTab === 'stock'
+              ? 'bg-white text-amber-600'
+              : 'text-white hover:bg-white/20'
               }`}
           >
-            {/* Header */}
-            <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <TrendingUp size={isMobile ? 20 : 24} />
-                  <div className="flex items-center gap-2">
-                    <h2 className={`font-bold ${isMobile ? 'text-lg' : 'text-xl'}`}>
-                      📈 Prévisions
-                    </h2>
-                    <DataFreshnessIndicatorCompact
-                      viewName="product_sales_stats"
-                      onRefreshComplete={async () => {
-                        await loadStats();
-                        showSuccess('✅ Données actualisées avec succès');
-                      }}
-                    />
-                  </div>
+            <AlertTriangle size={16} />
+            Alertes Stock
+          </button>
+          <button
+            onClick={() => setActiveTab('sales')}
+            className={`flex-1 px-3 py-2 rounded-md transition-colors flex items-center justify-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} font-medium ${activeTab === 'sales'
+              ? 'bg-white text-amber-600'
+              : 'text-white hover:bg-white/20'
+              }`}
+          >
+            <BarChart3 size={16} />
+            Analyse Ventes
+          </button>
+          <button
+            onClick={() => setActiveTab('advanced')}
+            className={`flex-1 px-3 py-2 rounded-md transition-colors flex items-center justify-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} font-medium ${activeTab === 'advanced'
+              ? 'bg-white text-amber-600'
+              : 'text-white hover:bg-white/20'
+              }`}
+          >
+            <ShoppingCart size={16} />
+            Suggestions
+          </button>
+        </div>
+      </div>
+
+      {/* Content - Same as modal */}
+      <div className="p-4 max-h-[calc(100vh-200px)] overflow-y-auto">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
+          </div>
+        ) : (
+          <>
+            {activeTab === 'stock' && (
+              <StockForecastView
+                isMobile={isMobile}
+                alerts={alerts}
+                filteredAlerts={filteredAlerts}
+                filterStatus={filterStatus}
+                setFilterStatus={setFilterStatus}
+                showOrderSuggestions={showOrderSuggestions}
+                setShowOrderSuggestions={setShowOrderSuggestions}
+                orderSuggestions={orderSuggestions}
+                stats={stats}
+                formatPrice={formatPrice}
+                markAsRead={markAsRead}
+                markAsResolved={markAsResolved}
+                deleteAlert={deleteAlert}
+                setAlerts={setAlerts}
+                exportOrderList={exportOrderList}
+                hasPermission={hasPermission}
+              />
+            )}
+
+            {activeTab === 'sales' && (
+              <SalesForecastView />
+            )}
+
+            {activeTab === 'advanced' && (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center text-gray-500 py-12">
+                  <BarChart3 size={64} className="mx-auto mb-4 text-gray-300" />
+                  <h3 className="text-lg font-medium mb-2">Analyses Avancées</h3>
+                  <p className="text-sm">🚧 Bientôt disponible</p>
                 </div>
-                <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg">
-                  <X size={24} />
-                </button>
               </div>
-
-              {/* Tabs Navigation */}
-              <div className="flex gap-2 bg-white/10 backdrop-blur p-1 rounded-lg">
-                <button
-                  onClick={() => setActiveTab('stock')}
-                  className={`flex-1 px-3 py-2 rounded-md transition-colors flex items-center justify-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} font-medium ${activeTab === 'stock'
-                    ? 'bg-white text-amber-600'
-                    : 'text-white hover:bg-white/10'
-                    }`}
-                >
-                  <Package size={16} />
-                  {!isMobile && <span>Stock</span>}
-                </button>
-                <button
-                  onClick={() => setActiveTab('sales')}
-                  className={`flex-1 px-3 py-2 rounded-md transition-colors flex items-center justify-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} font-medium ${activeTab === 'sales'
-                    ? 'bg-white text-amber-600'
-                    : 'text-white hover:bg-white/10'
-                    }`}
-                >
-                  <DollarSign size={16} />
-                  {!isMobile && <span>Ventes</span>}
-                </button>
-                <button
-                  onClick={() => setActiveTab('advanced')}
-                  disabled
-                  className={`flex-1 px-3 py-2 rounded-md transition-colors flex items-center justify-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} font-medium opacity-50 cursor-not-allowed text-white`}
-                >
-                  <BarChart3 size={16} />
-                  {!isMobile && <span>Analyses</span>}
-                </button>
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className={`${isMobile ? 'h-[calc(100vh-230px)]' : 'h-[calc(85vh-230px)] md:h-[calc(90vh-230px)]'} overflow-y-auto`}>
-              {isLoading ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
-                </div>
-              ) : (
-                <>
-                  {activeTab === 'stock' && (
-                    <StockForecastView
-                      isMobile={isMobile}
-                      alerts={alerts}
-                      filteredAlerts={filteredAlerts}
-                      filterStatus={filterStatus}
-                      setFilterStatus={setFilterStatus}
-                      showOrderSuggestions={showOrderSuggestions}
-                      setShowOrderSuggestions={setShowOrderSuggestions}
-                      orderSuggestions={orderSuggestions}
-                      stats={stats}
-                      formatPrice={formatPrice}
-                      markAsRead={markAsRead}
-                      markAsResolved={markAsResolved}
-                      deleteAlert={deleteAlert}
-                      setAlerts={setAlerts}
-                      exportOrderList={exportOrderList}
-                      hasPermission={hasPermission}
-                    />
-                  )}
-
-                  {activeTab === 'sales' && (
-                    <SalesForecastView
-                      isMobile={isMobile}
-                      formatPrice={formatPrice}
-                    />
-                  )}
-
-                  {activeTab === 'advanced' && (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center text-gray-500 py-12">
-                        <BarChart3 size={64} className="mx-auto mb-4 text-gray-300" />
-                        <h3 className="text-lg font-medium mb-2">Analyses Avancées</h3>
-                        <p className="text-sm">🚧 Bientôt disponible</p>
-                        <p className="text-xs mt-2 text-gray-400">Machine Learning & Optimisations</p>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+            )}
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -613,7 +590,7 @@ function StockForecastView({
 }
 
 // Sales Forecast View (Placeholder)
-function SalesForecastView({ isMobile, formatPrice }: any) {
+function SalesForecastView() {
   return (
     <div className="flex items-center justify-center min-h-full p-6">
       <div className="text-center max-w-2xl">
