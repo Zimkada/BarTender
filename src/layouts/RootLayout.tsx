@@ -13,7 +13,7 @@ import { LoadingFallback } from '../components/LoadingFallback';
 import { ProductModal } from '../components/ProductModal';
 import { CategoryModal } from '../components/CategoryModal';
 import { QuickSaleFlow } from '../components/QuickSaleFlow';
-import { UserManagement } from '../components/UserManagement';
+// import { UserManagement } from '../components/UserManagement'; // Removed
 import { SupplyModal } from '../components/SupplyModal';
 import { Category } from '../types';
 
@@ -42,7 +42,7 @@ function RootLayoutContent() {
         onShowQuickSale={() => openModal('QUICK_SALE')}
         onShowProductModal={() => openModal('PRODUCT')}
         onShowCategoryModal={() => openModal('CATEGORY')}
-        onShowUserManagement={() => openModal('USER_MANAGEMENT')}
+        // onShowUserManagement removed
         onShowSupplyModal={() => openModal('SUPPLY')}
         onShowBarStatsModal={(bar) => openModal('BAR_STATS', { bar })}
         onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)} // NEW
@@ -105,17 +105,12 @@ function RootLayoutContent() {
             onClose={closeModal}
           />
         )}
-        {modalState.type === 'USER_MANAGEMENT' && (
-          <UserManagement
-            isOpen={true}
-            onClose={closeModal}
-          />
-        )}
+        {/* UserManagement modal removed - migrated to page */}
         {modalState.type === 'SUPPLY' && (
           <SupplyModal
             isOpen={true}
             onClose={closeModal}
-            products={[]}
+            products={products}
             onSave={() => { /* Placeholder */ }}
           />
         )}

@@ -17,7 +17,7 @@ const ConsignmentPage = lazy(() => import('../pages/ConsignmentPage'));
 const AdminNotificationsPage = lazy(() => import('../pages/AdminNotificationsPage'));
 const AnalyticsPage = lazy(() => import('../pages/AnalyticsPage'));
 const TeamPage = lazy(() => import('../pages/TeamManagementPage'));
-const PromotionsPage = lazy(() => import('../components/promotions/PromotionsManager'));
+const PromotionsPage = lazy(() => import('../pages/PromotionsPage'));
 
 // === Composants refactorisés en pages (export default) ===
 const InventoryPage = lazy(() => import('../pages/InventoryPage'));
@@ -25,21 +25,20 @@ const AccountingPage = lazy(() => import('../pages/AccountingPage'));
 const SettingsPage = lazy(() => import('../pages/SettingsPage'));
 
 // === Composants avec named exports ===
-const SalesHistoryPage = lazy(() => import('../components/SalesHistory').then(m => ({ default: m.EnhancedSalesHistory })));
+const SalesHistoryPage = lazy(() => import('../pages/SalesHistoryPage'));
 
 // === Auth Components (Default Exports) ===
 const LoginScreen = lazy(() => import('../components/LoginScreen'));
 const ForgotPasswordScreen = lazy(() => import('../components/ForgotPasswordScreen'));
 const ResetPasswordScreen = lazy(() => import('../components/ResetPasswordScreen'));
 
-// === Admin Components (Named Exports) ===
-const SuperAdminDashboardPage = lazy(() => import('../components/SuperAdminDashboard').then(m => ({ default: m.SuperAdminDashboard })));
-const BarsManagementPage = lazy(() => import('../components/BarsManagementPanel').then(m => ({ default: m.BarsManagementPanel })));
-const BarStatsModalPage = lazy(() => import('../components/BarStatsModal').then(m => ({ default: m.BarStatsModal })));
-const UsersManagementPage = lazy(() => import('../components/UsersManagementPanel').then(m => ({ default: m.UsersManagementPanel })));
-const GlobalCatalogPage = lazy(() => import('../components/GlobalCatalogPanel').then(m => ({ default: m.GlobalCatalogPanel })));
-const AuditLogsPage = lazy(() => import('../components/AuditLogsPanel').then(m => ({ default: m.AuditLogsPanel })));
-
+// === Admin Components (Default Exports) ===
+const SuperAdminDashboardPage = lazy(() => import('../components/SuperAdminDashboard'));
+const BarsManagementPage = lazy(() => import('../components/BarsManagementPanel'));
+const BarStatsModalPage = lazy(() => import('../components/BarStatsModal'));
+const UsersManagementPage = lazy(() => import('../components/UsersManagementPanel'));
+const GlobalCatalogPage = lazy(() => import('../components/GlobalCatalogPanel'));
+const AuditLogsPage = lazy(() => import('../components/AuditLogsPanel'));
 export const router = createBrowserRouter([
   {
     path: '/',
