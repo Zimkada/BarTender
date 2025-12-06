@@ -8,29 +8,31 @@ import { HomePage } from '../pages/HomePage';
 import { LoadingFallback } from '../components/LoadingFallback';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 
-// --- Page Components (Lazy Loaded) ---
-// Pages créées avec export default
+// === Pages (export default) ===
 const DashboardPage = lazy(() => import('../pages/DashboardPage'));
 const SaleDetailsPage = lazy(() => import('../pages/SaleDetailsPage'));
 const ForecastingPage = lazy(() => import('../pages/ForecastingPage'));
 const ReturnsPage = lazy(() => import('../pages/ReturnsPage'));
 const ConsignmentPage = lazy(() => import('../pages/ConsignmentPage'));
 const AdminNotificationsPage = lazy(() => import('../pages/AdminNotificationsPage'));
+const AnalyticsPage = lazy(() => import('../pages/AnalyticsPage'));
+const TeamPage = lazy(() => import('../pages/TeamPage'));
+const PromotionsPage = lazy(() => import('../components/promotions/PromotionsManager'));
 
-// Components utilisés comme pages (avec named exports)
+// === Composants refactorisés en pages (export default) ===
+const InventoryPage = lazy(() => import('../components/Inventory'));
+const AccountingPage = lazy(() => import('../components/Accounting'));
+const SettingsPage = lazy(() => import('../components/Settings'));
+
+// === Composants avec named exports ===
 const SalesHistoryPage = lazy(() => import('../components/SalesHistory').then(m => ({ default: m.EnhancedSalesHistory })));
-const PromotionsPage = lazy(() => import('../components/promotions/PromotionsManager').then(m => ({ default: m.PromotionsManager }))); // NEW
-const InventoryPage = lazy(() => import('../components/Inventory').then(m => ({ default: m.Inventory })));
-const AnalyticsPage = lazy(() => import('../components/AnalyticsCharts'));
-const AccountingPage = lazy(() => import('../components/Accounting').then(m => ({ default: m.Accounting })));
-const SettingsPage = lazy(() => import('../components/Settings').then(m => ({ default: m.Settings })));
 
-// --- Auth Components ---
+// === Auth Components (Named Exports) ===
 const LoginScreen = lazy(() => import('../components/LoginScreen').then(m => ({ default: m.LoginScreen })));
 const ForgotPasswordScreen = lazy(() => import('../components/ForgotPasswordScreen').then(m => ({ default: m.ForgotPasswordScreen })));
 const ResetPasswordScreen = lazy(() => import('../components/ResetPasswordScreen').then(m => ({ default: m.ResetPasswordScreen })));
 
-// --- Admin Components ---
+// === Admin Components (Named Exports) ===
 const SuperAdminDashboardPage = lazy(() => import('../components/SuperAdminDashboard').then(m => ({ default: m.SuperAdminDashboard })));
 const BarsManagementPage = lazy(() => import('../components/BarsManagementPanel').then(m => ({ default: m.BarsManagementPanel })));
 const BarStatsModalPage = lazy(() => import('../components/BarStatsModal').then(m => ({ default: m.BarStatsModal })));
@@ -44,14 +46,8 @@ export const router = createBrowserRouter([
     element: <RootLayout />,
     errorElement: <ErrorPage />,
     children: [
-      {
-        index: true,
-        element: <HomePage />,
-      },
-      {
-        path: 'dashboard',
-        element: <Suspense fallback={<LoadingFallback />}><DashboardPage /></Suspense>,
-      },
+      { index: true, element: <HomePage /> },
+      { path: 'dashboard', element: <Suspense fallback={<LoadingFallback />}><DashboardPage /></Suspense> },
       {
         path: 'sales',
         children: [
@@ -66,10 +62,7 @@ export const router = createBrowserRouter([
           { index: true, element: <Suspense fallback={<LoadingFallback />}><InventoryPage /></Suspense> },
         ],
       },
-      {
-        path: 'analytics',
-        element: <Suspense fallback={<LoadingFallback />}><AnalyticsPage /></Suspense>,
-      },
+      { path: 'analytics', element: <Suspense fallback={<LoadingFallback />}><AnalyticsPage /></Suspense> },
       {
         path: 'accounting',
         element: <ProtectedRoute permission="canViewAccounting" />,
@@ -77,37 +70,14 @@ export const router = createBrowserRouter([
           { index: true, element: <Suspense fallback={<LoadingFallback />}><AccountingPage /></Suspense> },
         ],
       },
-      {
-        path: 'settings',
-        element: <Suspense fallback={<LoadingFallback />}><SettingsPage /></Suspense>,
-      },
-      {
-        path: 'forecasting',
-        element: <Suspense fallback={<LoadingFallback />}><ForecastingPage /></Suspense>,
-      },
-      {
-        path: 'returns',
-        element: <Suspense fallback={<LoadingFallback />}><ReturnsPage /></Suspense>,
-      },
-      {
-        path: 'consignments',
-        element: <Suspense fallback={<LoadingFallback />}><ConsignmentPage /></Suspense>,
-      },
-      { // NEW TEAM MANAGEMENT ROUTE
-        path: 'team',
-        element: <ProtectedRoute permission="canManageUsers" />,
-        children: [
-          { index: true, element: <Suspense fallback={<LoadingFallback />}><UsersManagementPage /></Suspense> },
-        ]
-      },
-      { // NEW PROMOTIONS ROUTE
-        path: 'promotions',
-        element: <ProtectedRoute permission="canManagePromotions" />,
-        children: [
-          { index: true, element: <Suspense fallback={<LoadingFallback />}><PromotionsPage /></Suspense> },
-        ]
-      },
-      // Routes Super Admin
+      { path: 'settings', element: <Suspense fallback={<LoadingFallback />}><SettingsPage /></Suspense> },
+      { path: 'forecasting', element: <Suspense fallback={<LoadingFallback />}><ForecastingPage /></Suspense> },
+      { path: 'returns', element: <Suspense fallback={<LoadingFallback />}><ReturnsPage /></Suspense> },
+      { path: 'consignments', element: <Suspense fallback={<LoadingFallback />}><ConsignmentPage /></Suspense> },
+      { path: 'team', element: <Suspense fallback={<LoadingFallback />}><TeamPage /></Suspense> },
+      { path: 'promotions', element: <Suspense fallback={<LoadingFallback />}><PromotionsPage /></Suspense> },
+      
+      // Routes Admin
       {
         path: 'admin',
         element: <ProtectedRoute permission="canAccessAdminDashboard" />,
@@ -123,7 +93,7 @@ export const router = createBrowserRouter([
       },
     ],
   },
-  // Routes d'authentification
+  // Routes Auth
   {
     path: '/auth',
     element: <AuthLayout />,
