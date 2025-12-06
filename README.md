@@ -60,7 +60,10 @@
 - ✅ `ForecastingSystem` - Utilise `product_sales_stats`
 - ✅ `AccountingOverview` - Utilise `daily_sales_summary`
 - ✅ `DailyDashboard` - Utilise `daily_sales_summary`
-- ✅ `SalesHistory` - Utilise `top_products_by_period`
+- ✅ `SalesHistory` - Utilise `top_products_by_period` + **Refactoring complet**
+  - Extraction de 2 hooks personnalisés (`useSalesFilters`, `useSalesStats`)
+  - Décomposition en 3 vues (`SalesListView`, `SalesCardsView`, `AnalyticsView`)
+  - Réduction de ~1900 → ~820 lignes (-57%)
 - ✅ `BarStatsModal` - Utilise `bar_stats_multi_period`
 
 #### Fonctionnalités de Monitoring
@@ -242,5 +245,5 @@ Développé avec ❤️ pour la gestion moderne de bars
 
 ---
 
-**Version actuelle : 2.0** (avec optimisations SQL)  
-**Dernière mise à jour : Novembre 2025**
+**Version actuelle : 2.1** (avec optimisations SQL + refactoring SalesHistory)  
+**Dernière mise à jour : Décembre 2025**

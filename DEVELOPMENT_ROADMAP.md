@@ -1,8 +1,8 @@
 # 🗺️ BarTender Pro - Feuille de Route Développement
 
-**Dernière mise à jour** : 26 Novembre 2025  
-**Version actuelle** : 2.0 (Optimisations SQL)  
-**Statut** : En production avec optimisations majeures
+**Dernière mise à jour** : 6 Décembre 2025  
+**Version actuelle** : 2.1 (Optimisations SQL + Refactoring SalesHistory)  
+**Statut** : En production avec optimisations majeures + architecture modulaire
 
 ---
 
@@ -49,7 +49,16 @@ React Frontend → Supabase Client → PostgreSQL (Cloud)
 - ✅ `ForecastingSystem` - Utilise `product_sales_stats`
 - ✅ `AccountingOverview` - Utilise `daily_sales_summary` + indicateur UI
 - ✅ `DailyDashboard` - Utilise `daily_sales_summary`
-- ✅ `SalesHistory` - Utilise `top_products_by_period`
+- ✅ `SalesHistory` - Utilise `top_products_by_period` + **Refactoring Complet (Déc 2025)**
+  - ✅ Extraction de 2 hooks personnalisés
+    - `useSalesFilters` (~140 lignes) - Filtrage ventes/consignations
+    - `useSalesStats` (~135 lignes) - Statistiques et KPIs
+  - ✅ Décomposition en 3 vues modulaires
+    - `SalesListView` - Vue tableau desktop
+    - `SalesCardsView` - Vue cartes mobile
+    - `AnalyticsView` - Vue analytics (déjà existante)
+  - ✅ Réduction de ~1900 → ~820 lignes (-57%)
+  - ✅ Architecture modulaire et testable
 - ✅ `BarStatsModal` - Utilise `bar_stats_multi_period`
 
 #### Hooks Personnalisés Créés
