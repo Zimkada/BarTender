@@ -20,11 +20,13 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          // Séparer les grosses dépendances
           'vendor-react': ['react', 'react-dom'],
           'vendor-motion': ['framer-motion'],
           'vendor-charts': ['recharts'],
           'vendor-xlsx': ['xlsx'],
+          'vendor-supabase': ['@supabase/supabase-js'], // NEW
+          'vendor-react-query': ['@tanstack/react-query'], // NEW
+          'vendor-date-fns': ['date-fns'], // NEW
         }
       }
     }

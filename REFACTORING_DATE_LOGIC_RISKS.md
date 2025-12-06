@@ -14,7 +14,20 @@
 ### 🟠 Risques ÉLEVÉS
 
 #### 1. Différence de Comportement (Probabilité: 30%, Impact: Élevé)
-**Problème**: Les calculs de dates peuvent avoir des subtilités différentes entre les implémentations actuelles
+**Problème**: La correction du composant suivant qui présente les mêmes types d'incohérences :
+  BarsManagementPanel.tsx.
+
+  Pour rappel, le problème se situe dans la fonction getBarTodayRevenue qui calcule le CA du jour en lisant les données
+  depuis le localStorage et en utilisant les anciennes fonctions de date.
+
+  Je vais la remplacer par une version moderne qui utilise les données globales de l'application et vos nouveaux
+  helpers.
+
+  Correction de BarsManagementPanel.tsx
+
+  L'opération se fera en deux temps :
+   1. Importer useAppContext pour accéder aux ventes et retours globaux.
+   2. Remplacer l'ancienne fonction getBarTodayRevenue.
 
 **Exemple concret**:
 ```typescript

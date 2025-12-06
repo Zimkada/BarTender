@@ -201,10 +201,10 @@ export class SalesService {
 
       return (data || []).map((sale: any) => ({
         ...sale,
-        items: (sale.items as unknown) as SaleItem[],
+        items: sale.items || [], // Ensure items is always an array
         seller_name: sale.seller?.name || 'Inconnu',
         validator_name: sale.validator?.name || null,
-        items_count: ((sale.items as unknown) as any[]).length,
+        items_count: (sale.items || []).length, // Also guard here
       }));
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
@@ -232,9 +232,10 @@ export class SalesService {
 
       return {
         ...data,
+        items: data.items || [], // Ensure items is always an array
         seller_name: (data.seller as any)?.name || 'Inconnu',
         validator_name: (data.validator as any)?.name || null,
-        items_count: (data.items as SaleItem[]).length,
+        items_count: (data.items as SaleItem[] || []).length,
       };
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
