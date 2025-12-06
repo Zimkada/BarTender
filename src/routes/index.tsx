@@ -16,21 +16,21 @@ const ReturnsPage = lazy(() => import('../pages/ReturnsPage'));
 const ConsignmentPage = lazy(() => import('../pages/ConsignmentPage'));
 const AdminNotificationsPage = lazy(() => import('../pages/AdminNotificationsPage'));
 const AnalyticsPage = lazy(() => import('../pages/AnalyticsPage'));
-const TeamPage = lazy(() => import('../pages/TeamPage'));
+const TeamPage = lazy(() => import('../pages/TeamManagementPage'));
 const PromotionsPage = lazy(() => import('../components/promotions/PromotionsManager'));
 
 // === Composants refactorisés en pages (export default) ===
-const InventoryPage = lazy(() => import('../components/Inventory'));
-const AccountingPage = lazy(() => import('../components/Accounting'));
-const SettingsPage = lazy(() => import('../components/Settings'));
+const InventoryPage = lazy(() => import('../pages/InventoryPage'));
+const AccountingPage = lazy(() => import('../pages/AccountingPage'));
+const SettingsPage = lazy(() => import('../pages/SettingsPage'));
 
 // === Composants avec named exports ===
 const SalesHistoryPage = lazy(() => import('../components/SalesHistory').then(m => ({ default: m.EnhancedSalesHistory })));
 
-// === Auth Components (Named Exports) ===
-const LoginScreen = lazy(() => import('../components/LoginScreen').then(m => ({ default: m.LoginScreen })));
-const ForgotPasswordScreen = lazy(() => import('../components/ForgotPasswordScreen').then(m => ({ default: m.ForgotPasswordScreen })));
-const ResetPasswordScreen = lazy(() => import('../components/ResetPasswordScreen').then(m => ({ default: m.ResetPasswordScreen })));
+// === Auth Components (Default Exports) ===
+const LoginScreen = lazy(() => import('../components/LoginScreen'));
+const ForgotPasswordScreen = lazy(() => import('../components/ForgotPasswordScreen'));
+const ResetPasswordScreen = lazy(() => import('../components/ResetPasswordScreen'));
 
 // === Admin Components (Named Exports) ===
 const SuperAdminDashboardPage = lazy(() => import('../components/SuperAdminDashboard').then(m => ({ default: m.SuperAdminDashboard })));
@@ -76,7 +76,7 @@ export const router = createBrowserRouter([
       { path: 'consignments', element: <Suspense fallback={<LoadingFallback />}><ConsignmentPage /></Suspense> },
       { path: 'team', element: <Suspense fallback={<LoadingFallback />}><TeamPage /></Suspense> },
       { path: 'promotions', element: <Suspense fallback={<LoadingFallback />}><PromotionsPage /></Suspense> },
-      
+
       // Routes Admin
       {
         path: 'admin',

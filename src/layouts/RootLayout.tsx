@@ -22,7 +22,7 @@ const LazyBarStatsModal = lazy(() => import('../components/BarStatsModal').then(
 function RootLayoutContent() {
   const { isAuthenticated, currentSession } = useAuth();
   const { currentBar } = useBarContext();
-  const { categories, addProduct, addCategory, updateCategory, linkCategory, showNotification } = useAppContext();
+  const { categories, products, addProduct, addCategory, updateCategory, linkCategory, showNotification } = useAppContext();
 
   const { modalState, openModal, closeModal } = useModal();
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -53,7 +53,7 @@ function RootLayoutContent() {
       <MobileNavigation
         onShowQuickSale={() => openModal('QUICK_SALE')}
       />
-      <Cart 
+      <Cart
         isOpen={isCartOpen}
         onToggle={() => setIsCartOpen(!isCartOpen)}
       />
