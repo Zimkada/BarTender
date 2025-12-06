@@ -1,6 +1,6 @@
 // src/pages/HomePage.tsx
-import React, { useState, useMemo } from 'react';
-import { ShoppingCart, Grid3x3, List } from 'lucide-react';
+import { useState } from 'react';
+import { ShoppingCart } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { ProductGrid } from '../components/ProductGrid';
@@ -8,35 +8,21 @@ import { CategoryFilter } from '../components/CategoryFilter';
 import { SearchBar } from '../components/common/SearchBar';
 import { Product } from '../types';
 
+import { useFilteredProducts } from '../hooks/useFilteredProducts';
+
 export function HomePage() {
   const { products, categories, addToCart } = useAppContext();
   const { currentBar } = useBarContext();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Filter products
-  const filteredProducts = useMemo(() => {
-    let filtered = products;
-
-    // Filter by category
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(p => p.categoryId === selectedCategory);
-    }
-
-    // Filter by search
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(p =>
-        p.name.toLowerCase().includes(query) ||
-        (p.volume && p.volume.toLowerCase().includes(query))
-      );
-    }
-
-    // Filter by stock (hide out of stock)
-    filtered = filtered.filter(p => p.stock > 0);
-
-    return filtered;
-  }, [products, selectedCategory, searchQuery]);
+  // Utilisation du hook centralisé pour le filtrage
+  const filteredProducts = useFilteredProducts({
+    products,
+    searchQuery,
+    selectedCategory,
+    onlyInStock: true
+  });
 
   const handleAddToCart = (product: Product) => {
     addToCart(product);
