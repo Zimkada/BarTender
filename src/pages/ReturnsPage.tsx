@@ -1,20 +1,983 @@
-// src/pages/ReturnsPage.tsx
-import { ReturnsSystem } from '../components/ReturnsSystem';
+import { useState, useMemo } from 'react';
+import {
+  RotateCcw,
+  Package,
+  X,
+  Search,
+  Filter,
+  AlertTriangle,
+  ArrowLeft
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { useAppContext } from '../context/AppContext';
+import { useStockManagement } from '../hooks/useStockManagement';
+import { useBarContext } from '../context/BarContext';
+import { useAuth } from '../context/AuthContext';
+import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
+import { useFeedback } from '../hooks/useFeedback';
+import { EnhancedButton } from '../components/EnhancedButton';
+import { Sale, SaleItem, Return, ReturnReason, ReturnReasonConfig } from '../types';
+import { getBusinessDate, getCurrentBusinessDateString } from '../utils/businessDateHelpers';
+import { getSaleDate } from '../utils/saleHelpers';
+import { useViewport } from '../hooks/useViewport';
 
-/**
- * Page Retours - Wrapper pour le composant ReturnsSystem
- * Route: /returns
- * 
- * Note: ReturnsSystem est conçu comme une modale, donc on le rend
- * toujours ouvert avec une fonction onClose qui navigue vers l'accueil
- */
+const returnReasons: Record<ReturnReason, ReturnReasonConfig> = {
+  defective: {
+    label: 'Défectueux',
+    description: 'Remboursé, pas remis en stock',
+    icon: '⚠️',
+    color: 'red',
+    autoRestock: false,
+    autoRefund: true
+  },
+  wrong_item: {
+    label: 'Erreur article',
+    description: 'Remboursé + remis en stock',
+    icon: '🔄',
+    color: 'orange',
+    autoRestock: true,
+    autoRefund: true
+  },
+  customer_change: {
+    label: 'Non consommé',
+    description: 'Pas remboursé, remis en stock',
+    icon: '↩️',
+    color: 'blue',
+    autoRestock: true,
+    autoRefund: false
+  },
+  expired: {
+    label: 'Périmé',
+    description: 'Remboursé, pas remis en stock',
+    icon: '📅',
+    color: 'purple',
+    autoRestock: false,
+    autoRefund: true
+  },
+  other: {
+    label: 'Autre (manuel)',
+    description: 'Gérant décide remboursement et stock',
+    icon: '✏️',
+    color: 'gray',
+    autoRestock: false,
+    autoRefund: false
+  }
+};
+
 export default function ReturnsPage() {
-  // Le composant ReturnsSystem attend isOpen et onClose
-  // En mode page, on le rend toujours "ouvert"
+  const navigate = useNavigate();
+  const {
+    sales,
+    returns,
+    addReturn,
+    updateReturn,
+    getReturnsBySale
+  } = useAppContext();
+  const {
+    increasePhysicalStock,
+    consignments
+  } = useStockManagement();
+  const { currentBar, barMembers } = useBarContext();
+  const users = Array.isArray(barMembers) ? barMembers.map((m: any) => m.user).filter(Boolean) : [];
+  const { formatPrice } = useCurrencyFormatter();
+  const { currentSession } = useAuth();
+  const { showSuccess, showError } = useFeedback();
+  const { isMobile } = useViewport();
+
+  const [showCreateReturn, setShowCreateReturn] = useState(false);
+  const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const closeHour = currentBar?.closingHour ?? 6;
+
+  const canReturnSale = (sale: Sale): { allowed: boolean; reason: string } => {
+    // ✅ Utiliser la comparaison de strings YYYY-MM-DD (plus fiable)
+    const saleBusinessDate = getBusinessDate(sale, closeHour);
+    const currentBusinessDate = getCurrentBusinessDateString(closeHour);
+    const now = new Date();
+
+    if (saleBusinessDate !== currentBusinessDate) {
+      return {
+        allowed: false,
+        reason: `Caisse du ${saleBusinessDate} déjà clôturée. Retours impossibles.`
+      };
+    }
+
+    // Calculer l'heure de clôture exacte pour aujourd'hui
+    const nextCloseTime = new Date(currentBusinessDate);
+    nextCloseTime.setDate(nextCloseTime.getDate() + 1); // Le lendemain de la date commerciale
+    nextCloseTime.setHours(closeHour, 0, 0, 0);
+
+    if (now >= nextCloseTime) {
+      return {
+        allowed: false,
+        reason: `Clôture caisse à ${closeHour}h déjà effectuée. Retours impossibles.`
+      };
+    }
+
+    return {
+      allowed: true,
+      reason: `Retour autorisé (avant clôture ${closeHour}h)`
+    };
+  };
+
+  const getReturnableSales = useMemo((): Sale[] => {
+    const currentBusinessDate = getCurrentBusinessDateString(closeHour);
+    return sales.filter(sale => {
+      if (sale.status !== 'validated') return false;
+      const saleBusinessDate = getBusinessDate(sale, closeHour);
+      return saleBusinessDate === currentBusinessDate;
+    });
+  }, [sales, closeHour]);
+
+  const createReturn = (
+    saleId: string,
+    productId: string,
+    quantity: number,
+    reason: ReturnReason,
+    notes?: string,
+    customRefund?: boolean,
+    customRestock?: boolean
+  ) => {
+    const sale = sales.find(s => s.id === saleId);
+    const item = sale?.items.find((i: any) => {
+      const id = i.product?.id || i.product_id;
+      return id === productId;
+    });
+
+    if (!sale || !item || !currentSession) {
+      showError('Données invalides');
+      return;
+    }
+
+    // Extract product info with fallbacks
+    const productName = (item as any).product?.name || (item as any).product_name || 'Produit';
+    const productVolume = (item as any).product?.volume || (item as any).product_volume || '';
+    const productPrice = (item as any).product?.price || (item as any).unit_price || 0;
+
+    const returnCheck = canReturnSale(sale);
+    if (!returnCheck.allowed) {
+      showError(returnCheck.reason);
+      return;
+    }
+
+    const existingReturns = getReturnsBySale(saleId);
+    const alreadyReturnedQty = existingReturns
+      .filter(r => r.productId === productId && r.status !== 'rejected')
+      .reduce((sum, r) => sum + r.quantityReturned, 0);
+
+    // ✅ Tenir compte des consignations actives
+    const alreadyConsignedQty = consignments
+      .filter(c => c.saleId === saleId && c.productId === productId && c.status === 'active')
+      .reduce((sum, c) => sum + c.quantity, 0);
+
+    const remainingQty = item.quantity - alreadyReturnedQty - alreadyConsignedQty;
+
+    if (quantity > remainingQty) {
+      showError(`Impossible : ${alreadyReturnedQty} déjà retourné(s), ${alreadyConsignedQty} consigné(s). Reste ${remainingQty} disponible(s).`);
+      return;
+    }
+
+    if (remainingQty <= 0) {
+      showError(`Ce produit n'est plus disponible pour retour (${alreadyReturnedQty} retourné(s), ${alreadyConsignedQty} consigné(s))`);
+      return;
+    }
+
+    const reasonConfig = returnReasons[reason];
+    const finalRefund = reason === 'other' ? (customRefund ?? false) : reasonConfig.autoRefund;
+    const finalRestock = reason === 'other' ? (customRestock ?? false) : reasonConfig.autoRestock;
+
+    const newReturn = addReturn({
+      saleId,
+      productId,
+      productName,
+      productVolume,
+      quantitySold: item.quantity,
+      quantityReturned: quantity,
+      reason,
+      returnedBy: currentSession.userId,
+      returnedAt: new Date(),
+      refundAmount: finalRefund ? (productPrice * quantity) : 0,
+      isRefunded: finalRefund,
+      status: 'pending',
+      autoRestock: finalRestock,
+      manualRestockRequired: !finalRestock,
+      notes,
+      customRefund: reason === 'other' ? customRefund : undefined,
+      customRestock: reason === 'other' ? customRestock : undefined,
+      originalSeller: sale.createdBy
+    });
+
+    if (newReturn) {
+      const refundMsg = finalRefund
+        ? ` - Remboursement ${formatPrice(productPrice * quantity)}`
+        : ' - Sans remboursement';
+      showSuccess(`Retour créé pour ${quantity}x ${productName}${refundMsg}`);
+      setShowCreateReturn(false);
+      setSelectedSale(null);
+    }
+  };
+
+  const approveReturn = (returnId: string) => {
+    const returnItem = returns.find(r => r.id === returnId);
+    if (!returnItem) return;
+
+    let newStatus: Return['status'] = 'approved';
+
+    if (returnItem.autoRestock) {
+      increasePhysicalStock(returnItem.productId, returnItem.quantityReturned);
+      newStatus = 'restocked';
+      const refundInfo = returnItem.isRefunded ? ` + Remboursement ${formatPrice(returnItem.refundAmount)}` : '';
+      showSuccess(`Retour approuvé - ${returnItem.quantityReturned}x ${returnItem.productName} remis en stock${refundInfo}`);
+    } else {
+      const refundInfo = returnItem.isRefunded ? ` - Remboursement ${formatPrice(returnItem.refundAmount)}` : '';
+      showSuccess(`Retour approuvé${refundInfo} - Choix de remise en stock disponible`);
+    }
+
+    updateReturn(returnId, {
+      status: newStatus,
+      restockedAt: returnItem.autoRestock ? new Date() : undefined
+    });
+  };
+
+  const manualRestock = (returnId: string) => {
+    const returnItem = returns.find(r => r.id === returnId);
+    if (!returnItem || returnItem.status !== 'approved') return;
+
+    increasePhysicalStock(returnItem.productId, returnItem.quantityReturned);
+
+    updateReturn(returnId, {
+      status: 'restocked',
+      restockedAt: new Date()
+    });
+
+    showSuccess(`${returnItem.quantityReturned}x ${returnItem.productName} remis en stock`);
+  };
+
+  const rejectReturn = (returnId: string) => {
+    updateReturn(returnId, { status: 'rejected' });
+    showSuccess('Retour rejeté');
+  };
+
+  const filteredReturns = returns.filter(returnItem => {
+    const matchesStatus = filterStatus === 'all' || returnItem.status === filterStatus;
+    const matchesSearch = returnItem.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      returnItem.id.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesStatus && matchesSearch;
+  });
+
   return (
-    <ReturnsSystem 
-      isOpen={true} 
-      onClose={() => window.history.back()} 
-    />
+    <div className="max-w-7xl mx-auto p-4 space-y-4">
+      {/* Header Standard du composant Page */}
+      <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <ArrowLeft size={24} className="text-gray-600" />
+            </button>
+            <div className="flex items-center gap-3">
+              <div className="bg-amber-100 p-2 rounded-lg">
+                <RotateCcw size={24} className="text-amber-600" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">Système de Retours</h1>
+                <p className="text-sm text-gray-500">Gérer les retours clients et remboursements</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {!showCreateReturn && (
+              <button
+                onClick={() => setShowCreateReturn(true)}
+                className="px-4 py-2 bg-amber-500 text-white font-bold hover:bg-amber-600 rounded-lg transition-colors flex items-center gap-2 shadow-sm"
+              >
+                <span className="hidden sm:inline">Nouveau retour</span>
+                <RotateCcw size={16} className="sm:hidden" />
+              </button>
+            )}
+            {showCreateReturn && (
+              <button
+                onClick={() => {
+                  setShowCreateReturn(false);
+                  setSelectedSale(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium"
+              >
+                Annuler
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Filters Area (Only visible in list mode) */}
+        {!showCreateReturn && (
+          <div className="flex flex-wrap gap-4 pt-4 border-t border-gray-100">
+            <div className="flex-1 min-w-[200px] relative">
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Rechercher un retour..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter size={18} className="text-gray-400" />
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as 'all' | 'pending' | 'approved' | 'rejected')}
+                className="px-4 py-2 border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-amber-500 outline-none cursor-pointer"
+              >
+                <option value="all">Tous les statuts</option>
+                <option value="pending">En attente</option>
+                <option value="approved">Approuvés</option>
+                <option value="rejected">Rejetés</option>
+              </select>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Main Content Area */}
+      <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-6 min-h-[60vh]">
+        <AnimatePresence mode="wait">
+          {!showCreateReturn ? (
+            <motion.div
+              key="list"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-4"
+            >
+              {filteredReturns.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="bg-gray-50 p-6 rounded-full mb-4">
+                    <RotateCcw size={48} className="text-gray-300" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-600 mb-2">Aucun retour trouvé</h3>
+                  <p className="text-gray-500 max-w-md">
+                    Il n'y a pas de retours correspondant à vos critères. Cliquez sur "Nouveau retour" pour en créer un.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4">
+                  {filteredReturns.map(returnItem => {
+                    let originalSeller = null;
+                    if (returnItem.originalSeller) {
+                      originalSeller = users.find(u => u.id === returnItem.originalSeller);
+                    } else {
+                      const originalSale = sales.find(s => s.id === returnItem.saleId);
+                      if (originalSale?.createdBy) {
+                        originalSeller = users.find(u => u.id === originalSale.createdBy);
+                      }
+                    }
+
+                    return (
+                      <motion.div
+                        key={returnItem.id}
+                        layoutId={returnItem.id}
+                        className="bg-white rounded-xl p-4 border border-gray-200 hover:border-amber-300 transition-colors shadow-sm"
+                      >
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">
+                          <div className="flex items-start gap-4">
+                            <div className={`mt-1 w-3 h-3 rounded-full flex-shrink-0 ${returnItem.status === 'restocked' ? 'bg-green-500' :
+                              returnItem.status === 'approved' ? 'bg-blue-500' :
+                                returnItem.status === 'rejected' ? 'bg-red-500' :
+                                  'bg-yellow-500'
+                              }`} />
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4 className="font-semibold text-gray-800 text-lg">
+                                  {returnItem.productName}
+                                </h4>
+                                <span className="text-sm font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                  {returnItem.productVolume}
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 mt-1">
+                                <span>ID: #{returnItem.id.slice(-6)}</span>
+                                <span>•</span>
+                                <span>{new Date(returnItem.returnedAt).toLocaleDateString('fr-FR')}</span>
+                                {originalSeller && (
+                                  <>
+                                    <span>•</span>
+                                    <span className="text-purple-600 font-medium">
+                                      Vendeur: {originalSeller.name}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between md:justify-end gap-6 pl-7 md:pl-0">
+                            <div className="text-right">
+                              <span className="block text-sm text-gray-500">Montant remboursé</span>
+                              <span className="block font-bold text-gray-800 text-lg">{formatPrice(returnItem.refundAmount)}</span>
+                            </div>
+                            <div className="text-right border-l border-gray-100 pl-6">
+                              <span className="block text-sm text-gray-500">Quantité</span>
+                              <span className="block font-bold text-gray-800 text-lg">{returnItem.quantityReturned} / {returnItem.quantitySold}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-3 border-t border-gray-50 pl-7 md:pl-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${returnReasons[returnItem.reason].color === 'red' ? 'bg-red-50 text-red-700 border-red-100' :
+                              returnReasons[returnItem.reason].color === 'orange' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                returnReasons[returnItem.reason].color === 'blue' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                                  returnReasons[returnItem.reason].color === 'purple' ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                                    'bg-gray-50 text-gray-700 border-gray-100'
+                              }`}>
+                              {returnReasons[returnItem.reason].icon} {returnReasons[returnItem.reason].label}
+                            </span>
+
+                            {returnItem.autoRestock && (
+                              <span className="text-xs bg-green-50 text-green-700 border border-green-100 px-2.5 py-1 rounded-full font-medium">
+                                📦 Stock auto
+                              </span>
+                            )}
+
+                            {returnItem.isRefunded && (
+                              <span className="text-xs bg-blue-50 text-blue-700 border border-blue-100 px-2.5 py-1 rounded-full font-medium">
+                                💰 Remboursé
+                              </span>
+                            )}
+
+                            {!returnItem.isRefunded && returnItem.refundAmount === 0 && (
+                              <span className="text-xs bg-gray-50 text-gray-600 border border-gray-100 px-2.5 py-1 rounded-full font-medium">
+                                Sans remboursement
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 self-end sm:self-auto">
+                            {returnItem.status === 'pending' && (
+                              <>
+                                <EnhancedButton
+                                  variant="danger"
+                                  size="sm"
+                                  onClick={() => rejectReturn(returnItem.id)}
+                                >
+                                  Rejeter
+                                </EnhancedButton>
+                                <EnhancedButton
+                                  variant="success"
+                                  size="sm"
+                                  onClick={() => approveReturn(returnItem.id)}
+                                >
+                                  Approuver
+                                </EnhancedButton>
+                              </>
+                            )}
+
+                            {returnItem.status === 'approved' && returnItem.manualRestockRequired && (
+                              <EnhancedButton
+                                variant="info"
+                                size="sm"
+                                onClick={() => manualRestock(returnItem.id)}
+                                icon={<Package size={14} />}
+                              >
+                                Remettre en stock
+                              </EnhancedButton>
+                            )}
+
+                            {returnItem.status === 'restocked' && (
+                              <span className="text-sm text-green-600 font-medium flex items-center gap-1 bg-green-50 px-3 py-1 rounded-lg">
+                                <Package size={14} />
+                                En stock ({returnItem.restockedAt && new Date(returnItem.restockedAt).toLocaleDateString('fr-FR')})
+                              </span>
+                            )}
+                            {returnItem.status === 'rejected' && (
+                              <span className="text-sm text-red-600 font-medium flex items-center gap-1 bg-red-50 px-3 py-1 rounded-lg">
+                                <X size={14} />
+                                Rejeté
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {returnItem.notes && (
+                          <div className="mt-3 ml-7 md:ml-0 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                            <p className="text-sm text-gray-600 italic">Note: "{returnItem.notes}"</p>
+                          </div>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="create"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              <CreateReturnForm
+                returnableSales={getReturnableSales}
+                returnReasons={returnReasons}
+                onCreateReturn={createReturn}
+                onCancel={() => {
+                  setShowCreateReturn(false);
+                  setSelectedSale(null);
+                }}
+                selectedSale={selectedSale}
+                onSelectSale={setSelectedSale}
+                canReturnSale={canReturnSale}
+                closeHour={closeHour}
+                consignments={consignments}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+function OtherReasonDialog({
+  isOpen,
+  onConfirm,
+  onCancel
+}: {
+  isOpen: boolean;
+  onConfirm: (refund: boolean, restock: boolean, notes: string) => void;
+  onCancel: () => void;
+}) {
+  const [customRefund, setCustomRefund] = useState(false);
+  const [customRestock, setCustomRestock] = useState(false);
+  const [customNotes, setCustomNotes] = useState('');
+
+  const handleSubmit = () => {
+    if (!customNotes.trim()) {
+      alert('Les notes sont obligatoires pour "Autre raison"');
+      return;
+    }
+    onConfirm(customRefund, customRestock, customNotes);
+    setCustomRefund(false);
+    setCustomRestock(false);
+    setCustomNotes('');
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="bg-white rounded-2xl w-full max-w-md shadow-2xl"
+        >
+          <div className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="text-amber-600" size={24} />
+              <h3 className="text-lg font-bold text-gray-800">Retour - Autre raison</h3>
+            </div>
+
+            <div className="space-y-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={customRefund}
+                  onChange={(e) => setCustomRefund(e.target.checked)}
+                  className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <div>
+                  <p className="font-medium text-gray-800">Rembourser le client</p>
+                  <p className="text-xs text-gray-500">Le montant sera déduit du CA</p>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={customRestock}
+                  onChange={(e) => setCustomRestock(e.target.checked)}
+                  className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
+                />
+                <div>
+                  <p className="font-medium text-gray-800">Remettre en stock</p>
+                  <p className="text-xs text-gray-500">Le produit sera remis en inventaire</p>
+                </div>
+              </label>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Notes <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={customNotes}
+                  onChange={(e) => setCustomNotes(e.target.value)}
+                  rows={4}
+                  placeholder="Expliquez la raison du retour (obligatoire)..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={onCancel}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  className="flex-1 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
+                >
+                  Valider
+                </button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+function CreateReturnForm({
+  returnableSales,
+  returnReasons,
+  onCreateReturn,
+  onCancel,
+  selectedSale,
+  onSelectSale,
+  canReturnSale,
+  closeHour,
+  consignments
+}: {
+  returnableSales: Sale[];
+  returnReasons: Record<ReturnReason, ReturnReasonConfig>;
+  onCreateReturn: (saleId: string, productId: string, quantity: number, reason: ReturnReason, notes?: string, customRefund?: boolean, customRestock?: boolean) => void;
+  onCancel: () => void;
+  selectedSale: Sale | null;
+  onSelectSale: (sale: Sale) => void;
+  canReturnSale: (sale: Sale) => { allowed: boolean; reason: string };
+  closeHour: number;
+  consignments: any[];
+}) {
+  const { getReturnsBySale } = useAppContext();
+  const { barMembers } = useBarContext();
+  const { formatPrice } = useCurrencyFormatter();
+  const { showError } = useFeedback();
+
+  const users = barMembers.map(m => m.user).filter(Boolean);
+  const [selectedProduct, setSelectedProduct] = useState<SaleItem | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [reason, setReason] = useState<ReturnReason>('defective');
+  const [notes, setNotes] = useState('');
+  const [showOtherReasonDialog, setShowOtherReasonDialog] = useState(false);
+  const [filterSeller, setFilterSeller] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const reasonConfig = returnReasons[reason];
+
+  const getAlreadyReturned = (productId: string): number => {
+    if (!selectedSale) return 0;
+    return getReturnsBySale(selectedSale.id)
+      .filter(r => r.productId === productId && r.status !== 'rejected')
+      .reduce((sum, r) => sum + r.quantityReturned, 0);
+  };
+
+  const getAlreadyConsigned = (productId: string): number => {
+    if (!selectedSale) return 0;
+    return consignments
+      .filter(c => c.saleId === selectedSale.id && c.productId === productId && c.status === 'active')
+      .reduce((sum, c) => sum + c.quantity, 0);
+  };
+
+  const availableQty = selectedProduct
+    ? (() => {
+      const productId = selectedProduct.product_id;
+      if (!productId) return 0;
+      return selectedProduct.quantity - getAlreadyReturned(productId) - getAlreadyConsigned(productId);
+    })()
+    : 0;
+
+  const filteredSales = useMemo(() => {
+    let filtered = returnableSales;
+
+    if (filterSeller !== 'all') {
+      filtered = filtered.filter(sale => sale.createdBy === filterSeller);
+    }
+
+    if (searchTerm.trim()) {
+      const lowerTerm = searchTerm.toLowerCase();
+      filtered = filtered.filter(sale =>
+        sale.items.some(item => item.product_name.toLowerCase().includes(lowerTerm))
+      );
+    }
+
+    return filtered;
+  }, [returnableSales, filterSeller, searchTerm]);
+
+  const sellersWithSales = useMemo(() => {
+    if (!Array.isArray(returnableSales) || !Array.isArray(users)) return [];
+    const sellerIds = new Set(returnableSales.map(sale => sale.createdBy).filter(Boolean));
+    return users.filter(user => sellerIds.has(user.id));
+  }, [returnableSales, users]);
+
+  const handleSubmit = () => {
+    if (!selectedSale || !selectedProduct) return;
+
+    const productId = selectedProduct.product_id;
+    if (!productId) {
+      showError('Produit invalide');
+      return;
+    }
+
+    if (reason === 'other') {
+      setShowOtherReasonDialog(true);
+      return;
+    }
+
+    onCreateReturn(selectedSale.id, productId, quantity, reason, notes || undefined);
+  };
+
+  const handleOtherReasonConfirm = (customRefund: boolean, customRestock: boolean, customNotes: string) => {
+    if (!selectedSale || !selectedProduct) return;
+
+    const productId = selectedProduct.product_id;
+    if (!productId) {
+      showError('Produit invalide');
+      return;
+    }
+
+    setShowOtherReasonDialog(false);
+    onCreateReturn(
+      selectedSale.id,
+      productId,
+      quantity,
+      reason,
+      customNotes,
+      customRefund,
+      customRestock
+    );
+  };
+
+  return (
+    <>
+      <OtherReasonDialog
+        isOpen={showOtherReasonDialog}
+        onConfirm={handleOtherReasonConfirm}
+        onCancel={() => setShowOtherReasonDialog(false)}
+      />
+
+      <div className="space-y-6">
+        <h3 className="text-lg font-semibold text-gray-800">Créer un nouveau retour</h3>
+
+        <div className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="text-blue-600" size={18} />
+              <p className="text-blue-700 text-sm font-medium">
+                Retours autorisés uniquement AVANT clôture caisse ({closeHour}h)
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Ventes de la journée commerciale actuelle
+              </label>
+              {sellersWithSales.length > 1 && (
+                <select
+                  value={filterSeller}
+                  onChange={(e) => setFilterSeller(e.target.value)}
+                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                >
+                  <option value="all">Tous les vendeurs</option>
+                  {sellersWithSales.map(seller => (
+                    <option key={seller.id} value={seller.id}>{seller.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              <input
+                type="text"
+                placeholder="Rechercher un produit (ex: Guinness)..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 border border-amber-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              />
+            </div>
+
+            {filteredSales.length === 0 ? (
+              <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                <p className="text-gray-500">
+                  {returnableSales.length === 0
+                    ? 'Aucune vente dans la journée commerciale actuelle'
+                    : 'Aucune vente trouvée'
+                  }
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
+                {filteredSales.map(sale => {
+                  const returnCheck = canReturnSale(sale);
+                  const seller = sale.createdBy ? users.find(u => u.id === sale.createdBy) : undefined;
+                  const productPreview = sale.items.slice(0, 2).map(i => `${i.quantity}x ${i.product_name}`).join(', ');
+                  const moreCount = sale.items.length - 2;
+
+                  return (
+                    <motion.button
+                      key={sale.id}
+                      onClick={() => returnCheck.allowed && onSelectSale(sale)}
+                      whileHover={returnCheck.allowed ? { scale: 1.01 } : {}}
+                      disabled={!returnCheck.allowed}
+                      className={`p-3 text-left rounded-lg border transition-colors ${selectedSale?.id === sale.id
+                        ? 'border-amber-500 bg-amber-50 ring-1 ring-amber-500'
+                        : returnCheck.allowed
+                          ? 'border-gray-200 bg-white hover:border-gray-300'
+                          : 'border-red-200 bg-red-50 opacity-50 cursor-not-allowed'
+                        }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-gray-800">#{sale.id.slice(-4)}</span>
+                        <span className="text-xs text-gray-500">{getSaleDate(sale).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      <div className="text-xs text-gray-600 truncate mb-1" title={productPreview}>
+                        {productPreview}{moreCount > 0 ? ` +${moreCount}` : ''}
+                      </div>
+
+                      <div className="flex items-center justify-between mt-2">
+                        {seller ? (
+                          <span className="text-xs text-purple-600">👤 {seller.name}</span>
+                        ) : <span></span>}
+                        {returnCheck.allowed ? (
+                          <span className="text-xs font-bold text-gray-700">{formatPrice(sale.total)}</span>
+                        ) : (
+                          <span className="text-xs text-red-600 font-medium">{returnCheck.reason}</span>
+                        )}
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {selectedSale && (
+            <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Produit à retourner (Vente #{selectedSale.id.slice(-4)})
+              </label>
+              <div className="space-y-2 mb-4">
+                {selectedSale.items.map((item: SaleItem, index: number) => {
+                  const productId = item.product_id;
+                  const productName = item.product_name;
+                  const productVolume = item.product_volume || '';
+                  const productPrice = item.unit_price;
+
+                  const alreadyReturned = getAlreadyReturned(productId);
+                  const alreadyConsigned = getAlreadyConsigned(productId);
+                  const available = item.quantity - alreadyReturned - alreadyConsigned;
+                  const isFullyUnavailable = available <= 0;
+
+                  return (
+                    <motion.button
+                      key={index}
+                      onClick={() => !isFullyUnavailable && setSelectedProduct(item)}
+                      disabled={isFullyUnavailable}
+                      className={`w-full p-3 text-left rounded-lg border transition-colors ${isFullyUnavailable
+                        ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
+                        : selectedProduct === item
+                          ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-medium text-gray-800">
+                            {productName} ({productVolume})
+                          </p>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap text-xs">
+                            <span className="text-gray-600">Vendu: {item.quantity}</span>
+                            {alreadyReturned > 0 && <span className="text-amber-600">• Retourné: {alreadyReturned}</span>}
+                            {alreadyConsigned > 0 && <span className="text-purple-600">• Consigné: {alreadyConsigned}</span>}
+                            <span className={`font-bold ${isFullyUnavailable ? 'text-red-500' : 'text-green-600'}`}>• Dispo: {available}</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-blue-600 font-semibold text-sm">
+                            {productPrice} FCFA
+                          </p>
+                        </div>
+                      </div>
+                    </motion.button>
+                  );
+                })}
+              </div>
+
+              {selectedProduct && (
+                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Quantité</label>
+                      <input
+                        type="number"
+                        required
+                        min="1"
+                        max={availableQty}
+                        value={quantity}
+                        onChange={(e) => setQuantity(Number(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Max: {availableQty}</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Raison</label>
+                      <select
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value as ReturnReason)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none"
+                      >
+                        {Object.entries(returnReasons).map(([key, value]) => (
+                          <option key={key} value={key}>{value.icon} {value.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Optionnel)</label>
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      rows={2}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none resize-none"
+                      placeholder="Détails..."
+                    />
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                    <EnhancedButton onClick={onCancel} variant="secondary" className="flex-1">Annuler</EnhancedButton>
+                    <EnhancedButton onClick={handleSubmit} variant="primary" className="flex-1">Confirmer le retour</EnhancedButton>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
