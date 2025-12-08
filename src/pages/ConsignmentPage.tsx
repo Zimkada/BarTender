@@ -42,6 +42,7 @@ export default function ConsignmentPage() {
         title={isMobile ? 'Consignations' : 'Gestion des Consignations'}
         subtitle="Gérer les produits consignés et récupérations"
         icon={<Package className="w-6 h-6 text-amber-600" />}
+        hideSubtitleOnMobile
       />
 
       {/* Tabs Navigation and Content */}

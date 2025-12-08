@@ -136,13 +136,13 @@ export default function PromotionsPage() {
             {/* Header */}
             <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden">
                 <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="flex items-center gap-4">
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => navigate(-1)}
-                                className="rounded-lg transition-colors hover:bg-white/20"
+                                className="rounded-lg transition-colors hover:bg-white/20 flex-shrink-0"
                             >
                                 <ArrowLeft size={24} />
                             </Button>
@@ -151,21 +151,21 @@ export default function PromotionsPage() {
                                     <Gift size={24} />
                                     Gestion des Promotions
                                 </h1>
-                                <p className="text-amber-100 text-sm">Créez et gérez vos offres spéciales</p>
+                                <p className="text-amber-100 text-sm hidden sm:block">Créez et gérez vos offres spéciales</p>
                             </div>
                         </div>
 
-                        {/* View Switcher */}
-                        <div className="flex bg-amber-700/30 p-1 rounded-lg">
+                        {/* View Switcher - Responsive */}
+                        <div className="flex bg-amber-700/30 p-1 rounded-lg w-full sm:w-auto">
                             <button
                                 onClick={() => setView('list')}
-                                className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'list' ? 'bg-white text-amber-600' : 'text-amber-100 hover:bg-white/10'}`}
+                                className={`flex items-center justify-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all flex-1 sm:flex-initial ${view === 'list' ? 'bg-white text-amber-600' : 'text-amber-100 hover:bg-white/10'}`}
                             >
                                 <List size={16} /> Liste
                             </button>
                             <button
                                 onClick={() => setView('analytics')}
-                                className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'analytics' ? 'bg-white text-amber-600' : 'text-amber-100 hover:bg-white/10'}`}
+                                className={`flex items-center justify-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all flex-1 sm:flex-initial ${view === 'analytics' ? 'bg-white text-amber-600' : 'text-amber-100 hover:bg-white/10'}`}
                             >
                                 <BarChart3 size={16} /> Analytics
                             </button>

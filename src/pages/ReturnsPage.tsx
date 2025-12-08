@@ -275,15 +275,16 @@ export default function ReturnsPage() {
         title="Système de Retours"
         subtitle="Gérer les retours clients et remboursements"
         icon={<RotateCcw size={24} className="text-amber-600" />}
+        hideSubtitleOnMobile
         actions={
+          // Desktop : Icône seule pour "Nouveau retour"
           <div className="flex items-center gap-2">
             {!showCreateReturn && (
               <Button
                 onClick={() => setShowCreateReturn(true)}
                 className="shadow-sm"
               >
-                <span className="hidden sm:inline">Nouveau retour</span>
-                <RotateCcw size={16} className="sm:hidden" />
+                <span>Nouveau retour</span>
               </Button>
             )}
             {showCreateReturn && (
@@ -293,6 +294,32 @@ export default function ReturnsPage() {
                   setShowCreateReturn(false);
                   setSelectedSale(null);
                 }}
+              >
+                Annuler
+              </Button>
+            )}
+          </div>
+        }
+        mobileActions={
+          // Mobile : Bouton explicite avec texte et icône
+          <div className="flex items-center gap-2 w-full">
+            {!showCreateReturn && (
+              <Button
+                onClick={() => setShowCreateReturn(true)}
+                className="shadow-sm flex-1"
+              >
+                <RotateCcw size={18} />
+                <span>Nouveau retour</span>
+              </Button>
+            )}
+            {showCreateReturn && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShowCreateReturn(false);
+                  setSelectedSale(null);
+                }}
+                className="flex-1"
               >
                 Annuler
               </Button>
