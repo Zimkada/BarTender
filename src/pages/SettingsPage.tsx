@@ -7,6 +7,7 @@ import { useSettings } from '../hooks/useSettings';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
 
 const currencyOptions = [
     { code: 'FCFA', symbol: 'FCFA', name: 'Franc CFA' },
@@ -289,13 +290,13 @@ export default function SettingsPage() {
                                                 )}
                                             </div>
                                         )}
-                                        <input
+                                        <Input
                                             type="text"
                                             value={verifyCode}
                                             onChange={(e) => setVerifyCode(e.target.value)}
                                             placeholder="Code à 6 chiffres"
                                             maxLength={6}
-                                            className="w-full px-4 py-2 border rounded-lg text-center text-xl tracking-widest"
+                                            className="text-center text-xl tracking-widest"
                                         />
                                         <button
                                             onClick={handleVerifyMfa}
@@ -327,48 +328,41 @@ export default function SettingsPage() {
                 {activeTab === 'bar' && (
                     <>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Nom du bar *</label>
-                            <input
+                            <Input
+                                label="Nom du bar *"
                                 type="text"
                                 value={barName}
                                 onChange={(e) => setBarName(e.target.value)}
-                                className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500"
                                 placeholder="Ex: Le Privilège"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                <MapPin size={16} className="text-amber-500" /> Adresse
-                            </label>
-                            <input
+                            <Input
+                                label="Adresse"
+                                leftIcon={<MapPin size={16} className="text-amber-500" />}
                                 type="text"
                                 value={barAddress}
                                 onChange={(e) => setBarAddress(e.target.value)}
-                                className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500"
                                 placeholder="Ex: Cotonou, Bénin"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                <Phone size={16} className="text-amber-500" /> Téléphone
-                            </label>
-                            <input
+                            <Input
+                                label="Téléphone"
+                                leftIcon={<Phone size={16} className="text-amber-500" />}
                                 type="tel"
                                 value={barPhone}
                                 onChange={(e) => setBarPhone(e.target.value)}
-                                className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500"
                                 placeholder="Ex: 0197000000"
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                <Mail size={16} className="text-amber-500" /> Email
-                            </label>
-                            <input
+                            <Input
+                                label="Email"
+                                leftIcon={<Mail size={16} className="text-amber-500" />}
                                 type="email"
                                 value={barEmail}
                                 onChange={(e) => setBarEmail(e.target.value)}
-                                className="w-full px-4 py-2 border border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-500"
                                 placeholder="Ex: contact@leprivilege.bj"
                             />
                         </div>
@@ -470,13 +464,13 @@ export default function SettingsPage() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-3">Liste des serveurs</label>
                                 <div className="flex gap-2 mb-3">
-                                    <input
+                                    <Input
                                         type="text"
                                         value={newServerName}
                                         onChange={(e) => setNewServerName(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && handleAddServer()}
                                         placeholder="Nom du serveur"
-                                        className="flex-1 px-3 py-2 border rounded-lg"
+                                        className="flex-1"
                                     />
                                     <button onClick={handleAddServer} className="px-4 py-2 bg-amber-500 text-white rounded-lg flex items-center gap-2">
                                         <Plus size={16} /> Ajouter
