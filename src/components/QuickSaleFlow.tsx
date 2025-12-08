@@ -24,6 +24,8 @@ import { PromotionsService } from '../services/supabase/promotions.service';
 import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
 import { PaymentMethodSelector, PaymentMethod } from './cart/PaymentMethodSelector';
 import { useFilteredProducts } from '../hooks/useFilteredProducts';
+import { Input } from './ui/Input';
+import { Select, SelectOption } from './ui/Select';
 
 interface QuickSaleFlowProps {
   isOpen: boolean;
@@ -164,6 +166,16 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     // Nos produits enrichis ont 'stock'. Donc on peut laisser le hook faire le filtrage final.
   });
 
+  // 3. Préparer les options pour le select serveur
+  const serverOptions: SelectOption[] = [
+    { value: '', label: 'Sélectionner un serveur...' },
+    { value: `Moi (${currentSession?.userName})`, label: `Moi (${currentSession?.userName})` },
+    ...(currentBar?.settings?.serversList || []).map(serverName => ({
+      value: serverName,
+      label: serverName
+    }))
+  ];
+
   const calculateItemWithPromo = (product: Product, quantity: number): CartItem => {
     const applicablePromos = activePromotions.filter(p =>
       p.targetType === 'all' ||
@@ -274,17 +286,15 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
               <div className="flex-1 flex flex-col overflow-hidden">
                 <div className="flex-1 overflow-y-auto p-4">
                   <div className="space-y-4 mb-6">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                      <input
-                        ref={searchInputRef}
-                        type="text"
-                        placeholder="Rechercher un produit..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-base focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                      />
-                    </div>
+                    <Input
+                      ref={searchInputRef}
+                      type="text"
+                      placeholder="Rechercher un produit..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      leftIcon={<Search size={20} />}
+                      size="lg"
+                    />
 
                     <div className="flex gap-2 overflow-x-auto pb-2">
                       <button
@@ -428,24 +438,13 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
 
                         {currentBar?.settings?.enableServerTracking && (
                           <div className="mt-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Serveur
-                            </label>
-                            <select
+                            <Select
+                              label="Serveur"
+                              options={serverOptions}
                               value={selectedServer}
                               onChange={(e) => setSelectedServer(e.target.value)}
-                              className="w-full px-4 py-3 border border-amber-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-base"
-                            >
-                              <option value="">Sélectionner un serveur...</option>
-                              <option value={`Moi (${currentSession?.userName})`}>
-                                Moi ({currentSession?.userName})
-                              </option>
-                              {currentBar?.settings?.serversList?.map((serverName) => (
-                                <option key={serverName} value={serverName}>
-                                  {serverName}
-                                </option>
-                              ))}
-                            </select>
+                              size="lg"
+                            />
                           </div>
                         )}
 
@@ -487,17 +486,15 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
               <div className="flex-1 flex overflow-hidden">
                 <div className="flex-1 p-4 overflow-y-auto">
                   <div className="space-y-4 mb-6">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                      <input
-                        ref={searchInputRef}
-                        type="text"
-                        placeholder="Rechercher un produit (nom ou volume)..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                      />
-                    </div>
+                    <Input
+                      ref={searchInputRef}
+                      type="text"
+                      placeholder="Rechercher un produit (nom ou volume)..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      leftIcon={<Search size={20} />}
+                      size="lg"
+                    />
 
                     <div className="flex gap-2 overflow-x-auto pb-2">
                       <button
@@ -554,12 +551,12 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                       )}
                     </div>
 
-                    <input
+                    <Input
                       type="text"
                       placeholder="Client (optionnel)"
                       value={customerInfo}
                       onChange={(e) => setCustomerInfo(e.target.value)}
-                      className="w-full px-3 py-2 border border-amber-200 rounded-lg text-sm bg-white"
+                      size="sm"
                     />
                   </div>
 
@@ -626,27 +623,14 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                   <div className="flex-shrink-0 p-4 border-t border-amber-200 space-y-3 bg-gradient-to-br from-amber-50 to-amber-50">
 
                     {currentBar?.settings?.operatingMode === 'simplified' && (
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1.5 flex items-center gap-1">
-                          <Users size={14} className="text-amber-500" />
-                          Serveur
-                        </label>
-                        <select
-                          value={selectedServer}
-                          onChange={(e) => setSelectedServer(e.target.value)}
-                          className="w-full px-3 py-2 border border-amber-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
-                        >
-                          <option value="">Sélectionner...</option>
-                          <option value={`Moi (${currentSession?.userName})`}>
-                            Moi ({currentSession?.userName})
-                          </option>
-                          {currentBar?.settings?.serversList?.map((serverName) => (
-                            <option key={serverName} value={serverName}>
-                              {serverName}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                      <Select
+                        label="Serveur"
+                        options={serverOptions}
+                        value={selectedServer}
+                        onChange={(e) => setSelectedServer(e.target.value)}
+                        size="sm"
+                        leftIcon={<Users size={14} className="text-amber-500" />}
+                      />
                     )}
 
                     <PaymentMethodSelector
