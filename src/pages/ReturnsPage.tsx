@@ -6,7 +6,6 @@ import {
   Search,
   Filter,
   AlertTriangle,
-  ArrowLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -22,6 +21,7 @@ import { getBusinessDate, getCurrentBusinessDateString } from '../utils/business
 import { getSaleDate } from '../utils/saleHelpers';
 import { useViewport } from '../hooks/useViewport';
 import { Button } from '../components/ui/Button';
+import { PageHeader } from '../components/common/PageHeader';
 
 const returnReasons: Record<ReturnReason, ReturnReasonConfig> = {
   defective: {
@@ -271,51 +271,35 @@ export default function ReturnsPage() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-4">
-      {/* Header Standard du composant Page */}
-      <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate(-1)}
-              className="rounded-full transition-colors hover:bg-gray-100"
-            >
-              <ArrowLeft size={24} className="text-gray-600" />
-            </Button>
-            <div className="flex items-center gap-3">
-              <div className="bg-amber-100 p-2 rounded-lg">
-                <RotateCcw size={24} className="text-amber-600" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800">Système de Retours</h1>
-                <p className="text-sm text-gray-500">Gérer les retours clients et remboursements</p>
-              </div>
-            </div>
-          </div>
+      <PageHeader
+        title="Système de Retours"
+        subtitle="Gérer les retours clients et remboursements"
+        icon={<RotateCcw size={24} className="text-amber-600" />}
+        actions={
           <div className="flex items-center gap-2">
             {!showCreateReturn && (
-              <button
+              <Button
                 onClick={() => setShowCreateReturn(true)}
-                className="px-4 py-2 bg-amber-500 text-white font-bold hover:bg-amber-600 rounded-lg transition-colors flex items-center gap-2 shadow-sm"
+                className="shadow-sm"
               >
                 <span className="hidden sm:inline">Nouveau retour</span>
                 <RotateCcw size={16} className="sm:hidden" />
-              </button>
+              </Button>
             )}
             {showCreateReturn && (
-              <button
+              <Button
+                variant="secondary"
                 onClick={() => {
                   setShowCreateReturn(false);
                   setSelectedSale(null);
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 font-medium"
               >
                 Annuler
-              </button>
+              </Button>
             )}
           </div>
-        </div>
+        }
+      />
 
         {/* Filters Area (Only visible in list mode) */}
         {!showCreateReturn && (
@@ -345,7 +329,6 @@ export default function ReturnsPage() {
             </div>
           </div>
         )}
-      </div>
 
       {/* Main Content Area */}
       <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-6 min-h-[60vh]">

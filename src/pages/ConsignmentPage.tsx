@@ -12,7 +12,6 @@ import {
   Calendar,
   Archive,
   Filter,
-  ArrowLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -28,6 +27,7 @@ import { Sale, SaleItem, Consignment } from '../types';
 import { getSaleDate } from '../utils/saleHelpers';
 import { useViewport } from '../hooks/useViewport';
 import { Button } from '../components/ui/Button';
+import { PageHeader } from '../components/common/PageHeader';
 
 type TabType = 'create' | 'active' | 'history';
 
@@ -38,33 +38,14 @@ export default function ConsignmentPage() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-4">
-      <div className="bg-white rounded-xl shadow-sm border border-amber-100 overflow-hidden">
-        {/* Header */}
-        <div className="bg-white p-4 flex items-center justify-between border-b border-gray-100">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate(-1)}
-              className="rounded-full transition-colors hover:bg-gray-100"
-            >
-              <ArrowLeft size={24} className="text-gray-600" />
-            </Button>
-            <div className="bg-amber-100 p-2 rounded-lg">
-              <Package className="w-6 h-6 text-amber-600" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">
-                {isMobile ? 'Consignations' : 'Gestion des Consignations'}
-              </h1>
-              <p className="hidden sm:block text-gray-500 text-sm">
-                Gérer les produits consignés et récupérations
-              </p>
-            </div>
-          </div>
-        </div>
+      <PageHeader
+        title={isMobile ? 'Consignations' : 'Gestion des Consignations'}
+        subtitle="Gérer les produits consignés et récupérations"
+        icon={<Package className="w-6 h-6 text-amber-600" />}
+      />
 
-        {/* Tabs Navigation */}
+      {/* Tabs Navigation and Content */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="border-b border-gray-200 bg-gray-50">
           <div className="flex overflow-x-auto">
             <TabButton
