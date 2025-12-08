@@ -2,7 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { Edit2, Trash2, ArrowUpDown, Package, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { GlobalProduct } from '../types';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
-import { EmptyProductsState } from './EmptyProductsState'; // Réutilisation du composant générique
+import { EmptyProductsState } from './EmptyProductsState';
+import { Input } from './ui/Input';
+import { Select, SelectOption } from './ui/Select';
 
 interface GlobalProductListProps {
     products: GlobalProduct[];
@@ -25,9 +27,13 @@ export function GlobalProductList({ products, onEdit, onDelete }: GlobalProductL
     const itemsPerPage = 10;
 
     // Extraire les catégories uniques pour le filtre
-    const categories = useMemo(() => {
+    const categoryOptions: SelectOption[] = useMemo(() => {
         const cats = new Set(products.map(p => p.category));
-        return Array.from(cats).sort();
+        const sortedCats = Array.from(cats).sort();
+        return [
+            { value: 'all', label: 'Toutes les catégories' },
+            ...sortedCats.map(cat => ({ value: cat, label: cat }))
+        ];
     }, [products]);
 
     // Logique de Tri
@@ -101,29 +107,24 @@ export function GlobalProductList({ products, onEdit, onDelete }: GlobalProductL
         <div className="space-y-4">
             {/* Barre d'outils (Recherche & Filtres) */}
             <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                <div className="relative w-full sm:w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input
+                <div className="w-full sm:w-64">
+                    <Input
                         type="text"
                         placeholder="Rechercher un produit..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+                        leftIcon={<Search size={18} />}
                     />
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
                     <Filter className="text-gray-400" size={18} />
-                    <select
+                    <Select
+                        options={categoryOptions}
                         value={selectedCategory}
                         onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="w-full sm:w-48 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 bg-white"
-                    >
-                        <option value="all">Toutes les catégories</option>
-                        {categories.map(cat => (
-                            <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                    </select>
+                        className="w-full sm:w-48"
+                    />
                 </div>
             </div>
 
