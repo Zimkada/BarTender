@@ -21,6 +21,7 @@ import { Sale, SaleItem, Return, ReturnReason, ReturnReasonConfig } from '../typ
 import { getBusinessDate, getCurrentBusinessDateString } from '../utils/businessDateHelpers';
 import { getSaleDate } from '../utils/saleHelpers';
 import { useViewport } from '../hooks/useViewport';
+import { Button } from '../components/ui/Button';
 
 const returnReasons: Record<ReturnReason, ReturnReasonConfig> = {
   defective: {
@@ -274,9 +275,14 @@ export default function ReturnsPage() {
       <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="rounded-full transition-colors hover:bg-gray-100"
+            >
               <ArrowLeft size={24} className="text-gray-600" />
-            </button>
+            </Button>
             <div className="flex items-center gap-3">
               <div className="bg-amber-100 p-2 rounded-lg">
                 <RotateCcw size={24} className="text-amber-600" />

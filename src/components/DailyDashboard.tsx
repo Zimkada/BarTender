@@ -18,6 +18,7 @@ import { Sale, SaleItem, User as UserType } from '../types';
 import { AnalyticsService, DailySalesSummary } from '../services/supabase/analytics.service';
 import { useTopProducts } from '../hooks/queries/useTopProductsQuery';
 import { getCurrentBusinessDateString } from '../utils/dateRangeCalculator';
+import { Button } from './ui/Button';
 
 // Sous-composant pour les ventes en attente
 const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users }: {
@@ -181,7 +182,9 @@ export function DailyDashboard() {
       <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden">
         <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
           <div className="flex items-center gap-4">
-            <button onClick={() => navigate(-1)} className="p-2 hover:bg-white/20 rounded-lg"><ArrowLeft size={24} /></button>
+            <Button onClick={() => navigate(-1)} className="p-2 hover:bg-white/20 rounded-lg" variant="ghost" size="icon">
+              <ArrowLeft size={24} />
+            </Button>
             <div className="flex items-center gap-3">
               <TrendingUp size={24} />
               <div>

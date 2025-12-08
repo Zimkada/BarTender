@@ -7,6 +7,7 @@ import { useBarContext } from '../context/BarContext';
 import { UserRole } from '../types';
 import { AuthService } from '../services/supabase/auth.service';
 import { useViewport } from '../hooks/useViewport';
+import { Button } from '../components/ui/Button';
 
 /**
  * TeamManagementPage - Page de gestion de l'équipe
@@ -155,12 +156,14 @@ export default function TeamManagementPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden">
         <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
           <div className="flex items-center gap-4">
-            <button
+            <Button
               onClick={() => navigate(-1)}
-              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+              variant="ghost"
+              size="icon"
+              className="rounded-lg transition-colors hover:bg-white/20"
             >
               <ArrowLeft size={24} />
-            </button>
+            </Button>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                 <Users className="text-white" size={24} />

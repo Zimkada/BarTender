@@ -30,6 +30,7 @@ import { useSalesStats } from '../features/Sales/SalesHistory/hooks/useSalesStat
 import { AnalyticsView } from '../features/Sales/SalesHistory/views/AnalyticsView';
 import { SalesListView } from '../features/Sales/SalesHistory/views/SalesListView';
 import { SalesCardsView, SaleCard } from '../features/Sales/SalesHistory/views/SalesCardsView';
+import { Button } from '../components/ui/Button';
 
 type ViewMode = 'list' | 'cards' | 'analytics';
 
@@ -323,7 +324,15 @@ export default function SalesHistoryPage() {
                     <div className="flex flex-col h-full">
                         {/* Header mobile */}
                         <div className="flex-shrink-0 bg-gradient-to-r from-amber-500 to-amber-500 text-white p-4">
-                            <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3 mb-2">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => navigate(-1)}
+                                    className="rounded-lg transition-colors hover:bg-white/20"
+                                >
+                                    <ArrowLeft size={24} />
+                                </Button>
                                 <div className="flex items-center gap-3">
                                     <TrendingUp size={24} />
                                     <div>
@@ -331,9 +340,6 @@ export default function SalesHistoryPage() {
                                         <p className="text-xs text-amber-100">{filteredSales.length} ventes</p>
                                     </div>
                                 </div>
-                                <button onClick={() => navigate(-1)} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
-                                    <ArrowLeft size={24} />
-                                </button>
                             </div>
                             <button
                                 onClick={exportSales}
@@ -508,7 +514,15 @@ export default function SalesHistoryPage() {
                     <>
                         {/* Header desktop */}
                         <div className="flex-shrink-0 bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
-                            <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3 mb-3">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => navigate(-1)}
+                                    className="rounded-lg transition-colors hover:bg-white/20"
+                                >
+                                    <ArrowLeft size={24} />
+                                </Button>
                                 <div className="flex items-center gap-3">
                                     <TrendingUp size={28} />
                                     <div>
@@ -524,9 +538,6 @@ export default function SalesHistoryPage() {
                                         <p className="text-sm text-amber-100">{filteredSales.length} ventes trouvées</p>
                                     </div>
                                 </div>
-                                <button onClick={() => navigate(-1)} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
-                                    <ArrowLeft size={24} />
-                                </button>
                             </div>
                             <div className="flex items-center gap-2">
                                 {/* Sélecteur de format d'export */}
@@ -757,7 +768,7 @@ function SaleDetailModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
         >
             <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}

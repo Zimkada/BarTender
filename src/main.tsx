@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from 'react-router-dom';
+import { ErrorBoundary } from 'react-error-boundary'; // Ajout de l'import ErrorBoundary
 
 // Contexts
 import { AuthProvider } from './context/AuthContext';
@@ -10,8 +11,9 @@ import { BarProvider } from './context/BarContext';
 import { StockProvider } from './context/StockContext';
 import { StockBridgeProvider } from './context/StockBridgeProvider';
 import { AppProvider } from './context/AppContext';
-import { ModalProvider } from './context/ModalContext'; // ✅ NEW
+import { ModalProvider } from './context/ModalContext';
 import { NotificationsProvider } from './components/Notifications';
+import { ErrorFallback } from './components/common/ErrorFallback'; // Ajout de l'import ErrorFallback
 
 // Config
 import { queryClient } from './lib/react-query';
@@ -31,7 +33,9 @@ createRoot(document.getElementById('root')!).render(
               <StockBridgeProvider>
                 <AppProvider>
                   <ModalProvider>
-                    <RouterProvider router={router} />
+                    <ErrorBoundary FallbackComponent={ErrorFallback} onError={(error, info) => console.error("Caught an error:", error, info)}>
+                      <RouterProvider router={router} />
+                    </ErrorBoundary>
                   </ModalProvider>
                 </AppProvider>
               </StockBridgeProvider>

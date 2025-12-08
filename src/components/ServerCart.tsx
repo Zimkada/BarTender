@@ -3,7 +3,6 @@ import { ShoppingCart, Plus, Minus, Trash2, Send, Tag } from 'lucide-react';
 import { CartItem } from '../types';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
-import { FeedbackButton } from './FeedbackButton';
 import { EnhancedButton } from './EnhancedButton';
 import { AnimatedCounter } from './AnimatedCounter';
 import { usePromotions } from '../hooks/usePromotions';
@@ -181,7 +180,7 @@ export function ServerCart({
             Lancer la commande
           </EnhancedButton>
 
-          <FeedbackButton
+          <button
             onClick={() => {
               if (confirm('Annuler la commande ?')) {
                 onClear();
@@ -190,7 +189,7 @@ export function ServerCart({
             className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300"
           >
             Annuler
-          </FeedbackButton>
+          </button>
         </div>
       </div>
     </div>

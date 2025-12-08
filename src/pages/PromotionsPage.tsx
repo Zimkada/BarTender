@@ -27,6 +27,7 @@ import { fr } from 'date-fns/locale';
 import { EnhancedButton } from '../components/EnhancedButton';
 import { PromotionForm } from '../components/promotions/PromotionForm';
 import { PromotionsAnalytics } from '../components/promotions/PromotionsAnalytics';
+import { Button } from '../components/ui/Button';
 
 /**
  * PromotionsPage - Page de gestion des promotions
@@ -137,9 +138,14 @@ export default function PromotionsPage() {
                 <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <button onClick={() => navigate(-1)} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => navigate(-1)}
+                                className="rounded-lg transition-colors hover:bg-white/20"
+                            >
                                 <ArrowLeft size={24} />
-                            </button>
+                            </Button>
                             <div>
                                 <h1 className="text-xl font-bold flex items-center gap-2">
                                     <Gift size={24} />

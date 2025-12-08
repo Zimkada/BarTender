@@ -8,6 +8,7 @@ import { SalaryManager } from '../components/SalaryManager';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { useViewport } from '../hooks/useViewport';
+import { Button } from '../components/ui/Button';
 
 type TabType = 'overview' | 'expenses' | 'salaries';
 
@@ -43,12 +44,14 @@ export default function AccountingPage() {
             <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden">
                 <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
                     <div className="flex items-center gap-4">
-                        <button
+                        <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => navigate(-1)}
-                            className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                            className="rounded-lg transition-colors hover:bg-white/20"
                         >
                             <ArrowLeft size={24} />
-                        </button>
+                        </Button>
                         <div className="flex items-center gap-3">
                             <DollarSign size={isMobile ? 28 : 32} />
                             <div>

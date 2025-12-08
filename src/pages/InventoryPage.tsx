@@ -10,6 +10,7 @@ import { Product } from '../types';
 import { motion } from 'framer-motion';
 import { useFeedback } from '../hooks/useFeedback';
 import { useViewport } from '../hooks/useViewport';
+import { useFeatureFlag } from '../hooks/useFeatureFlag'; // 1. IMPORT DU HOOK
 import { ProductImport } from '../components/ProductImport';
 import { searchProducts } from '../utils/productFilters';
 import { sortProducts, SortMode } from '../utils/productSorting';
@@ -18,6 +19,7 @@ import { CollapsibleSection } from '../components/common/CollapsibleSection';
 import { CategoryStatsList } from '../components/common/CategoryStatsList';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
 import { EmptyState } from '../components/common/EmptyState';
+import { Button } from '../components/ui/Button';
 
 /**
  * InventoryPage - Page de gestion des produits
@@ -43,6 +45,9 @@ export default function InventoryPage() {
     const [showProductImport, setShowProductImport] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | undefined>();
     const { showSuccess } = useFeedback();
+
+    // 2. UTILISATION DU HOOK POUR LE FEATURE FLAG
+    const { data: isProductImportEnabled } = useFeatureFlag('product-import');
 
     // États pour confirmation suppression
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
@@ -153,12 +158,14 @@ export default function InventoryPage() {
                     <div className="px-4 py-3">
                         <div className="flex items-center justify-between mb-3">
                             <div className="flex items-center gap-3">
-                                <button
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
                                     onClick={() => navigate(-1)}
-                                    className="p-2 hover:bg-white/20 rounded-lg"
+                                    className="rounded-lg hover:bg-white/20"
                                 >
                                     <ArrowLeft size={20} />
-                                </button>
+                                </Button>
                                 <h2 className="text-lg font-bold flex items-center gap-2">
                                     <Package size={20} />
                                     Inventaire
@@ -166,13 +173,16 @@ export default function InventoryPage() {
                             </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            <button
-                                onClick={() => setShowProductImport(true)}
-                                className="flex-1 min-w-[120px] px-3 py-2 bg-white/20 backdrop-blur rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-white/30"
-                            >
-                                <UploadCloud size={16} />
-                                Importer
-                            </button>
+                            {/* 3. CONDITION D'AFFICHAGE DU BOUTON MOBILE */}
+                            {isProductImportEnabled && (
+                                <button
+                                    onClick={() => setShowProductImport(true)}
+                                    className="flex-1 min-w-[120px] px-3 py-2 bg-white/20 backdrop-blur rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-white/30"
+                                >
+                                    <UploadCloud size={16} />
+                                    Importer
+                                </button>
+                            )}
                             <button
                                 onClick={() => setShowSupplyModal(true)}
                                 className="flex-1 min-w-[120px] px-3 py-2 bg-white/20 backdrop-blur rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-white/30"
@@ -380,12 +390,14 @@ export default function InventoryPage() {
                 <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-4">
-                            <button
+                            <Button
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => navigate(-1)}
-                                className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                                className="rounded-lg transition-colors hover:bg-white/20"
                             >
                                 <ArrowLeft size={24} />
-                            </button>
+                            </Button>
                             <div className="flex items-center gap-3">
                                 <Package size={28} />
                                 <div>
@@ -395,13 +407,16 @@ export default function InventoryPage() {
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => setShowProductImport(true)}
-                                className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors flex items-center gap-2"
-                            >
-                                <UploadCloud size={18} />
-                                <span className="text-sm font-medium">Importer</span>
-                            </button>
+                            {/* 4. CONDITION D'AFFICHAGE DU BOUTON DESKTOP */}
+                            {isProductImportEnabled && (
+                                <button
+                                    onClick={() => setShowProductImport(true)}
+                                    className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors flex items-center gap-2"
+                                >
+                                    <UploadCloud size={18} />
+                                    <span className="text-sm font-medium">Importer</span>
+                                </button>
+                            )}
                             <button
                                 onClick={() => setShowSupplyModal(true)}
                                 className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors flex items-center gap-2"

@@ -27,6 +27,7 @@ import type { User as UserType } from '../types';
 import { Sale, SaleItem, Consignment } from '../types';
 import { getSaleDate } from '../utils/saleHelpers';
 import { useViewport } from '../hooks/useViewport';
+import { Button } from '../components/ui/Button';
 
 type TabType = 'create' | 'active' | 'history';
 
@@ -41,9 +42,14 @@ export default function ConsignmentPage() {
         {/* Header */}
         <div className="bg-white p-4 flex items-center justify-between border-b border-gray-100">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="rounded-full transition-colors hover:bg-gray-100"
+            >
               <ArrowLeft size={24} className="text-gray-600" />
-            </button>
+            </Button>
             <div className="bg-amber-100 p-2 rounded-lg">
               <Package className="w-6 h-6 text-amber-600" />
             </div>

@@ -5,6 +5,7 @@ import { ArrowLeft, BarChart3 } from 'lucide-react';
 import AnalyticsCharts from '../components/AnalyticsCharts';
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
+import { Button } from '../components/ui/Button';
 
 /**
  * Page Analytics - Wrapper pour AnalyticsCharts avec données
@@ -90,12 +91,14 @@ export default function AnalyticsPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden">
         <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
           <div className="flex items-center gap-4">
-            <button 
-              onClick={() => navigate(-1)} 
-              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="rounded-lg transition-colors hover:bg-white/20"
             >
               <ArrowLeft size={24} />
-            </button>
+            </Button>
             <div className="flex items-center gap-3">
               <BarChart3 size={28} />
               <div>

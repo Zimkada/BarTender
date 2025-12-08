@@ -1,21 +1,26 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Package, Plus, Loader2 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { Package, Plus, Loader2, LucideIcon } from 'lucide-react';
 
 interface EmptyProductsStateProps {
-  isLoading: boolean;
-  categoryName?: string;
-  onAddProduct?: () => void;
+  isLoading?: boolean;
+  title?: string;
+  message?: string;
+  icon?: LucideIcon;
+  actionLabel?: string;
+  onAction?: () => void;
+  className?: string; // Pour styling custom si besoin
 }
 
 export function EmptyProductsState({
-  isLoading,
-  categoryName,
-  onAddProduct
+  isLoading = false,
+  title = "Aucun produit trouvé",
+  message = "Cette liste est vide pour le moment.",
+  icon: Icon = Package,
+  actionLabel,
+  onAction,
+  className = ""
 }: EmptyProductsStateProps) {
-  const { hasPermission } = useAuth();
-  const canAddProducts = hasPermission('canAddProducts');
 
   // État de chargement
   if (isLoading) {
@@ -23,7 +28,7 @@ export function EmptyProductsState({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/60 backdrop-blur-sm rounded-2xl p-12 shadow-sm border border-amber-100 text-center"
+        className={`bg-white/60 backdrop-blur-sm rounded-2xl p-12 shadow-sm border border-amber-100 text-center ${className}`}
       >
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
@@ -35,10 +40,10 @@ export function EmptyProductsState({
 
           <div>
             <h3 className="text-xl font-semibold text-gray-800 mb-2">
-              Chargement des produits...
+              Chargement en cours...
             </h3>
             <p className="text-gray-600 text-sm">
-              {categoryName ? `Catégorie: ${categoryName}` : 'Préparation de votre catalogue'}
+              Veuillez patienter un instant
             </p>
           </div>
         </div>
@@ -46,49 +51,42 @@ export function EmptyProductsState({
     );
   }
 
-  // État vide (pas de produits)
+  // État vide générique
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-12 shadow-sm border-2 border-dashed border-amber-300 text-center"
+      className={`bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-12 shadow-sm border-2 border-dashed border-amber-300 text-center ${className}`}
     >
       <div className="flex flex-col items-center gap-6 max-w-md mx-auto">
         <div className="relative">
           <div className="absolute inset-0 bg-amber-400/20 blur-2xl rounded-full" />
           <div className="relative bg-white p-6 rounded-full shadow-lg">
-            <Package className="w-16 h-16 text-amber-600" />
+            <Icon className="w-16 h-16 text-amber-600" />
           </div>
         </div>
 
         <div>
-          <h3 className="text-2xl font-bold text-gray-800 mb-2">
-            Aucun produit dans cette catégorie
-          </h3>
+          {title && (
+            <h3 className="text-2xl font-bold text-gray-800 mb-2">
+              {title}
+            </h3>
+          )}
           <p className="text-gray-600">
-            {categoryName
-              ? `La catégorie "${categoryName}" ne contient pas encore de produits.`
-              : "Cette catégorie est vide pour le moment."
-            }
+            {message}
           </p>
         </div>
 
-        {canAddProducts && onAddProduct && (
+        {onAction && actionLabel && (
           <motion.button
-            onClick={onAddProduct}
+            onClick={onAction}
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95 }}
             className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-full font-semibold hover:shadow-lg transition-all"
           >
             <Plus size={20} />
-            Ajouter un produit
+            {actionLabel}
           </motion.button>
-        )}
-
-        {!canAddProducts && (
-          <p className="text-sm text-gray-500 italic">
-            Contactez un gérant pour ajouter des produits
-          </p>
         )}
       </div>
     </motion.div>

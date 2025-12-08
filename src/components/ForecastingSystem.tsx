@@ -26,6 +26,7 @@ import { EnhancedButton } from './EnhancedButton';
 import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import * as XLSX from 'xlsx';
 import { ForecastingService, ProductSalesStats, OrderSuggestion } from '../services/supabase/forecasting.service';
+import { Button } from './ui/Button';
 
 interface StockAlert {
   id: string;
@@ -215,9 +216,14 @@ export function ForecastingSystem() {
       <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <button onClick={() => navigate(-1)} className="p-1 hover:bg-white/20 rounded-lg transition-colors">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="rounded-lg transition-colors hover:bg-white/20"
+            >
               <ArrowLeft size={isMobile ? 20 : 24} />
-            </button>
+            </Button>
             <TrendingUp size={isMobile ? 20 : 24} />
             <div className="flex items-center gap-2">
               <h2 className={`font-bold ${isMobile ? 'text-lg' : 'text-xl'}`}>

@@ -6,6 +6,7 @@ import { SalesService } from '../services/supabase/sales.service';
 import { useBarContext } from '../context/BarContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { LoadingFallback } from '../components/LoadingFallback';
+import { Button } from '../components/ui/Button';
 
 /**
  * Page Détails d'une Vente
@@ -71,12 +72,14 @@ export default function SaleDetailsPage() {
     <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => navigate('/sales')}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="rounded-lg transition-colors hover:bg-gray-100"
         >
           <ArrowLeft size={24} className="text-gray-600" />
-        </button>
+        </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-800">
             Vente #{sale.id.slice(-6).toUpperCase()}
