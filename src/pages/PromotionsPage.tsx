@@ -28,6 +28,8 @@ import { EnhancedButton } from '../components/EnhancedButton';
 import { PromotionForm } from '../components/promotions/PromotionForm';
 import { PromotionsAnalytics } from '../components/promotions/PromotionsAnalytics';
 import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Select, SelectOption } from '../components/ui/Select';
 
 /**
  * PromotionsPage - Page de gestion des promotions
@@ -45,6 +47,16 @@ export default function PromotionsPage() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
     const [view, setView] = useState<'list' | 'analytics'>('list');
+
+    // Options pour le filtre de statut
+    const statusFilterOptions: SelectOption[] = [
+        { value: 'all', label: 'Tous les statuts' },
+        { value: 'active', label: 'Actives' },
+        { value: 'scheduled', label: 'Programmées' },
+        { value: 'paused', label: 'En pause' },
+        { value: 'expired', label: 'Expirées' },
+        { value: 'draft', label: 'Brouillons' },
+    ];
 
     useEffect(() => {
         if (currentBar) {
@@ -183,30 +195,22 @@ export default function PromotionsPage() {
                     {/* Toolbar */}
                     <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-4 mb-6 flex flex-wrap gap-4 justify-between items-center">
                         <div className="flex gap-4 flex-1">
-                            <div className="relative flex-1 max-w-md">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                                <input
+                            <div className="flex-1 max-w-md">
+                                <Input
                                     type="text"
                                     placeholder="Rechercher une promotion..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500"
+                                    leftIcon={<Search size={20} />}
                                 />
                             </div>
                             <div className="flex items-center gap-2">
                                 <Filter size={20} className="text-gray-400" />
-                                <select
+                                <Select
+                                    options={statusFilterOptions}
                                     value={statusFilter}
                                     onChange={(e) => setStatusFilter(e.target.value as any)}
-                                    className="border border-gray-200 rounded-xl px-3 py-2 focus:ring-2 focus:ring-amber-500"
-                                >
-                                    <option value="all">Tous les statuts</option>
-                                    <option value="active">Actives</option>
-                                    <option value="scheduled">Programmées</option>
-                                    <option value="paused">En pause</option>
-                                    <option value="expired">Expirées</option>
-                                    <option value="draft">Brouillons</option>
-                                </select>
+                                />
                             </div>
                         </div>
                         <EnhancedButton
