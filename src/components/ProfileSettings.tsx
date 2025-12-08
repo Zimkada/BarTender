@@ -17,6 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import { AuthService } from '../services/supabase/auth.service';
 import { supabase } from '../lib/supabase';
 import type { User as UserType } from '../types';
+import { Input } from './ui/Input';
 
 interface ProfileSettingsProps {
   isOpen: boolean;
@@ -287,48 +288,35 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
                   {activeTab === 'info' && (
                     <div className="space-y-4">
                       {/* Nom */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Nom complet *
-                        </label>
-                        <input
-                          type="text"
-                          value={name}
-                          onChange={e => setName(e.target.value)}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                          placeholder="Jean Dupont"
-                        />
-                      </div>
+                      <Input
+                        label="Nom complet"
+                        type="text"
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        placeholder="Jean Dupont"
+                        required
+                      />
 
                       {/* Email */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                          <Mail className="w-4 h-4" />
-                          Email
-                        </label>
-                        <input
-                          type="email"
-                          value={email}
-                          onChange={e => setEmail(e.target.value)}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                          placeholder="email@exemple.com"
-                        />
-                      </div>
+                      <Input
+                        label="Email"
+                        type="email"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        placeholder="email@exemple.com"
+                        leftIcon={<Mail className="w-4 h-4" />}
+                      />
 
                       {/* Téléphone */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
-                          <Phone className="w-4 h-4" />
-                          Téléphone *
-                        </label>
-                        <input
-                          type="tel"
-                          value={phone}
-                          onChange={e => setPhone(e.target.value)}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                          placeholder="0197000000"
-                        />
-                      </div>
+                      <Input
+                        label="Téléphone"
+                        type="tel"
+                        value={phone}
+                        onChange={e => setPhone(e.target.value)}
+                        placeholder="0197000000"
+                        leftIcon={<Phone className="w-4 h-4" />}
+                        required
+                      />
 
                       {/* Infos en lecture seule */}
                       <div className="bg-gray-50 rounded-lg p-4 space-y-2 mt-6">
@@ -366,48 +354,43 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
                     <div className="space-y-4">
                       {/* Mot de passe actuel */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Mot de passe actuel *
-                        </label>
-                        <div className="relative">
-                          <input
-                            type={showCurrentPassword ? 'text' : 'password'}
-                            value={currentPassword}
-                            onChange={e => setCurrentPassword(e.target.value)}
-                            className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            placeholder="••••••••"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                          >
-                            {showCurrentPassword ? (
-                              <EyeOff className="w-5 h-5" />
-                            ) : (
-                              <Eye className="w-5 h-5" />
-                            )}
-                          </button>
-                        </div>
+                        <Input
+                          label="Mot de passe actuel"
+                          type={showCurrentPassword ? 'text' : 'password'}
+                          value={currentPassword}
+                          onChange={e => setCurrentPassword(e.target.value)}
+                          placeholder="••••••••"
+                          required
+                          rightIcon={
+                            <button
+                              type="button"
+                              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                              className="text-gray-400 hover:text-gray-600"
+                            >
+                              {showCurrentPassword ? (
+                                <EyeOff className="w-5 h-5" />
+                              ) : (
+                                <Eye className="w-5 h-5" />
+                              )}
+                            </button>
+                          }
+                        />
                       </div>
 
                       {/* Nouveau mot de passe */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Nouveau mot de passe *
-                        </label>
-                        <div className="relative">
-                          <input
-                            type={showNewPassword ? 'text' : 'password'}
-                            value={newPassword}
-                            onChange={e => setNewPassword(e.target.value)}
-                            className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            placeholder="••••••••"
-                          />
+                      <Input
+                        label="Nouveau mot de passe"
+                        type={showNewPassword ? 'text' : 'password'}
+                        value={newPassword}
+                        onChange={e => setNewPassword(e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        helperText="Minimum 4 caractères"
+                        rightIcon={
                           <button
                             type="button"
                             onClick={() => setShowNewPassword(!showNewPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            className="text-gray-400 hover:text-gray-600"
                           >
                             {showNewPassword ? (
                               <EyeOff className="w-5 h-5" />
@@ -415,29 +398,22 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
                               <Eye className="w-5 h-5" />
                             )}
                           </button>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Minimum 4 caractères
-                        </p>
-                      </div>
+                        }
+                      />
 
                       {/* Confirmer nouveau mot de passe */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Confirmer le nouveau mot de passe *
-                        </label>
-                        <div className="relative">
-                          <input
-                            type={showConfirmPassword ? 'text' : 'password'}
-                            value={confirmPassword}
-                            onChange={e => setConfirmPassword(e.target.value)}
-                            className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            placeholder="••••••••"
-                          />
+                      <Input
+                        label="Confirmer le nouveau mot de passe"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        value={confirmPassword}
+                        onChange={e => setConfirmPassword(e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        rightIcon={
                           <button
                             type="button"
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            className="text-gray-400 hover:text-gray-600"
                           >
                             {showConfirmPassword ? (
                               <EyeOff className="w-5 h-5" />
@@ -445,8 +421,8 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
                               <Eye className="w-5 h-5" />
                             )}
                           </button>
-                        </div>
-                      </div>
+                        }
+                      />
 
                       {/* Conseils sécurité */}
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
