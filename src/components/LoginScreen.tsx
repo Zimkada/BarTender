@@ -3,6 +3,7 @@ import { Building2, User as UserIcon, Lock, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
+import { Input } from './ui/Input';
 
 
 function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgotPassword: () => void }) {
@@ -172,20 +173,16 @@ function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgotPasswor
           </div>
 
           <form onSubmit={handleMfaVerify} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Code à 6 chiffres
-              </label>
-              <input
-                type="text"
-                value={mfaCode}
-                onChange={(e) => setMfaCode(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-center text-xl tracking-widest"
-                placeholder="XXXXXX"
-                maxLength={6}
-                autoFocus
-              />
-            </div>
+            <Input
+              label="Code à 6 chiffres"
+              type="text"
+              value={mfaCode}
+              onChange={(e) => setMfaCode(e.target.value)}
+              placeholder="XXXXXX"
+              maxLength={6}
+              autoFocus
+              className="text-center text-xl tracking-widest"
+            />
 
             {mfaError && (
               <motion.div
@@ -241,32 +238,22 @@ function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgotPasswor
           </div>
 
           <form onSubmit={handlePasswordChange} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nouveau mot de passe
-              </label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                placeholder="Minimum 4 caractères"
-                autoFocus
-              />
-            </div>
+            <Input
+              label="Nouveau mot de passe"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Minimum 4 caractères"
+              autoFocus
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Confirmer le mot de passe
-              </label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                placeholder="Retapez le mot de passe"
-              />
-            </div>
+            <Input
+              label="Confirmer le mot de passe"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Retapez le mot de passe"
+            />
 
             {error && (
               <motion.div
@@ -308,38 +295,24 @@ function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgotPasswor
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email ou Nom d'utilisateur
-            </label>
-            <div className="relative">
-              <UserIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <input
-                type="text"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                placeholder="Email ou nom d'utilisateur"
-                autoComplete="username"
-              />
-            </div>
-          </div>
+          <Input
+            label="Email ou Nom d'utilisateur"
+            type="text"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email ou nom d'utilisateur"
+            autoComplete="username"
+            leftIcon={<UserIcon size={20} />}
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Mot de passe
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                placeholder="••••••••"
-              />
-            </div>
-          </div>
+          <Input
+            label="Mot de passe"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            leftIcon={<Lock size={20} />}
+          />
 
           <AnimatePresence>
             {error && (
