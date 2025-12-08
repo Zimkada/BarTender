@@ -11,6 +11,7 @@ import { useAppContext } from '../context/AppContext'; // NEW
 import { usePromotions } from '../hooks/usePromotions';
 import { FEATURES } from '../config/features';
 import { PaymentMethodSelector, PaymentMethod } from './cart/PaymentMethodSelector';
+import { Select, SelectOption } from './ui/Select';
 
 interface CartProps {
   isOpen: boolean;
@@ -77,6 +78,16 @@ export function Cart({
   const [selectedServer, setSelectedServer] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
+
+  // Préparer les options pour le select serveur
+  const serverOptions: SelectOption[] = [
+    { value: '', label: 'Sélectionner un serveur...' },
+    { value: `Moi (${currentSession?.userName})`, label: `Moi (${currentSession?.userName})` },
+    ...(currentBar?.settings?.serversList || []).map(serverName => ({
+      value: serverName,
+      label: serverName
+    }))
+  ];
 
   // ==================== VERSION MOBILE (99% utilisateurs Bénin) ====================
   if (isMobile) {
@@ -214,25 +225,14 @@ export function Cart({
                 {/* Sélecteur serveur (mode simplifié uniquement) */}
                 {isSimplifiedMode && (
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                      <Users size={16} className="text-amber-500" />
-                      Serveur qui a servi
-                    </label>
-                    <select
+                    <Select
+                      label="Serveur qui a servi"
+                      options={serverOptions}
                       value={selectedServer}
                       onChange={(e) => setSelectedServer(e.target.value)}
-                      className="w-full px-4 py-3 border border-amber-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-base"
-                    >
-                      <option value="">Sélectionner un serveur...</option>
-                      <option value={`Moi (${currentSession?.userName})`}>
-                        Moi ({currentSession?.userName})
-                      </option>
-                      {currentBar?.settings?.serversList?.map((serverName) => (
-                        <option key={serverName} value={serverName}>
-                          {serverName}
-                        </option>
-                      ))}
-                    </select>
+                      size="lg"
+                      leftIcon={<Users size={16} className="text-amber-500" />}
+                    />
                   </div>
                 )}
 
@@ -406,27 +406,14 @@ export function Cart({
             <div className="p-4 border-t border-amber-200 space-y-3">
               {/* Sélecteur serveur (mode simplifié uniquement) */}
               {isSimplifiedMode && (
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5 flex items-center gap-1">
-                    <Users size={14} className="text-amber-500" />
-                    Serveur
-                  </label>
-                  <select
-                    value={selectedServer}
-                    onChange={(e) => setSelectedServer(e.target.value)}
-                    className="w-full px-3 py-2 border border-amber-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm"
-                  >
-                    <option value="">Sélectionner...</option>
-                    <option value={`Moi (${currentSession?.userName})`}>
-                      Moi ({currentSession?.userName})
-                    </option>
-                    {currentBar?.settings?.serversList?.map((serverName) => (
-                      <option key={serverName} value={serverName}>
-                        {serverName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <Select
+                  label="Serveur"
+                  options={serverOptions}
+                  value={selectedServer}
+                  onChange={(e) => setSelectedServer(e.target.value)}
+                  size="sm"
+                  leftIcon={<Users size={14} className="text-amber-500" />}
+                />
               )}
 
               {/* Mode de paiement */}
