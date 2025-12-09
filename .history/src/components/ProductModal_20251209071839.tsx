@@ -179,45 +179,42 @@ export function ProductModal({ isOpen, onClose, onSave, product }: ProductModalP
       }
     >
       {!product && (
-        <div className="flex p-2 gap-2 bg-gray-50 border-b border-gray-100">
-          <Button
-            type="button"
-            variant="ghost"
+        <div className="flex p-2 bg-gray-50 border-b border-gray-100">
+          <button
             onClick={() => setMode('custom')}
-            className={`flex-1 ${mode === 'custom'
-                ? 'bg-white text-amber-600 shadow-sm border border-gray-200 hover:bg-white'
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${mode === 'custom'
+                ? 'bg-white text-amber-600 shadow-sm border border-gray-200'
                 : 'text-gray-500 hover:bg-gray-100'
               }`}
           >
-            <PenTool size={16} className="mr-2" />
+            <PenTool size={16} />
             Produit Personnalisé
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
+          </button>
+          <button
             onClick={() => setMode('global')}
-            className={`flex-1 ${mode === 'global'
-                ? 'bg-white text-blue-600 shadow-sm border border-gray-200 hover:bg-white'
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${mode === 'global'
+                ? 'bg-white text-blue-600 shadow-sm border border-gray-200'
                 : 'text-gray-500 hover:bg-gray-100'
               }`}
           >
-            <Globe size={16} className="mr-2" />
+            <Globe size={16} />
             Catalogue Global
-          </Button>
+          </button>
         </div>
       )}
 
       <div className="flex-1 overflow-y-auto p-4">
         {mode === 'global' && !product ? (
           <div className="space-y-4">
-                                                <Input
-                                                  type="text"
-                                                  placeholder="Rechercher dans le catalogue..."
-                                                  value={searchTerm}
-                                                  onChange={(e) => setSearchTerm(e.target.value)}
-                                                  leftIcon={<Search size={18} />}
-                                                  className="bg-gray-50"
-                                                />                              {isLoadingGlobal ? (
+                              <Input
+                                type="text"
+                                placeholder="Rechercher dans le catalogue..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                icon={<Search size={18} />}
+                                className="bg-gray-50"
+                              />
+                              {isLoadingGlobal ? (
                                 <div className="flex justify-center py-8">
                                   <Spinner size="lg" />
                                 </div>
@@ -290,13 +287,14 @@ export function ProductModal({ isOpen, onClose, onSave, product }: ProductModalP
                                       </div>
                                       <div>
                                         <Label htmlFor="categoryId">Catégorie *</Label>
-                                                                <Select
-                                                                    id="categoryId"
-                                                                    required
-                                                                    value={formData.categoryId}
-                                                                    onChange={(e) => handleInputChange('categoryId', e.target.value)}
-                                                                    options={categoryOptions}
-                                                                />                                      </div>              </div>
+                                        <Select
+                                            id="categoryId"
+                                            required
+                                            value={formData.categoryId}
+                                            onValueChange={(value) => value && handleInputChange('categoryId', value)}
+                                            options={categoryOptions}
+                                        />
+                                      </div>              </div>
 
               <div className="space-y-4">
                 <ImageUpload

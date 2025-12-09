@@ -10,6 +10,10 @@ import { CartItem, Product } from '../types';
 import { Users, Gift } from 'lucide-react';
 import { PromotionsManager } from './promotions/PromotionsManager';
 import { PaymentMethod } from './cart/PaymentMethodSelector';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
+import { Label } from './ui/Label';
+import { Card } from './ui/Card';
 
 interface ServerInterfaceProps {
   onSwitchToManager: () => void;
@@ -148,43 +152,40 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowPromotionsManager(true)}
-              className="px-4 py-2 bg-purple-100 text-purple-700 rounded-xl font-medium hover:bg-purple-200 transition-colors flex items-center gap-2"
+            <Button
+                onClick={() => setShowPromotionsManager(true)}
+                variant="secondary"
+                className="bg-purple-100 text-purple-700 hover:bg-purple-200"
             >
-              <Gift size={18} />
-              Promotions
-            </button>
-            <button
-              onClick={() => setShowPendingOrders(true)}
-              className="px-4 py-2 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 transition-colors"
+                <Gift size={18} className="mr-2" />
+                Promotions
+            </Button>
+            <Button onClick={() => setShowPendingOrders(true)}>
+                Commandes en attente
+            </Button>
+            <Button
+                onClick={onSwitchToManager}
+                variant="secondary"
             >
-              Commandes en attente
-            </button>
-            <button
-              onClick={onSwitchToManager}
-              className="px-4 py-2 bg-amber-100 text-amber-700 rounded-xl font-medium hover:bg-amber-200 transition-colors"
-            >
-              Mode Gérant
-            </button>
+                Mode Gérant
+            </Button>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-        <div className="bg-white/60 backdrop-blur-sm border border-amber-100 rounded-2xl p-4 shadow-sm">
-          <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-            <Users size={16} className="text-amber-500" />
-            Numéro de table (optionnel)
-          </label>
-          <input
+        <Card variant="elevated" padding="sm" className="bg-white/60 backdrop-blur-sm border-amber-100 rounded-2xl">
+          <Label htmlFor="tableNumber">Numéro de table (optionnel)</Label>
+          <Input
+            id="tableNumber"
             type="text"
             value={tableNumber}
             onChange={(e) => setTableNumber(e.target.value)}
-            className="w-full max-w-xs px-3 py-2 bg-white border border-amber-200 rounded-xl text-gray-800 focus:border-amber-400 focus:outline-none"
             placeholder="ex: Table 5"
+            leftIcon={<Users size={16} className="text-amber-500" />}
+            className="mt-2 max-w-xs"
           />
-        </div>
+        </Card>
 
         <CategoryTabs
           categories={categories}
