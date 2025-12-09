@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { auditLogger } from '../services/AuditLogger';
 import type { AuditLog, AuditLogEvent, AuditLogSeverity } from '../types';
-import { Alert } from '../ui/Alert';
+import { Alert } from './ui/Alert';
 
 interface AuditLogsPanelProps {
   isOpen: boolean;

@@ -504,29 +504,38 @@ export default function SettingsPage() {
                         <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
                             <DollarSign size={16} className="text-amber-500" /> Devise
                         </label>
-                        <div className="space-y-2">
+                        <RadioGroup
+                            value={tempSettings.currency}
+                            onValueChange={(value) => {
+                                const selectedCurrency = currencyOptions.find(c => c.code === value);
+                                if (selectedCurrency) {
+                                    setTempSettings({
+                                        ...tempSettings,
+                                        currency: selectedCurrency.code,
+                                        currencySymbol: selectedCurrency.symbol,
+                                    });
+                                }
+                            }}
+                            className="space-y-2"
+                        >
                             {currencyOptions.map((currency) => (
-                                <label
+                                <Label
                                     key={currency.code}
+                                    htmlFor={`currency-${currency.code}`}
                                     className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl cursor-pointer hover:bg-amber-100 border"
                                 >
-                                    <input
-                                        type="radio"
+                                    <RadioGroupItem
                                         value={currency.code}
-                                        checked={tempSettings.currency === currency.code}
-                                        onChange={(e) => setTempSettings({
-                                            ...tempSettings,
-                                            currency: e.target.value,
-                                            currencySymbol: currency.symbol,
-                                        })}
+                                        id={`currency-${currency.code}`}
+                                        className="mt-1"
                                     />
                                     <div>
                                         <div className="font-medium">{currency.name}</div>
                                         <div className="text-sm text-gray-600">{currency.symbol}</div>
                                     </div>
-                                </label>
+                                </Label>
                             ))}
-                        </div>
+                        </RadioGroup>
                     </div>
                 )}
             </div>

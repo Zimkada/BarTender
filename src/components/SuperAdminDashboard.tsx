@@ -26,7 +26,7 @@ import { Sale, User, Return } from '../types';
 import { AuthService } from '../services/supabase/auth.service';
 import { getBusinessDate, getCurrentBusinessDateString, dateToYYYYMMDD, filterByBusinessDateRange } from '../utils/businessDateHelpers';
 import { useAppContext } from '../context/AppContext';
-import { Alert } from '../ui/Alert';
+import { Alert } from './ui/Alert';
 
 interface SuperAdminDashboardProps {
   isOpen: boolean;

@@ -16,7 +16,7 @@ import { useBarContext } from '../context/BarContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { formatPeriod, getCurrentPeriod } from '../utils/accounting';
 import { useViewport } from '../hooks/useViewport';
-import { Alert } from '../ui/Alert';
+import { Alert } from './ui/Alert';
 
 export function SalaryManager() {
   const { currentSession } = useAuth();
