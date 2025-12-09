@@ -7,6 +7,7 @@ import { useBarContext } from '../context/BarContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { LoadingFallback } from '../components/LoadingFallback';
 import { Button } from '../components/ui/Button';
+import { Alert } from '../components/ui/Alert';
 
 /**
  * Page Détails d'une Vente
@@ -31,15 +32,16 @@ export default function SaleDetailsPage() {
   if (error || !sale) {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center">
-        <AlertCircle size={48} className="text-red-400 mb-4" />
-        <h2 className="text-xl font-semibold text-gray-800 mb-2">Vente introuvable</h2>
-        <p className="text-gray-600 mb-4">La vente #{saleId} n'existe pas ou a été supprimée.</p>
-        <button
-          onClick={() => navigate('/sales')}
-          className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors"
-        >
-          Retour à l'historique
-        </button>
+        <Alert variant="destructive" show={true}>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Vente introuvable</h2>
+          <p className="text-gray-600 mb-4">La vente #{saleId} n'existe pas ou a été supprimée.</p>
+          <Button
+            onClick={() => navigate('/sales')}
+            className="mt-4"
+          >
+            Retour à l'historique
+          </Button>
+        </Alert>
       </div>
     );
   }

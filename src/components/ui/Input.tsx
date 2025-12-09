@@ -32,10 +32,11 @@ export interface InputProps
   label?: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  endAdornment?: string;
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, variant, size, error, helperText, label, leftIcon, rightIcon, id, ...props }, ref) => {
+  ({ className, variant, size, error, helperText, label, leftIcon, rightIcon, endAdornment, id, ...props }, ref) => {
     const inputId = id || React.useId();
     const errorId = `${inputId}-error`;
     const helperTextId = `${inputId}-helper`;
@@ -56,7 +57,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           className={cn(
             inputVariants({ variant: effectiveVariant, size, className }),
             leftIcon && 'pl-10',
-            rightIcon && 'pr-10'
+            (rightIcon || endAdornment) && 'pr-10'
           )}
           aria-invalid={hasError}
           aria-describedby={
@@ -64,7 +65,12 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           }
           {...props}
         />
-        {rightIcon && (
+        {endAdornment && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm font-medium pointer-events-none">
+            {endAdornment}
+          </div>
+        )}
+        {rightIcon && !endAdornment && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
             {rightIcon}
           </div>

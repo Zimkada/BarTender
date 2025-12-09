@@ -20,6 +20,8 @@ import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { getWeekRange, getMonthRange } from '../utils/accounting';
 import { ExpenseCategory } from '../types';
 import { useViewport } from '../hooks/useViewport';
+import { Textarea } from './ui/Textarea';
+import { Label } from './ui/Label';
 
 type PeriodType = 'week' | 'month' | 'all';
 
@@ -433,10 +435,11 @@ function ExpenseManagerContent() {
 
                 {/* Notes */}
                 <div>
-                  <label className={`block text-gray-700 font-medium mb-2 ${isMobile ? 'text-sm' : ''}`}>
+                  <Label htmlFor="expenseNotes" className={`block text-gray-700 font-medium mb-2 ${isMobile ? 'text-sm' : ''}`}>
                     Notes (optionnel)
-                  </label>
-                  <textarea
+                  </Label>
+                  <Textarea
+                    id="expenseNotes"
                     value={notes}
                     onChange={e => setNotes(e.target.value)}
                     placeholder="Détails de la dépense..."

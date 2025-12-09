@@ -22,6 +22,8 @@ import { getSaleDate } from '../utils/saleHelpers';
 import { useViewport } from '../hooks/useViewport';
 import { Button } from '../components/ui/Button';
 import { PageHeader } from '../components/common/PageHeader';
+import { Textarea } from '../components/ui/Textarea';
+import { Label } from '../components/ui/Label';
 
 const returnReasons: Record<ReturnReason, ReturnReasonConfig> = {
   defective: {
@@ -630,15 +632,13 @@ function OtherReasonDialog({
               </label>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Notes <span className="text-red-500">*</span>
-                </label>
-                <textarea
+                <Label htmlFor="customNotes">Notes <span className="text-red-500">*</span></Label>
+                <Textarea
+                  id="customNotes"
                   value={customNotes}
                   onChange={(e) => setCustomNotes(e.target.value)}
                   rows={4}
                   placeholder="Expliquez la raison du retour (obligatoire)..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                   required
                 />
               </div>
@@ -974,12 +974,12 @@ function CreateReturnForm({
                   </div>
 
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Notes (Optionnel)</label>
-                    <textarea
+                    <Label htmlFor="returnNotes">Notes (Optionnel)</Label>
+                    <Textarea
+                      id="returnNotes"
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none resize-none"
                       placeholder="Détails..."
                     />
                   </div>

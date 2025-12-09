@@ -28,6 +28,8 @@ import { getSaleDate } from '../utils/saleHelpers';
 import { useViewport } from '../hooks/useViewport';
 import { Button } from '../components/ui/Button';
 import { PageHeader } from '../components/common/PageHeader';
+import { Textarea } from '../components/ui/Textarea';
+import { Label } from '../components/ui/Label';
 
 type TabType = 'create' | 'active' | 'history';
 
@@ -478,15 +480,13 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Notes (optionnel)
-            </label>
-            <textarea
+            <Label htmlFor="consignmentNotes">Notes (optionnel)</Label>
+            <Textarea
+              id="consignmentNotes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Informations complémentaires..."
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 resize-none"
             />
           </div>
 

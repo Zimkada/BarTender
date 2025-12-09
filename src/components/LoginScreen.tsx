@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { Input } from './ui/Input';
+import { Alert } from './ui/Alert';
 
 
 function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgotPassword: () => void }) {
@@ -185,14 +186,9 @@ function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgotPasswor
             />
 
             {mfaError && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-red-50 text-red-600 p-3 rounded-lg flex items-center gap-2"
-              >
-                <AlertCircle size={20} />
-                <span className="text-sm">{mfaError}</span>
-              </motion.div>
+              <Alert show={!!mfaError} variant="destructive">
+                {mfaError}
+              </Alert>
             )}
 
             <button
@@ -256,14 +252,9 @@ function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgotPasswor
             />
 
             {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-red-50 text-red-600 p-3 rounded-lg flex items-center gap-2"
-              >
-                <AlertCircle size={20} />
-                <span className="text-sm">{error}</span>
-              </motion.div>
+              <Alert show={!!error} variant="destructive">
+                {error}
+              </Alert>
             )}
 
             <button
@@ -314,19 +305,9 @@ function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgotPasswor
             leftIcon={<Lock size={20} />}
           />
 
-          <AnimatePresence>
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="bg-red-50 text-red-600 p-3 rounded-lg flex items-center gap-2"
-              >
-                <AlertCircle size={20} />
-                <span className="text-sm">{error}</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <Alert show={!!error} variant="destructive">
+            {error}
+          </Alert>
 
           <button
             type="submit"

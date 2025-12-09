@@ -6,6 +6,8 @@ import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { FeedbackService } from '../services/supabase/feedback.service';
 import { EnhancedButton } from './EnhancedButton';
+import { Textarea } from './ui/Textarea';
+import { Label } from './ui/Label';
 
 interface FeedbackButtonProps {
   className?: string;
@@ -139,10 +141,9 @@ export const FeedbackButton = ({ className = '' }: FeedbackButtonProps) => {
 
                 {/* Message */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Message
-                  </label>
-                  <textarea
+                  <Label htmlFor="feedbackMessage">Message</Label>
+                  <Textarea
+                    id="feedbackMessage"
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder={
@@ -150,7 +151,7 @@ export const FeedbackButton = ({ className = '' }: FeedbackButtonProps) => {
                         type === 'feature' ? "Quelle fonctionnalité souhaitez-vous ?" :
                           "Dites-nous tout..."
                     }
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 h-32 resize-none"
+                    rows={5}
                     required
                   />
                 </div>

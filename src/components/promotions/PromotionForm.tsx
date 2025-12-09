@@ -11,7 +11,11 @@ import { EnhancedButton } from '../EnhancedButton';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
 import { Modal } from '../ui/Modal';
+import { Textarea } from '../ui/Textarea';
+import { Checkbox } from '../ui/Checkbox';
+import { RadioGroup, RadioGroupItem } from '../ui/Radio';
 import { Button } from '../ui/Button';
+import { Alert } from '../ui/Alert';
 
 interface PromotionFormProps {
     isOpen: boolean;
@@ -208,17 +212,16 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                             required
                         />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Description (optionnelle)</label>
-                        <textarea
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            placeholder="Détails de l'offre..."
-                            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                            rows={2}
-                        />
-                    </div>
-                </div>
+                                    <div>
+                                        <Label htmlFor="description">Description (optionnelle)</Label>
+                                        <Textarea
+                                            id="description"
+                                            value={description}
+                                            onChange={(e) => setDescription(e.target.value)}
+                                            placeholder="Détails de l'offre..."
+                                            rows={2}
+                                        />
+                                    </div>                </div>
     
                 {/* Type Selection */}
                 <div>
@@ -341,46 +344,54 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                 {/* Targeting */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">Ciblage</label>
-                    <div className="flex gap-2 mb-4">
-                        {[
-                            { id: 'all', label: 'Tout le menu' },
-                            { id: 'category', label: 'Par catégorie' },
-                            { id: 'product', label: 'Par produit' },
-                        ].map((t) => (
-                            <Button
-                                key={t.id}
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setTargetType(t.id as any)}
-                                className={targetType === t.id
-                                    ? 'bg-amber-50 border-amber-500 text-amber-700 hover:bg-amber-100'
-                                    : 'border-gray-300 text-gray-700'
-                                }
-                            >
-                                {t.label}
-                            </Button>
-                        ))}
-                    </div>
+                                    <div className="flex gap-4 mb-4">
+                                        <RadioGroup
+                                            name="targetType"
+                                            value={targetType}
+                                            onValueChange={(value: 'all' | 'category' | 'product') => setTargetType(value)}
+                                            className="flex gap-4"
+                                        >
+                                            {[{
+                                                id: 'all',
+                                                label: 'Tout le menu'
+                                            },
+                                            {
+                                                id: 'category',
+                                                label: 'Par catégorie'
+                                            },
+                                            {
+                                                id: 'product',
+                                                label: 'Par produit'
+                                            },
+                                            ].map((t) => (
+                                                <div key={t.id} className="flex items-center space-x-2 cursor-pointer">
+                                                    <RadioGroupItem value={t.id} id={`targetType-${t.id}`} />
+                                                    <Label htmlFor={`targetType-${t.id}`} className="text-sm cursor-pointer">
+                                                        {t.label}
+                                                    </Label>
+                                                </div>
+                                            ))}
+                                        </RadioGroup>
+                                    </div>
     
-                    {targetType === 'category' && (
-                        <div className="border border-gray-200 rounded-xl p-3 bg-gray-50 max-h-48 overflow-y-auto">
-                            <div className="grid grid-cols-2 gap-2">
-                                {categories.map(cat => (
-                                    <label key={cat.id} className="flex items-center gap-2 p-2 hover:bg-white rounded-lg transition-colors cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedCategoryIds.includes(cat.id)}
-                                            onChange={() => toggleCategory(cat.id)}
-                                            className="rounded text-amber-600 focus:ring-amber-500"
-                                        />
-                                        <span className="text-sm">{cat.name}</span>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-    
+                                    {targetType === 'category' && (
+                                        <div className="border border-gray-200 rounded-xl p-3 bg-gray-50 max-h-48 overflow-y-auto">
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {categories.map(cat => (
+                                                    <div key={cat.id} className="flex items-center gap-2 p-2 hover:bg-white rounded-lg transition-colors cursor-pointer">
+                                                        <Checkbox
+                                                            id={`category-${cat.id}`}
+                                                            checked={selectedCategoryIds.includes(cat.id)}
+                                                            onCheckedChange={() => toggleCategory(cat.id)}
+                                                        />
+                                                        <Label htmlFor={`category-${cat.id}`} className="text-sm cursor-pointer">
+                                                            {cat.name}
+                                                        </Label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}    
                     {targetType === 'product' && (
                         <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
                             <div className="mb-2">
@@ -392,23 +403,21 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                                     leftIcon={<Search size={16} />}
                                 />
                             </div>
-                            <div className="max-h-48 overflow-y-auto space-y-1">
-                                {filteredProducts.map(product => (
-                                    <label key={product.id} className="flex items-center gap-2 p-2 hover:bg-white rounded-lg transition-colors cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedProductIds.includes(product.id)}
-                                            onChange={() => toggleProduct(product.id)}
-                                            className="rounded text-amber-600 focus:ring-amber-500"
-                                        />
-                                        <div className="flex-1">
-                                            <div className="text-sm font-medium">{product.name}</div>
-                                            <div className="text-xs text-gray-500">{product.volume}</div>
-                                        </div>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
+                                                    <div className="max-h-48 overflow-y-auto space-y-1">
+                                                        {filteredProducts.map(product => (
+                                                            <div key={product.id} className="flex items-center gap-2 p-2 hover:bg-white rounded-lg transition-colors cursor-pointer">
+                                                                <Checkbox
+                                                                    id={`product-${product.id}`}
+                                                                    checked={selectedProductIds.includes(product.id)}
+                                                                    onCheckedChange={() => toggleProduct(product.id)}
+                                                                />
+                                                                <Label htmlFor={`product-${product.id}`} className="flex-1 cursor-pointer">
+                                                                    <div className="text-sm font-medium">{product.name}</div>
+                                                                    <div className="text-xs text-gray-500">{product.volume}</div>
+                                                                </Label>
+                                                            </div>
+                                                        ))}
+                                                    </div>                        </div>
                     )}
                 </div>
             </form>

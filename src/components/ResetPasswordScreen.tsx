@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Lock, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase'; // Import direct de supabase
+import { Alert } from './ui/Alert';
 
 function ResetPasswordScreen() {
   const [password, setPassword] = useState('');
@@ -67,13 +68,12 @@ function ResetPasswordScreen() {
   if (!isValidSession) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 text-center">
-        <div className="max-w-md">
-          <AlertCircle className="mx-auto h-12 w-12 text-red-400" />
+        <Alert variant="destructive" show={true}>
           <h2 className="mt-4 text-xl font-bold text-gray-800">Lien invalide ou expiré</h2>
           <p className="mt-2 text-gray-600">
             Pour réinitialiser votre mot de passe, veuillez faire une nouvelle demande depuis la page "Mot de passe oublié".
           </p>
-        </div>
+        </Alert>
       </div>
     );
   }
@@ -123,15 +123,15 @@ function ResetPasswordScreen() {
           </div>
 
           {error && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-red-50 text-red-600 p-3 rounded-lg flex items-center gap-2">
-              <AlertCircle size={20} /> <span className="text-sm">{error}</span>
-            </motion.div>
+            <Alert show={!!error} variant="destructive">
+              {error}
+            </Alert>
           )}
 
           {success && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-green-50 text-green-700 p-3 rounded-lg flex items-center gap-2">
-              <CheckCircle size={20} /> <span className="text-sm">{success}</span>
-            </motion.div>
+            <Alert show={!!success} variant="success">
+              {success}
+            </Alert>
           )}
 
           <button
