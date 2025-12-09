@@ -155,51 +155,53 @@ export default function InventoryPage() {
             <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-50">
                 {/* Header fixe */}
                 <div className="sticky top-0 bg-gradient-to-r from-amber-500 to-amber-500 text-white shadow-lg z-10">
-                    <div className="px-4 py-3">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => navigate(-1)}
-                                    className="rounded-lg hover:bg-white/20"
-                                >
-                                    <ArrowLeft size={20} />
-                                </Button>
-                                <h2 className="text-lg font-bold flex items-center gap-2">
-                                    <Package size={20} />
-                                    Inventaire
-                                </h2>
-                            </div>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                            {/* 3. CONDITION D'AFFICHAGE DU BOUTON MOBILE */}
-                            {isProductImportEnabled && (
-                                <button
-                                    onClick={() => setShowProductImport(true)}
-                                    className="flex-1 min-w-[120px] px-3 py-2 bg-white/20 backdrop-blur rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-white/30"
-                                >
-                                    <UploadCloud size={16} />
-                                    Importer
-                                </button>
-                            )}
-                            <button
-                                onClick={() => setShowSupplyModal(true)}
-                                className="flex-1 min-w-[120px] px-3 py-2 bg-white/20 backdrop-blur rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-white/30"
-                            >
-                                <TruckIcon size={16} />
-                                Approvisionner
-                            </button>
-                            <button
-                                onClick={handleAddProduct}
-                                className="flex-1 min-w-[120px] px-3 py-2 bg-white text-amber-600 rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-amber-50"
-                            >
-                                <Plus size={16} />
-                                Ajouter
-                            </button>
-                        </div>
-                    </div>
-
+                                    <div className="px-4 py-3">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-3">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => navigate(-1)}
+                                                    className="rounded-lg hover:bg-white/20"
+                                                >
+                                                    <ArrowLeft size={20} />
+                                                </Button>
+                                                <h2 className="text-lg font-bold flex items-center gap-2">
+                                                    <Package size={20} />
+                                                    Inventaire
+                                                </h2>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {/* 3. CONDITION D'AFFICHAGE DU BOUTON MOBILE */}
+                                            {isProductImportEnabled && (
+                                                <Button
+                                                    onClick={() => setShowProductImport(true)}
+                                                    variant="ghost"
+                                                    className="flex-1 min-w-[120px] px-3 py-2 bg-white/20 backdrop-blur rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-white/30 text-white hover:bg-white/30"
+                                                >
+                                                    <UploadCloud size={16} className="mr-2" />
+                                                    Importer
+                                                </Button>
+                                            )}
+                                            <Button
+                                                onClick={() => setShowSupplyModal(true)}
+                                                variant="ghost"
+                                                className="flex-1 min-w-[120px] px-3 py-2 bg-white/20 backdrop-blur rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-white/30 text-white hover:bg-white/30"
+                                            >
+                                                <TruckIcon size={16} className="mr-2" />
+                                                Approvisionner
+                                            </Button>
+                                            <Button
+                                                onClick={handleAddProduct}
+                                                variant="default"
+                                                className="flex-1 min-w-[120px] px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-amber-50"
+                                            >
+                                                <Plus size={16} className="mr-2" />
+                                                Ajouter
+                                            </Button>
+                                        </div>
+                                    </div>
                     {/* Recherche et tri */}
                     <div className="px-4 pb-3 space-y-2">
                         <SearchBar
@@ -213,17 +215,15 @@ export default function InventoryPage() {
                                 { mode: 'alphabetical' as SortMode, icon: '🔤', label: 'A-Z' },
                                 { mode: 'stock' as SortMode, icon: '⚠️', label: 'Stock' }
                             ].map(({ mode, icon, label }) => (
-                                <button
+                                <Button
                                     key={mode}
                                     onClick={() => setSortMode(mode)}
-                                    className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${sortMode === mode
-                                            ? 'bg-amber-500 text-white'
-                                            : 'bg-white/30 text-white hover:bg-white/40'
-                                        }`}
+                                    variant={sortMode === mode ? 'default' : 'ghost'}
+                                    className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all text-white ${sortMode === mode ? '' : 'bg-white/30 hover:bg-white/40'}`}
                                 >
                                     <span className="mr-1">{icon}</span>
                                     {label}
-                                </button>
+                                </Button>
                             ))}
                         </div>
                     </div>
@@ -324,19 +324,20 @@ export default function InventoryPage() {
                                             </div>
 
                                             <div className="flex gap-2">
-                                                <button
+                                                <Button
                                                     onClick={() => handleEditProduct(product)}
-                                                    className="flex-1 px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-amber-600"
+                                                    className="flex-1 text-sm font-medium flex items-center justify-center gap-2"
                                                 >
-                                                    <Edit size={16} />
+                                                    <Edit size={16} className="mr-2" />
                                                     Modifier
-                                                </button>
-                                                <button
+                                                </Button>
+                                                <Button
                                                     onClick={() => handleDeleteClick(product)}
-                                                    className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium active:bg-red-600"
+                                                    variant="destructive"
+                                                    className="text-sm font-medium"
                                                 >
                                                     <Trash2 size={16} />
-                                                </button>
+                                                </Button>
                                             </div>
                                         </div>
                                     </div>
@@ -409,28 +410,31 @@ export default function InventoryPage() {
                         <div className="flex items-center gap-2">
                             {/* 4. CONDITION D'AFFICHAGE DU BOUTON DESKTOP */}
                             {isProductImportEnabled && (
-                                <button
+                                <Button
                                     onClick={() => setShowProductImport(true)}
-                                    className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors flex items-center gap-2"
+                                    variant="ghost"
+                                    className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors flex items-center gap-2 text-white"
                                 >
-                                    <UploadCloud size={18} />
+                                    <UploadCloud size={18} className="mr-2" />
                                     <span className="text-sm font-medium">Importer</span>
-                                </button>
+                                </Button>
                             )}
-                            <button
+                            <Button
                                 onClick={() => setShowSupplyModal(true)}
-                                className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors flex items-center gap-2"
+                                variant="ghost"
+                                className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors flex items-center gap-2 text-white"
                             >
-                                <TruckIcon size={18} />
+                                <TruckIcon size={18} className="mr-2" />
                                 <span className="text-sm font-medium">Approvisionnement</span>
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 onClick={handleAddProduct}
-                                className="px-4 py-2 bg-white text-amber-600 hover:bg-amber-50 rounded-lg transition-colors flex items-center gap-2"
+                                variant="default"
+                                className="px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
                             >
-                                <Plus size={18} />
+                                <Plus size={18} className="mr-2" />
                                 <span className="text-sm font-medium">Ajouter produit</span>
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -450,17 +454,15 @@ export default function InventoryPage() {
                                 { mode: 'alphabetical' as SortMode, icon: '🔤', label: 'A-Z' },
                                 { mode: 'stock' as SortMode, icon: '⚠️', label: 'Stock' }
                             ].map(({ mode, icon, label }) => (
-                                <button
+                                <Button
                                     key={mode}
                                     onClick={() => setSortMode(mode)}
-                                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${sortMode === mode
-                                            ? 'bg-amber-500 text-white shadow-sm'
-                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                        }`}
+                                    variant={sortMode === mode ? 'default' : 'secondary'}
+                                    className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
                                 >
                                     <span className="mr-1.5">{icon}</span>
                                     {label}
-                                </button>
+                                </Button>
                             ))}
                         </div>
                     </div>
@@ -517,12 +519,12 @@ export default function InventoryPage() {
                     subMessage={searchTerm ? "Essayez une autre recherche" : "Commencez par ajouter des produits"}
                     action={
                         !searchTerm && (
-                            <button
+                            <Button
                                 onClick={handleAddProduct}
-                                className="mt-4 px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors"
+                                className="mt-4 px-4 py-2 text-sm font-medium"
                             >
                                 Ajouter un produit
-                            </button>
+                            </Button>
                         )
                     }
                 />
@@ -579,18 +581,21 @@ export default function InventoryPage() {
                                         </td>
                                         <td className="p-4">
                                             <div className="flex items-center gap-2">
-                                                <button
+                                                <Button
                                                     onClick={() => handleEditProduct(product)}
-                                                    className="p-2 text-gray-500 hover:text-amber-600 transition-colors"
+                                                    variant="ghost"
+                                                    size="icon"
                                                 >
                                                     <Edit size={16} />
-                                                </button>
-                                                <button
+                                                </Button>
+                                                <Button
                                                     onClick={() => handleDeleteClick(product)}
-                                                    className="p-2 text-gray-500 hover:text-red-600 transition-colors"
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="hover:text-red-600"
                                                 >
                                                     <Trash2 size={16} />
-                                                </button>
+                                                </Button>
                                             </div>
                                         </td>
                                     </motion.tr>

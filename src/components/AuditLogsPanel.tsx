@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { auditLogger } from '../services/AuditLogger';
 import type { AuditLog, AuditLogEvent, AuditLogSeverity } from '../types';
+import { Alert } from '../ui/Alert';
 
 interface AuditLogsPanelProps {
   isOpen: boolean;
@@ -416,11 +417,10 @@ export default function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps)
         {/* Liste des logs */}
         <div className="flex-1 overflow-y-auto p-4">
           {paginatedLogs.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <Info className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+            <Alert show={true} variant="info" className="py-12">
               <p className="font-medium">Aucun log trouvé</p>
               <p className="text-sm">Essayez de modifier les filtres</p>
-            </div>
+            </Alert>
           ) : (
             <div className="space-y-2">
               {paginatedLogs.map(log => (

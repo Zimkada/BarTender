@@ -16,6 +16,7 @@ import { useBarContext } from '../context/BarContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { formatPeriod, getCurrentPeriod } from '../utils/accounting';
 import { useViewport } from '../hooks/useViewport';
+import { Alert } from '../ui/Alert';
 
 export function SalaryManager() {
   const { currentSession } = useAuth();
@@ -210,27 +211,22 @@ export function SalaryManager() {
 
       {/* Unpaid members alert */}
       {unpaidMembers.length > 0 && (
-        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-lg">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="text-amber-500 flex-shrink-0" size={20} />
-            <div className="flex-1">
-              <p className={`font-medium text-amber-800 ${isMobile ? 'text-sm' : ''}`}>
-                {unpaidMembers.length} membre{unpaidMembers.length > 1 ? 's' : ''} en attente de paiement
-              </p>
-              <ul className={`mt-2 space-y-1 text-amber-700 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                {unpaidMembers.map(member => {
-                  const memberWithUser = member as any; // BarMember & { user: User }
-                  const displayName = memberWithUser.user?.name || memberWithUser.user?.userName || 'Membre inconnu';
-                  return (
-                    <li key={member.id}>
-                      • {displayName} ({member.role})
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </div>
-        </div>
+        <Alert show={unpaidMembers.length > 0} variant="warning">
+          <p className={`font-medium ${isMobile ? 'text-sm' : ''}`}>
+            {unpaidMembers.length} membre{unpaidMembers.length > 1 ? 's' : ''} en attente de paiement
+          </p>
+          <ul className={`mt-2 space-y-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+            {unpaidMembers.map(member => {
+              const memberWithUser = member as any; // BarMember & { user: User }
+              const displayName = memberWithUser.user?.name || memberWithUser.user?.userName || 'Membre inconnu';
+              return (
+                <li key={member.id}>
+                  • {displayName} ({member.role})
+                </li>
+              );
+            })}
+          </ul>
+        </Alert>
       )}
 
       {/* Salary history by period */}

@@ -30,6 +30,7 @@ import { Button } from '../components/ui/Button';
 import { PageHeader } from '../components/common/PageHeader';
 import { Textarea } from '../components/ui/Textarea';
 import { Label } from '../components/ui/Label';
+import { Alert } from '../components/ui/Alert';
 
 type TabType = 'create' | 'active' | 'history';
 
@@ -177,20 +178,19 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
 
   if (!currentBar || !session) {
     return (
-      <div className="flex flex-col items-center justify-center text-center p-8 bg-gray-50 rounded-lg h-full">
-        <AlertTriangle className="w-12 h-12 text-amber-400 mb-4" />
+      <Alert show={true} variant="warning" className="h-full">
         <h3 className="text-xl font-semibold text-gray-800">Accès non autorisé</h3>
-        <p className="text-gray-600 mt-2 max-w-md">
+        <p className="text-gray-600 mt-2 max-w-md mx-auto">
           {!currentBar
             ? "Veuillez d'abord sélectionner un bar pour pouvoir créer une consignation."
             : "Votre session a expiré. Veuillez vous reconnecter."}
         </p>
         <EnhancedButton
           onClick={onNavigateBack}
-          className="mt-6 bg-amber-600 hover:bg-amber-700 text-white">
+          className="mt-6 bg-amber-600 hover:bg-amber-700 text-white mx-auto">
           Retour
         </EnhancedButton>
-      </div>
+      </Alert>
     );
   }
 
@@ -276,18 +276,15 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
-        <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-        <div className="text-sm text-amber-800">
-          <p className="font-semibold mb-1">Comment créer une consignation ?</p>
-          <ol className="list-decimal list-inside space-y-1 text-amber-700">
-            <li>Sélectionnez la vente d'origine (aujourd'hui uniquement)</li>
-            <li>Choisissez le produit à consigner</li>
-            <li>Indiquez la quantité et les infos client</li>
-            <li>Le stock consigné sera réservé automatiquement</li>
-          </ol>
-        </div>
-      </div>
+      <Alert show={true} variant="warning">
+        <p className="font-semibold mb-1">Comment créer une consignation ?</p>
+        <ol className="list-decimal list-inside space-y-1 text-amber-700">
+          <li>Sélectionnez la vente d'origine (aujourd'hui uniquement)</li>
+          <li>Choisissez le produit à consigner</li>
+          <li>Indiquez la quantité et les infos client</li>
+          <li>Le stock consigné sera réservé automatiquement</li>
+        </ol>
+      </Alert>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -614,10 +611,10 @@ const ActiveConsignmentsTab: React.FC = () => {
       </div>
 
       {filteredConsignments.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+        <Alert show={true} variant="info" className="py-12 text-gray-500">
           <Package className="w-16 h-16 mx-auto mb-3 opacity-50" />
           <p>Aucune consignation active</p>
-        </div>
+        </Alert>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {filteredConsignments.map(consignment => (

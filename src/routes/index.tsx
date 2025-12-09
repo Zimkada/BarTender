@@ -33,7 +33,7 @@ const ForgotPasswordScreen = lazy(() => import('../components/ForgotPasswordScre
 const ResetPasswordScreen = lazy(() => import('../components/ResetPasswordScreen'));
 
 // === Admin Components (Default Exports) ===
-const SuperAdminDashboardPage = lazy(() => import('../components/SuperAdminDashboard'));
+const SuperAdminPage = lazy(() => import('../pages/SuperAdminPage'));
 const BarsManagementPage = lazy(() => import('../components/BarsManagementPanel'));
 const BarStatsModalPage = lazy(() => import('../components/BarStatsModal'));
 const UsersManagementPage = lazy(() => import('../components/UsersManagementPanel'));
@@ -81,7 +81,7 @@ export const router = createBrowserRouter([
         path: 'admin',
         element: <ProtectedRoute permission="canAccessAdminDashboard" />,
         children: [
-          { index: true, element: <Suspense fallback={<LoadingFallback />}><SuperAdminDashboardPage /></Suspense> },
+          { index: true, element: <Suspense fallback={<LoadingFallback />}><SuperAdminPage /></Suspense> },
           { path: 'bars', element: <Suspense fallback={<LoadingFallback />}><BarsManagementPage /></Suspense> },
           { path: 'bars/:barId', element: <Suspense fallback={<LoadingFallback />}><BarStatsModalPage /></Suspense> },
           { path: 'users', element: <Suspense fallback={<LoadingFallback />}><UsersManagementPage /></Suspense> },

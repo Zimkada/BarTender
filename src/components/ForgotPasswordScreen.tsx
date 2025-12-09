@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { Alert } from './ui/Alert';
 
 function ForgotPasswordScreen({ onBackToLogin }: { onBackToLogin: () => void }) {
   const { resetPassword } = useAuth();
@@ -68,25 +69,15 @@ function ForgotPasswordScreen({ onBackToLogin }: { onBackToLogin: () => void }) 
           </div>
 
           {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-red-50 text-red-600 p-3 rounded-lg flex items-center gap-2"
-            >
-              <AlertCircle size={20} />
-              <span className="text-sm">{error}</span>
-            </motion.div>
+            <Alert show={!!error} variant="destructive">
+              {error}
+            </Alert>
           )}
 
           {success && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-green-50 text-green-700 p-3 rounded-lg flex items-center gap-2"
-            >
-              <CheckCircle size={20} />
-              <span className="text-sm">{success}</span>
-            </motion.div>
+            <Alert show={!!success} variant="success">
+              {success}
+            </Alert>
           )}
 
           <button

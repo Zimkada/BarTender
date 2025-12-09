@@ -70,18 +70,19 @@ export default function AccountingPage() {
                 <div className="px-6 py-3 border-b border-gray-200">
                     <div className="flex gap-2 overflow-x-auto scrollbar-hide">
                         {tabs.map(tab => (
-                            <button
+                            <Button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
+                                variant={activeTab === tab.id ? 'default' : 'secondary'}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all whitespace-nowrap ${isMobile ? 'text-sm' : ''
                                     } ${activeTab === tab.id
-                                        ? 'bg-amber-500 text-white font-semibold'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200 font-medium'
+                                        ? 'font-semibold'
+                                        : 'font-medium'
                                     }`}
                             >
                                 {!isMobile && tab.icon}
                                 <span>{tab.label}</span>
-                            </button>
+                            </Button>
                         ))}
                     </div>
                 </div>

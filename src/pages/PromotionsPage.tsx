@@ -169,18 +169,20 @@ export default function PromotionsPage() {
 
                         {/* View Switcher - Responsive */}
                         <div className="flex bg-amber-700/30 p-1 rounded-lg w-full sm:w-auto">
-                            <button
+                            <Button
                                 onClick={() => setView('list')}
-                                className={`flex items-center justify-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all flex-1 sm:flex-initial ${view === 'list' ? 'bg-white text-amber-600' : 'text-amber-100 hover:bg-white/10'}`}
+                                variant={view === 'list' ? 'default' : 'ghost'}
+                                className={`flex items-center justify-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all flex-1 sm:flex-initial ${view === 'list' ? '' : 'text-amber-100 hover:bg-white/10'}`}
                             >
-                                <List size={16} /> Liste
-                            </button>
-                            <button
+                                <List size={16} className="mr-2" /> Liste
+                            </Button>
+                            <Button
                                 onClick={() => setView('analytics')}
-                                className={`flex items-center justify-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all flex-1 sm:flex-initial ${view === 'analytics' ? 'bg-white text-amber-600' : 'text-amber-100 hover:bg-white/10'}`}
+                                variant={view === 'analytics' ? 'default' : 'ghost'}
+                                className={`flex items-center justify-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all flex-1 sm:flex-initial ${view === 'analytics' ? '' : 'text-amber-100 hover:bg-white/10'}`}
                             >
-                                <BarChart3 size={16} /> Analytics
-                            </button>
+                                <BarChart3 size={16} className="mr-2" /> Analytics
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -261,15 +263,31 @@ export default function PromotionsPage() {
                                                             promo.status === 'expired' ? 'Expirée' : 'Brouillon'}
                                             </div>
                                             <div className="flex gap-1">
-                                                <button onClick={() => handleToggleStatus(promo)} className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg" title={promo.status === 'active' ? 'Pause' : 'Activer'}>
+                                                <Button
+                                                    onClick={() => handleToggleStatus(promo)}
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg"
+                                                    title={promo.status === 'active' ? 'Pause' : 'Activer'}
+                                                >
                                                     {promo.status === 'active' ? <Pause size={18} /> : <Play size={18} />}
-                                                </button>
-                                                <button onClick={() => { setSelectedPromotion(promo); setShowCreateModal(true); }} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg">
+                                                </Button>
+                                                <Button
+                                                    onClick={() => { setSelectedPromotion(promo); setShowCreateModal(true); }}
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                                                >
                                                     <Edit size={18} />
-                                                </button>
-                                                <button onClick={() => handleDelete(promo.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                                                </Button>
+                                                <Button
+                                                    onClick={() => handleDelete(promo.id)}
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                                >
                                                     <Trash2 size={18} />
-                                                </button>
+                                                </Button>
                                             </div>
                                         </div>
 

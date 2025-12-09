@@ -257,12 +257,11 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
               </div>
 
               {stats.suspendedBars > 0 && (
-                <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
-                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-800">
+                <Alert show={stats.suspendedBars > 0} variant="destructive" className="mt-3">
+                  <p className="text-sm">
                     <span className="font-semibold">{stats.suspendedBars}</span> bar{stats.suspendedBars > 1 ? 's' : ''} suspendu{stats.suspendedBars > 1 ? 's' : ''} nécessite{stats.suspendedBars > 1 ? 'nt' : ''} votre attention.
                   </p>
-                </div>
+                </Alert>
               )}
             </section>
 
@@ -335,12 +334,11 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
               </div>
 
               {stats.suspendedUsers > 0 && (
-                <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
-                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-amber-800">
+                <Alert show={stats.suspendedUsers > 0} variant="warning" className="mt-3">
+                  <p className="text-sm">
                     <span className="font-semibold">{stats.suspendedUsers}</span> utilisateur{stats.suspendedUsers > 1 ? 's' : ''} suspendu{stats.suspendedUsers > 1 ? 's' : ''}.
                   </p>
-                </div>
+                </Alert>
               )}
             </section>
 

@@ -8,6 +8,8 @@ import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { Alert } from '../components/ui/Alert';
+import { RadioGroup, RadioGroupItem } from '../components/ui/Radio';
 
 const currencyOptions = [
     { code: 'FCFA', symbol: 'FCFA', name: 'Franc CFA' },
@@ -212,25 +214,23 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b bg-amber-50/50 overflow-x-auto">
-                    {[
-                        { id: 'bar', label: 'Infos', icon: Building2 },
-                        { id: 'operational', label: 'Opérationnel', icon: Users },
-                        { id: 'general', label: 'Général', icon: DollarSign },
-                        { id: 'security', label: 'Sécurité', icon: ShieldCheck },
-                    ].map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id as any)}
-                            className={`flex-1 py-3 px-4 font-medium text-sm transition-colors whitespace-nowrap ${activeTab === tab.id
-                                    ? 'bg-white text-amber-600 border-b-2 border-amber-600'
-                                    : 'text-gray-600 hover:text-gray-900'
+                <div className="px-6 py-3 border-b border-gray-200">
+                    <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+                        {tabs.map(tab => (
+                            <Button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                variant={activeTab === tab.id ? 'default' : 'ghost'}
+                                className={`flex-1 py-3 px-4 font-medium text-sm transition-colors whitespace-nowrap ${activeTab === tab.id
+                                    ? 'bg-white text-amber-600 border-b-2 border-amber-600 shadow-sm'
+                                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                                 }`}
-                        >
-                            <tab.icon className="w-4 h-4 inline mr-2" />
-                            {tab.label}
-                        </button>
-                    ))}
+                            >
+                                <tab.icon className="w-4 h-4 inline mr-2" />
+                                {tab.label}
+                            </Button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -253,13 +253,14 @@ export default function SettingsPage() {
                                     <CheckCircle size={20} />
                                     <span>2FA est activée</span>
                                 </div>
-                                <button
+                                <Button
                                     onClick={handleUnenrollMfa}
                                     disabled={mfaLoading}
-                                    className="w-full py-2 px-4 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 disabled:opacity-50"
+                                    variant="destructive"
+                                    className="w-full py-2 px-4 rounded-lg font-medium"
                                 >
                                     {mfaLoading ? 'Désactivation...' : 'Désactiver la 2FA'}
-                                </button>
+                                </Button>
                             </div>
                         ) : (
                             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
@@ -269,13 +270,14 @@ export default function SettingsPage() {
                                             <AlertCircle size={20} />
                                             <span>2FA est désactivée</span>
                                         </div>
-                                        <button
+                                        <Button
                                             onClick={handleEnrollMfa}
                                             disabled={mfaLoading}
-                                            className="w-full py-2 px-4 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 disabled:opacity-50"
+                                            variant="default"
+                                            className="w-full py-2 px-4 rounded-lg font-medium"
                                         >
                                             {mfaLoading ? 'Activation...' : 'Activer la 2FA'}
-                                        </button>
+                                        </Button>
                                     </>
                                 )}
 
@@ -298,28 +300,29 @@ export default function SettingsPage() {
                                             maxLength={6}
                                             className="text-center text-xl tracking-widest"
                                         />
-                                        <button
+                                        <Button
                                             onClick={handleVerifyMfa}
                                             disabled={mfaLoading || verifyCode.length !== 6}
-                                            className="w-full py-2 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 disabled:opacity-50"
+                                            variant="default"
+                                            className="w-full py-2 rounded-lg font-medium"
                                         >
                                             {mfaLoading ? 'Vérification...' : 'Vérifier et Activer'}
-                                        </button>
-                                        <button
+                                        </Button>
+                                        <Button
                                             onClick={() => setMfaStep('idle')}
-                                            className="w-full py-2 bg-gray-200 text-gray-700 rounded-lg"
+                                            variant="secondary"
+                                            className="w-full py-2 rounded-lg"
                                         >
                                             Annuler
-                                        </button>
+                                        </Button>
                                     </>
                                 )}
                             </div>
                         )}
                         {mfaError && (
-                            <div className="bg-red-50 text-red-600 p-3 rounded-lg flex items-center gap-2">
-                                <AlertCircle size={20} />
-                                <span className="text-sm">{mfaError}</span>
-                            </div>
+                            <Alert show={!!mfaError} variant="destructive">
+                                {mfaError}
+                            </Alert>
                         )}
                     </div>
                 )}
@@ -430,34 +433,34 @@ export default function SettingsPage() {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-3">Mode de fonctionnement</label>
-                            <div className="space-y-3">
-                                <label className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl cursor-pointer hover:bg-amber-100 border">
-                                    <input
-                                        type="radio"
+                            <RadioGroup
+                                value={tempOperatingMode}
+                                onValueChange={(value: 'full' | 'simplified') => setTempOperatingMode(value)}
+                                className="space-y-3"
+                            >
+                                <Label htmlFor="operatingModeFull" className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl cursor-pointer hover:bg-amber-100 border">
+                                    <RadioGroupItem
                                         value="full"
-                                        checked={tempOperatingMode === 'full'}
-                                        onChange={() => setTempOperatingMode('full')}
+                                        id="operatingModeFull"
                                         className="mt-1"
                                     />
                                     <div>
                                         <div className="font-medium">Mode Complet</div>
                                         <div className="text-xs text-gray-600">Chaque serveur a son propre compte.</div>
                                     </div>
-                                </label>
-                                <label className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl cursor-pointer hover:bg-amber-100 border">
-                                    <input
-                                        type="radio"
+                                </Label>
+                                <Label htmlFor="operatingModeSimplified" className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl cursor-pointer hover:bg-amber-100 border">
+                                    <RadioGroupItem
                                         value="simplified"
-                                        checked={tempOperatingMode === 'simplified'}
-                                        onChange={() => setTempOperatingMode('simplified')}
+                                        id="operatingModeSimplified"
                                         className="mt-1"
                                     />
                                     <div>
                                         <div className="font-medium">Mode Simplifié</div>
                                         <div className="text-xs text-gray-600">Le gérant sélectionne le serveur.</div>
                                     </div>
-                                </label>
-                            </div>
+                                </Label>
+                            </RadioGroup>
                         </div>
 
                         {tempOperatingMode === 'simplified' && (
@@ -472,9 +475,9 @@ export default function SettingsPage() {
                                         placeholder="Nom du serveur"
                                         className="flex-1"
                                     />
-                                    <button onClick={handleAddServer} className="px-4 py-2 bg-amber-500 text-white rounded-lg flex items-center gap-2">
-                                        <Plus size={16} /> Ajouter
-                                    </button>
+                                    <Button onClick={handleAddServer} className="px-4 py-2 rounded-lg flex items-center gap-2">
+                                        <Plus size={16} className="mr-2" /> Ajouter
+                                    </Button>
                                 </div>
                                 <div className="space-y-2 max-h-40 overflow-y-auto">
                                     {tempServersList.length === 0 ? (
@@ -483,9 +486,9 @@ export default function SettingsPage() {
                                         tempServersList.map((serverName, index) => (
                                             <div key={index} className="flex items-center justify-between p-2 bg-white rounded-lg border">
                                                 <span className="text-sm">{serverName}</span>
-                                                <button onClick={() => handleRemoveServer(serverName)} className="p-1 text-red-500 hover:bg-red-50 rounded">
+                                                <Button onClick={() => handleRemoveServer(serverName)} variant="ghost" size="icon" className="p-1 text-red-500 hover:bg-red-50 rounded">
                                                     <Trash2 size={14} />
-                                                </button>
+                                                </Button>
                                             </div>
                                         ))
                                     )}

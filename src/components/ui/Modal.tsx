@@ -124,7 +124,7 @@ export const Modal: React.FC<ModalProps> = ({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.2 }}
             className={cn(
-              'relative z-10 w-full bg-white rounded-lg shadow-xl',
+              'relative z-10 w-full bg-white rounded-lg shadow-xl max-h-[90vh] flex flex-col',
               sizeClasses[size]
             )}
             role="dialog"
@@ -134,7 +134,7 @@ export const Modal: React.FC<ModalProps> = ({
           >
             {/* Header */}
             {(title || showCloseButton) && (
-              <div className="flex items-start justify-between p-6 border-b border-gray-200">
+              <div className="flex items-start justify-between p-6 border-b border-gray-200 flex-shrink-0">
                 <div className="flex-1">
                   {title && (
                     <h2
@@ -166,11 +166,11 @@ export const Modal: React.FC<ModalProps> = ({
             )}
 
             {/* Content */}
-            <div className="p-6">{children}</div>
+            <div className="p-6 overflow-y-auto flex-1">{children}</div>
 
             {/* Footer */}
             {footer && (
-              <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+              <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
                 {footer}
               </div>
             )}
