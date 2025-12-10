@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
   Users,
   Building2,
@@ -76,8 +75,9 @@ export default function SuperAdminPage() {
     const activeUsers = users.filter(u => u.isActive).length;
     const suspendedUsers = users.filter(u => !u.isActive).length;
 
-    const activeBars = bars.filter(b => b.isActive);
-    const suspendedBars = bars.filter(b => !b.isActive);
+    const safeBars = bars || [];
+    const activeBars = safeBars.filter(b => b.isActive);
+    const suspendedBars = safeBars.filter(b => !b.isActive);
 
     const todayStr = getCurrentBusinessDateString();
     const yesterday = new Date();
@@ -88,13 +88,16 @@ export default function SuperAdminPage() {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const sevenDaysAgoStr = dateToYYYYMMDD(sevenDaysAgo);
 
-    const salesToday = filterByBusinessDateRange(allSales, todayStr, todayStr);
-    const salesYesterday = filterByBusinessDateRange(allSales, yesterdayStr, yesterdayStr);
-    const salesLast7Days = filterByBusinessDateRange(allSales, sevenDaysAgoStr, todayStr);
+    const safeSales = allSales || [];
+    const safeReturns = allReturns || [];
 
-    const returnsToday = filterByBusinessDateRange(allReturns, todayStr, todayStr).filter(r => r.isRefunded);
-    const returnsYesterday = filterByBusinessDateRange(allReturns, yesterdayStr, yesterdayStr).filter(r => r.isRefunded);
-    const returnsLast7Days = filterByBusinessDateRange(allReturns, sevenDaysAgoStr, todayStr).filter(r => r.isRefunded);
+    const salesToday = filterByBusinessDateRange(safeSales, todayStr, todayStr);
+    const salesYesterday = filterByBusinessDateRange(safeSales, yesterdayStr, yesterdayStr);
+    const salesLast7Days = filterByBusinessDateRange(safeSales, sevenDaysAgoStr, todayStr);
+
+    const returnsToday = filterByBusinessDateRange(safeReturns, todayStr, todayStr).filter(r => r.isRefunded);
+    const returnsYesterday = filterByBusinessDateRange(safeReturns, yesterdayStr, yesterdayStr).filter(r => r.isRefunded);
+    const returnsLast7Days = filterByBusinessDateRange(safeReturns, sevenDaysAgoStr, todayStr).filter(r => r.isRefunded);
 
     const getNetRevenue = (sales: Sale[], returns: Return[]): number => {
       const salesTotal = sales.reduce((sum, sale) => sum + sale.total, 0);
@@ -109,7 +112,7 @@ export default function SuperAdminPage() {
     const totalSalesToday = salesToday.length;
     const totalSalesYesterday = salesYesterday.length;
 
-    const barsPerformance = bars.map(bar => {
+    const barsPerformance = safeBars.map(bar => {
       const barSalesToday = salesToday.filter(s => s.barId === bar.id);
       const barReturnsToday = returnsToday.filter(r => r.barId === bar.id);
       return {
@@ -133,7 +136,7 @@ export default function SuperAdminPage() {
     const topBars = barsPerformance.sort((a, b) => b.ca - a.ca).slice(0, 10);
 
     return {
-      totalBars: bars.length,
+      totalBars: safeBars.length,
       activeBars: activeBars.length,
       suspendedBars: suspendedBars.length,
       totalUsers: users.length,
