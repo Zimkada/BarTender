@@ -31,6 +31,7 @@ import { AnalyticsView } from '../features/Sales/SalesHistory/views/AnalyticsVie
 import { SalesListView } from '../features/Sales/SalesHistory/views/SalesListView';
 import { SalesCardsView, SaleCard } from '../features/Sales/SalesHistory/views/SalesCardsView';
 import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
 
 type ViewMode = 'list' | 'cards' | 'analytics';
 
@@ -341,76 +342,70 @@ export default function SalesHistoryPage() {
                                     </div>
                                 </div>
                             </div>
-                            <button
+                            <Button
                                 onClick={exportSales}
-                                className="w-full mt-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                                 disabled={filteredSales.length === 0}
                                 title={`Exporter en ${exportFormat.toUpperCase()}`}
+                                className="w-full mt-2 flex items-center justify-center gap-2"
                             >
-                                <Download size={18} />
+                                <Download size={18} className="mr-2" />
                                 <span className="text-sm font-medium">Exporter ({exportFormat.toUpperCase()})</span>
-                            </button>
+                            </Button>
                         </div>
 
                         {/* Filtres compacts en haut (stats retirées, disponibles dans Analytics) */}
                         < div className="flex-shrink-0 bg-amber-50 p-3" >
                             {/* Sélecteur format export mobile */}
-                            < div className="flex gap-1 mb-3" >
-                                <button
-                                    onClick={() => setExportFormat('excel')}
-                                    className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${exportFormat === 'excel'
-                                        ? 'bg-blue-500 text-white'
-                                        : 'bg-white text-gray-600'
-                                        }`}
-                                >
-                                    📊 Excel
-                                </button>
-                                <button
-                                    onClick={() => setExportFormat('csv')}
-                                    className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${exportFormat === 'csv'
-                                        ? 'bg-blue-500 text-white'
-                                        : 'bg-white text-gray-600'
-                                        }`}
-                                >
-                                    📄 CSV
-                                </button>
-                            </div >
+                                                        <div className="flex gap-1 mb-3" >
+                                                            <Button
+                                                                onClick={() => setExportFormat('excel')}
+                                                                variant={exportFormat === 'excel' ? 'default' : 'secondary'}
+                                                                className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg"
+                                                            >
+                                                                📊 Excel
+                                                            </Button>
+                                                            <Button
+                                                                onClick={() => setExportFormat('csv')}
+                                                                variant={exportFormat === 'csv' ? 'default' : 'secondary'}
+                                                                className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg"
+                                                            >
+                                                                📄 CSV
+                                                            </Button>
+                                                        </div >
 
                             {/* Filtres période horizontaux */}
-                            < div className="flex gap-2 overflow-x-auto pb-2 mb-3" >
-                                {
-                                    SALES_HISTORY_FILTERS.map(filter => (
-                                        <button
-                                            key={filter}
-                                            onClick={() => setTimeRange(filter)}
-                                            className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium transition-colors ${timeRange === filter
-                                                ? 'bg-amber-500 text-white'
-                                                : 'bg-white text-gray-700'
-                                                }`}
-                                        >
-                                            {TIME_RANGE_CONFIGS[filter].label}
-                                        </button>
-                                    ))
-                                }
-                            </div >
+                                                        <div className="flex gap-2 overflow-x-auto pb-2 mb-3" >
+                                                            {
+                                                                SALES_HISTORY_FILTERS.map(filter => (
+                                                                    <Button
+                                                                        key={filter}
+                                                                        onClick={() => setTimeRange(filter)}
+                                                                        variant={timeRange === filter ? 'default' : 'secondary'}
+                                                                        className="px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium"
+                                                                    >
+                                                                        {TIME_RANGE_CONFIGS[filter].label}
+                                                                    </Button>
+                                                                ))
+                                                            }
+                                                        </div >
 
                             {/* Date range personnalisée */}
                             {
                                 isCustom && (
                                     <div className="flex gap-2 mb-3">
-                                        <input
+                                        <Input
                                             type="date"
                                             value={customRange.start}
                                             onChange={(e) => updateCustomRange('start', e.target.value)}
-                                            className="flex-1 p-2 border border-amber-200 rounded-lg bg-white text-sm"
                                             placeholder="Début"
+                                            className="flex-1 text-sm"
                                         />
-                                        <input
+                                        <Input
                                             type="date"
                                             value={customRange.end}
                                             onChange={(e) => updateCustomRange('end', e.target.value)}
-                                            className="flex-1 p-2 border border-amber-200 rounded-lg bg-white text-sm"
                                             placeholder="Fin"
+                                            className="flex-1 text-sm"
                                         />
                                     </div>
                                 )
@@ -419,41 +414,37 @@ export default function SalesHistoryPage() {
                             {/* Recherche et Sélecteurs Top Produits (mobile) */}
                             <div className="flex flex-wrap items-center gap-2 mb-3">
                                 {/* Recherche */}
-                                <div className="relative flex-1 min-w-[150px]">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                                    <input
-                                        type="text"
-                                        placeholder="ID vente ou produit..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full pl-9 pr-3 py-2 border border-amber-200 rounded-lg bg-white text-sm"
-                                    />
-                                </div>
+                                <Input
+                                    type="text"
+                                    placeholder="ID vente ou produit..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    leftIcon={<Search size={16} />}
+                                    className="flex-1 min-w-[150px] text-sm"
+                                />
                             </div>
 
                             {/* Mode d'affichage */}
-                            <div className="flex gap-2 overflow-x-auto pb-2">
-                                {[
-                                    { value: 'list', icon: Users, label: 'Liste' },
-                                    { value: 'cards', icon: Eye, label: 'Détails' },
-                                    { value: 'analytics', icon: TrendingUp, label: 'Analytics' }
-                                ].map(mode => {
-                                    const Icon = mode.icon;
-                                    return (
-                                        <button
-                                            key={mode.value}
-                                            onClick={() => setViewMode(mode.value as ViewMode)}
-                                            className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium transition-colors flex items-center gap-1 ${viewMode === mode.value
-                                                ? 'bg-amber-500 text-white'
-                                                : 'bg-white text-gray-700'
-                                                }`}
-                                        >
-                                            <Icon size={14} />
-                                            {mode.label}
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                                                        <div className="flex gap-2 overflow-x-auto pb-2">
+                                                            {[
+                                                                { value: 'list', icon: Users, label: 'Liste' },
+                                                                { value: 'cards', icon: Eye, label: 'Détails' },
+                                                                { value: 'analytics', icon: TrendingUp, label: 'Analytics' }
+                                                            ].map(mode => {
+                                                                const Icon = mode.icon;
+                                                                return (
+                                                                    <Button
+                                                                        key={mode.value}
+                                                                        onClick={() => setViewMode(mode.value as ViewMode)}
+                                                                        variant={viewMode === mode.value ? 'default' : 'secondary'}
+                                                                        className="px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium flex items-center gap-1"
+                                                                    >
+                                                                        <Icon size={14} className="mr-1" />
+                                                                        {mode.label}
+                                                                    </Button>
+                                                                );
+                                                            })}
+                                                        </div >
                         </div >
 
                         {/* Contenu scrollable */}
@@ -542,33 +533,29 @@ export default function SalesHistoryPage() {
                             <div className="flex items-center gap-2">
                                 {/* Sélecteur de format d'export */}
                                 <div className="flex items-center gap-1 mr-2">
-                                    <button
+                                    <Button
                                         onClick={() => setExportFormat('excel')}
-                                        className={`px-3 py-1.5 text-xs font-medium rounded-l-lg transition-colors ${exportFormat === 'excel'
-                                            ? 'bg-blue-500 text-white'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                            }`}
+                                        variant={exportFormat === 'excel' ? 'default' : 'secondary'}
+                                        className="px-3 py-1.5 text-xs font-medium rounded-l-lg transition-colors rounded-r-none"
                                     >
                                         Excel
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button
                                         onClick={() => setExportFormat('csv')}
-                                        className={`px-3 py-1.5 text-xs font-medium rounded-r-lg transition-colors ${exportFormat === 'csv'
-                                            ? 'bg-blue-500 text-white'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                            }`}
+                                        variant={exportFormat === 'csv' ? 'default' : 'secondary'}
+                                        className="px-3 py-1.5 text-xs font-medium rounded-r-lg transition-colors rounded-l-none"
                                     >
                                         CSV
-                                    </button>
+                                    </Button>
                                 </div>
-                                <button
+                                <Button
                                     onClick={exportSales}
                                     disabled={filteredSales.length === 0}
-                                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                                    className="px-4 py-2 flex items-center gap-2"
                                 >
-                                    <Download size={16} />
+                                    <Download size={16} className="mr-2" />
                                     <span className="text-sm font-medium">Exporter</span>
-                                </button>
+                                </Button>
                             </div>
                         </div>
                         {/* Barre de filtres Desktop */}
@@ -577,49 +564,45 @@ export default function SalesHistoryPage() {
                             {/* Filtres de date */}
                             <div className="flex bg-gray-100 rounded-lg p-1">
                                 {SALES_HISTORY_FILTERS.map(filter => (
-                                    <button
+                                    <Button
                                         key={filter}
                                         onClick={() => setTimeRange(filter)}
-                                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${timeRange === filter
-                                            ? 'bg-amber-500 text-white shadow-sm'
-                                            : 'text-gray-600 hover:text-gray-900'
-                                            }`}
+                                        variant={timeRange === filter ? 'default' : 'ghost'}
+                                        className="px-3 py-1.5 rounded-md text-sm font-medium transition-all"
                                     >
                                         {TIME_RANGE_CONFIGS[filter].label}
-                                    </button>
+                                    </Button>
                                 ))}
                             </div>
 
                             {/* Date range Custom */}
                             {isCustom && (
                                 <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-200">
-                                    <input
+                                    <Input
                                         type="date"
                                         value={customRange.start}
                                         onChange={(e) => updateCustomRange('start', e.target.value)}
-                                        className="p-1.5 bg-transparent text-sm outline-none"
+                                        className="p-1.5 bg-transparent text-sm"
                                     />
                                     <span className="text-gray-400">-</span>
-                                    <input
+                                    <Input
                                         type="date"
                                         value={customRange.end}
                                         onChange={(e) => updateCustomRange('end', e.target.value)}
-                                        className="p-1.5 bg-transparent text-sm outline-none"
+                                        className="p-1.5 bg-transparent text-sm"
                                     />
                                 </div>
                             )}
 
                             {/* Recherche */}
-                            <div className="relative w-64">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                                <input
-                                    type="text"
-                                    placeholder="ID vente ou produit..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-9 pr-3 py-2 border border-amber-200 rounded-lg bg-gray-50 text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none transition-all"
-                                />
-                            </div>
+                            <Input
+                                type="text"
+                                placeholder="ID vente ou produit..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                leftIcon={<Search size={16} />}
+                                className="w-64 text-sm bg-gray-50 border-amber-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                            />
 
                             <div className="flex-1"></div>
 
@@ -643,17 +626,15 @@ export default function SalesHistoryPage() {
                                                 ].map(mode => {
                                                     const Icon = mode.icon;
                                                     return (
-                                                        <button
+                                                        <Button
                                                             key={mode.value}
                                                             onClick={() => setViewMode(mode.value as ViewMode)}
-                                                            className={`px-3 py-1.5 text-sm flex items-center gap-1 transition-colors ${viewMode === mode.value
-                                                                ? 'bg-amber-500 text-white'
-                                                                : 'bg-white text-gray-700 hover:bg-amber-100'
-                                                                }`}
+                                                            variant={viewMode === mode.value ? 'default' : 'ghost'}
+                                                            className="px-3 py-1.5 text-sm flex items-center gap-1 transition-colors"
                                                         >
-                                                            <Icon size={14} />
+                                                            <Icon size={14} className="mr-1" />
                                                             {mode.label}
-                                                        </button>
+                                                        </Button>
                                                     );
                                                 })}
                                             </div>
@@ -778,9 +759,9 @@ function SaleDetailModal({
             >
                 <div className="flex items-center justify-between p-6 border-b">
                     <h3 className="text-lg font-semibold text-gray-800">Détail vente #{sale.id.slice(-6)}</h3>
-                    <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600">
+                    <Button onClick={onClose} variant="ghost" size="icon" className="p-2 text-gray-400 hover:text-gray-600">
                         <X size={20} />
-                    </button>
+                    </Button>
                 </div>
 
                 <div className="p-6 space-y-4">

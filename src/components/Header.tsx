@@ -127,13 +127,15 @@ export function Header({
           {/* Ligne 1: Hamburger (position absolue) + Logo + Actions */}
           <div className="relative flex items-center gap-2 mb-2">
             {/* Bouton Menu Hamburger - Position absolue garantit visibilité sur tous écrans */}
-            <button
+            <Button
               onClick={onToggleMobileSidebar}
+              variant="ghost"
+              size="icon"
               className="absolute left-0 z-10 p-2 bg-gray-900/90 rounded-lg text-white active:scale-95 transition-all shadow-lg border-2 border-white/40"
               aria-label="Menu"
             >
               <Menu size={22} className="stroke-[2.5]" />
-            </button>
+            </Button>
 
             {/* Contenu avec padding-left pour éviter chevauchement avec hamburger */}
             <div className="flex items-center gap-2 pl-12 w-full">
@@ -151,8 +153,10 @@ export function Header({
                 {currentSession?.role === 'super_admin' && (
                   <>
                     {/* A.5: Badge notifications admin */}
-                    <button
-                      onClick={() => navigate('/admin/notifications')} // NEW: Use navigate
+                    <Button
+                      onClick={() => navigate('/admin/notifications')}
+                      variant="ghost"
+                      size="icon"
                       className="relative p-1.5 bg-purple-600/90 rounded-lg text-white active:scale-95 transition-transform"
                       aria-label="Notifications Admin"
                     >
@@ -162,59 +166,71 @@ export function Header({
                           {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
                         </span>
                       )}
-                    </button>
-                    <button
-                      onClick={() => navigate('/admin')} // NEW: Use navigate
+                    </Button>
+                    <Button
+                      onClick={() => navigate('/admin')}
+                      variant="ghost"
+                      size="icon"
                       className="p-1.5 bg-purple-600/90 rounded-lg text-white active:scale-95 transition-transform"
                       aria-label="Admin Dashboard"
                     >
                       <ShieldCheck size={16} />
-                    </button>
+                    </Button>
                   </>
                 )}
                 {/* NEW: Add buttons for common modals from header (Product, Category, QuickSale) */}
                 {currentSession?.role !== 'super_admin' && (
                   <>
-                    <button
+                    <Button
                       onClick={onShowProductModal}
+                      variant="ghost"
+                      size="icon"
                       className="p-1.5 bg-blue-500/90 rounded-lg text-white active:scale-95 transition-transform"
                       aria-label="Ajouter Produit"
                       title="Ajouter Produit"
                     >
                       <PlusCircle size={16} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={onShowCategoryModal}
+                      variant="ghost"
+                      size="icon"
                       className="p-1.5 bg-green-500/90 rounded-lg text-white active:scale-95 transition-transform"
                       aria-label="Gérer Catégories"
                       title="Gérer Catégories"
                     >
                       <Edit size={16} />
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={onShowQuickSale}
+                      variant="ghost"
+                      size="icon"
                       className="p-1.5 bg-orange-500/90 rounded-lg text-white active:scale-95 transition-transform"
                       aria-label="Vente Rapide"
                       title="Vente Rapide"
                     >
                       <ShoppingCart size={16} />
-                    </button>
+                    </Button>
                   </>
                 )}
-                <button
+                <Button
                   onClick={() => setShowProfileSettings(true)}
+                  variant="ghost"
+                  size="icon"
                   className="p-1.5 bg-indigo-600/90 rounded-lg text-white active:scale-95 transition-transform"
                   aria-label="Mon Profil"
                 >
                   <User size={16} />
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={logout}
+                  variant="ghost"
+                  size="icon"
                   className="p-1.5 bg-red-500/80 rounded-lg text-white active:scale-95 transition-transform"
                   aria-label="Déconnexion"
                 >
                   <LogOut size={16} />
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -271,12 +287,12 @@ export function Header({
                   Mode Impersonation
                 </span>
               </div>
-              <button
+              <Button
                 onClick={stopImpersonation}
                 className="px-3 py-1 bg-yellow-900 text-yellow-50 rounded text-xs font-semibold hover:bg-yellow-800 transition-colors"
               >
                 Retour Admin
-              </button>
+              </Button>
             </div>
           </motion.div>
         )}
@@ -298,13 +314,15 @@ export function Header({
           {/* Gauche: Hamburger + Logo + Indicateurs + Bar selector */}
           <div className="flex items-center gap-4">
             {/* Bouton Menu Hamburger */}
-            <button
+            <Button
               onClick={onToggleMobileSidebar}
+              variant="ghost"
+              size="icon"
               className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
               aria-label="Menu"
             >
               <Menu size={24} />
-            </button>
+            </Button>
 
             <h1 className="text-2xl font-bold text-white">
               🍺 <AnimatedBarName text={currentSession?.role === 'super_admin' ? 'BarTender Pro' : (currentBar?.name || 'BarTender')} />
@@ -321,30 +339,36 @@ export function Header({
             {/* NEW: Desktop buttons for common modals */}
             {currentSession?.role !== 'super_admin' && (
               <>
-                <button
+                <Button
                   onClick={onShowProductModal}
+                  variant="ghost"
+                  size="icon"
                   className="p-2 bg-blue-500/90 rounded-lg text-white hover:bg-blue-600/90 transition-colors"
                   aria-label="Ajouter Produit"
                   title="Ajouter Produit"
                 >
                   <PlusCircle size={20} />
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={onShowCategoryModal}
+                  variant="ghost"
+                  size="icon"
                   className="p-2 bg-green-500/90 rounded-lg text-white hover:bg-green-600/90 transition-colors"
                   aria-label="Gérer Catégories"
                   title="Gérer Catégories"
                 >
                   <Edit size={20} />
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={onShowQuickSale}
+                  variant="ghost"
+                  size="icon"
                   className="p-2 bg-orange-500/90 rounded-lg text-white hover:bg-orange-600/90 transition-colors"
                   aria-label="Vente Rapide"
                   title="Vente Rapide"
                 >
                   <ShoppingCart size={20} />
-                </button>
+                </Button>
               </>
             )}
           </div>
@@ -371,15 +395,19 @@ export function Header({
             {/* Admin Actions (super_admin uniquement) */}
             {currentSession?.role === 'super_admin' && (
               <>
-                <button
-                  onClick={() => navigate('/admin/catalog')} // Use navigate for Admin Catalog
+                <Button
+                  onClick={() => navigate('/admin/catalog')}
+                  variant="ghost"
+                  size="icon"
                   className="p-2 bg-blue-600/90 rounded-lg text-white hover:bg-blue-700/90 transition-colors"
                   title="Catalogue Global"
                 >
                   <Globe size={20} />
-                </button>
-                <button
-                  onClick={() => navigate('/admin/notifications')} // Use navigate for Admin Notifications
+                </Button>
+                <Button
+                  onClick={() => navigate('/admin/notifications')}
+                  variant="ghost"
+                  size="icon"
                   className="relative p-2 bg-purple-600/90 rounded-lg text-white hover:bg-purple-700/90 transition-colors"
                   title="Notifications Admin"
                 >
@@ -389,40 +417,48 @@ export function Header({
                       {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
                     </span>
                   )}
-                </button>
+                </Button>
                 {/* NEW: Admin Modals */}
-                <button
+                <Button
                   onClick={() => navigate('/team')}
+                  variant="ghost"
+                  size="icon"
                   className="p-2 bg-pink-600/90 rounded-lg text-white hover:bg-pink-700/90 transition-colors"
                   title="Gestion Utilisateurs"
                 >
                   <Users size={20} />
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={onShowSupplyModal}
+                  variant="ghost"
+                  size="icon"
                   className="p-2 bg-cyan-600/90 rounded-lg text-white hover:bg-cyan-700/90 transition-colors"
                   title="Gestion des Approv."
                 >
                   <Package size={20} />
-                </button>
-                <button
-                  onClick={() => navigate('/admin')} // Use navigate for Admin Dashboard
+                </Button>
+                <Button
+                  onClick={() => navigate('/admin')}
+                  variant="ghost"
+                  size="icon"
                   className="p-2 bg-purple-600/90 rounded-lg text-white hover:bg-purple-700/90 transition-colors"
                   title="Admin Dashboard"
                 >
                   <ShieldCheck size={20} />
-                </button>
+                </Button>
               </>
             )}
 
             {/* Mon Profil */}
-            <button
+            <Button
               onClick={() => setShowProfileSettings(true)}
+              variant="ghost"
+              size="icon"
               className="p-2 bg-indigo-600/90 rounded-lg text-white hover:bg-indigo-700/90 transition-colors"
               title="Mon Profil"
             >
               <User size={20} />
-            </button>
+            </Button>
 
             {/* Déconnexion */}
             <button

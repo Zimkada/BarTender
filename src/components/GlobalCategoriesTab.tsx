@@ -3,6 +3,10 @@ import { Plus, Edit2, Trash2, Save, X, Loader2 } from 'lucide-react';
 import { CategoriesService } from '../services/supabase/categories.service';
 import { GlobalCategory } from '../types';
 import { useFeedback } from '../hooks/useFeedback';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
+import { Label } from './ui/Label';
+import { Modal } from './ui/Modal';
 
 export function GlobalCategoriesTab() {
     const [categories, setCategories] = useState<GlobalCategory[]>([]);
@@ -112,13 +116,13 @@ export function GlobalCategoriesTab() {
         <div className="h-full flex flex-col p-6">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-semibold text-gray-800">Liste des Catégories ({categories.length})</h3>
-                <button
+                <Button
                     onClick={() => handleOpenModal()}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2"
                 >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-4 h-4 mr-2" />
                     Nouvelle Catégorie
-                </button>
+                </Button>
             </div>
 
             <div className="flex-1 overflow-y-auto">
@@ -148,18 +152,22 @@ export function GlobalCategoriesTab() {
                             </div>
 
                             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
+                                <Button
                                     onClick={() => handleOpenModal(category)}
+                                    variant="ghost"
+                                    size="icon"
                                     className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                 >
                                     <Edit2 className="w-4 h-4" />
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     onClick={() => handleDelete(category.id)}
+                                    variant="ghost"
+                                    size="icon"
                                     className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                 >
                                     <Trash2 className="w-4 h-4" />
-                                </button>
+                                </Button>
                             </div>
                         </div>
                     ))}
@@ -168,84 +176,80 @@ export function GlobalCategoriesTab() {
 
             {/* Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-gray-900">
-                                {editingCategory ? 'Modifier la catégorie' : 'Nouvelle catégorie'}
-                            </h3>
-                            <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                                <X className="w-6 h-6" />
-                            </button>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
-                                <input
-                                    type="text"
-                                    value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    placeholder="Ex: Bières"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Icône (Emoji)</label>
-                                    <input
-                                        type="text"
-                                        value={formData.icon}
-                                        onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-xl"
-                                        placeholder="🍺"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Ordre</label>
-                                    <input
-                                        type="number"
-                                        value={formData.orderIndex}
-                                        onChange={(e) => setFormData({ ...formData, orderIndex: parseInt(e.target.value) })}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Couleur</label>
-                                <div className="flex gap-2 flex-wrap">
-                                    {['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6366F1', '#14B8A6'].map((color) => (
-                                        <button
-                                            key={color}
-                                            onClick={() => setFormData({ ...formData, color })}
-                                            className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${formData.color === color ? 'border-gray-900 scale-110' : 'border-transparent'
-                                                }`}
-                                            style={{ backgroundColor: color }}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
+                <Modal
+                    open={isModalOpen}
+                    onClose={() => setIsModalOpen(false)}
+                    title={editingCategory ? 'Modifier la catégorie' : 'Nouvelle catégorie'}
+                    size="md"
+                    footer={
                         <div className="flex justify-end gap-3 mt-8">
-                            <button
+                            <Button
                                 onClick={() => setIsModalOpen(false)}
-                                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium"
+                                variant="secondary"
+                                className="px-4 py-2 text-gray-700 rounded-lg font-medium"
                             >
                                 Annuler
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 onClick={handleSave}
                                 className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 flex items-center gap-2"
                             >
-                                <Save className="w-4 h-4" />
+                                <Save className="w-4 h-4 mr-2" />
                                 Enregistrer
-                            </button>
+                            </Button>
                         </div>
-                    </div>
-                </div>
+                    }
+                >
+                    <div className="space-y-4">
+                        <div>
+                            <Label htmlFor="categoryName">Nom</Label>
+                            <Input
+                                id="categoryName"
+                                type="text"
+                                value={formData.name}
+                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                placeholder="Ex: Bières"
+                            />
+                        </div>
+
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <Label htmlFor="categoryIcon">Icône (Emoji)</Label>
+                                                            <Input
+                                                                id="categoryIcon"
+                                                                type="text"
+                                                                value={formData.icon}
+                                                                onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                                                                className="text-center text-xl"
+                                                                placeholder="🍺"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <Label htmlFor="categoryOrderIndex">Ordre</Label>
+                                                            <Input
+                                                                id="categoryOrderIndex"
+                                                                type="number"
+                                                                value={formData.orderIndex}
+                                                                onChange={(e) => setFormData({ ...formData, orderIndex: parseInt(e.target.value) })}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Couleur</label>
+                                                        <div className="flex gap-2 flex-wrap">
+                                                            {['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6366F1', '#14B8A6'].map((color) => (
+                                                                <Button
+                                                                    key={color}
+                                                                    onClick={() => setFormData({ ...formData, color })}
+                                                                    variant="ghost"
+                                                                    className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 p-0 ${formData.color === color ? 'border-gray-900 scale-110' : 'border-transparent'
+                                                                        }`}
+                                                                    style={{ backgroundColor: color }}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    </div>                    </div>
+                </Modal>
             )}
         </div>
     );

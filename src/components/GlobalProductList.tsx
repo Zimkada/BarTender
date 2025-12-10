@@ -199,20 +199,24 @@ export function GlobalProductList({ products, onEdit, onDelete }: GlobalProductL
                                     </td>
                                     <td className="px-4 py-2 text-right">
                                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button
+                                            <Button
                                                 onClick={() => onEdit(product)}
+                                                variant="ghost"
+                                                size="icon"
                                                 className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                                 title="Modifier"
                                             >
                                                 <Edit2 size={16} />
-                                            </button>
-                                            <button
+                                            </Button>
+                                            <Button
                                                 onClick={() => onDelete(product.id)}
+                                                variant="ghost"
+                                                size="icon"
                                                 className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                                 title="Supprimer"
                                             >
                                                 <Trash2 size={16} />
-                                            </button>
+                                            </Button>
                                         </div>
                                     </td>
                                 </tr>
@@ -237,23 +241,25 @@ export function GlobalProductList({ products, onEdit, onDelete }: GlobalProductL
                             Affichage de <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> à <span className="font-medium">{Math.min(currentPage * itemsPerPage, processedProducts.length)}</span> sur <span className="font-medium">{processedProducts.length}</span> résultats
                         </div>
                         <div className="flex items-center gap-2">
-                            <button
+                            <Button
                                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                                 disabled={currentPage === 1}
-                                className="p-2 border border-gray-300 rounded-lg hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                variant="outline"
+                                size="icon"
                             >
                                 <ChevronLeft size={16} />
-                            </button>
+                            </Button>
                             <span className="text-sm font-medium text-gray-700 px-2">
                                 Page {currentPage} sur {totalPages}
                             </span>
-                            <button
+                            <Button
                                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                                 disabled={currentPage === totalPages}
-                                className="p-2 border border-gray-300 rounded-lg hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                variant="outline"
+                                size="icon"
                             >
                                 <ChevronRight size={16} />
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 )}

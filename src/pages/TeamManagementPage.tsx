@@ -8,6 +8,10 @@ import { UserRole } from '../types';
 import { AuthService } from '../services/supabase/auth.service';
 import { useViewport } from '../hooks/useViewport';
 import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Label } from '../components/ui/Label';
+import { Alert } from '../components/ui/Alert';
+import { Modal } from '../components/ui/Modal';
 
 /**
  * TeamManagementPage - Page de gestion de l'équipe
@@ -186,13 +190,13 @@ export default function TeamManagementPage() {
         {/* Action button */}
         {(hasPermission('canCreateManagers') || hasPermission('canCreateServers')) && (
           <div className="flex justify-end">
-            <button
+            <Button
               onClick={() => setShowAddUser(true)}
-              className="bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors flex items-center gap-2 shadow-md"
+              className="flex items-center gap-2 shadow-md"
             >
-              <UserPlus size={20} />
+              <UserPlus size={20} className="mr-2" />
               Ajouter un membre
-            </button>
+            </Button>
           </div>
         )}
 
@@ -271,13 +275,15 @@ export default function TeamManagementPage() {
                       {member.role !== 'promoteur' && member.role !== 'super_admin' &&
                         ((member.role === 'gerant' && hasPermission('canCreateManagers')) ||
                           (member.role === 'serveur' && hasPermission('canCreateServers'))) && (
-                          <button
+                          <Button
                             onClick={() => member.user && handleRemoveMember(member.id, member.user.name)}
+                            variant="ghost"
+                            size="icon"
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Retirer de l'équipe"
                           >
                             <Trash2 size={16} />
-                          </button>
+                          </Button>
                         )}
                     </div>
                   </div>
@@ -288,155 +294,133 @@ export default function TeamManagementPage() {
         </div>
 
         {/* Add User Modal - Kept as internal modal for the form */}
-        <AnimatePresence>
-          {showAddUser && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-              onClick={() => setShowAddUser(false)}
-            >
-              <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                onClick={(e) => e.stopPropagation()}
-                className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl"
+        <Modal
+          open={showAddUser}
+          onClose={() => setShowAddUser(false)}
+          title="Ajouter un membre"
+          size="md"
+          footer={
+            <div className="flex gap-3 pt-2">
+              <Button
+                type="button"
+                onClick={() => setShowAddUser(false)}
+                variant="secondary"
+                className="flex-1 text-sm"
               >
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-bold">Ajouter un membre</h3>
-                  <button
-                    onClick={() => setShowAddUser(false)}
-                    className="p-1 hover:bg-gray-100 rounded-lg"
+                Annuler
+              </Button>
+              <Button
+                type="submit"
+                form="add-member-form"
+                className="flex-1 text-sm font-medium"
+              >
+                Créer
+              </Button>
+            </div>
+          }
+        >
+          <form id="add-member-form" onSubmit={handleAddUser} className="space-y-4">
+            {/* Role Selection - Compact */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                Rôle
+              </label>
+              <div className="flex bg-gray-100 p-1 rounded-lg">
+                {hasPermission('canCreateManagers') && (
+                  <Button
+                    type="button"
+                    onClick={() => setSelectedRole('gerant')}
+                    variant={selectedRole === 'gerant' ? 'default' : 'ghost'}
+                    className="flex-1 py-1.5 text-sm font-medium rounded-md transition-all"
                   >
-                    <X size={20} />
-                  </button>
-                </div>
+                    Gérant
+                  </Button>
+                )}
+                {hasPermission('canCreateServers') && (
+                  <Button
+                    type="button"
+                    onClick={() => setSelectedRole('serveur')}
+                    variant={selectedRole === 'serveur' ? 'default' : 'ghost'}
+                    className="flex-1 py-1.5 text-sm font-medium rounded-md transition-all"
+                  >
+                    Serveur
+                  </Button>
+                )}
+              </div>
+            </div>
 
-                <form onSubmit={handleAddUser} className="space-y-4">
-                  {/* Role Selection - Compact */}
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                      Rôle
-                    </label>
-                    <div className="flex bg-gray-100 p-1 rounded-lg">
-                      {hasPermission('canCreateManagers') && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedRole('gerant')}
-                          className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${selectedRole === 'gerant'
-                            ? 'bg-white text-amber-600 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700'
-                            }`}
-                        >
-                          Gérant
-                        </button>
-                      )}
-                      {hasPermission('canCreateServers') && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedRole('serveur')}
-                          className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${selectedRole === 'serveur'
-                            ? 'bg-white text-amber-600 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-700'
-                            }`}
-                        >
-                          Serveur
-                        </button>
-                      )}
-                    </div>
-                  </div>
+            {/* Form Fields - Grid Layout */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="col-span-1">
+                                  <Label htmlFor="username" className="text-xs">
+                                    Nom d'utilisateur *
+                                  </Label>
+                                  <Input
+                                    id="username"
+                                    type="text"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
+                                    placeholder="nom.prenom"
+                                    className="text-sm"
+                                  />
+                                </div>
+            
+                                <div className="col-span-1">
+                                  <Label htmlFor="password" className="text-xs">
+                                    Mot de passe *
+                                  </Label>
+                                  <Input
+                                    id="password"
+                                    type="text"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="Min 8 chars"
+                                    className="text-sm"
+                                  />
+                                </div>
+            
+                                <div className="col-span-1">
+                                  <Label htmlFor="name" className="text-xs">
+                                    Nom complet *
+                                  </Label>
+                                  <Input
+                                    id="name"
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    placeholder="Prénom Nom"
+                                    className="text-sm"
+                                  />
+                                </div>
+            
+                                <div className="col-span-1">
+                                  <Label htmlFor="phone" className="text-xs">
+                                    Téléphone *
+                                  </Label>
+                                  <Input
+                                    id="phone"
+                                    type="tel"
+                                    value={phone}
+                                    onChange={(e) => setPhone(e.target.value)}
+                                    placeholder="0197000000"
+                                    className="text-sm"
+                                  />
+                                </div>
+                              </div>
+            {/* Messages */}
+            {error && (
+              <Alert show={!!error} variant="destructive" className="text-xs">
+                {error}
+              </Alert>
+            )}
 
-                  {/* Form Fields - Grid Layout */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="col-span-1">
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Nom d'utilisateur *
-                      </label>
-                      <input
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
-                        placeholder="nom.prenom"
-                      />
-                    </div>
-
-                    <div className="col-span-1">
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Mot de passe *
-                      </label>
-                      <input
-                        type="text"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
-                        placeholder="Min 8 chars"
-                      />
-                    </div>
-
-                    <div className="col-span-1">
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Nom complet *
-                      </label>
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
-                        placeholder="Prénom Nom"
-                      />
-                    </div>
-
-                    <div className="col-span-1">
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Téléphone *
-                      </label>
-                      <input
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
-                        placeholder="0197000000"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Messages */}
-                  {error && (
-                    <div className="bg-red-50 text-red-600 p-2 rounded-lg text-xs">
-                      {error}
-                    </div>
-                  )}
-
-                  {success && (
-                    <div className="bg-green-50 text-green-600 p-2 rounded-lg text-xs">
-                      {success}
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowAddUser(false)}
-                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
-                    >
-                      Annuler
-                    </button>
-                    <button
-                      type="submit"
-                      className="flex-1 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors text-sm font-medium"
-                    >
-                      Créer
-                    </button>
-                  </div>
-                </form>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            {success && (
+              <Alert show={!!success} variant="success" className="text-xs">
+                {success}
+              </Alert>
+            )}
+          </form>
+        </Modal>
       </div>
     </div>
   );

@@ -24,6 +24,8 @@ import { Button } from '../components/ui/Button';
 import { PageHeader } from '../components/common/PageHeader';
 import { Textarea } from '../components/ui/Textarea';
 import { Label } from '../components/ui/Label';
+import { Input } from '../components/ui/Input';
+import { Select, SelectOption } from '../components/ui/Select';
 
 const returnReasons: Record<ReturnReason, ReturnReasonConfig> = {
   defective: {
@@ -333,28 +335,29 @@ export default function ReturnsPage() {
         {/* Filters Area (Only visible in list mode) */}
         {!showCreateReturn && (
           <div className="flex flex-wrap gap-4 pt-4 border-t border-gray-100">
-            <div className="flex-1 min-w-[200px] relative">
-              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
+            <Input
                 type="text"
                 placeholder="Rechercher un retour..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none"
-              />
-            </div>
+                leftIcon={<Search size={18} />}
+                className="flex-1 min-w-[200px]"
+            />
             <div className="flex items-center gap-2">
               <Filter size={18} className="text-gray-400" />
-              <select
+              <Select
+                options={
+                    [
+                        { value: 'all', label: 'Tous les statuts' },
+                        { value: 'pending', label: 'En attente' },
+                        { value: 'approved', label: 'Approuvés' },
+                        { value: 'rejected', label: 'Rejetés' }
+                    ]
+                }
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as 'all' | 'pending' | 'approved' | 'rejected')}
-                className="px-4 py-2 border border-gray-200 rounded-lg bg-white focus:ring-2 focus:ring-amber-500 outline-none cursor-pointer"
-              >
-                <option value="all">Tous les statuts</option>
-                <option value="pending">En attente</option>
-                <option value="approved">Approuvés</option>
-                <option value="rejected">Rejetés</option>
-              </select>
+                className="flex-1"
+              />
             </div>
           </div>
         )}
@@ -947,29 +950,26 @@ function CreateReturnForm({
                 <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Quantité</label>
-                      <input
+                      <Label htmlFor="returnQuantity">Quantité</Label>
+                      <Input
+                        id="returnQuantity"
                         type="number"
                         required
                         min="1"
                         max={availableQty}
                         value={quantity}
                         onChange={(e) => setQuantity(Number(e.target.value))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none"
                       />
                       <p className="text-xs text-gray-500 mt-1">Max: {availableQty}</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Raison</label>
-                      <select
+                      <Label htmlFor="returnReason">Raison</Label>
+                      <Select
+                        id="returnReason"
+                        options={Object.entries(returnReasons).map(([key, value]) => ({ value: key, label: `${value.icon} ${value.label}` }))}
                         value={reason}
                         onChange={(e) => setReason(e.target.value as ReturnReason)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none"
-                      >
-                        {Object.entries(returnReasons).map(([key, value]) => (
-                          <option key={key} value={key}>{value.icon} {value.label}</option>
-                        ))}
-                      </select>
+                      />
                     </div>
                   </div>
 
