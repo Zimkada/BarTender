@@ -82,6 +82,14 @@ export default function SettingsPage() {
     const [tempServersList, setTempServersList] = useState<string[]>(currentBar?.settings?.serversList ?? []);
     const [newServerName, setNewServerName] = useState('');
 
+    // Tabs configuration
+    const tabs = [
+        { id: 'bar' as const, label: 'Bar', icon: Building2 },
+        { id: 'operational' as const, label: 'Opérationnel', icon: Clock },
+        { id: 'general' as const, label: 'Général', icon: SettingsIcon },
+        { id: 'security' as const, label: 'Sécurité', icon: ShieldCheck }
+    ];
+
     // Fonctions MFA
     const handleEnrollMfa = async () => {
         setMfaLoading(true);
@@ -542,18 +550,20 @@ export default function SettingsPage() {
 
             {/* Footer */}
             <div className="mt-6 flex gap-3">
-                <button
+                <Button
                     onClick={() => navigate(-1)}
-                    className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300"
+                    variant="secondary"
+                    className="flex-1 py-3"
                 >
                     Annuler
-                </button>
-                <button
+                </Button>
+                <Button
                     onClick={handleSave}
-                    className="flex-1 py-3 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600"
+                    variant="default"
+                    className="flex-1 py-3"
                 >
                     Enregistrer
-                </button>
+                </Button>
             </div>
         </div>
     );
