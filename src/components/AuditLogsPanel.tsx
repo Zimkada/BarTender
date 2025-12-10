@@ -16,6 +16,7 @@ import {
 import { auditLogger } from '../services/AuditLogger';
 import type { AuditLog, AuditLogEvent, AuditLogSeverity } from '../types';
 import { Alert } from './ui/Alert';
+import { Select } from './ui/Select';
 
 interface AuditLogsPanelProps {
   isOpen: boolean;
@@ -277,30 +278,28 @@ export default function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps)
             </div>
 
             {/* Severity Filter */}
-            <select
+            <Select
+              options={[
+                { value: 'all', label: 'Toutes severités' },
+                { value: 'critical', label: '🔴 Critiques' },
+                { value: 'warning', label: '🟠 Warnings' },
+                { value: 'info', label: '🔵 Info' }
+              ]}
               value={severityFilter}
               onChange={e => setSeverityFilter(e.target.value as any)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="all">Toutes severités</option>
-              <option value="critical">🔴 Critiques</option>
-              <option value="warning">🟠 Warnings</option>
-              <option value="info">🔵 Info</option>
-            </select>
+              className="px-4 py-2"
+            />
 
             {/* Event Filter */}
-            <select
+            <Select
+              options={[
+                { value: 'all', label: 'Tous les events' },
+                ...uniqueEvents.map(event => ({ value: event, label: event }))
+              ]}
               value={eventFilter}
               onChange={e => setEventFilter(e.target.value as any)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="all">Tous les events</option>
-              {uniqueEvents.map(event => (
-                <option key={event} value={event}>
-                  {event}
-                </option>
-              ))}
-            </select>
+              className="px-4 py-2"
+            />
           </div>
 
           {/* Bouton Filtres avancés (mobile uniquement) */}
@@ -323,25 +322,16 @@ export default function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps)
           <div className={`${showAdvancedFilters ? 'flex' : 'hidden'} md:flex gap-3 flex-wrap items-center mt-2 md:mt-0`}>
             {/* Bar Filter */}
             {(uniqueBars.length > 0 || systemLogsCount > 0) && (
-              <select
+              <Select
+                options={[
+                  { value: 'all', label: 'Tous les logs' },
+                  ...(systemLogsCount > 0 ? [{ value: 'system', label: `🔧 Logs système (${systemLogsCount})` }] : []),
+                  ...uniqueBars.map(bar => ({ value: bar.id, label: bar.name }))
+                ]}
                 value={barFilter}
                 onChange={e => setBarFilter(e.target.value)}
-                className="px-2 md:px-3 py-1.5 md:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm w-full md:w-auto"
-              >
-                <option value="all">Tous les logs</option>
-                {systemLogsCount > 0 && (
-                  <option value="system">🔧 Logs système ({systemLogsCount})</option>
-                )}
-                {uniqueBars.length > 0 && (
-                  <optgroup label="Bars">
-                    {uniqueBars.map(bar => (
-                      <option key={bar.id} value={bar.id}>
-                        {bar.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-              </select>
+                className="px-2 md:px-3 py-1.5 md:py-2 text-sm w-full md:w-auto"
+              />
             )}
 
             {/* Start Date */}

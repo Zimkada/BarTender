@@ -14,6 +14,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import { Select } from './ui/Select';
 
 // Palette BarTender (cohérente avec l'application)
 const COLORS = [
@@ -37,15 +38,17 @@ const AnalyticsCharts = ({ data, expensesByCategory }) => {
   return (
     <div className="space-y-8">
       <div className="flex justify-end">
-        <select
-          value={timeRange}
+        <Select
+          options={[
+            { value: '3', label: '3 derniers mois' },
+            { value: '6', label: '6 derniers mois' },
+            { value: '12', label: '12 derniers mois' },
+          ]}
+          value={timeRange.toString()}
           onChange={(e) => setTimeRange(parseInt(e.target.value))}
-          className="bg-white border border-gray-300 rounded-md px-3 py-1"
-        >
-          <option value={3}>3 derniers mois</option>
-          <option value={6}>6 derniers mois</option>
-          <option value={12}>12 derniers mois</option>
-        </select>
+          size="sm"
+          className="w-48"
+        />
       </div>
 
       {/* Évolution Solde Cumulatif */}

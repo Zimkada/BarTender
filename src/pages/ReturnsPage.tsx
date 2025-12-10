@@ -815,16 +815,15 @@ function CreateReturnForm({
                 Ventes de la journée commerciale actuelle
               </label>
               {sellersWithSales.length > 1 && (
-                <select
+                <Select
+                  options={[
+                    { value: 'all', label: 'Tous les vendeurs' },
+                    ...sellersWithSales.map(seller => ({ value: seller.id, label: seller.name }))
+                  ]}
                   value={filterSeller}
                   onChange={(e) => setFilterSeller(e.target.value)}
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
-                >
-                  <option value="all">Tous les vendeurs</option>
-                  {sellersWithSales.map(seller => (
-                    <option key={seller.id} value={seller.id}>{seller.name}</option>
-                  ))}
-                </select>
+                  className="text-sm"
+                />
               )}
             </div>
 

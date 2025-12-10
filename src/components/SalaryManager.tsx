@@ -17,6 +17,7 @@ import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { formatPeriod, getCurrentPeriod } from '../utils/accounting';
 import { useViewport } from '../hooks/useViewport';
 import { Alert } from './ui/Alert';
+import { Select } from './ui/Select';
 
 export function SalaryManager() {
   const { currentSession } = useAuth();
@@ -170,19 +171,12 @@ export function SalaryManager() {
         <label className={`block text-gray-700 font-medium mb-2 ${isMobile ? 'text-sm' : ''}`}>
           Période
         </label>
-        <select
+        <Select
+          options={periodOptions.map(period => ({ value: period, label: formatPeriod(period) }))}
           value={selectedPeriod}
           onChange={e => setSelectedPeriod(e.target.value)}
-          className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${
-            isMobile ? 'text-sm' : ''
-          }`}
-        >
-          {periodOptions.map(period => (
-            <option key={period} value={period}>
-              {formatPeriod(period)}
-            </option>
-          ))}
-        </select>
+          className={`w-full ${isMobile ? 'text-sm' : ''}`}
+        />
       </div>
 
       {/* Stats */}
@@ -360,19 +354,12 @@ export function SalaryManager() {
                   <label className={`block text-gray-700 font-medium mb-2 ${isMobile ? 'text-sm' : ''}`}>
                     Période
                   </label>
-                  <select
+                  <Select
+                    options={periodOptions.map(period => ({ value: period, label: formatPeriod(period) }))}
                     value={selectedPeriod}
                     onChange={e => setSelectedPeriod(e.target.value)}
-                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${
-                      isMobile ? 'text-sm' : ''
-                    }`}
-                  >
-                    {periodOptions.map(period => (
-                      <option key={period} value={period}>
-                        {formatPeriod(period)}
-                      </option>
-                    ))}
-                  </select>
+                    className={`w-full ${isMobile ? 'text-sm' : ''}`}
+                  />
                 </div>
 
                 {/* Member */}
@@ -380,26 +367,25 @@ export function SalaryManager() {
                   <label className={`block text-gray-700 font-medium mb-2 ${isMobile ? 'text-sm' : ''}`}>
                     Membre de l'équipe
                   </label>
-                  <select
+                  <Select
+                    options={[
+                      { value: '', label: 'Sélectionner...' },
+                      ...activeMembers.map(member => {
+                        const memberWithUser = member as any; // BarMember & { user: User }
+                        const alreadyPaid = getSalaryForPeriod(member.id, selectedPeriod);
+                        // ✅ FIX: Accéder à member.user.name au lieu de member.name
+                        const displayName = memberWithUser.user?.name || memberWithUser.user?.userName || 'Membre inconnu';
+                        return {
+                          value: member.id,
+                          label: `${displayName} (${member.role})${alreadyPaid ? ' ✓ Payé' : ''}`,
+                          disabled: !!alreadyPaid
+                        };
+                      })
+                    ]}
                     value={selectedMemberId}
                     onChange={e => setSelectedMemberId(e.target.value)}
-                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${
-                      isMobile ? 'text-sm' : ''
-                    }`}
-                  >
-                    <option value="">Sélectionner...</option>
-                    {activeMembers.map(member => {
-                      const memberWithUser = member as any; // BarMember & { user: User }
-                      const alreadyPaid = getSalaryForPeriod(member.id, selectedPeriod);
-                      // ✅ FIX: Accéder à member.user.name au lieu de member.name
-                      const displayName = memberWithUser.user?.name || memberWithUser.user?.userName || 'Membre inconnu';
-                      return (
-                        <option key={member.id} value={member.id} disabled={!!alreadyPaid}>
-                          {displayName} ({member.role}) {alreadyPaid ? '✓ Payé' : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
+                    className={`w-full ${isMobile ? 'text-sm' : ''}`}
+                  />
                 </div>
 
                 {/* Amount */}

@@ -8,6 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer
 } from 'recharts';
+import { Select } from '../ui/Select';
 
 interface TopProductData {
   displayName: string;
@@ -91,16 +92,18 @@ export function TopProductsChart({
           {/* Titre avec sélecteur de limite */}
           <div className="flex items-center gap-2">
             <h4 className="text-sm font-semibold text-gray-800">Top</h4>
-            <select
-              value={limit}
+            <Select
+              options={[
+                { value: '5', label: '5' },
+                { value: '10', label: '10' },
+                { value: '20', label: '20' },
+                { value: '50', label: '50' },
+              ]}
+              value={limit.toString()}
               onChange={(e) => onLimitChange(Number(e.target.value))}
-              className="px-2 py-1 text-sm font-semibold text-white bg-amber-500 border border-amber-600 rounded-lg hover:bg-amber-600 transition-colors"
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={50}>50</option>
-            </select>
+              size="sm"
+              className="w-20 bg-amber-500 border-amber-600 text-white font-semibold"
+            />
             <h4 className="text-sm font-semibold text-gray-800">produits</h4>
           </div>
 

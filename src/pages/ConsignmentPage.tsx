@@ -31,6 +31,7 @@ import { PageHeader } from '../components/common/PageHeader';
 import { Textarea } from '../components/ui/Textarea';
 import { Label } from '../components/ui/Label';
 import { Alert } from '../components/ui/Alert';
+import { Select } from '../components/ui/Select';
 
 type TabType = 'create' | 'active' | 'history';
 
@@ -295,21 +296,18 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
           <div className="mb-3">
             <div className="flex items-center gap-2">
               <Filter size={16} className="text-gray-400" />
-              <select
+              <Select
+                options={[
+                  { value: 'all', label: `Tous les vendeurs (${todaySales.length})` },
+                  ...sellersWithSales.map(seller => {
+                    const count = todaySales.filter(s => s.createdBy === seller.id).length;
+                    return { value: seller.id, label: `${seller.name} (${count})` };
+                  })
+                ]}
                 value={filterSeller}
                 onChange={(e) => setFilterSeller(e.target.value)}
-                className="px-3 py-2 border border-amber-200 rounded-lg bg-white text-sm"
-              >
-                <option value="all">Tous les vendeurs ({todaySales.length})</option>
-                {sellersWithSales.map(seller => {
-                  const count = todaySales.filter(s => s.createdBy === seller.id).length;
-                  return (
-                    <option key={seller.id} value={seller.id}>
-                      {seller.name} ({count})
-                    </option>
-                  );
-                })}
-              </select>
+                className="text-sm"
+              />
             </div>
           </div>
         )}

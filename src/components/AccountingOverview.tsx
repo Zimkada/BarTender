@@ -12,6 +12,7 @@ import {
   X,
   Download
 } from 'lucide-react';
+import { Select } from './ui/Select';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { useAppContext } from '../context/AppContext';
@@ -1240,20 +1241,19 @@ export function AccountingOverview() {
 
               {/* Source */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Source <span className="text-red-500">*</span>
-                </label>
-                <select
+                <Select
+                  label="Source"
+                  options={[
+                    { value: 'owner', label: '👤 Propriétaire (apport personnel)' },
+                    { value: 'partner', label: '🤝 Associé' },
+                    { value: 'investor', label: '💼 Investisseur externe' },
+                    { value: 'loan', label: '🏦 Prêt (banque/personnel)' },
+                    { value: 'other', label: '📋 Autre' },
+                  ]}
                   value={capitalContributionForm.source}
                   onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, source: e.target.value as import('../types').CapitalSource }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                >
-                  <option value="owner">👤 Propriétaire (apport personnel)</option>
-                  <option value="partner">🤝 Associé</option>
-                  <option value="investor">💼 Investisseur externe</option>
-                  <option value="loan">🏦 Prêt (banque/personnel)</option>
-                  <option value="other">📋 Autre</option>
-                </select>
+                  required
+                />
               </div>
 
               {/* Source Details (optionnel) */}

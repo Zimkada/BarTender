@@ -15,6 +15,7 @@ import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { Bar, Sale, Return, BarMember, User } from '../types';
+import { Select } from './ui/Select';
 import { getBusinessDate, getCurrentBusinessDateString } from '../utils/businessDateHelpers';
 import { AuthService } from '../services/supabase/auth.service';
 
@@ -202,21 +203,17 @@ export default function BarsManagementPanel({ isOpen, onClose, onShowBarStats }:
                 {/* Status Filter */}
                 <div className="md:w-56">
                   <div className="relative">
-                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <select
+                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 z-10" />
+                    <Select
+                      options={[
+                        { value: 'all', label: 'Tous les statuts' },
+                        { value: 'active', label: '✅ Actifs uniquement' },
+                        { value: 'suspended', label: '🚫 Suspendus uniquement' },
+                      ]}
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'suspended')}
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none bg-white transition-all cursor-pointer"
-                    >
-                      <option value="all">Tous les statuts</option>
-                      <option value="active">✅ Actifs uniquement</option>
-                      <option value="suspended">🚫 Suspendus uniquement</option>
-                    </select>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
+                      className="pl-10"
+                    />
                   </div>
                 </div>
               </div>

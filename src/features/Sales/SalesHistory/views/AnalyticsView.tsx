@@ -18,6 +18,7 @@ import { useAppContext } from '../../../../context/AppContext';
 import { useBarContext } from '../../../../context/BarContext';
 import { useAuth } from '../../../../context/AuthContext';
 import { useCurrencyFormatter } from '../../../../hooks/useBeninCurrency';
+import { Select } from '../../../../components/ui/Select';
 import { useViewport } from '../../../../hooks/useViewport';
 import { AnalyticsService, TopProduct } from '../../../../services/supabase/analytics.service';
 import { useDateRangeFilter } from '../../../../hooks/useDateRangeFilter';
@@ -666,15 +667,17 @@ export function AnalyticsView({
       <div className="bg-white rounded-xl p-4 border border-amber-100">
         <div className="flex items-center justify-between mb-3">
           <h4 className="text-sm font-semibold text-gray-800">Performance Équipe</h4>
-          <select
+          <Select
+            options={[
+              { value: 'all', label: 'Tous' },
+              { value: 'servers', label: 'Serveurs' },
+              { value: 'management', label: 'Management' },
+            ]}
             value={userFilter}
             onChange={(e) => setUserFilter(e.target.value as any)}
-            className="text-xs border border-amber-200 rounded-lg px-2 py-1 bg-white"
-          >
-            <option value="all">Tous</option>
-            <option value="servers">Serveurs</option>
-            <option value="management">Management</option>
-          </select>
+            size="sm"
+            className="w-40"
+          />
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">

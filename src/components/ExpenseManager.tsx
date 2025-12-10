@@ -22,6 +22,7 @@ import { ExpenseCategory } from '../types';
 import { useViewport } from '../hooks/useViewport';
 import { Textarea } from './ui/Textarea';
 import { Label } from './ui/Label';
+import { Select } from './ui/Select';
 
 type PeriodType = 'week' | 'month' | 'all';
 
@@ -381,7 +382,13 @@ function ExpenseManagerContent() {
                   <label className={`block text-gray-700 font-medium mb-2 ${isMobile ? 'text-sm' : ''}`}>
                     Catégorie
                   </label>
-                  <select
+                  <Select
+                    options={[
+                      ...Object.entries(EXPENSE_CATEGORY_LABELS)
+                        .filter(([key]) => key !== 'custom')
+                        .map(([key, data]) => ({ value: key, label: `${data.icon} ${data.label}` })),
+                      ...customExpenseCategories.map(cat => ({ value: `custom:${cat.id}`, label: `${cat.icon} ${cat.name}` }))
+                    ]}
                     value={category === 'custom' && customCategoryId ? `custom:${customCategoryId}` : category}
                     onChange={e => {
                       const value = e.target.value;
@@ -393,30 +400,8 @@ function ExpenseManagerContent() {
                         setCustomCategoryId('');
                       }
                     }}
-                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${isMobile ? 'text-sm' : ''
-                      }`}
-                  >
-                    {/* Standard categories */}
-                    {Object.entries(EXPENSE_CATEGORY_LABELS)
-                      .filter(([key]) => key !== 'custom')
-                      .map(([key, data]) => (
-                        <option key={key} value={key}>
-                          {data.icon} {data.label}
-                        </option>
-                      ))}
-
-                    {/* Separator if custom categories exist */}
-                    {customExpenseCategories.length > 0 && (
-                      <option disabled>──────────────</option>
-                    )}
-
-                    {/* Custom categories */}
-                    {customExpenseCategories.map(cat => (
-                      <option key={cat.id} value={`custom:${cat.id}`}>
-                        {cat.icon} {cat.name}
-                      </option>
-                    ))}
-                  </select>
+                    className={`w-full ${isMobile ? 'text-sm' : ''}`}
+                  />
                 </div>
 
                 {/* Date */}

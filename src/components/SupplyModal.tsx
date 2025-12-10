@@ -3,6 +3,7 @@ import { X, Package } from 'lucide-react';
 import { Product } from '../types';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Select } from './ui/Select';
 
 interface SupplyModalProps {
   isOpen: boolean;
@@ -94,18 +95,16 @@ export function SupplyModal({ isOpen, onClose, onSave, products }: SupplyModalPr
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Produit *
                 </label>
-                <select
-                  required
+                <Select
+                  options={products.map(product => ({
+                    value: product.id,
+                    label: `${product.name} (${product.volume})`
+                  }))}
                   value={formData.productId}
                   onChange={(e) => setFormData({ ...formData, productId: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-gray-800 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
-                >
-                  {products.map((product) => (
-                    <option key={product.id} value={product.id}>
-                      {product.name} ({product.volume})
-                    </option>
-                  ))}
-                </select>
+                  className="w-full"
+                  required
+                />
                 {selectedProduct && (
                   <p className="text-sm text-gray-600 mt-1">
                     Stock actuel: {selectedProduct.stock} | Prix de vente: {formatPrice(selectedProduct.price)}
