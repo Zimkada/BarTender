@@ -2,6 +2,7 @@
 import React, { lazy, Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { RootLayout } from '../layouts/RootLayout';
+import { AdminLayout } from '../layouts/AdminLayout';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { ErrorPage } from '../pages/ErrorPage';
 import { HomePage } from '../pages/HomePage';
@@ -37,9 +38,31 @@ const SuperAdminPage = lazy(() => import('../pages/SuperAdminPage'));
 const BarsManagementPage = lazy(() => import('../components/BarsManagementPanel'));
 const BarStatsModalPage = lazy(() => import('../components/BarStatsModal'));
 const UsersManagementPage = lazy(() => import('../components/UsersManagementPanel'));
-const GlobalCatalogPage = lazy(() => import('../components/GlobalCatalogPanel'));
-const AuditLogsPage = lazy(() => import('../components/AuditLogsPanel'));
+const GlobalCatalogPage = lazy(() => import('../pages/GlobalCatalogPage'));
+const AuditLogsPage = lazy(() => import('../pages/AuditLogsPage'));
+
 export const router = createBrowserRouter([
+  // =====================
+  // Routes Admin (SuperAdmin) - Layout séparé
+  // =====================
+  {
+    path: '/admin',
+    element: <AdminLayout />,
+    errorElement: <ErrorPage />,
+    children: [
+      { index: true, element: <SuperAdminPage /> },
+      { path: 'bars', element: <BarsManagementPage /> },
+      { path: 'bars/:barId', element: <BarStatsModalPage /> },
+      { path: 'users', element: <UsersManagementPage /> },
+      { path: 'catalog', element: <GlobalCatalogPage /> },
+      { path: 'audit-logs', element: <AuditLogsPage /> },
+      { path: 'notifications', element: <AdminNotificationsPage /> },
+    ],
+  },
+  
+  // =====================
+  // Routes Application (Bar Users) - RootLayout
+  // =====================
   {
     path: '/',
     element: <RootLayout />,
@@ -75,24 +98,12 @@ export const router = createBrowserRouter([
       { path: 'consignments', element: <Suspense fallback={<LoadingFallback />}><ConsignmentPage /></Suspense> },
       { path: 'team', element: <Suspense fallback={<LoadingFallback />}><TeamPage /></Suspense> },
       { path: 'promotions', element: <Suspense fallback={<LoadingFallback />}><PromotionsPage /></Suspense> },
-
-      // Routes Admin
-      {
-        path: 'admin',
-        element: <ProtectedRoute permission="canAccessAdminDashboard" />,
-        children: [
-          { index: true, element: <Suspense fallback={<LoadingFallback />}><SuperAdminPage /></Suspense> },
-          { path: 'bars', element: <Suspense fallback={<LoadingFallback />}><BarsManagementPage /></Suspense> },
-          { path: 'bars/:barId', element: <Suspense fallback={<LoadingFallback />}><BarStatsModalPage /></Suspense> },
-          { path: 'users', element: <Suspense fallback={<LoadingFallback />}><UsersManagementPage /></Suspense> },
-          { path: 'catalog', element: <Suspense fallback={<LoadingFallback />}><GlobalCatalogPage /></Suspense> },
-          { path: 'audit-logs', element: <Suspense fallback={<LoadingFallback />}><AuditLogsPage /></Suspense> },
-          { path: 'notifications', element: <Suspense fallback={<LoadingFallback />}><AdminNotificationsPage /></Suspense> },
-        ],
-      },
     ],
   },
-  // Routes Auth
+  
+  // =====================
+  // Routes Auth (Public)
+  // =====================
   {
     path: '/auth',
     element: <AuthLayout />,
