@@ -96,7 +96,7 @@ BEGIN
     ),
     filtered_users AS (
         SELECT *
-        FROM user_roles
+        FROM user_roles ur
         WHERE
             (p_role_filter = 'all' OR (p_role_filter != 'all' AND ur.roles::text LIKE '%' || p_role_filter || '%'))
     )
