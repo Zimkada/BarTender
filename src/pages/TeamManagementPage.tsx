@@ -159,46 +159,48 @@ export default function TeamManagementPage() {
       {/* Header */}
       <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden">
         <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
-          <div className="flex items-center gap-4">
-            <Button
-              onClick={() => navigate(-1)}
-              variant="ghost"
-              size="icon"
-              className="rounded-lg transition-colors hover:bg-white/20"
-            >
-              <ArrowLeft size={24} />
-            </Button>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                <Users className="text-white" size={24} />
-              </div>
-              <div>
-                <h1 className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-                  {isMobile ? 'Équipe' : 'Équipe du bar'}
-                </h1>
-                <p className={`text-amber-100 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  {currentBar.name}
-                </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                onClick={() => navigate(-1)}
+                variant="ghost"
+                size="icon"
+                className="rounded-lg transition-colors hover:bg-white/20"
+              >
+                <ArrowLeft size={24} />
+              </Button>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <Users className="text-white" size={24} />
+                </div>
+                <div>
+                  <h1 className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+                    {isMobile ? 'Équipe' : 'Équipe du bar'}
+                  </h1>
+                  <p className={`text-amber-100 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    {currentBar.name}
+                  </p>
+                </div>
               </div>
             </div>
+
+            {/* Action button in header */}
+            {(hasPermission('canCreateManagers') || hasPermission('canCreateServers')) && (
+              <Button
+                onClick={() => setShowAddUser(true)}
+                variant="default"
+                className="flex items-center gap-2"
+              >
+                <UserPlus size={18} className="mr-2" />
+                {isMobile ? 'Ajouter' : 'Ajouter un membre'}
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
       {/* Content */}
       <div className="space-y-6">
-        {/* Action button */}
-        {(hasPermission('canCreateManagers') || hasPermission('canCreateServers')) && (
-          <div className="flex justify-end">
-            <Button
-              onClick={() => setShowAddUser(true)}
-              className="flex items-center gap-2 shadow-md"
-            >
-              <UserPlus size={20} className="mr-2" />
-              Ajouter un membre
-            </Button>
-          </div>
-        )}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

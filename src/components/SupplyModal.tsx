@@ -68,14 +68,14 @@ export function SupplyModal({ isOpen, onClose, onSave, products }: SupplyModalPr
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
         >
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className="bg-gradient-to-br from-amber-50 to-amber-50 rounded-lg w-full max-w-4xl max-h-[85vh] md:max-h-[90vh] overflow-y-auto"
+            className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[85vh] md:max-h-[90vh] overflow-y-auto"
           >
-            <div className="flex items-center justify-between p-6 border-b border-amber-100">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
                 <Package size={20} className="text-amber-500" />
                 Approvisionnement
@@ -155,7 +155,7 @@ export function SupplyModal({ isOpen, onClose, onSave, products }: SupplyModalPr
                   min="0"
                   value={formData.lotPrice}
                   onChange={(e) => setFormData({ ...formData, lotPrice: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-gray-800 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-800 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
                   placeholder="12000"
                 />
               </div>
@@ -169,16 +169,16 @@ export function SupplyModal({ isOpen, onClose, onSave, products }: SupplyModalPr
                   required
                   value={formData.supplier}
                   onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-                  className="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-gray-800 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-800 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
                   placeholder="SOBEBRA"
                 />
               </div>
 
               {totalLots > 0 && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-gradient-to-r from-amber-100 to-amber-100 border border-amber-200 rounded-xl p-3"
+                  className="bg-amber-50 border border-amber-200 rounded-xl p-3"
                 >
                   <h4 className="text-gray-800 font-medium mb-2">Résumé de l'approvisionnement</h4>
                   <div className="space-y-1 text-sm">
@@ -189,13 +189,13 @@ export function SupplyModal({ isOpen, onClose, onSave, products }: SupplyModalPr
                 </motion.div>
               )}
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-6 border-t border-gray-200">
                 <motion.button
                   type="button"
                   onClick={onClose}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 transition-colors"
+                  className="flex-1 py-2.5 px-4 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
                 >
                   Annuler
                 </motion.button>
@@ -203,7 +203,7 @@ export function SupplyModal({ isOpen, onClose, onSave, products }: SupplyModalPr
                   type="submit"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="flex-1 py-3 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 transition-colors"
+                  className="flex-1 py-2.5 px-4 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 transition-colors"
                 >
                   Enregistrer
                 </motion.button>
