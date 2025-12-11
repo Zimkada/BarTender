@@ -65,6 +65,44 @@ export class ReturnsService {
     }
 
     /**
+     * Récupérer tous les retours de TOUS les bars (pour Super Admin)
+     */
+    static async getAllReturns(
+        startDate?: Date | string,
+        endDate?: Date | string
+    ): Promise<Return[]> {
+        try {
+            let query = supabase
+                .from('returns')
+                .select('*')
+                .order('returned_at', { ascending: false });
+
+            const formatToYYYYMMDD = (date: Date | string): string => {
+                if (typeof date === 'string') return date;
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+            if (startDate) {
+                query = query.gte('business_date', formatToYYYYMMDD(startDate));
+            }
+
+            if (endDate) {
+                query = query.lte('business_date', formatToYYYYMMDD(endDate));
+            }
+
+            const { data, error } = await query;
+
+            if (error) throw error;
+            return data || [];
+        } catch (error: any) {
+            throw new Error(handleSupabaseError(error));
+        }
+    }
+
+    /**
      * Mettre à jour un retour
      */
     static async updateReturn(id: string, updates: Partial<Return>): Promise<Return> {

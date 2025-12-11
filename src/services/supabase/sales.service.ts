@@ -212,6 +212,58 @@ export class SalesService {
   }
 
   /**
+   * Récupérer toutes les ventes de TOUS les bars (pour Super Admin)
+   */
+  static async getAllSales(
+    options?: {
+      status?: 'pending' | 'validated' | 'rejected';
+      startDate?: string;
+      endDate?: string;
+      limit?: number;
+    }
+  ): Promise<SaleWithDetails[]> {
+    try {
+      let query = supabase
+        .from('sales')
+        .select(`
+          *,
+          seller:users!sales_created_by_fkey (name),
+          validator:users!sales_validated_by_fkey (name)
+        `)
+        .order('business_date', { ascending: false });
+
+      if (options?.status) {
+        query = query.eq('status', options.status);
+      }
+      if (options?.startDate) {
+        query = query.gte('business_date', options.startDate);
+      }
+      if (options?.endDate) {
+        query = query.lte('business_date', options.endDate);
+      }
+      if (options?.limit) {
+        query = query.limit(options.limit);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        throw new Error('Erreur lors de la récupération de toutes les ventes');
+      }
+
+      return (data || []).map((sale: any) => ({
+        ...sale,
+        items: sale.items || [],
+        seller_name: sale.seller?.name || 'Inconnu',
+        validator_name: sale.validator?.name || null,
+        items_count: (sale.items || []).length,
+      }));
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
    * Récupérer une vente par ID
    */
   static async getSaleById(saleId: string): Promise<SaleWithDetails | null> {
