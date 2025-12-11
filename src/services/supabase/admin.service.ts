@@ -1,6 +1,6 @@
 // src/services/supabase/admin.service.ts
 import { supabase, handleSupabaseError } from '../../lib/supabase';
-import { Bar, User } from '../../types';
+import { Bar, User, AuditLog } from '../../types';
 
 export interface DashboardStats {
   total_revenue: number;
@@ -60,6 +60,35 @@ interface UserFromRPC {
 
 export interface PaginatedUsersResult {
   users: Array<User & { roles: string[] }>;
+  totalCount: number;
+}
+
+interface AuditLogFromRPC {
+  id: string;
+  user_id: string | null;
+  user_name: string;
+  bar_id: string | null;
+  bar_name: string | null;
+  action: string;
+  description: string;
+  severity: 'critical' | 'warning' | 'info';
+  timestamp: string;
+  metadata: Record<string, any> | null;
+}
+
+export interface GetPaginatedAuditLogsParams {
+  page: number;
+  limit: number;
+  searchQuery?: string;
+  severityFilter?: 'all' | 'critical' | 'warning' | 'info';
+  eventFilter?: string;
+  barFilter?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface PaginatedAuditLogsResult {
+  logs: AuditLog[];
   totalCount: number;
 }
 
@@ -193,6 +222,54 @@ export class AdminService {
 
       return { users: [], totalCount: 0 };
 
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Récupère les logs d'audit de manière paginée.
+   * @param params - Paramètres de pagination et de filtre
+   */
+  static async getPaginatedAuditLogs(params: GetPaginatedAuditLogsParams): Promise<PaginatedAuditLogsResult> {
+    try {
+      const {
+        page,
+        limit,
+        searchQuery = '',
+        severityFilter = 'all',
+        eventFilter = 'all',
+        barFilter = 'all',
+        startDate = undefined,
+        endDate = undefined
+      } = params;
+
+      const { data, error } = await (supabase.rpc as any)('get_paginated_audit_logs', {
+        p_page: page,
+        p_limit: limit,
+        p_search_query: searchQuery,
+        p_severity_filter: severityFilter,
+        p_event_filter: eventFilter,
+        p_bar_filter: barFilter,
+        p_start_date: startDate ?? null,
+        p_end_date: endDate ?? null,
+      });
+
+      if (error) throw error;
+
+      if (Array.isArray(data) && data.length > 0) {
+        const result = data[0];
+        const logsData = (Array.isArray(result.logs) ? result.logs : []).map((log: AuditLogFromRPC) => ({
+          ...log,
+          timestamp: new Date(log.timestamp),
+        }));
+        return {
+          logs: logsData,
+          totalCount: result.total_count || 0,
+        };
+      }
+
+      return { logs: [], totalCount: 0 };
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
     }

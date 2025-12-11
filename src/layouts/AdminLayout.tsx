@@ -52,9 +52,8 @@ function AdminLayoutContent() {
         SalesService.getAllSales(),
         ReturnsService.getAllReturns(),
       ]);
-      // ... mapping des données sales et returns
-      setAllSales(mappedSales);
-      setAllReturns(mappedReturns);
+      setAllSales(salesData);
+      setAllReturns(returnsData);
     } catch (error) {
       console.error("Erreur chargement données admin:", error);
     } finally {
