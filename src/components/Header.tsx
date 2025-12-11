@@ -25,6 +25,7 @@ import { BarSelector } from './BarSelector';
 import { SyncStatusBadge } from './SyncStatusBadge'; // ✅ Badge sync unifié (remplace OfflineIndicator, NetworkIndicator, SyncButton)
 import { useViewport } from '../hooks/useViewport';
 import { ProfileSettings } from './ProfileSettings';
+import { Button } from './ui/Button';
 
 // Composant pour l'animation lettre par lettre du nom du bar
 const AnimatedBarName: React.FC<{ text: string }> = ({ text }) => {
