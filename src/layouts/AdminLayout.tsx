@@ -1,10 +1,10 @@
 // src/layouts/AdminLayout.tsx
 import { Link, Outlet, Navigate, useLocation } from 'react-router-dom';
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { LoadingFallback } from '../components/LoadingFallback';
-import BarsManagementPanel from '../components/BarsManagementPanel'; // Importer le panel
-import UsersManagementPanel from '../components/UsersManagementPanel'; // Importer le panel
+import BarsManagementPanel from '../components/BarsManagementPanel';
+import PromotersManagementPanel from '../components/PromotersManagementPanel';
 import { 
   LayoutDashboard, 
   Building2, 
@@ -18,6 +18,11 @@ import {
   ShieldCheck
 } from 'lucide-react';
 
+import { SalesService } from '../services/supabase/sales.service';
+import { ReturnsService } from '../services/supabase/returns.service';
+import { AuthService } from '../services/supabase/auth.service';
+import { Sale, Return, User } from '../types';
+
 const adminNavItems = [
   { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true, isLink: true },
   { id: 'bars', label: 'Gestion des Bars', icon: Building2 },
@@ -27,150 +32,87 @@ const adminNavItems = [
   { path: '/admin/notifications', label: 'Notifications', icon: Bell, isLink: true },
 ];
 
-import { SalesService } from '../services/supabase/sales.service';
-import { ReturnsService } from '../services/supabase/returns.service';
-import { Sale, Return } from '../types';
-
-// ... (imports existants)
-
-// ... (const adminNavItems)
-
 function AdminLayoutContent() {
   const { isAuthenticated, currentSession, logout } = useAuth();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
-  // États pour les modales
   const [isBarsPanelOpen, setIsBarsPanelOpen] = useState(false);
-  const [isUsersPanelOpen, setIsUsersPanelOpen] = useState(false);
+  const [isPromotersPanelOpen, setIsPromotersPanelOpen] = useState(false);
 
-  // États pour les données globales
   const [allSales, setAllSales] = useState<Sale[]>([]);
   const [allReturns, setAllReturns] = useState<Return[]>([]);
+  const [promoters, setPromoters] = useState<Array<User & { bars: any[] }>>([]);
   const [loadingData, setLoadingData] = useState(true);
 
-  // Charger toutes les données nécessaires pour les panels admin
-  useEffect(() => {
-    const loadAllAdminData = async () => {
-      if (currentSession?.role !== 'super_admin') return;
-      try {
-        setLoadingData(true);
-        const [salesData, returnsData] = await Promise.all([
-          SalesService.getAllSales(),
-          ReturnsService.getAllReturns(),
-        ]);
+  const loadAllAdminData = useCallback(async () => {
+    if (currentSession?.role !== 'super_admin') return;
+    try {
+      setLoadingData(true);
+      const [salesData, returnsData, promotersData] = await Promise.all([
+        SalesService.getAllSales(),
+        ReturnsService.getAllReturns(),
+        AuthService.getAllPromoters(),
+      ]);
 
-        const mappedSales = salesData.map((sale: any) => ({
-          id: sale.id,
-          barId: sale.bar_id,
-          items: sale.items || [],
-          total: sale.total,
-          currency: sale.currency || 'XOF',
-          status: sale.status,
-          createdBy: sale.created_by,
-          validatedBy: sale.validated_by,
-          createdAt: new Date(sale.created_at),
-          validatedAt: sale.validated_at ? new Date(sale.validated_at) : undefined,
-          businessDate: sale.business_date ? new Date(sale.business_date) : new Date(sale.created_at),
-          paymentMethod: sale.payment_method,
-          customerName: sale.customer_name,
-          notes: sale.notes,
-        })) as Sale[];
-  
-        const mappedReturns = returnsData.map((ret: any) => ({
-          id: ret.id,
-          barId: ret.bar_id,
-          saleId: ret.sale_id,
-          productId: ret.product_id,
-          productName: ret.product_name,
-          productVolume: ret.product_volume || '',
-          quantitySold: ret.quantity_sold,
-          quantityReturned: ret.quantity_returned,
-          reason: ret.reason,
-          returnedBy: ret.returned_by,
-          returnedAt: new Date(ret.returned_at),
-          businessDate: ret.business_date ? new Date(ret.business_date) : new Date(ret.returned_at),
-          refundAmount: ret.refund_amount,
-          isRefunded: ret.is_refunded,
-          status: ret.status,
-          autoRestock: ret.auto_restock,
-          manualRestockRequired: ret.manual_restock_required,
-          restockedAt: ret.restocked_at ? new Date(ret.restocked_at) : undefined,
-          notes: ret.notes,
-        })) as Return[];
+      const mappedSales = salesData.map((sale: any) => ({
+        id: sale.id, barId: sale.bar_id, items: sale.items || [], total: sale.total, currency: sale.currency || 'XOF', status: sale.status, createdBy: sale.created_by, validatedBy: sale.validated_by, createdAt: new Date(sale.created_at), validatedAt: sale.validated_at ? new Date(sale.validated_at) : undefined, businessDate: sale.business_date ? new Date(sale.business_date) : new Date(sale.created_at), paymentMethod: sale.payment_method, customerName: sale.customer_name, notes: sale.notes,
+      })) as Sale[];
 
-        setAllSales(mappedSales);
-        setAllReturns(mappedReturns);
+      const mappedReturns = returnsData.map((ret: any) => ({
+        id: ret.id, barId: ret.bar_id, saleId: ret.sale_id, productId: ret.product_id, productName: ret.product_name, productVolume: ret.product_volume || '', quantitySold: ret.quantity_sold, quantityReturned: ret.quantity_returned, reason: ret.reason, returnedBy: ret.returned_by, returnedAt: new Date(ret.returned_at), businessDate: ret.business_date ? new Date(ret.business_date) : new Date(ret.returned_at), refundAmount: ret.refund_amount, isRefunded: ret.is_refunded, status: ret.status, autoRestock: ret.auto_restock, manualRestockRequired: ret.manual_restock_required, restockedAt: ret.restocked_at ? new Date(ret.restocked_at) : undefined, notes: ret.notes,
+      })) as Return[];
 
-      } catch (error) {
-        console.error("Erreur chargement données admin:", error);
-      } finally {
-        setLoadingData(false);
-      }
-    };
+      const mappedPromoters = promotersData.map(p => ({
+          id: p.id, username: p.username || '', password: '', name: p.name || '', phone: p.phone || '', email: p.email || '', createdAt: new Date(p.created_at), isActive: p.is_active ?? true, firstLogin: p.first_login ?? false, lastLoginAt: p.last_login_at ? new Date(p.last_login_at) : undefined, bars: p.bars || []
+      })) as Array<User & { bars: any[] }>;
 
-    loadAllAdminData();
+      setAllSales(mappedSales);
+      setAllReturns(mappedReturns);
+      setPromoters(mappedPromoters);
+
+    } catch (error) {
+      console.error("Erreur chargement données admin:", error);
+    } finally {
+      setLoadingData(false);
+    }
   }, [currentSession]);
 
-  // ... (guards et autres fonctions)
+  useEffect(() => {
+    loadAllAdminData();
+  }, [loadAllAdminData]);
+
   const handleNavItemClick = (item: any) => {
     setIsSidebarOpen(false);
     if (item.id === 'bars') {
       setIsBarsPanelOpen(true);
     } else if (item.id === 'users') {
-      setIsUsersPanelOpen(true);
+      setIsPromotersPanelOpen(true);
     }
   };
 
   const isActiveRoute = (path: string, exact?: boolean) => {
-    if (exact) {
-      return location.pathname === path;
-    }
+    if (exact) { return location.pathname === path; }
     return location.pathname.startsWith(path);
   };
 
-  // Redirection vers login si non authentifié
-  if (!isAuthenticated) {
-    return <Navigate to="/auth/login" replace />;
-  }
-
-  // Redirection vers RootLayout si ce n'est pas un super_admin
-  if (currentSession && currentSession.role !== 'super_admin') {
-    return <Navigate to="/" replace />;
-  }
-
-  if (loadingData && currentSession?.role === 'super_admin') {
-    return <LoadingFallback />;
-  }
+  if (!isAuthenticated) { return <Navigate to="/auth/login" replace />; }
+  if (currentSession && currentSession.role !== 'super_admin') { return <Navigate to="/" replace />; }
+  if (loadingData && currentSession?.role === 'super_admin') { return <LoadingFallback />; }
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Mobile Header */}
       <header className="lg:hidden bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <ShieldCheck className="w-6 h-6" />
           <span className="font-bold">Admin Panel</span>
         </div>
-        <button
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-        >
+        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
           {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </header>
-
       <div className="flex">
-        {/* Sidebar */}
-        <aside
-          className={`
-            fixed lg:static inset-y-0 left-0 z-50
-            w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out
-            lg:transform-none
-            flex flex-col h-screen
-            ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          `}
-        >
-          {/* Desktop Header */}
+        <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:transform-none flex flex-col h-screen ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
           <div className="hidden lg:flex items-center gap-3 p-6 bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
             <ShieldCheck className="w-8 h-8" />
             <div>
@@ -178,98 +120,50 @@ function AdminLayoutContent() {
               <p className="text-purple-200 text-sm">Administration</p>
             </div>
           </div>
-
-          {/* Navigation */}
           <nav className="p-4 space-y-1 mt-16 lg:mt-0 flex-1 overflow-y-auto">
             {adminNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = item.isLink && isActiveRoute(item.path!, item.exact);
-              
               if (item.isLink) {
                 return (
-                  <Link
-                    key={item.path}
-                    to={item.path!}
-                    onClick={() => setIsSidebarOpen(false)}
-                    className={`
-                      flex items-center gap-3 px-4 py-3 rounded-lg transition-all
-                      ${isActive 
-                        ? 'bg-purple-100 text-purple-700 font-semibold' 
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                      }
-                    `}
-                  >
+                  <Link key={item.path} to={item.path!} onClick={() => setIsSidebarOpen(false)} className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${isActive ? 'bg-purple-100 text-purple-700 font-semibold' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'}`}>
                     <Icon className="w-5 h-5" />
                     <span>{item.label}</span>
                   </Link>
                 );
               }
-
               return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavItemClick(item)}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all"
-                >
+                <button key={item.id} onClick={() => handleNavItemClick(item)} className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all">
                   <Icon className="w-5 h-5" />
                   <span>{item.label}</span>
                 </button>
               );
             })}
           </nav>
-
-          {/* User Info & Logout */}
           <div className="p-4 border-t bg-gray-50 flex-shrink-0">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
                 <ShieldCheck className="w-5 h-5 text-purple-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-900 truncate">
-                  {currentSession?.userName || 'Super Admin'}
-                </p>
+                <p className="font-medium text-gray-900 truncate">{currentSession?.userName || 'Super Admin'}</p>
                 <p className="text-xs text-gray-500">Super Administrateur</p>
               </div>
             </div>
-            <button
-              onClick={() => logout()}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
-            >
+            <button onClick={() => logout()} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
               <LogOut className="w-4 h-4" />
               <span>Déconnexion</span>
             </button>
           </div>
         </aside>
-
-        {/* Overlay for mobile */}
-        {isSidebarOpen && (
-          <div
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-            onClick={() => setIsSidebarOpen(false)}
-          />
-        )}
-
-        {/* Main Content */}
+        {isSidebarOpen && (<div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />)}
         <main className="flex-1 p-4 lg:p-8 min-h-screen">
           <Suspense fallback={<LoadingFallback />}>
             <Outlet />
           </Suspense>
         </main>
-        
-        {/* Modals */}
-        <BarsManagementPanel 
-          isOpen={isBarsPanelOpen}
-          onClose={() => setIsBarsPanelOpen(false)}
-          onShowBarStats={() => {}} // Placeholder
-          allSales={allSales}
-          allReturns={allReturns}
-        />
-        
-        <UsersManagementPanel
-          isOpen={isUsersPanelOpen}
-          onClose={() => setIsUsersPanelOpen(false)}
-        />
-
+        <BarsManagementPanel isOpen={isBarsPanelOpen} onClose={() => setIsBarsPanelOpen(false)} onShowBarStats={() => {}} allSales={allSales} allReturns={allReturns} />
+        <PromotersManagementPanel isOpen={isPromotersPanelOpen} onClose={() => setIsPromotersPanelOpen(false)} promoters={promoters} refreshPromoters={loadAllAdminData} />
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -6,12 +6,10 @@ import {
   Ban,
   CheckCircle,
   UserCog,
-  Key,
   BarChart3,
   Search,
   Filter,
 } from 'lucide-react';
-import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { Bar, Sale, Return, BarMember, User } from '../types';
@@ -35,7 +33,7 @@ export default function BarsManagementPanel({
   allReturns,
 }: BarsManagementPanelProps) {
   const { bars, updateBar } = useBarContext();
-  const { impersonate, changePassword } = useAuth();
+  const { impersonate } = useAuth();
 
   const [allBarMembers, setAllBarMembers] = useState<(BarMember & { user: User })[]>([]);
 
@@ -119,31 +117,8 @@ export default function BarsManagementPanel({
     }
   };
 
-  // Réinitialiser mot de passe promoteur
-  const handleResetPassword = (_userId: string, userName: string) => {
-    const newPassword = prompt(
-      `Réinitialiser le mot de passe de ${userName}\n\nEntrez le nouveau mot de passe (min. 4 caractères):`
-    );
-
-    if (newPassword === null) return; // Annulé
-
-    if (!newPassword || newPassword.length < 4) {
-      alert('Le mot de passe doit contenir au moins 4 caractères');
-      return;
-    }
-
-    const confirm2 = confirm(
-      `Confirmer la réinitialisation du mot de passe de ${userName}?\n\nNouveau mot de passe: ${newPassword}\n\n⚠️ Cette action sera enregistrée dans les logs d'audit.`
-    );
-
-    if (confirm2) {
-      changePassword(newPassword); // Note: This only changes current user password in AuthContext.
-      // But we are in Super Admin panel.
-      // Ideally we should use an admin function.
-      // For now, alerting user as before.
-      alert(`⚠️ Attention: La réinitialisation de mot de passe administrateur n'est pas encore implémentée pour les autres utilisateurs.`);
-    }
-  };
+  // TODO: Password reset for admin users needs proper implementation with dedicated AuthService method
+  // and audit logging. Not implemented yet - use promoters@bartender or contact support.
 
   if (!isOpen) return null;
 
@@ -341,21 +316,6 @@ export default function BarsManagementPanel({
                       >
                         <UserCog className="w-3.5 h-3.5" />
                         Impersonate
-                      </button>
-                      <button
-                        onClick={() => {
-                          const promoteurMember = members.find(m => m.role === 'promoteur');
-                          if (promoteurMember) {
-                            handleResetPassword(promoteurMember.user.id, promoteurMember.user.name);
-                          } else {
-                            alert('Aucun promoteur trouvé pour ce bar');
-                          }
-                        }}
-                        className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg font-semibold text-xs hover:bg-blue-200 flex items-center justify-center gap-1.5"
-                        title="Réinitialiser le mot de passe du promoteur"
-                      >
-                        <Key className="w-3.5 h-3.5" />
-                        Reset MDP
                       </button>
                       <button
                         onClick={() => onShowBarStats(bar)}
