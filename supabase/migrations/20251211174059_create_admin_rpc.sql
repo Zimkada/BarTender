@@ -4,21 +4,119 @@
 CREATE OR REPLACE FUNCTION get_dashboard_stats(period TEXT DEFAULT 'today')
 RETURNS TABLE(total_revenue NUMERIC, sales_count BIGINT, active_users_count BIGINT, new_users_count BIGINT, bars_count BIGINT, active_bars_count BIGINT)
 AS $$
-    -- ... (contenu de la fonction)
+BEGIN
+    RETURN QUERY
+    SELECT
+        COALESCE(SUM(s.total), 0)::NUMERIC AS total_revenue,
+        COUNT(DISTINCT s.id)::BIGINT AS sales_count,
+        COUNT(DISTINCT u.id)::BIGINT AS active_users_count,
+        COUNT(DISTINCT CASE WHEN u.created_at >= (NOW() - INTERVAL '1 day') THEN u.id END)::BIGINT AS new_users_count,
+        COUNT(DISTINCT b.id)::BIGINT AS bars_count,
+        COUNT(DISTINCT CASE WHEN b.is_active = true THEN b.id END)::BIGINT AS active_bars_count
+    FROM bars b
+    LEFT JOIN sales s ON s.bar_id = b.id
+    LEFT JOIN users u ON u.id IN (SELECT user_id FROM bar_members WHERE bar_id = b.id)
+    WHERE
+        (period = 'today' AND DATE(s.created_at) = CURRENT_DATE) OR
+        (period = '7d' AND s.created_at >= NOW() - INTERVAL '7 days') OR
+        (period = '30d' AND s.created_at >= NOW() - INTERVAL '30 days') OR
+        s.created_at IS NULL;
+END;
 $$ LANGUAGE plpgsql;
 
 -- Fonction pour récupérer les bars de manière paginée
 CREATE OR REPLACE FUNCTION get_paginated_bars(p_page INT, p_limit INT, p_search_query TEXT DEFAULT '', p_status_filter TEXT DEFAULT 'all', p_sort_by TEXT DEFAULT 'name', p_sort_order TEXT DEFAULT 'asc')
 RETURNS TABLE (bars JSON, total_count BIGINT)
 AS $$
-    -- ... (contenu de la fonction)
+BEGIN
+    RETURN QUERY
+    WITH filtered_bars AS (
+        SELECT
+            b.id,
+            b.name,
+            b.address,
+            b.phone,
+            b.email,
+            b.owner_id,
+            b.created_at,
+            b.is_active,
+            b.closing_hour,
+            b.settings
+        FROM bars b
+        WHERE
+            (p_search_query = '' OR b.name ILIKE '%' || p_search_query || '%' OR b.address ILIKE '%' || p_search_query || '%') AND
+            (p_status_filter = 'all' OR (p_status_filter = 'active' AND b.is_active = true) OR (p_status_filter = 'suspended' AND b.is_active = false))
+    )
+    SELECT
+        (SELECT json_agg(json_build_object(
+            'id', fb.id,
+            'name', fb.name,
+            'address', fb.address,
+            'phone', fb.phone,
+            'email', fb.email,
+            'owner_id', fb.owner_id,
+            'created_at', fb.created_at,
+            'is_active', fb.is_active,
+            'closing_hour', fb.closing_hour,
+            'settings', fb.settings
+        ) ORDER BY
+            CASE WHEN p_sort_by = 'name' AND p_sort_order = 'asc' THEN fb.name END ASC,
+            CASE WHEN p_sort_by = 'name' AND p_sort_order = 'desc' THEN fb.name END DESC,
+            CASE WHEN p_sort_by = 'created_at' AND p_sort_order = 'asc' THEN fb.created_at END ASC,
+            CASE WHEN p_sort_by = 'created_at' AND p_sort_order = 'desc' THEN fb.created_at END DESC
+        LIMIT p_limit
+        OFFSET (p_page - 1) * p_limit) FROM filtered_bars fb) AS bars,
+        (SELECT COUNT(*) FROM filtered_bars) AS total_count;
+END;
 $$ LANGUAGE plpgsql;
 
 -- Fonction pour récupérer les utilisateurs de manière paginée
 CREATE OR REPLACE FUNCTION get_paginated_users(p_page INT, p_limit INT, p_search_query TEXT DEFAULT '', p_role_filter TEXT DEFAULT 'all')
 RETURNS TABLE (users JSON, total_count BIGINT)
 AS $$
-    -- ... (contenu de la fonction)
+BEGIN
+    RETURN QUERY
+    WITH user_roles AS (
+        SELECT
+            u.id,
+            u.username,
+            u.name,
+            u.phone,
+            u.email,
+            u.created_at,
+            u.is_active,
+            u.first_login,
+            u.last_login_at,
+            COALESCE(json_agg(DISTINCT r.role) FILTER (WHERE r.role IS NOT NULL), '[]'::json) AS roles
+        FROM users u
+        LEFT JOIN user_roles r ON r.user_id = u.id
+        WHERE
+            (p_search_query = '' OR u.username ILIKE '%' || p_search_query || '%' OR u.name ILIKE '%' || p_search_query || '%' OR u.email ILIKE '%' || p_search_query || '%')
+        GROUP BY u.id, u.username, u.name, u.phone, u.email, u.created_at, u.is_active, u.first_login, u.last_login_at
+    ),
+    filtered_users AS (
+        SELECT *
+        FROM user_roles
+        WHERE
+            (p_role_filter = 'all' OR (p_role_filter != 'all' AND ur.roles::text LIKE '%' || p_role_filter || '%'))
+    )
+    SELECT
+        (SELECT json_agg(json_build_object(
+            'id', fu.id,
+            'username', fu.username,
+            'name', fu.name,
+            'phone', fu.phone,
+            'email', fu.email,
+            'created_at', fu.created_at,
+            'is_active', fu.is_active,
+            'first_login', fu.first_login,
+            'last_login_at', fu.last_login_at,
+            'roles', fu.roles
+        ) ORDER BY fu.created_at DESC
+        LIMIT p_limit
+        OFFSET (p_page - 1) * p_limit) FROM filtered_users fu) AS users,
+        (SELECT COUNT(*) FROM filtered_users) AS total_count;
+END;
 $$ LANGUAGE plpgsql;
 
 -- Fonction pour récupérer les logs d'audit de manière paginée et filtrée
