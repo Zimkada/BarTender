@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Users,
   Building2,
@@ -14,37 +13,36 @@ import {
   UserCheck,
   UserX,
   Award,
-  ArrowLeft,
 } from 'lucide-react';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { Sale, User, Return } from '../types';
 import { AuthService } from '../services/supabase/auth.service';
 import { getCurrentBusinessDateString, dateToYYYYMMDD, filterByBusinessDateRange } from '../utils/businessDateHelpers';
-import { useAppContext } from '../context/AppContext';
+import { SalesService } from '../services/supabase/sales.service';
+import { ReturnsService } from '../services/supabase/returns.service';
 import { Alert } from '../components/ui/Alert';
-import { Button } from '../components/ui/Button';
+import { LoadingFallback } from '../components/LoadingFallback';
 
 /**
  * SuperAdminPage - Page dédiée pour le Super Admin Dashboard
  * Route: /admin
  */
 export default function SuperAdminPage() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
+  const { currentSession } = useAuth();
   const { bars } = useBarContext();
-  const { sales: allSales, returns: allReturns } = useAppContext();
   const [users, setUsers] = useState<Array<User & { roles: string[] }>>([]);
-  const [loading, setLoading] = useState(false);
+  const [allSales, setAllSales] = useState<Sale[]>([]);
+  const [allReturns, setAllReturns] = useState<Return[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const loadUsers = async () => {
+  const loadAllData = useCallback(async () => {
     try {
-      setLoading(true);
-      const usersData = await AuthService.getAllUsersWithRoles();
+      const [usersData, salesData, returnsData] = await Promise.all([
+        AuthService.getAllUsersWithRoles(),
+        SalesService.getAllSales(),
+        ReturnsService.getAllReturns(),
+      ]);
 
       const mappedUsers = usersData.map(u => ({
         id: u.id,
@@ -60,13 +58,65 @@ export default function SuperAdminPage() {
         roles: u.roles
       })) as Array<User & { roles: string[] }>;
 
+      // Mapper les ventes (snake_case -> camelCase)
+      const mappedSales = salesData.map((sale: any) => ({
+        id: sale.id,
+        barId: sale.bar_id,
+        items: sale.items || [],
+        total: sale.total,
+        currency: sale.currency || 'XOF',
+        status: sale.status,
+        createdBy: sale.created_by,
+        validatedBy: sale.validated_by,
+        createdAt: new Date(sale.created_at),
+        validatedAt: sale.validated_at ? new Date(sale.validated_at) : undefined,
+        businessDate: sale.business_date ? new Date(sale.business_date) : new Date(sale.created_at),
+        paymentMethod: sale.payment_method,
+        customerName: sale.customer_name,
+        notes: sale.notes,
+      })) as Sale[];
+
+      // Mapper les retours (snake_case -> camelCase)
+      const mappedReturns = returnsData.map((ret: any) => ({
+        id: ret.id,
+        barId: ret.bar_id,
+        saleId: ret.sale_id,
+        productId: ret.product_id,
+        productName: ret.product_name,
+        productVolume: ret.product_volume || '',
+        quantitySold: ret.quantity_sold,
+        quantityReturned: ret.quantity_returned,
+        reason: ret.reason,
+        returnedBy: ret.returned_by,
+        returnedAt: new Date(ret.returned_at),
+        businessDate: ret.business_date ? new Date(ret.business_date) : new Date(ret.returned_at),
+        refundAmount: ret.refund_amount,
+        isRefunded: ret.is_refunded,
+        status: ret.status,
+        autoRestock: ret.auto_restock,
+        manualRestockRequired: ret.manual_restock_required,
+        restockedAt: ret.restocked_at ? new Date(ret.restocked_at) : undefined,
+        notes: ret.notes,
+      })) as Return[];
+
       setUsers(mappedUsers);
+      setAllSales(mappedSales);
+      setAllReturns(mappedReturns);
+
     } catch (error) {
-      console.error('Erreur chargement utilisateurs:', error);
+      console.error('Erreur chargement données Super Admin:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // AdminLayout gère déjà la protection d'accès
+    // On charge les données uniquement si la session est valide
+    if (currentSession?.role === 'super_admin') {
+      loadAllData();
+    }
+  }, [currentSession, loadAllData]);
 
   const stats = useMemo(() => {
     const promoteurs = users.filter(u => u.roles.includes('promoteur'));
@@ -88,16 +138,14 @@ export default function SuperAdminPage() {
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const sevenDaysAgoStr = dateToYYYYMMDD(sevenDaysAgo);
 
-    const safeSales = allSales || [];
-    const safeReturns = allReturns || [];
+    const salesToday = filterByBusinessDateRange(allSales, todayStr, todayStr);
+    const salesYesterday = filterByBusinessDateRange(allSales, yesterdayStr, yesterdayStr);
+    const salesLast7Days = filterByBusinessDateRange(allSales, sevenDaysAgoStr, todayStr);
 
-    const salesToday = filterByBusinessDateRange(safeSales, todayStr, todayStr);
-    const salesYesterday = filterByBusinessDateRange(safeSales, yesterdayStr, yesterdayStr);
-    const salesLast7Days = filterByBusinessDateRange(safeSales, sevenDaysAgoStr, todayStr);
+    const returnsToday = filterByBusinessDateRange(allReturns, todayStr, todayStr).filter(r => r.isRefunded);
+    const returnsYesterday = filterByBusinessDateRange(allReturns, yesterdayStr, yesterdayStr).filter(r => r.isRefunded);
+    const returnsLast7Days = filterByBusinessDateRange(allReturns, sevenDaysAgoStr, todayStr).filter(r => r.isRefunded);
 
-    const returnsToday = filterByBusinessDateRange(safeReturns, todayStr, todayStr).filter(r => r.isRefunded);
-    const returnsYesterday = filterByBusinessDateRange(safeReturns, yesterdayStr, yesterdayStr).filter(r => r.isRefunded);
-    const returnsLast7Days = filterByBusinessDateRange(safeReturns, sevenDaysAgoStr, todayStr).filter(r => r.isRefunded);
 
     const getNetRevenue = (sales: Sale[], returns: Return[]): number => {
       const salesTotal = sales.reduce((sum, sale) => sum + sale.total, 0);
@@ -161,29 +209,19 @@ export default function SuperAdminPage() {
     };
   }, [bars, users, allSales, allReturns]);
 
+  if (loading) {
+    return <LoadingFallback />;
+  }
+
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <div className="bg-white rounded-2xl shadow-sm border border-purple-100 mb-6 overflow-hidden">
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/dashboard')}
-              className="rounded-lg transition-colors hover:bg-white/20 flex-shrink-0"
-            >
-              <ArrowLeft size={24} />
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold flex items-center gap-2">
-                <ShieldCheck size={24} />
-                Super Admin Dashboard
-              </h1>
-              <p className="text-purple-100 text-sm hidden sm:block">Vue d'ensemble de BarTender Pro</p>
-            </div>
-          </div>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+          <ShieldCheck className="w-7 h-7 text-purple-600" />
+          Dashboard Super Admin
+        </h1>
+        <p className="text-gray-500 mt-1">Vue d'ensemble de BarTender Pro</p>
       </div>
 
       {/* Content */}
