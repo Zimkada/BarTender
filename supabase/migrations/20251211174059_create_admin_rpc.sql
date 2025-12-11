@@ -49,23 +49,27 @@ BEGIN
     )
     SELECT
         (SELECT json_agg(json_build_object(
-            'id', fb.id,
-            'name', fb.name,
-            'address', fb.address,
-            'phone', fb.phone,
-            'email', fb.email,
-            'owner_id', fb.owner_id,
-            'created_at', fb.created_at,
-            'is_active', fb.is_active,
-            'closing_hour', fb.closing_hour,
-            'settings', fb.settings
-        ) ORDER BY
-            CASE WHEN p_sort_by = 'name' AND p_sort_order = 'asc' THEN fb.name END ASC,
-            CASE WHEN p_sort_by = 'name' AND p_sort_order = 'desc' THEN fb.name END DESC,
-            CASE WHEN p_sort_by = 'created_at' AND p_sort_order = 'asc' THEN fb.created_at END ASC,
-            CASE WHEN p_sort_by = 'created_at' AND p_sort_order = 'desc' THEN fb.created_at END DESC
-        LIMIT p_limit
-        OFFSET (p_page - 1) * p_limit) FROM filtered_bars fb) AS bars,
+            'id', paginated.id,
+            'name', paginated.name,
+            'address', paginated.address,
+            'phone', paginated.phone,
+            'email', paginated.email,
+            'owner_id', paginated.owner_id,
+            'created_at', paginated.created_at,
+            'is_active', paginated.is_active,
+            'closing_hour', paginated.closing_hour,
+            'settings', paginated.settings
+        )) FROM (
+            SELECT *
+            FROM filtered_bars
+            ORDER BY
+                CASE WHEN p_sort_by = 'name' AND p_sort_order = 'asc' THEN name END ASC,
+                CASE WHEN p_sort_by = 'name' AND p_sort_order = 'desc' THEN name END DESC,
+                CASE WHEN p_sort_by = 'created_at' AND p_sort_order = 'asc' THEN created_at END ASC,
+                CASE WHEN p_sort_by = 'created_at' AND p_sort_order = 'desc' THEN created_at END DESC
+            LIMIT p_limit
+            OFFSET (p_page - 1) * p_limit
+        ) paginated) AS bars,
         (SELECT COUNT(*) FROM filtered_bars) AS total_count;
 END;
 $$ LANGUAGE plpgsql;
