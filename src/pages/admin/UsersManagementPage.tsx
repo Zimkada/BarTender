@@ -258,7 +258,6 @@ export default function UsersManagementPage() {
           setShowPromotersForm(false);
         }}
       />
-      </AdminPanelErrorBoundary>
     </div>
   );
 }
