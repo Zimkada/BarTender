@@ -21,7 +21,7 @@ interface AuthContextType {
   // Impersonation
   isImpersonating: boolean;
   originalSession: UserSession | null;
-  impersonate: (userId: string, barId: string, role: UserRole) => void;
+  impersonate: (userId: string, barId: string, role: UserRole) => Promise<void>;
   stopImpersonation: () => void;
 }
 
@@ -229,7 +229,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           barName: authUser.barName,
           loginTime: new Date(),
           permissions: getPermissionsByRole(authUser.role),
-          firstLogin: authUser.first_login
+          firstLogin: authUser.first_login ?? false
         };
         setCurrentSession(session);
 
@@ -430,10 +430,90 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // }, []);
 
   // Impersonation: Se connecter en tant qu'un autre user (pour super admin)
-  const impersonate = useCallback((_userId: string, _barId: string, _role: UserRole) => {
-    // TODO: Implémenter avec Supabase
-    console.warn('[AuthContext] Impersonation not yet implemented with Supabase');
-  }, []);
+  const impersonate = useCallback(async (userId: string, barId: string, role: UserRole) => {
+    if (!currentSession) {
+      console.error('[Impersonation] No current session');
+      return;
+    }
+
+    // Vérifier que l'utilisateur actuel est super_admin
+    if (currentSession.role !== 'super_admin') {
+      console.error('[Impersonation] Only super_admin can impersonate');
+      alert('Seul le Super Admin peut utiliser cette fonctionnalité');
+      return;
+    }
+
+    try {
+      // Récupérer les informations de l'utilisateur cible
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id, name, username')
+        .eq('id', userId)
+        .single();
+
+      if (userError || !userData) {
+        console.error('[Impersonation] Failed to fetch user data:', userError);
+        alert('Impossible de récupérer les informations de l\'utilisateur');
+        return;
+      }
+
+      // Récupérer les informations du bar
+      const { data: barData, error: barError } = await supabase
+        .from('bars')
+        .select('id, name')
+        .eq('id', barId)
+        .single();
+
+      if (barError || !barData) {
+        console.error('[Impersonation] Failed to fetch bar data:', barError);
+        alert('Impossible de récupérer les informations du bar');
+        return;
+      }
+
+      // Sauvegarder la session originale si ce n'est pas déjà une impersonation
+      if (!isImpersonating) {
+        setOriginalSession(currentSession);
+      }
+
+      // Créer la nouvelle session pour l'utilisateur cible
+      const impersonatedSession: UserSession = {
+        userId: userData.id,
+        userName: userData.name,
+        role: role,
+        barId: barData.id,
+        barName: barData.name,
+        loginTime: new Date(),
+        permissions: getPermissionsByRole(role),
+        firstLogin: false
+      };
+
+      // Log impersonation start
+      auditLogger.log({
+        event: 'IMPERSONATE_START',
+        severity: 'warning',
+        userId: currentSession.userId,
+        userName: currentSession.userName,
+        userRole: currentSession.role,
+        description: `Impersonation démarrée: ${currentSession.userName} → ${userData.name} (${role}) au bar ${barData.name}`,
+        metadata: {
+          targetUserId: userId,
+          targetUserName: userData.name,
+          targetBarId: barId,
+          targetBarName: barData.name,
+          targetRole: role,
+        },
+      });
+
+      // Appliquer la nouvelle session
+      setCurrentSession(impersonatedSession);
+      setIsImpersonating(true);
+
+      console.log('[Impersonation] Started impersonating user:', userData.name);
+    } catch (error: any) {
+      console.error('[Impersonation] Error:', error);
+      alert('Erreur lors de l\'impersonation: ' + error.message);
+    }
+  }, [currentSession, isImpersonating, setCurrentSession, setOriginalSession, setIsImpersonating]);
 
   // Stop impersonation: Revenir à la session super admin
   const stopImpersonation = useCallback(() => {

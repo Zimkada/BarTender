@@ -30,7 +30,6 @@ interface BarFromRPC {
   name: string;
   address: string | null;
   phone: string | null;
-  email: string | null;
   owner_id: string | null;
   created_at: string;
   is_active: boolean;
@@ -124,13 +123,13 @@ export class AdminService {
    */
   static async getPaginatedBars(params: GetPaginatedBarsParams): Promise<PaginatedBarsResult> {
     try {
-      const { 
-        page, 
-        limit, 
-        searchQuery = '', 
-        statusFilter = 'all', 
-        sortBy = 'name', 
-        sortOrder = 'asc' 
+      const {
+        page,
+        limit,
+        searchQuery = '',
+        statusFilter = 'all',
+        sortBy = 'name',
+        sortOrder = 'asc'
       } = params;
 
       const { data, error } = await (supabase.rpc as any)('get_paginated_bars', {
@@ -153,7 +152,6 @@ export class AdminService {
           name: bar.name,
           address: bar.address,
           phone: bar.phone,
-          email: bar.email,
           ownerId: bar.owner_id,
           createdAt: new Date(bar.created_at),
           isActive: bar.is_active,
@@ -180,10 +178,10 @@ export class AdminService {
    */
   static async getPaginatedUsers(params: GetPaginatedUsersParams): Promise<PaginatedUsersResult> {
     try {
-      const { 
-        page, 
-        limit, 
-        searchQuery = '', 
+      const {
+        page,
+        limit,
+        searchQuery = '',
         roleFilter = 'all'
       } = params;
 
