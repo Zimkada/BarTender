@@ -76,8 +76,7 @@ export default function UsersManagementPanel({ isOpen, onClose }: UsersManagemen
             <AdminPanelErrorBoundary fallbackTitle="Erreur dans la gestion des utilisateurs">
               {/* Header */}
               <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white relative">
-                <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-lg transition-colors"><X className="w-6 h-6" /></button>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-4 pr-12">
                   <div className="flex items-center gap-3">
                     <Users className="w-8 h-8" />
                     <div>
@@ -87,12 +86,13 @@ export default function UsersManagementPanel({ isOpen, onClose }: UsersManagemen
                   </div>
                   <button
                     onClick={() => setShowPromotersForm(true)}
-                    className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg flex items-center gap-2 transition-colors"
+                    className="px-4 py-2 bg-white text-purple-600 rounded-lg hover:bg-purple-50 flex items-center gap-2 transition-colors font-semibold text-sm whitespace-nowrap"
                   >
-                    <UserPlus className="w-5 h-5" />
-                    <span className="hidden md:inline">Créer Promoteur</span>
+                    <UserPlus className="w-4 h-4" />
+                    Ajouter Promoteur
                   </button>
                 </div>
+                <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-lg transition-colors z-10"><X className="w-6 h-6" /></button>
               </div>
 
               {/* Filters */}

@@ -45,6 +45,12 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
+    // États pour gestion bar
+    const [promoterCreated, setPromoterCreated] = useState(false);
+    const [promoterId, setPromoterId] = useState<string | null>(null);
+    const [barCreationFailed, setBarCreationFailed] = useState(false);
+    const [barCreationError, setBarCreationError] = useState<string | null>(null);
+
     const generateSecurePassword = () => {
         const length = 12;
         const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
@@ -119,6 +125,8 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
 
         setLoading(true);
         setError(null);
+        setBarCreationFailed(false);
+        setBarCreationError(null);
 
         try {
             const signupData = {
@@ -128,14 +136,21 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
                 phone: formData.phone.trim(),
             };
 
-            await AuthService.createPromoter(signupData);
+            const promoter = await AuthService.createPromoter(signupData);
+            setPromoterId(promoter.id);
 
-            setSuccess(true);
-            setTimeout(() => {
-                resetForm();
-                onSuccess();
-                onClose();
-            }, 1500);
+            // Créer le bar si barName est fourni
+            if (formData.barName.trim()) {
+                await createBar(promoter.id);
+            } else {
+                // Succès sans bar
+                setSuccess(true);
+                setTimeout(() => {
+                    resetForm();
+                    onSuccess();
+                    onClose();
+                }, 1500);
+            }
 
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Erreur lors de la création du promoteur';
@@ -144,6 +159,57 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
         } finally {
             setLoading(false);
         }
+    };
+
+    const createBar = async (ownerId: string) => {
+        try {
+            const barSettings = {
+                address: formData.barAddress.trim() || null,
+                phone: formData.barPhone.trim() || null,
+            };
+
+            const result = await AuthService.setupPromoterBar(
+                ownerId,
+                formData.barName.trim(),
+                barSettings
+            );
+
+            if (result.success) {
+                setSuccess(true);
+                setTimeout(() => {
+                    resetForm();
+                    onSuccess();
+                    onClose();
+                }, 1500);
+            } else {
+                throw new Error(result.error || 'Erreur lors de la création du bar');
+            }
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Erreur lors de la création du bar';
+            setBarCreationFailed(true);
+            setBarCreationError(message);
+            console.error('Erreur création bar:', err);
+        }
+    };
+
+    const handleRetryBarCreation = async () => {
+        if (!promoterId || !formData.barName.trim()) {
+            return;
+        }
+
+        setLoading(true);
+        setBarCreationFailed(false);
+        setBarCreationError(null);
+
+        await createBar(promoterId);
+
+        setLoading(false);
+    };
+
+    const handleFinishWithoutBar = () => {
+        resetForm();
+        onSuccess();
+        onClose();
     };
 
     const resetForm = () => {
@@ -161,6 +227,9 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
         setError(null);
         setSuccess(false);
         setShowPassword(false);
+        setPromoterId(null);
+        setBarCreationFailed(false);
+        setBarCreationError(null);
     };
 
     if (!isOpen) return null;
@@ -210,7 +279,21 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
                     {success && (
                         <div className="p-4 border-b">
                             <Alert variant="success" title="Succès">
-                                Promoteur créé avec succès !
+                                Promoteur {formData.barName.trim() ? 'et bar créés' : 'créé'} avec succès !
+                            </Alert>
+                        </div>
+                    )}
+
+                    {barCreationFailed && (
+                        <div className="p-4 border-b">
+                            <Alert variant="warning" title="Promoteur créé, bar non créé">
+                                <div className="space-y-2">
+                                    <p>✅ Le promoteur a été créé avec succès.</p>
+                                    <p>⚠️ Le bar n'a pas pu être créé : {barCreationError}</p>
+                                    <p className="text-sm mt-2">
+                                        Le promoteur pourra créer son bar après connexion, ou vous pouvez réessayer maintenant.
+                                    </p>
+                                </div>
                             </Alert>
                         </div>
                     )}
@@ -222,7 +305,7 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Prénom *
+                                        Prénom(s) *
                                     </label>
                                     <input
                                         type="text"
@@ -230,7 +313,7 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
                                         onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
                                         className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${formErrors.firstName ? 'border-red-500' : 'border-gray-300'
                                             }`}
-                                        placeholder="Jean"
+                                        placeholder="Luc"
                                     />
                                     {formErrors.firstName && (
                                         <p className="text-red-500 text-xs mt-1">{formErrors.firstName}</p>
@@ -247,7 +330,7 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
                                         onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
                                         className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${formErrors.lastName ? 'border-red-500' : 'border-gray-300'
                                             }`}
-                                        placeholder="Dupont"
+                                        placeholder="GOUNOU"
                                     />
                                     {formErrors.lastName && (
                                         <p className="text-red-500 text-xs mt-1">{formErrors.lastName}</p>
@@ -266,7 +349,7 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
                                     onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${formErrors.email ? 'border-red-500' : 'border-gray-300'
                                         }`}
-                                    placeholder="jean.dupont@example.com"
+                                    placeholder="luc.gounou@example.com"
                                 />
                                 {formErrors.email && (
                                     <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>
@@ -284,7 +367,7 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
                                     onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                                     className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${formErrors.phone ? 'border-red-500' : 'border-gray-300'
                                         }`}
-                                    placeholder="+33 6 12 34 56 78"
+                                    placeholder="01 97 XX XX XX"
                                 />
                                 {formErrors.phone && (
                                     <p className="text-red-500 text-xs mt-1">{formErrors.phone}</p>
@@ -343,7 +426,7 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
                                     value={formData.barName}
                                     onChange={(e) => setFormData(prev => ({ ...prev, barName: e.target.value }))}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                    placeholder="Le Bar de Jean (optionnel)"
+                                    placeholder="Bar La Concorde (optionnel)"
                                 />
                             </div>
 
@@ -357,7 +440,7 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
                                     value={formData.barAddress}
                                     onChange={(e) => setFormData(prev => ({ ...prev, barAddress: e.target.value }))}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                    placeholder="123 Rue de la Paix, Paris (optionnel)"
+                                    placeholder="Cotonou, Bénin (optionnel)"
                                 />
                             </div>
 
@@ -371,7 +454,7 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
                                     value={formData.barPhone}
                                     onChange={(e) => setFormData(prev => ({ ...prev, barPhone: e.target.value }))}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                    placeholder="+33 1 23 45 67 89 (optionnel)"
+                                    placeholder="01 XX XX XX XX (optionnel)"
                                 />
                             </div>
                         </div>
@@ -379,21 +462,43 @@ export const PromotersCreationForm: React.FC<PromotersCreationFormProps> = ({
 
                     {/* Footer Buttons */}
                     <div className="p-6 bg-gray-50 border-t flex justify-end gap-3">
-                        <button
-                            onClick={onClose}
-                            disabled={loading}
-                            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition-colors"
-                        >
-                            Annuler
-                        </button>
-                        <button
-                            onClick={handleSubmit}
-                            disabled={loading}
-                            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2 transition-colors"
-                        >
-                            {loading && <Loader className="w-4 h-4 animate-spin" />}
-                            {loading ? 'Création...' : 'Créer le promoteur'}
-                        </button>
+                        {barCreationFailed ? (
+                            <>
+                                <button
+                                    onClick={handleFinishWithoutBar}
+                                    disabled={loading}
+                                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition-colors"
+                                >
+                                    Terminer sans bar
+                                </button>
+                                <button
+                                    onClick={handleRetryBarCreation}
+                                    disabled={loading}
+                                    className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 flex items-center gap-2 transition-colors"
+                                >
+                                    {loading && <Loader className="w-4 h-4 animate-spin" />}
+                                    {loading ? 'Création...' : 'Réessayer création du bar'}
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={onClose}
+                                    disabled={loading}
+                                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 transition-colors"
+                                >
+                                    Annuler
+                                </button>
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={loading}
+                                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2 transition-colors"
+                                >
+                                    {loading && <Loader className="w-4 h-4 animate-spin" />}
+                                    {loading ? 'Création...' : 'Créer le promoteur'}
+                                </button>
+                            </>
+                        )}
                     </div>
                 </motion.div>
             </motion.div>
