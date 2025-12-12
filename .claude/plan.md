@@ -7,6 +7,7 @@
 ✅ **Phase 2**: Error Boundaries & Loading Skeletons (5/5 tâches)
 ✅ **Phase 3**: PromotersCreationForm Extraction (3/3 tâches)
 ✅ **Phase 3.1**: Auto-création de Bar (1/1 tâche)
+✅ **Phase 4**: BarSelector & Multi-Bar Management (1/1 tâche)
 
 ---
 
@@ -41,6 +42,77 @@
    - "Réessayer création du bar" → Retry
 
 **Avantage**: Promoteur a un bar immédiatement, pas besoin de workflow supplémentaire
+
+---
+
+## 🎯 Phase 4 - BarSelector & Multi-Bar Management
+
+### Implémentation ✅ COMPLÉTÉE (Commit: f6bb072)
+
+**Nouveaux fichiers**: `src/components/BarSelector.tsx`
+**Modifications**: `src/components/Header.tsx`, `src/context/BarContext.tsx`
+
+**Objectif**: Permettre aux promoteurs avec plusieurs bars de switcher facilement entre eux avec persistance localStorage
+
+**Architecture implémentée**:
+
+#### BarSelector Component:
+- ✅ Dropdown avec liste des bars accessibles
+- ✅ Auto-masqué si promoteur a ≤ 1 bar
+- ✅ Indicateur visuel du bar actif (dot coloré + fond amber)
+- ✅ Affiche adresse du bar comme info secondaire
+- ✅ Click-outside handler pour fermer dropdown
+- ✅ Smooth animations Framer Motion
+- ✅ Full accessibility (aria-labels, aria-expanded)
+- ✅ Mobile responsive design
+- ✅ Permission-based "Créer un nouveau bar" button (si canCreateBars)
+
+#### BarContext Integration:
+- ✅ Restauration localStorage au démarrage:
+  - Si > 1 bar accessible
+  - Essayer restaurer `selectedBarId` depuis localStorage
+  - Valider que bar existe et accessible
+  - Fall back: sélectionne 1er bar si localStorage vide/invalide
+- ✅ `switchBar(barId)` fonction déjà existante
+- ✅ `userBars` state exposé pour BarSelector
+
+#### Header Integration:
+- ✅ BarSelector affiché pour promoteurs uniquement (ligne 337)
+- ✅ Positionnement: après SyncStatusBadge, avant buttons
+- ✅ Callback `onShowCreateBar` pour futur BarCreationForm
+
+**Data Flow**:
+```
+BarSelector.handleSwitch(barId)
+  ├─ switchBar(barId) → BarContext state update
+  └─ localStorage.setItem('selectedBarId', barId)
+
+BarContext.useEffect (on startup)
+  ├─ Load userBars
+  ├─ If > 1 bar accessible:
+  │  ├─ Get savedBarId from localStorage
+  │  └─ Validate & use if accessible
+  └─ Else: Select first accessible bar
+```
+
+**Permissions Validées**:
+| Rôle | canCreateBars | canSwitchBars |
+|------|:-------------:|:-------------:|
+| super_admin | ✅ true | ✅ true |
+| promoteur | ✅ true | ✅ true |
+| gérant | ❌ false | ❌ false |
+| serveur | ❌ false | ❌ false |
+
+**UX Flow**:
+1. Promoteur avec 2+ bars se connecte
+2. BarContext restaure bar depuis localStorage
+3. Header affiche BarSelector avec bar actif
+4. Promoteur clique dropdown
+5. Sélectionne autre bar
+6. Context met à jour + localStorage persiste
+7. Données rafraîchies automatiquement
+
+**Avantage**: Seamless multi-bar switching, choix persiste entre sessions
 
 ---
 
