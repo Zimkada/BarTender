@@ -28,10 +28,10 @@ export default function GlobalCatalogPanel({ isOpen, onClose }: GlobalCatalogPan
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0.95, opacity: 0 }}
                     onClick={(e) => e.stopPropagation()}
-                    className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[90vh] overflow-hidden flex flex-col"
+                    className="bg-white rounded-2xl shadow-2xl w-full sm:max-w-[calc(100%-32px)] md:max-w-5xl lg:max-w-6xl h-[90vh] overflow-hidden flex flex-col"
                 >
                     {/* Header */}
-                    <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-6 text-white relative">
+                    <div className="bg-gradient-to-r from-violet-600 to-purple-600 p-4 md:p-6 text-white relative">
                         <button
                             onClick={onClose}
                             className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-lg transition-colors"
@@ -41,8 +41,8 @@ export default function GlobalCatalogPanel({ isOpen, onClose }: GlobalCatalogPan
                         <div className="flex items-center gap-3">
                             <Globe className="w-8 h-8" />
                             <div>
-                                <h2 className="text-2xl font-bold">Catalogue Global</h2>
-                                <p className="text-blue-100 text-sm">Gérer le référentiel centralisé des produits et catégories</p>
+                                <h2 className="text-xl md:text-2xl font-bold">Catalogue Global</h2>
+                                <p className="text-violet-100 text-sm">Gérer le référentiel centralisé des produits et catégories</p>
                             </div>
                         </div>
 
@@ -51,8 +51,8 @@ export default function GlobalCatalogPanel({ isOpen, onClose }: GlobalCatalogPan
                             <button
                                 onClick={() => setActiveTab('categories')}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-medium transition-colors ${activeTab === 'categories'
-                                    ? 'bg-white text-blue-600'
-                                    : 'bg-blue-700/50 text-blue-100 hover:bg-blue-700/70'
+                                    ? 'bg-white text-violet-600'
+                                    : 'bg-violet-700/50 text-violet-100 hover:bg-violet-700/70'
                                     }`}
                             >
                                 <Layers className="w-4 h-4" />
@@ -61,8 +61,8 @@ export default function GlobalCatalogPanel({ isOpen, onClose }: GlobalCatalogPan
                             <button
                                 onClick={() => setActiveTab('products')}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-medium transition-colors ${activeTab === 'products'
-                                    ? 'bg-white text-blue-600'
-                                    : 'bg-blue-700/50 text-blue-100 hover:bg-blue-700/70'
+                                    ? 'bg-white text-violet-600'
+                                    : 'bg-violet-700/50 text-violet-100 hover:bg-violet-700/70'
                                     }`}
                             >
                                 <Package className="w-4 h-4" />

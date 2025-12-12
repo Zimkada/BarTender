@@ -35,9 +35,9 @@ const ResetPasswordScreen = lazy(() => import('../components/ResetPasswordScreen
 
 // === Admin Components (Default Exports) ===
 const SuperAdminPage = lazy(() => import('../pages/SuperAdminPage'));
-const BarsManagementPage = lazy(() => import('../components/BarsManagementPanel'));
+const BarsManagementPage = lazy(() => import('../pages/admin/BarsManagementPage'));
 const BarStatsModalPage = lazy(() => import('../components/BarStatsModal'));
-const UsersManagementPage = lazy(() => import('../components/UsersManagementPanel'));
+const UsersManagementPage = lazy(() => import('../pages/admin/UsersManagementPage'));
 const GlobalCatalogPage = lazy(() => import('../pages/GlobalCatalogPage'));
 const AuditLogsPage = lazy(() => import('../pages/AuditLogsPage'));
 
@@ -51,9 +51,9 @@ export const router = createBrowserRouter([
     errorElement: <ErrorPage />,
     children: [
       { index: true, element: <SuperAdminPage /> },
-      { path: 'bars', element: <BarsManagementPage /> },
+      { path: 'bars', element: <Suspense fallback={<LoadingFallback />}><BarsManagementPage /></Suspense> },
       { path: 'bars/:barId', element: <BarStatsModalPage /> },
-      { path: 'users', element: <UsersManagementPage /> },
+      { path: 'users', element: <Suspense fallback={<LoadingFallback />}><UsersManagementPage /></Suspense> },
       { path: 'catalog', element: <GlobalCatalogPage /> },
       { path: 'audit-logs', element: <AuditLogsPage /> },
       { path: 'notifications', element: <AdminNotificationsPage /> },

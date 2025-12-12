@@ -3,8 +3,6 @@ import { Link, Outlet, Navigate, useLocation } from 'react-router-dom';
 import { Suspense, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { LoadingFallback } from '../components/LoadingFallback';
-import BarsManagementPanel from '../components/BarsManagementPanel';
-import UsersManagementPanel from '../components/UsersManagementPanel';
 import {
   LayoutDashboard,
   Building2,
@@ -19,31 +17,18 @@ import {
 } from 'lucide-react';
 
 const adminNavItems = [
-  { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true, isLink: true },
-  { id: 'bars', label: 'Gestion des Bars', icon: Building2 },
-  { id: 'users', label: 'Utilisateurs', icon: Users },
-  { path: '/admin/catalog', label: 'Catalogue Global', icon: Package, isLink: true },
-  { path: '/admin/audit-logs', label: 'Audit Logs', icon: FileText, isLink: true },
-  { path: '/admin/notifications', label: 'Notifications', icon: Bell, isLink: true },
+  { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+  { path: '/admin/bars', label: 'Gestion des Bars', icon: Building2 },
+  { path: '/admin/users', label: 'Utilisateurs', icon: Users },
+  { path: '/admin/catalog', label: 'Catalogue Global', icon: Package },
+  { path: '/admin/audit-logs', label: 'Audit Logs', icon: FileText },
+  { path: '/admin/notifications', label: 'Notifications', icon: Bell },
 ];
 
 function AdminLayoutContent() {
   const { isAuthenticated, currentSession, logout } = useAuth();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  // États pour les modales
-  const [isBarsPanelOpen, setIsBarsPanelOpen] = useState(false);
-  const [isUsersPanelOpen, setIsUsersPanelOpen] = useState(false);
-
-  const handleNavItemClick = (item: any) => {
-    setIsSidebarOpen(false);
-    if (item.id === 'bars') {
-      setIsBarsPanelOpen(true);
-    } else if (item.id === 'users') {
-      setIsUsersPanelOpen(true);
-    }
-  };
 
   const isActiveRoute = (path: string, exact?: boolean) => {
     if (exact) {
@@ -104,37 +89,24 @@ function AdminLayoutContent() {
           <nav className="p-4 space-y-1 mt-16 lg:mt-0 flex-1 overflow-y-auto">
             {adminNavItems.map((item) => {
               const Icon = item.icon;
-              const isActive = item.isLink && isActiveRoute(item.path!, item.exact);
-
-              if (item.isLink) {
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path!}
-                    onClick={() => setIsSidebarOpen(false)}
-                    className={`
-                      flex items-center gap-3 px-4 py-3 rounded-lg transition-all
-                      ${isActive
-                        ? 'bg-purple-100 text-purple-700 font-semibold'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                      }
-                    `}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              }
+              const isActive = isActiveRoute(item.path, item.exact);
 
               return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavItemClick(item)}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all"
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={() => setIsSidebarOpen(false)}
+                  className={`
+                    flex items-center gap-3 px-4 py-3 rounded-lg transition-all
+                    ${isActive
+                      ? 'bg-purple-100 text-purple-700 font-semibold'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    }
+                  `}
                 >
                   <Icon className="w-5 h-5" />
                   <span>{item.label}</span>
-                </button>
+                </Link>
               );
             })}
           </nav>
@@ -176,19 +148,6 @@ function AdminLayoutContent() {
             <Outlet />
           </Suspense>
         </main>
-
-        {/* Modals */}
-        <BarsManagementPanel
-          isOpen={isBarsPanelOpen}
-          onClose={() => setIsBarsPanelOpen(false)}
-          onShowBarStats={() => { }} // Placeholder
-        />
-
-        <UsersManagementPanel
-          isOpen={isUsersPanelOpen}
-          onClose={() => setIsUsersPanelOpen(false)}
-        />
-
       </div>
     </div>
   );
