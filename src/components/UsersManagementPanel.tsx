@@ -181,25 +181,22 @@ export default function UsersManagementPanel({ isOpen, onClose }: UsersManagemen
                 <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0} className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm disabled:opacity-50"><ChevronRight className="w-4 h-4" /></button>
               </div>
             </div>
-
+          </AdminPanelErrorBoundary>
         </motion.div>
-      </motion.div>
-    </AnimatePresence >
+      </AnimatePresence>
 
-      {/* Edit User Modal - Outside AnimatePresence to avoid key conflicts */ }
-  {
-    editingUser && (
-      <EditUserModal
-        isOpen={editingUser !== null}
-        onClose={() => setEditingUser(null)}
-        user={editingUser}
-        onSuccess={() => {
-          loadUsers();
-          setEditingUser(null);
-        }}
-      />
-    )
-  }
+      {/* Edit User Modal - Outside AnimatePresence to avoid key conflicts */}
+      {editingUser && (
+        <EditUserModal
+          isOpen={editingUser !== null}
+          onClose={() => setEditingUser(null)}
+          user={editingUser}
+          onSuccess={() => {
+            loadUsers();
+            setEditingUser(null);
+          }}
+        />
+      )}
     </>
   );
 }
