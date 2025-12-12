@@ -24,6 +24,132 @@ La Priorité 3 se concentre sur la qualité du code, l'extraction de composants 
 - ❌ Pas d'error boundary pour les panels admin
 - ❌ Styles inline dans plusieurs composants, pas optimisé avec memo
 
+### Problèmes Critiques Identifiés (🔴 À corriger prioritairement)
+- ❌ AdminLayout charge TOUTES les ventes/retours au démarrage (getAllSales/getAllReturns) → très lent avec gros volumes
+- ❌ AuditLogsPanel charge 1000 bars au démarrage pour dropdown → non scalable
+- ❌ Gestion d'erreurs RPC minimal → pas de feedback utilisateur sur erreurs de chargement
+- ❌ Pas de cache/optimisation queries → re-fetch complet à chaque action
+
+---
+
+## 🔴 Phase 0: Corrections Critiques (3 tâches) - À faire EN PREMIER
+
+### Tâche 0.1: Supprimer la charge globale de ventes/retours dans AdminLayout
+**Fichier**: `src/layouts/AdminLayout.tsx`
+
+**Problème**:
+- Chargement de TOUTES les ventes et retours au démarrage (`getAllSales()`, `getAllReturns()`)
+- Très lent et non scalable avec des milliers de records
+- Ces données ne sont pas utilisées par les panels actuels
+
+**Solution**:
+```typescript
+// ❌ À SUPPRIMER
+const [salesData, returnsData] = await Promise.all([
+  SalesService.getAllSales(),
+  ReturnsService.getAllReturns(),
+]);
+
+// ✅ Garder seulement si nécessaire pour les panels
+// Sinon, chaque panel charge ses propres données via RPC
+```
+
+**Implémentation**:
+- Supprimer les états `allSales` et `allReturns`
+- Supprimer les appels `SalesService.getAllSales()` et `ReturnsService.getAllReturns()`
+- Vérifier que les panels n'ont pas besoin de ces données (ils ne les utilisent pas)
+- Garder la structure AdminLayout pour wrapper les panels modaux
+
+---
+
+### Tâche 0.2: Créer RPC lightweight pour dropdowns (get_unique_bars)
+**Fichier**: `supabase/migrations/20251212_create_lightweight_admin_rpc.sql`
+
+**Problème**:
+- AuditLogsPanel charge 1000 bars juste pour le dropdown du filtre
+- Non scalable, requête inefficace
+
+**Solution - Créer nouvelle RPC**:
+```sql
+CREATE OR REPLACE FUNCTION get_unique_bars()
+RETURNS TABLE (id UUID, name TEXT, is_active BOOLEAN)
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT b.id, b.name, b.is_active
+    FROM bars b
+    ORDER BY b.name ASC;
+END;
+$$ LANGUAGE plpgsql;
+```
+
+**Implémentation dans admin.service.ts**:
+```typescript
+static async getUniqueBars(): Promise<{ id: string; name: string; is_active: boolean }[]> {
+  const { data, error } = await (supabase.rpc as any)('get_unique_bars');
+  if (error) throw error;
+  return Array.isArray(data) ? data : [];
+}
+```
+
+**Mise à jour AuditLogsPanel**:
+```typescript
+// ❌ Avant: AdminService.getPaginatedBars({ page: 1, limit: 1000 })
+// ✅ Après: AdminService.getUniqueBars()
+```
+
+---
+
+### Tâche 0.3: Ajouter gestion d'erreurs RPC avec Alert feedback utilisateur
+**Fichiers**: `src/components/BarsManagementPanel.tsx`, `src/components/UsersManagementPanel.tsx`, `src/components/AuditLogsPanel.tsx`
+
+**Problème**:
+- Erreurs RPC seulement loggées en console
+- Utilisateur ne voit pas que le chargement a échoué
+- Pas de retry possible
+
+**Solution - Pattern uniforme**:
+```typescript
+const [error, setError] = useState<string | null>(null);
+
+const loadData = useCallback(async () => {
+  try {
+    setError(null); // Clear previous errors
+    setLoading(true);
+    const data = await AdminService.getPaginatedBars({...});
+    setData(data);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Erreur inconnue';
+    setError(message);
+    console.error('Error loading data:', error);
+  } finally {
+    setLoading(false);
+  }
+}, [...]);
+
+// Dans le JSX
+{error && (
+  <Alert variant="destructive" className="mb-4">
+    <AlertCircle className="h-4 w-4" />
+    <div>
+      <AlertTitle>Erreur de chargement</AlertTitle>
+      <AlertDescription>{error}</AlertDescription>
+    </div>
+    <button onClick={() => loadData()} className="text-sm underline mt-2">
+      Réessayer
+    </button>
+  </Alert>
+)}
+```
+
+**Implémentation**:
+- Ajouter état `error: string | null` dans chaque panel
+- Wrapper appels RPC dans try/catch propre
+- Afficher `<Alert>` avec message d'erreur
+- Ajouter bouton Réessayer qui relance loadData()
+
+---
+
 ## Phase 1: Extraction de Composants Reusables (2 tâches)
 
 ### Tâche 1.1: Créer le composant DashboardStatCard
@@ -232,18 +358,25 @@ export const BarCard = React.memo(({ bar, members, ... }: BarCardProps) => {
 
 ## Ordre d'implémentation
 
-1. **Jour 1 - Extraction de composants**
+**🔴 PHASE 0 - Corrections Critiques (EN PREMIER)**
+1. Tâche 0.1: Supprimer charge globale ventes/retours dans AdminLayout
+2. Tâche 0.2: Créer RPC get_unique_bars() et mettre à jour AuditLogsPanel
+3. Tâche 0.3: Ajouter gestion erreurs RPC dans tous les panels
+
+**Après Phase 0, puis continuer avec:**
+
+1. **Phase 1 - Extraction de composants**
    - Tâche 1.1: DashboardStatCard
    - Tâche 1.2: PromotersCreationForm
    - Tâche 2.1: BarActionButtons
    - Tâche 2.2: BarCard
 
-2. **Jour 2 - Refactorisation & Intégration**
+2. **Phase 2 - Refactorisation & Intégration**
    - Tâche 2.3: Refactoriser BarsManagementPanel
    - Tâche 3.1: AdminPanelErrorBoundary
    - Tâche 3.2: AdminPanelSkeleton
 
-3. **Jour 3 - Optimisation**
+3. **Phase 3 & 4 - Optimisation**
    - Tâche 4.1: Mémoïsation & useCallback
    - Tâche 4.2: Commentaires performances
    - Tests & validation
