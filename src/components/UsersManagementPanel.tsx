@@ -11,6 +11,8 @@ import { Alert } from './ui/Alert';
 import { AdminService } from '../services/supabase/admin.service';
 import { AuthService } from '../services/supabase/auth.service';
 import { EditUserModal } from './EditUserModal';
+import { AdminPanelErrorBoundary } from './AdminPanelErrorBoundary';
+import { AdminPanelSkeleton } from './AdminPanelSkeleton';
 
 interface UsersManagementPanelProps {
   isOpen: boolean;
@@ -96,7 +98,7 @@ export default function UsersManagementPanel({ isOpen, onClose }: UsersManagemen
     <>
       <AnimatePresence>
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-          <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[90vh] overflow-hidden flex flex-col">
+          <AdminPanelErrorBoundary fallbackTitle="Erreur dans la gestion des utilisateurs">
             {/* Header */}
             <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white relative">
               <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-lg transition-colors"><X className="w-6 h-6" /></button>
@@ -135,7 +137,7 @@ export default function UsersManagementPanel({ isOpen, onClose }: UsersManagemen
             {/* Users List */}
             <div className="flex-1 overflow-y-auto">
               {loading && users.length === 0 ? (
-                <div className="text-center py-12"><p>Chargement...</p></div>
+                <AdminPanelSkeleton count={5} type="table" />
               ) : users.length === 0 ? (
                 <div className="text-center py-12"><p>Aucun utilisateur trouvé.</p></div>
               ) : (
@@ -180,24 +182,24 @@ export default function UsersManagementPanel({ isOpen, onClose }: UsersManagemen
               </div>
             </div>
 
-          </motion.div>
         </motion.div>
-      </AnimatePresence>
+      </motion.div>
+    </AnimatePresence >
 
-      {/* Edit User Modal - Outside AnimatePresence to avoid key conflicts */}
-      {
-        editingUser && (
-          <EditUserModal
-            isOpen={editingUser !== null}
-            onClose={() => setEditingUser(null)}
-            user={editingUser}
-            onSuccess={() => {
-              loadUsers();
-              setEditingUser(null);
-            }}
-          />
-        )
-      }
+      {/* Edit User Modal - Outside AnimatePresence to avoid key conflicts */ }
+  {
+    editingUser && (
+      <EditUserModal
+        isOpen={editingUser !== null}
+        onClose={() => setEditingUser(null)}
+        user={editingUser}
+        onSuccess={() => {
+          loadUsers();
+          setEditingUser(null);
+        }}
+      />
+    )
+  }
     </>
   );
 }
