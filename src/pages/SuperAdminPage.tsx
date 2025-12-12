@@ -15,6 +15,7 @@ import { useAuth } from '../context/AuthContext';
 import { AdminService, DashboardStats } from '../services/supabase/admin.service';
 import { LoadingFallback } from '../components/LoadingFallback';
 import { Alert } from '../components/ui/Alert';
+import { DashboardStatCard } from '../components/DashboardStatCard';
 
 const initialStats: DashboardStats = {
   total_revenue: 0,
@@ -58,77 +59,59 @@ export default function SuperAdminPage() {
     <div className="max-w-7xl mx-auto">
       <div className="mb-6 flex justify-between items-center">
         <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
             <ShieldCheck className="w-7 h-7 text-purple-600" />
             Dashboard Super Admin
-            </h1>
-            <p className="text-gray-500 mt-1">Vue d'ensemble de BarTender Pro</p>
+          </h1>
+          <p className="text-gray-500 mt-1">Vue d'ensemble de BarTender Pro</p>
         </div>
         {/* Filtre de période */}
         <div className="flex items-center gap-2">
-            {(['today', '7d', '30d'] as const).map(p => (
-                <button
-                    key={p}
-                    onClick={() => setPeriod(p)}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${ 
-                        period === p
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-white text-gray-700 hover:bg-gray-100'
-                    }`}
-                >
-                    {p === 'today' ? 'Aujourd\'hui' : p === '7d' ? '7 jours' : '30 jours'}
-                </button>
-            ))}
+          {(['today', '7d', '30d'] as const).map(p => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${period === p
+                ? 'bg-purple-600 text-white'
+                : 'bg-white text-gray-700 hover:bg-gray-100'
+                }`}
+            >
+              {p === 'today' ? 'Aujourd\'hui' : p === '7d' ? '7 jours' : '30 jours'}
+            </button>
+          ))}
         </div>
       </div>
 
       <div className="space-y-6">
         {/* Section 1: Statistiques Générales */}
         <section>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {/* Total Revenue */}
-                <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl p-6 shadow-sm border border-green-200">
-                    <div className="flex items-center gap-4">
-                        <DollarSign className="w-8 h-8 text-green-600 flex-shrink-0" />
-                        <div>
-                            <p className="text-gray-600 text-sm mb-1">Chiffre d'affaires</p>
-                            <p className="text-3xl font-bold text-green-600">
-                                {stats.total_revenue.toLocaleString('fr-FR')} <span className="text-xl">FCFA</span>
-                            </p>
-                        </div>
-                    </div>
-                </div>
-                {/* Sales Count */}
-                <div className="bg-gradient-to-br from-amber-50 to-yellow-100 rounded-xl p-6 shadow-sm border border-amber-200">
-                    <div className="flex items-center gap-4">
-                        <ShoppingCart className="w-8 h-8 text-amber-600 flex-shrink-0" />
-                        <div>
-                            <p className="text-gray-600 text-sm mb-1">Ventes</p>
-                            <p className="text-3xl font-bold text-amber-600">{stats.sales_count}</p>
-                        </div>
-                    </div>
-                </div>
-                {/* Active Users */}
-                <div className="bg-gradient-to-br from-blue-50 to-sky-100 rounded-xl p-6 shadow-sm border border-blue-200">
-                    <div className="flex items-center gap-4">
-                        <Users className="w-8 h-8 text-blue-600 flex-shrink-0" />
-                        <div>
-                            <p className="text-gray-600 text-sm mb-1">Utilisateurs actifs (7j)</p>
-                            <p className="text-3xl font-bold text-blue-600">{stats.active_users_count}</p>
-                        </div>
-                    </div>
-                </div>
-                {/* New Users */}
-                <div className="bg-gradient-to-br from-indigo-50 to-purple-100 rounded-xl p-6 shadow-sm border border-indigo-200">
-                    <div className="flex items-center gap-4">
-                        <UserCheck className="w-8 h-8 text-indigo-600 flex-shrink-0" />
-                        <div>
-                            <p className="text-gray-600 text-sm mb-1">Nouveaux utilisateurs</p>
-                            <p className="text-3xl font-bold text-indigo-600">{stats.new_users_count}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <DashboardStatCard
+              icon={DollarSign}
+              label="Chiffre d'affaires"
+              value={stats.total_revenue}
+              subValue="FCFA"
+              gradient="green"
+            />
+            <DashboardStatCard
+              icon={ShoppingCart}
+              label="Ventes"
+              value={stats.sales_count}
+              gradient="amber"
+            />
+            <DashboardStatCard
+              icon={Users}
+              label="Utilisateurs actifs (7j)"
+              value={stats.active_users_count}
+              gradient="blue"
+            />
+            <DashboardStatCard
+              icon={UserCheck}
+              label="Nouveaux utilisateurs"
+              value={stats.new_users_count}
+              gradient="purple"
+            />
+          </div>
         </section>
 
         {/* Section 2: Statistiques des Bars */}

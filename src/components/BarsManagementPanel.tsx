@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDebounce } from 'use-debounce';
 import {
-  X, Building2, Ban, CheckCircle, UserCog, BarChart3, Search, Filter, ChevronLeft, ChevronRight, AlertCircle
+  X, Building2, Search, Filter, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Bar, BarMember, User } from '../types';
@@ -10,7 +10,8 @@ import { Select } from './ui/Select';
 import { Alert } from './ui/Alert';
 import { AdminService } from '../services/supabase/admin.service';
 import { AuthService } from '../services/supabase/auth.service';
-import { BarService } from '../services/supabase/bar.service'; // Importer BarService
+import { BarService } from '../services/supabase/bar.service';
+import { BarCard } from './BarCard';
 
 interface BarsManagementPanelProps {
   isOpen: boolean;
@@ -139,35 +140,16 @@ export default function BarsManagementPanel({ isOpen, onClose, onShowBarStats }:
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 md:p-6">
                 {bars.map((bar) => {
                   const members = allBarMembers.filter(m => m.barId === bar.id);
-                  const owner = members.find(m => m.userId === bar.ownerId)?.user || members.find(m => m.role === 'promoteur')?.user;
                   return (
-                    <div key={bar.id} className={`bg-white rounded-lg p-4 border-2 ${bar.isActive ? 'border-green-200' : 'border-red-200'} hover:shadow-lg transition-shadow`}>
-                      <div className="flex justify-between items-start mb-2"><div className="min-w-0 flex-1"><h4 className="font-bold text-base text-gray-900 truncate">{bar.name}</h4><p className="text-xs text-gray-500 truncate">{bar.address || 'Pas d\'adresse'}</p></div><div className={`px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ml-2 ${bar.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{bar.isActive ? 'Actif' : 'Suspendu'}</div></div>
-                      <div className="space-y-1 text-xs mb-3 text-gray-600">
-                        <p><span className="font-semibold">Promoteur:</span> {owner?.name || 'Inconnu'}</p>
-                        <p><span className="font-semibold">Email:</span> {owner?.email || bar.email || 'N/A'}</p>
-                        <p><span className="font-semibold">Membres:</span> {members.length}</p>
-                        <p><span className="font-semibold">Créé le:</span> {new Date(bar.createdAt).toLocaleDateString('fr-FR')}</p>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button onClick={() => toggleBarStatus(bar.id, bar.isActive)} className={`px-3 py-2 rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 ${bar.isActive ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}>{bar.isActive ? <><Ban className="w-3.5 h-3.5" />Suspendre</> : <><CheckCircle className="w-3.5 h-3.5" />Activer</>}</button>
-                        <button onClick={async () => {
-                          const promoteurMember = members.find(m => m.role === 'promoteur');
-                          if (promoteurMember) {
-                            try {
-                              await impersonate(promoteurMember.user.id, bar.id, 'promoteur');
-                              onClose();
-                            } catch (error) {
-                              console.error('Impersonation failed:', error);
-                              alert('Erreur lors de l\'impersonation. Veuillez réessayer.');
-                            }
-                          } else {
-                            alert('Aucun promoteur trouvé pour ce bar');
-                          }
-                        }} className="px-3 py-2 bg-amber-100 text-amber-700 rounded-lg font-semibold text-xs hover:bg-amber-200 flex items-center justify-center gap-1.5" title="Se connecter en tant que promoteur"><UserCog className="w-3.5 h-3.5" />Impersonate</button>
-                        <button onClick={() => onShowBarStats(bar)} className="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg font-semibold text-xs hover:bg-purple-200 flex items-center justify-center gap-1.5 col-span-2"><BarChart3 className="w-3.5 h-3.5" />Stats Détaillées</button>
-                      </div>
-                    </div>
+                    <BarCard
+                      key={bar.id}
+                      bar={bar}
+                      members={members}
+                      onToggleStatus={toggleBarStatus}
+                      onImpersonate={impersonate}
+                      onShowStats={onShowBarStats}
+                      onClose={onClose}
+                    />
                   );
                 })}
               </div>
