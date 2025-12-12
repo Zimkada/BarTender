@@ -55,10 +55,11 @@ interface UserFromRPC {
   first_login: boolean;
   last_login_at: string | null;
   roles: string[];
+  bars: Array<{ id: string; name: string }>;
 }
 
 export interface PaginatedUsersResult {
-  users: Array<User & { roles: string[] }>;
+  users: Array<User & { roles: string[]; bars: Array<{ id: string; name: string }> }>;
   totalCount: number;
 }
 
@@ -210,6 +211,7 @@ export class AdminService {
           firstLogin: u.first_login ?? false,
           lastLoginAt: u.last_login_at ? new Date(u.last_login_at) : undefined,
           roles: u.roles || [],
+          bars: u.bars || [],
         }));
 
         return {

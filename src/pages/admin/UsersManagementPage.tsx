@@ -152,6 +152,9 @@ export default function UsersManagementPage() {
                       Rôle(s)
                     </th>
                     <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Bar(s)
+                    </th>
+                    <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Statut
                     </th>
                     <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -181,6 +184,22 @@ export default function UsersManagementPage() {
                               {role}
                             </span>
                           ))}
+                        </div>
+                      </td>
+                      <td className="px-4 md:px-6 py-4">
+                        <div className="flex flex-wrap gap-1">
+                          {(user as any).bars && (user as any).bars.length > 0 ? (
+                            (user as any).bars.map((bar: { id: string; name: string }) => (
+                              <span
+                                key={bar.id}
+                                className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800"
+                              >
+                                {bar.name}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-xs text-gray-500">Aucun bar</span>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 md:px-6 py-4 whitespace-nowrap">
