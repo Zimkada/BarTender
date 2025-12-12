@@ -54,9 +54,9 @@ export const router = createBrowserRouter([
       { path: 'bars', element: <Suspense fallback={<LoadingFallback />}><BarsManagementPage /></Suspense> },
       { path: 'bars/:barId', element: <BarStatsModalPage /> },
       { path: 'users', element: <Suspense fallback={<LoadingFallback />}><UsersManagementPage /></Suspense> },
-      { path: 'catalog', element: <GlobalCatalogPage /> },
-      { path: 'audit-logs', element: <AuditLogsPage /> },
-      { path: 'notifications', element: <AdminNotificationsPage /> },
+      { path: 'catalog', element: <Suspense fallback={<LoadingFallback />}><GlobalCatalogPage /></Suspense> },
+      { path: 'audit-logs', element: <Suspense fallback={<LoadingFallback />}><AuditLogsPage /></Suspense> },
+      { path: 'notifications', element: <Suspense fallback={<LoadingFallback />}><AdminNotificationsPage /></Suspense> },
     ],
   },
   
