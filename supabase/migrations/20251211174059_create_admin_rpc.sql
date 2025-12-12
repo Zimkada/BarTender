@@ -104,19 +104,23 @@ BEGIN
     )
     SELECT
         (SELECT json_agg(json_build_object(
-            'id', fu.id,
-            'username', fu.username,
-            'name', fu.name,
-            'phone', fu.phone,
-            'email', fu.email,
-            'created_at', fu.created_at,
-            'is_active', fu.is_active,
-            'first_login', fu.first_login,
-            'last_login_at', fu.last_login_at,
-            'roles', fu.roles
-        ) ORDER BY fu.created_at DESC
-        LIMIT p_limit
-        OFFSET (p_page - 1) * p_limit) FROM filtered_users fu) AS users,
+            'id', paginated_users.id,
+            'username', paginated_users.username,
+            'name', paginated_users.name,
+            'phone', paginated_users.phone,
+            'email', paginated_users.email,
+            'created_at', paginated_users.created_at,
+            'is_active', paginated_users.is_active,
+            'first_login', paginated_users.first_login,
+            'last_login_at', paginated_users.last_login_at,
+            'roles', paginated_users.roles
+        )) FROM (
+            SELECT *
+            FROM filtered_users
+            ORDER BY created_at DESC
+            LIMIT p_limit
+            OFFSET (p_page - 1) * p_limit
+        ) paginated_users) AS users,
         (SELECT COUNT(*) FROM filtered_users) AS total_count;
 END;
 $$ LANGUAGE plpgsql;
