@@ -754,7 +754,8 @@ role,
         .single();
 
       if (error || !data) {
-        throw new Error('Erreur lors de la mise à jour du profil');
+        console.error('Supabase update error:', error);
+        throw new Error(error?.message || 'Erreur lors de la mise à jour du profil');
       }
 
       // 2. Mettre à jour les métadonnées auth.users (pour éviter l'écrasement par le trigger)
@@ -914,6 +915,44 @@ role,
       }
     } catch (error: any) {
       console.error('AuthService activateMember error:', error);
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Mettre à jour un utilisateur (pour Super Admin)
+   * Utilise une RPC avec SECURITY DEFINER pour contourner RLS
+   */
+  static async updateUser(
+    userId: string,
+    updates: {
+      name?: string;
+      phone?: string;
+      email?: string;
+      isActive?: boolean;
+    }
+  ): Promise<void> {
+    try {
+      const { data, error } = await supabase.rpc('admin_update_user', {
+        p_user_id: userId,
+        p_name: updates.name || null,
+        p_phone: updates.phone || null,
+        p_email: updates.email || null,
+        p_is_active: updates.isActive !== undefined ? updates.isActive : null,
+      });
+
+      if (error) {
+        console.error('admin_update_user RPC error:', error);
+        throw new Error(error.message);
+      }
+
+      if (!data || (Array.isArray(data) && data.length === 0)) {
+        throw new Error('Utilisateur non trouvé');
+      }
+
+      console.log('User updated successfully:', data);
+    } catch (error: any) {
+      console.error('AuthService updateUser error:', error);
       throw new Error(handleSupabaseError(error));
     }
   }

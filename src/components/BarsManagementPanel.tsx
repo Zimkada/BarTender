@@ -137,6 +137,7 @@ export default function BarsManagementPanel({ isOpen, onClose, onShowBarStats }:
                               onClose();
                             } catch (error) {
                               console.error('Impersonation failed:', error);
+                              alert('Erreur lors de l\'impersonation. Veuillez réessayer.');
                             }
                           } else {
                             alert('Aucun promoteur trouvé pour ce bar');
