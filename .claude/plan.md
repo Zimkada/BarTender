@@ -135,69 +135,243 @@ La Priorité 3 se concentre sur la qualité du code, l'extraction de composants 
 
 ---
 
-## Phase 2: Refactorisation BarsManagementPanel (3 tâches)
+## ✅ Phase 2: Error Boundaries & Loading Skeletons (5 tâches) - COMPLÉTÉE
 
-### Tâche 2.1: Extraire le composant BarActionButtons
-**Fichier**: `src/components/BarActionButtons.tsx`
+### Tâche 2.1: Créer AdminPanelErrorBoundary ✅ DONE
+**Fichier**: `src/components/AdminPanelErrorBoundary.tsx`
 
-**Objectif**: Extraire les boutons d'action répétitifs et consolider la logique
+**Implémentation complète**:
+- ✅ Class component avec getDerivedStateFromError + componentDidCatch
+- ✅ Fallback UI avec AlertTriangle icon de lucide-react
+- ✅ Props: children, fallbackTitle (optional)
+- ✅ Bouton "Réessayer" qui réinitialise l'état d'erreur
+- ✅ Console.error logging pour debugging
 
-**Implémentation**:
+**Résultat**: Error boundary gracieux pour tous les panels admin
+
+### Tâche 2.2: Créer AdminPanelSkeleton ✅ DONE
+**Fichier**: `src/components/AdminPanelSkeleton.tsx`
+
+**Implémentation complète**:
+- ✅ Support 2 types: 'card' (grid 2 cols) et 'table' (rows)
+- ✅ Prop `count` (default 4 pour cards, 5+ pour tables)
+- ✅ Pulse animation avec Tailwind `animate-pulse`
+- ✅ Structure réaliste matchant contenu réel
+- ✅ Responsive layout
+
+**Résultat**: Loading placeholder unifié pour toutes les pages
+
+### Tâche 2.3: Intégrer ErrorBoundary & Skeleton dans BarsManagementPanel ✅ DONE
+**Fichier**: `src/components/BarsManagementPanel.tsx`
+
+**Changements appliqués**:
+- ✅ Import AdminPanelErrorBoundary et AdminPanelSkeleton
+- ✅ Wrapper contenu avec `<AdminPanelErrorBoundary fallbackTitle="...">`
+- ✅ Loading state: `{loading && bars.length === 0 ? <AdminPanelSkeleton count={4} type="card" /> : ...}`
+- ✅ Utilisation BarCard component pour grille bars
+
+**Résultat**: BarsManagementPanel robuste avec error handling et loading states
+
+### Tâche 2.4: Intégrer ErrorBoundary & Skeleton dans UsersManagementPanel ✅ DONE
+**Fichier**: `src/components/UsersManagementPanel.tsx`
+
+**Changements appliqués**:
+- ✅ Import AdminPanelErrorBoundary et AdminPanelSkeleton
+- ✅ Wrapper contenu avec `<AdminPanelErrorBoundary>`
+- ✅ Loading state: `{loading && users.length === 0 ? <AdminPanelSkeleton count={5} type="table" /> : ...}`
+- ✅ JSX structure fix: Fermeture correcte du ErrorBoundary avant AnimatePresence
+
+**Résultat**: UsersManagementPanel robuste avec error handling et loading states
+
+### Tâche 2.5: Intégrer ErrorBoundary & Skeleton dans AuditLogsPanel ✅ DONE
+**Fichier**: `src/components/AuditLogsPanel.tsx`
+
+**Changements appliqués**:
+- ✅ Reconstruction complète du fichier (était réduit à stubs)
+- ✅ Import AdminPanelErrorBoundary et AdminPanelSkeleton
+- ✅ Wrapper contenu avec ErrorBoundary
+- ✅ Loading state: `{loading && logs.length === 0 ? <AdminPanelSkeleton count={5} type="table" /> : ...}`
+- ✅ Filtrage avancé: search, severity, event type, bar, date range
+- ✅ CSV export functionality avec formatage
+- ✅ Advanced filters collapsible
+- ✅ RPC getUniqueBars() integration (déployée manuellement par user)
+- ✅ Removed fallback error handling après RPC deployment
+
+**Résultat**: AuditLogsPanel complet et robuste
+
+---
+
+## Phase 3: PromotersCreationForm Extraction (3 tâches)
+
+### Tâche 3.1: Créer composant PromotersCreationForm
+**Fichier**: `src/components/PromotersCreationForm.tsx` (NEW)
+
+**Objectif**: Extraire formulaire de création de promoteur dans composant reusable
+
+**Structure détaillée**:
+
 ```typescript
-interface BarActionButtonsProps {
-  bar: Bar;
-  onToggleStatus: (barId: string, currentStatus: boolean) => Promise<void>;
-  onImpersonate: (bar: Bar) => Promise<void>;
-  onShowStats: (bar: Bar) => void;
-  loading?: boolean;
+interface CreatePromoteurData {
+  email: string;
+  phone: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  barName: string;
+  barAddress: string;
+  barPhone: string;
 }
 
-export function BarActionButtons({ bar, onToggleStatus, onImpersonate, onShowStats, loading }: BarActionButtonsProps)
-```
-
-**Fonctionnalités**:
-- Gère le toggle suspendre/activer
-- Action impersonate avec confirmation
-- Action afficher stats détaillées
-- État loading pendant opérations async
-- Gestion d'erreurs et feedback utilisateur appropriés
-
-### Tâche 2.2: Extraire le composant BarCard
-**Fichier**: `src/components/BarCard.tsx`
-
-**Objectif**: Créer une carte bar reusable pour l'affichage en grille
-
-**Implémentation**:
-```typescript
-interface BarCardProps {
-  bar: Bar;
-  members: (BarMember & { user: User })[];
-  onStatusToggle: (barId: string, currentStatus: boolean) => Promise<void>;
-  onImpersonate: (bar: Bar) => void;
-  onShowStats: (bar: Bar) => void;
-  loading?: boolean;
+interface PromotersCreationFormProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
 }
 
-export function BarCard({ bar, members, onStatusToggle, onImpersonate, onShowStats, loading }: BarCardProps)
+export const PromotersCreationForm: React.FC<PromotersCreationFormProps>
 ```
 
-**Fonctionnalités**:
-- Afficher les infos bar (nom, adresse, propriétaire, nombre de membres, date création)
-- Badge de statut (Actif/Suspendu)
-- BarActionButtons intégré
-- Layout de carte responsive
-- Mémoïsé avec React.memo()
+**Implémentation**:
+- ✅ Modal wrapper avec `ui/Modal` component
+- ✅ 8 form fields (voir structure CreatePromoteurData)
+- ✅ Validation complète:
+  - Email: format validation (regex)
+  - Password: strength indicator + minimum length
+  - Phone: format validation (regex)
+  - Required fields: tous obligatoires
+  - Bar name, address, phone: required
+- ✅ Password visibility toggle (Eye/EyeOff icons)
+- ✅ Secure password generation button avec copy-to-clipboard
+- ✅ Form state management avec formData et formErrors
+- ✅ Loading state pendant submission (spinner + disabled buttons)
+- ✅ Error alert avec Alert component
+- ✅ Success callback refresh users list
+- ✅ Form reset après successful creation
+- ✅ Type-safe with TypeScript
 
-### Tâche 2.3: Refactoriser BarsManagementPanel avec composants extraits
-**Fichier**: `src/components/BarsManagementPanel.tsx` (modifier)
+**Fields & Validation Rules**:
+1. **firstName**: Text input, required, min 2 chars, max 50 chars
+2. **lastName**: Text input, required, min 2 chars, max 50 chars
+3. **email**: Email input, required, email format validation
+4. **phone**: Text input, required, phone format (regex: /^\+?[\d\s\-()]{10,}$/)
+5. **password**: Password input, required, min 8 chars, show strength indicator
+6. **barName**: Text input, required, min 3 chars, max 100 chars
+7. **barAddress**: Text input, required, min 5 chars, max 200 chars
+8. **barPhone**: Text input, required, phone format
+
+**Components Used**:
+- `ui/Modal` - form wrapper with footer (Cancel + Create buttons)
+- `ui/Input` - all text fields with error state support
+- `ui/Button` - Create, Cancel, Generate Password buttons
+- `ui/Alert` - error display
+- Lucide icons: Eye, EyeOff, RefreshCw, Copy, AlertCircle, Loader
+
+**Authentication Integration**:
+- Use `AuthService.createPromoter()` for user creation
+- Handles session preservation (saves/restores current admin session)
+- Returns created user profile
+- Error handling with specific error messages
+
+**Form Submission Flow**:
+1. Validation: All fields required + format checks
+2. Password strength check (display warning if weak)
+3. Show loading spinner during creation
+4. Call AuthService.createPromoter()
+5. On success: Show success alert, reset form, call onSuccess(), close modal
+6. On error: Display error alert, keep form data, allow retry
+
+**Styling**:
+- Match UsersManagementPanel header gradient (purple-600 to indigo-600)
+- Tailwind CSS with proper spacing
+- Responsive design (mobile-friendly)
+- Smooth animations with Framer Motion
+
+---
+
+### Tâche 3.2: Intégrer PromotersCreationForm dans UsersManagementPanel
+**Fichier**: `src/components/UsersManagementPanel.tsx` (modifier)
 
 **Changements**:
-- Remplacer les cartes inline par composant `<BarCard>`
-- Remplacer les boutons inline par logique dans `<BarActionButtons>`
-- Simplifier la méthode render pour meilleure lisibilité
-- Ajouter error boundary wrapper
-- Optimiser avec useCallback pour tous les handlers
-- Ajouter skeleton loader pendant fetch
+1. ✅ Remove stub form code (lines 22-93):
+   - Remove interface CreatePromoteurForm
+   - Remove initialFormData constant
+   - Remove stub methods (generateSecurePassword, etc.)
+   - Remove form state (showCreateForm, formData, formErrors, createdCredentials)
+
+2. ✅ Import PromotersCreationForm component
+
+3. ✅ Add single state for controlling modal:
+   ```typescript
+   const [showPromotersForm, setShowPromotersForm] = useState(false);
+   ```
+
+4. ✅ Add button in header to create new promoter:
+   - Place near existing header elements
+   - Use UserPlus icon + "Créer Promoteur" text
+   - onClick: setShowPromotersForm(true)
+
+5. ✅ Render PromotersCreationForm modal:
+   ```tsx
+   <PromotersCreationForm
+     isOpen={showPromotersForm}
+     onClose={() => setShowPromotersForm(false)}
+     onSuccess={() => {
+       loadUsers();
+       setShowPromotersForm(false);
+     }}
+   />
+   ```
+
+6. ✅ Place modal outside AnimatePresence (like EditUserModal)
+
+**Result**: UsersManagementPanel simplifié, form logique extraite, modal indépendant
+
+---
+
+### Tâche 3.3: Tests & Validation Phase 3
+**Fichiers**: Tous les fichiers modifiés
+
+**Checklist de validation**:
+- ✅ PromotersCreationForm renderize correctement
+- ✅ Validation fields fonctionne (test email invalide, password faible, etc.)
+- ✅ Password generation et copy-to-clipboard fonctionne
+- ✅ Form submission réussit avec données valides
+- ✅ Error handling affiche messages appropriés
+- ✅ Success callback refresh users list
+- ✅ Form close et reset correctement
+- ✅ No TypeScript errors
+- ✅ No console errors/warnings
+- ✅ UI responsive et accessible
+
+---
+
+## Phase 4: Optimisation des Performances (2 tâches)
+
+### Tâche 4.1: Ajouter useCallback & useMemo optimizations
+**Fichiers**: BarsManagementPanel, UsersManagementPanel, AuditLogsPanel, PromotersCreationForm
+
+**Changements**:
+- ✅ Wrapper tous les event handlers avec useCallback
+- ✅ Ajouter useMemo pour valeurs calculées (totalPages, etc.)
+- ✅ Optimiser useEffect dependencies
+- ✅ Memoïser composants avec React.memo() où approprié
+
+**Exemple**:
+```typescript
+const handleToggleStatus = useCallback(async (barId: string, currentStatus: boolean) => {
+  // implémentation
+}, [loadBars]); // dépendances minimales
+
+export const BarCard = React.memo(BarCardComponent);
+```
+
+### Tâche 4.2: Commentaires de profiling performances
+**Fichiers**: Composants liés à admin
+
+**Changements**:
+- ✅ Ajouter commentaires documentant stratégie de mémoïsation
+- ✅ Marquer sections critiques pour performances
+- ✅ Documenter pourquoi certaines dépendances dans useEffect
 
 ---
 
@@ -313,17 +487,14 @@ export const BarCard = React.memo(({ bar, members, ... }: BarCardProps) => {
 - ✅ Tâche 2.4: Intégrer dans UsersManagementPanel avec ErrorBoundary + Skeleton
 - ✅ Tâche 2.5: Intégrer dans AuditLogsPanel avec ErrorBoundary + Skeleton complet
 
-**À venir:**
+**Phase 3 - PromotersCreationForm Extraction (À faire)**
+- Tâche 3.1: Créer composant PromotersCreationForm (NEW file)
+- Tâche 3.2: Intégrer dans UsersManagementPanel (modify)
+- Tâche 3.3: Tests & Validation Phase 3
 
-1. **Phase 3 - PromotersCreationForm Extraction**
-   - Tâche 3.1: Analyser et extraire formulaire de UsersManagementPanel
-   - Tâche 3.2: Créer composant reusable PromotersCreationForm
-   - Tâche 3.3: Intégrer dans UsersManagementPanel
-
-2. **Phase 4 - Performance & Polish**
-   - Tâche 4.1: Ajouter useCallback & useMemo optimizations
-   - Tâche 4.2: Commentaires de profiling performances
-   - Tests & validation complète
+**Phase 4 - Performance & Polish (À faire)**
+- Tâche 4.1: Ajouter useCallback & useMemo optimizations
+- Tâche 4.2: Commentaires de profiling performances
 
 ---
 
