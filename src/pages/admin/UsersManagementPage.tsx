@@ -141,7 +141,7 @@ export default function UsersManagementPage() {
               <p>Aucun utilisateur trouvé.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-white">
                   <tr>
