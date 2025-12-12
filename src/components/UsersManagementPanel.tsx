@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDebounce } from 'use-debounce';
 import {
-  X, Users, Search, Filter, ChevronLeft, ChevronRight, UserPlus, Eye, EyeOff, RefreshCw, Copy
+  X, Users, Search, Filter, ChevronLeft, ChevronRight, UserPlus, Eye, EyeOff, RefreshCw, Copy, AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { User, UserRole } from '../types';
 import { Select } from './ui/Select';
+import { Alert } from './ui/Alert';
 import { AdminService } from '../services/supabase/admin.service';
 import { AuthService } from '../services/supabase/auth.service';
 import { EditUserModal } from './EditUserModal';
@@ -35,6 +36,7 @@ export default function UsersManagementPanel({ isOpen, onClose }: UsersManagemen
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
   const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
+  const [error, setError] = useState<string | null>(null);
 
   const [editingUser, setEditingUser] = useState<(User & { roles: string[] }) | null>(null);
 
@@ -42,8 +44,9 @@ export default function UsersManagementPanel({ isOpen, onClose }: UsersManagemen
 
   const loadUsers = useCallback(async () => {
     if (!isOpen) return;
-    setLoading(true);
     try {
+      setError(null);
+      setLoading(true);
       const data = await AdminService.getPaginatedUsers({
         page: currentPage,
         limit,
@@ -53,6 +56,8 @@ export default function UsersManagementPanel({ isOpen, onClose }: UsersManagemen
       setUsers(data.users);
       setTotalCount(data.totalCount);
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue lors du chargement des utilisateurs';
+      setError(message);
       console.error('Erreur chargement des utilisateurs:', error);
     } finally {
       setLoading(false);
@@ -109,6 +114,23 @@ export default function UsersManagementPanel({ isOpen, onClose }: UsersManagemen
                 </div>
               </div>
             </div>
+
+            {/* Error Alert */}
+            {error && (
+              <div className="p-4 border-b">
+                <Alert variant="destructive" title="Erreur de chargement">
+                  <div className="flex items-center justify-between">
+                    <span>{error}</span>
+                    <button
+                      onClick={() => loadUsers()}
+                      className="ml-4 px-3 py-1 text-sm bg-red-100 hover:bg-red-200 rounded-md font-medium transition-colors"
+                    >
+                      Réessayer
+                    </button>
+                  </div>
+                </Alert>
+              </div>
+            )}
 
             {/* Users List */}
             <div className="flex-1 overflow-y-auto">

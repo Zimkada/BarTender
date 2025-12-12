@@ -272,4 +272,20 @@ export class AdminService {
       throw new Error(handleSupabaseError(error));
     }
   }
+
+  /**
+   * Récupère la liste légère des bars pour les dropdowns (id, name, is_active uniquement).
+   * Optimisé pour les filtres et sélecteurs.
+   */
+  static async getUniqueBars(): Promise<{ id: string; name: string; is_active: boolean }[]> {
+    try {
+      const { data, error } = await (supabase.rpc as any)('get_unique_bars');
+
+      if (error) throw error;
+
+      return Array.isArray(data) ? data : [];
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
 }

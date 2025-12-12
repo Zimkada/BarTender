@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDebounce } from 'use-debounce';
 import {
-  X, Building2, Ban, CheckCircle, UserCog, BarChart3, Search, Filter, ChevronLeft, ChevronRight
+  X, Building2, Ban, CheckCircle, UserCog, BarChart3, Search, Filter, ChevronLeft, ChevronRight, AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Bar, BarMember, User } from '../types';
 import { Select } from './ui/Select';
+import { Alert } from './ui/Alert';
 import { AdminService } from '../services/supabase/admin.service';
 import { AuthService } from '../services/supabase/auth.service';
 import { BarService } from '../services/supabase/bar.service'; // Importer BarService
@@ -30,13 +31,15 @@ export default function BarsManagementPanel({ isOpen, onClose, onShowBarStats }:
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
   const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
+  const [error, setError] = useState<string | null>(null);
 
   const totalPages = Math.ceil(totalCount / limit);
 
   const loadBars = useCallback(async () => {
     if (!isOpen) return;
-    setLoading(true);
     try {
+      setError(null);
+      setLoading(true);
       const data = await AdminService.getPaginatedBars({
         page: currentPage,
         limit,
@@ -46,6 +49,8 @@ export default function BarsManagementPanel({ isOpen, onClose, onShowBarStats }:
       setBars(data.bars);
       setTotalCount(data.totalCount);
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue lors du chargement des bars';
+      setError(message);
       console.error('Erreur chargement des bars:', error);
     } finally {
       setLoading(false);
@@ -107,6 +112,23 @@ export default function BarsManagementPanel({ isOpen, onClose, onShowBarStats }:
               </div>
             </div>
           </div>
+
+          {/* Error Alert */}
+          {error && (
+            <div className="p-4 border-b">
+              <Alert variant="destructive" title="Erreur de chargement">
+                <div className="flex items-center justify-between">
+                  <span>{error}</span>
+                  <button
+                    onClick={() => loadBars()}
+                    className="ml-4 px-3 py-1 text-sm bg-red-100 hover:bg-red-200 rounded-md font-medium transition-colors"
+                  >
+                    Réessayer
+                  </button>
+                </div>
+              </Alert>
+            </div>
+          )}
 
           <div className="flex-1 overflow-y-auto">
             {loading && bars.length === 0 ? (

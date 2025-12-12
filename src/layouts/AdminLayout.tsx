@@ -1,16 +1,16 @@
 // src/layouts/AdminLayout.tsx
 import { Link, Outlet, Navigate, useLocation } from 'react-router-dom';
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { LoadingFallback } from '../components/LoadingFallback';
-import BarsManagementPanel from '../components/BarsManagementPanel'; // Importer le panel
-import UsersManagementPanel from '../components/UsersManagementPanel'; // Importer le panel
-import { 
-  LayoutDashboard, 
-  Building2, 
-  Users, 
-  Package, 
-  FileText, 
+import BarsManagementPanel from '../components/BarsManagementPanel';
+import UsersManagementPanel from '../components/UsersManagementPanel';
+import {
+  LayoutDashboard,
+  Building2,
+  Users,
+  Package,
+  FileText,
   Bell,
   LogOut,
   Menu,
@@ -27,92 +27,15 @@ const adminNavItems = [
   { path: '/admin/notifications', label: 'Notifications', icon: Bell, isLink: true },
 ];
 
-import { SalesService } from '../services/supabase/sales.service';
-import { ReturnsService } from '../services/supabase/returns.service';
-import { Sale, Return } from '../types';
-
-// ... (imports existants)
-
-// ... (const adminNavItems)
-
 function AdminLayoutContent() {
   const { isAuthenticated, currentSession, logout } = useAuth();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  
+
   // États pour les modales
   const [isBarsPanelOpen, setIsBarsPanelOpen] = useState(false);
   const [isUsersPanelOpen, setIsUsersPanelOpen] = useState(false);
 
-  // États pour les données globales
-  const [allSales, setAllSales] = useState<Sale[]>([]);
-  const [allReturns, setAllReturns] = useState<Return[]>([]);
-  const [loadingData, setLoadingData] = useState(true);
-
-  // Charger toutes les données nécessaires pour les panels admin
-  useEffect(() => {
-    const loadAllAdminData = async () => {
-      if (currentSession?.role !== 'super_admin') return;
-      try {
-        setLoadingData(true);
-        const [salesData, returnsData] = await Promise.all([
-          SalesService.getAllSales(),
-          ReturnsService.getAllReturns(),
-        ]);
-
-        const mappedSales = salesData.map((sale: any) => ({
-          id: sale.id,
-          barId: sale.bar_id,
-          items: sale.items || [],
-          total: sale.total,
-          currency: sale.currency || 'XOF',
-          status: sale.status,
-          createdBy: sale.created_by,
-          validatedBy: sale.validated_by,
-          createdAt: new Date(sale.created_at),
-          validatedAt: sale.validated_at ? new Date(sale.validated_at) : undefined,
-          businessDate: sale.business_date ? new Date(sale.business_date) : new Date(sale.created_at),
-          paymentMethod: sale.payment_method,
-          customerName: sale.customer_name,
-          notes: sale.notes,
-        })) as Sale[];
-  
-        const mappedReturns = returnsData.map((ret: any) => ({
-          id: ret.id,
-          barId: ret.bar_id,
-          saleId: ret.sale_id,
-          productId: ret.product_id,
-          productName: ret.product_name,
-          productVolume: ret.product_volume || '',
-          quantitySold: ret.quantity_sold,
-          quantityReturned: ret.quantity_returned,
-          reason: ret.reason,
-          returnedBy: ret.returned_by,
-          returnedAt: new Date(ret.returned_at),
-          businessDate: ret.business_date ? new Date(ret.business_date) : new Date(ret.returned_at),
-          refundAmount: ret.refund_amount,
-          isRefunded: ret.is_refunded,
-          status: ret.status,
-          autoRestock: ret.auto_restock,
-          manualRestockRequired: ret.manual_restock_required,
-          restockedAt: ret.restocked_at ? new Date(ret.restocked_at) : undefined,
-          notes: ret.notes,
-        })) as Return[];
-
-        setAllSales(mappedSales);
-        setAllReturns(mappedReturns);
-
-      } catch (error) {
-        console.error("Erreur chargement données admin:", error);
-      } finally {
-        setLoadingData(false);
-      }
-    };
-
-    loadAllAdminData();
-  }, [currentSession]);
-
-  // ... (guards et autres fonctions)
   const handleNavItemClick = (item: any) => {
     setIsSidebarOpen(false);
     if (item.id === 'bars') {
@@ -139,9 +62,7 @@ function AdminLayoutContent() {
     return <Navigate to="/" replace />;
   }
 
-  if (loadingData && currentSession?.role === 'super_admin') {
-    return <LoadingFallback />;
-  }
+
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -184,7 +105,7 @@ function AdminLayoutContent() {
             {adminNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = item.isLink && isActiveRoute(item.path!, item.exact);
-              
+
               if (item.isLink) {
                 return (
                   <Link
@@ -193,8 +114,8 @@ function AdminLayoutContent() {
                     onClick={() => setIsSidebarOpen(false)}
                     className={`
                       flex items-center gap-3 px-4 py-3 rounded-lg transition-all
-                      ${isActive 
-                        ? 'bg-purple-100 text-purple-700 font-semibold' 
+                      ${isActive
+                        ? 'bg-purple-100 text-purple-700 font-semibold'
                         : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                       }
                     `}
@@ -255,16 +176,14 @@ function AdminLayoutContent() {
             <Outlet />
           </Suspense>
         </main>
-        
+
         {/* Modals */}
-        <BarsManagementPanel 
+        <BarsManagementPanel
           isOpen={isBarsPanelOpen}
           onClose={() => setIsBarsPanelOpen(false)}
-          onShowBarStats={() => {}} // Placeholder
-          allSales={allSales}
-          allReturns={allReturns}
+          onShowBarStats={() => { }} // Placeholder
         />
-        
+
         <UsersManagementPanel
           isOpen={isUsersPanelOpen}
           onClose={() => setIsUsersPanelOpen(false)}

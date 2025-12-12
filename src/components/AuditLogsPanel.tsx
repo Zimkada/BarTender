@@ -29,7 +29,8 @@ export default function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps)
   const [barFilter, setBarFilter] = useState<string>('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  
+  const [error, setError] = useState<string | null>(null);
+
   const [uniqueBars, setUniqueBars] = useState<Bar[]>([]);
   const [uniqueEvents, setUniqueEvents] = useState<string[]>([]); // Pour le filtre
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
@@ -39,8 +40,9 @@ export default function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps)
 
   const loadLogs = useCallback(async () => {
     if (!isOpen) return;
-    setLoading(true);
     try {
+      setError(null);
+      setLoading(true);
       const data = await AdminService.getPaginatedAuditLogs({
         page: currentPage,
         limit: logsPerPage,
@@ -54,6 +56,8 @@ export default function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps)
       setLogs(data.logs);
       setTotalCount(data.totalCount);
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue lors du chargement des logs';
+      setError(message);
       console.error('Erreur chargement des logs:', error);
     } finally {
       setLoading(false);
@@ -70,7 +74,7 @@ export default function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps)
 
   useEffect(() => {
     if (isOpen) {
-      AdminService.getPaginatedBars({ page: 1, limit: 1000 }).then(data => setUniqueBars(data.bars));
+      AdminService.getUniqueBars().then(data => setUniqueBars(data as any));
       // Idéalement, il faudrait une RPC pour obtenir les types d'événements uniques.
       // Pour l'instant, on peut les coder en dur ou les laisser se remplir dynamiquement.
     }
@@ -99,10 +103,28 @@ export default function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps)
               <span className="font-semibold text-indigo-700">{totalCount}</span> log{totalCount > 1 ? 's' : ''} trouvé{totalCount > 1 ? 's' : ''}
             </div>
           </div>
+
+          {/* Error Alert */}
+          {error && (
+            <div className="p-4 border-b">
+              <Alert variant="destructive" title="Erreur de chargement">
+                <div className="flex items-center justify-between">
+                  <span>{error}</span>
+                  <button
+                    onClick={() => loadLogs()}
+                    className="ml-4 px-3 py-1 text-sm bg-red-100 hover:bg-red-200 rounded-md font-medium transition-colors"
+                  >
+                    Réessayer
+                  </button>
+                </div>
+              </Alert>
+            </div>
+          )}
+
           {/* Liste des logs */}
           <div className="flex-1 overflow-y-auto p-4">
             {loading ? (
-                <div className="text-center py-12"><p>Chargement...</p></div>
+              <div className="text-center py-12"><p>Chargement...</p></div>
             ) : logs.length === 0 ? (
               <Alert show={true} variant="info" className="py-12">
                 <p className="font-medium">Aucun log trouvé</p>
