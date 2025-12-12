@@ -511,7 +511,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         userId,
         result.impersonated_user_email,
         result.impersonated_user_role,
-        '24h'
+        barId,
+        result.expires_at
       );
 
       // 6. Créer l'objet session custom pour Supabase

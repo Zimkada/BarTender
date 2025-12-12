@@ -1,81 +1,56 @@
 /**
  * Service pour signer les JWT tokens pour l'impersonnation
- * Utilise la libraire jose pour créer des tokens valides
+ * Appelle l'Edge Function Supabase (sign-impersonate-token) pour signer les tokens
  */
 
-import * as jose from 'jose';
+import { supabase } from '../lib/supabase';
 
-// La clé secrète JWT de Supabase (service_role secret)
-// NOTE: En production, cette clé ne doit JAMAIS être exposée au frontend
-// Pour la production, créer une Edge Function qui signe les tokens côté serveur
-const JWT_SECRET = import.meta.env.VITE_JWT_SECRET || '';
-
-if (!JWT_SECRET) {
-  console.warn('[JWT Service] VITE_JWT_SECRET not configured - impersonation will not work');
-}
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/sign-impersonate-token`;
 
 /**
- * Signe un JWT token pour l'impersonnation
+ * Appelle l'Edge Function pour signer un JWT token pour l'impersonnation
+ * La clé secrète JWT reste sécurisée sur le serveur (Supabase)
+ *
  * @param userId ID de l'utilisateur à impersonner
  * @param email Email de l'utilisateur
  * @param role Rôle de l'utilisateur (promoteur, gerant, serveur, etc)
- * @param expiresIn Durée d'expiration du token (défaut: 24 heures)
+ * @param barId ID du bar dans lequel l'impersonation est effectuée
+ * @param expiresAt Date d'expiration du token (ISO format)
+ * @returns JWT token signé
  */
 export async function signImpersonationToken(
   userId: string,
   email: string,
   role: string,
-  expiresIn: string = '24h'
+  barId: string,
+  expiresAt: string
 ): Promise<string> {
-  if (!JWT_SECRET) {
-    throw new Error('JWT_SECRET not configured');
-  }
-
   try {
-    const secret = new TextEncoder().encode(JWT_SECRET);
-
-    const payload = {
-      sub: userId,
-      email: email,
-      role: role,
-      aud: 'authenticated',
-      iss: 'https://yekomwjdznvtnialpdcz.supabase.co',
-      app_metadata: {
-        provider: 'custom_impersonate',
-        impersonated_at: new Date().toISOString(),
+    const response = await fetch(EDGE_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`,
       },
-      user_metadata: {
-        impersonation: true,
-      },
-    };
+      body: JSON.stringify({
+        impersonated_user_id: userId,
+        impersonated_user_email: email,
+        impersonated_user_role: role,
+        bar_id: barId,
+        expires_at: expiresAt,
+      }),
+    });
 
-    const token = await new jose.SignJWT(payload)
-      .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime(expiresIn)
-      .setIssuedAt()
-      .sign(secret);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || `Edge Function error: ${response.status}`);
+    }
 
-    return token;
+    const data = await response.json();
+    return data.token;
   } catch (error: any) {
-    console.error('[JWT Service] Error signing token:', error);
+    console.error('[JWT Service] Error calling Edge Function:', error);
     throw new Error('Failed to sign impersonation token: ' + error.message);
-  }
-}
-
-/**
- * Valide et décode un JWT token (utile pour debug)
- */
-export async function verifyToken(token: string): Promise<any> {
-  if (!JWT_SECRET) {
-    throw new Error('JWT_SECRET not configured');
-  }
-
-  try {
-    const secret = new TextEncoder().encode(JWT_SECRET);
-    const verified = await jose.jwtVerify(token, secret);
-    return verified.payload;
-  } catch (error: any) {
-    console.error('[JWT Service] Token verification failed:', error);
-    throw new Error('Invalid token: ' + error.message);
   }
 }
