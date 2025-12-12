@@ -499,21 +499,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      // 4. Créer un token placeholder pour l'impersonation
-      // La sécurité réelle vient du RPC validate_and_get_impersonate_data() qui:
-      // - Valide que l'utilisateur existe et a un rôle actif dans le bar
-      // - Enregistre l'action dans les audit_logs
-      // - Retourne les données validées
-      // Note: Pour une sécurité complète avec RLS, un Edge Function signerait un vrai JWT
-      // mais pour le développement, ce placeholder est suffisant avec les validations du RPC
-      const jwtToken = `impersonate_${userId}_${Date.now()}`;
-
-      // 5. Sauvegarder la session originale si ce n'est pas déjà une impersonation
+      // 4. Sauvegarder la session originale si ce n'est pas déjà une impersonation
       if (!isImpersonating) {
         setOriginalSession(currentSession);
       }
 
-      // 6. Créer la nouvelle session pour l'utilisateur cible
+      // 5. Créer la nouvelle session pour l'utilisateur cible
+      // Note: L'impersonation fonctionne au niveau de React Context, pas au niveau Supabase Auth
+      // Raison: Supabase RLS évalue auth.uid() côté serveur basé sur le JWT du Authorization header
+      // Pour changer cela, on aurait besoin d'un JWT valide signé par notre serveur (Edge Function)
+      //
+      // Solution actuelle:
+      // - React context reflète l'utilisateur impersonné (pour l'UI)
+      // - Les requêtes Supabase passent explicitement l'userId impersonné en paramètres
+      // - Le RPC validate_and_get_impersonate_data() enregistre l'audit trail
+      // - RLS continue de protéger les données (utilise toujours le super_admin actuel)
+      // - Les super_admins ne peuvent voir que les données auxquelles ils ont accès
       const impersonatedSession: UserSession = {
         userId: userData.id,
         userName: userData.name,
@@ -525,38 +526,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         firstLogin: false
       };
 
-      // 7. Appliquer le JWT custom à la session Supabase
-      // Créer un objet session compatible avec Supabase
-      const customSession = {
-        access_token: jwtToken,
-        token_type: 'Bearer',
-        expires_in: Math.floor((new Date(result.expires_at).getTime() - Date.now()) / 1000),
-        expires_at: Math.floor(new Date(result.expires_at).getTime() / 1000),
-        refresh_token: '', // On ne peut pas rafraîchir un token custom
-        user: {
-          id: userId,
-          email: result.impersonated_user_email,
-          user_metadata: {
-            name: userData.name,
-            impersonation: true,
-          },
-          app_metadata: {
-            provider: 'custom_impersonate',
-            impersonated_by: currentSession.userId,
-            bar_id: barId,
-            bar_role: result.impersonated_user_role,
-          },
-          aud: 'authenticated',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          last_sign_in_at: new Date().toISOString(),
-        },
-      };
-
-      // 8. Appliquer la nouvelle session à Supabase Auth
-      await supabase.auth.setSession(customSession as any);
-
-      // 9. Appliquer la nouvelle session UI
+      // 6. Appliquer la nouvelle session UI
       setCurrentSession(impersonatedSession);
       setIsImpersonating(true);
 
