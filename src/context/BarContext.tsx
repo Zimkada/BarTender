@@ -197,8 +197,21 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     }
 
-    // Sinon, prendre le premier bar accessible
+    // Essayer de restaurer depuis localStorage si le promoteur a plusieurs bars
     const accessibleBars = getUserBars();
+    if (accessibleBars.length > 1) {
+      const savedBarId = localStorage.getItem('selectedBarId');
+      if (savedBarId && accessibleBars.some(b => b.id === savedBarId)) {
+        const savedBar = bars.find(b => b.id === savedBarId);
+        if (savedBar) {
+          setCurrentBar(savedBar);
+          setCurrentBarId(savedBar.id);
+          return;
+        }
+      }
+    }
+
+    // Sinon, prendre le premier bar accessible
     if (accessibleBars.length > 0) {
       setCurrentBar(accessibleBars[0]);
       setCurrentBarId(accessibleBars[0].id);
