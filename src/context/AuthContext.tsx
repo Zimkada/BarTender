@@ -429,7 +429,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   //   return undefined;
   // }, []);
 
-  // Impersonation: Se connecter en tant qu'un autre user (pour super admin)
+  // Impersonation: Se connecter en tant qu'un autre user avec JWT custom (pour super admin)
   const impersonate = useCallback(async (userId: string, barId: string, role: UserRole) => {
     if (!currentSession) {
       console.error('[Impersonation] No current session');
@@ -444,23 +444,39 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     try {
-      // Récupérer les informations de l'utilisateur cible
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id, name, username')
-        .eq('id', userId)
-        .single();
+      // 1. Valider l'impersonation avec le RPC et récupérer les données de l'utilisateur
+      const { data: validationData, error: validationError } = await supabase.rpc(
+        'validate_and_get_impersonate_data',
+        {
+          p_super_admin_id: currentSession.userId,
+          p_impersonated_user_id: userId,
+          p_bar_id: barId,
+        }
+      );
 
-      if (userError || !userData) {
-        console.error('[Impersonation] Failed to fetch user data:', userError);
-        alert('Impossible de récupérer les informations de l\'utilisateur');
+      if (validationError) {
+        console.error('[Impersonation] Validation RPC error:', validationError);
+        alert('Erreur lors de la validation: ' + validationError.message);
         return;
       }
 
-      // Récupérer les informations du bar
+      if (!Array.isArray(validationData) || validationData.length === 0) {
+        alert('Données de validation invalides');
+        return;
+      }
+
+      const result = validationData[0] as any;
+
+      if (!result.success) {
+        console.error('[Impersonation] Validation failed:', result.error_message);
+        alert(result.error_message || 'Impossible d\'impersonater cet utilisateur');
+        return;
+      }
+
+      // 2. Récupérer le bar name depuis la validation data
       const { data: barData, error: barError } = await supabase
         .from('bars')
-        .select('id, name')
+        .select('name')
         .eq('id', barId)
         .single();
 
@@ -470,82 +486,182 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
-      // Sauvegarder la session originale si ce n'est pas déjà une impersonation
+      // 3. Récupérer le user name
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('name')
+        .eq('id', userId)
+        .single();
+
+      if (userError || !userData) {
+        console.error('[Impersonation] Failed to fetch user data:', userError);
+        alert('Impossible de récupérer les informations de l\'utilisateur');
+        return;
+      }
+
+      // 4. Appeler l'Edge Function pour signer le JWT
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const jwtSignResponse = await fetch(
+        `${supabaseUrl}/functions/v1/sign-impersonate-token`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`,
+          },
+          body: JSON.stringify({
+            impersonated_user_id: userId,
+            impersonated_user_email: result.impersonated_user_email,
+            impersonated_user_role: result.impersonated_user_role,
+            bar_id: barId,
+            expires_at: result.expires_at,
+          }),
+        }
+      );
+
+      if (!jwtSignResponse.ok) {
+        const errorData = await jwtSignResponse.json();
+        throw new Error('Failed to generate impersonation token: ' + (errorData.error || jwtSignResponse.statusText));
+      }
+
+      const { token: jwtToken } = await jwtSignResponse.json();
+
+      // 5. Sauvegarder la session originale si ce n'est pas déjà une impersonation
       if (!isImpersonating) {
         setOriginalSession(currentSession);
       }
 
-      // Créer la nouvelle session pour l'utilisateur cible
+      // 6. Créer la nouvelle session pour l'utilisateur cible
       const impersonatedSession: UserSession = {
         userId: userData.id,
         userName: userData.name,
         role: role,
-        barId: barData.id,
+        barId: barId,
         barName: barData.name,
         loginTime: new Date(),
         permissions: getPermissionsByRole(role),
         firstLogin: false
       };
 
-      // Log impersonation start
+      // 7. Appliquer le JWT custom à la session Supabase
+      // Créer un objet session compatible avec Supabase
+      const customSession = {
+        access_token: jwtToken,
+        token_type: 'Bearer',
+        expires_in: Math.floor((new Date(result.expires_at).getTime() - Date.now()) / 1000),
+        expires_at: Math.floor(new Date(result.expires_at).getTime() / 1000),
+        refresh_token: '', // On ne peut pas rafraîchir un token custom
+        user: {
+          id: userId,
+          email: result.impersonated_user_email,
+          user_metadata: {
+            name: userData.name,
+            impersonation: true,
+          },
+          app_metadata: {
+            provider: 'custom_impersonate',
+            impersonated_by: currentSession.userId,
+            bar_id: barId,
+            bar_role: result.impersonated_user_role,
+          },
+          aud: 'authenticated',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          last_sign_in_at: new Date().toISOString(),
+        },
+      };
+
+      // 8. Appliquer la nouvelle session à Supabase Auth
+      await supabase.auth.setSession(customSession as any);
+
+      // 9. Appliquer la nouvelle session UI
+      setCurrentSession(impersonatedSession);
+      setIsImpersonating(true);
+
+      // 10. Log impersonation start
       auditLogger.log({
         event: 'IMPERSONATE_START',
         severity: 'warning',
         userId: currentSession.userId,
         userName: currentSession.userName,
         userRole: currentSession.role,
-        description: `Impersonation démarrée: ${currentSession.userName} → ${userData.name} (${role}) au bar ${barData.name}`,
+        barId: barId,
+        barName: barData.name,
+        description: `Impersonation démarrée avec JWT custom: ${currentSession.userName} → ${userData.name} (${role}) au bar ${barData.name}`,
         metadata: {
           targetUserId: userId,
           targetUserName: userData.name,
           targetBarId: barId,
           targetBarName: barData.name,
           targetRole: role,
+          jwtTokenPresent: true,
         },
       });
 
-      // Appliquer la nouvelle session
-      setCurrentSession(impersonatedSession);
-      setIsImpersonating(true);
-
-      console.log('[Impersonation] Started impersonating user:', userData.name);
+      console.log('[Impersonation] Started impersonating user with custom JWT:', userData.name);
     } catch (error: any) {
       console.error('[Impersonation] Error:', error);
       alert('Erreur lors de l\'impersonation: ' + error.message);
     }
   }, [currentSession, isImpersonating, setCurrentSession, setOriginalSession, setIsImpersonating]);
 
-  // Stop impersonation: Revenir à la session super admin
-  const stopImpersonation = useCallback(() => {
+  // Stop impersonation: Revenir à la session super admin avec JWT original
+  const stopImpersonation = useCallback(async () => {
     if (!isImpersonating || !originalSession) {
       console.error('Not currently impersonating');
       return;
     }
 
-    // Log impersonation stop (avant de changer session)
-    if (currentSession) {
-      auditLogger.log({
-        event: 'IMPERSONATE_STOP',
-        severity: 'info',
-        userId: originalSession.userId,
-        userName: originalSession.userName,
-        userRole: originalSession.role,
-        barId: currentSession.barId,
-        description: `Impersonation terminée: Retour au compte Super Admin`,
-        metadata: {
-          impersonatedUserId: currentSession.userId,
-          impersonatedUserName: currentSession.userName,
-          impersonatedRole: currentSession.role,
-        },
-      });
+    try {
+      // Log impersonation stop (avant de changer session)
+      if (currentSession) {
+        auditLogger.log({
+          event: 'IMPERSONATE_STOP',
+          severity: 'info',
+          userId: originalSession.userId,
+          userName: originalSession.userName,
+          userRole: originalSession.role,
+          barId: currentSession.barId,
+          barName: currentSession.barName,
+          description: `Impersonation terminée: Retour au compte Super Admin`,
+          metadata: {
+            impersonatedUserId: currentSession.userId,
+            impersonatedUserName: currentSession.userName,
+            impersonatedRole: currentSession.role,
+          },
+        });
+      }
+
+      // Récupérer la session originale du Super Admin depuis le localStorage
+      // Car on a perdu le token Supabase original quand on a appelé setSession avec le token custom
+      const originalSupabaseSession = localStorage.getItem('sb-' + import.meta.env.VITE_SUPABASE_URL?.replace('https://', '').split('.')[0] + '-auth-token');
+
+      if (originalSupabaseSession) {
+        try {
+          const sessionData = JSON.parse(originalSupabaseSession);
+          if (sessionData && sessionData.session) {
+            // Restaurer la session originale
+            await supabase.auth.setSession(sessionData.session);
+          }
+        } catch (e) {
+          console.warn('[Impersonation] Could not restore original Supabase session from localStorage:', e);
+          // Continuer quand même avec la session UI
+        }
+      }
+
+      // Restore session UI originale
+      setCurrentSession(originalSession);
+      setOriginalSession(null);
+      setIsImpersonating(false);
+
+      console.log('[Impersonation] Returned to admin session');
+    } catch (error: any) {
+      console.error('[Impersonation] Error stopping impersonation:', error);
+      // Forcer la restauration même en cas d'erreur
+      setCurrentSession(originalSession);
+      setOriginalSession(null);
+      setIsImpersonating(false);
     }
-
-    // Restore session originale
-    setCurrentSession(originalSession);
-    setOriginalSession(null);
-    setIsImpersonating(false);
-
-    console.log('[Impersonation] Returned to admin session');
   }, [isImpersonating, originalSession, currentSession, setCurrentSession, setOriginalSession, setIsImpersonating]);
 
   const value: AuthContextType = {
