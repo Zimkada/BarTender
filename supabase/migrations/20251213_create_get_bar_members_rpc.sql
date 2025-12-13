@@ -3,6 +3,8 @@
 -- For impersonation: allows super_admin to get bar members
 -- =====================================================
 
+DROP FUNCTION IF EXISTS get_bar_members(UUID);
+
 CREATE OR REPLACE FUNCTION get_bar_members(p_bar_id UUID)
 RETURNS TABLE (
   id UUID,
@@ -11,7 +13,8 @@ RETURNS TABLE (
   role TEXT,
   is_active BOOLEAN,
   assigned_by UUID,
-  created_at TIMESTAMPTZ,
+  assigned_at TIMESTAMPTZ,
+
   user_name TEXT,
   user_email TEXT,
   user_phone TEXT
@@ -19,7 +22,7 @@ RETURNS TABLE (
 BEGIN
   -- Check if user is impersonating OR is bar member
   IF (auth.jwt()->'user_metadata'->>'impersonation' = 'true' OR
-      EXISTS (SELECT 1 FROM bar_members WHERE user_id = auth.uid() AND bar_id = p_bar_id AND is_active = true)) THEN
+      EXISTS (SELECT 1 FROM bar_members bm_check WHERE bm_check.user_id = auth.uid() AND bm_check.bar_id = p_bar_id AND bm_check.is_active = true)) THEN
 
     RETURN QUERY
     SELECT
@@ -29,7 +32,8 @@ BEGIN
       bm.role,
       bm.is_active,
       bm.assigned_by,
-      bm.created_at,
+      bm.assigned_at,
+
       u.name,
       u.email,
       u.phone
@@ -37,7 +41,7 @@ BEGIN
     LEFT JOIN users u ON bm.user_id = u.id
     WHERE bm.bar_id = p_bar_id
     AND bm.is_active = true
-    ORDER BY bm.created_at DESC;
+    ORDER BY u.name ASC;
   ELSE
     RAISE EXCEPTION 'Unauthorized';
   END IF;
