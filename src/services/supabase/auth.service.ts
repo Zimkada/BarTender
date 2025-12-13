@@ -832,12 +832,16 @@ role,
    * Utilise un RPC pour contourner les RLS lors de l'impersonation
    */
   static async getBarMembers(
-    barId: string
+    barId: string,
+    impersonatingUserId?: string
   ): Promise<Array<Omit<DbUser, 'password_hash'> & { role: string; joined_at: string; member_is_active: boolean }>> {
     try {
-      // Use RPC to bypass RLS (important for impersonation)
+      // Use RPC with optional impersonating_user_id parameter
       const { data: membersData, error: rpcError } = await supabase
-        .rpc('get_bar_members', { p_bar_id: barId });
+        .rpc('get_bar_members', {
+          p_bar_id: barId,
+          p_impersonating_user_id: impersonatingUserId || null
+        });
 
       if (rpcError) {
         console.error('[AuthService] RPC error:', rpcError);
@@ -864,7 +868,7 @@ role,
         updated_at: new Date().toISOString(),
         last_login_at: undefined,
         role: member.role,
-        joined_at: member.created_at,
+        joined_at: member.assigned_at,
         member_is_active: member.is_active,
       })) as Array<Omit<DbUser, 'password_hash'> & { role: string; joined_at: string; member_is_active: boolean }>;
 

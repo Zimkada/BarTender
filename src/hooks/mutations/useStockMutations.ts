@@ -2,10 +2,12 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProductsService } from '../../services/supabase/products.service';
 import { StockService } from '../../services/supabase/stock.service';
 import { stockKeys } from '../queries/useStockQueries';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
 export const useStockMutations = (barId: string) => {
     const queryClient = useQueryClient();
+    const { isImpersonating, currentSession } = useAuth();
 
     // --- PRODUCTS ---
 
@@ -77,12 +79,12 @@ export const useStockMutations = (barId: string) => {
             // Mapping App -> DB
             // data: { bar_id, product_id, quantity, client_name, client_phone, created_by, status, expires_at }
 
-            // We need unit_price. We can fetch product or pass it. 
+            // We need unit_price. We can fetch product or pass it.
             // Assuming passed or we fetch. For now, let's assume 0 if not passed, or we should fetch product price.
             // Better: fetch product price here or ensure it's passed.
-            // useStockManagement passes it? No. 
+            // useStockManagement passes it? No.
             // Let's fetch product to get price.
-            const products = await ProductsService.getBarProducts(barId);
+            const products = await ProductsService.getBarProducts(barId, isImpersonating ? currentSession?.userId : undefined);
             const product = products.find(p => p.id === data.product_id);
             const unitPrice = product ? product.price : 0;
 

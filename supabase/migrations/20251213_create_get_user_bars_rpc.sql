@@ -3,6 +3,8 @@
 -- For impersonation: allows super_admin to get bars of impersonated user
 -- =====================================================
 
+DROP FUNCTION IF EXISTS get_user_bars(UUID);
+
 CREATE OR REPLACE FUNCTION get_user_bars(p_user_id UUID)
 RETURNS TABLE (
   id UUID,
@@ -18,7 +20,7 @@ RETURNS TABLE (
 BEGIN
   -- Check if user is impersonating OR is bar member
   IF (auth.jwt()->'user_metadata'->>'impersonation' = 'true' OR
-      EXISTS (SELECT 1 FROM bar_members WHERE user_id = auth.uid() AND is_active = true)) THEN
+      EXISTS (SELECT 1 FROM bar_members bm_check WHERE bm_check.user_id = auth.uid() AND bm_check.is_active = true)) THEN
 
     RETURN QUERY
     SELECT DISTINCT

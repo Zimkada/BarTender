@@ -61,7 +61,7 @@ serve(async (req) => {
         bar_role: body.impersonated_user_role,
       },
       user_metadata: {
-        impersonation: true,
+        impersonation: "true",
       },
       iss: Deno.env.get('SUPABASE_URL') || 'https://supabase.io',
       iat: now,

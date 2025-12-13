@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ProductsService } from '../../services/supabase/products.service';
 import { CategoriesService } from '../../services/supabase/categories.service';
 import { StockService } from '../../services/supabase/stock.service';
+import { useAuth } from '../../context/AuthContext';
 import type { Product, Supply, Consignment, Category } from '../../types';
 
 // Clés de requête pour l'invalidation
@@ -14,11 +15,12 @@ export const stockKeys = {
 };
 
 export const useProducts = (barId: string | undefined) => {
+    const { isImpersonating, currentSession } = useAuth();
     return useQuery({
         queryKey: stockKeys.products(barId || ''),
         queryFn: async (): Promise<Product[]> => {
             if (!barId) return [];
-            const dbProducts = await ProductsService.getBarProducts(barId);
+            const dbProducts = await ProductsService.getBarProducts(barId, isImpersonating ? currentSession?.userId : undefined);
 
             return dbProducts.map(p => ({
                 id: p.id,

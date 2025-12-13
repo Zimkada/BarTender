@@ -47,7 +47,7 @@ export const useBarContext = () => {
 };
 
 export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { currentSession, hasPermission } = useAuth();
+  const { currentSession, hasPermission, isImpersonating } = useAuth();
   const [bars, setBars] = useState<Bar[]>([]);
   const [barMembers, setBarMembers] = useState<BarMember[]>([]);
   const [currentBarId, setCurrentBarId] = useState<string | null>(null);
@@ -100,7 +100,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           setLoading(false);
           return;
         }
-        const userBarsData = await BarsService.getUserBars(currentSession.userId);
+        const userBarsData = await BarsService.getMyBars();
         const mappedBars: Bar[] = userBarsData.map(b => ({
           id: b.id,
           name: b.name,
@@ -124,7 +124,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       // Charger les membres du bar courant si on en a un
       if (currentSession.barId && currentSession.barId !== 'admin_global') {
-        const members = await AuthService.getBarMembers(currentSession.barId);
+        const members = await AuthService.getBarMembers(currentSession.barId, isImpersonating ? currentSession.userId : undefined);
         const mappedMembers: BarMember[] = members.map(m => ({
           id: `${currentSession.barId}_${m.id}`, // Générer un ID unique pour le membership
           userId: m.id, // L'ID utilisateur
@@ -354,7 +354,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Gestion des membres
   const getBarMembers = useCallback(async (barId: string): Promise<(BarMember & { user: User })[]> => {
     try {
-      const members = await AuthService.getBarMembers(barId);
+      const members = await AuthService.getBarMembers(barId, isImpersonating ? currentSession?.userId : undefined);
 
       return members.map(m => ({
         id: `${barId}_${m.id}`, // Générer un ID unique pour le membership

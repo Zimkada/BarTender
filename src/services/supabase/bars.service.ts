@@ -189,18 +189,39 @@ export class BarsService {
   }
 
   /**
-   * Récupérer les bars d'un utilisateur
+   * Récupérer les bars de l'utilisateur
    * Utilise un RPC pour contourner les RLS lors de l'impersonation
    */
-  static async getUserBars(userId: string): Promise<Bar[]> {
+  static async getUserBars(userId: string, impersonatingUserId?: string): Promise<Bar[]> {
     try {
-      // Use RPC to bypass RLS (important for impersonation)
+      // Use RPC with optional impersonating_user_id parameter
       const { data, error } = await supabase
-        .rpc('get_user_bars', { p_user_id: userId });
+        .rpc('get_user_bars', {
+          p_user_id: userId,
+          p_impersonating_user_id: impersonatingUserId || null
+        });
 
       if (error) {
         console.error('[BarsService] RPC error:', error);
         throw new Error('Erreur lors de la récupération des bars');
+      }
+
+      return (data || []).map((barRow: any) => this.mapToBar(barRow));
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Récupérer les bars de l'utilisateur actuellement authentifié
+   */
+  static async getMyBars(): Promise<Bar[]> {
+    try {
+      const { data, error } = await supabase.rpc('get_my_bars');
+
+      if (error) {
+        console.error('[BarsService] RPC error:', error);
+        throw new Error('Erreur lors de la récupération de vos bars');
       }
 
       return (data || []).map((barRow: any) => this.mapToBar(barRow));
