@@ -1,8 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
 import { ProductsService } from '../../services/supabase/products.service';
 import { CategoriesService } from '../../services/supabase/categories.service';
 import { StockService } from '../../services/supabase/stock.service';
-import { useAuth } from '../../context/AuthContext';
+import { useApiQuery, useApiQuerySimple } from './useApiQuery';
 import type { Product, Supply, Consignment, Category } from '../../types';
 
 // Clés de requête pour l'invalidation
@@ -15,12 +14,11 @@ export const stockKeys = {
 };
 
 export const useProducts = (barId: string | undefined) => {
-    const { isImpersonating, currentSession } = useAuth();
-    return useQuery({
-        queryKey: stockKeys.products(barId || ''),
-        queryFn: async (): Promise<Product[]> => {
+    return useApiQuery(
+        stockKeys.products(barId || ''),
+        async (impersonatingUserId) => {
             if (!barId) return [];
-            const dbProducts = await ProductsService.getBarProducts(barId, isImpersonating ? currentSession?.userId : undefined);
+            const dbProducts = await ProductsService.getBarProducts(barId, impersonatingUserId);
 
             return dbProducts.map(p => ({
                 id: p.id,
@@ -35,14 +33,14 @@ export const useProducts = (barId: string | undefined) => {
                 createdAt: new Date(p.created_at || Date.now()),
             }));
         },
-        enabled: !!barId,
-    });
+        { enabled: !!barId }
+    );
 };
 
 export const useSupplies = (barId: string | undefined) => {
-    return useQuery({
-        queryKey: stockKeys.supplies(barId || ''),
-        queryFn: async (): Promise<Supply[]> => {
+    return useApiQuerySimple(
+        stockKeys.supplies(barId || ''),
+        async (): Promise<Supply[]> => {
             if (!barId) return [];
             const dbSupplies = await StockService.getSupplies(barId);
 
@@ -60,14 +58,14 @@ export const useSupplies = (barId: string | undefined) => {
                 productName: (s.bar_product as any)?.display_name || 'Produit inconnu',
             }));
         },
-        enabled: !!barId,
-    });
+        { enabled: !!barId }
+    );
 };
 
 export const useConsignments = (barId: string | undefined) => {
-    return useQuery({
-        queryKey: stockKeys.consignments(barId || ''),
-        queryFn: async (): Promise<Consignment[]> => {
+    return useApiQuerySimple(
+        stockKeys.consignments(barId || ''),
+        async (): Promise<Consignment[]> => {
             if (!barId) return [];
             const dbConsignments = await StockService.getConsignments(barId);
 
@@ -103,14 +101,14 @@ export const useConsignments = (barId: string | undefined) => {
                 };
             });
         },
-        enabled: !!barId,
-    });
+        { enabled: !!barId }
+    );
 };
 
 export const useCategories = (barId: string | undefined) => {
-    return useQuery({
-        queryKey: stockKeys.categories(barId || ''),
-        queryFn: async (): Promise<Category[]> => {
+    return useApiQuerySimple(
+        stockKeys.categories(barId || ''),
+        async (): Promise<Category[]> => {
             if (!barId) return [];
             const enrichedCategories = await CategoriesService.getCategories(barId);
 
@@ -128,8 +126,8 @@ export const useCategories = (barId: string | undefined) => {
                 };
             });
         },
-        enabled: !!barId,
-    });
+        { enabled: !!barId }
+    );
 };
 
 // Hook dérivé pour les produits en rupture

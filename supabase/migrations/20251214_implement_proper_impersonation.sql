@@ -23,7 +23,7 @@ BEGIN
   -- If impersonating_user_id is provided, use it instead
   -- Also verify current user is super_admin
   IF p_impersonating_user_id IS NOT NULL THEN
-    IF (SELECT role FROM users WHERE id = auth.uid()) != 'super_admin' THEN
+    IF (SELECT role FROM users WHERE users.id = auth.uid()) != 'super_admin' THEN
       RAISE EXCEPTION 'Only super_admin can impersonate';
     END IF;
     p_user_id := p_impersonating_user_id;
@@ -54,7 +54,6 @@ GRANT EXECUTE ON FUNCTION get_user_bars(UUID, UUID) TO authenticated;
 DROP FUNCTION IF EXISTS get_bar_members(UUID);
 DROP FUNCTION IF EXISTS get_bar_members(UUID, UUID);
 
-CREATE OR REPLACE FUNCTION get_bar_members(p_bar_id UUID, p_impersonating_user_id UUID DEFAULT NULL)
 RETURNS TABLE (
   id UUID,
   bar_id UUID,
@@ -70,7 +69,7 @@ RETURNS TABLE (
 BEGIN
   -- If impersonating_user_id is provided, verify super_admin status
   IF p_impersonating_user_id IS NOT NULL THEN
-    IF (SELECT role FROM users WHERE id = auth.uid()) != 'super_admin' THEN
+    IF (SELECT role FROM users WHERE users.id = auth.uid()) != 'super_admin' THEN
       RAISE EXCEPTION 'Only super_admin can impersonate';
     END IF;
   END IF;
@@ -124,7 +123,7 @@ RETURNS TABLE (
 BEGIN
   -- If impersonating_user_id is provided, verify super_admin status
   IF p_impersonating_user_id IS NOT NULL THEN
-    IF (SELECT role FROM users WHERE id = auth.uid()) != 'super_admin' THEN
+    IF (SELECT role FROM users WHERE users.id = auth.uid()) != 'super_admin' THEN
       RAISE EXCEPTION 'Only super_admin can impersonate';
     END IF;
   END IF;
