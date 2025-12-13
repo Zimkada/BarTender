@@ -546,6 +546,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Maintenant, le JWT est valide et Supabase le reconnaîtra
       await supabase.auth.setSession(customSession as any);
 
+      // 7b. Force Supabase to recognize the new user ID by reinitializing auth state
+      // This ensures subsequent RLS queries use the impersonated user's ID
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('[Impersonation] Current session user ID after setSession:', session?.user?.id);
+
       // 8. Créer la nouvelle session pour l'utilisateur cible
       const impersonatedSession: UserSession = {
         userId: userData.id,
