@@ -14,7 +14,6 @@ RETURNS TABLE (
   is_active BOOLEAN,
   assigned_by UUID,
   assigned_at TIMESTAMPTZ,
-
   user_name TEXT,
   user_email TEXT,
   user_phone TEXT
@@ -33,7 +32,6 @@ BEGIN
       bm.is_active,
       bm.assigned_by,
       bm.assigned_at,
-
       u.name,
       u.email,
       u.phone
