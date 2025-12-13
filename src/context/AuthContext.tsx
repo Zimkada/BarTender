@@ -526,12 +526,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           id: userId,
           email: result.impersonated_user_email,
           user_metadata: {
-            name: userData.name,
-            impersonation: true,
+            impersonation: "true",
           },
           app_metadata: {
             provider: 'custom_impersonate',
-            impersonated_by: currentSession.userId,
+            impersonated_at: new Date().toISOString(),
             bar_id: barId,
             bar_role: result.impersonated_user_role,
           },
