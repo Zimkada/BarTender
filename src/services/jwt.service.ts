@@ -3,9 +3,8 @@
  * Appelle l'Edge Function Supabase (sign-impersonate-token) pour signer les tokens
  */
 
-import { supabase } from '../lib/supabase';
-
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/sign-impersonate-token`;
 
 /**
@@ -31,7 +30,7 @@ export async function signImpersonationToken(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       },
       body: JSON.stringify({
         impersonated_user_id: userId,

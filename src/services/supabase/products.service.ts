@@ -263,36 +263,25 @@ export class ProductsService {
 
   /**
    * Récupérer tous les produits d'un bar avec leurs détails
+   * Utilise un RPC pour contourner les RLS lors de l'impersonation
    */
   static async getBarProducts(barId: string): Promise<BarProductWithDetails[]> {
     try {
-      const { data, error } = await supabase
-        .from('bar_products')
-        .select(`
-          *,
-          global_products (*),
-          bar_categories (*)
-        `)
-        .eq('bar_id', barId)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+      // Use RPC to bypass RLS (important for impersonation)
+      const { data: productsData, error: rpcError } = await supabase
+        .rpc('get_bar_products', { p_bar_id: barId });
 
-      if (error) {
+      if (rpcError) {
+        console.error('[ProductsService] RPC error:', rpcError);
         throw new Error('Erreur lors de la récupération des produits');
       }
 
-      // Enrichir avec display_name et display_image
-      const enrichedProducts: BarProductWithDetails[] = (data || []).map((product: any) => {
-        const globalProduct = product.global_products as GlobalProductRow | null;
-
-        return {
-          ...product,
-          global_product: globalProduct,
-          category: product.bar_categories,
-          display_name: product.display_name,
-          display_image: product.local_image || globalProduct?.official_image || null,
-        };
-      });
+      // Map RPC results to BarProductWithDetails format
+      const enrichedProducts: BarProductWithDetails[] = (productsData || []).map((product: any) => ({
+        ...product,
+        display_name: product.display_name,
+        display_image: product.local_image || null,
+      }));
 
       return enrichedProducts;
     } catch (error: any) {

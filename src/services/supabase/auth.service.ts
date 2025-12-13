@@ -829,19 +829,19 @@ role,
 
   /**
    * Récupérer tous les membres d'un bar
+   * Utilise un RPC pour contourner les RLS lors de l'impersonation
    */
   static async getBarMembers(
     barId: string
   ): Promise<Array<Omit<DbUser, 'password_hash'> & { role: string; joined_at: string; member_is_active: boolean }>> {
     try {
-      const { data: membersData, error: membersError } = await supabase
-        .from('bar_members')
-        .select('role, user_id, joined_at, is_active')
-        .eq('bar_id', barId)
-        .eq('is_active', true);
+      // Use RPC to bypass RLS (important for impersonation)
+      const { data: membersData, error: rpcError } = await supabase
+        .rpc('get_bar_members', { p_bar_id: barId });
 
-      if (membersError) {
-        throw new Error('Erreur lors de la récupération des memberships');
+      if (rpcError) {
+        console.error('[AuthService] RPC error:', rpcError);
+        throw new Error('Erreur lors de la récupération des membres');
       }
 
       const members = membersData as any[];
@@ -850,28 +850,23 @@ role,
         return [];
       }
 
-      const userIds = members.map((m) => m.user_id);
-      const { data: users, error: usersError } = await supabase
-        .from('users')
-        .select('*')
-        .in('id', userIds);
-
-      if (usersError) {
-        throw new Error('Erreur lors de la récupération des profils utilisateurs');
-      }
-
-      const userMap = new Map(users.map((u) => [u.id, u]));
-      const combinedData = members.map((member) => {
-        const userProfile = userMap.get(member.user_id);
-        return {
-          ...(userProfile || {}),
-          role: member.role,
-          joined_at: member.joined_at,
-          member_is_active: member.is_active,
-        };
-      });
-
-      return combinedData as Array<Omit<DbUser, 'password_hash'> & { role: string; joined_at: string; member_is_active: boolean }>;
+      // Map RPC results to expected format
+      return members.map((member: any) => ({
+        id: member.user_id,
+        username: '',
+        email: member.user_email || '',
+        name: member.user_name || '',
+        phone: member.user_phone || '',
+        avatar_url: undefined,
+        is_active: true,
+        first_login: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        last_login_at: undefined,
+        role: member.role,
+        joined_at: member.created_at,
+        member_is_active: member.is_active,
+      })) as Array<Omit<DbUser, 'password_hash'> & { role: string; joined_at: string; member_is_active: boolean }>;
 
     } catch (error: any) {
       console.error('AuthService getBarMembers error:', error);
