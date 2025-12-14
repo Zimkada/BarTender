@@ -16,6 +16,8 @@ import { AdminService, DashboardStats } from '../services/supabase/admin.service
 import { LoadingFallback } from '../components/LoadingFallback';
 import { Alert } from '../components/ui/Alert';
 import { DashboardStatCard } from '../components/DashboardStatCard';
+import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
+import { TIME_RANGE_CONFIGS, ADMIN_DASHBOARD_FILTERS } from '../config/dateFilters';
 
 const initialStats: DashboardStats = {
   total_revenue: 0,
@@ -30,20 +32,36 @@ export default function SuperAdminPage() {
   const { currentSession } = useAuth();
   const [stats, setStats] = useState<DashboardStats>(initialStats);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState<'today' | '7d' | '30d'>('today');
+
+  // DRY: Utiliser le hook centralisé pour filtres de période
+  const filter = useDateRangeFilter({
+    defaultRange: 'today',
+    includeBusinessDay: true,  // Respect business date logic
+  });
+
+  // Convertir timeRange DRY vers format SQL attendu par RPC
+  const getPeriodForSQL = useCallback((timeRange: string): string => {
+    const periodMap: Record<string, string> = {
+      'today': '1 day',
+      'last_7days': '7 days',
+      'last_30days': '30 days',
+    };
+    return periodMap[timeRange] || '1 day';
+  }, []);
 
   const loadStats = useCallback(async () => {
     if (currentSession?.role !== 'super_admin') return;
     try {
       setLoading(true);
-      const data = await AdminService.getDashboardStats(period);
+      const sqlPeriod = getPeriodForSQL(filter.timeRange);
+      const data = await AdminService.getDashboardStats(sqlPeriod);
       setStats(data);
     } catch (error) {
       console.error('Erreur chargement des statistiques:', error);
     } finally {
       setLoading(false);
     }
-  }, [currentSession, period]);
+  }, [currentSession, filter.timeRange, getPeriodForSQL]);
 
   useEffect(() => {
     loadStats();
@@ -65,20 +83,25 @@ export default function SuperAdminPage() {
           </h1>
           <p className="text-gray-500 mt-1">Vue d'ensemble de BarTender Pro</p>
         </div>
-        {/* Filtre de période */}
+        {/* Filtre de période - DRY: Utiliser configuration centralisée */}
         <div className="flex items-center gap-2">
-          {(['today', '7d', '30d'] as const).map(p => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${period === p
-                ? 'bg-purple-600 text-white'
-                : 'bg-white text-gray-700 hover:bg-gray-100'
+          {ADMIN_DASHBOARD_FILTERS.map(timeRange => {
+            const config = TIME_RANGE_CONFIGS[timeRange];
+            return (
+              <button
+                key={timeRange}
+                onClick={() => filter.setTimeRange(timeRange)}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  filter.isActive(timeRange)
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-white text-gray-700 hover:bg-gray-100'
                 }`}
-            >
-              {p === 'today' ? 'Aujourd\'hui' : p === '7d' ? '7 jours' : '30 jours'}
-            </button>
-          ))}
+                title={config.description}
+              >
+                {config.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 

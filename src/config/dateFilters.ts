@@ -124,3 +124,15 @@ export const ACCOUNTING_FILTERS: TimeRange[] = [
   'this_year',
   'custom'
 ];
+
+/**
+ * Filtres pour super admin dashboard
+ * Utilise les jours glissants (rolling) pour cohérence globale
+ * Même interface que sales history pour DRY consistency
+ */
+export const ADMIN_DASHBOARD_FILTERS: TimeRange[] = [
+  'today',
+  'last_7days',
+  'last_30days',
+  'custom'
+];
