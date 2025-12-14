@@ -62,21 +62,22 @@ export default function UsersManagementPage() {
     <div className="max-w-6xl mx-auto">
       <AdminPanelErrorBoundary fallbackTitle="Erreur dans la gestion des utilisateurs">
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-4 md:p-6 text-white rounded-t-2xl">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Users className="w-8 h-8" />
-              <div>
-                <h1 className="text-xl md:text-2xl font-bold">Gestion des Utilisateurs</h1>
-                <p className="text-purple-100 text-sm">Gérer tous les utilisateurs de la plateforme</p>
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-3 sm:p-4 md:p-6 text-white rounded-t-2xl">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <Users className="w-6 sm:w-8 h-6 sm:h-8 flex-shrink-0" />
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold truncate">Gestion des Utilisateurs</h1>
+                <p className="text-purple-100 text-xs sm:text-sm truncate">Gérer tous les utilisateurs de la plateforme</p>
               </div>
             </div>
             <button
               onClick={() => setShowPromotersForm(true)}
-              className="px-4 py-2 bg-white text-purple-600 rounded-lg hover:bg-purple-50 flex items-center gap-2 transition-colors font-semibold text-sm whitespace-nowrap"
+              className="px-3 sm:px-4 py-2 bg-white text-purple-600 rounded-lg hover:bg-purple-50 flex items-center gap-2 transition-colors font-semibold text-xs sm:text-sm whitespace-nowrap flex-shrink-0"
             >
               <UserPlus className="w-4 h-4" />
-              Ajouter Promoteur
+              <span className="hidden sm:inline">Ajouter Promoteur</span>
+              <span className="sm:hidden">+</span>
             </button>
           </div>
         </div>
