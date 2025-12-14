@@ -527,7 +527,7 @@ export default function SettingsPage() {
                             className="space-y-2"
                         >
                             {currencyOptions.map((currency) => (
-                                <Label
+                                <label
                                     key={currency.code}
                                     htmlFor={`currency-${currency.code}`}
                                     className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl cursor-pointer hover:bg-amber-100 border"
@@ -541,7 +541,7 @@ export default function SettingsPage() {
                                         <div className="font-medium">{currency.name}</div>
                                         <div className="text-sm text-gray-600">{currency.symbol}</div>
                                     </div>
-                                </Label>
+                                </label>
                             ))}
                         </RadioGroup>
                     </div>
