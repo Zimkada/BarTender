@@ -263,7 +263,8 @@ Current implementation is **Option 3** but label promises **Option 1**.
 - [x] Code patterns documented
 - [x] SQL function fixed (commit 37f9d4e)
 - [x] Frontend labels updated (commit 37f9d4e)
-- [x] Business date logic implemented
+- [x] Business date logic implemented (commit 37f9d4e)
+- [x] DRY refactoring applied (commit f1fbd35)
 - [ ] Database migration applied
 - [ ] Tests written
 - [ ] Deployment ready
@@ -322,6 +323,88 @@ Results:
 
 ---
 
+## DRY Refactoring Summary (Commit f1fbd35)
+
+### Problem: Dashboard Had Custom Period Filtering
+
+**Before (Not DRY):**
+```tsx
+// SuperAdminPage.tsx - Custom implementation
+const [period, setPeriod] = useState<'today' | '7d' | '30d'>('today');
+{['today', '7d', '30d'].map(p => (
+  <button onClick={() => setPeriod(p)}>
+    {p === 'today' ? "Aujourd'hui" : ...}
+  </button>
+))}
+```
+
+Dashboard reinvented period filtering instead of using shared infrastructure.
+
+### Solution: Use Centralized DRY Infrastructure
+
+**After (DRY):**
+```tsx
+// SuperAdminPage.tsx - Using shared hook
+const filter = useDateRangeFilter({
+  defaultRange: 'today',
+  includeBusinessDay: true
+});
+
+{ADMIN_DASHBOARD_FILTERS.map(timeRange => {
+  const config = TIME_RANGE_CONFIGS[timeRange];
+  return <button onClick={() => filter.setTimeRange(timeRange)}>
+    {config.label}
+  </button>;
+})}
+```
+
+**Shared Infrastructure Used:**
+- `useDateRangeFilter()` - Hook for managing time ranges
+- `TIME_RANGE_CONFIGS` - Centralized period configurations
+- `ADMIN_DASHBOARD_FILTERS` - Admin-specific period list
+
+### Changes Made
+
+1. **dateFilters.ts**: Added `ADMIN_DASHBOARD_FILTERS` configuration
+   ```typescript
+   export const ADMIN_DASHBOARD_FILTERS: TimeRange[] = [
+     'today',
+     'last_7days',
+     'last_30days',
+     'custom'
+   ];
+   ```
+
+2. **SuperAdminPage.tsx**: Refactored to use shared hook
+   - Removed custom `period` state
+   - Added `useDateRangeFilter()` hook
+   - Period mapper: `'today' → '1 day'`, `'last_7days' → '7 days'`, etc.
+   - Buttons now use `TIME_RANGE_CONFIGS` labels
+
+### Benefits of DRY
+
+| Aspect | Before | After |
+|--------|--------|-------|
+| **Code Duplication** | Custom hardcoded strings | Shared configuration |
+| **Labels** | Hardcoded in component | From TIME_RANGE_CONFIGS |
+| **Consistency** | Different per page | Same across SalesHistory, Promotions, Admin |
+| **Maintainability** | Edit each page separately | Update dateFilters.ts once |
+| **Lines of Code** | ~30 for period logic | ~3 using hook |
+| **Business Date** | Manual handling | Automatic via hook flag |
+
+### Now All Pages Use Same Infrastructure
+
+```
+SalesHistory ✓
+Promotions ✓
+Accounting ✓
+Admin Dashboard ✓ (just added)
+```
+
+All use `useDateRangeFilter` + `TIME_RANGE_CONFIGS` for consistency.
+
+---
+
 ## Testing Notes
 
 After database migration, test these scenarios:
@@ -336,5 +419,10 @@ After database migration, test these scenarios:
 
 3. **Period Consistency**
    - "Aujourd'hui" = 1 business day
-   - "7 jours" = Last 7 business days
-   - "30 jours" = Last 30 business days
+   - "7 derniers jours" = Last 7 business days
+   - "30 derniers jours" = Last 30 business days
+
+4. **DRY Verification**
+   - Same labels as SalesHistory page
+   - Same behavior as other pages
+   - Can update all periods by editing dateFilters.ts

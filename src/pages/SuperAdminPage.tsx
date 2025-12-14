@@ -17,7 +17,7 @@ import { LoadingFallback } from '../components/LoadingFallback';
 import { Alert } from '../components/ui/Alert';
 import { DashboardStatCard } from '../components/DashboardStatCard';
 import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
-import { TIME_RANGE_CONFIGS, ADMIN_DASHBOARD_FILTERS } from '../config/dateFilters';
+import { TIME_RANGE_CONFIGS, SALES_HISTORY_FILTERS } from '../config/dateFilters';
 
 const initialStats: DashboardStats = {
   total_revenue: 0,
@@ -43,6 +43,7 @@ export default function SuperAdminPage() {
   const getPeriodForSQL = useCallback((timeRange: string): string => {
     const periodMap: Record<string, string> = {
       'today': '1 day',
+      'yesterday': '1 day',
       'last_7days': '7 days',
       'last_30days': '30 days',
     };
@@ -85,7 +86,7 @@ export default function SuperAdminPage() {
         </div>
         {/* Filtre de période - DRY: Utiliser configuration centralisée */}
         <div className="flex items-center gap-2">
-          {ADMIN_DASHBOARD_FILTERS.map(timeRange => {
+          {SALES_HISTORY_FILTERS.map(timeRange => {
             const config = TIME_RANGE_CONFIGS[timeRange];
             return (
               <button
