@@ -101,7 +101,7 @@ export default function SuperAdminPage() {
             />
             <DashboardStatCard
               icon={Users}
-              label="Utilisateurs actifs (7j)"
+              label="Utilisateurs connectés"
               value={stats.active_users_count}
               gradient="blue"
             />
