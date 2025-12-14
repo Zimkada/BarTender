@@ -53,7 +53,7 @@ COMMENT ON FUNCTION _get_target_user_id(UUID) IS 'Helper function that verifies 
 -- 1. Fix get_dashboard_stats
 DROP FUNCTION IF EXISTS get_dashboard_stats(TEXT);
 
-CREATE OR REPLACE FUNCTION get_dashboard_stats(p_period TEXT DEFAULT '7days')
+CREATE OR REPLACE FUNCTION get_dashboard_stats(p_period TEXT DEFAULT '1 day')
 RETURNS TABLE (
   total_revenue NUMERIC,
   sales_count BIGINT,

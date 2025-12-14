@@ -99,7 +99,15 @@ export class AdminService {
    */
   static async getDashboardStats(period: 'today' | '7d' | '30d' = 'today'): Promise<DashboardStats> {
     try {
-      const { data, error } = await (supabase.rpc as any)('get_dashboard_stats', { p_period: period });
+      // Convert period to PostgreSQL interval format
+      const periodMap: Record<string, string> = {
+        'today': '1 day',
+        '7d': '7 days',
+        '30d': '30 days',
+      };
+      const pgInterval = periodMap[period] || '1 day';
+
+      const { data, error } = await (supabase.rpc as any)('get_dashboard_stats', { p_period: pgInterval });
 
       if (error) {
         throw error;
