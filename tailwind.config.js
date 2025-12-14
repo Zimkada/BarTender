@@ -7,8 +7,8 @@ export default {
     screens: {
       'xs': '375px',   // Smartphones standards (iPhone SE, Galaxy A)
       'sm': '480px',   // Large smartphones / mode paysage
+      'md': '768px',   // Tablets / desktop small
       'lg': '1024px',  // Desktop/Laptop (rare - promoteurs uniquement)
-      // md: SUPPRIMÉ (tablettes inutiles contexte Bénin)
       // xl/2xl: SUPPRIMÉS (grands écrans inutiles)
     },
     extend: {
