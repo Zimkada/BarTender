@@ -92,7 +92,7 @@ export function Header({
 }: HeaderProps) {
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession, logout } = useAuth();
-  const { isActingAs } = useActingAs();
+  const { isActingAs, stopActingAs } = useActingAs();
   const { currentBar } = useBarContext();
   const { isMobile } = useViewport();
   const navigate = useNavigate(); // NEW: Initialize useNavigate
@@ -101,6 +101,11 @@ export function Header({
 
   // Check if super_admin is currently in impersonation mode
   const isAdminInImpersonation = currentSession?.role === 'super_admin' && isActingAs();
+
+  const handleReturnToAdmin = () => {
+    stopActingAs();
+    navigate('/admin');
+  };
 
   // ✨ HYBRID DRY REVENUE
   const { netRevenue: todayTotal } = useRevenueStats();
@@ -156,7 +161,21 @@ export function Header({
               <div className="flex items-center gap-1 flex-shrink-0">
                 {/* ✅ Nouveau badge sync unifié (remplace OfflineIndicator + NetworkIndicator + SyncButton) */}
                 <SyncStatusBadge compact position="header" />
-                {currentSession?.role === 'super_admin' && (
+                {/* Bouton retour à l'admin - visible seulement si en impersonation */}
+                {isAdminInImpersonation && (
+                  <Button
+                    onClick={handleReturnToAdmin}
+                    variant="ghost"
+                    size="icon"
+                    className="p-1.5 bg-purple-600/90 rounded-lg text-white active:scale-95 transition-transform"
+                    title="Retour à l'Admin"
+                    aria-label="Retour à l'Admin"
+                  >
+                    <ShieldCheck size={16} />
+                  </Button>
+                )}
+
+                {currentSession?.role === 'super_admin' && !isAdminInImpersonation && (
                   <>
                     {/* A.5: Badge notifications admin */}
                     <Button
