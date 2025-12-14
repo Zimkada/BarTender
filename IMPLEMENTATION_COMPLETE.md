@@ -314,21 +314,37 @@ admin_as_get_bar_products(actingAsUserId, barId)
 
 ---
 
-## 🐛 Recent Fixes (Commit 08c67ef)
+## 🐛 Recent Fixes (Commits 08c67ef → 72acbe6)
 
-### RPC Parameter Naming & Return Types Fixed
+### Issue 1: RPC Parameter Naming & Return Types (08c67ef)
 
-**Issue**: `get_dashboard_stats` RPC returned 404 "Could not find function" error
+**Error**: `get_dashboard_stats` RPC returned 404 "Could not find function" error
 
 **Root Causes**:
 1. **Parameter mismatch**: Client called with `{ period }` but SQL function expected `{ p_period }`
-2. **Return type mismatch**: SQL function returned `(total_bars, total_users, total_sales, total_revenue, active_bars, active_users)` but TypeScript expected `(total_revenue, sales_count, active_users_count, new_users_count, bars_count, active_bars_count)`
+2. **Return type mismatch**: SQL function returned wrong column names
 
 **Fixes Applied**:
-- ✅ Updated `admin.service.ts` line 102: Changed `{ period }` to `{ p_period: period }`
-- ✅ Updated `20251215_fix_helper_function_pattern.sql`: Fixed return types and query logic to match DashboardStats interface
+- ✅ Changed RPC call to use `{ p_period: period }`
+- ✅ Fixed SQL return types to match DashboardStats interface
 
-**Status**: ✅ All RPC calls now have matching parameter names and return types
+### Issue 2: Invalid Interval Format (72acbe6)
+
+**Error**: `invalid input syntax for type interval: 'today'`
+
+**Root Cause**:
+- Client passed: `'today'`, `'7d'`, `'30d'`
+- PostgreSQL requires: `'1 day'`, `'7 days'`, `'30 days'`
+- SQL function tried to cast incompatible format to `::interval`
+
+**Fixes Applied**:
+- ✅ Added period mapping in `getDashboardStats()`:
+  - `'today'` → `'1 day'`
+  - `'7d'` → `'7 days'`
+  - `'30d'` → `'30 days'`
+- ✅ Fixed SQL DEFAULT from `'7days'` to `'1 day'`
+
+**Status**: ✅ Dashboard statistics now load correctly with all period filters
 
 ---
 
@@ -337,6 +353,12 @@ admin_as_get_bar_products(actingAsUserId, barId)
 All work is preserved in commits:
 
 ```
+72acbe6 fix: Convert period format to valid PostgreSQL interval syntax
+         └─ Fixed 'today' → '1 day' interval conversion
+
+5c765d7 docs: Document RPC parameter naming fixes in implementation summary
+         └─ Documentation update
+
 08c67ef fix: Correct RPC parameter naming and return types for get_dashboard_stats
          └─ Fixed parameter mismatch and return type alignment
 
