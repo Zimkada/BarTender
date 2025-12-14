@@ -130,7 +130,9 @@ export function MobileSidebar({
               : 'border-amber-200 bg-gradient-to-r from-amber-500 to-amber-500'
               }`}>
               <div>
-                <h2 className="text-white font-bold text-lg">Menu</h2>
+                <h2 className="text-white font-bold text-lg">
+                  {currentSession?.role === 'super_admin' ? '🍺 BarTender Pro Administration' : 'Menu'}
+                </h2>
                 <p className={currentSession?.role === 'super_admin' ? 'text-purple-100 text-xs' : 'text-amber-100 text-xs'}>
                   {currentSession?.userName} • {currentSession?.role}
                 </p>

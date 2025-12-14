@@ -132,32 +132,16 @@ export function Header({
 
   // ==================== VERSION MOBILE (99% utilisateurs Bénin) ====================
   if (isMobile) {
+    // Disposition différente pour super_admin vs autres rôles
+    const isAdminView = currentSession?.role === 'super_admin';
+
     return (
       <header className="bg-gradient-to-r from-amber-500 to-amber-500 shadow-lg sticky top-0 z-50">
         <div className="px-3 py-2">
-          {/* Ligne 1: Hamburger (position absolue) + Logo + Actions */}
-          <div className="relative flex items-center gap-2 mb-2">
-            {/* Bouton Menu Hamburger - Position absolue garantit visibilité sur tous écrans */}
-            <Button
-              onClick={onToggleMobileSidebar}
-              variant="ghost"
-              size="icon"
-              className="absolute left-0 z-10 p-2 bg-gray-900/90 rounded-lg text-white active:scale-95 transition-all shadow-lg border-2 border-white/40"
-              aria-label="Menu"
-            >
-              <Menu size={22} className="stroke-[2.5]" />
-            </Button>
-
-            {/* Contenu avec padding-left pour éviter chevauchement avec hamburger */}
-            <div className="flex items-center gap-2 pl-12 w-full">
-              {/* Logo + Nom bar (ou BarTender Pro pour super admin) */}
-              <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                <h1 className="text-sm font-bold text-white truncate">
-                  🍺 <AnimatedBarName text={currentSession?.role === 'super_admin' ? 'BarTender Pro' : (currentBar?.name || 'BarTender')} />
-                </h1>
-              </div>
-
-              {/* Indicateurs + Actions (compacts) */}
+          {/* Layout ADMIN: Indicateurs (LEFT) + Titre (CENTER) + Hamburger (RIGHT) */}
+          {isAdminView ? (
+            <div className="flex items-center justify-between gap-2 mb-2 w-full">
+              {/* Indicateurs + Actions (compacts) - LEFT side */}
               <div className="flex items-center gap-1 flex-shrink-0">
                 {/* ✅ Nouveau badge sync unifié (remplace OfflineIndicator + NetworkIndicator + SyncButton) */}
                 <SyncStatusBadge compact position="header" />
@@ -174,35 +158,51 @@ export function Header({
                     <ShieldCheck size={16} />
                   </Button>
                 )}
+            </div>
 
-                {currentSession?.role === 'super_admin' && !isAdminInImpersonation && (
-                  <>
-                    {/* A.5: Badge notifications admin */}
-                    <Button
-                      onClick={() => navigate('/admin/notifications')}
-                      variant="ghost"
-                      size="icon"
-                      className="relative p-1.5 bg-purple-600/90 rounded-lg text-white active:scale-95 transition-transform"
-                      aria-label="Notifications Admin"
-                    >
-                      <Bell size={16} />
-                      {unreadNotificationsCount > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center animate-pulse">
-                          {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
-                        </span>
-                      )}
-                    </Button>
-                    <Button
-                      onClick={() => navigate('/admin')}
-                      variant="ghost"
-                      size="icon"
-                      className="p-1.5 bg-purple-600/90 rounded-lg text-white active:scale-95 transition-transform"
-                      aria-label="Admin Dashboard"
-                    >
-                      <ShieldCheck size={16} />
-                    </Button>
-                  </>
-                )}
+            {/* Logo + Nom bar - CENTER/RIGHT */}
+            <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-center">
+              <h1 className="text-sm font-bold text-white truncate">
+                🍺 <AnimatedBarName text={currentSession?.role === 'super_admin' ? 'BarTender Pro' : (currentBar?.name || 'BarTender')} />
+              </h1>
+            </div>
+
+            {/* Bouton Menu Hamburger - FAR RIGHT side */}
+            <Button
+              onClick={onToggleMobileSidebar}
+              variant="ghost"
+              size="icon"
+              className="p-2 bg-gray-900/90 rounded-lg text-white active:scale-95 transition-all shadow-lg border-2 border-white/40 flex-shrink-0"
+              aria-label="Menu"
+            >
+              <Menu size={22} className="stroke-[2.5]" />
+            </Button>
+          </div>
+          ) : (
+            // Layout NON-ADMIN: Hamburger (LEFT) + Titre (CENTER) + Actions (RIGHT)
+            <div className="flex items-center justify-between gap-2 mb-2 w-full">
+              {/* Bouton Menu Hamburger - LEFT side */}
+              <Button
+                onClick={onToggleMobileSidebar}
+                variant="ghost"
+                size="icon"
+                className="p-2 bg-gray-900/90 rounded-lg text-white active:scale-95 transition-all shadow-lg border-2 border-white/40 flex-shrink-0"
+                aria-label="Menu"
+              >
+                <Menu size={22} className="stroke-[2.5]" />
+              </Button>
+
+              {/* Logo + Nom bar - CENTER */}
+              <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-center">
+                <h1 className="text-sm font-bold text-white truncate">
+                  🍺 <AnimatedBarName text={currentBar?.name || 'BarTender'} />
+                </h1>
+              </div>
+
+              {/* Indicateurs + Actions (compacts) - RIGHT side */}
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {/* ✅ Nouveau badge sync unifié */}
+                <SyncStatusBadge compact position="header" />
                 {/* NEW: Add buttons for common modals from header (Product, Category, QuickSale) */}
                 {(currentSession?.role !== 'super_admin' || isAdminInImpersonation) && (
                   <>
@@ -258,7 +258,7 @@ export function Header({
                 </Button>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Ligne 2: Ventes du jour (info principale) - Masqué pour super admin sauf en impersonation */}
           {(currentSession?.role !== 'super_admin' || isAdminInImpersonation) && (
