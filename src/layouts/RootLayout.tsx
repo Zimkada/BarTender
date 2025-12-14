@@ -3,6 +3,7 @@ import { Suspense, lazy, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { useAppContext } from '../context/AppContext';
+import { useActingAs } from '../context/ActingAsContext';
 import { ModalProvider, useModal } from '../context/ModalContext';
 
 import { Header } from '../components/Header';
@@ -23,6 +24,7 @@ function RootLayoutContent() {
   const { isAuthenticated, currentSession } = useAuth();
   const { currentBar } = useBarContext();
   const { categories, products, addProduct, addCategory, updateCategory, linkCategory, showNotification } = useAppContext();
+  const { isActingAs } = useActingAs();
 
   const { modalState, openModal, closeModal } = useModal();
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -32,7 +34,8 @@ function RootLayoutContent() {
     return <Navigate to="/auth/login" replace />;
   }
 
-  if (currentSession?.role === 'super_admin') {
+  // Allow super_admin to access this layout if they're currently acting as another user
+  if (currentSession?.role === 'super_admin' && !isActingAs()) {
     return <Navigate to="/admin" replace />;
   }
 

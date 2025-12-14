@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useCallback, ReactNode, useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useActingAs } from '../context/ActingAsContext';
 import { Bar, BarMember, User, UserRole } from '../types';
 import { auditLogger } from '../services/AuditLogger';
 import { BarsService } from '../services/supabase/bars.service';
@@ -48,6 +49,7 @@ export const useBarContext = () => {
 
 export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { currentSession, hasPermission, isImpersonating } = useAuth();
+  const { actingAs } = useActingAs();
   const [bars, setBars] = useState<Bar[]>([]);
   const [barMembers, setBarMembers] = useState<BarMember[]>([]);
   const [currentBarId, setCurrentBarId] = useState<string | null>(null);
@@ -155,7 +157,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } finally {
       setLoading(false);
     }
-  }, [currentSession]);
+  }, [currentSession, actingAs]);
 
   // Charger les bars au démarrage et quand la session change
   useEffect(() => {
@@ -173,6 +175,16 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setCurrentBar(null);
       setCurrentBarId(null);
       return;
+    }
+
+    // Si on est en impersonation (super_admin acting as), prioriser le bar d'impersonation
+    if (actingAs.isActive && actingAs.barId) {
+      const impersonationBar = bars.find(b => b.id === actingAs.barId);
+      if (impersonationBar) {
+        setCurrentBar(impersonationBar);
+        setCurrentBarId(impersonationBar.id);
+        return;
+      }
     }
 
     // Prioriser le barId de la session
@@ -219,7 +231,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setCurrentBar(null);
       setCurrentBarId(null);
     }
-  }, [currentBarId, bars, currentSession, getUserBars]);
+  }, [currentBarId, bars, currentSession, getUserBars, actingAs]);
 
   // Gestion des bars
   const createBar = useCallback(async (barData: Omit<Bar, 'id' | 'createdAt' | 'ownerId'> & { ownerId?: string }) => {
