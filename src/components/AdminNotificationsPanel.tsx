@@ -28,7 +28,6 @@ interface AdminNotificationsPanelProps {
   onMarkAsResolved: (id: string) => void;
   onDelete: (id: string) => void;
   onClearAll: () => void;
-  onImpersonate?: (barId: string) => void;
 }
 
 // Icônes par type
@@ -71,9 +70,7 @@ export default function AdminNotificationsPanel({
   onMarkAsResolved,
   onDelete,
   onClearAll,
-  onImpersonate,
 }: AdminNotificationsPanelProps) {
-  const { impersonate } = useAuth();
   const [filter, setFilter] = useState<'all' | 'high' | 'medium' | 'info'>('all');
 
   // Filtrer notifications
@@ -84,34 +81,9 @@ export default function AdminNotificationsPanel({
   // Gérer actions
   const handleAction = (notification: AdminNotification, actionId: string) => {
     switch (actionId) {
-      case 'impersonate':
-        if (onImpersonate) {
-          onImpersonate(notification.barId);
-          onClose();
-        } else if (impersonate) {
-          // Trouver promoteur du bar pour impersonate
-          const membersData = localStorage.getItem('barMembers');
-          if (membersData) {
-            const allMembers = JSON.parse(membersData);
-            const promoteurMember = allMembers.find((m: any) =>
-              m.barId === notification.barId && m.role === 'promoteur'
-            );
-            if (promoteurMember) {
-              impersonate(promoteurMember.userId, notification.barId, 'promoteur');
-              onClose();
-            }
-          }
-        }
-        break;
-
       case 'view_stats':
         // TODO: Ouvrir modal stats du bar
         alert(`Voir stats de ${notification.barName}`);
-        break;
-
-      case 'fix_stock':
-        // Auto-impersonate et rediriger vers produits
-        handleAction(notification, 'impersonate');
         break;
 
       case 'contact_promoter':
@@ -277,15 +249,6 @@ export default function AdminNotificationsPanel({
 
                     {/* Actions */}
                     <div className="flex flex-wrap gap-2">
-                      {notification.actions?.includes('impersonate') && (
-                        <button
-                          onClick={() => handleAction(notification, 'impersonate')}
-                          className="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg font-semibold text-xs hover:bg-amber-200 flex items-center gap-1"
-                        >
-                          <UserCog className="w-3.5 h-3.5" />
-                          Impersonate
-                        </button>
-                      )}
                       {notification.actions?.includes('view_stats') && (
                         <button
                           onClick={() => handleAction(notification, 'view_stats')}

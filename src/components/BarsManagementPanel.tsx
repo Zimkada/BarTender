@@ -4,7 +4,6 @@ import { useDebounce } from 'use-debounce';
 import {
   X, Building2, Search, Filter, ChevronLeft, ChevronRight
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import { Bar, BarMember, User } from '../types';
 import { Select } from './ui/Select';
 import { Alert } from './ui/Alert';
@@ -22,8 +21,6 @@ interface BarsManagementPanelProps {
 }
 
 export default function BarsManagementPanel({ isOpen, onClose, onShowBarStats }: BarsManagementPanelProps) {
-  const { impersonate } = useAuth();
-
   const [bars, setBars] = useState<Bar[]>([]);
   const [allBarMembers, setAllBarMembers] = useState<(BarMember & { user: User })[]>([]);
   const [loading, setLoading] = useState(false);
@@ -149,7 +146,6 @@ export default function BarsManagementPanel({ isOpen, onClose, onShowBarStats }:
                         bar={bar}
                         members={members}
                         onToggleStatus={toggleBarStatus}
-                        onImpersonate={impersonate}
                         onShowStats={onShowBarStats}
                         onClose={onClose}
                       />

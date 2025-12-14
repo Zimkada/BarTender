@@ -90,7 +90,7 @@ export function Header({
   unreadNotificationsCount = 0,
 }: HeaderProps) {
   const { formatPrice } = useCurrencyFormatter();
-  const { currentSession, logout, isImpersonating, stopImpersonation } = useAuth();
+  const { currentSession, logout } = useAuth();
   const { currentBar } = useBarContext();
   const { isMobile } = useViewport();
   const navigate = useNavigate(); // NEW: Initialize useNavigate
@@ -274,29 +274,6 @@ export function Header({
           )}
         </div>
 
-        {/* Bannière Impersonation */}
-        {isImpersonating && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            className="bg-yellow-500 px-3 py-2"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <UserCog className="w-4 h-4 text-yellow-900" />
-                <span className="text-yellow-900 text-xs font-semibold">
-                  Mode Impersonation
-                </span>
-              </div>
-              <Button
-                onClick={stopImpersonation}
-                className="px-3 py-1 bg-yellow-900 text-yellow-50 rounded text-xs font-semibold hover:bg-yellow-800 transition-colors"
-              >
-                Retour Admin
-              </Button>
-            </div>
-          </motion.div>
-        )}
 
         {/* ProfileSettings Modal */}
         <ProfileSettings
@@ -473,29 +450,6 @@ export function Header({
         </div>
       </div>
 
-      {/* Bannière Impersonation */}
-      {isImpersonating && (
-        <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: 'auto', opacity: 1 }}
-          className="bg-yellow-500 px-6 py-3"
-        >
-          <div className="container mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <UserCog className="w-5 h-5 text-yellow-900" />
-              <span className="text-yellow-900 text-sm font-semibold">
-                Mode Impersonation - Connecté en tant que {currentSession?.userName}
-              </span>
-            </div>
-            <button
-              onClick={stopImpersonation}
-              className="px-4 py-2 bg-yellow-900 text-yellow-50 rounded-lg text-sm font-semibold hover:bg-yellow-800 transition-colors"
-            >
-              Retour Admin
-            </button>
-          </div>
-        </motion.div>
-      )}
 
       {/* ProfileSettings Modal */}
       <ProfileSettings

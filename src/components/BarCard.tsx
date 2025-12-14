@@ -6,13 +6,12 @@ interface BarCardProps {
     bar: Bar;
     members: (BarMember & { user: User })[];
     onToggleStatus: (barId: string, currentStatus: boolean) => Promise<void>;
-    onImpersonate: (userId: string, barId: string, role: UserRole) => Promise<void>;
     onShowStats: (bar: Bar) => void;
     onClose?: () => void;
 }
 
 export const BarCard = React.memo<BarCardProps>(
-    ({ bar, members, onToggleStatus, onImpersonate, onShowStats, onClose }) => {
+    ({ bar, members, onToggleStatus, onShowStats, onClose }) => {
         const owner =
             members.find(m => m.userId === bar.ownerId)?.user ||
             members.find(m => m.role === 'promoteur')?.user;
@@ -58,7 +57,6 @@ export const BarCard = React.memo<BarCardProps>(
                     bar={bar}
                     members={members}
                     onToggleStatus={onToggleStatus}
-                    onImpersonate={onImpersonate}
                     onShowStats={onShowStats}
                     onClose={onClose}
                 />

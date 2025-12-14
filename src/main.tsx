@@ -7,6 +7,7 @@ import { ErrorBoundary } from 'react-error-boundary'; // Ajout de l'import Error
 
 // Contexts
 import { AuthProvider } from './context/AuthContext';
+import { ActingAsProvider } from './context/ActingAsContext';
 import { BarProvider } from './context/BarContext';
 import { StockProvider } from './context/StockContext';
 import { StockBridgeProvider } from './context/StockBridgeProvider';
@@ -28,7 +29,8 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <NotificationsProvider>
         <AuthProvider>
-          <BarProvider>
+          <ActingAsProvider>
+            <BarProvider>
             <StockProvider>
               <StockBridgeProvider>
                 <AppProvider>
@@ -40,7 +42,8 @@ createRoot(document.getElementById('root')!).render(
                 </AppProvider>
               </StockBridgeProvider>
             </StockProvider>
-          </BarProvider>
+            </BarProvider>
+          </ActingAsProvider>
         </AuthProvider>
       </NotificationsProvider>
       <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />

@@ -2,9 +2,8 @@ import React, { createContext, useContext, useCallback, ReactNode, useEffect } f
 import { useDataStore } from '../hooks/useDataStore';
 import { UserSession, UserRole, getPermissionsByRole, RolePermissions } from '../types';
 import { auditLogger } from '../services/AuditLogger';
-import { AuthService, LoginResult } from '../services/supabase/auth.service'; // Import LoginResult
+import { AuthService, LoginResult } from '../services/supabase/auth.service';
 import { supabase } from '../lib/supabase';
-import { signImpersonationToken } from '../services/jwt.service';
 
 interface AuthContextType {
   currentSession: UserSession | null;
@@ -18,12 +17,6 @@ interface AuthContextType {
   // createUser: (userData: Omit<User, 'id' | 'createdAt' | 'createdBy'>, role: UserRole) => Promise<User | null>; // Moved out of AuthContext
   // updateUser: (userId: string, updates: Partial<User>) => Promise<void>; // Moved out of AuthContext
   changePassword: (newPassword: string) => Promise<void>;
-  // getUserById: (userId: string) => User | undefined; // Moved out of AuthContext
-  // Impersonation
-  isImpersonating: boolean;
-  originalSession: UserSession | null;
-  impersonate: (userId: string, barId: string, role: UserRole) => Promise<void>;
-  stopImpersonation: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,8 +31,6 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [currentSession, setCurrentSession] = useDataStore<UserSession | null>('bar-current-session', null);
-  const [originalSession, setOriginalSession] = useDataStore<UserSession | null>('bar-original-session', null);
-  const [isImpersonating, setIsImpersonating] = useDataStore<boolean>('bar-is-impersonating', false);
 
   // 🧹 Nettoyer la session si elle contient des données invalides (ex: ID '1')
   useEffect(() => {
@@ -430,228 +421,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   //   return undefined;
   // }, []);
 
-  // Impersonation: Se connecter en tant qu'un autre user avec JWT custom (pour super admin)
-  const impersonate = useCallback(async (userId: string, barId: string, role: UserRole) => {
-    if (!currentSession) {
-      console.error('[Impersonation] No current session');
-      return;
-    }
-
-    // Vérifier que l'utilisateur actuel est super_admin
-    if (currentSession.role !== 'super_admin') {
-      console.error('[Impersonation] Only super_admin can impersonate');
-      alert('Seul le Super Admin peut utiliser cette fonctionnalité');
-      return;
-    }
-
-    try {
-      // 1. Valider l'impersonation avec le RPC et récupérer les données de l'utilisateur
-      const { data: validationData, error: validationError } = await supabase.rpc(
-        'validate_and_get_impersonate_data',
-        {
-          p_super_admin_id: currentSession.userId,
-          p_impersonated_user_id: userId,
-          p_bar_id: barId,
-        }
-      );
-
-      if (validationError) {
-        console.error('[Impersonation] Validation RPC error:', validationError);
-        alert('Erreur lors de la validation: ' + validationError.message);
-        return;
-      }
-
-      if (!Array.isArray(validationData) || validationData.length === 0) {
-        alert('Données de validation invalides');
-        return;
-      }
-
-      const result = validationData[0] as any;
-
-      if (!result.success) {
-        console.error('[Impersonation] Validation failed:', result.error_message);
-        alert(result.error_message || 'Impossible d\'impersonater cet utilisateur');
-        return;
-      }
-
-      // 2. Récupérer le bar name depuis la validation data
-      const { data: barData, error: barError } = await supabase
-        .from('bars')
-        .select('name')
-        .eq('id', barId)
-        .single();
-
-      if (barError || !barData) {
-        console.error('[Impersonation] Failed to fetch bar data:', barError);
-        alert('Impossible de récupérer les informations du bar');
-        return;
-      }
-
-      // 3. Récupérer le user name
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('name')
-        .eq('id', userId)
-        .single();
-
-      if (userError || !userData) {
-        console.error('[Impersonation] Failed to fetch user data:', userError);
-        alert('Impossible de récupérer les informations de l\'utilisateur');
-        return;
-      }
-
-      // 4. Sauvegarder la session originale si ce n'est pas déjà une impersonation
-      if (!isImpersonating) {
-        setOriginalSession(currentSession);
-      }
-
-      // 5. Signer un JWT token valide pour l'impersonnation
-      // Ce JWT sera reconnu par Supabase et utilisé pour les vérifications RLS
-      const jwtToken = await signImpersonationToken(
-        userId,
-        result.impersonated_user_email,
-        result.impersonated_user_role,
-        barId,
-        result.expires_at
-      );
-
-      // 6. Créer l'objet session custom pour Supabase
-      const customSession = {
-        access_token: jwtToken,
-        token_type: 'Bearer',
-        expires_in: 86400, // 24 heures en secondes
-        expires_at: Math.floor((new Date(result.expires_at).getTime()) / 1000),
-        refresh_token: '',
-        user: {
-          id: userId,
-          email: result.impersonated_user_email,
-          user_metadata: {
-            impersonation: "true",
-          },
-          app_metadata: {
-            provider: 'custom_impersonate',
-            impersonated_at: new Date().toISOString(),
-            bar_id: barId,
-            bar_role: result.impersonated_user_role,
-          },
-          aud: 'authenticated',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          last_sign_in_at: new Date().toISOString(),
-        } as any,
-      };
-
-      // 7. Appliquer le JWT signé à la session Supabase
-      // Maintenant, le JWT est valide et Supabase le reconnaîtra
-      await supabase.auth.setSession(customSession as any);
-
-      // 7b. Force Supabase to recognize the new user ID by reinitializing auth state
-      // This ensures subsequent RLS queries use the impersonated user's ID
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('[Impersonation] Current session user ID after setSession:', session?.user?.id);
-
-      // 8. Créer la nouvelle session pour l'utilisateur cible
-      const impersonatedSession: UserSession = {
-        userId: userData.id,
-        userName: userData.name,
-        role: role,
-        barId: barId,
-        barName: barData.name,
-        loginTime: new Date(),
-        permissions: getPermissionsByRole(role),
-        firstLogin: false
-      };
-
-      // 9. Appliquer la nouvelle session UI
-      setCurrentSession(impersonatedSession);
-      setIsImpersonating(true);
-
-      // 10. Log impersonation start
-      auditLogger.log({
-        event: 'IMPERSONATE_START',
-        severity: 'warning',
-        userId: currentSession.userId,
-        userName: currentSession.userName,
-        userRole: currentSession.role,
-        barId: barId,
-        barName: barData.name,
-        description: `Impersonation démarrée: ${currentSession.userName} → ${userData.name} (${role}) au bar ${barData.name}. JWT signé valide appliqué.`,
-        metadata: {
-          targetUserId: userId,
-          targetUserName: userData.name,
-          targetBarId: barId,
-          targetBarName: barData.name,
-          targetRole: role,
-          jwtSigned: true,
-          tokenExpiry: result.expires_at,
-        },
-      });
-
-      console.log('[Impersonation] Started impersonating user with signed JWT:', userData.name);
-    } catch (error: any) {
-      console.error('[Impersonation] Error:', error);
-      alert('Erreur lors de l\'impersonation: ' + error.message);
-    }
-  }, [currentSession, isImpersonating, setCurrentSession, setOriginalSession, setIsImpersonating]);
-
-  // Stop impersonation: Revenir à la session super admin avec JWT original
-  const stopImpersonation = useCallback(async () => {
-    if (!isImpersonating || !originalSession) {
-      console.error('Not currently impersonating');
-      return;
-    }
-
-    try {
-      // Log impersonation stop (avant de changer session)
-      if (currentSession) {
-        auditLogger.log({
-          event: 'IMPERSONATE_STOP',
-          severity: 'info',
-          userId: originalSession.userId,
-          userName: originalSession.userName,
-          userRole: originalSession.role,
-          barId: currentSession.barId,
-          barName: currentSession.barName,
-          description: `Impersonation terminée: Retour au compte Super Admin`,
-          metadata: {
-            impersonatedUserId: currentSession.userId,
-            impersonatedUserName: currentSession.userName,
-            impersonatedRole: currentSession.role,
-          },
-        });
-      }
-
-      // Récupérer la session originale du Super Admin depuis le localStorage
-      // Car on a perdu le token Supabase original quand on a appelé setSession avec le token custom
-      const originalSupabaseSession = localStorage.getItem('sb-' + import.meta.env.VITE_SUPABASE_URL?.replace('https://', '').split('.')[0] + '-auth-token');
-
-      if (originalSupabaseSession) {
-        try {
-          const sessionData = JSON.parse(originalSupabaseSession);
-          if (sessionData && sessionData.session) {
-            // Restaurer la session originale
-            await supabase.auth.setSession(sessionData.session);
-          }
-        } catch (e) {
-          console.warn('[Impersonation] Could not restore original Supabase session from localStorage:', e);
-          // Continuer quand même avec la session UI
-        }
-      }
-
-      // Restore session UI originale
-      setCurrentSession(originalSession);
-      setOriginalSession(null);
-      setIsImpersonating(false);
-
-      console.log('[Impersonation] Returned to admin session');
-    } catch (error: any) {
-      console.error('[Impersonation] Error stopping impersonation:', error);
-      // Forcer la restauration même en cas d'erreur
-      setCurrentSession(originalSession);
-      setOriginalSession(null);
-      setIsImpersonating(false);
-    }
-  }, [isImpersonating, originalSession, currentSession, setCurrentSession, setOriginalSession, setIsImpersonating]);
 
   const value: AuthContextType = {
     currentSession,
@@ -664,11 +433,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // createUser, // Removed from context value
     // updateUser, // Removed from context value
     changePassword,
-    // getUserById, // Removed from context value
-    isImpersonating,
-    originalSession,
-    impersonate,
-    stopImpersonation,
     refreshSession: async () => {
       const user = await AuthService.initializeSession();
       if (user) {
