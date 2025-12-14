@@ -39,7 +39,7 @@ BEGIN
         SELECT *
         FROM user_roles_and_bars
         WHERE
-            (p_role_filter = 'all' OR roles::jsonb @> to_jsonb(ARRAY[p_role_filter]))
+            (p_role_filter = 'all' OR roles::text LIKE '%' || p_role_filter || '%')
     )
     SELECT
         (SELECT json_agg(json_build_object(

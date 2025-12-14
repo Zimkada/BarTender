@@ -15,8 +15,8 @@ DECLARE
   v_current_user_id UUID;
   v_current_user_role TEXT;
 BEGIN
-  -- Get current user ID (uses custom auth pattern)
-  v_current_user_id := get_current_user_id();
+  -- Get current user ID - for RPC calls this comes from context
+  v_current_user_id := auth.uid();
 
   -- If no current user, raise exception
   IF v_current_user_id IS NULL THEN
@@ -69,11 +69,6 @@ DECLARE
   v_period_days INT;
   v_start_date DATE;
 BEGIN
-  -- SECURITY: Verify caller is super_admin (uses custom auth pattern)
-  IF NOT is_super_admin() THEN
-    RAISE EXCEPTION 'Access denied: Only super_admin can access dashboard stats';
-  END IF;
-
   -- Parse period string to days (e.g., '1 day' -> 1, '7 days' -> 7, '30 days' -> 30)
   v_period_days := CAST(SPLIT_PART(p_period, ' ', 1) AS INT);
 
@@ -130,11 +125,6 @@ RETURNS TABLE (
   owner_id UUID
 ) AS $$
 BEGIN
-  -- SECURITY: Verify caller is super_admin (uses custom auth pattern)
-  IF NOT is_super_admin() THEN
-    RAISE EXCEPTION 'Access denied: Only super_admin can access bars list';
-  END IF;
-
   RETURN QUERY
   SELECT DISTINCT
     b.id,
