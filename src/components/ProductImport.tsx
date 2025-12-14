@@ -67,7 +67,7 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
 
     let errorCount = 0;
     const newCategoryNames = new Set<string>();
-    let localCategories = [...categories]; // Copie locale pour la session d'import
+    const localCategories = [...categories]; // Copie locale pour la session d'import
     const existingProducts = [...products]; // Pour détecter les doublons
     const validProductsToImport: any[] = []; // ✅ Array pour batch import
     const categoriesToCreate = new Set<string>(); // ✅ Collecter catégories à créer

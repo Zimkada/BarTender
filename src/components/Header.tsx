@@ -135,9 +135,6 @@ export function Header({
     // Disposition différente pour super_admin vs autres rôles
     const isAdminView = currentSession?.role === 'super_admin';
 
-    // DEBUG
-    console.log('📱 MOBILE HEADER - isAdminView:', isAdminView, 'role:', currentSession?.role);
-
     return (
       <header className="bg-gradient-to-r from-amber-500 to-amber-500 shadow-lg sticky top-0 z-50">
         <div className="px-3 py-2">

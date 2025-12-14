@@ -44,7 +44,7 @@ export function useNetworkOptimization() {
                       (navigator as any).mozConnection ||
                       (navigator as any).webkitConnection;
 
-    let newNetworkInfo: NetworkInfo = {
+    const newNetworkInfo: NetworkInfo = {
       isOnline: navigator.onLine,
       connectionType: 'unknown',
       effectiveType: '4g',

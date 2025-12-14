@@ -100,7 +100,7 @@ export const PromotionsService = {
         const currentDayOfWeek = now.getDay(); // 0=Dimanche, 1=Lundi, ..., 6=Samedi
 
         // Requête de base : promotions actives dans la plage de dates
-        let query = supabase
+        const query = supabase
             .from('promotions')
             .select('*')
             .eq('bar_id', barId)

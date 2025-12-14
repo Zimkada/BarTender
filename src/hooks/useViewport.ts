@@ -57,7 +57,6 @@ export function useViewport(): ViewportState {
     const height = window.innerHeight;
 
     const isMobileValue = width < BREAKPOINTS.desktop;
-    console.log('🔍 useViewport INIT:', { width, isMobile: isMobileValue, breakpoint: BREAKPOINTS.desktop });
     return {
       width,
       height,
@@ -84,7 +83,6 @@ export function useViewport(): ViewportState {
         const width = window.innerWidth;
         const height = window.innerHeight;
         const isMobileValue = width < BREAKPOINTS.desktop;
-        console.log('🔍 useViewport RESIZE:', { width, isMobile: isMobileValue, breakpoint: BREAKPOINTS.desktop });
 
         setViewport({
           width,
