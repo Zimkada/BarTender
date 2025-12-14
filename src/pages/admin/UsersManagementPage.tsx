@@ -141,8 +141,8 @@ export default function UsersManagementPage() {
               <p>Aucun utilisateur trouvé.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
-              <table className="min-w-full divide-y divide-gray-200">
+            <div className="overflow-x-auto">
+              <table className="min-w-[1000px] divide-y divide-gray-200">
                 <thead className="bg-white">
                   <tr>
                     <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -151,16 +151,16 @@ export default function UsersManagementPage() {
                     <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Rôle(s)
                     </th>
-                    <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="hidden md:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Bar(s)
                     </th>
                     <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Statut
                     </th>
-                    <th scope="col" className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="hidden md:table-cell px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date d'inscription
                     </th>
-                    <th scope="col" className="relative px-4 md:px-6 py-3">
+                    <th scope="col" className="relative px-4 md:px-6 py-3 whitespace-nowrap">
                       <span className="sr-only">Actions</span>
                     </th>
                   </tr>
@@ -171,7 +171,7 @@ export default function UsersManagementPage() {
                       <td className="px-4 md:px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                          <div className="text-sm text-gray-500 ml-2 hidden sm:inline">({user.email})</div>
+                          <div className="text-sm text-gray-500 ml-2 hidden md:inline">({user.email})</div>
                         </div>
                       </td>
                       <td className="px-4 md:px-6 py-4 whitespace-nowrap">
@@ -186,7 +186,7 @@ export default function UsersManagementPage() {
                           ))}
                         </div>
                       </td>
-                      <td className="px-4 md:px-6 py-4">
+                      <td className="hidden md:table-cell px-4 md:px-6 py-4 whitespace-nowrap">
                         <div className="flex flex-wrap gap-1">
                           {(user as any).bars && (user as any).bars.length > 0 ? (
                             (user as any).bars.map((bar: { id: string; name: string }) => (
@@ -211,7 +211,7 @@ export default function UsersManagementPage() {
                           {user.isActive ? 'Actif' : 'Suspendu'}
                         </span>
                       </td>
-                      <td className="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="hidden md:table-cell px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {new Date(user.createdAt).toLocaleDateString('fr-FR')}
                       </td>
                       <td className="px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
