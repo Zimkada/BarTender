@@ -11,7 +11,7 @@ import { ActingAsProvider } from './context/ActingAsContext';
 import { BarProvider } from './context/BarContext';
 import { StockProvider } from './context/StockContext';
 import { StockBridgeProvider } from './context/StockBridgeProvider';
-import { AppProvider } from './context/AppContext';
+import { AppProvider } from './context/AppProvider';
 import { ModalProvider } from './context/ModalContext';
 import { NotificationsProvider } from './components/Notifications';
 import { ErrorFallback } from './components/common/ErrorFallback'; // Ajout de l'import ErrorFallback
@@ -31,17 +31,17 @@ createRoot(document.getElementById('root')!).render(
         <AuthProvider>
           <ActingAsProvider>
             <BarProvider>
-            <StockProvider>
-              <StockBridgeProvider>
-                <AppProvider>
-                  <ModalProvider>
-                    <ErrorBoundary FallbackComponent={ErrorFallback} onError={(error, info) => console.error("Caught an error:", error, info)}>
-                      <RouterProvider router={router} />
-                    </ErrorBoundary>
-                  </ModalProvider>
-                </AppProvider>
-              </StockBridgeProvider>
-            </StockProvider>
+              <StockProvider>
+                <StockBridgeProvider>
+                  <AppProvider>
+                    <ModalProvider>
+                      <ErrorBoundary FallbackComponent={ErrorFallback} onError={(error, info) => console.error("Caught an error:", error, info)}>
+                        <RouterProvider router={router} />
+                      </ErrorBoundary>
+                    </ModalProvider>
+                  </AppProvider>
+                </StockBridgeProvider>
+              </StockProvider>
             </BarProvider>
           </ActingAsProvider>
         </AuthProvider>
