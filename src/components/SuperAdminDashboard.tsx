@@ -27,159 +27,88 @@ import { AuthService } from '../services/supabase/auth.service';
 import { getBusinessDate, getCurrentBusinessDateString, dateToYYYYMMDD, filterByBusinessDateRange } from '../utils/businessDateHelpers';
 import { useAppContext } from '../context/AppContext';
 import { Alert } from './ui/Alert';
+import { supabase } from '../lib/supabase';
 
 interface SuperAdminDashboardProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
+// Define the type for our stats to avoid 'any'
+interface DashboardStats {
+  total_revenue: number;
+  sales_count: number;
+  active_users_count: number;
+  new_users_count: number;
+  bars_count: number;
+  active_bars_count: number;
+}
+
+const PERIODS = [
+  { label: "Aujourd'hui", value: '0 days' },
+  { label: 'Hier', value: '1 day' },
+  { label: '7 jours', value: '7 days' },
+  { label: '30 jours', value: '30 days' },
+];
+
 export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashboardProps) {
   const { user, logout } = useAuth();
   const { bars } = useBarContext();
-  const { sales: allSales, returns: allReturns } = useAppContext();
-  const [users, setUsers] = useState<Array<User & { roles: string[] }>>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('7 days');
 
   useEffect(() => {
+    console.log('[SuperAdminDashboard] useEffect triggered. isOpen:', isOpen, 'selectedPeriod:', selectedPeriod);
     if (isOpen) {
-      loadUsers();
+      loadDashboardStats();
     }
-  }, [isOpen]);
+  }, [isOpen, selectedPeriod]);
 
-  const loadUsers = async () => {
+  const loadDashboardStats = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      const usersData = await AuthService.getAllUsersWithRoles();
+      // Generate a random UUID for cache busting
+      const cacheBuster = crypto.randomUUID();
 
-      // Map Supabase users to App users
-      const mappedUsers = usersData.map(u => ({
-        id: u.id,
-        username: u.username || '',
-        password: '', // Not available
-        name: u.name || '',
-        phone: u.phone || '',
-        email: u.email || '',
-        createdAt: new Date(u.created_at),
-        isActive: u.is_active ?? true,
-        firstLogin: u.first_login ?? false,
-        lastLoginAt: u.last_login_at ? new Date(u.last_login_at) : undefined,
-        roles: u.roles
-      })) as Array<User & { roles: string[] }>;
+      console.log('Calling get_dashboard_stats with:', {
+        p_period: selectedPeriod,
+        p_cache_buster: cacheBuster,
+      });
 
-      setUsers(mappedUsers);
-    } catch (error) {
-      console.error('Erreur chargement utilisateurs:', error);
+      const { data, error } = await supabase.rpc('get_dashboard_stats', {
+        p_period: selectedPeriod,
+        p_cache_buster: cacheBuster,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        setStats(data[0]);
+      } else {
+        // Set stats to 0 if no data is returned
+        setStats({
+          total_revenue: 0,
+          sales_count: 0,
+          active_users_count: 0,
+          new_users_count: 0,
+          bars_count: 0,
+          active_bars_count: 0,
+        });
+      }
+
+    } catch (err: any) {
+      console.error('Erreur chargement des statistiques:', err);
+      setError('Impossible de charger les statistiques. ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Statistiques complètes
-  const stats = useMemo(() => {
-    // Users breakdown
-    const promoteurs = users.filter(u => u.roles.includes('promoteur'));
-    const gerants = users.filter(u => u.roles.includes('gerant'));
-    const serveurs = users.filter(u => u.roles.includes('serveur'));
-
-    const activeUsers = users.filter(u => u.isActive).length;
-    const suspendedUsers = users.filter(u => !u.isActive).length;
-
-    // Bars stats
-    const activeBars = bars.filter(b => b.isActive);
-    const suspendedBars = bars.filter(b => !b.isActive);
-    
-    // Date Calculations
-    const todayStr = getCurrentBusinessDateString();
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = dateToYYYYMMDD(yesterday);
-    
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const sevenDaysAgoStr = dateToYYYYMMDD(sevenDaysAgo);
-
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const thirtyDaysAgoStr = dateToYYYYMMDD(thirtyDaysAgo);
-
-    // Filter sales and returns by period
-    const salesToday = filterByBusinessDateRange(allSales, todayStr, todayStr);
-    const salesYesterday = filterByBusinessDateRange(allSales, yesterdayStr, yesterdayStr);
-    const salesLast7Days = filterByBusinessDateRange(allSales, sevenDaysAgoStr, todayStr);
-    const salesLast30Days = filterByBusinessDateRange(allSales, thirtyDaysAgoStr, todayStr);
-
-    const returnsToday = filterByBusinessDateRange(allReturns, todayStr, todayStr).filter(r => r.isRefunded);
-    const returnsYesterday = filterByBusinessDateRange(allReturns, yesterdayStr, yesterdayStr).filter(r => r.isRefunded);
-    const returnsLast7Days = filterByBusinessDateRange(allReturns, sevenDaysAgoStr, todayStr).filter(r => r.isRefunded);
-    const returnsLast30Days = filterByBusinessDateRange(allReturns, thirtyDaysAgoStr, todayStr).filter(r => r.isRefunded);
-    
-    // Calculate Net Revenue for each period
-    const getNetRevenue = (sales: Sale[], returns: Return[]): number => {
-      const salesTotal = sales.reduce((sum, sale) => sum + sale.total, 0);
-      const returnsTotal = returns.reduce((sum, ret) => sum + ret.refundAmount, 0);
-      return salesTotal - returnsTotal;
-    };
-
-    const totalCAToday = getNetRevenue(salesToday, returnsToday);
-    const totalCAYesterday = getNetRevenue(salesYesterday, returnsYesterday);
-    const totalCALast7Days = getNetRevenue(salesLast7Days, returnsLast7Days);
-    const totalCALast30Days = getNetRevenue(salesLast30Days, returnsLast30Days);
-
-    const totalSalesToday = salesToday.length;
-    const totalSalesYesterday = salesYesterday.length;
-    
-    // Performance per bar for today
-    const barsPerformance = bars.map(bar => {
-      const barSalesToday = salesToday.filter(s => s.barId === bar.id);
-      const barReturnsToday = returnsToday.filter(r => r.barId === bar.id);
-      return {
-        barId: bar.id,
-        barName: bar.name,
-        ca: getNetRevenue(barSalesToday, barReturnsToday),
-        salesCount: barSalesToday.length,
-        isActive: bar.isActive,
-      };
-    });
-
-    // Calculate percentage changes
-    const caChangeVsYesterday = totalCAYesterday > 0 ? ((totalCAToday - totalCAYesterday) / totalCAYesterday * 100) : (totalCAToday > 0 ? 100 : 0);
-    const salesChangeVsYesterday = totalSalesYesterday > 0 ? ((totalSalesToday - totalSalesYesterday) / totalSalesYesterday * 100) : (totalSalesToday > 0 ? 100 : 0);
-
-    const avgCALast7Days = totalCALast7Days / 7;
-    const caChangeVsLast7Days = avgCALast7Days > 0 ? ((totalCAToday - avgCALast7Days) / avgCALast7Days * 100) : (totalCAToday > 0 ? 100 : 0);
-
-    const avgSalesLast7Days = salesLast7Days.length / 7;
-    const salesChangeVsLast7Days = avgSalesLast7Days > 0 ? ((totalSalesToday - avgSalesLast7Days) / avgSalesLast7Days * 100) : (totalSalesToday > 0 ? 100 : 0);
-
-    const topBars = barsPerformance.sort((a, b) => b.ca - a.ca).slice(0, 10);
-
-    return {
-      totalBars: bars.length,
-      activeBars: activeBars.length,
-      suspendedBars: suspendedBars.length,
-      totalUsers: users.length,
-      totalPromoteurs: promoteurs.length,
-      totalGerants: gerants.length,
-      totalServeurs: serveurs.length,
-      activeUsers,
-      suspendedUsers,
-      totalCAToday,
-      totalSalesToday,
-      totalCAYesterday,
-      totalSalesYesterday,
-      totalCALast7Days,
-      totalSalesLast7Days: salesLast7Days.length,
-      totalCALast30Days,
-      totalSalesLast30Days: salesLast30Days.length,
-      caChangeVsYesterday,
-      salesChangeVsYesterday,
-      caChangeVsLast7Days,
-      salesChangeVsLast7Days,
-      avgCALast7Days,
-      avgSalesLast7Days,
-      topBars,
-    };
-  }, [bars, users, allSales, allReturns]);
 
   if (!isOpen) return null;
 
@@ -216,319 +145,122 @@ export default function SuperAdminDashboard({ isOpen, onClose }: SuperAdminDashb
             </div>
           </div>
 
+          {/* Period Filter */}
+          <div className="p-4 bg-gray-50 border-b border-gray-200">
+            <div className="flex items-center justify-center gap-2">
+              {PERIODS.map(period => (
+                <button
+                  key={period.value}
+                  onClick={() => setSelectedPeriod(period.value)}
+                  className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${selectedPeriod === period.value
+                      ? 'bg-purple-600 text-white shadow-md'
+                      : 'bg-white text-gray-700 hover:bg-purple-100'
+                    }`}
+                >
+                  {period.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
-            {/* 🏢 Section 1: Statistiques des Bars */}
-            <section>
-              <div className="flex items-center gap-2 mb-4">
-                <Building2 className="w-5 h-5 text-purple-600" />
-                <h3 className="text-lg font-bold text-gray-900">Statistiques des Bars</h3>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 shadow-sm border border-purple-200">
-                  <div className="flex items-start gap-3">
-                    <Building2 className="w-6 h-6 text-purple-600 flex-shrink-0" />
-                    <div>
-                      <p className="text-gray-600 text-xs md:text-sm mb-1">Total Bars</p>
-                      <p className="text-2xl md:text-3xl font-bold text-purple-600">{stats.totalBars}</p>
-                    </div>
+            {loading && <div className="text-center">Chargement des données...</div>}
+            {error && <Alert show={true} variant="destructive">{error}</Alert>}
+            {stats && !loading && !error && (
+              <>
+                {/* 🏢 Section 1: Statistiques des Bars */}
+                <section>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Building2 className="w-5 h-5 text-purple-600" />
+                    <h3 className="text-lg font-bold text-gray-900">Statistiques des Bars</h3>
                   </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 shadow-sm border border-green-200">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
-                    <div>
-                      <p className="text-gray-600 text-xs md:text-sm mb-1">Bars Actifs</p>
-                      <p className="text-2xl md:text-3xl font-bold text-green-600">{stats.activeBars}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4 shadow-sm border border-red-200">
-                  <div className="flex items-start gap-3">
-                    <XCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
-                    <div>
-                      <p className="text-gray-600 text-xs md:text-sm mb-1">Bars Suspendus</p>
-                      <p className="text-2xl md:text-3xl font-bold text-red-600">{stats.suspendedBars}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {stats.suspendedBars > 0 && (
-                <Alert show={stats.suspendedBars > 0} variant="destructive" className="mt-3">
-                  <p className="text-sm">
-                    <span className="font-semibold">{stats.suspendedBars}</span> bar{stats.suspendedBars > 1 ? 's' : ''} suspendu{stats.suspendedBars > 1 ? 's' : ''} nécessite{stats.suspendedBars > 1 ? 'nt' : ''} votre attention.
-                  </p>
-                </Alert>
-              )}
-            </section>
-
-            {/* 👥 Section 2: Statistiques des Utilisateurs */}
-            <section>
-              <div className="flex items-center gap-2 mb-4">
-                <Users className="w-5 h-5 text-blue-600" />
-                <h3 className="text-lg font-bold text-gray-900">Statistiques des Utilisateurs</h3>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 shadow-sm border border-blue-200">
-                  <div className="flex items-start gap-3">
-                    <Users className="w-6 h-6 text-blue-600 flex-shrink-0" />
-                    <div>
-                      <p className="text-gray-600 text-xs md:text-sm mb-1">Total Utilisateurs</p>
-                      <p className="text-2xl md:text-3xl font-bold text-blue-600">{stats.totalUsers}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 shadow-sm border border-purple-200">
-                  <div className="flex items-start gap-3">
-                    <ShieldCheck className="w-6 h-6 text-purple-600 flex-shrink-0" />
-                    <div>
-                      <p className="text-gray-600 text-xs md:text-sm mb-1">Promoteurs</p>
-                      <p className="text-2xl md:text-3xl font-bold text-purple-600">{stats.totalPromoteurs}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-4 shadow-sm border border-indigo-200">
-                  <div className="flex items-start gap-3">
-                    <UserCheck className="w-6 h-6 text-indigo-600 flex-shrink-0" />
-                    <div>
-                      <p className="text-gray-600 text-xs md:text-sm mb-1">Gérants</p>
-                      <p className="text-2xl md:text-3xl font-bold text-indigo-600">{stats.totalGerants}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-teal-50 to-teal-100 rounded-xl p-4 shadow-sm border border-teal-200">
-                  <div className="flex items-start gap-3">
-                    <Users className="w-6 h-6 text-teal-600 flex-shrink-0" />
-                    <div>
-                      <p className="text-gray-600 text-xs md:text-sm mb-1">Serveurs</p>
-                      <p className="text-2xl md:text-3xl font-bold text-teal-600">{stats.totalServeurs}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 shadow-sm border border-green-200">
-                  <div className="flex items-start gap-3">
-                    <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
-                    <div>
-                      <p className="text-gray-600 text-xs md:text-sm mb-1">Actifs</p>
-                      <p className="text-2xl md:text-3xl font-bold text-green-600">{stats.activeUsers}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4 shadow-sm border border-red-200">
-                  <div className="flex items-start gap-3">
-                    <UserX className="w-6 h-6 text-red-600 flex-shrink-0" />
-                    <div>
-                      <p className="text-gray-600 text-xs md:text-sm mb-1">Suspendus</p>
-                      <p className="text-2xl md:text-3xl font-bold text-red-600">{stats.suspendedUsers}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {stats.suspendedUsers > 0 && (
-                <Alert show={stats.suspendedUsers > 0} variant="warning" className="mt-3">
-                  <p className="text-sm">
-                    <span className="font-semibold">{stats.suspendedUsers}</span> utilisateur{stats.suspendedUsers > 1 ? 's' : ''} suspendu{stats.suspendedUsers > 1 ? 's' : ''}.
-                  </p>
-                </Alert>
-              )}
-            </section>
-
-            {/* 💰 Section 3: Performance & Analytics */}
-            <section>
-              <div className="flex items-center gap-2 mb-4">
-                <TrendingUp className="w-5 h-5 text-green-600" />
-                <h3 className="text-lg font-bold text-gray-900">Performance & Analytics</h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4">
-                {/* CA Total Card */}
-                <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl p-4 md:p-6 shadow-sm border border-green-200">
-                  <div className="flex items-start gap-3">
-                    <DollarSign className="w-8 h-8 text-green-600 flex-shrink-0" />
-                    <div className="flex-1">
-                      <p className="text-gray-600 text-sm mb-1">CA Total Aujourd'hui</p>
-                      <p className="text-3xl md:text-4xl font-bold text-green-600">
-                        {stats.totalCAToday.toLocaleString('fr-FR')} <span className="text-xl md:text-2xl">FCFA</span>
-                      </p>
-
-                      {/* Trend indicators */}
-                      <div className="mt-3 space-y-1.5">
-                        {/* vs Yesterday */}
-                        <div className="flex items-center gap-2">
-                          {Math.abs(stats.caChangeVsYesterday) < 1 ? (
-                            <Minus className="w-4 h-4 text-gray-500" />
-                          ) : stats.caChangeVsYesterday > 0 ? (
-                            <TrendingUp className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <TrendingDown className="w-4 h-4 text-red-600" />
-                          )}
-                          <span className={`text-xs font-medium ${Math.abs(stats.caChangeVsYesterday) < 1
-                            ? 'text-gray-600'
-                            : stats.caChangeVsYesterday > 0
-                              ? 'text-green-600'
-                              : 'text-red-600'
-                            }`}>
-                            {stats.caChangeVsYesterday > 0 ? '+' : ''}{stats.caChangeVsYesterday.toFixed(1)}% vs hier
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            ({stats.totalCAYesterday.toLocaleString('fr-FR')} FCFA)
-                          </span>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+                    <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 shadow-sm border border-purple-200">
+                      <div className="flex items-start gap-3">
+                        <Building2 className="w-6 h-6 text-purple-600 flex-shrink-0" />
+                        <div>
+                          <p className="text-gray-600 text-xs md:text-sm mb-1">Total Bars</p>
+                          <p className="text-2xl md:text-3xl font-bold text-purple-600">{stats.bars_count}</p>
                         </div>
+                      </div>
+                    </div>
 
-                        {/* vs Last 7 days average */}
-                        <div className="flex items-center gap-2">
-                          {Math.abs(stats.caChangeVsLast7Days) < 1 ? (
-                            <Minus className="w-4 h-4 text-gray-500" />
-                          ) : stats.caChangeVsLast7Days > 0 ? (
-                            <TrendingUp className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <TrendingDown className="w-4 h-4 text-red-600" />
-                          )}
-                          <span className={`text-xs font-medium ${Math.abs(stats.caChangeVsLast7Days) < 1
-                            ? 'text-gray-600'
-                            : stats.caChangeVsLast7Days > 0
-                              ? 'text-green-600'
-                              : 'text-red-600'
-                            }`}>
-                            {stats.caChangeVsLast7Days > 0 ? '+' : ''}{stats.caChangeVsLast7Days.toFixed(1)}% vs moy. 7j
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            ({stats.avgCALast7Days.toFixed(0)} FCFA/j)
-                          </span>
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 shadow-sm border border-green-200">
+                      <div className="flex items-start gap-3">
+                        <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0" />
+                        <div>
+                          <p className="text-gray-600 text-xs md:text-sm mb-1">Bars Actifs</p>
+                          <p className="text-2xl md:text-3xl font-bold text-green-600">{stats.active_bars_count}</p>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                </section>
 
-                {/* Ventes Count Card */}
-                <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 md:p-6 shadow-sm border border-amber-200">
-                  <div className="flex items-start gap-3">
-                    <ShoppingCart className="w-8 h-8 text-amber-600 flex-shrink-0" />
-                    <div className="flex-1">
-                      <p className="text-gray-600 text-sm mb-1">Nombre de Ventes</p>
-                      <p className="text-3xl md:text-4xl font-bold text-amber-600">{stats.totalSalesToday}</p>
-                      <p className="text-xs text-gray-500 mt-1">Transactions effectuées</p>
-
-                      {/* Trend indicators */}
-                      <div className="mt-2 space-y-1.5">
-                        {/* vs Yesterday */}
-                        <div className="flex items-center gap-2">
-                          {Math.abs(stats.salesChangeVsYesterday) < 1 ? (
-                            <Minus className="w-4 h-4 text-gray-500" />
-                          ) : stats.salesChangeVsYesterday > 0 ? (
-                            <TrendingUp className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <TrendingDown className="w-4 h-4 text-red-600" />
-                          )}
-                          <span className={`text-xs font-medium ${Math.abs(stats.salesChangeVsYesterday) < 1
-                            ? 'text-gray-600'
-                            : stats.salesChangeVsYesterday > 0
-                              ? 'text-green-600'
-                              : 'text-red-600'
-                            }`}>
-                            {stats.salesChangeVsYesterday > 0 ? '+' : ''}{stats.salesChangeVsYesterday.toFixed(1)}% vs hier
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            ({stats.totalSalesYesterday} ventes)
-                          </span>
+                {/* 👥 Section 2: Statistiques des Utilisateurs */}
+                <section>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Users className="w-5 h-5 text-blue-600" />
+                    <h3 className="text-lg font-bold text-gray-900">Statistiques des Utilisateurs</h3>
+                  </div>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+                    <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 shadow-sm border border-blue-200">
+                      <div className="flex items-start gap-3">
+                        <Users className="w-6 h-6 text-blue-600 flex-shrink-0" />
+                        <div>
+                          <p className="text-gray-600 text-xs md:text-sm mb-1">Nouveaux Utilisateurs</p>
+                          <p className="text-2xl md:text-3xl font-bold text-blue-600">{stats.new_users_count}</p>
                         </div>
-
-                        {/* vs Last 7 days average */}
-                        <div className="flex items-center gap-2">
-                          {Math.abs(stats.salesChangeVsLast7Days) < 1 ? (
-                            <Minus className="w-4 h-4 text-gray-500" />
-                          ) : stats.salesChangeVsLast7Days > 0 ? (
-                            <TrendingUp className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <TrendingDown className="w-4 h-4 text-red-600" />
-                          )}
-                          <span className={`text-xs font-medium ${Math.abs(stats.salesChangeVsLast7Days) < 1
-                            ? 'text-gray-600'
-                            : stats.salesChangeVsLast7Days > 0
-                              ? 'text-green-600'
-                              : 'text-red-600'
-                            }`}>
-                            {stats.salesChangeVsLast7Days > 0 ? '+' : ''}{stats.salesChangeVsLast7Days.toFixed(1)}% vs moy. 7j
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            ({stats.avgSalesLast7Days.toFixed(1)} ventes/j)
-                          </span>
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 shadow-sm border border-green-200">
+                      <div className="flex items-start gap-3">
+                        <UserCheck className="w-6 h-6 text-green-600 flex-shrink-0" />
+                        <div>
+                          <p className="text-gray-600 text-xs md:text-sm mb-1">Utilisateurs Actifs</p>
+                          <p className="text-2xl md:text-3xl font-bold text-green-600">{stats.active_users_count}</p>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                </section>
 
-              {/* Top 10 Bars */}
-              <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-xl p-4 border border-amber-200">
-                <div className="flex items-center gap-2 mb-3">
-                  <Award className="w-5 h-5 text-amber-600" />
-                  <h4 className="font-bold text-gray-900">Top 10 Bars par CA</h4>
-                </div>
-
-                {stats.topBars.length === 0 ? (
-                  <p className="text-sm text-gray-500 text-center py-4">Aucune vente enregistrée aujourd'hui</p>
-                ) : (
-                  <div className="space-y-2">
-                    {stats.topBars.map((bar, index) => (
-                      <div
-                        key={bar.barId}
-                        className={`flex items-center justify-between p-3 rounded-lg transition-all ${index < 3
-                          ? 'bg-gradient-to-r from-amber-100 to-yellow-100 border border-amber-300 shadow-sm'
-                          : 'bg-white border border-gray-200'
-                          }`}
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div
-                            className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${index === 0
-                              ? 'bg-yellow-400 text-yellow-900'
-                              : index === 1
-                                ? 'bg-gray-300 text-gray-700'
-                                : index === 2
-                                  ? 'bg-amber-300 text-amber-900'
-                                  : 'bg-gray-100 text-gray-600'
-                              }`}
-                          >
-                            {index + 1}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-gray-900 truncate text-sm md:text-base">
-                              {bar.barName}
-                              {!bar.isActive && (
-                                <span className="ml-2 text-xs text-red-600">(Suspendu)</span>
-                              )}
-                            </p>
-                            <p className="text-xs text-gray-500">{bar.salesCount} vente{bar.salesCount > 1 ? 's' : ''}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-green-600 text-sm md:text-base">
-                            {bar.ca.toLocaleString('fr-FR')} FCFA
+                {/* 💰 Section 3: Performance & Analytics */}
+                <section>
+                  <div className="flex items-center gap-2 mb-4">
+                    <TrendingUp className="w-5 h-5 text-green-600" />
+                    <h3 className="text-lg font-bold text-gray-900">Performance & Analytics</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4">
+                    {/* CA Total Card */}
+                    <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl p-4 md:p-6 shadow-sm border border-green-200">
+                      <div className="flex items-start gap-3">
+                        <DollarSign className="w-8 h-8 text-green-600 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-gray-600 text-sm mb-1">Chiffre d'Affaires</p>
+                          <p className="text-3xl md:text-4xl font-bold text-green-600">
+                            {stats.total_revenue.toLocaleString('fr-FR')} <span className="text-xl md:text-2xl">FCFA</span>
                           </p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </section>
+                    </div>
 
-            {/* Info Message */}
-            <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-200">
-              <p className="text-sm text-gray-700 text-center">
-                💡 <span className="font-semibold">Conseil:</span> Utilisez le menu mobile (☰) pour accéder aux fonctionnalités de gestion détaillées (Bars, Utilisateurs, Audit Logs)
-              </p>
-            </div>
+                    {/* Ventes Count Card */}
+                    <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 md:p-6 shadow-sm border border-amber-200">
+                      <div className="flex items-start gap-3">
+                        <ShoppingCart className="w-8 h-8 text-amber-600 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-gray-600 text-sm mb-1">Nombre de Ventes</p>
+                          <p className="text-3xl md:text-4xl font-bold text-amber-600">{stats.sales_count}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </>
+            )}
           </div>
         </motion.div>
       </motion.div>

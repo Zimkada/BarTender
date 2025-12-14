@@ -1,5 +1,6 @@
 // src/services/supabase/admin.service.ts
 import { supabase, handleSupabaseError } from '../../lib/supabase';
+import { v4 as uuidv4 } from 'uuid';
 import { Bar, User, AuditLog } from '../../types';
 
 export interface DashboardStats {
@@ -97,17 +98,13 @@ export class AdminService {
    * Récupère les statistiques agrégées pour le dashboard superadmin.
    * @param period 'today' | '7d' | '30d'
    */
-  static async getDashboardStats(period: 'today' | '7d' | '30d' = 'today'): Promise<DashboardStats> {
+  static async getDashboardStats(period: string): Promise<DashboardStats> {
     try {
-      // Convert period to PostgreSQL interval format
-      const periodMap: Record<string, string> = {
-        'today': '1 day',
-        '7d': '7 days',
-        '30d': '30 days',
-      };
-      const pgInterval = periodMap[period] || '1 day';
-
-      const { data, error } = await (supabase.rpc as any)('get_dashboard_stats', { p_period: pgInterval });
+      const cacheBuster = uuidv4();
+      const { data, error } = await (supabase.rpc as any)('get_dashboard_stats', {
+        p_period: period,
+        p_cache_buster: cacheBuster,
+      });
 
       if (error) {
         throw error;
@@ -117,6 +114,7 @@ export class AdminService {
         return data[0] as DashboardStats;
       }
 
+      // Return a default object if there's no data
       return {
         total_revenue: 0, sales_count: 0, active_users_count: 0, new_users_count: 0, bars_count: 0, active_bars_count: 0,
       };

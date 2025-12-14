@@ -33,21 +33,20 @@ export default function SuperAdminPage() {
   const [stats, setStats] = useState<DashboardStats>(initialStats);
   const [loading, setLoading] = useState(true);
 
-  // DRY: Utiliser le hook centralisé pour filtres de période
   const filter = useDateRangeFilter({
-    defaultRange: 'today',
-    includeBusinessDay: true,  // Respect business date logic
+    defaultRange: 'yesterday', // Default to yesterday
+    includeBusinessDay: true,
   });
 
-  // Convertir timeRange DRY vers format SQL attendu par RPC
+  // Map the filter hook's timeRange to the format the SQL function expects
   const getPeriodForSQL = useCallback((timeRange: string): string => {
     const periodMap: Record<string, string> = {
-      'today': '1 day',
+      'today': '0 days', // Correctly maps to the 'Today' logic in SQL
       'yesterday': '1 day',
       'last_7days': '7 days',
       'last_30days': '30 days',
     };
-    return periodMap[timeRange] || '1 day';
+    return periodMap[timeRange] || '1 day'; // Default to yesterday
   }, []);
 
   const loadStats = useCallback(async () => {
@@ -55,6 +54,7 @@ export default function SuperAdminPage() {
     try {
       setLoading(true);
       const sqlPeriod = getPeriodForSQL(filter.timeRange);
+      // The service now handles the cache buster automatically
       const data = await AdminService.getDashboardStats(sqlPeriod);
       setStats(data);
     } catch (error) {
