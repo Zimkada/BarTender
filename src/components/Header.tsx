@@ -19,6 +19,7 @@ import {
 import { motion } from 'framer-motion';
 import { useRevenueStats } from '../hooks/useRevenueStats';
 import { useAuth } from "../context/AuthContext";
+import { useActingAs } from '../context/ActingAsContext';
 import { useBarContext } from '../context/BarContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { BarSelector } from './BarSelector';
@@ -91,11 +92,15 @@ export function Header({
 }: HeaderProps) {
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession, logout } = useAuth();
+  const { isActingAs } = useActingAs();
   const { currentBar } = useBarContext();
   const { isMobile } = useViewport();
   const navigate = useNavigate(); // NEW: Initialize useNavigate
 
   const [showProfileSettings, setShowProfileSettings] = useState(false);
+
+  // Check if super_admin is currently in impersonation mode
+  const isAdminInImpersonation = currentSession?.role === 'super_admin' && isActingAs();
 
   // ✨ HYBRID DRY REVENUE
   const { netRevenue: todayTotal } = useRevenueStats();
@@ -180,7 +185,7 @@ export function Header({
                   </>
                 )}
                 {/* NEW: Add buttons for common modals from header (Product, Category, QuickSale) */}
-                {currentSession?.role !== 'super_admin' && (
+                {(currentSession?.role !== 'super_admin' || isAdminInImpersonation) && (
                   <>
                     <Button
                       onClick={onShowProductModal}
@@ -236,8 +241,8 @@ export function Header({
             </div>
           </div>
 
-          {/* Ligne 2: Ventes du jour (info principale) - Masqué pour super admin */}
-          {currentSession?.role !== 'super_admin' && (
+          {/* Ligne 2: Ventes du jour (info principale) - Masqué pour super admin sauf en impersonation */}
+          {(currentSession?.role !== 'super_admin' || isAdminInImpersonation) && (
             <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
@@ -256,8 +261,8 @@ export function Header({
             </div>
           )}
 
-          {/* Badge rôle pour super admin (standalone) */}
-          {currentSession?.role === 'super_admin' && (
+          {/* Badge rôle pour super admin (standalone) - sauf en impersonation */}
+          {currentSession?.role === 'super_admin' && !isAdminInImpersonation && (
             <div className="flex items-center justify-center">
               <div className="flex items-center gap-2 bg-white/20 rounded-full px-4 py-2">
                 {getRoleIcon()}
@@ -353,8 +358,8 @@ export function Header({
 
           {/* Droite: Stats + User + Déconnexion */}
           <div className="flex items-center gap-6">
-            {/* Ventes du jour - Masqué pour super admin */}
-            {currentSession?.role !== 'super_admin' && (
+            {/* Ventes du jour - Masqué pour super admin sauf en impersonation */}
+            {(currentSession?.role !== 'super_admin' || isAdminInImpersonation) && (
               <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
                 <p className="text-white/80 text-sm">Ventes du jour</p>
                 <p className="text-white text-2xl font-bold">{formatPrice(todayTotal)}</p>
@@ -370,8 +375,8 @@ export function Header({
               </p>
             </div>
 
-            {/* Admin Actions (super_admin uniquement) */}
-            {currentSession?.role === 'super_admin' && (
+            {/* Admin Actions (super_admin uniquement - sauf en impersonation) */}
+            {currentSession?.role === 'super_admin' && !isAdminInImpersonation && (
               <>
                 <Button
                   onClick={() => navigate('/admin/catalog')}
