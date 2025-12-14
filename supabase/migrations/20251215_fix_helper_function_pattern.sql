@@ -99,7 +99,7 @@ BEGIN
 
     -- Active Users: Users who logged in during the period
     -- Uses last_login_at with business date logic
-    (SELECT COUNT(DISTINCT user_id) FROM users
+    (SELECT COUNT(DISTINCT id) FROM users
       WHERE is_active = true
       AND last_login_at IS NOT NULL
       AND DATE(last_login_at - (v_closing_hour || ' hours')::INTERVAL) >= v_start_date)::BIGINT,
