@@ -15,8 +15,8 @@ DECLARE
   v_current_user_id UUID;
   v_current_user_role TEXT;
 BEGIN
-  -- Get current user ID
-  v_current_user_id := auth.uid();
+  -- Get current user ID (uses custom auth pattern)
+  v_current_user_id := get_current_user_id();
 
   -- If no current user, raise exception
   IF v_current_user_id IS NULL THEN
@@ -69,8 +69,8 @@ DECLARE
   v_period_days INT;
   v_start_date DATE;
 BEGIN
-  -- SECURITY: Verify caller is super_admin
-  IF NOT EXISTS (SELECT 1 FROM bar_members WHERE user_id = auth.uid() AND role = 'super_admin') THEN
+  -- SECURITY: Verify caller is super_admin (uses custom auth pattern)
+  IF NOT is_super_admin() THEN
     RAISE EXCEPTION 'Access denied: Only super_admin can access dashboard stats';
   END IF;
 
@@ -130,8 +130,8 @@ RETURNS TABLE (
   owner_id UUID
 ) AS $$
 BEGIN
-  -- SECURITY: Verify caller is super_admin
-  IF NOT EXISTS (SELECT 1 FROM bar_members WHERE user_id = auth.uid() AND role = 'super_admin') THEN
+  -- SECURITY: Verify caller is super_admin (uses custom auth pattern)
+  IF NOT is_super_admin() THEN
     RAISE EXCEPTION 'Access denied: Only super_admin can access bars list';
   END IF;
 
