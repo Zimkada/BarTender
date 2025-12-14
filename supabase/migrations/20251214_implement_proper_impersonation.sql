@@ -23,7 +23,7 @@ BEGIN
   -- If impersonating_user_id is provided, use it instead
   -- Also verify current user is super_admin
   IF p_impersonating_user_id IS NOT NULL THEN
-    IF (SELECT role FROM users WHERE users.id = auth.uid()) != 'super_admin' THEN
+    IF NOT EXISTS (SELECT 1 FROM bar_members WHERE user_id = auth.uid() AND role = 'super_admin') THEN
       RAISE EXCEPTION 'Only super_admin can impersonate';
     END IF;
     p_user_id := p_impersonating_user_id;
@@ -69,7 +69,7 @@ RETURNS TABLE (
 BEGIN
   -- If impersonating_user_id is provided, verify super_admin status
   IF p_impersonating_user_id IS NOT NULL THEN
-    IF (SELECT role FROM users WHERE users.id = auth.uid()) != 'super_admin' THEN
+    IF NOT EXISTS (SELECT 1 FROM bar_members WHERE user_id = auth.uid() AND role = 'super_admin') THEN
       RAISE EXCEPTION 'Only super_admin can impersonate';
     END IF;
   END IF;
@@ -123,7 +123,7 @@ RETURNS TABLE (
 BEGIN
   -- If impersonating_user_id is provided, verify super_admin status
   IF p_impersonating_user_id IS NOT NULL THEN
-    IF (SELECT role FROM users WHERE users.id = auth.uid()) != 'super_admin' THEN
+    IF NOT EXISTS (SELECT 1 FROM bar_members WHERE user_id = auth.uid() AND role = 'super_admin') THEN
       RAISE EXCEPTION 'Only super_admin can impersonate';
     END IF;
   END IF;
