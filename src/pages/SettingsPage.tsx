@@ -446,7 +446,7 @@ export default function SettingsPage() {
                                 onValueChange={(value: 'full' | 'simplified') => setTempOperatingMode(value)}
                                 className="space-y-3"
                             >
-                                <Label htmlFor="operatingModeFull" className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl cursor-pointer hover:bg-amber-100 border">
+                                <label htmlFor="operatingModeFull" className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl cursor-pointer hover:bg-amber-100 border">
                                     <RadioGroupItem
                                         value="full"
                                         id="operatingModeFull"
@@ -456,8 +456,8 @@ export default function SettingsPage() {
                                         <div className="font-medium">Mode Complet</div>
                                         <div className="text-xs text-gray-600">Chaque serveur a son propre compte.</div>
                                     </div>
-                                </Label>
-                                <Label htmlFor="operatingModeSimplified" className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl cursor-pointer hover:bg-amber-100 border">
+                                </label>
+                                <label htmlFor="operatingModeSimplified" className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl cursor-pointer hover:bg-amber-100 border">
                                     <RadioGroupItem
                                         value="simplified"
                                         id="operatingModeSimplified"
@@ -467,7 +467,7 @@ export default function SettingsPage() {
                                         <div className="font-medium">Mode Simplifié</div>
                                         <div className="text-xs text-gray-600">Le gérant sélectionne le serveur.</div>
                                     </div>
-                                </Label>
+                                </label>
                             </RadioGroup>
                         </div>
 
