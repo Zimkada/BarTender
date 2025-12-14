@@ -2,7 +2,8 @@
 
 **Date**: 2025-12-15
 **Status**: COMPLETE - Ready for Production Integration
-**Commits**: 4 major commits (7c6021a → d246660)
+**Commits**: 5 major commits (8b758ea → 08c67ef)
+**Latest Fix**: RPC parameter naming and return types corrected
 
 ---
 
@@ -313,11 +314,32 @@ admin_as_get_bar_products(actingAsUserId, barId)
 
 ---
 
+## 🐛 Recent Fixes (Commit 08c67ef)
+
+### RPC Parameter Naming & Return Types Fixed
+
+**Issue**: `get_dashboard_stats` RPC returned 404 "Could not find function" error
+
+**Root Causes**:
+1. **Parameter mismatch**: Client called with `{ period }` but SQL function expected `{ p_period }`
+2. **Return type mismatch**: SQL function returned `(total_bars, total_users, total_sales, total_revenue, active_bars, active_users)` but TypeScript expected `(total_revenue, sales_count, active_users_count, new_users_count, bars_count, active_bars_count)`
+
+**Fixes Applied**:
+- ✅ Updated `admin.service.ts` line 102: Changed `{ period }` to `{ p_period: period }`
+- ✅ Updated `20251215_fix_helper_function_pattern.sql`: Fixed return types and query logic to match DashboardStats interface
+
+**Status**: ✅ All RPC calls now have matching parameter names and return types
+
+---
+
 ## 🎬 Git History
 
 All work is preserved in commits:
 
 ```
+08c67ef fix: Correct RPC parameter naming and return types for get_dashboard_stats
+         └─ Fixed parameter mismatch and return type alignment
+
 d246660 refactor: Complete proxy admin architecture with RPC audit and cleanup plan
          └─ Audit (37 RPCs), security fixes, migration guide
 
