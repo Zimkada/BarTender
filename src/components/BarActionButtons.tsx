@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Ban, CheckCircle, UserCog, BarChart3 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Bar } from '../types';
 import { useActingAs } from '../context/ActingAsContext';
 
@@ -14,6 +15,7 @@ interface BarActionButtonsProps {
 export const BarActionButtons = React.memo<BarActionButtonsProps>(
     ({ bar, members, onToggleStatus, onShowStats, onClose }) => {
         const [loading, setLoading] = useState(false);
+        const navigate = useNavigate();
         const { startActingAs } = useActingAs();
 
         const handleToggleStatus = async () => {
@@ -25,17 +27,24 @@ export const BarActionButtons = React.memo<BarActionButtonsProps>(
             }
         };
 
-        const handleActAs = async () => {
+        const handleAccessAsPromoteur = async () => {
             // Find promoteur member in this bar
             const promoteur = members.find(m => m.role === 'promoteur');
             if (promoteur && promoteur.user) {
-                await startActingAs(
-                    promoteur.userId,
-                    promoteur.user.name,
-                    bar.id,
-                    bar.name
-                );
-                onClose?.();
+                setLoading(true);
+                try {
+                    await startActingAs(
+                        promoteur.userId,
+                        promoteur.user.name,
+                        bar.id,
+                        bar.name
+                    );
+                    // Navigate to dashboard as the promoteur
+                    navigate('/dashboard');
+                    onClose?.();
+                } finally {
+                    setLoading(false);
+                }
             }
         };
 
@@ -62,12 +71,13 @@ export const BarActionButtons = React.memo<BarActionButtonsProps>(
                     )}
                 </button>
                 <button
-                    onClick={handleActAs}
+                    onClick={handleAccessAsPromoteur}
                     disabled={loading || !members.find(m => m.role === 'promoteur')}
                     className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg font-semibold text-xs hover:bg-blue-200 flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    title="Accéder à l'interface du bar en tant que promoteur"
                 >
                     <UserCog className="w-3.5 h-3.5" />
-                    Agir En
+                    Accès Promoteur
                 </button>
                 <button
                     onClick={() => onShowStats(bar)}
