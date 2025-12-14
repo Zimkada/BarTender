@@ -51,18 +51,18 @@ function AdminLayoutContent() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Mobile Header */}
+      {/* Mobile Header - Hamburger LEFT + Title RIGHT */}
       <header className="lg:hidden bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <ShieldCheck className="w-6 h-6" />
-          <span className="font-bold">Admin Panel</span>
-        </div>
         <button
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+          className="p-2 hover:bg-white/20 rounded-lg transition-colors flex-shrink-0"
         >
           {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
+        <div className="flex items-center gap-3 flex-1 justify-end">
+          <ShieldCheck className="w-6 h-6" />
+          <span className="font-bold">Admin Panel</span>
+        </div>
       </header>
 
       <div className="flex">
@@ -76,12 +76,12 @@ function AdminLayoutContent() {
             ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           `}
         >
-          {/* Desktop Header */}
-          <div className="hidden lg:flex items-center gap-3 p-6 bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
+          {/* Desktop Header + Mobile Sidebar Header */}
+          <div className="flex items-center gap-3 p-6 bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
             <ShieldCheck className="w-8 h-8" />
             <div>
-              <h1 className="font-bold text-lg">BarTender Pro</h1>
-              <p className="text-purple-200 text-sm">Administration</p>
+              <h1 className="font-bold text-lg">🍺 BarTender Pro Administration</h1>
+              <p className="text-purple-200 text-sm hidden lg:block">Administration</p>
             </div>
           </div>
 

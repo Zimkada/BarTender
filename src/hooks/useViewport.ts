@@ -56,10 +56,12 @@ export function useViewport(): ViewportState {
     const width = window.innerWidth;
     const height = window.innerHeight;
 
+    const isMobileValue = width < BREAKPOINTS.desktop;
+    console.log('🔍 useViewport INIT:', { width, isMobile: isMobileValue, breakpoint: BREAKPOINTS.desktop });
     return {
       width,
       height,
-      isMobile: width < BREAKPOINTS.desktop,
+      isMobile: isMobileValue,
       isDesktop: width >= BREAKPOINTS.desktop,
     };
   });
@@ -81,11 +83,13 @@ export function useViewport(): ViewportState {
       timeoutId = setTimeout(() => {
         const width = window.innerWidth;
         const height = window.innerHeight;
+        const isMobileValue = width < BREAKPOINTS.desktop;
+        console.log('🔍 useViewport RESIZE:', { width, isMobile: isMobileValue, breakpoint: BREAKPOINTS.desktop });
 
         setViewport({
           width,
           height,
-          isMobile: width < BREAKPOINTS.desktop,
+          isMobile: isMobileValue,
           isDesktop: width >= BREAKPOINTS.desktop,
         });
       }, 150);
