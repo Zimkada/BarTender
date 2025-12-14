@@ -55,12 +55,12 @@ DROP FUNCTION IF EXISTS get_dashboard_stats(TEXT);
 
 CREATE OR REPLACE FUNCTION get_dashboard_stats(p_period TEXT DEFAULT '7days')
 RETURNS TABLE (
-  total_bars BIGINT,
-  total_users BIGINT,
-  total_sales NUMERIC,
   total_revenue NUMERIC,
-  active_bars BIGINT,
-  active_users BIGINT
+  sales_count BIGINT,
+  active_users_count BIGINT,
+  new_users_count BIGINT,
+  bars_count BIGINT,
+  active_bars_count BIGINT
 ) AS $$
 BEGIN
   -- SECURITY: Verify caller is super_admin
@@ -70,14 +70,14 @@ BEGIN
 
   RETURN QUERY
   SELECT
-    (SELECT COUNT(*) FROM bars WHERE is_active = true)::BIGINT,
-    (SELECT COUNT(*) FROM users WHERE is_active = true)::BIGINT,
-    (SELECT COUNT(*) FROM sales WHERE status = 'validated'
-      AND created_at >= NOW() - (p_period::interval))::BIGINT,
     (SELECT COALESCE(SUM(total), 0) FROM sales WHERE status = 'validated'
       AND created_at >= NOW() - (p_period::interval))::NUMERIC,
-    (SELECT COUNT(DISTINCT bar_id) FROM bar_members WHERE is_active = true)::BIGINT,
-    (SELECT COUNT(DISTINCT user_id) FROM bar_members WHERE is_active = true)::BIGINT;
+    (SELECT COUNT(*) FROM sales WHERE status = 'validated'
+      AND created_at >= NOW() - (p_period::interval))::BIGINT,
+    (SELECT COUNT(DISTINCT user_id) FROM bar_members WHERE is_active = true)::BIGINT,
+    (SELECT COUNT(*) FROM users WHERE created_at >= NOW() - (p_period::interval) AND is_active = true)::BIGINT,
+    (SELECT COUNT(*) FROM bars WHERE is_active = true)::BIGINT,
+    (SELECT COUNT(DISTINCT bar_id) FROM bar_members WHERE is_active = true)::BIGINT;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

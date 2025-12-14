@@ -99,7 +99,7 @@ export class AdminService {
    */
   static async getDashboardStats(period: 'today' | '7d' | '30d' = 'today'): Promise<DashboardStats> {
     try {
-      const { data, error } = await (supabase.rpc as any)('get_dashboard_stats', { period });
+      const { data, error } = await (supabase.rpc as any)('get_dashboard_stats', { p_period: period });
 
       if (error) {
         throw error;
