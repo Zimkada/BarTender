@@ -142,7 +142,7 @@ export default function UsersManagementPage() {
               <p>Aucun utilisateur trouvé.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto" style={{ overflowY: 'hidden', overscrollBehavior: 'contain' }}>
+            <div className="scrollbar-bottom">
               <table className="w-full min-w-[600px] divide-y divide-gray-200">
                 <thead className="bg-white">
                   <tr>

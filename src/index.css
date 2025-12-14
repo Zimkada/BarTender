@@ -42,3 +42,10 @@
     --radius: 0.5rem;
   }
 }
+
+/* Horizontal scrollbar at bottom */
+.scrollbar-bottom {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-gutter: stable;
+}
