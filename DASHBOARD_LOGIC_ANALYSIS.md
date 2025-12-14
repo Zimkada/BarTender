@@ -261,7 +261,80 @@ Current implementation is **Option 3** but label promises **Option 1**.
 
 - [x] Root causes identified
 - [x] Code patterns documented
-- [ ] SQL function fixed
-- [ ] Frontend labels updated
+- [x] SQL function fixed (commit 37f9d4e)
+- [x] Frontend labels updated (commit 37f9d4e)
+- [x] Business date logic implemented
+- [ ] Database migration applied
 - [ ] Tests written
 - [ ] Deployment ready
+
+---
+
+## Implementation Summary (Commit 37f9d4e)
+
+### What Changed
+
+**SQL Function: get_dashboard_stats**
+```sql
+-- NEW: Business date logic with 6 AM closing hour
+v_closing_hour INT := 6;
+IF EXTRACT(HOUR FROM CURRENT_TIME) < v_closing_hour THEN
+    v_start_date := CURRENT_DATE - (v_period_days || ' days')::INTERVAL;
+ELSE
+    v_start_date := CURRENT_DATE - ((v_period_days - 1) || ' days')::INTERVAL;
+END IF;
+
+-- NEW: Active users based on login activity
+(SELECT COUNT(DISTINCT user_id) FROM users
+  WHERE is_active = true
+  AND last_login_at IS NOT NULL
+  AND DATE(last_login_at - (v_closing_hour || ' hours')::INTERVAL) >= v_start_date)
+
+-- ALL metrics now use business date calculation
+DATE(created_at - (v_closing_hour || ' hours')::INTERVAL) >= v_start_date
+```
+
+**Frontend: SuperAdminPage.tsx**
+- Label changed: "Utilisateurs actifs (7j)" → "Utilisateurs connectés"
+- Now accurate to metric definition
+
+### How It Works Now
+
+**Example: 2025-12-15 03:00 AM**
+```
+Period: "today" (1 day)
+Closing Hour: 6 AM
+
+Calculation:
+- Current time: 03:00 < 06:00 = true
+- Current business date: 2025-12-14
+- v_start_date: 2025-12-14 (today's business day started at 2025-12-14 06:00)
+
+Results:
+- "Chiffre d'affaires": Sum of all sales from 2025-12-14 06:00 to 2025-12-15 03:00
+- "Ventes": Count of all sales in that period
+- "Utilisateurs connectés": Count of distinct users who logged in during that period
+- "Nouveaux utilisateurs": Count of new users created during that period
+```
+
+**Same as Header "Ventes du jour"** ✓
+**Same as Analytics business date logic** ✓
+
+---
+
+## Testing Notes
+
+After database migration, test these scenarios:
+
+1. **Early Morning (03:00 AM)**
+   - Click "Aujourd'hui"
+   - Should show yesterday's business day (6 AM yesterday to now)
+
+2. **Active Users**
+   - Users who logged in = count increases
+   - Users who didn't log in = not counted (even if they exist)
+
+3. **Period Consistency**
+   - "Aujourd'hui" = 1 business day
+   - "7 jours" = Last 7 business days
+   - "30 jours" = Last 30 business days
