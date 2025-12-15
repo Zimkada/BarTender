@@ -17,6 +17,7 @@ import { QuickSaleFlow } from '../components/QuickSaleFlow';
 // import { UserManagement } from '../components/UserManagement'; // Removed
 import { SupplyModal } from '../components/SupplyModal';
 import { Category } from '../types';
+import { ActingAsBar } from '../components/ActingAsBar';
 
 const LazyBarStatsModal = lazy(() => import('../components/BarStatsModal').then(m => ({ default: m.BarStatsModal })));
 
@@ -41,6 +42,7 @@ function RootLayoutContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-50 pb-16 md:pb-0">
+      <ActingAsBar />
       <Header
         onShowQuickSale={() => openModal('QUICK_SALE')}
         onShowProductModal={() => openModal('PRODUCT')}

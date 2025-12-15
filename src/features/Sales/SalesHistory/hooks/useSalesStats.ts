@@ -1,6 +1,8 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { AnalyticsService, TopProduct } from '../../../../services/supabase/analytics.service';
+import { ProxyAdminService } from '../../../../services/supabase/proxy-admin.service';
+import { useActingAs } from '../../../../context/ActingAsContext';
 import type { Sale, Return, Bar } from '../../../../types';
 
 interface UseSalesStatsProps {
@@ -20,6 +22,9 @@ export function useSalesStats({
     endDate,
     currentBar
 }: UseSalesStatsProps) {
+    // --- CONTEXTE ---
+    const { actingAs } = useActingAs();
+
     // --- ÉTATS ---
     const [topProductsLimit, setTopProductsLimit] = useState<number>(5);
     const [topProductMetric, setTopProductMetric] = useState<'units' | 'revenue' | 'profit'>('units');
@@ -34,13 +39,48 @@ export function useSalesStats({
         const loadTopProducts = async () => {
             setIsLoadingTopProducts(true);
             try {
-                const products = await AnalyticsService.getTopProducts(
-                    currentBar.id,
-                    startDate,
-                    endDate,
-                    topProductsLimit
-                );
-                setSqlTopProducts(products);
+                let products;
+
+                // LOGIQUE HYBRIDE: Proxy vs Standard
+                if (actingAs.isActive && actingAs.userId && actingAs.barId === currentBar.id) {
+                    // MODE PROXY
+                    const proxyData = await ProxyAdminService.getTopProductsAsProxy(
+                        actingAs.userId,
+                        currentBar.id,
+                        startDate,
+                        endDate,
+                        topProductsLimit
+                    );
+
+                    // Mapper le résultat RPC (déjà snake_case ou camelCase selon le retour RPC)
+                    // Le RPC retourne: product_name, product_volume, total_quantity, total_revenue, avg_unit_price
+                    // On doit mapper vers TopProduct interface
+                    products = proxyData.map((p: any) => ({
+                        product_id: 'proxy', // Placeholder
+                        product_name: p.product_name,
+                        product_volume: p.product_volume,
+                        total_quantity: p.total_quantity,
+                        total_revenue: p.total_revenue,
+                        avg_unit_price: p.avg_unit_price,
+                        // Champs optionnels ou calculés
+                        bar_id: currentBar.id,
+                        sale_date: '',
+                        sale_week: '',
+                        sale_month: '',
+                        transaction_count: 0
+                    }));
+
+                } else {
+                    // MODE STANDARD
+                    products = await AnalyticsService.getTopProducts(
+                        currentBar.id,
+                        startDate,
+                        endDate,
+                        topProductsLimit
+                    );
+                }
+
+                setSqlTopProducts(products || []);
             } catch (error) {
                 console.error('Error loading top products:', error);
                 setSqlTopProducts([]);
@@ -50,7 +90,7 @@ export function useSalesStats({
         };
 
         loadTopProducts();
-    }, [currentBar, startDate, endDate, topProductsLimit]);
+    }, [currentBar, startDate, endDate, topProductsLimit, actingAs.isActive, actingAs.userId, actingAs.barId]);
 
     // --- CALCULS ---
     const stats = useMemo(() => {

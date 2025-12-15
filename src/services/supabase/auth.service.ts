@@ -130,6 +130,11 @@ role,
 
       const authUser = await this.fetchUserProfileAndMembership(data.user.id);
 
+      // Log login to Audit (Fire and forget)
+      supabase.rpc('log_user_login').then(({ error }) => {
+        if (error) console.error('Failed to log login:', error);
+      });
+
       localStorage.setItem('auth_user', JSON.stringify(authUser));
       return { user: authUser };
     } catch (error: any) {

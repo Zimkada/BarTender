@@ -2,6 +2,8 @@ import { ProductsService } from '../../services/supabase/products.service';
 import { CategoriesService } from '../../services/supabase/categories.service';
 import { StockService } from '../../services/supabase/stock.service';
 import { useApiQuery, useApiQuerySimple } from './useApiQuery';
+import { useProxyQuery } from './useProxyQuery';
+import { ProxyAdminService } from '../../services/supabase/proxy-admin.service';
 import type { Product, Supply, Consignment, Category } from '../../types';
 
 // Clés de requête pour l'invalidation
@@ -14,27 +16,41 @@ export const stockKeys = {
 };
 
 export const useProducts = (barId: string | undefined) => {
-    return useApiQuery(
+    // Utiliser useProxyQuery pour supporter l'impersonnation Super Admin
+    return useProxyQuery(
         stockKeys.products(barId || ''),
-        async (impersonatingUserId) => {
+        // 1. Fetcher Standard
+        async () => {
             if (!barId) return [];
-            const dbProducts = await ProductsService.getBarProducts(barId, impersonatingUserId);
+            // Note: Le paramètre impersonatingUserId n'est plus nécessaire ici car géré par le proxy
+            // Si l'ancienne auth impersonation est encore utilisée ailleurs, on laisse undefined
+            const dbProducts = await ProductsService.getBarProducts(barId);
 
-            return dbProducts.map(p => ({
-                id: p.id,
-                barId: p.bar_id,
-                name: p.display_name,
-                volume: p.global_product?.volume || 'N/A',
-                price: p.price,
-                stock: p.stock ?? 0,
-                categoryId: p.local_category_id || '',
-                image: p.display_image || undefined,
-                alertThreshold: p.alert_threshold ?? 0,
-                createdAt: new Date(p.created_at || Date.now()),
-            }));
+            return mapProducts(dbProducts);
+        },
+        // 2. Fetcher Proxy (Super Admin As User)
+        async (userId, barIdArg) => {
+            const dbProducts = await ProxyAdminService.getBarProductsAsProxy(userId, barIdArg);
+            return mapProducts(dbProducts);
         },
         { enabled: !!barId }
     );
+};
+
+// Helper pour mapper les produits
+const mapProducts = (dbProducts: any[]): Product[] => {
+    return dbProducts.map(p => ({
+        id: p.id,
+        barId: p.bar_id,
+        name: p.display_name || p.local_name || p.name, // Fallback chain
+        volume: p.global_product?.volume || p.product_volume || 'N/A', // Support both structures
+        price: p.price,
+        stock: p.stock ?? 0,
+        categoryId: p.local_category_id || '',
+        image: p.display_image || p.local_image || p.official_image || undefined,
+        alertThreshold: p.alert_threshold ?? 0,
+        createdAt: new Date(p.created_at || Date.now()),
+    }));
 };
 
 export const useSupplies = (barId: string | undefined) => {
@@ -49,8 +65,8 @@ export const useSupplies = (barId: string | undefined) => {
                 barId: s.bar_id,
                 productId: s.product_id,
                 quantity: s.quantity,
-                lotSize: 1, // Valeur par défaut car non stockée en base explicitement (calculée dans unit_cost)
-                lotPrice: s.unit_cost, // Approximation
+                lotSize: 1,
+                lotPrice: s.unit_cost,
                 supplier: s.supplier_name || 'Inconnu',
                 date: new Date(s.supplied_at || s.created_at || Date.now()),
                 totalCost: s.total_cost,
@@ -70,13 +86,10 @@ export const useConsignments = (barId: string | undefined) => {
             const dbConsignments = await StockService.getConsignments(barId);
 
             return dbConsignments.map(c => {
-                // Mapping du statut DB vers App
                 let status: Consignment['status'] = 'active';
                 if (c.status === 'sold') status = 'claimed';
                 if (c.status === 'returned') status = 'forfeited';
-                // 'expired' n'est pas un statut DB explicite mais calculé ou mis à jour
 
-                // Calcul date expiration (défaut +7j si non stocké)
                 const createdAt = new Date(c.created_at || Date.now());
                 const expiresAt = new Date(c.expires_at || createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
 
@@ -113,7 +126,6 @@ export const useCategories = (barId: string | undefined) => {
             const enrichedCategories = await CategoriesService.getCategories(barId);
 
             return enrichedCategories.map(c => {
-                // Derive display name and color
                 const name = c.custom_name || c.global_category?.name || 'Sans nom';
                 const color = c.custom_color || c.global_category?.color || '#3B82F6';
 
@@ -130,7 +142,6 @@ export const useCategories = (barId: string | undefined) => {
     );
 };
 
-// Hook dérivé pour les produits en rupture
 export const useLowStockProducts = (barId: string | undefined) => {
     const { data: products, isLoading } = useProducts(barId);
 

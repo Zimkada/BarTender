@@ -1,11 +1,12 @@
-import { useMemo, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { SalesService } from '../services/supabase/sales.service';
 import { ReturnsService } from '../services/supabase/returns.service';
 import { getCurrentBusinessDateString, filterByBusinessDateRange } from '../utils/businessDateHelpers';
 import { statsKeys } from './queries/useStatsQueries';
+import { useProxyQuery } from './queries/useProxyQuery';
+import { ProxyAdminService } from '../services/supabase/proxy-admin.service';
 
 interface RevenueStats {
     netRevenue: number;
@@ -62,9 +63,11 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         return { netRevenue, grossRevenue, refundsTotal, saleCount };
     }, [sales, returns, startDate, endDate, currentBar?.closingHour]);
 
-    const query = useQuery({
-        queryKey: statsKeys.summary(currentBarId, startDate, endDate),
-        queryFn: async () => {
+    // Use Proxy Query to handle impersonation automatically
+    const { data: stats, isLoading, error } = useProxyQuery(
+        statsKeys.summary(currentBarId, startDate, endDate),
+        // 1. Standard Fetcher (Normal User) - Requires 2 calls (Sales + Returns)
+        async () => {
             const stats = await SalesService.getSalesStats(currentBarId, startDate, endDate);
 
             const returnsData = await ReturnsService.getReturns(currentBarId, startDate, endDate);
@@ -79,19 +82,26 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
                 saleCount: stats.totalSales
             };
         },
-        enabled: enabled && !!currentBarId,
-        placeholderData: calculateLocalStats,
-        staleTime: 5 * 60 * 1000, // 5 minutes
-    });
+        // 2. Proxy Fetcher (Impersonation) - Uses optimized single RPC
+        async (userId: string, barId: string) => {
+            return ProxyAdminService.getSalesStatsAsProxy(userId, barId, startDate, endDate);
+        },
+        // Options
+        {
+            enabled: enabled && !!currentBarId,
+            placeholderData: calculateLocalStats,
+            staleTime: 5 * 60 * 1000, // 5 minutes
+        }
+    );
 
     return {
-        netRevenue: query.data?.netRevenue ?? 0,
-        grossRevenue: query.data?.grossRevenue ?? 0,
-        refundsTotal: query.data?.refundsTotal ?? 0,
-        saleCount: query.data?.saleCount ?? 0,
-        isLoading: query.isLoading,
-        isOffline: query.isError,
-        source: query.isError ? 'local' : 'sql',
-        lastUpdated: query.dataUpdatedAt ? new Date(query.dataUpdatedAt) : undefined,
+        netRevenue: stats?.netRevenue ?? 0,
+        grossRevenue: stats?.grossRevenue ?? 0,
+        refundsTotal: stats?.refundsTotal ?? 0,
+        saleCount: stats?.saleCount ?? 0, // Using totalSales from proxy as saleCount
+        isLoading,
+        isOffline: !!error,
+        source: error ? 'local' : 'sql',
+        lastUpdated: new Date(),
     };
 }

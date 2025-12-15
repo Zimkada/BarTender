@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 
 /**
  * ActingAs State
@@ -31,14 +31,39 @@ const ActingAsContext = createContext<ActingAsContextType | undefined>(undefined
  * Provides impersonation context to the entire app
  */
 export const ActingAsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [actingAs, setActingAs] = useState<ActingAsState>({
-    isActive: false,
-    userId: null,
-    userName: null,
-    barId: null,
-    barName: null,
-    startedAt: null,
+  // Initialize from sessionStorage to persist state across refreshes
+  const [actingAs, setActingAs] = useState<ActingAsState>(() => {
+    try {
+      const saved = sessionStorage.getItem('acting-as-state');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        // Restore Date object since JSON stringifies it
+        if (parsed.startedAt) {
+          parsed.startedAt = new Date(parsed.startedAt);
+        }
+        return parsed;
+      }
+    } catch (e) {
+      console.error('Failed to parse acting-as-state', e);
+    }
+    return {
+      isActive: false,
+      userId: null,
+      userName: null,
+      barId: null,
+      barName: null,
+      startedAt: null,
+    };
   });
+
+  // Persist to sessionStorage whenever state changes
+  useEffect(() => {
+    if (actingAs.isActive) {
+      sessionStorage.setItem('acting-as-state', JSON.stringify(actingAs));
+    } else {
+      sessionStorage.removeItem('acting-as-state');
+    }
+  }, [actingAs]);
 
   /**
    * Start acting as another user

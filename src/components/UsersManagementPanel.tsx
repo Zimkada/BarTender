@@ -75,12 +75,12 @@ export default function UsersManagementPanel({ isOpen, onClose }: UsersManagemen
           <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} onClick={(e) => e.stopPropagation()} className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl h-[90vh] overflow-hidden flex flex-col">
             <AdminPanelErrorBoundary fallbackTitle="Erreur dans la gestion des utilisateurs">
               {/* Header */}
-              <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6 text-white relative">
+              <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-4 md:p-6 text-white relative">
                 <div className="flex items-center justify-between gap-4 pr-12">
                   <div className="flex items-center gap-3">
                     <Users className="w-8 h-8" />
                     <div>
-                      <h2 className="text-2xl font-bold">Gestion des Utilisateurs</h2>
+                      <h2 className="text-xl md:text-2xl font-bold">Gestion des Utilisateurs</h2>
                       <p className="text-purple-100 text-sm">Gérer tous les utilisateurs de la plateforme</p>
                     </div>
                   </div>
@@ -124,43 +124,52 @@ export default function UsersManagementPanel({ isOpen, onClose }: UsersManagemen
                 </div>
               )}
 
-              {/* Users List */}
-              <div className="flex-1 overflow-y-auto">
-                {loading && users.length === 0 ? (
-                  <AdminPanelSkeleton count={5} type="table" />
-                ) : users.length === 0 ? (
-                  <div className="text-center py-12"><p>Aucun utilisateur trouvé.</p></div>
-                ) : (
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rôle(s)</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date d'inscription</th>
-                        <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {users.map(user => (
-                        <tr key={user.id}>
-                          <td className="px-6 py-4 whitespace-nowrap"><div className="flex items-center"><div className="text-sm font-medium text-gray-900">{user.name}</div><div className="text-sm text-gray-500 ml-2">({user.email})</div></div></td>
-                          <td className="px-6 py-4 whitespace-nowrap"><div className="flex flex-wrap gap-1">{user.roles.map(role => (<span key={role} className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">{role}</span>))}</div></td>
-                          <td className="px-6 py-4 whitespace-nowrap"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{user.isActive ? 'Actif' : 'Suspendu'}</span></td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(user.createdAt).toLocaleDateString('fr-FR')}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button
-                              onClick={() => setEditingUser(user)}
-                              className="text-indigo-600 hover:text-indigo-900 font-medium"
-                            >
-                              Modifier
-                            </button>
-                          </td>
+              {/* Users List with Top Scrollbar (Rotation Trick) */}
+              <div
+                className="flex-1 overflow-auto pb-4 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
+                style={{
+                  scrollbarColor: '#9CA3AF #F3F4F6',
+                  scrollbarWidth: 'auto',
+                  transform: 'rotateX(180deg)' // Flip container to move scrollbar to top
+                }}
+              >
+                <div style={{ transform: 'rotateX(180deg)' }}> {/* Flip content back */}
+                  {loading && users.length === 0 ? (
+                    <AdminPanelSkeleton count={5} type="table" />
+                  ) : users.length === 0 ? (
+                    <div className="text-center py-12"><p>Aucun utilisateur trouvé.</p></div>
+                  ) : (
+                    <table className="min-w-[800px] divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rôle(s)</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date d'inscription</th>
+                          <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {users.map(user => (
+                          <tr key={user.id}>
+                            <td className="px-6 py-4 whitespace-nowrap"><div className="flex items-center"><div className="text-sm font-medium text-gray-900">{user.name}</div><div className="text-sm text-gray-500 ml-2">({user.email})</div></div></td>
+                            <td className="px-6 py-4 whitespace-nowrap"><div className="flex flex-wrap gap-1">{user.roles.map(role => (<span key={role} className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">{role}</span>))}</div></td>
+                            <td className="px-6 py-4 whitespace-nowrap"><span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{user.isActive ? 'Actif' : 'Suspendu'}</span></td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(user.createdAt).toLocaleDateString('fr-FR')}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <button
+                                onClick={() => setEditingUser(user)}
+                                className="text-indigo-600 hover:text-indigo-900 font-medium"
+                              >
+                                Modifier
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
               </div>
 
               {/* Pagination */}

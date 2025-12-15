@@ -75,17 +75,17 @@ export default function SuperAdminPage() {
   const suspendedBarsCount = stats.bars_count - stats.active_bars_count;
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-6 flex justify-between items-center">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8"> {/* Added padding */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4"> {/* Made header responsive */}
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-3"> {/* Increased font size on md */}
             <ShieldCheck className="w-7 h-7 text-purple-600" />
             Dashboard Super Admin
           </h1>
-          <p className="text-gray-500 mt-1">Vue d'ensemble de BarTender Pro</p>
+          <p className="text-gray-500 mt-1 text-sm md:text-base">Vue d'overview de BarTender Pro</p> {/* Increased font size on md */}
         </div>
         {/* Filtre de période - DRY: Utiliser configuration centralisée */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap justify-center sm:justify-end gap-2"> {/* Made buttons wrap on small screens */}
           {SALES_HISTORY_FILTERS.map(timeRange => {
             const config = TIME_RANGE_CONFIGS[timeRange];
             return (
@@ -109,7 +109,7 @@ export default function SuperAdminPage() {
       <div className="space-y-6">
         {/* Section 1: Statistiques Générales */}
         <section>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"> {/* Made grid more responsive */}
             <DashboardStatCard
               icon={DollarSign}
               label="Chiffre d'affaires"
@@ -144,7 +144,7 @@ export default function SuperAdminPage() {
             <Building2 className="w-5 h-5 text-purple-600" />
             <h3 className="text-lg font-bold text-gray-900">Statistiques des Bars</h3>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4"> {/* Made grid more responsive */}
             <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 shadow-sm border border-purple-200">
               <div className="flex items-start gap-3">
                 <Building2 className="w-6 h-6 text-purple-600 flex-shrink-0" />

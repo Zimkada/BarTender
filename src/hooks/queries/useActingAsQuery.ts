@@ -1,4 +1,5 @@
 import { ProductsService } from '../../services/supabase/products.service';
+import { BarService } from '../../services/supabase/bar.service';
 import { useApiQuery } from './useApiQuery';
 import { useActingAs } from '../../context/ActingAsContext';
 import { ProxyAdminService } from '../../services/supabase/proxy-admin.service';
@@ -15,10 +16,10 @@ import type { Product } from '../../types';
  * Intelligently routes product queries based on acting-as state
  */
 export const useProductsWithActingAs = (barId: string | undefined) => {
-  const { actingAs } = useActingAs();
+  const { actingAs, isActingAs } = useActingAs();
 
   // When acting as another user, fetch with proxy admin RPC
-  if (actingAs.isActive && actingAs.userId && actingAs.barId) {
+  if (isActingAs() && actingAs.userId && actingAs.barId) {
     return useApiQuery(
       ['products-proxy', barId, actingAs.userId],
       async () => {
@@ -71,10 +72,10 @@ export const useProductsWithActingAs = (barId: string | undefined) => {
  * Intelligently routes bar members queries based on acting-as state
  */
 export const useBarMembersWithActingAs = (barId: string | undefined) => {
-  const { actingAs } = useActingAs();
+  const { actingAs, isActingAs } = useActingAs();
 
   // When acting as another user, fetch with proxy admin RPC
-  if (actingAs.isActive && actingAs.userId && actingAs.barId) {
+  if (isActingAs() && actingAs.userId && actingAs.barId) {
     return useApiQuery(
       ['members-proxy', barId, actingAs.userId],
       async () => {
@@ -91,8 +92,9 @@ export const useBarMembersWithActingAs = (barId: string | undefined) => {
     ['members', barId],
     async (impersonatingUserId) => {
       if (!barId) return [];
-      // Use normal service when not in acting-as mode
-      return [];
+      // Use normal service when not in acting-as mode (FIXED)
+      const members = await BarService.getMembers(barId);
+      return members || [];
     },
     { enabled: !!barId }
   );
@@ -103,10 +105,10 @@ export const useBarMembersWithActingAs = (barId: string | undefined) => {
  * Intelligently routes user bars queries based on acting-as state
  */
 export const useUserBarsWithActingAs = () => {
-  const { actingAs } = useActingAs();
+  const { actingAs, isActingAs } = useActingAs();
 
   // When acting as another user, fetch with proxy admin RPC
-  if (actingAs.isActive && actingAs.userId) {
+  if (isActingAs() && actingAs.userId) {
     return useApiQuery(
       ['bars-proxy', actingAs.userId],
       async () => {
@@ -120,6 +122,8 @@ export const useUserBarsWithActingAs = () => {
   return useApiQuery(
     ['bars'],
     async () => {
+      // Logic for current user bars can be added here if needed
+      // Currently application seems to use global state for this
       return [];
     }
   );
