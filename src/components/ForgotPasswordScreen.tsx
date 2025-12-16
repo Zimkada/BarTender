@@ -77,6 +77,7 @@ function ForgotPasswordScreen({ onBackToLogin }: { onBackToLogin: () => void }) 
           {success && (
             <Alert show={!!success} variant="success">
               {success}
+              <p className="mt-2 text-xs text-gray-700">En cas de difficulté, veuillez contacter votre administrateur.</p>
             </Alert>
           )}
 

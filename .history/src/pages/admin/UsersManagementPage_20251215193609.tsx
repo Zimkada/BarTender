@@ -99,18 +99,18 @@ export default function UsersManagementPage() {
     <div className="max-w-6xl mx-auto">
       <AdminPanelErrorBoundary fallbackTitle="Erreur dans la gestion des utilisateurs">
         {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-2 py-3 sm:p-4 md:p-6 text-white rounded-t-2xl">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-4 min-w-0">
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-3 sm:p-4 md:p-6 text-white rounded-t-2xl">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              <Users className="w-6 sm:w-8 h-6 sm:h-8" />
+              <Users className="w-6 sm:w-8 h-6 sm:h-8 flex-shrink-0" />
               <div className="min-w-0">
-                <h1 className="text-lg sm:text-xl md:text-2xl font-bold">Gestion des Utilisateurs</h1>
-                <p className="text-purple-100 text-xs sm:text-sm">Gérer tous les utilisateurs de la plateforme</p>
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold truncate">Gestion des Utilisateurs</h1>
+                <p className="text-purple-100 text-xs sm:text-sm truncate">Gérer tous les utilisateurs de la plateforme</p>
               </div>
             </div>
             <button
               onClick={() => setShowPromotersForm(true)}
-              className="px-3 sm:px-4 py-2 bg-white text-purple-600 rounded-lg hover:bg-purple-50 flex items-center gap-2 transition-colors font-semibold text-xs sm:text-sm"
+              className="px-3 sm:px-4 py-2 bg-white text-purple-600 rounded-lg hover:bg-purple-50 flex items-center gap-2 transition-colors font-semibold text-xs sm:text-sm whitespace-nowrap flex-shrink-0"
             >
               <UserPlus className="w-4 h-4" />
               <span className="hidden sm:inline">Ajouter Promoteur</span>
@@ -120,9 +120,9 @@ export default function UsersManagementPage() {
         </div>
 
         {/* Filters */}
-        <div className="px-2 py-4 md:p-6 border-b bg-white">
+        <div className="p-4 md:p-6 border-b bg-white">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2 min-w-0">
+            <div className="md:col-span-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
@@ -130,7 +130,7 @@ export default function UsersManagementPage() {
                   placeholder="Rechercher par nom, email, téléphone, nom du bar..." // Updated placeholder
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 min-w-0"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                 />
               </div>
             </div>
@@ -146,13 +146,12 @@ export default function UsersManagementPage() {
                   ]}
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value as UserRole | 'all')}
-                  className="pl-10 min-w-0"
+                  className="pl-10"
                 />
               </div>
             </div>
           </div>
         </div>
-    
 
         {/* Error Alert */}
         {error && (
@@ -181,13 +180,13 @@ export default function UsersManagementPage() {
             </div>
           ) : (
             <div className="scrollbar-bottom">
-              <table className="w-full divide-y divide-gray-200">
+              <table className="w-full min-w-[600px] divide-y divide-gray-200">
                 <thead className="bg-white">
                   <tr>
-                    <th scope="col" className="px-1 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Nom
                     </th>
-                    <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                    <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Rôle(s)
                     </th>
                     <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap hidden md:table-cell">
@@ -199,7 +198,7 @@ export default function UsersManagementPage() {
                     <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
                       Date d'inscription
                     </th>
-                    <th scope="col" className="relative px-1 sm:px-4 md:px-6 py-3 w-auto md:w-28 whitespace-nowrap">
+                    <th scope="col" className="relative px-2 sm:px-4 md:px-6 py-3 w-auto md:w-28 whitespace-nowrap">
                       <span className="sr-only">Actions</span>
                     </th>
                   </tr>
@@ -207,15 +206,13 @@ export default function UsersManagementPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {users.map(user => (
                     <tr key={user.id}>
-                      <td className="px-1 sm:px-4 md:px-6 py-4">
-                        <div className="flex items-center flex-wrap">
-                          <div className="text-sm font-medium text-gray-900 w-full md:w-auto">
-                            {user.name}
-                          </div>
-                          <div className="text-sm text-gray-500 ml-2 hidden md:inline">({user.email})</div>
+                      <td className="px-2 sm:px-4 md:px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                          <div className="text-sm text-gray-500 ml-2 hidden sm:inline">({user.email})</div>
                         </div>
                       </td>
-                      <td className="px-2 sm:px-4 md:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
+                      <td className="px-2 sm:px-4 md:px-6 py-4 whitespace-nowrap">
                         <div className="flex flex-wrap gap-1">
                           {user.roles.map(role => (
                             <span
@@ -255,7 +252,7 @@ export default function UsersManagementPage() {
                       <td className="px-2 sm:px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
                         {new Date(user.createdAt).toLocaleDateString('fr-FR')}
                       </td>
-                      <td className="px-1 sm:px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium w-auto md:w-28">
+                      <td className="px-2 sm:px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium w-auto md:w-28">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => setEditingUser(user)}
@@ -278,10 +275,9 @@ export default function UsersManagementPage() {
             </div>
           )}
         </div>
-    
 
         {/* Pagination */}
-        <div className="px-2 py-3 sm:p-4 border-t flex-shrink-0 bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 rounded-b-2xl">
+        <div className="p-3 sm:p-4 border-t flex-shrink-0 bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 rounded-b-2xl">
           <p className="text-xs sm:text-sm text-gray-600">
             Page <span className="font-semibold">{currentPage}</span> sur{' '}
             <span className="font-semibold">{totalPages}</span> ({totalCount} utilisateurs)
