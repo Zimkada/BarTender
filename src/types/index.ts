@@ -134,6 +134,23 @@ export interface GlobalProduct {
   createdAt: Date;
 }
 
+// ===== AUDIT LOG POUR CATALOGUE GLOBAL =====
+export type GlobalCatalogAuditAction = 'CREATE' | 'UPDATE' | 'DELETE';
+export type GlobalCatalogAuditEntityType = 'PRODUCT' | 'CATEGORY';
+
+export interface GlobalCatalogAuditLog {
+  id: string;
+  action: GlobalCatalogAuditAction;
+  entityType: GlobalCatalogAuditEntityType;
+  entityId: string;
+  entityName: string;
+  oldValues?: Record<string, any>;
+  newValues?: Record<string, any>;
+  modifiedBy: string; // User ID
+  modifiedByName?: string; // User name for display
+  createdAt: Date;
+}
+
 // ===== COMPTABILITÉ =====
 export type TransactionType =
   | 'sale'           // Vente

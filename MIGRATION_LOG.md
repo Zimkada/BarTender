@@ -74,3 +74,16 @@
 - Erreur levée au superadmin: "Cette catégorie ne peut pas être supprimée car elle est utilisée par X produits".
 - Protection contre l'orphelinage silencieux de produits globaux.
 ---
+
+## 20251216020000_create_global_catalog_audit_log.sql (2025-12-16 02:00:00)
+
+**Description :** Création d'un système complet d'audit logging pour tracer toutes les modifications du catalogue global (produits et catégories).
+**Domaine :** Catalogue Global (Audit / Conformité)
+**Impact :**
+- Création de la table `global_catalog_audit_log` avec enregistrement de: action (CREATE/UPDATE/DELETE), entity_type (PRODUCT/CATEGORY), old/new values (JSONB), utilisateur, timestamp.
+- Création de deux triggers (`trg_audit_global_products` et `trg_audit_global_categories`) pour capturer automatiquement toutes les modifications.
+- RLS Policy: Seuls les `super_admin` peuvent consulter l'audit log.
+- Indexes sur entity_type, created_at, modified_by pour requêtes efficaces.
+- Permet la traçabilité complète: qui a changé quoi, quand, et l'ancienne/nouvelle valeur.
+- Utile pour: compliance, debugging, rollback manual, détection d'anomalies.
+---
