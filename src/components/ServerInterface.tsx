@@ -6,7 +6,8 @@ import { PendingOrders } from './PendingOrders';
 import { useAppContext } from '../context/AppContext';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { useAuth } from '../context/AuthContext';
-import { CartItem, Product } from '../types';
+import { useBarContext } from '../context/BarContext'; // NEW
+import { CartItem, Product, Category } from '../types'; // NEW Category
 import { Users, Gift } from 'lucide-react';
 import { PromotionsManager } from './promotions/PromotionsManager';
 import { PaymentMethod } from './cart/PaymentMethodSelector';
@@ -14,6 +15,10 @@ import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Label } from './ui/Label';
 import { Card } from './ui/Card';
+import { useFeedback } from '../hooks/useFeedback'; // NEW
+import { CategoriesService } from '../services/supabase/categories.service'; // NEW
+import { ConfirmModal } from './ui/Modal'; // NEW
+import { CategoryModal } from './CategoryModal'; // NEW
 
 interface ServerInterfaceProps {
   onSwitchToManager: () => void;
@@ -26,12 +31,103 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
     getProductStockInfo
   } = useStockManagement();
   const { currentSession } = useAuth();
+  const { currentBar, loadBarCategories } = useBarContext();
 
   const [activeCategory, setActiveCategory] = useState(categories[0]?.id || '');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [tableNumber, setTableNumber] = useState('');
   const [showPendingOrders, setShowPendingOrders] = useState(false);
   const [showPromotionsManager, setShowPromotionsManager] = useState(false);
+
+  // States for Category Management
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [deleteCategoryModalOpen, setDeleteCategoryModalOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+
+  // Callback to refresh categories
+  const handleCategoriesUpdated = () => {
+    loadBarCategories(); // Trigger refresh of categories from BarContext
+  };
+
+  const handleOpenAddCategoryModal = () => {
+    setEditingCategory(null);
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleEditCategory = (category: Category) => {
+    setEditingCategory(category);
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleDeleteCategory = (category: Category) => {
+    setCategoryToDelete(category);
+    setDeleteCategoryModalOpen(true);
+  };
+
+  const handleSaveCategory = async (catData: Omit<Category, 'id' | 'createdAt' | 'barId'>) => {
+    if (!currentBar?.id) {
+      showError("Bar non sélectionné.");
+      return;
+    }
+    try {
+      if (editingCategory) {
+        // Update existing custom category
+        await CategoriesService.updateCustomCategory(editingCategory.id, {
+          name: catData.name,
+          color: catData.color,
+        });
+        showSuccess("Catégorie mise à jour.");
+      } else {
+        // Create new custom category
+        await CategoriesService.createCustomCategory(currentBar.id, {
+          name: catData.name,
+          color: catData.color,
+        });
+        showSuccess("Catégorie créée.");
+      }
+      setIsCategoryModalOpen(false);
+      setEditingCategory(null);
+      handleCategoriesUpdated(); // Trigger refresh
+    } catch (error: any) {
+      showError(error.message);
+    }
+  };
+
+  const handleLinkGlobalCategory = async (globalCategoryId: string) => {
+    if (!currentBar?.id) {
+      showError("Bar non sélectionné.");
+      return;
+    }
+    try {
+      await CategoriesService.linkGlobalCategory(currentBar.id, globalCategoryId);
+      showSuccess("Catégorie globale liée.");
+      setIsCategoryModalOpen(false);
+      setEditingCategory(null);
+      handleCategoriesUpdated(); // Trigger refresh
+    } catch (error: any) {
+      showError(error.message);
+    }
+  };
+
+
+  const handleConfirmDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+    try {
+      await CategoriesService.deleteCategory(categoryToDelete.id);
+      showSuccess("Catégorie supprimée.");
+      setDeleteCategoryModalOpen(false);
+      setCategoryToDelete(null);
+      handleCategoriesUpdated(); // Trigger refresh
+    } catch (error: any) {
+      const errorMessage = error.message?.toLowerCase();
+      if (errorMessage.includes('restrict') || errorMessage.includes('constraint')) {
+        showError('Cette catégorie ne peut pas être supprimée car elle est utilisée par des produits. Supprimez d\'abord les produits qui la référencent ou transférez-les vers une autre catégorie.');
+      } else {
+        showError(error.message);
+      }
+    }
+  };
 
   const currentProducts = useMemo(() => {
     return products.filter(product => product.categoryId === activeCategory);
@@ -191,6 +287,9 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
           categories={categories}
           activeCategory={activeCategory}
           onCategoryChange={setActiveCategory}
+          onAddCategory={handleOpenAddCategoryModal}
+          onEditCategory={handleEditCategory}
+          onDeleteCategory={handleDeleteCategory}
         />
 
         <ProductGrid
@@ -216,6 +315,35 @@ export function ServerInterface({ onSwitchToManager }: ServerInterfaceProps) {
       <PromotionsManager
         isOpen={showPromotionsManager}
         onClose={() => setShowPromotionsManager(false)}
+      />
+
+      {/* Category Modal for Add/Edit */}
+      <CategoryModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => {
+          setIsCategoryModalOpen(false);
+          setEditingCategory(null);
+        }}
+        onSave={handleSaveCategory}
+        onLinkGlobal={handleLinkGlobalCategory}
+        category={editingCategory || undefined}
+      />
+
+      {/* Confirm Modal for Delete Category */}
+      <ConfirmModal
+        open={deleteCategoryModalOpen}
+        onClose={() => {
+          setDeleteCategoryModalOpen(false);
+          setCategoryToDelete(null);
+        }}
+        onConfirm={handleConfirmDeleteCategory}
+        title="Supprimer la catégorie"
+        description={`Êtes-vous sûr de vouloir supprimer la catégorie "${categoryToDelete?.name}" ?`}
+        requireConfirmation={true}
+        confirmationValue={categoryToDelete?.name || ''}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        variant="danger"
       />
     </div>
   );

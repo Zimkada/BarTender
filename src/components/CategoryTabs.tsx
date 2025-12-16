@@ -1,9 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Plus, Edit, Trash2 } from 'lucide-react';
+import { cva, type VariantProps } from 'class-variance-authority';
+import { cn } from '../lib/utils';
 import { Category } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { Button } from './ui/Button';
 
 interface CategoryTabsProps {
   categories: Category[];
@@ -11,7 +14,7 @@ interface CategoryTabsProps {
   onCategoryChange: (categoryId: string) => void;
   onAddCategory?: () => void;
   onEditCategory?: (category: Category) => void;
-  onDeleteCategory?: (categoryId: string) => void;
+  onDeleteCategory?: (category: Category) => void;
   isLoading?: boolean; // Nouveau: pour masquer le bouton "Ajouter" pendant le chargement
 }
 
@@ -24,11 +27,11 @@ export function CategoryTabs({
   onDeleteCategory,
   isLoading = false
 }: CategoryTabsProps) {
-  const { hasPermission } = useAuth(); // Removed currentSession
+  const { hasPermission } = useAuth();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; category: Category } | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout>>();
 
-  const canEdit = hasPermission('canEditProducts') && !!onEditCategory; // Removed console.log
+  const canEdit = hasPermission('canEditProducts') && !!onEditCategory;
 
   const handleMouseDown = (e: React.MouseEvent<HTMLButtonElement>, category: Category) => {
     if (!canEdit) return;
@@ -139,28 +142,32 @@ export function CategoryTabs({
               </div>
               <div className='py-1'>
                 {onEditCategory && (
-                  <button
+                  <Button
                     onClick={() => {
                       onEditCategory(contextMenu.category);
                       setContextMenu(null);
                     }}
-                    className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-amber-50 hover:text-amber-700 rounded-md transition-colors"
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start gap-3 text-gray-700 hover:text-amber-700"
                   >
                     <Edit size={16} />
                     Modifier
-                  </button>
+                  </Button>
                 )}
                 {hasPermission('canDeleteProducts') && onDeleteCategory && (
-                  <button
+                  <Button
                     onClick={() => {
-                      onDeleteCategory(contextMenu.category.id);
+                      onDeleteCategory(contextMenu.category);
                       setContextMenu(null);
                     }}
-                    className="w-full text-left flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start gap-3 text-red-600 hover:text-red-700"
                   >
                     <Trash2 size={16} />
                     Supprimer
-                  </button>
+                  </Button>
                 )}
               </div>
             </motion.div>

@@ -12,7 +12,6 @@ import {
   User, // Pour profil utilisateur
   Globe, // Pour catalogue global
   PlusCircle, // Added for "Add Product" button (ProductModal)
-  Edit, // Added for "Edit Category" button (CategoryModal)
   ShoppingCart, // Added for "Quick Sale" button
   Package, // ✅ FIX: Added for "Supply" button
 } from 'lucide-react';
@@ -203,29 +202,9 @@ export function Header({
               <div className="flex items-center gap-1 flex-shrink-0">
                 {/* ✅ Nouveau badge sync unifié */}
                 <SyncStatusBadge compact position="header" />
-                {/* NEW: Add buttons for common modals from header (Product, Category, QuickSale) */}
+                {/* NEW: Add buttons for common modals from header (QuickSale only on mobile) */}
                 {(currentSession?.role !== 'super_admin' || isAdminInImpersonation) && (
                   <>
-                    <Button
-                      onClick={onShowProductModal}
-                      variant="ghost"
-                      size="icon"
-                      className="p-1.5 bg-blue-500/90 rounded-lg text-white active:scale-95 transition-transform"
-                      aria-label="Ajouter Produit"
-                      title="Ajouter Produit"
-                    >
-                      <PlusCircle size={16} />
-                    </Button>
-                    <Button
-                      onClick={onShowCategoryModal}
-                      variant="ghost"
-                      size="icon"
-                      className="p-1.5 bg-green-500/90 rounded-lg text-white active:scale-95 transition-transform"
-                      aria-label="Gérer Catégories"
-                      title="Gérer Catégories"
-                    >
-                      <Edit size={16} />
-                    </Button>
                     <Button
                       onClick={onShowQuickSale}
                       variant="ghost"
@@ -350,16 +329,6 @@ export function Header({
                   title="Ajouter Produit"
                 >
                   <PlusCircle size={20} />
-                </Button>
-                <Button
-                  onClick={onShowCategoryModal}
-                  variant="ghost"
-                  size="icon"
-                  className="p-2 bg-green-500/90 rounded-lg text-white hover:bg-green-600/90 transition-colors"
-                  aria-label="Gérer Catégories"
-                  title="Gérer Catégories"
-                >
-                  <Edit size={20} />
                 </Button>
                 <Button
                   onClick={onShowQuickSale}

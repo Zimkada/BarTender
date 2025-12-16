@@ -3,18 +3,30 @@ import { useState } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
+import { useAuth } from '../context/AuthContext';
+import { useFeedback } from '../hooks/useFeedback';
 import { ProductGrid } from '../components/ProductGrid';
 import { CategoryFilter } from '../components/CategoryFilter';
 import { SearchBar } from '../components/common/SearchBar';
-import { Product } from '../types';
+import { CategoryModal } from '../components/CategoryModal';
+import { ConfirmModal } from '../components/ui/Modal';
+import { CategoriesService } from '../services/supabase/categories.service';
+import { Product, Category } from '../types';
 
 import { useFilteredProducts } from '../hooks/useFilteredProducts';
 
 export function HomePage() {
   const { products, categories, addToCart } = useAppContext();
   const { currentBar } = useBarContext();
+  const { showSuccess, showError } = useFeedback();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Category management states
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [deleteCategoryModalOpen, setDeleteCategoryModalOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
 
   // Utilisation du hook centralisé pour le filtrage
   const filteredProducts = useFilteredProducts({
@@ -23,6 +35,82 @@ export function HomePage() {
     selectedCategory,
     onlyInStock: true
   });
+
+  const handleCategoriesUpdated = () => {
+    // AppContext will automatically refresh categories on mount
+    // or when the bar is switched
+  };
+
+  const handleEditCategory = (category: Category) => {
+    setEditingCategory(category);
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleDeleteCategory = (category: Category) => {
+    setCategoryToDelete(category);
+    setDeleteCategoryModalOpen(true);
+  };
+
+  const handleSaveCategory = async (catData: Omit<Category, 'id' | 'createdAt' | 'barId'>) => {
+    if (!currentBar?.id) {
+      showError("Bar non sélectionné.");
+      return;
+    }
+    try {
+      if (editingCategory) {
+        await CategoriesService.updateCustomCategory(editingCategory.id, {
+          name: catData.name,
+          color: catData.color,
+        });
+        showSuccess("Catégorie mise à jour.");
+      } else {
+        await CategoriesService.createCustomCategory(currentBar.id, {
+          name: catData.name,
+          color: catData.color,
+        });
+        showSuccess("Catégorie créée.");
+      }
+      setIsCategoryModalOpen(false);
+      setEditingCategory(null);
+      handleCategoriesUpdated();
+    } catch (error: any) {
+      showError(error.message);
+    }
+  };
+
+  const handleLinkGlobalCategory = async (globalCategoryId: string) => {
+    if (!currentBar?.id) {
+      showError("Bar non sélectionné.");
+      return;
+    }
+    try {
+      await CategoriesService.linkGlobalCategory(currentBar.id, globalCategoryId);
+      showSuccess("Catégorie globale liée.");
+      setIsCategoryModalOpen(false);
+      setEditingCategory(null);
+      handleCategoriesUpdated();
+    } catch (error: any) {
+      showError(error.message);
+    }
+  };
+
+  const handleConfirmDeleteCategory = async () => {
+    if (!categoryToDelete) return;
+    try {
+      await CategoriesService.deleteCategory(categoryToDelete.id);
+      showSuccess("Catégorie supprimée.");
+      setDeleteCategoryModalOpen(false);
+      setCategoryToDelete(null);
+      handleCategoriesUpdated();
+    } catch (error: any) {
+      const errorMessage = error.message?.toLowerCase();
+      if (errorMessage.includes('restrict') || errorMessage.includes('constraint')) {
+        showError('Cette catégorie ne peut pas être supprimée car elle est utilisée par des produits. Supprimez d\'abord les produits qui la référencent ou transférez-les vers une autre catégorie.');
+      } else {
+        showError(error.message);
+      }
+    }
+  };
 
   const handleAddToCart = (product: Product) => {
     addToCart(product);
@@ -65,6 +153,12 @@ export function HomePage() {
         categories={categories}
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
+        onEditCategory={handleEditCategory}
+        onDeleteCategory={handleDeleteCategory}
+        onAddCategory={() => {
+          setEditingCategory(null);
+          setIsCategoryModalOpen(true);
+        }}
         productCounts={products.reduce((acc, p) => {
           acc[p.categoryId] = (acc[p.categoryId] || 0) + 1;
           return acc;
@@ -83,6 +177,35 @@ export function HomePage() {
           }
         />
       </div>
+
+      {/* Category Modal for Add/Edit */}
+      <CategoryModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => {
+          setIsCategoryModalOpen(false);
+          setEditingCategory(null);
+        }}
+        onSave={handleSaveCategory}
+        onLinkGlobal={handleLinkGlobalCategory}
+        category={editingCategory || undefined}
+      />
+
+      {/* Confirm Modal for Delete Category */}
+      <ConfirmModal
+        open={deleteCategoryModalOpen}
+        onClose={() => {
+          setDeleteCategoryModalOpen(false);
+          setCategoryToDelete(null);
+        }}
+        onConfirm={handleConfirmDeleteCategory}
+        title="Supprimer la catégorie"
+        description={`Êtes-vous sûr de vouloir supprimer la catégorie "${categoryToDelete?.name}" ?`}
+        requireConfirmation={true}
+        confirmationValue={categoryToDelete?.name || ''}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        variant="danger"
+      />
     </div>
   );
 }
