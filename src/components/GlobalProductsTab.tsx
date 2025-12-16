@@ -12,6 +12,7 @@ import { Input } from './ui/Input';
 import { Select, SelectOption } from './ui/Select';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
 export function GlobalProductsTab() {
     const [products, setProducts] = useState<GlobalProduct[]>([]);
@@ -19,6 +20,8 @@ export function GlobalProductsTab() {
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState<GlobalProduct | null>(null);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [productToDelete, setProductToDelete] = useState<GlobalProduct | null>(null);
     const { showSuccess, showError } = useFeedback();
 
     // Filters & View Mode
@@ -144,11 +147,16 @@ export function GlobalProductsTab() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) return;
+    const handleDeleteClick = (product: GlobalProduct) => {
+        setProductToDelete(product);
+        setDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!productToDelete) return;
 
         try {
-            await ProductsService.deleteGlobalProduct(id);
+            await ProductsService.deleteGlobalProduct(productToDelete.id);
             showSuccess('Produit supprimé');
             loadData();
         } catch (error: any) {
@@ -241,7 +249,7 @@ export function GlobalProductsTab() {
                                             <Edit2 className="w-3.5 h-3.5" />
                                         </Button>
                                         <Button
-                                            onClick={() => handleDelete(product.id)}
+                                            onClick={() => handleDeleteClick(product)}
                                             variant="ghost"
                                             size="icon"
                                             className="p-1 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -283,7 +291,7 @@ export function GlobalProductsTab() {
                     <GlobalProductList
                         products={filteredProducts}
                         onEdit={handleOpenModal}
-                        onDelete={handleDelete}
+                        onDelete={handleDeleteClick}
                     />
                 )}
             </div>
@@ -419,6 +427,23 @@ export function GlobalProductsTab() {
                         </div>
                     </div>
                 </Modal>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {productToDelete && (
+                <ConfirmDeleteModal
+                    isOpen={deleteModalOpen}
+                    onClose={() => {
+                        setDeleteModalOpen(false);
+                        setProductToDelete(null);
+                    }}
+                    onConfirm={handleConfirmDelete}
+                    title="Supprimer le produit"
+                    message={`Êtes-vous sûr de vouloir supprimer ce produit global ?`}
+                    itemName={`${productToDelete.name} - ${productToDelete.volume}`}
+                    itemType="produit"
+                    variant="critical"
+                />
             )}
         </div>
     );

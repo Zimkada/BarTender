@@ -7,12 +7,15 @@ import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Label } from './ui/Label';
 import { Modal } from './ui/Modal';
+import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 
 export function GlobalCategoriesTab() {
     const [categories, setCategories] = useState<GlobalCategory[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<GlobalCategory | null>(null);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [categoryToDelete, setCategoryToDelete] = useState<GlobalCategory | null>(null);
     const { showSuccess, showError } = useFeedback();
 
     // Form state
@@ -92,11 +95,16 @@ export function GlobalCategoriesTab() {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!confirm('Êtes-vous sûr de vouloir supprimer cette catégorie ?')) return;
+    const handleDeleteClick = (category: GlobalCategory) => {
+        setCategoryToDelete(category);
+        setDeleteModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!categoryToDelete) return;
 
         try {
-            await CategoriesService.deleteGlobalCategory(id);
+            await CategoriesService.deleteGlobalCategory(categoryToDelete.id);
             showSuccess('Catégorie supprimée');
             loadCategories();
         } catch (error: any) {
@@ -167,7 +175,7 @@ export function GlobalCategoriesTab() {
                                     <Edit2 className="w-4 h-4" />
                                 </Button>
                                 <Button
-                                    onClick={() => handleDelete(category.id)}
+                                    onClick={() => handleDeleteClick(category)}
                                     variant="ghost"
                                     size="icon"
                                     className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -256,6 +264,23 @@ export function GlobalCategoriesTab() {
                                                         </div>
                                                     </div>                    </div>
                 </Modal>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {categoryToDelete && (
+                <ConfirmDeleteModal
+                    isOpen={deleteModalOpen}
+                    onClose={() => {
+                        setDeleteModalOpen(false);
+                        setCategoryToDelete(null);
+                    }}
+                    onConfirm={handleConfirmDelete}
+                    title="Supprimer la catégorie"
+                    message={`Êtes-vous sûr de vouloir supprimer cette catégorie ?`}
+                    itemName={categoryToDelete.name}
+                    itemType="catégorie"
+                    variant="critical"
+                />
             )}
         </div>
     );

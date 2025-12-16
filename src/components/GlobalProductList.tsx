@@ -9,7 +9,7 @@ import { Select, SelectOption } from './ui/Select';
 interface GlobalProductListProps {
     products: GlobalProduct[];
     onEdit: (product: GlobalProduct) => void;
-    onDelete: (id: string) => void;
+    onDelete: (product: GlobalProduct) => void;
 }
 
 type SortField = 'name' | 'category' | 'brand' | 'price';
@@ -209,7 +209,7 @@ export function GlobalProductList({ products, onEdit, onDelete }: GlobalProductL
                                                 <Edit2 size={16} />
                                             </Button>
                                             <Button
-                                                onClick={() => onDelete(product.id)}
+                                                onClick={() => onDelete(product)}
                                                 variant="ghost"
                                                 size="icon"
                                                 className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
