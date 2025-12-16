@@ -87,6 +87,7 @@ export class ProductsService {
       const { data, error } = await supabase
         .from('global_products')
         .select('*')
+        .eq('is_active', true)
         .order('category', { ascending: true })
         .order('name', { ascending: true });
 
@@ -125,6 +126,7 @@ export class ProductsService {
         .from('global_products')
         .select('*')
         .eq('category', category)
+        .eq('is_active', true)
         .order('name', { ascending: true });
 
       if (error) {
@@ -197,16 +199,20 @@ export class ProductsService {
   }
 
   /**
-   * Supprimer un produit global (Super Admin)
+   * Supprimer un produit global (Super Admin) - Soft delete
    */
   static async deleteGlobalProduct(productId: string): Promise<void> {
     try {
       const { error } = await supabase
         .from('global_products')
-        .delete()
+        .update({ is_active: false })
         .eq('id', productId);
 
       if (error) {
+        const errorMessage = error.message?.toLowerCase() || '';
+        if (errorMessage.includes('restrict') || errorMessage.includes('constraint')) {
+            throw new Error('Ce produit ne peut pas être supprimé car il est référencé ailleurs.');
+        }
         throw new Error('Erreur lors de la suppression du produit global');
       }
     } catch (error: any) {

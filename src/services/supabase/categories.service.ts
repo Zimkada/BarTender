@@ -198,6 +198,7 @@ export class CategoriesService {
             const { data, error } = await supabase
                 .from('global_categories')
                 .select('*')
+                .eq('is_active', true)
                 .order('order_index', { ascending: true })
                 .order('name', { ascending: true });
 

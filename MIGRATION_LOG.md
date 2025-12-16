@@ -169,3 +169,48 @@
   - Les produits custom sans image affichent le placeholder (NULL → null)
   - Les mises à jour d'images globales sont désormais visibles immédiatement pour tous les bars
 ---
+
+## 20251216080000_fix_supabase_query_syntax.sql (2025-12-16 08:00:00)
+
+**Description :** Correction de la syntaxe invalide des requêtes Supabase causant des erreurs 400 (Issues #14, #15).
+**Domaine :** Catalogue Global / Bug Fix
+**Impact :**
+- **Problème identifié (Issues #14, #15):** Syntaxe `.not('is_active', 'eq', false)` invalide en Supabase (cause erreur 400)
+- **Fonctions affectées:**
+  - `CategoriesService.getGlobalCategories()` ligne 201
+  - `ProductsService.getGlobalProducts()` ligne 90
+  - `ProductsService.getGlobalProductsByCategory()` ligne 129
+- **Conséquence:** Les catégories et produits supprimés (soft-deleted) réapparaissaient dans l'interface superadmin
+- **Solution appliquée:**
+  - Remplacement de `.not('is_active', 'eq', false)` par `.eq('is_active', true)`
+  - Syntaxe correcte Supabase : méthode `.not()` prend 2 paramètres max, pas 3
+- **Résultat:**
+  - Les catégories et produits soft-deleted ne s'affichent plus dans le catalogue global
+  - Requêtes Supabase correctement exécutées sans erreur 400
+  - Cohérence avec le système soft-delete implémenté en base de données
+---
+
+## 20251216090000_set_is_active_not_null.sql (2025-12-16 09:00:00)
+
+**Description :** Correction définitive de la nullabilité de is_active pour résoudre les erreurs de requêtes (Issue #16).
+**Domaine :** Catalogue Global / Intégrité des Données
+**Impact :**
+- **Problème identifié (Issue #16):** Colonnes `is_active` nullables sur `global_products` et `global_categories` causaient des erreurs lors des requêtes avec `.eq('is_active', true)`
+- **Tables affectées:**
+  - `global_products.is_active`
+  - `global_categories.is_active`
+- **Solution appliquée:**
+  - Ajout de `DEFAULT true` pour les futures insertions
+  - Migration des valeurs NULL vers `true` (par sécurité)
+  - Ajout de contrainte `NOT NULL`
+- **Code corrigé:**
+  - Rétablissement des filtres `.eq('is_active', true)` dans:
+    - `CategoriesService.getGlobalCategories()` ligne 201
+    - `ProductsService.getGlobalProducts()` ligne 90
+    - `ProductsService.getGlobalProductsByCategory()` ligne 129
+- **Résultat:**
+  - Requêtes Supabase fonctionnent correctement avec filtres is_active
+  - Catégories et produits soft-deleted ne s'affichent plus (filtrage actif)
+  - Intégrité garantie: tous les nouveaux enregistrements auront `is_active = true` par défaut
+  - Système soft-delete pleinement opérationnel et cohérent
+---

@@ -39,6 +39,7 @@ export interface SelectProps
   helperText?: string;
   label?: string;
   placeholder?: string;
+  leftIcon?: React.ReactNode;
 }
 
 const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
@@ -52,6 +53,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       helperText,
       label,
       placeholder,
+      leftIcon,
       id,
       ...props
     },
@@ -66,10 +68,18 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
 
     const select = (
       <div className="relative">
+        {leftIcon && (
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10">
+            {leftIcon}
+          </div>
+        )}
         <select
           id={selectId}
           ref={ref}
-          className={cn(selectVariants({ variant: effectiveVariant, size, className }))}
+          className={cn(
+            selectVariants({ variant: effectiveVariant, size, className }),
+            leftIcon && 'pl-10'
+          )}
           aria-invalid={hasError}
           aria-describedby={
             hasError ? errorId : helperText ? helperTextId : undefined
