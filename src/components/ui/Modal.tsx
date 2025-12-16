@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, AlertTriangle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Button } from './Button';
+import { Input } from './Input';
 
 export interface ModalProps {
   open: boolean;
@@ -192,6 +193,10 @@ export interface ConfirmModalProps {
   cancelText?: string;
   variant?: 'default' | 'danger';
   isLoading?: boolean;
+  // Double-check confirmation (optional)
+  requireConfirmation?: boolean;
+  confirmationValue?: string;
+  confirmationPlaceholder?: string;
 }
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -204,14 +209,29 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   cancelText = 'Annuler',
   variant = 'default',
   isLoading = false,
+  requireConfirmation = false,
+  confirmationValue = '',
+  confirmationPlaceholder = '',
 }) => {
+  const [inputValue, setInputValue] = React.useState('');
+
+  React.useEffect(() => {
+    if (open) {
+      setInputValue('');
+    }
+  }, [open]);
+
+  const isConfirmDisabled =
+    isLoading ||
+    (requireConfirmation && inputValue !== confirmationValue);
+
   return (
     <Modal
       open={open}
       onClose={onClose}
       title={title}
       description={description}
-      size="sm"
+      size={requireConfirmation ? 'default' : 'sm'}
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={isLoading}>
@@ -220,14 +240,47 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           <Button
             variant={variant === 'danger' ? 'destructive' : 'default'}
             onClick={onConfirm}
-            disabled={isLoading}
+            disabled={isConfirmDisabled}
           >
             {confirmText}
           </Button>
         </>
       }
     >
-      {/* Empty body, description in header */}
+      {requireConfirmation && (
+        <div className="space-y-4">
+          {variant === 'danger' && (
+            <div className="flex gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-red-800">
+                <p className="font-semibold">Cette action est irréversible</p>
+                <p className="mt-1">Veuillez confirmer en saisissant la valeur ci-dessous.</p>
+              </div>
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tapez <span className="font-mono font-semibold">"{confirmationValue}"</span> pour confirmer:
+            </label>
+            <Input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              placeholder={confirmationPlaceholder || confirmationValue}
+              className="font-mono"
+              autoFocus
+              disabled={isLoading}
+            />
+            <p className="text-xs text-gray-500 mt-2">
+              {inputValue === confirmationValue ? (
+                <span className="text-green-600">✓ Confirmation valide</span>
+              ) : (
+                <span>Doit correspondre exactement</span>
+              )}
+            </p>
+          </div>
+        </div>
+      )}
     </Modal>
   );
 };

@@ -11,8 +11,7 @@ import { Label } from './ui/Label';
 import { Input } from './ui/Input';
 import { Select, SelectOption } from './ui/Select';
 import { Button } from './ui/Button';
-import { Modal } from './ui/Modal';
-import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import { Modal, ConfirmModal } from './ui/Modal';
 
 export function GlobalProductsTab() {
     const [products, setProducts] = useState<GlobalProduct[]>([]);
@@ -158,6 +157,8 @@ export function GlobalProductsTab() {
         try {
             await ProductsService.deleteGlobalProduct(productToDelete.id);
             showSuccess('Produit supprimé');
+            setDeleteModalOpen(false);
+            setProductToDelete(null);
             loadData();
         } catch (error: any) {
             showError(error.message);
@@ -430,21 +431,22 @@ export function GlobalProductsTab() {
             )}
 
             {/* Delete Confirmation Modal */}
-            {productToDelete && (
-                <ConfirmDeleteModal
-                    isOpen={deleteModalOpen}
-                    onClose={() => {
-                        setDeleteModalOpen(false);
-                        setProductToDelete(null);
-                    }}
-                    onConfirm={handleConfirmDelete}
-                    title="Supprimer le produit"
-                    message={`Êtes-vous sûr de vouloir supprimer ce produit global ?`}
-                    itemName={`${productToDelete.name} - ${productToDelete.volume}`}
-                    itemType="produit"
-                    variant="critical"
-                />
-            )}
+            <ConfirmModal
+                open={deleteModalOpen}
+                onClose={() => {
+                    setDeleteModalOpen(false);
+                    setProductToDelete(null);
+                }}
+                onConfirm={handleConfirmDelete}
+                title="Supprimer le produit"
+                description={`Êtes-vous sûr de vouloir supprimer ce produit global ?\n\n${productToDelete?.name} - ${productToDelete?.volume}`}
+                requireConfirmation={true}
+                confirmationValue={productToDelete?.name || ''}
+                confirmationPlaceholder={productToDelete?.name}
+                confirmText="Supprimer"
+                cancelText="Annuler"
+                variant="danger"
+            />
         </div>
     );
 }

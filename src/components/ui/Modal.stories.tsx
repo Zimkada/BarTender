@@ -238,6 +238,38 @@ export const ConfirmModalDanger: Story = {
   },
 };
 
+// Confirm Modal with Double-Check
+export const ConfirmModalWithDoubleCheck: Story = {
+  render: () => {
+    const [open, setOpen] = useState(false);
+
+    return (
+      <>
+        <Button variant="destructive" onClick={() => setOpen(true)}>
+          <Trash2 size={18} />
+          Delete with Confirmation
+        </Button>
+        <ConfirmModal
+          open={open}
+          onClose={() => setOpen(false)}
+          onConfirm={() => {
+            console.log('Confirmed and Deleted!');
+            setOpen(false);
+          }}
+          title="Delete Product"
+          description="This action cannot be undone. This will permanently delete the product from your inventory."
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="danger"
+          requireConfirmation={true}
+          confirmationValue="DELETE"
+          confirmationPlaceholder='Type "DELETE" to confirm'
+        />
+      </>
+    );
+  },
+};
+
 // Real-world BarTender examples
 export const DeleteProductModal: Story = {
   render: () => {
@@ -462,6 +494,72 @@ export const InfoModal: Story = {
             </div>
           </div>
         </Modal>
+      </>
+    );
+  },
+};
+
+// Category deletion with double-check (BarTender example)
+export const DeleteCategoryModal: Story = {
+  render: () => {
+    const [open, setOpen] = useState(false);
+    const categoryName = "Bières";
+
+    return (
+      <>
+        <Button variant="destructive" onClick={() => setOpen(true)}>
+          <Trash2 size={18} />
+          Supprimer Catégorie
+        </Button>
+        <ConfirmModal
+          open={open}
+          onClose={() => setOpen(false)}
+          onConfirm={() => {
+            console.log('Category deleted!');
+            setOpen(false);
+          }}
+          title="Supprimer la catégorie"
+          description="Êtes-vous sûr de vouloir supprimer cette catégorie ?"
+          confirmText="Supprimer"
+          cancelText="Annuler"
+          variant="danger"
+          requireConfirmation={true}
+          confirmationValue={categoryName}
+          confirmationPlaceholder={categoryName}
+        />
+      </>
+    );
+  },
+};
+
+// Product deletion with double-check (BarTender example)
+export const DeleteProductWithDoubleCheck: Story = {
+  render: () => {
+    const [open, setOpen] = useState(false);
+    const productName = "Heineken";
+
+    return (
+      <>
+        <Button variant="destructive" onClick={() => setOpen(true)}>
+          <Trash2 size={18} />
+          Supprimer Produit
+        </Button>
+        <ConfirmModal
+          open={open}
+          onClose={() => setOpen(false)}
+          onConfirm={() => {
+            console.log('Product deleted!');
+            setOpen(false);
+          }}
+          title="Supprimer le produit"
+          description={`Êtes-vous sûr de vouloir supprimer ce produit global ?\n\n${productName} - 33cl`}
+          confirmText="Supprimer"
+          cancelText="Annuler"
+          variant="danger"
+          requireConfirmation={true}
+          confirmationValue={productName}
+          confirmationPlaceholder={productName}
+        />
       </>
     );
   },

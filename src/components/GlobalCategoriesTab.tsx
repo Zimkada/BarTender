@@ -6,8 +6,7 @@ import { useFeedback } from '../hooks/useFeedback';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Label } from './ui/Label';
-import { Modal } from './ui/Modal';
-import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import { Modal, ConfirmModal } from './ui/Modal';
 
 export function GlobalCategoriesTab() {
     const [categories, setCategories] = useState<GlobalCategory[]>([]);
@@ -106,6 +105,8 @@ export function GlobalCategoriesTab() {
         try {
             await CategoriesService.deleteGlobalCategory(categoryToDelete.id);
             showSuccess('Catégorie supprimée');
+            setDeleteModalOpen(false);
+            setCategoryToDelete(null);
             loadCategories();
         } catch (error: any) {
             // Check if error is due to RESTRICT constraint (products using this category)
@@ -267,21 +268,22 @@ export function GlobalCategoriesTab() {
             )}
 
             {/* Delete Confirmation Modal */}
-            {categoryToDelete && (
-                <ConfirmDeleteModal
-                    isOpen={deleteModalOpen}
-                    onClose={() => {
-                        setDeleteModalOpen(false);
-                        setCategoryToDelete(null);
-                    }}
-                    onConfirm={handleConfirmDelete}
-                    title="Supprimer la catégorie"
-                    message={`Êtes-vous sûr de vouloir supprimer cette catégorie ?`}
-                    itemName={categoryToDelete.name}
-                    itemType="catégorie"
-                    variant="critical"
-                />
-            )}
+            <ConfirmModal
+                open={deleteModalOpen}
+                onClose={() => {
+                    setDeleteModalOpen(false);
+                    setCategoryToDelete(null);
+                }}
+                onConfirm={handleConfirmDelete}
+                title="Supprimer la catégorie"
+                description="Êtes-vous sûr de vouloir supprimer cette catégorie ?"
+                requireConfirmation={true}
+                confirmationValue={categoryToDelete?.name || ''}
+                confirmationPlaceholder={categoryToDelete?.name}
+                confirmText="Supprimer"
+                cancelText="Annuler"
+                variant="danger"
+            />
         </div>
     );
 }
