@@ -63,3 +63,14 @@
 **Impact :**
 - La vue matérialisée `bar_ancillary_stats_mat` (top produits et nombre de membres) sera désormais automatiquement rafraîchie lors de l'exécution de la fonction `refresh_all_materialized_views()`.
 ---
+
+## 20251216010000_add_restrict_global_categories.sql (2025-12-16 01:00:00)
+
+**Description :** Ajout d'une contrainte RESTRICT au niveau de la base de données pour empêcher la suppression de catégories globales utilisées par des produits.
+**Domaine :** Catalogue Global (Intégrité des Données / Sécurité)
+**Impact :**
+- Création d'une contrainte de clé étrangère `fk_global_products_category` entre `global_products.category` et `global_categories.name`.
+- `ON DELETE RESTRICT` : La base de données rejette maintenant toute tentative de suppression d'une catégorie si des produits la référencent.
+- Erreur levée au superadmin: "Cette catégorie ne peut pas être supprimée car elle est utilisée par X produits".
+- Protection contre l'orphelinage silencieux de produits globaux.
+---
