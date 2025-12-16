@@ -111,3 +111,20 @@
 - Les triggers se déclencheront désormais sans erreur lors de CREATE/UPDATE/DELETE sur `global_products` et `global_categories`.
 - Les logs système (modified_by = all zeros UUID) peuvent être distingués des logs utilisateurs authentifiés.
 ---
+
+## 20251216050000_add_rls_to_global_products.sql (2025-12-16 05:00:00)
+
+**Description :** Correction CRITIQUE de la faille RLS bypass sur la table global_products.
+**Domaine :** Catalogue Global (Sécurité / RLS)
+**Impact :**
+- **Problème identifié (Issue #6 RLS Bypass):** Table `global_products` n'avait PAS RLS activée - n'importe quel utilisateur authentifié pouvait créer/modifier/supprimer tous les produits globaux!
+- **Solution appliquée:**
+  - Activation de RLS sur `global_products`
+  - 4 policies restrictives:
+    1. SELECT (READ): Tous les utilisateurs authentifiés peuvent LIRE les produits globaux
+    2. INSERT (CREATE): Seuls les `super_admin` peuvent créer des produits
+    3. UPDATE (MODIFY): Seuls les `super_admin` peuvent modifier des produits
+    4. DELETE: Seuls les `super_admin` peuvent supprimer des produits
+- **Résultat:** Protection complète par rôle - cohérente avec `global_categories` qui avait déjà RLS
+- **Vérification effectuée:** Toutes les tables critiques (bar_products, bar_categories, global_categories, global_catalog_audit_log) ont maintenant RLS activée et des policies appropriées.
+---
