@@ -178,6 +178,11 @@ export class CategoriesService {
                 .eq('id', categoryId);
 
             if (error) {
+                // Check if error is due to RESTRICT constraint (products using this category)
+                const errorMessage = error.message?.toLowerCase() || '';
+                if (errorMessage.includes('restrict') || errorMessage.includes('constraint') || errorMessage.includes('fk_bar_products_local_category')) {
+                    throw new Error('Cette catégorie ne peut pas être supprimée car elle est utilisée par des produits. Supprimez d\'abord les produits qui la référencent ou transférez-les vers une autre catégorie.');
+                }
                 throw new Error('Erreur lors de la suppression de la catégorie');
             }
         } catch (error: any) {
