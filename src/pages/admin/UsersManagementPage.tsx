@@ -172,7 +172,7 @@ export default function UsersManagementPage() {
         )}
 
         {/* Users List */}
-        <div className="bg-gray-50">
+        <div className="bg-gray-50 overflow-x-auto scrollbar-bottom max-w-none sm:w-screen">
           {loading && users.length === 0 ? (
             <AdminPanelSkeleton count={5} type="table" />
           ) : users.length === 0 ? (
@@ -180,8 +180,7 @@ export default function UsersManagementPage() {
               <p>Aucun utilisateur trouvé.</p>
             </div>
           ) : (
-            <div className="scrollbar-bottom">
-              <table className="w-full divide-y divide-gray-200">
+            <table className="w-full min-w-max divide-y divide-gray-200">
                 <thead className="bg-white">
                   <tr>
                     <th scope="col" className="px-1 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -208,11 +207,20 @@ export default function UsersManagementPage() {
                   {users.map(user => (
                     <tr key={user.id}>
                       <td className="px-1 sm:px-4 md:px-6 py-4">
-                        <div className="flex items-center flex-wrap">
-                          <div className="text-sm font-medium text-gray-900 w-full md:w-auto">
+                        <div className="flex flex-col gap-1">
+                          <div className="text-sm font-medium text-gray-900">
                             {user.name}
                           </div>
-                          <div className="text-sm text-gray-500 ml-2 hidden md:inline">({user.email})</div>
+                          <div className="text-xs text-gray-500 md:hidden">
+                            {(user as any).bars && (user as any).bars.length > 0
+                              ? (user as any).bars.map((bar: { name: string }, idx: number) => (
+                                  <span key={bar.name}>
+                                    {bar.name}{idx < (user as any).bars.length - 1 ? ', ' : ''}
+                                  </span>
+                                ))
+                              : 'Aucun bar'}
+                          </div>
+                          <div className="text-sm text-gray-500 hidden md:inline">({user.email})</div>
                         </div>
                       </td>
                       <td className="px-2 sm:px-4 md:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
@@ -275,7 +283,6 @@ export default function UsersManagementPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
           )}
         </div>
     

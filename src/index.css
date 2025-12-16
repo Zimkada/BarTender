@@ -48,4 +48,23 @@
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #9ca3af #f3f4f6;
+}
+
+.scrollbar-bottom::-webkit-scrollbar {
+  height: 8px;
+}
+
+.scrollbar-bottom::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+
+.scrollbar-bottom::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 4px;
+}
+
+.scrollbar-bottom::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
 }
