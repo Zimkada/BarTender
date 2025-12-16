@@ -128,3 +128,25 @@
 - **Résultat:** Protection complète par rôle - cohérente avec `global_categories` qui avait déjà RLS
 - **Vérification effectuée:** Toutes les tables critiques (bar_products, bar_categories, global_categories, global_catalog_audit_log) ont maintenant RLS activée et des policies appropriées.
 ---
+
+## 20251216060000_fix_cascade_and_null_constraints.sql (2025-12-16 06:00:00)
+
+**Description :** Correction des problèmes de cascade FK et de contraintes NULL manquantes (Issues #4, #7, #10).
+**Domaine :** Intégrité des Données / Sécurité
+**Impact :**
+- **Issue #4 - CASCADE Behavior:**
+  - Modification de la FK `bar_products.global_product_id → global_products.id`
+  - `ON DELETE NO ACTION` → `ON DELETE SET NULL`
+  - Quand un `global_product` est supprimé, les `bar_products` qui le référencent deviennent des produits locaux indépendants (global_product_id = NULL)
+  - Évite les orphelins silencieux avec FK cassées
+- **Issue #10 - NULL Safety:**
+  - Migration des `bar_categories.name` NULL vers noms uniques basés sur ID (`'Sans nom ' || SUBSTRING(id, 1, 8)`)
+  - Ajout contrainte `NOT NULL` sur `bar_categories.name`
+  - `global_products.created_by` reste NULLABLE (FK vers users.id, pas d'utilisateur système, NULL = legacy data)
+  - Garantit l'intégrité des noms de catégories
+- **Issue #7 - Soft-Delete (Code Application):**
+  - Modification de `CategoriesService.deleteGlobalCategory()` ligne 284-302
+  - Hard DELETE → Soft-delete (UPDATE `is_active = false`)
+  - Gestion d'erreur pour contrainte RESTRICT sur `fk_global_products_category`
+  - Cohérence avec `deleteCategory()` qui fait déjà du soft-delete
+---

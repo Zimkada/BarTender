@@ -279,16 +279,23 @@ export class CategoriesService {
     }
 
     /**
-     * Supprimer une catégorie globale (Super Admin)
+     * Supprimer une catégorie globale (Super Admin) - Soft delete
      */
     static async deleteGlobalCategory(id: string): Promise<void> {
         try {
             const { error } = await supabase
                 .from('global_categories')
-                .delete()
+                .update({ is_active: false } as any)
                 .eq('id', id);
 
-            if (error) throw error;
+            if (error) {
+                // Check if error is due to RESTRICT constraint (products using this category)
+                const errorMessage = error.message?.toLowerCase() || '';
+                if (errorMessage.includes('restrict') || errorMessage.includes('constraint') || errorMessage.includes('fk_global_products_category')) {
+                    throw new Error('Cette catégorie ne peut pas être supprimée car elle est utilisée par des produits globaux. Supprimez d\'abord les produits qui la référencent ou transférez-les vers une autre catégorie.');
+                }
+                throw new Error('Erreur lors de la suppression de la catégorie');
+            }
         } catch (error: any) {
             throw new Error(handleSupabaseError(error));
         }
