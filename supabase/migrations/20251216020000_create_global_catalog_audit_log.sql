@@ -20,9 +20,7 @@ CREATE TABLE global_catalog_audit_log (
   modified_by UUID NOT NULL REFERENCES users(id) ON DELETE SET NULL,
 
   -- When
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-  COMMENT ON CONSTRAINT global_catalog_audit_log_action_check IS 'Only CREATE, UPDATE, DELETE actions'
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Indexes for efficient querying
@@ -30,6 +28,7 @@ CREATE INDEX idx_global_catalog_audit_entity ON global_catalog_audit_log(entity_
 CREATE INDEX idx_global_catalog_audit_created ON global_catalog_audit_log(created_at DESC);
 CREATE INDEX idx_global_catalog_audit_user ON global_catalog_audit_log(modified_by);
 
+-- Comments after table creation
 COMMENT ON TABLE global_catalog_audit_log IS 'Audit trail for all global catalog modifications - used for compliance and debugging';
 COMMENT ON COLUMN global_catalog_audit_log.action IS 'Type of modification: CREATE (new), UPDATE (changed), DELETE (removed)';
 COMMENT ON COLUMN global_catalog_audit_log.entity_type IS 'What was modified: PRODUCT or CATEGORY';
