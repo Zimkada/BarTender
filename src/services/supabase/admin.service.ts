@@ -307,39 +307,34 @@ export class AdminService {
       const {
         page,
         limit,
-        searchQuery = '',
-        actionFilter = 'all',
-        entityFilter = 'all',
-        startDate = undefined,
-        endDate = undefined
+        searchQuery,
+        actionFilter,
+        entityFilter,
+        startDate,
+        endDate
       } = params;
 
-      const { data, error } = await (supabase
-        .from('global_catalog_audit_log')
-        .select('id, action, entity_type, entity_id, entity_name, old_values, new_values, modified_by, created_at') as any)
-        .gte('created_at', startDate ? `${startDate}T00:00:00Z` : undefined)
-        .lte('created_at', endDate ? `${endDate}T23:59:59Z` : undefined)
-        .eq(actionFilter && actionFilter !== 'all' ? 'action' : 'action', actionFilter !== 'all' ? actionFilter : undefined)
-        .eq(entityFilter && entityFilter !== 'all' ? 'entity_type' : 'entity_type', entityFilter !== 'all' ? entityFilter : undefined)
-        .ilike('entity_name', searchQuery ? `%${searchQuery}%` : '%')
-        .order('created_at', { ascending: false })
-        .range((page - 1) * limit, page * limit - 1);
+      const rpcParams = {
+        p_page: page,
+        p_limit: limit,
+        p_search_query: searchQuery,
+        p_action_filter: actionFilter === 'all' ? null : actionFilter,
+        p_entity_filter: entityFilter === 'all' ? null : entityFilter,
+        p_start_date: startDate || null,
+        p_end_date: endDate || null
+      };
 
-      if (error) throw error;
+      const { data, error } = await supabase.rpc('get_paginated_catalog_logs_for_admin', rpcParams);
 
-      // Faire une deuxième requête pour le count
-      const { count, error: countError } = await (supabase
-        .from('global_catalog_audit_log')
-        .select('id', { count: 'exact' }) as any)
-        .gte('created_at', startDate ? `${startDate}T00:00:00Z` : undefined)
-        .lte('created_at', endDate ? `${endDate}T23:59:59Z` : undefined)
-        .eq(actionFilter && actionFilter !== 'all' ? 'action' : 'action', actionFilter !== 'all' ? actionFilter : undefined)
-        .eq(entityFilter && entityFilter !== 'all' ? 'entity_type' : 'entity_type', entityFilter !== 'all' ? entityFilter : undefined)
-        .ilike('entity_name', searchQuery ? `%${searchQuery}%` : '%');
+      if (error) {
+        // La fonction RPC renvoie une exception si l'utilisateur n'est pas super admin
+        if (error.message.includes('Forbidden')) {
+          throw new Error('Vous devez être un super administrateur pour voir ces logs.');
+        }
+        throw error;
+      }
 
-      if (countError) throw countError;
-
-      const logsData = (Array.isArray(data) ? data : []).map((log: any) => ({
+      const logsData = (data || []).map((log: any) => ({
         id: log.id,
         action: log.action as 'CREATE' | 'UPDATE' | 'DELETE',
         entityType: log.entity_type as 'PRODUCT' | 'CATEGORY',
@@ -351,9 +346,11 @@ export class AdminService {
         createdAt: new Date(log.created_at),
       }));
 
+      const totalCount = data?.[0]?.total_count ?? 0;
+
       return {
         logs: logsData,
-        totalCount: count || 0,
+        totalCount: Number(totalCount),
       };
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));

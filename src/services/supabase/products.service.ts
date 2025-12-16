@@ -79,9 +79,6 @@ export class ProductsService {
   /**
    * Récupérer tous les produits globaux
    */
-  /**
-   * Récupérer tous les produits globaux
-   */
   static async getGlobalProducts(): Promise<GlobalProductType[]> {
     try {
       const { data, error } = await supabase

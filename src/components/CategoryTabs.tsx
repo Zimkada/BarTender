@@ -24,11 +24,11 @@ export function CategoryTabs({
   onDeleteCategory,
   isLoading = false
 }: CategoryTabsProps) {
-  const { hasPermission } = useAuth();
+  const { hasPermission } = useAuth(); // Removed currentSession
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; category: Category } | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout>>();
 
-  const canEdit = hasPermission('canEditProducts') && !!onEditCategory;
+  const canEdit = hasPermission('canEditProducts') && !!onEditCategory; // Removed console.log
 
   const handleMouseDown = (e: React.MouseEvent<HTMLButtonElement>, category: Category) => {
     if (!canEdit) return;

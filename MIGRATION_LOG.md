@@ -1,5 +1,20 @@
 # Historique des Migrations Supabase
 
+## 2025-12-16: Audit et Corrections (Catalogue Global & Logs d'Audit)
+
+**Description :** Session d'audit et de corrections de bugs sur les modules "Catalogue Global" et "Logs d'Audit" en se basant sur le rapport d'un expert.
+**Domaine :** Catalogue Global, Logs d'Audit, Sécurité RLS
+**Impact :**
+- **Catalogue Global :**
+  - **Correction :** La suppression des produits globaux (`deleteGlobalProduct`) a été modifiée pour utiliser un "soft-delete" (`is_active = false`), la rendant cohérente avec la suppression des catégories.
+  - **Décision métier :** Il a été clarifié que la désactivation d'un produit global ne doit **pas** affecter les bars qui l'utilisent déjà. Ces derniers conservent leur autonomie et peuvent continuer à vendre le produit. Le comportement actuel est donc correct.
+  - **Abandon :** La refactorisation pour la pagination a été jugée prématurée et a été annulée pour éviter de la sur-ingénierie et des régressions potentielles.
+- **Logs d'Audit :**
+  - **Correction (Bug 400) :** La fonction `getPaginatedGlobalCatalogAuditLogs` a été refactorisée pour gérer correctement les filtres de date `undefined` et pour utiliser une seule requête au lieu de deux, améliorant ainsi la performance.
+  - **Correction (Bug 403) :** Un bug profond et persistant lié aux politiques de sécurité (RLS) sur la table `global_catalog_audit_log` a été identifié. Même avec des données et une fonction `is_super_admin()` correctes, l'accès était refusé.
+  - **Contournement :** La RLS sur la table a été désactivée et remplacée par une fonction RPC `get_paginated_catalog_logs_for_admin` de type `SECURITY DEFINER`. Cette fonction effectue elle-même la vérification de rôle `super_admin` avant de retourner les données, contournant ainsi le bug RLS. La migration finale est `20251216180000_fix_ambiguous_columns_in_rpc.sql`.
+---
+
 ## 20251215170000_fixup_and_finalize_stats_objects.sql (2025-12-15 17:00:00)
 
 **Description :** Finalisation de la fonctionnalité "Statistiques Détaillées" pour les super-administrateurs. Ce script idempotent nettoie les tentatives précédentes et installe la version finale et sécurisée des objets liés aux statistiques annexes.
