@@ -1,7 +1,7 @@
 // src/services/supabase/admin.service.ts
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
-import { Bar, User, AuditLog } from '../../types';
+import { Bar, User, AuditLog, GlobalCatalogAuditLog } from '../../types';
 
 export interface DashboardStats {
   total_revenue: number;
@@ -90,6 +90,21 @@ export interface GetPaginatedAuditLogsParams {
 
 export interface PaginatedAuditLogsResult {
   logs: AuditLog[];
+  totalCount: number;
+}
+
+export interface GetPaginatedGlobalCatalogAuditLogsParams {
+  page: number;
+  limit: number;
+  searchQuery?: string;
+  actionFilter?: 'CREATE' | 'UPDATE' | 'DELETE';
+  entityFilter?: 'PRODUCT' | 'CATEGORY';
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface PaginatedGlobalCatalogAuditLogsResult {
+  logs: GlobalCatalogAuditLog[];
   totalCount: number;
 }
 
@@ -276,6 +291,70 @@ export class AdminService {
       }
 
       return { logs: [], totalCount: 0 };
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Récupère les logs du catalogue global de manière paginée.
+   * @param params - Paramètres de pagination et de filtre
+   */
+  static async getPaginatedGlobalCatalogAuditLogs(
+    params: GetPaginatedGlobalCatalogAuditLogsParams
+  ): Promise<PaginatedGlobalCatalogAuditLogsResult> {
+    try {
+      const {
+        page,
+        limit,
+        searchQuery = '',
+        actionFilter = 'all',
+        entityFilter = 'all',
+        startDate = undefined,
+        endDate = undefined
+      } = params;
+
+      const { data, error } = await (supabase
+        .from('global_catalog_audit_log')
+        .select('id, action, entity_type, entity_id, entity_name, old_values, new_values, modified_by, created_at') as any)
+        .gte('created_at', startDate ? `${startDate}T00:00:00Z` : undefined)
+        .lte('created_at', endDate ? `${endDate}T23:59:59Z` : undefined)
+        .eq(actionFilter && actionFilter !== 'all' ? 'action' : 'action', actionFilter !== 'all' ? actionFilter : undefined)
+        .eq(entityFilter && entityFilter !== 'all' ? 'entity_type' : 'entity_type', entityFilter !== 'all' ? entityFilter : undefined)
+        .ilike('entity_name', searchQuery ? `%${searchQuery}%` : '%')
+        .order('created_at', { ascending: false })
+        .range((page - 1) * limit, page * limit - 1);
+
+      if (error) throw error;
+
+      // Faire une deuxième requête pour le count
+      const { count, error: countError } = await (supabase
+        .from('global_catalog_audit_log')
+        .select('id', { count: 'exact' }) as any)
+        .gte('created_at', startDate ? `${startDate}T00:00:00Z` : undefined)
+        .lte('created_at', endDate ? `${endDate}T23:59:59Z` : undefined)
+        .eq(actionFilter && actionFilter !== 'all' ? 'action' : 'action', actionFilter !== 'all' ? actionFilter : undefined)
+        .eq(entityFilter && entityFilter !== 'all' ? 'entity_type' : 'entity_type', entityFilter !== 'all' ? entityFilter : undefined)
+        .ilike('entity_name', searchQuery ? `%${searchQuery}%` : '%');
+
+      if (countError) throw countError;
+
+      const logsData = (Array.isArray(data) ? data : []).map((log: any) => ({
+        id: log.id,
+        action: log.action as 'CREATE' | 'UPDATE' | 'DELETE',
+        entityType: log.entity_type as 'PRODUCT' | 'CATEGORY',
+        entityId: log.entity_id,
+        entityName: log.entity_name,
+        oldValues: log.old_values,
+        newValues: log.new_values,
+        modifiedBy: log.modified_by,
+        createdAt: new Date(log.created_at),
+      }));
+
+      return {
+        logs: logsData,
+        totalCount: count || 0,
+      };
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
     }
