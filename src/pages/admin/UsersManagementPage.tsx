@@ -172,7 +172,7 @@ export default function UsersManagementPage() {
         )}
 
         {/* Users List */}
-        <div className="bg-gray-50 overflow-x-auto scrollbar-bottom max-w-none sm:w-screen">
+        <div className="bg-gray-50 overflow-x-auto scrollbar-bottom max-w-none sm:w-screen lg:w-auto">
           {loading && users.length === 0 ? (
             <AdminPanelSkeleton count={5} type="table" />
           ) : users.length === 0 ? (

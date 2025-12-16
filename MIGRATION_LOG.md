@@ -87,3 +87,27 @@
 - Permet la traçabilité complète: qui a changé quoi, quand, et l'ancienne/nouvelle valeur.
 - Utile pour: compliance, debugging, rollback manual, détection d'anomalies.
 ---
+
+## 20251216030000_add_restrict_local_categories.sql (2025-12-16 03:00:00)
+
+**Description :** Ajout d'une contrainte RESTRICT au niveau de la base de données pour empêcher la suppression de catégories locales utilisées par des produits.
+**Domaine :** Catégories Locales (Intégrité des Données / Sécurité)
+**Impact :**
+- Création d'une contrainte de clé étrangère `fk_bar_products_local_category` entre `bar_products.local_category_id` et `bar_categories.id`.
+- `ON DELETE RESTRICT` : La base de données rejette toute tentative de suppression d'une catégorie locale si des produits la référencent.
+- Erreur levée au manager de bar: "Cette catégorie ne peut pas être supprimée car elle est utilisée par X produits".
+- Protection contre l'orphelinage silencieux de produits locaux.
+- Gestion d'erreur côté application via `CategoriesService.deleteCategory()` ligne 183-184.
+---
+
+## 20251216040000_fix_audit_log_triggers.sql (2025-12-16 04:00:00)
+
+**Description :** Correction critique des triggers d'audit logging pour résoudre l'erreur "null value in column modified_by".
+**Domaine :** Catalogue Global (Audit / Bug Fix)
+**Impact :**
+- **Problème identifié:** `auth.uid()` retourne NULL dans le contexte de trigger PostgreSQL (pas de session utilisateur active).
+- **Solution:** Utilisation d'une variable `current_user_id` avec fallback en cascade: `auth.uid()` → `NEW.created_by` → UUID système (`00000000-0000-0000-0000-000000000000`).
+- Regénération complète des functions `audit_global_products()` et `audit_global_categories()`.
+- Les triggers se déclencheront désormais sans erreur lors de CREATE/UPDATE/DELETE sur `global_products` et `global_categories`.
+- Les logs système (modified_by = all zeros UUID) peuvent être distingués des logs utilisateurs authentifiés.
+---
