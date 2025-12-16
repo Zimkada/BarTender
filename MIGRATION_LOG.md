@@ -150,3 +150,22 @@
   - Gestion d'erreur pour contrainte RESTRICT sur `fk_global_products_category`
   - Cohérence avec `deleteCategory()` qui fait déjà du soft-delete
 ---
+
+## 20251216070000_add_official_image_to_get_bar_products.sql (2025-12-16 07:00:00)
+
+**Description :** Correction de l'affichage des images des produits globaux pour les bars (Issue #13).
+**Domaine :** Catalogue Global / UX
+**Impact :**
+- **Problème identifié (Issue #13):** Les RPC `get_bar_products` et `admin_as_get_bar_products` ne retournaient pas `official_image` de `global_products`
+- **Conséquence:** Les bars ne voyaient JAMAIS les images du catalogue global, même après mise à jour par le superadmin
+- **Solution appliquée:**
+  - Ajout de `official_image` au RETURNS TABLE des 2 RPC
+  - Modification du SELECT pour inclure `gp.official_image`
+  - Modification du frontend `ProductsService.getBarProducts()` ligne 286
+  - Logique de fallback: `local_image || official_image || null`
+- **Résultat:**
+  - Les bars voient maintenant les images globales pour les produits non customisés
+  - Les bars qui customisent l'image gardent leur priorité (local_image prioritaire)
+  - Les produits custom sans image affichent le placeholder (NULL → null)
+  - Les mises à jour d'images globales sont désormais visibles immédiatement pour tous les bars
+---

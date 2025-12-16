@@ -283,7 +283,7 @@ export class ProductsService {
       const enrichedProducts: BarProductWithDetails[] = (productsData || []).map((product: any) => ({
         ...product,
         display_name: product.display_name,
-        display_image: product.local_image || null,
+        display_image: product.local_image || product.official_image || null,
       }));
 
       return enrichedProducts;
