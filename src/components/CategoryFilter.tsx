@@ -1,14 +1,14 @@
 // src/components/CategoryFilter.tsx
-import React, { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { cva, type VariantProps } from 'class-variance-authority';
+import React from 'react';
+import { cva } from 'class-variance-authority';
 import { cn } from '../lib/utils';
 import { Category } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Edit, Trash2, Plus } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Plus } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Card } from './ui/Card';
-import { Button } from './ui/Button';
+import { useCategoryContextMenu } from '../hooks/useCategoryContextMenu';
+import { CategoryContextMenu } from './CategoryContextMenu';
 
 const categoryButtonVariants = cva(
     'px-4 py-2 rounded-lg font-medium transition-colors',
@@ -45,44 +45,21 @@ export function CategoryFilter({
     onAddCategory
 }: CategoryFilterProps) {
     const { hasPermission } = useAuth();
-    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; category: Category } | null>(null);
-    const longPressTimer = useRef<ReturnType<typeof setTimeout>>();
-
-    const canEdit = hasPermission('canEditProducts') && !!onEditCategory;
     const totalProducts = Object.values(productCounts).reduce((sum, count) => sum + count, 0);
 
-    const handleMouseDown = (e: React.MouseEvent<HTMLButtonElement>, category: Category) => {
-        if (!canEdit) return;
-        longPressTimer.current = setTimeout(() => {
-            setContextMenu({ x: e.clientX, y: e.clientY, category });
-        }, 500);
-    };
-
-    const handleMouseUp = () => {
-        clearTimeout(longPressTimer.current);
-    };
-
-    const handleTouchStart = (e: React.TouchEvent<HTMLButtonElement>, category: Category) => {
-        if (!canEdit) return;
-        longPressTimer.current = setTimeout(() => {
-            e.preventDefault();
-            setContextMenu({ x: e.touches[0].clientX, y: e.touches[0].clientY, category });
-        }, 500);
-    };
-
-    const handleTouchEnd = () => {
-        clearTimeout(longPressTimer.current);
-    };
-
-    useEffect(() => {
-        const handleClickOutside = () => setContextMenu(null);
-        if (contextMenu) {
-            window.addEventListener('click', handleClickOutside);
-        }
-        return () => {
-            window.removeEventListener('click', handleClickOutside);
-        };
-    }, [contextMenu]);
+    // Hook consolidé pour la gestion du context menu
+    const {
+        contextMenu,
+        handleMouseDown,
+        handleMouseUp,
+        handleTouchStart,
+        handleTouchEnd,
+        handleContextMenu,
+        closeContextMenu,
+    } = useCategoryContextMenu({
+        onEdit: onEditCategory,
+        onDelete: onDeleteCategory,
+    });
 
     return (
         <>
@@ -106,12 +83,7 @@ export function CategoryFilter({
                             onMouseUp={handleMouseUp}
                             onTouchStart={(e) => handleTouchStart(e, category)}
                             onTouchEnd={handleTouchEnd}
-                            onContextMenu={(e) => {
-                                if (canEdit) {
-                                    e.preventDefault();
-                                    setContextMenu({ x: e.clientX, y: e.clientY, category });
-                                }
-                            }}
+                            onContextMenu={(e) => handleContextMenu(e, category)}
                             className={cn(categoryButtonVariants({ isSelected: selectedCategory === category.id }))}
                         >
                             {category.name} ({productCounts[category.id] || 0})
@@ -147,65 +119,13 @@ export function CategoryFilter({
                 </div>
             </Card>
 
-            {/* Context Menu */}
-            {contextMenu && createPortal(
-                <AnimatePresence>
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 z-[9998]"
-                            onClick={() => setContextMenu(null)}
-                        />
-
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.8 }}
-                            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                            className="fixed z-[9999] bg-white rounded-xl shadow-2xl border border-gray-200 p-2 w-48"
-                            style={{ top: contextMenu.y + 10, left: contextMenu.x }}
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className='px-3 py-2 border-b border-gray-100'>
-                                <p className='text-sm font-semibold truncate text-gray-800'>{contextMenu.category.name}</p>
-                            </div>
-                            <div className='py-1'>
-                                {onEditCategory && (
-                                    <Button
-                                        onClick={() => {
-                                            onEditCategory(contextMenu.category);
-                                            setContextMenu(null);
-                                        }}
-                                        variant="ghost"
-                                        size="sm"
-                                        className="w-full justify-start gap-3 text-gray-700 hover:text-amber-700"
-                                    >
-                                        <Edit size={16} />
-                                        Modifier
-                                    </Button>
-                                )}
-                                {hasPermission('canDeleteProducts') && onDeleteCategory && (
-                                    <Button
-                                        onClick={() => {
-                                            onDeleteCategory(contextMenu.category);
-                                            setContextMenu(null);
-                                        }}
-                                        variant="ghost"
-                                        size="sm"
-                                        className="w-full justify-start gap-3 text-red-600 hover:text-red-700"
-                                    >
-                                        <Trash2 size={16} />
-                                        Supprimer
-                                    </Button>
-                                )}
-                            </div>
-                        </motion.div>
-                    </>
-                </AnimatePresence>,
-                document.body
-            )}
+            {/* Context Menu - Composant consolidé */}
+            <CategoryContextMenu
+                contextMenu={contextMenu}
+                onClose={closeContextMenu}
+                onEdit={onEditCategory}
+                onDelete={onDeleteCategory}
+            />
         </>
     );
 }

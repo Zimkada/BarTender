@@ -3,30 +3,37 @@ import { useState } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
-import { useAuth } from '../context/AuthContext';
-import { useFeedback } from '../hooks/useFeedback';
 import { ProductGrid } from '../components/ProductGrid';
 import { CategoryFilter } from '../components/CategoryFilter';
 import { SearchBar } from '../components/common/SearchBar';
 import { CategoryModal } from '../components/CategoryModal';
 import { ConfirmModal } from '../components/ui/Modal';
-import { CategoriesService } from '../services/supabase/categories.service';
-import { Product, Category } from '../types';
-
+import { Card } from '../components/ui/Card';
+import { Product } from '../types';
 import { useFilteredProducts } from '../hooks/useFilteredProducts';
+import { useCategoryManagement } from '../hooks/useCategoryManagement';
 
 export function HomePage() {
   const { products, categories, addToCart } = useAppContext();
   const { currentBar } = useBarContext();
-  const { showSuccess, showError } = useFeedback();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Category management states
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [deleteCategoryModalOpen, setDeleteCategoryModalOpen] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  // Hook consolidé pour la gestion des catégories
+  const {
+    isCategoryModalOpen,
+    editingCategory,
+    deleteCategoryModalOpen,
+    categoryToDelete,
+    closeAddEditModal,
+    closeDeleteModal,
+    handleAddCategory,
+    handleEditCategory,
+    handleDeleteCategory,
+    handleSaveCategory,
+    handleLinkGlobalCategory,
+    handleConfirmDeleteCategory,
+  } = useCategoryManagement();
 
   // Utilisation du hook centralisé pour le filtrage
   const filteredProducts = useFilteredProducts({
@@ -35,82 +42,6 @@ export function HomePage() {
     selectedCategory,
     onlyInStock: true
   });
-
-  const handleCategoriesUpdated = () => {
-    // AppContext will automatically refresh categories on mount
-    // or when the bar is switched
-  };
-
-  const handleEditCategory = (category: Category) => {
-    setEditingCategory(category);
-    setIsCategoryModalOpen(true);
-  };
-
-  const handleDeleteCategory = (category: Category) => {
-    setCategoryToDelete(category);
-    setDeleteCategoryModalOpen(true);
-  };
-
-  const handleSaveCategory = async (catData: Omit<Category, 'id' | 'createdAt' | 'barId'>) => {
-    if (!currentBar?.id) {
-      showError("Bar non sélectionné.");
-      return;
-    }
-    try {
-      if (editingCategory) {
-        await CategoriesService.updateCustomCategory(editingCategory.id, {
-          name: catData.name,
-          color: catData.color,
-        });
-        showSuccess("Catégorie mise à jour.");
-      } else {
-        await CategoriesService.createCustomCategory(currentBar.id, {
-          name: catData.name,
-          color: catData.color,
-        });
-        showSuccess("Catégorie créée.");
-      }
-      setIsCategoryModalOpen(false);
-      setEditingCategory(null);
-      handleCategoriesUpdated();
-    } catch (error: any) {
-      showError(error.message);
-    }
-  };
-
-  const handleLinkGlobalCategory = async (globalCategoryId: string) => {
-    if (!currentBar?.id) {
-      showError("Bar non sélectionné.");
-      return;
-    }
-    try {
-      await CategoriesService.linkGlobalCategory(currentBar.id, globalCategoryId);
-      showSuccess("Catégorie globale liée.");
-      setIsCategoryModalOpen(false);
-      setEditingCategory(null);
-      handleCategoriesUpdated();
-    } catch (error: any) {
-      showError(error.message);
-    }
-  };
-
-  const handleConfirmDeleteCategory = async () => {
-    if (!categoryToDelete) return;
-    try {
-      await CategoriesService.deleteCategory(categoryToDelete.id);
-      showSuccess("Catégorie supprimée.");
-      setDeleteCategoryModalOpen(false);
-      setCategoryToDelete(null);
-      handleCategoriesUpdated();
-    } catch (error: any) {
-      const errorMessage = error.message?.toLowerCase();
-      if (errorMessage.includes('restrict') || errorMessage.includes('constraint')) {
-        showError('Cette catégorie ne peut pas être supprimée car elle est utilisée par des produits. Supprimez d\'abord les produits qui la référencent ou transférez-les vers une autre catégorie.');
-      } else {
-        showError(error.message);
-      }
-    }
-  };
 
   const handleAddToCart = (product: Product) => {
     addToCart(product);
@@ -128,7 +59,7 @@ export function HomePage() {
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-4">
       {/* Header */}
-      <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-4">
+      <Card variant="elevated" padding="default" className="border-amber-100">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Vente Rapide</h1>
@@ -146,7 +77,7 @@ export function HomePage() {
           onChange={setSearchQuery}
           placeholder="Rechercher un produit..."
         />
-      </div>
+      </Card>
 
       {/* Category Filter */}
       <CategoryFilter
@@ -155,10 +86,7 @@ export function HomePage() {
         onSelectCategory={setSelectedCategory}
         onEditCategory={handleEditCategory}
         onDeleteCategory={handleDeleteCategory}
-        onAddCategory={() => {
-          setEditingCategory(null);
-          setIsCategoryModalOpen(true);
-        }}
+        onAddCategory={handleAddCategory}
         productCounts={products.reduce((acc, p) => {
           acc[p.categoryId] = (acc[p.categoryId] || 0) + 1;
           return acc;
@@ -166,7 +94,7 @@ export function HomePage() {
       />
 
       {/* Product Grid */}
-      <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-4">
+      <Card variant="elevated" padding="default" className="border-amber-100">
         <ProductGrid
           products={filteredProducts}
           onAddToCart={handleAddToCart}
@@ -176,15 +104,12 @@ export function HomePage() {
               : categories.find(c => c.id === selectedCategory)?.name
           }
         />
-      </div>
+      </Card>
 
       {/* Category Modal for Add/Edit */}
       <CategoryModal
         isOpen={isCategoryModalOpen}
-        onClose={() => {
-          setIsCategoryModalOpen(false);
-          setEditingCategory(null);
-        }}
+        onClose={closeAddEditModal}
         onSave={handleSaveCategory}
         onLinkGlobal={handleLinkGlobalCategory}
         category={editingCategory || undefined}
@@ -193,10 +118,7 @@ export function HomePage() {
       {/* Confirm Modal for Delete Category */}
       <ConfirmModal
         open={deleteCategoryModalOpen}
-        onClose={() => {
-          setDeleteCategoryModalOpen(false);
-          setCategoryToDelete(null);
-        }}
+        onClose={closeDeleteModal}
         onConfirm={handleConfirmDeleteCategory}
         title="Supprimer la catégorie"
         description={`Êtes-vous sûr de vouloir supprimer la catégorie "${categoryToDelete?.name}" ?`}
