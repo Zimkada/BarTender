@@ -4,7 +4,10 @@ import { Mail, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Alert } from './ui/Alert';
 
-function ForgotPasswordScreen({ onBackToLogin }: { onBackToLogin: () => void }) {
+import { useAuthNav } from '../layouts/AuthLayout';
+
+function ForgotPasswordScreen() {
+  const { navigateToLogin } = useAuthNav();
   const { resetPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
@@ -93,7 +96,7 @@ function ForgotPasswordScreen({ onBackToLogin }: { onBackToLogin: () => void }) 
         <div className="mt-6 text-center text-sm">
           <button
             type="button"
-            onClick={onBackToLogin}
+            onClick={navigateToLogin}
             className="font-medium text-amber-600 hover:text-amber-500 bg-transparent border-none cursor-pointer"
           >
             Retour à la connexion

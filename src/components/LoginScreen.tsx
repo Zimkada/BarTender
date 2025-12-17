@@ -7,7 +7,10 @@ import { Input } from './ui/Input';
 import { Alert } from './ui/Alert';
 
 
-function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgotPassword: () => void }) {
+import { useAuthNav } from '../layouts/AuthLayout';
+
+function LoginScreen() {
+  const { navigateToForgotPassword } = useAuthNav();
   const { login, changePassword, verifyMfa } = useAuth();
   const { bars } = useBarContext();
 
@@ -320,7 +323,7 @@ function LoginScreen({ onNavigateToForgotPassword }: { onNavigateToForgotPasswor
         <div className="mt-6 text-center text-sm">
           <button
             type="button"
-            onClick={onNavigateToForgotPassword}
+            onClick={navigateToForgotPassword}
             className="font-medium text-amber-600 hover:text-amber-500 bg-transparent border-none cursor-pointer"
           >
             Mot de passe oublié ?

@@ -12,9 +12,10 @@ import { AdminPanelErrorBoundary } from '../../components/AdminPanelErrorBoundar
 import { AdminPanelSkeleton } from '../../components/AdminPanelSkeleton';
 import { PromotersCreationForm } from '../../components/PromotersCreationForm';
 import { AddBarModal } from '../../components/AddBarModal';
-import { ResetPasswordConfirmationModal } from '../../components/ResetPasswordConfirmationModal'; // Import the new modal
-import { useFeedback } from '../../hooks/useFeedback'; // Import useFeedback
-import { supabase } from '../../lib/supabase'; // Import supabase client
+import { AdminSetPasswordModal } from '../../components/AdminSetPasswordModal';
+import { ResetPasswordConfirmationModal } from '../../components/ResetPasswordConfirmationModal';
+import { useFeedback } from '../../hooks/useFeedback';
+import { supabase } from '../../lib/supabase';
 
 export default function UsersManagementPage() {
   const { showSuccess, showError } = useFeedback(); // Destructure useFeedback hooks
@@ -32,7 +33,8 @@ export default function UsersManagementPage() {
 
   const [editingUser, setEditingUser] = useState<(User & { roles: string[] }) | null>(null);
   const [showPromotersForm, setShowPromotersForm] = useState(false);
-  const [resetingPasswordForUser, setResetingPasswordForUser] = useState<(User & { roles: string[] }) | null>(null); // New state for password reset
+  const [resetingPasswordForUser, setResetingPasswordForUser] = useState<(User & { roles: string[] }) | null>(null);
+  const [settingPasswordForUser, setSettingPasswordForUser] = useState<(User & { roles: string[] }) | null>(null);
   const [showAddBar, setShowAddBar] = useState(false);
   const [selectedPromoter, setSelectedPromoter] = useState<(User & { roles: string[] }) | null>(null);
 
@@ -67,28 +69,28 @@ export default function UsersManagementPage() {
     setCurrentPage(1);
   }, [debouncedSearchQuery, roleFilter]);
 
-  // Function to handle sending password reset emails
+  // Helper function to detect fictional emails
+  const isFictionalEmail = (email: string | undefined): boolean => {
+    return !email || email.endsWith('@bartender.app');
+  };
+
+  // Function to handle sending password reset emails (for real emails only)
   const handleSendPasswordReset = async (user: User) => {
-    if (!user.email) {
-      showError(`L'utilisateur ${user.name} n'a pas d'email.`);
+    if (!user.email || isFictionalEmail(user.email)) {
+      showError(`Impossible d'envoyer un email à cet utilisateur. Veuillez utiliser "Définir le mot de passe" pour les emails fictifs.`);
       return;
     }
     setLoading(true); // Show loading while email is being sent
     try {
-      const { data, error } = await supabase.rpc('admin_send_password_reset', { p_user_id: user.id });
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+
       if (error) {
         throw error;
       }
-      if (data?.success) {
-        // Check for the specific placeholder message returned by the RPC
-        if (data.message && data.message.includes('est un placeholder')) {
-          showError(data.message); // Display as an error/warning since no email was sent
-        } else {
-          showSuccess(data.message || `Lien de réinitialisation envoyé à ${user.email}.`);
-        }
-      } else {
-        showError(data?.message || `Échec de l'envoi du lien à ${user.email}.`);
-      }
+
+      showSuccess(`Lien de réinitialisation envoyé à ${user.email}.`);
     } catch (error: any) {
       console.error('Erreur envoi lien réinitialisation:', error);
       showError(`Erreur lors de l'envoi du lien à ${user.email}: ${error.message}`);
@@ -290,12 +292,24 @@ export default function UsersManagementPage() {
                               <Building2 className="w-4 h-4" />
                             </button>
                           )}
-                          <button
-                            onClick={() => setResetingPasswordForUser(user)}
-                            className="text-amber-600 hover:text-amber-900 font-medium p-1 rounded-md"
-                          >
-                            <Key className="w-4 h-4" />
-                          </button>
+                          {/* Password action button - different behavior based on email type */}
+                          {isFictionalEmail(user.email) ? (
+                            <button
+                              onClick={() => setSettingPasswordForUser(user)}
+                              className="text-purple-600 hover:text-purple-900 font-medium p-1 rounded-md"
+                              title="Définir le mot de passe"
+                            >
+                              <Key className="w-4 h-4" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setResetingPasswordForUser(user)}
+                              className="text-amber-600 hover:text-amber-900 font-medium p-1 rounded-md"
+                              title="Envoyer email de réinitialisation"
+                            >
+                              <Key className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -355,13 +369,26 @@ export default function UsersManagementPage() {
           }}
         />
       )}
-      {/* New: Password Reset Confirmation Modal */}
+      {/* Password Reset Confirmation Modal */}
       {resetingPasswordForUser && (
         <ResetPasswordConfirmationModal
           isOpen={resetingPasswordForUser !== null}
           onClose={() => setResetingPasswordForUser(null)}
           user={resetingPasswordForUser}
           onConfirm={handleSendPasswordReset}
+        />
+      )}
+
+      {/* Set Password Modal - For users with fictional emails */}
+      {settingPasswordForUser && (
+        <AdminSetPasswordModal
+          isOpen={settingPasswordForUser !== null}
+          onClose={() => setSettingPasswordForUser(null)}
+          user={settingPasswordForUser}
+          onSuccess={() => {
+            loadUsers();
+            setSettingPasswordForUser(null);
+          }}
         />
       )}
 

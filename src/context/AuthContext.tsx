@@ -18,6 +18,7 @@ interface AuthContextType {
   // createUser: (userData: Omit<User, 'id' | 'createdAt' | 'createdBy'>, role: UserRole) => Promise<User | null>; // Moved out of AuthContext
   // updateUser: (userId: string, updates: Partial<User>) => Promise<void>; // Moved out of AuthContext
   changePassword: (newPassword: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -416,6 +417,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [currentSession, setCurrentSession]);
 
+  const resetPassword = useCallback(async (email: string): Promise<void> => {
+    try {
+      await AuthService.resetPassword(email);
+      auditLogger.log({
+        event: 'PASSWORD_RESET_REQUESTED',
+        severity: 'info',
+        userId: email,
+        description: `Demande de réinitialisation de mot de passe pour ${email}.`,
+        metadata: { email },
+      });
+    } catch (error: any) {
+      console.error('[AuthContext] Error requesting password reset:', error);
+      auditLogger.log({
+        event: 'PASSWORD_RESET_REQUEST_FAILED',
+        severity: 'warning',
+        userId: email,
+        description: `Échec de la demande de réinitialisation pour ${email}.`,
+        metadata: { email, error: error.message },
+      });
+      // Ne pas relancer l'erreur pour des raisons de sécurité
+    }
+  }, []);
+
   // Mettre à jour le bar actuel dans la session
   const updateCurrentBar = useCallback((barId: string, barName: string) => {
     if (!currentSession) {
@@ -472,6 +496,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // createUser, // Removed from context value
     // updateUser, // Removed from context value
     changePassword,
+    resetPassword,
     refreshSession: async () => {
       const user = await AuthService.initializeSession();
       if (user) {
