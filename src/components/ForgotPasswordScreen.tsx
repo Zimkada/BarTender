@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, AlertCircle, CheckCircle } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Alert } from './ui/Alert';
 
@@ -13,6 +13,13 @@ function ForgotPasswordScreen() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [lastResetTime, setLastResetTime] = useState<number>(0);
+  const RESET_COOLDOWN = 30000; // 30 secondes
+
+  // Validation format email
+  const isValidEmailFormat = (email: string): boolean => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,18 +27,36 @@ function ForgotPasswordScreen() {
     setSuccess('');
     setIsLoading(true);
 
+    // Validation 1: Email non vide
     if (!email) {
       setError('Veuillez entrer votre adresse email');
       setIsLoading(false);
       return;
     }
 
+    // Validation 2: Format email valide
+    if (!isValidEmailFormat(email)) {
+      setError('Format email invalide (ex: user@example.com)');
+      setIsLoading(false);
+      return;
+    }
+
+    // Validation 3: Rate limiting (30 secondes)
+    if (Date.now() - lastResetTime < RESET_COOLDOWN) {
+      const remaining = Math.ceil((RESET_COOLDOWN - (Date.now() - lastResetTime)) / 1000);
+      setError(`Attendez ${remaining}s avant de réessayer`);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       await resetPassword(email);
-      setSuccess('Si un compte existe pour cet email, un lien de réinitialisation a été envoyé.');
+      setLastResetTime(Date.now());
+      setSuccess('Si un compte BarTender existe avec cet email, vous recevrez un lien de réinitialisation dans 2-3 minutes. Vérifiez aussi vos spams.');
     } catch (error: any) {
       // On affiche un message de succès générique pour ne pas révéler si un email existe ou non
-      setSuccess('Si un compte existe pour cet email, un lien de réinitialisation a été envoyé.');
+      setLastResetTime(Date.now());
+      setSuccess('Si un compte BarTender existe avec cet email, vous recevrez un lien de réinitialisation dans 2-3 minutes. Vérifiez aussi vos spams.');
     } finally {
       setIsLoading(false);
     }
@@ -50,6 +75,23 @@ function ForgotPasswordScreen() {
           </div>
           <h2 className="text-2xl font-bold text-gray-800">Mot de passe oublié</h2>
           <p className="text-gray-600 mt-2">Entrez votre email pour recevoir un lien de réinitialisation.</p>
+        </div>
+
+        {/* Helper info box - Important */}
+        <div className="mb-6 p-4 bg-orange-50 border-2 border-orange-300 rounded-lg">
+          <div className="flex gap-3">
+            <div className="flex-shrink-0">
+              <span className="text-lg">⚠️</span>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-orange-900 mb-1">Email oublié ou incorrect ?</p>
+              <p className="text-sm text-orange-800">
+                Si vous ne recevez pas le lien en 2-3 minutes, cela signifie que cet email n'existe pas dans notre système.
+                <br />
+                <strong>Contactez votre administrateur</strong> pour vérifier votre adresse email.
+              </p>
+            </div>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
