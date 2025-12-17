@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from 'use-debounce';
 import {
-  Users, Search, Filter, ChevronLeft, ChevronRight, UserPlus, Key
+  Users, Search, Filter, ChevronLeft, ChevronRight, UserPlus, Key, Building2
 } from 'lucide-react';
 import type { User, UserRole } from '../../types';
 import { Select } from '../../components/ui/Select';
@@ -11,6 +11,7 @@ import { EditUserModal } from '../../components/EditUserModal';
 import { AdminPanelErrorBoundary } from '../../components/AdminPanelErrorBoundary';
 import { AdminPanelSkeleton } from '../../components/AdminPanelSkeleton';
 import { PromotersCreationForm } from '../../components/PromotersCreationForm';
+import { AddBarModal } from '../../components/AddBarModal';
 import { ResetPasswordConfirmationModal } from '../../components/ResetPasswordConfirmationModal'; // Import the new modal
 import { useFeedback } from '../../hooks/useFeedback'; // Import useFeedback
 import { supabase } from '../../lib/supabase'; // Import supabase client
@@ -32,6 +33,8 @@ export default function UsersManagementPage() {
   const [editingUser, setEditingUser] = useState<(User & { roles: string[] }) | null>(null);
   const [showPromotersForm, setShowPromotersForm] = useState(false);
   const [resetingPasswordForUser, setResetingPasswordForUser] = useState<(User & { roles: string[] }) | null>(null); // New state for password reset
+  const [showAddBar, setShowAddBar] = useState(false);
+  const [selectedPromoter, setSelectedPromoter] = useState<(User & { roles: string[] }) | null>(null);
 
   const totalPages = Math.ceil(totalCount / limit);
 
@@ -93,6 +96,12 @@ export default function UsersManagementPage() {
       setLoading(false);
       setResetingPasswordForUser(null);
     }
+  };
+
+  // Function to handle adding a bar to an existing promoter
+  const handleAddBar = (user: User & { roles: string[] }) => {
+    setSelectedPromoter(user);
+    setShowAddBar(true);
   };
 
   return (
@@ -263,7 +272,7 @@ export default function UsersManagementPage() {
                       <td className="px-2 sm:px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
                         {new Date(user.createdAt).toLocaleDateString('fr-FR')}
                       </td>
-                      <td className="px-1 sm:px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium w-auto md:w-28">
+                      <td className="px-1 sm:px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium w-auto md:w-40">
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => setEditingUser(user)}
@@ -271,6 +280,16 @@ export default function UsersManagementPage() {
                           >
                             Modifier
                           </button>
+                          {/* Ajouter Bar - uniquement pour les promoteurs */}
+                          {user.roles.includes('promoteur') && (
+                            <button
+                              onClick={() => handleAddBar(user)}
+                              className="text-teal-600 hover:text-teal-900 font-medium p-1 rounded-md"
+                              title="Ajouter un bar"
+                            >
+                              <Building2 className="w-4 h-4" />
+                            </button>
+                          )}
                           <button
                             onClick={() => setResetingPasswordForUser(user)}
                             className="text-amber-600 hover:text-amber-900 font-medium p-1 rounded-md"
@@ -343,6 +362,23 @@ export default function UsersManagementPage() {
           onClose={() => setResetingPasswordForUser(null)}
           user={resetingPasswordForUser}
           onConfirm={handleSendPasswordReset}
+        />
+      )}
+
+      {/* Add Bar Modal */}
+      {showAddBar && (
+        <AddBarModal
+          isOpen={showAddBar}
+          onClose={() => {
+            setShowAddBar(false);
+            setSelectedPromoter(null);
+          }}
+          promoter={selectedPromoter}
+          onSuccess={() => {
+            loadUsers();
+            setShowAddBar(false);
+            setSelectedPromoter(null);
+          }}
         />
       )}
     </div>
