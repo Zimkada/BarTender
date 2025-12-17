@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Building2, Loader, CheckCircle } from 'lucide-react';
 import { User } from '../types';
 import { AuthService } from '../services/supabase/auth.service';
+import { useBarContext } from '../context/BarContext';
 import { Alert } from './ui/Alert';
 import { AddBarForm } from './AddBarForm';
 
@@ -19,6 +20,7 @@ interface AddBarModalProps {
  * Orchestrated by UsersManagementPage
  */
 export function AddBarModal({ isOpen, onClose, promoter, onSuccess }: AddBarModalProps) {
+  const { refreshBars } = useBarContext();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -55,6 +57,8 @@ export function AddBarModal({ isOpen, onClose, promoter, onSuccess }: AddBarModa
 
       if (result.success) {
         setSuccess(true);
+        // Recharger les bars pour afficher les adresses à jour
+        await refreshBars();
         // Auto-ferme après 1.5s et notifie le parent
         setTimeout(() => {
           onSuccess();

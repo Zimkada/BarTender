@@ -12,6 +12,7 @@ export interface AuthUser extends Omit<DbUser, 'password_hash'> {
   role: 'super_admin' | 'promoteur' | 'gerant' | 'serveur';
   barId: string;
   barName: string;
+  allBarIds?: string[]; // IDs de tous les bars actifs (pour multi-bar support)
   factors?: Factor[]; // Add factors for MFA
 }
 
@@ -58,25 +59,42 @@ export class AuthService {
       throw new Error('Profil utilisateur introuvable');
     }
 
-    const { data: membership, error: membershipError } = await supabase
+    // Récupère TOUS les bars actifs de l'utilisateur (support multi-bar)
+    const { data: memberships, error: membershipError } = await supabase
       .from('bar_members')
       .select(`
-role,
-  bar_id,
-  bars(
-    name
-  )
-    `)
+        role,
+        bar_id,
+        bars(
+          name
+        )
+      `)
       .eq('user_id', userId)
       .eq('is_active', true)
-      .single();
+      .order('joined_at', { ascending: false }); // Plus récent en premier
 
-    if (membershipError || !membership) {
+    if (membershipError || !memberships || memberships.length === 0) {
       throw new Error('Aucun rôle actif trouvé pour cet utilisateur');
     }
 
+    // Sélection du bar par défaut lors de l'initialisation
+    // Priorité: 1) localStorage, 2) Premier bar actif (plus récent)
+    const savedBarId = localStorage.getItem('selectedBarId');
+    let defaultMembership = memberships[0]; // Fallback: premier bar (plus récent)
+
+    // Si un bar est sauvegardé dans localStorage, l'utiliser s'il existe dans les memberships
+    if (savedBarId) {
+      const savedMembership = memberships.find((m: any) => m.bar_id === savedBarId);
+      if (savedMembership) {
+        defaultMembership = savedMembership;
+      }
+    }
+
+    // Récupérer les IDs de TOUS les bars pour BarSelector
+    const allBarIds = memberships.map((m: any) => m.bar_id);
+
     const profileData = profile as any;
-    const membershipData = membership as any;
+    const membershipData = defaultMembership as any;
 
     return {
       id: userId,
@@ -93,6 +111,7 @@ role,
       role: membershipData.role as AuthUser['role'],
       barId: membershipData.bar_id || '',
       barName: membershipData.bars?.name || '',
+      allBarIds, // Tous les bars actifs (multi-bar support)
     };
   }
 

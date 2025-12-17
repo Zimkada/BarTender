@@ -49,7 +49,7 @@ export const useBarContext = () => {
 };
 
 export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { currentSession, hasPermission } = useAuth();
+  const { currentSession, hasPermission, updateCurrentBar } = useAuth();
   const { actingAs } = useActingAs();
   const [bars, setBars] = useState<Bar[]>([]);
   const [barMembers, setBarMembers] = useState<BarMember[]>([]);
@@ -397,9 +397,24 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [currentSession, barMembers, isOwner, actingAs]);
 
   const switchBar = useCallback((barId: string) => {
-    if (!canAccessBar(barId)) return;
+    if (!canAccessBar(barId)) {
+      console.warn('[BarContext] Access denied to bar:', barId);
+      return;
+    }
+
+    // Trouver le bar dans la liste pour obtenir son nom
+    const bar = bars.find(b => b.id === barId);
+    if (!bar) {
+      console.error('[BarContext] Bar not found in bars array:', barId);
+      return;
+    }
+
+    // Mettre à jour le bar local
     setCurrentBarId(barId);
-  }, [canAccessBar]);
+
+    // Mettre à jour la session AuthContext
+    updateCurrentBar(barId, bar.name);
+  }, [canAccessBar, bars, updateCurrentBar]);
 
   // Gestion des membres
   const getBarMembers = useCallback(async (barId: string): Promise<(BarMember & { user: User })[]> => {

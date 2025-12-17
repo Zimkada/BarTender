@@ -14,18 +14,6 @@ export function BarSelector({ onCreateNew }: BarSelectorProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
-  // Masquer si 1 seul bar
-  if (!currentSession || userBars.length <= 1) {
-    return null;
-  }
-
-  const handleSwitch = (barId: string) => {
-    switchBar(barId);
-    // Persistance dans localStorage
-    localStorage.setItem('selectedBarId', barId);
-    setIsOpen(false);
-  };
-
   // Fermer au clic outside
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -42,6 +30,23 @@ export function BarSelector({ onCreateNew }: BarSelectorProps) {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen]);
+
+  // Masquer si 1 seul bar
+  // Utiliser allBarIds (depuis auth session) comme source de vérité pour le multi-bar
+  // Fallback: utiliser userBars si allBarIds n'est pas disponible (transition period)
+  const hasMultipleBars = currentSession && (
+    (currentSession.allBarIds?.length && currentSession.allBarIds.length > 1) ||
+    userBars.length > 1
+  );
+
+  if (!hasMultipleBars) {
+    return null;
+  }
+
+  const handleSwitch = (barId: string) => {
+    switchBar(barId);
+    setIsOpen(false);
+  };
 
   return (
     <div ref={dropdownRef} className="relative">

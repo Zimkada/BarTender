@@ -14,6 +14,7 @@ interface AuthContextType {
   logout: () => void;
   hasPermission: (permission: keyof RolePermissions) => boolean;
   refreshSession: () => Promise<void>;
+  updateCurrentBar: (barId: string, barName: string) => void; // NEW: Update current bar in session
   // createUser: (userData: Omit<User, 'id' | 'createdAt' | 'createdBy'>, role: UserRole) => Promise<User | null>; // Moved out of AuthContext
   // updateUser: (userId: string, updates: Partial<User>) => Promise<void>; // Moved out of AuthContext
   changePassword: (newPassword: string) => Promise<void>;
@@ -415,6 +416,43 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [currentSession, setCurrentSession]);
 
+  // Mettre à jour le bar actuel dans la session
+  const updateCurrentBar = useCallback((barId: string, barName: string) => {
+    if (!currentSession) {
+      console.warn('[AuthContext] Cannot update bar - no session');
+      return;
+    }
+
+    console.log('[AuthContext] Updating current bar to:', barId, barName);
+    setCurrentSession({
+      ...currentSession,
+      barId,
+      barName
+    });
+
+    // Sauvegarder dans localStorage pour persistance
+    localStorage.setItem('selectedBarId', barId);
+
+    auditLogger.log({
+      event: 'BAR_SWITCHED',
+      severity: 'info',
+      userId: currentSession.userId,
+      userName: currentSession.userName,
+      userRole: currentSession.role,
+      barId: barId,
+      barName: barName,
+      description: `Changement de bar actif vers ${barName}`,
+      metadata: {
+        previousBarId: currentSession.barId,
+        previousBarName: currentSession.barName,
+        newBarId: barId,
+        newBarName: barName
+      },
+      relatedEntityId: barId,
+      relatedEntityType: 'bar',
+    });
+  }, [currentSession, setCurrentSession]);
+
   // const getUserById = useCallback((_userId: string) => {
   //   // TODO: Implémenter avec Supabase
   //   console.warn('[AuthContext] getUserById not yet implemented with Supabase');
@@ -430,6 +468,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     verifyMfa, // Add verifyMfa to context value
     logout,
     hasPermission,
+    updateCurrentBar, // NEW: Add updateCurrentBar to context value
     // createUser, // Removed from context value
     // updateUser, // Removed from context value
     changePassword,

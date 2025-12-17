@@ -1,5 +1,76 @@
 # Historique des Migrations Supabase
 
+## 20251217000001_fix_bar_categories_name_constraint.sql (2025-12-17 00:00:01)
+
+**Status**: Ready for deployment
+**Date**: 2025-12-17
+**Related Issue**: null value in column "name" of relation "bar_categories" violates not-null constraint
+**Related Migration**: 20251217000000_fix_setup_promoter_bar_rpc.sql (previous)
+
+### Description
+
+Correction d'une contrainte NOT NULL héritée d'un schéma legacy sur la colonne `bar_categories.name`. Cette colonne n'est pas utilisée par le schéma moderne qui utilise `global_category_id` + `custom_name` à la place. Le RPC `setup_promoter_bar` essayait d'insérer des catégories globales liées (où `name` serait NULL) et échouait.
+
+### Root Cause
+
+- La table `bar_categories` a une colonne `name` legacy héritée d'une version antérieure
+- Cette colonne est définie avec NOT NULL
+- Le schéma moderne (001_initial_schema.sql) n'a pas de colonne `name` mais utilise un hybrid approach:
+  - Catégories globales liées: `global_category_id` (non NULL) + `custom_name` (NULL)
+  - Catégories custom: `global_category_id` (NULL) + `custom_name` (non NULL)
+- Quand le RPC `setup_promoter_bar` insère `INSERT INTO bar_categories (bar_id, global_category_id, is_active)`, il ne fournit pas de `name`, ce qui cause la violation
+
+### Solution
+
+1. Vérifie si la colonne `name` existe et est NOT NULL
+2. La rend NULLABLE si elle existe et est contrainte
+3. Remplit les valeurs NULL existantes avec des noms générés (`'Category ' || UUID_substring`) pour la sécurité des données
+4. Recharge le schéma Supabase
+
+### Impact
+
+- **Fixes**: `null value in column "name" ... violates not-null constraint` lors de la création de bars
+- **Affected Function**: Indirect (fix dans la base pour supporter le RPC `setup_promoter_bar`)
+- **Data Integrity**: Toutes les catégories existantes auront un nom (generate ou existant)
+- **Backward Compatible**: Oui (rend nullable, n'affecte pas les données existantes)
+
+### Testing Recommendations
+
+1. Déployer cette migration après 20251217000000_fix_setup_promoter_bar_rpc.sql
+2. Re-tester création de bar pour promoteur existant
+3. Vérifier que les catégories sont correctement liées au bar
+4. Vérifier que les requêtes `SELECT` sur les catégories fonctionnent
+
+---
+
+## 20251217000000_fix_setup_promoter_bar_rpc.sql (2025-12-17 00:00:00)
+
+**Description :** Correction critique d'un bug PL/pgSQL dans la fonction RPC `setup_promoter_bar` pour permettre la création de bars pour les promoteurs existants via l'interface admin.
+**Domaine :** Gestion des Utilisateurs / Bar Creation / Bug Fix
+**Impact :**
+- **Problème identifié:** RPC utilisait le nom de variable `v_bar_id` comme nom de colonne dans la clause INSERT de `bar_members`
+  - Erreur levée: `column "v_bar_id" of relation "bar_members" does not exist`
+  - La table `bar_members` a une colonne `bar_id`, pas `v_bar_id`
+- **Solution appliquée:**
+  - Correction de la syntaxe PL/pgSQL: `INSERT INTO bar_members (user_id, bar_id, role, ...)` (colonne correcte)
+  - La variable `v_bar_id` reste en VALUES: `VALUES (p_owner_id, v_bar_id, 'promoteur', ...)`
+  - Distinction claire entre noms de colonnes (en clause INSERT) et variables (en VALUES)
+- **Fonctionnalité débloquée:**
+  - Feature "Ajouter un bar" pour les promoteurs existants en interface admin
+  - Super admin peut maintenant créer des bars additionnels pour promoteurs via bouton Building2 dans le tableau UsersManagementPage
+  - Workflow: Admin clique Building2 → Modal s'ouvre → Remplit formulaire (nom, adresse, téléphone) → RPC exécute sans erreur
+- **Fichiers affectés:**
+  - `src/components/AddBarForm.tsx` (new - formulaire réutilisable)
+  - `src/components/AddBarModal.tsx` (new - orchestration modal)
+  - `src/pages/admin/UsersManagementPage.tsx` (modified - intégration bouton)
+- **Compatibilité:** Rétroactive compatible (fix uniquement, pas de breaking changes)
+- **Testing recommandé:**
+  1. Déployer la migration
+  2. Tester création d'un bar pour un promoteur existant via UI
+  3. Vérifier que bar est correctement lié au promoteur en base
+  4. Vérifier permissions RLS sur le nouveau bar
+---
+
 ## 2025-12-16: Audit et Corrections (Catalogue Global & Logs d'Audit)
 
 **Description :** Session d'audit et de corrections de bugs sur les modules "Catalogue Global" et "Logs d'Audit" en se basant sur le rapport d'un expert.
