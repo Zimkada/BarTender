@@ -1,5 +1,59 @@
 # Historique des Migrations Supabase
 
+## 20251217000002_refactor_setup_promoter_bar_parameters.sql (2025-12-17 00:00:02)
+
+**Status**: Ready for deployment
+**Date**: 2025-12-17
+**Related Issues**: Address and phone not persisted to database columns
+**Related Migration**: 20251217000000_fix_setup_promoter_bar_rpc.sql, 20251217000001_fix_bar_categories_name_constraint.sql
+
+### Description
+
+Refactorisation du RPC `setup_promoter_bar` pour accepter l'adresse et le téléphone comme paramètres séparés au lieu de les passer uniquement via `p_settings` JSONB. Cette amélioration augmente la robustesse, la performance et la maintenabilité du code.
+
+### Root Cause
+
+- Précédemment: `barAddress` et `barPhone` étaient passés dans `p_settings` JSONB
+- Problème: Les données entraient dans `settings.address` et `settings.phone` (colonne JSONB)
+- Impact: Les colonnes directes `bars.address` et `bars.phone` restaient NULL
+- Conséquence: Le BarSelector ne pouvait pas afficher l'adresse des bars créés
+
+### Solution
+
+1. **Nouveaux paramètres**: Ajout de `p_address TEXT` et `p_phone TEXT` à la signature de la fonction
+2. **Insertion directe**: Les paramètres sont insérés directement dans les colonnes `bars.address` et `bars.phone` au lieu du JSONB
+3. **Type safety**: Les paramètres sont typés et validés par PostgreSQL
+4. **Performance**: Pas d'extraction JSONB à chaque insertion
+5. **Logging amélioré**: Affichage de l'adresse et téléphone dans les logs NOTICE
+
+### Impact
+
+- **Fixes**: Adresse et téléphone maintenant correctement sauvegardés dans les colonnes
+- **Affected Function**: `setup_promoter_bar(uuid, text, text, text, jsonb)` - signature changée
+- **Data Integrity**: Les nouvelles données seront dans les bonnes colonnes
+- **Backward Compatible**: Non (breaking change de signature) - mais c'est une RPC interne, pas une API publique
+- **Frontend Changes Required**: `AddBarModal.tsx` et `AuthService.setupPromoterBar()`
+
+### Testing Recommendations
+
+1. Déployer cette migration après les migrations 20251217000000 et 20251217000001
+2. Créer un nouveau bar avec adresse et téléphone via l'interface admin
+3. Vérifier dans le BarSelector que l'adresse s'affiche correctement
+4. Vérifier en base que `bars.address` et `bars.phone` sont remplies (pas NULL)
+5. Vérifier que `get_my_bars()` RPC retourne les valeurs correctes
+
+### Migration Order
+
+```
+20251217000000_fix_setup_promoter_bar_rpc.sql
+    ↓
+20251217000001_fix_bar_categories_name_constraint.sql
+    ↓
+20251217000002_refactor_setup_promoter_bar_parameters.sql
+```
+
+---
+
 ## 20251217000001_fix_bar_categories_name_constraint.sql (2025-12-17 00:00:01)
 
 **Status**: Ready for deployment

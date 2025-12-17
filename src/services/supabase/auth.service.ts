@@ -66,7 +66,9 @@ export class AuthService {
         role,
         bar_id,
         bars(
-          name
+          name,
+          address,
+          phone
         )
       `)
       .eq('user_id', userId)
@@ -445,18 +447,27 @@ export class AuthService {
   }
 
   /**
-   * Créer un promoteur ET son bar de manière atomique (via RPC)
-   * Utilise la fonction setup_promoter_bar pour garantir l'atomicité
+   * Setup a new bar for an existing promoter (super_admin only)
+   * @param ownerId UUID of the promoter who will own the bar
+   * @param barName Name of the bar
+   * @param barAddress Optional address of the bar
+   * @param barPhone Optional phone number of the bar
+   * @param barSettings Optional additional settings as JSONB
+   * @returns Promise with success status and bar details
    */
   static async setupPromoterBar(
     ownerId: string,
     barName: string,
+    barAddress?: string | null,
+    barPhone?: string | null,
     barSettings?: any
-  ): Promise<{ success: boolean; barId?: string; barName?: string; error?: string }> {
+  ): Promise<{ success: boolean; barId?: string; barName?: string; barAddress?: string; barPhone?: string; error?: string }> {
     try {
       const { data, error } = await supabase.rpc('setup_promoter_bar', {
         p_owner_id: ownerId,
         p_bar_name: barName,
+        p_address: barAddress || null,
+        p_phone: barPhone || null,
         p_settings: barSettings || null,
       });
 
@@ -475,6 +486,8 @@ export class AuthService {
         success: data.success,
         barId: data.bar_id,
         barName: data.bar_name,
+        barAddress: data.bar_address,
+        barPhone: data.bar_phone,
       };
     } catch (error: any) {
       console.error('AuthService setupPromoterBar error:', error);

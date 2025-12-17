@@ -44,15 +44,12 @@ export function AddBarModal({ isOpen, onClose, promoter, onSuccess }: AddBarModa
     setError(null);
 
     try {
-      const barSettings = {
-        address: formData.barAddress || null,
-        phone: formData.barPhone || null,
-      };
-
+      // Call RPC with separate address and phone parameters
       const result = await AuthService.setupPromoterBar(
         promoter.id,
         formData.barName,
-        barSettings
+        formData.barAddress || null,
+        formData.barPhone || null
       );
 
       if (result.success) {
