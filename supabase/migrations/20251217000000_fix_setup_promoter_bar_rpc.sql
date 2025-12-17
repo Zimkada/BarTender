@@ -48,21 +48,26 @@ BEGIN
     v_default_settings := v_default_settings || p_settings;
   END IF;
 
-  -- 1. Create Bar
+  -- 1. Create Bar with address and phone extracted from settings
   RAISE NOTICE '[setup_promoter_bar] Creating bar...';
   INSERT INTO bars (
     name,
     owner_id,
+    address,
+    phone,
     settings,
     is_active
   ) VALUES (
     p_bar_name,
     p_owner_id,
+    COALESCE((p_settings->>'address')::TEXT, NULL),  -- Extract from settings if provided
+    COALESCE((p_settings->>'phone')::TEXT, NULL),    -- Extract from settings if provided
     v_default_settings,
     true
   )
   RETURNING id INTO v_bar_id;
-  RAISE NOTICE '[setup_promoter_bar] ✓ Bar created: %', v_bar_id;
+  RAISE NOTICE '[setup_promoter_bar] ✓ Bar created: id=%, name=%, address=%, phone=%',
+    v_bar_id, p_bar_name, COALESCE((p_settings->>'address')::TEXT, 'NULL'), COALESCE((p_settings->>'phone')::TEXT, 'NULL');
 
   -- 2. Assign Owner as Promoter
   RAISE NOTICE '[setup_promoter_bar] Assigning owner as promoter...';
@@ -96,7 +101,9 @@ BEGIN
   RETURN jsonb_build_object(
     'success', true,
     'bar_id', v_bar_id,
-    'bar_name', p_bar_name
+    'bar_name', p_bar_name,
+    'bar_address', COALESCE((p_settings->>'address')::TEXT, NULL),
+    'bar_phone', COALESCE((p_settings->>'phone')::TEXT, NULL)
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;

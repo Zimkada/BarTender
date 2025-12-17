@@ -1,5 +1,53 @@
 # Historique des Migrations Supabase
 
+## 20251217000000_fix_setup_promoter_bar_rpc.sql - UPDATE (2025-12-17 00:00:00.1)
+
+**Status**: Ready for deployment
+**Update Type**: Enhancement to existing migration
+**Issue Fixed**: Address and phone not extracted to table columns
+
+### Update Details
+
+The original migration fixed the RPC column name bug (`v_bar_id` → `bar_id`) but **did not extract address and phone from `p_settings` JSONB into table columns**. This caused:
+
+- ❌ Address and phone stayed in the JSONB `settings` field only
+- ❌ Columns `bars.address` and `bars.phone` remained NULL
+- ❌ BarSelector couldn't display addresses in the dropdown
+
+**Now updated to:**
+
+1. **Extract address and phone** from `p_settings` using `->>` operator and `::TEXT` casting
+2. **Insert directly into columns** `bars.address` and `bars.phone` (not just JSONB)
+3. **Include in response** JSON with `bar_address` and `bar_phone` keys
+4. **Improve logging** to show extracted values in NOTICE statements
+
+### Code Changes
+
+```sql
+-- BEFORE: Only settings JSONB
+INSERT INTO bars (name, owner_id, settings, is_active)
+VALUES (p_bar_name, p_owner_id, v_default_settings, true)
+
+-- AFTER: Extract and insert address/phone to columns too
+INSERT INTO bars (name, owner_id, address, phone, settings, is_active)
+VALUES (
+  p_bar_name,
+  p_owner_id,
+  COALESCE((p_settings->>'address')::TEXT, NULL),  -- Extracted from JSONB
+  COALESCE((p_settings->>'phone')::TEXT, NULL),    -- Extracted from JSONB
+  v_default_settings,
+  true
+)
+```
+
+### Result
+
+Now address and phone are persisted to **both**:
+- ✅ Database columns (for display in BarSelector)
+- ✅ Settings JSONB (for backward compatibility)
+
+---
+
 ## 20251217000002_refactor_setup_promoter_bar_parameters.sql (2025-12-17 00:00:02)
 
 **Status**: Ready for deployment
