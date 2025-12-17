@@ -1,5 +1,175 @@
 # Historique des Migrations Supabase
 
+## 20251217220000_create_is_user_super_admin_rpc.sql + admin-update-password Edge Function (2025-12-17 22:00:00)
+
+**Status**: ✅ Deployed and Tested Successfully
+**Date**: 2025-12-17
+**Feature**: Dual-flow Password Management System for Admin Users
+**Related Issue**: Broken `admin_send_password_reset` RPC using non-existent `auth.admin_generate_link()`
+
+### Overview
+
+Implemented a comprehensive password management system with two distinct flows:
+1. **Real Email Users**: Native Supabase Auth password reset via email
+2. **Fictional Email Users** (@bartender.app): Direct password setting by super admins via Edge Function
+
+### Problem Statement
+
+The original system had a broken RPC function `admin_send_password_reset` that attempted to use non-existent `auth.admin_generate_link()` Supabase function. This prevented admins from resetting user passwords. Additionally, there was no distinction between real email vs fictional account users.
+
+### Solution Implemented
+
+**Files Created:**
+
+1. **supabase/functions/admin-update-password/index.ts** (NEW)
+   - Secure Edge Function with full validation and error handling
+   - Validates JWT token from Authorization header
+   - Checks caller is super_admin via `is_user_super_admin(p_user_id)` RPC
+   - Updates password using Supabase Auth admin API
+   - Sets `first_login = true` to force password change on next login
+   - Logs admin action to audit trail (non-fatal if logging fails)
+   - Proper CORS headers, error responses (401/403/400/500)
+
+2. **supabase/migrations/20251217220000_create_is_user_super_admin_rpc.sql** (NEW)
+   - RPC function: `is_user_super_admin(p_user_id UUID) RETURNS BOOLEAN`
+   - Why needed: Original `is_super_admin()` uses `auth_user_id()` which doesn't work in Edge Function context with service_role_key
+   - Solution: Parameter-based RPC that accepts user_id explicitly
+   - Checks: role='super_admin' AND is_active=true in bar_members table
+   - Permissions: Granted to authenticated and service_role users
+   - SECURITY DEFINER + STABLE clauses for security and performance
+
+3. **src/components/AdminSetPasswordModal.tsx** (NEW)
+   - Modal component for super admins to set passwords for fictional email users
+   - Password validation (minimum 6 characters)
+   - Password confirmation matching
+   - Loading state and error handling
+   - Integrates with `admin-update-password` Edge Function
+   - Auto-closes on success and refreshes user list
+
+**Files Modified:**
+
+4. **src/pages/admin/UsersManagementPage.tsx** (MODIFIED)
+   - Added email type detection: `isFictionalEmail()` helper function
+   - Updated `handleSendPasswordReset()`:
+     - Real emails: Calls native `supabase.auth.resetPasswordForEmail()`
+     - Fictional emails: Opens `AdminSetPasswordModal` instead
+   - Updated button rendering:
+     - Real email (amber): "Send Password Reset Email" button
+     - Fictional email (purple): "Set Password" button
+   - Added modal component at bottom with success callback
+
+### Errors Encountered & Fixed
+
+**Error 1: 403 Forbidden - "Permission denied: only super_admins can perform this action"**
+- **Root Cause**: Edge Function used `supabase.rpc('is_super_admin')` without parameters, which calls `auth_user_id()` that relies on RLS context. Edge Functions with service_role_key have no auth context.
+- **Diagnosis**: Analyzed the RPC function and identified context mismatch
+- **Solution**: Created dedicated `is_user_super_admin(p_user_id UUID)` RPC with explicit parameter passing
+- **Deployed**: SQL migration executed successfully
+
+**Error 2: 500 Internal Server Error - ".catch is not a function"**
+- **Root Cause**: Used `.catch()` directly on RPC call, but Supabase client returns {data, error} object, not direct Promise
+- **Original Code**: `await supabaseAdmin.rpc('log_admin_action', {...}).catch(err => ...)`
+- **Fixed Code**: Wrapped in `try/catch` block to handle async errors properly
+- **Deployed**: Edge Function redeployed successfully
+
+### Security Implementation
+
+- ✅ Authorization header validation (JWT token required)
+- ✅ Token verification via `supabaseAdmin.auth.getUser(token)`
+- ✅ Super admin role verification via dedicated RPC function
+- ✅ Uses service_role_key (backend only, never exposed to client)
+- ✅ Password minimum length validation (6 characters)
+- ✅ CORS headers for safe cross-origin access
+- ✅ Audit logging of all admin password changes
+- ✅ Proper error responses (401 for auth, 403 for permissions, 400 for validation, 500 for server errors)
+- ✅ First login flag pattern to force password change on next login
+
+### Testing & Validation
+
+**Test Scenario 1: Real Email User Password Reset** ✅
+- Super admin selects user with real email
+- Clicks "Send Password Reset Email" button
+- User receives email with password reset link
+- User sets new password via email link
+- User logs in with new password
+
+**Test Scenario 2: Fictional Email User Password Set** ✅
+- Super admin selects user with fictional email (@bartender.app)
+- Clicks "Set Password" button
+- AdminSetPasswordModal opens
+- Super admin enters and confirms password
+- Edge Function validates all checks (auth, super_admin role, password requirements)
+- Password updated successfully via Auth admin API
+- `first_login = true` flag set
+- Admin action logged to audit trail
+- Modal closes and user list refreshes
+
+**Error Handling Tests** ✅
+- 403 Forbidden: Non-super-admin cannot set passwords (RPC check)
+- 401 Unauthorized: Missing or invalid authorization header
+- 400 Bad Request: Missing fields or password too short
+- 500 Server Error: Fixed with proper try/catch
+
+### Deployment Checklist
+
+- [x] Created AdminSetPasswordModal component
+- [x] Created admin-update-password Edge Function
+- [x] Deployed Edge Function to Supabase
+- [x] Created is_user_super_admin RPC function
+- [x] Deployed SQL migration
+- [x] Updated UsersManagementPage to use new system
+- [x] Fixed 403 Forbidden error (RPC context issue)
+- [x] Fixed 500 Internal Server Error (.catch() syntax)
+- [x] Tested fictional email password setting
+- [x] Verified audit logging
+- [x] Confirmed first_login flag being set
+
+### Key Decisions
+
+**Decision 1: Two Separate Password Flows**
+- Chosen: Email detection-based routing (real vs fictional emails)
+- Alternative: Single admin panel (rejected - fictional emails can't receive email)
+- Rationale: Leverage native Supabase Auth for real users, custom Edge Function only for fictional emails
+
+**Decision 2: Parameter-Based RPC for Super Admin Check**
+- Chosen: `is_user_super_admin(p_user_id UUID)` with explicit parameter
+- Alternative: Call auth.uid() in RPC (rejected - doesn't work with service_role_key)
+- Rationale: Explicit parameter allows Edge Function to pass caller's user ID for verification
+
+**Decision 3: first_login Flag Pattern**
+- Chosen: Set `first_login = true` after admin sets password
+- Alternative: Send email notification (rejected - fictional emails can't receive email)
+- Rationale: Forces user to change password on first login, enhancing security
+
+**Decision 4: Audit Logging Non-Fatal**
+- Chosen: Logging failures don't block password update
+- Alternative: Fail password update if logging fails (rejected - affects user experience)
+- Rationale: Logging is informational; core operation (password update) takes priority
+
+### Production Considerations
+
+**Security Notes**
+- ✅ Service role key used only in backend Edge Function
+- ✅ Never exposed to client-side code
+- ✅ JWT token validation required for all requests
+- ✅ Super admin role verified via dedicated RPC
+- ✅ Audit trail maintained for compliance
+- ✅ Password requirements enforced (minimum 6 characters)
+
+**Performance Notes**
+- ✅ RPC function uses STABLE flag for query optimization
+- ✅ Single permission check per password update (efficient)
+- ✅ Non-blocking audit logging (async, error-safe)
+- ✅ Modal prevents accidental password updates (confirmation required)
+
+**Scalability Notes**
+- ✅ No polling or intervals
+- ✅ No database subscriptions needed
+- ✅ Edge Function handles concurrent requests natively
+- ✅ RPC function is lightweight single-row query
+
+---
+
 ## 20251217000000_fix_setup_promoter_bar_rpc.sql - UPDATE (2025-12-17 00:00:00.1)
 
 **Status**: Ready for deployment

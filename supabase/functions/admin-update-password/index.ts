@@ -80,16 +80,22 @@ serve(async (req) => {
       );
     }
 
-    // Verify the caller is a super_admin
-    const { data: membershipData, error: membershipError } = await supabaseAdmin
-      .from('bar_members')
-      .select('role')
-      .eq('user_id', callerUser.id)
-      .eq('role', 'super_admin')
-      .eq('is_active', true)
-      .single();
+    // Verify the caller is a super_admin using dedicated RPC function
+    const { data: isSuperAdminResult, error: superAdminCheckError } = await supabaseAdmin.rpc(
+      'is_user_super_admin',
+      { p_user_id: callerUser.id }
+    );
 
-    if (membershipError || !membershipData) {
+    if (superAdminCheckError) {
+      console.error('Error checking super_admin status:', superAdminCheckError);
+      return new Response(
+        JSON.stringify({ error: 'Permission denied: only super_admins can perform this action' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!isSuperAdminResult) {
+      console.warn(`User ${callerUser.id} attempted admin password update but is not super_admin`);
       return new Response(
         JSON.stringify({ error: 'Permission denied: only super_admins can perform this action' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -121,13 +127,18 @@ serve(async (req) => {
       // Don't return error here - password was already updated successfully
     }
 
-    // Log the action to audit logs
-    await supabaseAdmin.rpc('log_admin_action', {
-      p_admin_id: callerUser.id,
-      p_action: 'admin_update_user_password',
-      p_target_user_id: body.userId,
-      p_details: `Password updated by super_admin`,
-    }).catch(err => console.warn('Failed to log action:', err));
+    // Log the action to audit logs (optional, don't fail if it doesn't work)
+    try {
+      await supabaseAdmin.rpc('log_admin_action', {
+        p_admin_id: callerUser.id,
+        p_action: 'admin_update_user_password',
+        p_target_user_id: body.userId,
+        p_details: `Password updated by super_admin`,
+      });
+    } catch (logError) {
+      console.warn('Failed to log admin action:', logError);
+      // Don't fail the password update if logging fails
+    }
 
     return new Response(
       JSON.stringify({
