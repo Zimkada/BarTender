@@ -3,6 +3,7 @@ import { Building2, ChevronDown, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from "../context/AuthContext";
+import AnimatedBarName from './AnimatedBarName';
 
 interface BarSelectorProps {
   onCreateNew?: () => void;
@@ -52,14 +53,12 @@ export function BarSelector({ onCreateNew }: BarSelectorProps) {
     <div ref={dropdownRef} className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors"
+        className="flex items-center font-bold bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors"
         aria-label="Sélectionner un bar"
         aria-expanded={isOpen}
       >
-        <Building2 size={20} className="text-white" />
-        <span className="text-white font-medium hidden sm:inline">
-          {currentBar?.name || 'Sélectionner un bar'}
-        </span>
+        <span className="mr-1 text-lg">🍺</span>
+        <AnimatedBarName text={currentBar?.name || 'Sélectionner un bar'} className="text-white" />
         <ChevronDown
           size={16}
           className={`text-white transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
@@ -73,7 +72,7 @@ export function BarSelector({ onCreateNew }: BarSelectorProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full mt-2 right-0 bg-white rounded-lg shadow-xl py-2 min-w-[250px] max-w-[350px] z-50"
+            className="absolute top-full mt-2 left-0 bg-white rounded-lg shadow-xl py-2 min-w-[250px] max-w-[350px] z-50"
           >
             {userBars.map((bar, index) => (
               <button

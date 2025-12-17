@@ -26,36 +26,7 @@ import { SyncStatusBadge } from './SyncStatusBadge'; // ✅ Badge sync unifié (
 import { useViewport } from '../hooks/useViewport';
 import { ProfileSettings } from './ProfileSettings';
 import { Button } from './ui/Button';
-
-// Composant pour l'animation lettre par lettre du nom du bar
-const AnimatedBarName: React.FC<{ text: string }> = ({ text }) => {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    // Déclenche l'animation après le montage du composant
-    const timer = setTimeout(() => setIsVisible(true), 100);
-    return () => clearTimeout(timer);
-  }, []);
-
-  return (
-    <span className="inline-flex">
-      {text.split('').map((char, index) => (
-        <motion.span
-          key={`${char}-${index}`}
-          initial={{ opacity: 0, y: -20 }}
-          animate={isVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
-          transition={{
-            duration: 0.4,
-            delay: index * 0.08, // 80ms entre chaque lettre (plus lent et élégant)
-            ease: "easeOut"
-          }}
-        >
-          {char}
-        </motion.span>
-      ))}
-    </span>
-  );
-};
+import AnimatedBarName from './AnimatedBarName';
 
 import { Bar } from '../types'; // NEW: Import Bar type
 
@@ -191,11 +162,15 @@ export function Header({
                 <Menu size={22} className="stroke-[2.5]" />
               </Button>
 
-              {/* Logo + Nom bar - CENTER */}
+              {/* Logo + Nom bar / Sélecteur de bar - CENTER */}
               <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-center">
-                <h1 className="text-sm font-bold text-white truncate">
-                  🍺 <AnimatedBarName text={currentBar?.name || 'BarTender'} />
-                </h1>
+                {currentSession?.role === 'promoteur' ? (
+                  <BarSelector onCreateNew={onShowCreateBar} />
+                ) : (
+                  <h1 className="text-sm font-bold text-white truncate">
+                    🍺 <AnimatedBarName text={currentBar?.name || 'BarTender'} />
+                  </h1>
+                )}
               </div>
 
               {/* Indicateurs + Actions (compacts) - RIGHT side */}
@@ -305,17 +280,17 @@ export function Header({
               <Menu size={24} />
             </Button>
 
-            <h1 className="text-2xl font-bold text-white">
-              🍺 <AnimatedBarName text={currentSession?.role === 'super_admin' ? 'BarTender Pro' : (currentBar?.name || 'BarTender')} />
-            </h1>
+            {/* Titre / Sélecteur de bar unifié */}
+            {currentSession?.role === 'promoteur' ? (
+              <BarSelector onCreateNew={onShowCreateBar} />
+            ) : (
+              <h1 className="text-2xl font-bold text-white">
+                🍺 <AnimatedBarName text={currentSession?.role === 'super_admin' ? 'BarTender Pro' : (currentBar?.name || 'BarTender')} />
+              </h1>
+            )}
 
             {/* ✅ Nouveau badge sync unifié (remplace OfflineIndicator + NetworkIndicator + SyncButton) */}
             <SyncStatusBadge position="header" />
-
-            {/* Sélecteur de bar pour promoteur */}
-            {currentSession?.role === 'promoteur' && (
-              <BarSelector onCreateNew={onShowCreateBar} />
-            )}
 
             {/* NEW: Desktop buttons for common modals */}
             {currentSession?.role !== 'super_admin' && (
