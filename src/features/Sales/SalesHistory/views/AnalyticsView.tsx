@@ -396,9 +396,9 @@ export function AnalyticsView({
     return allUsers;
   }, [sales, returns, safeUsers, safeBarMembers, userFilter, closeHour, startDate, endDate]);
 
-  // Top produits - 3 analyses (CA NET = Ventes - Retours)
+  // Top produits - 3 analyses (CA NET = Ventes - Retours) avec CUMP pour profit exact
   const topProductsData = useMemo(() => {
-    const productStats: Record<string, { name: string; volume: string; units: number; revenue: number; profit: number }> = {};
+    const productStats: Record<string, { name: string; volume: string; units: number; revenue: number; profit: number; cost: number }> = {};
 
     // 1. Ajouter les ventes
     sales.forEach(sale => {
@@ -410,18 +410,29 @@ export function AnalyticsView({
 
         if (!productId) return; // Skip items without product ID
 
+        // ✨ NEW: Get CUMP from product or fallback to 0
+        const product = _products.find(p => p.id === productId);
+        const currentAverageCost = product?.currentAverageCost ?? 0;
+
         if (!productStats[productId]) {
           productStats[productId] = {
             name: productName,
             volume: productVolume,
             units: 0,
             revenue: 0,
+            cost: 0,
             profit: 0
           };
         }
-        productStats[productId].units += item.quantity;
-        productStats[productId].revenue += productPrice * item.quantity;
-        productStats[productId].profit += productPrice * item.quantity; // TODO: Déduire coût réel
+
+        const quantity = item.quantity;
+        const revenue = productPrice * quantity;
+        const cost = currentAverageCost * quantity;
+
+        productStats[productId].units += quantity;
+        productStats[productId].revenue += revenue;
+        productStats[productId].cost += cost;
+        productStats[productId].profit += (revenue - cost); // ✨ CUMP: profit = revenue - cost
       });
     });
 
@@ -461,9 +472,15 @@ export function AnalyticsView({
 
     filteredReturns.forEach(ret => {
       if (productStats[ret.productId]) {
+        // ✨ NEW: Deduct cost proportionally when item is returned
+        const product = _products.find(p => p.id === ret.productId);
+        const currentAverageCost = product?.currentAverageCost ?? 0;
+        const returnedCost = currentAverageCost * ret.quantityReturned;
+
         productStats[ret.productId].units -= ret.quantityReturned;
         productStats[ret.productId].revenue -= ret.refundAmount;
-        productStats[ret.productId].profit -= ret.refundAmount; // Approximation sans coût
+        productStats[ret.productId].cost -= returnedCost;
+        productStats[ret.productId].profit -= (ret.refundAmount - returnedCost); // Revenue loss - cost recovery
       }
     });
 

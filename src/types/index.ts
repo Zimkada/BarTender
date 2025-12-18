@@ -88,6 +88,7 @@ export interface Product {
   createdAt: Date;
   globalProductId?: string;
   isCustomProduct?: boolean;
+  currentAverageCost?: number; // ✨ CUMP (Coût Unitaire Moyen Pondéré) - Updated when supplies arrive
 }
 
 export interface Supply {
