@@ -494,7 +494,7 @@ export function AnalyticsView({
       byRevenue: products.sort((a, b) => b.revenue - a.revenue).slice(0, 5),
       byProfit: products.sort((a, b) => b.profit - a.profit).slice(0, 5)
     };
-  }, [sales, returns, timeRange, closeHour]);
+  }, [sales, returns, timeRange, closeHour, _products]);
 
   const TrendIcon = ({ change }: { change: number }) => {
     if (change > 0) return <ArrowUp className="w-4 h-4 text-green-600" />;

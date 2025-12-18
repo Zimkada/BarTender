@@ -40,6 +40,7 @@ export interface TopProduct {
     total_quantity_returned?: number;
     total_refunded?: number;
     avg_unit_price: number;
+    profit?: number;               // ✨ NOUVEAU: Profit = Revenue - (Quantity * CUMP)
 }
 
 export interface ExpensesSummary {
@@ -129,19 +130,35 @@ export const AnalyticsService = {
         const startStr = typeof startDate === 'string' ? startDate : this.formatDate(startDate);
         const endStr = typeof endDate === 'string' ? endDate : this.formatDate(endDate);
 
-        const sortColumn = sortBy === 'revenue' ? 'total_revenue' : 'total_quantity';
-
-        const { data, error } = await supabase
-            .from('top_products_by_period' as any)
-            .select('*')
-            .eq('bar_id', barId)
-            .gte('sale_date', startStr)
-            .lte('sale_date', endStr)
-            .order(sortColumn, { ascending: false })
-            .limit(limit);
+        // ✨ NEW: Use aggregated RPC that groups by product only (not by date)
+        // This ensures same product sold on different dates appears as single aggregated row
+        const { data, error } = await supabase.rpc('get_top_products_aggregated', {
+            p_bar_id: barId,
+            p_start_date: startStr,
+            p_end_date: endStr,
+            p_limit: limit,
+            p_sort_by: sortBy === 'revenue' ? 'revenue' : 'quantity'
+        });
 
         if (error) throw error;
-        return (data as any) || [];
+
+        // Transform RPC response to match TopProduct interface
+        return (data || []).map((row: any) => ({
+            bar_id: barId,
+            sale_date: '', // N/A for aggregated data
+            sale_week: '',
+            sale_month: '',
+            product_id: row.product_id,
+            product_name: row.product_name,
+            product_volume: row.product_volume || '',
+            transaction_count: row.transaction_count,
+            total_quantity: row.total_quantity,
+            total_revenue: row.total_revenue,
+            total_quantity_returned: row.total_quantity_returned,
+            total_refunded: row.total_refunded,
+            avg_unit_price: row.avg_unit_price,
+            profit: row.profit // ✨ NEW: Profit already calculated by RPC
+        }));
     },
 
     /**
