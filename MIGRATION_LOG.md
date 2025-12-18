@@ -1,5 +1,51 @@
 # Historique des Migrations Supabase
 
+## PASSWORD RESET FIX - OTP Expired Error (2025-12-18)
+
+**Status**: ✅ Fixed & Deployed
+**Issue**: Password reset email links returning `error=access_denied&error_code=otp_expired`
+**Commit**: `fba2e8f`
+
+### Problem
+
+When users clicked the password reset link from their email, Supabase returned:
+```
+error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired
+```
+
+### Root Cause
+
+**Redirect URL Mismatch**:
+- Auth Service configured redirect: `/reset-password`
+- Routes configuration: `/auth/reset-password` (nested under auth layout)
+- Supabase sees unregistered redirect URL → rejects OTP token as security measure
+
+### Solution
+
+Updated [src/services/supabase/auth.service.ts:1002](src/services/supabase/auth.service.ts#L1002):
+
+```typescript
+// BEFORE
+redirectTo: `${window.location.origin}/reset-password`
+
+// AFTER
+redirectTo: `${window.location.origin}/auth/reset-password`
+```
+
+This ensures the redirect URL matches the actual route nested under the AuthLayout.
+
+### Testing
+
+Users can now:
+1. Click "Mot de passe oublié" on login screen
+2. Enter their email (real account)
+3. Receive password reset email
+4. Click link in email
+5. See ResetPasswordScreen without OTP expired error
+6. Update password successfully
+
+---
+
 ## 20251218000002_add_trigger_update_current_average_cost.sql (2025-12-18 00:00:02)
 
 **Status**: ✅ Ready for Deployment
