@@ -135,6 +135,7 @@ export function useSalesStats({
         }
 
         // 6. Top Produits (transformé depuis SQL)
+        // ✨ NOUVEAU: Utiliser profit calculé par la RPC (revenue - quantity × CUMP)
         const topProductsResult = (sqlTopProducts && sqlTopProducts.length > 0)
             ? sqlTopProducts.map(p => ({
                 name: p.product_name,
@@ -142,7 +143,7 @@ export function useSalesStats({
                 displayName: `${p.product_name}${p.product_volume ? ' (' + p.product_volume + ')' : ''}`,
                 units: p.total_quantity,
                 revenue: p.total_revenue,
-                profit: p.total_revenue // Approximation sans coût réel
+                profit: p.profit ?? p.total_revenue // Use calculated profit from RPC, fallback to revenue if not available
             }))
             : [];
 
