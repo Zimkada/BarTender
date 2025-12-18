@@ -41,6 +41,27 @@ export class StockService {
         }
     }
 
+    static async createSupplyAndUpdateProduct(params: {
+        p_bar_id: string;
+        p_product_id: string;
+        p_quantity: number;
+        p_lot_price: number;
+        p_lot_size: number;
+        p_supplier: string;
+        p_created_by: string;
+    }) {
+        try {
+            const { data, error } = await supabase.rpc('create_supply_and_update_product', params);
+
+            if (error) {
+                throw error;
+            }
+            return data;
+        } catch (error: any) {
+            throw new Error(handleSupabaseError(error));
+        }
+    }
+
     // =====================================================
     // CONSIGNATIONS (CONSIGNMENTS)
     // =====================================================

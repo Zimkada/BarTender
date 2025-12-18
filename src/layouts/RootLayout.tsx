@@ -5,6 +5,7 @@ import { useBarContext } from '../context/BarContext';
 import { useAppContext } from '../context/AppContext';
 import { useActingAs } from '../context/ActingAsContext';
 import { ModalProvider, useModal } from '../context/ModalContext';
+import { useStockMutations } from '../hooks/mutations/useStockMutations';
 
 import { Header } from '../components/Header';
 import { MobileNavigation } from '../components/MobileNavigation';
@@ -25,6 +26,7 @@ function RootLayoutContent() {
   const { isAuthenticated, currentSession } = useAuth();
   const { currentBar } = useBarContext();
   const { categories, products, addProduct, addCategory, updateCategory, linkCategory, showNotification } = useAppContext();
+  const { addSupply } = useStockMutations(currentBar?.id || '');
   const { isActingAs } = useActingAs();
 
   const { modalState, openModal, closeModal } = useModal();
@@ -116,7 +118,21 @@ function RootLayoutContent() {
             isOpen={true}
             onClose={closeModal}
             products={products}
-            onSave={() => { /* Placeholder */ }}
+            onSave={(supplyData) => {
+              if (!currentBar || !currentSession) {
+                showNotification('error', 'Session ou bar non valide.');
+                return;
+              }
+              addSupply.mutate({
+                bar_id: currentBar.id,
+                product_id: supplyData.productId,
+                quantity: supplyData.quantity,
+                lot_price: supplyData.lotPrice,
+                lot_size: supplyData.lotSize,
+                supplier: supplyData.supplier,
+                created_by: currentSession.userId,
+              });
+            }}
           />
         )}
         {modalState.type === 'BAR_STATS' && (

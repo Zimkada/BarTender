@@ -107,52 +107,43 @@ export const useStockMutations = (barId: string) => {
     // --- SUPPLIES (Complex Flow) ---
 
     const addSupply = useMutation({
-        mutationFn: async (data: any) => {
-            // PROXY MODE
-            if (actingAs.isActive && actingAs.userId) {
-                // RPC expects: p_acting_user_id, p_bar_id, p_supply_data (jsonb)
-                return ProxyAdminService.createSupplyAsProxy(
-                    actingAs.userId,
-                    barId,
-                    {
-                        product_id: data.product_id,
-                        quantity: data.quantity,
-                        lot_size: data.lot_size,
-                        lot_price: data.lot_price,
-                        supplier: data.supplier
-                    }
-                );
+        mutationFn: async (data: {
+            bar_id: string;
+            product_id: string;
+            quantity: number;
+            lot_price: number;
+            lot_size: number;
+            supplier: string;
+            created_by: string;
+        }) => {
+            const { data: rpcData, error } = await StockService.createSupplyAndUpdateProduct({
+                p_bar_id: data.bar_id,
+                p_product_id: data.product_id,
+                p_quantity: data.quantity,
+                p_lot_price: data.lot_price,
+                p_lot_size: data.lot_size,
+                p_supplier: data.supplier,
+                p_created_by: data.created_by,
+            });
+
+            if (error) {
+                throw new Error(error.message);
             }
 
-            // STANDARD MODE
-            // Mapping App -> DB
-            const unitCost = data.lot_size > 0 ? data.lot_price / data.lot_size : 0;
+            if (rpcData && !rpcData.success) {
+                throw new Error(rpcData.message || 'Une erreur est survenue dans la base de données.');
+            }
 
-            const supplyData = {
-                bar_id: data.bar_id,
-                product_id: data.product_id,
-                quantity: data.quantity,
-                unit_cost: unitCost,
-                total_cost: data.total_cost,
-                supplier_name: data.supplier,
-                supplied_by: data.created_by,
-                supplied_at: new Date().toISOString(),
-            };
-
-            // 1. Créer l'approvisionnement
-            const supply = await StockService.createSupply(supplyData);
-
-            // 2. Mettre à jour le stock du produit
-            // Note: On pourrait utiliser adjustStock ici pour être DRY, mais addSupply a une logique spécifique
-            await ProductsService.incrementStock(data.product_id, data.quantity);
-
-            return supply;
+            return rpcData.supply;
         },
         onSuccess: () => {
-            toast.success('Approvisionnement enregistré');
+            toast.success('Approvisionnement enregistré et CUMP mis à jour !');
             queryClient.invalidateQueries({ queryKey: stockKeys.supplies(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
         },
+        onError: (err: any) => {
+            toast.error(`Erreur: ${err.message}`);
+        }
     });
 
     // --- CONSIGNMENTS ---

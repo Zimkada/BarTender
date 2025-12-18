@@ -43,13 +43,14 @@ const mapProducts = (dbProducts: any[]): Product[] => {
         id: p.id,
         barId: p.bar_id,
         name: p.display_name || p.local_name || p.name, // Fallback chain
-        volume: p.global_product?.volume || p.product_volume || 'N/A', // Support both structures
+        volume: p.volume || p.global_product?.volume || p.product_volume || '', // ✨ Fixed: Check local volume first
         price: p.price,
         stock: p.stock ?? 0,
         categoryId: p.local_category_id || '',
         image: p.display_image || p.local_image || p.official_image || undefined,
         alertThreshold: p.alert_threshold ?? 0,
         createdAt: new Date(p.created_at || Date.now()),
+        currentAverageCost: p.current_average_cost ?? 0, // ✨ Added CUMP field
     }));
 };
 
