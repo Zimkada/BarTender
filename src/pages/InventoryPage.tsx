@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Package, AlertTriangle, Plus, Edit, Trash2, UploadCloud, TruckIcon, BarChart3 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { useBarContext } from '../context/BarContext';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { ProductModal } from '../components/ProductModal';
@@ -11,6 +12,7 @@ import { motion } from 'framer-motion';
 import { useFeedback } from '../hooks/useFeedback';
 import { useViewport } from '../hooks/useViewport';
 import { useFeatureFlag } from '../hooks/useFeatureFlag'; // 1. IMPORT DU HOOK
+import { useRealtimeStock } from '../hooks/useRealtimeStock';
 import { ProductImport } from '../components/ProductImport';
 import { searchProducts } from '../utils/productFilters';
 import { sortProducts, SortMode } from '../utils/productSorting';
@@ -48,6 +50,9 @@ export default function InventoryPage() {
 
     // 2. UTILISATION DU HOOK POUR LE FEATURE FLAG
     const { data: isProductImportEnabled } = useFeatureFlag('product-import');
+    // Enable real-time inventory updates
+    const { barId } = useBarContext();
+    useRealtimeStock({ barId });
 
     // États pour confirmation suppression
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);

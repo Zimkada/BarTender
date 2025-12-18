@@ -4,6 +4,9 @@ import { useCacheWarming } from '../hooks/useViewMonitoring';
 import { useAuth } from '../context/AuthContext';
 import { useStock } from '../context/StockContext';
 import { useNotifications } from '../components/Notifications';
+import { useQueryClient } from '@tanstack/react-query';
+import { realtimeService } from '../services/realtime/RealtimeService';
+import { broadcastService } from '../services/broadcast/BroadcastService';
 import {
     Category,
     Product,
@@ -41,6 +44,17 @@ const defaultSettings: AppSettings = {
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { currentSession, hasPermission } = useAuth();
     const { currentBar } = useBarContext();
+    const queryClient = useQueryClient();
+
+    // Initialize Realtime and Broadcast services
+    useEffect(() => {
+        realtimeService.setQueryClient(queryClient);
+        broadcastService.setQueryClient(queryClient);
+
+        return () => {
+            broadcastService.closeAllChannels();
+        };
+    }, [queryClient]);
 
     // Cache Warming: Rafraîchir les vues matérialisées au démarrage
     const { isWarming } = useCacheWarming(true);

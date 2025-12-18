@@ -21,6 +21,7 @@ import { useViewport } from '../hooks/useViewport';
 import { useFeedback } from '../hooks/useFeedback';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { DataFreshnessIndicatorCompact } from '../components/DataFreshnessIndicator';
+import { useRealtimeSales } from '../hooks/useRealtimeSales';
 import { Sale, SaleItem, User } from '../types';
 import { getSaleDate } from '../utils/saleHelpers';
 // import { AnalyticsService } from '../services/supabase/analytics.service'; // Unused
@@ -49,6 +50,8 @@ export default function SalesHistoryPage() {
     const { isMobile } = useViewport();
     const { showSuccess } = useFeedback();
     const { consignments } = useStockManagement();
+    // Enable real-time sales updates
+    useRealtimeSales({ barId: currentBar?.id || '' });
 
     // Récupérer l'heure de clôture (défaut: 6h)
     const closeHour = currentBar?.closingHour ?? 6;

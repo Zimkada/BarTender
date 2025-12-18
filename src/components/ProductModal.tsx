@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Loader2, Globe, PenTool, Search, Check } from 'lucide-react';
 import { Product, Category, GlobalProduct } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRealTimeSync } from '../hooks/useRealTimeSync';
+import { useAppContext } from '../context/AppContext';
 import { ImageUpload } from './ImageUpload';
 import { ProductsService } from '../services/supabase/products.service';
 import { Modal } from './ui/Modal';
@@ -33,7 +33,7 @@ const modalVariants = {
 type Mode = 'custom' | 'global';
 
 export function ProductModal({ isOpen, onClose, onSave, product }: ProductModalProps) {
-  const { categories } = useRealTimeSync();
+  const { categories } = useAppContext();
   const [mode, setMode] = useState<Mode>('custom');
   const [formData, setFormData] = useState({
     name: '',
