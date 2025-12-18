@@ -39,12 +39,26 @@ export function useRealtimeStock(config: UseRealtimeStockConfig) {
   const { barId, enabled = true } = config;
 
   const handleStockMessage = useCallback((payload: any) => {
+    // COUCHE 1: Filtrage client défensif - rejeter messages d'autres bars
+    const newBarId = payload.new?.bar_id;
+    const oldBarId = payload.old?.bar_id;
+
+    if (newBarId !== barId && oldBarId !== barId) {
+      console.warn('[Realtime] Stock message from different bar, ignoring', {
+        expectedBarId: barId,
+        receivedBarId: newBarId || oldBarId,
+        event: payload.eventType,
+      });
+      return; // REJETER le message
+    }
+
     console.log('[Realtime] Stock update received:', {
       event: payload.eventType,
+      barId: newBarId || oldBarId,
       productId: payload.new?.id || payload.old?.id,
       changes: payload.new ? Object.keys(payload.new) : [],
     });
-  }, []);
+  }, [barId]);
 
   const handleError = useCallback((error: Error) => {
     console.error('[Realtime] Stock subscription error:', error.message);
@@ -52,6 +66,7 @@ export function useRealtimeStock(config: UseRealtimeStockConfig) {
   }, []);
 
   // Subscribe to product updates (price, stock level changes)
+  // CRITICAL: Stock alerts require <2s latency - non-negotiable for safety
   const productsSubscription = useRealtimeSubscription({
     table: 'bar_products',
     event: 'UPDATE',
@@ -59,11 +74,12 @@ export function useRealtimeStock(config: UseRealtimeStockConfig) {
     enabled,
     onMessage: handleStockMessage,
     onError: handleError,
-    fallbackPollingInterval: 10000, // 10 second polling fallback
+    fallbackPollingInterval: 2000, // 2 second polling fallback (critical for stock alerts)
     queryKeysToInvalidate: [['bar_products', barId]],
   });
 
   // Subscribe to supply arrivals (inventory replenishment)
+  // CRITICAL: Stock replenishment affects CUMP and alerts - must be <2s
   const suppliesSubscription = useRealtimeSubscription({
     table: 'supplies',
     event: 'INSERT',
@@ -71,7 +87,7 @@ export function useRealtimeStock(config: UseRealtimeStockConfig) {
     enabled,
     onMessage: handleStockMessage,
     onError: handleError,
-    fallbackPollingInterval: 30000, // 30 second polling fallback
+    fallbackPollingInterval: 2000, // 2 second polling fallback (critical for stock management)
     queryKeysToInvalidate: [
       ['supplies', barId],
       ['bar_products', barId], // Also invalidate products (CUMP changes)
@@ -79,6 +95,7 @@ export function useRealtimeStock(config: UseRealtimeStockConfig) {
   });
 
   // Subscribe to consignment status changes
+  // CRITICAL: Consignment status affects available stock - must be <2s
   const consignmentsSubscription = useRealtimeSubscription({
     table: 'consignments',
     event: 'UPDATE',
@@ -86,7 +103,7 @@ export function useRealtimeStock(config: UseRealtimeStockConfig) {
     enabled,
     onMessage: handleStockMessage,
     onError: handleError,
-    fallbackPollingInterval: 15000, // 15 second polling fallback
+    fallbackPollingInterval: 2000, // 2 second polling fallback (critical for consignment tracking)
     queryKeysToInvalidate: [['consignments', barId]],
   });
 
