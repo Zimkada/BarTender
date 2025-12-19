@@ -268,13 +268,22 @@ export class ProductsService {
    * Récupérer tous les produits d'un bar avec leurs détails
    * Utilise un RPC pour contourner les RLS lors de l'impersonation
    */
-  static async getBarProducts(barId: string, impersonatingUserId?: string): Promise<BarProductWithDetails[]> {
+  static async getBarProducts(
+    barId: string,
+    impersonatingUserId?: string,
+    options?: {
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<BarProductWithDetails[]> {
     try {
-      // Use RPC with optional impersonating_user_id parameter
+      // Use RPC with optional impersonating_user_id parameter and pagination
       const { data: productsData, error: rpcError } = await supabase
         .rpc('get_bar_products', {
           p_bar_id: barId,
-          p_impersonating_user_id: impersonatingUserId || null
+          p_impersonating_user_id: impersonatingUserId || null,
+          p_limit: options?.limit || 50,
+          p_offset: options?.offset || 0,
         });
 
       if (rpcError) {

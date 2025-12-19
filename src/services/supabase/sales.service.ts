@@ -164,6 +164,7 @@ export class SalesService {
       startDate?: string;
       endDate?: string;
       limit?: number;
+      offset?: number; // ✨ Nouveau: support pagination offset
     }
   ): Promise<SaleWithDetails[]> {
     try {
@@ -191,6 +192,10 @@ export class SalesService {
 
       if (options?.limit) {
         query = query.limit(options.limit);
+      }
+
+      if (options?.offset) {
+        query = query.range(options.offset, options.offset + (options.limit || 50) - 1); // ✨ Pagination avec offset
       }
 
       const { data, error } = await query;
@@ -465,6 +470,44 @@ export class SalesService {
         .slice(0, limit);
 
       return topProducts;
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Récupérer les ventes paginées d'un bar via RPC (utilisé par les admins)
+   * Utilise admin_as_get_bar_sales RPC pour contourner les RLS si nécessaire
+   */
+  static async getBarSalesPaginated(
+    barId: string,
+    options?: {
+      limit?: number;
+      offset?: number;
+    }
+  ): Promise<SaleWithDetails[]> {
+    try {
+      const { data, error } = await supabase.rpc('admin_as_get_bar_sales', {
+        p_acting_as_user_id: null,
+        p_bar_id: barId,
+        p_limit: options?.limit || 50,
+        p_offset: options?.offset || 0,
+      });
+
+      if (error) {
+        console.error('[SalesService] RPC error:', error);
+        throw new Error('Erreur lors de la récupération des ventes paginées');
+      }
+
+      // data is JSONB array from RPC
+      const sales = (data || []) as any[];
+      return sales.map((sale: any) => ({
+        ...sale,
+        items: sale.items || [],
+        seller_name: sale.seller_name || 'Inconnu',
+        validator_name: sale.validator_name || null,
+        items_count: (sale.items || []).length,
+      }));
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
     }

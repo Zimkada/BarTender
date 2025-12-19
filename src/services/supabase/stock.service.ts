@@ -11,13 +11,29 @@ export class StockService {
     // APPROVISIONNEMENTS (SUPPLIES)
     // =====================================================
 
-    static async getSupplies(barId: string): Promise<Supply[]> {
+    static async getSupplies(
+        barId: string,
+        options?: {
+            limit?: number;
+            offset?: number;
+        }
+    ): Promise<Supply[]> {
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('supplies')
                 .select('*, bar_product:bar_products(display_name)')
                 .eq('bar_id', barId)
                 .order('created_at', { ascending: false });
+
+            if (options?.limit) {
+                query = query.limit(options.limit);
+            }
+
+            if (options?.offset) {
+                query = query.range(options.offset, options.offset + (options.limit || 50) - 1);
+            }
+
+            const { data, error } = await query;
 
             if (error) throw error;
             return data || [];
@@ -66,13 +82,29 @@ export class StockService {
     // CONSIGNATIONS (CONSIGNMENTS)
     // =====================================================
 
-    static async getConsignments(barId: string): Promise<Consignment[]> {
+    static async getConsignments(
+        barId: string,
+        options?: {
+            limit?: number;
+            offset?: number;
+        }
+    ): Promise<Consignment[]> {
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('consignments')
                 .select('*')
                 .eq('bar_id', barId)
                 .order('created_at', { ascending: false });
+
+            if (options?.limit) {
+                query = query.limit(options.limit);
+            }
+
+            if (options?.offset) {
+                query = query.range(options.offset, options.offset + (options.limit || 50) - 1);
+            }
+
+            const { data, error } = await query;
 
             if (error) throw error;
             return data || [];
