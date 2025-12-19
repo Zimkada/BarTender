@@ -19,7 +19,7 @@ interface UseRealtimeSubscriptionConfig {
   table: string;
   event: RealtimeEvent;
   schema?: string;
-  filter?: string;
+  filter?: string | undefined; // Can be undefined to prevent invalid subscriptions
   enabled?: boolean;
   onMessage?: (payload: any) => void;
   onError?: (error: Error) => void;
@@ -110,6 +110,14 @@ export function useRealtimeSubscription(config: UseRealtimeSubscriptionConfig) {
   // Subscribe on mount or when config changes
   useEffect(() => {
     if (config.enabled === false) {
+      return;
+    }
+
+    // Prevent subscribing with invalid filters (e.g., undefined bar_id)
+    if (!config.filter) {
+      console.log(
+        `[Realtime] Skipping subscription to ${config.table} - filter is not set`,
+      );
       return;
     }
 

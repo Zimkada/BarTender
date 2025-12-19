@@ -38,6 +38,9 @@ interface UseRealtimeSalesConfig {
 export function useRealtimeSales(config: UseRealtimeSalesConfig) {
   const { barId, enabled = true } = config;
 
+  // Don't subscribe if barId is not set
+  const isConfigValid = barId && enabled;
+
   const handleSalesMessage = useCallback((payload: any) => {
     console.log('[Realtime] Sales update received:', {
       event: payload.eventType,
@@ -55,8 +58,8 @@ export function useRealtimeSales(config: UseRealtimeSalesConfig) {
   const salesSubscription = useRealtimeSubscription({
     table: 'sales',
     event: 'INSERT',
-    filter: `bar_id=eq.${barId}`,
-    enabled,
+    filter: isConfigValid ? `bar_id=eq.${barId}` : undefined,
+    enabled: isConfigValid,
     onMessage: handleSalesMessage,
     onError: handleError,
     fallbackPollingInterval: 5000, // 5 second polling fallback
@@ -71,8 +74,8 @@ export function useRealtimeSales(config: UseRealtimeSalesConfig) {
   const statusSubscription = useRealtimeSubscription({
     table: 'sales',
     event: 'UPDATE',
-    filter: `bar_id=eq.${barId}`,
-    enabled,
+    filter: isConfigValid ? `bar_id=eq.${barId}` : undefined,
+    enabled: isConfigValid,
     onMessage: handleSalesMessage,
     onError: handleError,
     fallbackPollingInterval: 5000,

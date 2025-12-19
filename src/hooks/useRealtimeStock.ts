@@ -38,6 +38,9 @@ interface UseRealtimeStockConfig {
 export function useRealtimeStock(config: UseRealtimeStockConfig) {
   const { barId, enabled = true } = config;
 
+  // Don't subscribe if barId is not set
+  const isConfigValid = barId && enabled;
+
   const handleStockMessage = useCallback((payload: any) => {
     // COUCHE 1: Filtrage client défensif - rejeter messages d'autres bars
     const newBarId = payload.new?.bar_id;
@@ -70,8 +73,8 @@ export function useRealtimeStock(config: UseRealtimeStockConfig) {
   const productsSubscription = useRealtimeSubscription({
     table: 'bar_products',
     event: 'UPDATE',
-    filter: `bar_id=eq.${barId}`,
-    enabled,
+    filter: isConfigValid ? `bar_id=eq.${barId}` : undefined,
+    enabled: isConfigValid,
     onMessage: handleStockMessage,
     onError: handleError,
     fallbackPollingInterval: 2000, // 2 second polling fallback (critical for stock alerts)
@@ -83,8 +86,8 @@ export function useRealtimeStock(config: UseRealtimeStockConfig) {
   const suppliesSubscription = useRealtimeSubscription({
     table: 'supplies',
     event: 'INSERT',
-    filter: `bar_id=eq.${barId}`,
-    enabled,
+    filter: isConfigValid ? `bar_id=eq.${barId}` : undefined,
+    enabled: isConfigValid,
     onMessage: handleStockMessage,
     onError: handleError,
     fallbackPollingInterval: 2000, // 2 second polling fallback (critical for stock management)
@@ -99,8 +102,8 @@ export function useRealtimeStock(config: UseRealtimeStockConfig) {
   const consignmentsSubscription = useRealtimeSubscription({
     table: 'consignments',
     event: 'UPDATE',
-    filter: `bar_id=eq.${barId}`,
-    enabled,
+    filter: isConfigValid ? `bar_id=eq.${barId}` : undefined,
+    enabled: isConfigValid,
     onMessage: handleStockMessage,
     onError: handleError,
     fallbackPollingInterval: 2000, // 2 second polling fallback (critical for consignment tracking)
