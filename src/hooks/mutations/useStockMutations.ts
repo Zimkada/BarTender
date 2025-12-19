@@ -150,7 +150,11 @@ export const useStockMutations = (barId: string) => {
 
     const createConsignment = useMutation({
         mutationFn: async (data: any) => {
-            const consignmentData = {
+            if (!currentSession?.userId) {
+                throw new Error('Utilisateur non connecté');
+            }
+
+            const consignmentData: any = {
                 bar_id: barId,
                 sale_id: data.saleId,
                 product_id: data.productId,
@@ -162,15 +166,15 @@ export const useStockMutations = (barId: string) => {
                 expires_at: data.expiresAt
                     ? (data.expiresAt instanceof Date ? data.expiresAt.toISOString() : data.expiresAt)
                     : new Date(Date.now() + (data.expirationDays || 7) * 24 * 60 * 60 * 1000).toISOString(),
-                claimed_at: null,
                 status: 'active',
-                created_by: currentSession?.userId || '',
-                claimed_by: null,
-                original_seller: data.originalSeller || null,
-                customer_name: data.customerName || null,
-                customer_phone: data.customerPhone || null,
-                notes: data.notes || null,
+                created_by: currentSession.userId,
             };
+
+            // Add optional fields only if they have valid values
+            if (data.originalSeller) consignmentData.original_seller = data.originalSeller;
+            if (data.customerName) consignmentData.customer_name = data.customerName;
+            if (data.customerPhone) consignmentData.customer_phone = data.customerPhone;
+            if (data.notes) consignmentData.notes = data.notes;
 
             return StockService.createConsignment(consignmentData);
         },

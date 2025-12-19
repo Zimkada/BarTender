@@ -268,8 +268,9 @@ export default function ReturnsPage() {
 
   const filteredReturns = returns.filter(returnItem => {
     const matchesStatus = filterStatus === 'all' || returnItem.status === filterStatus;
-    const matchesSearch = returnItem.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      returnItem.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = !searchTerm ||
+      (returnItem.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+       returnItem.id?.toLowerCase().includes(searchTerm.toLowerCase()));
     return matchesStatus && matchesSearch;
   });
 
