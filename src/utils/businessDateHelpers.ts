@@ -17,13 +17,19 @@ export function calculateBusinessDate(
     date: Date,
     closeHour: number = BUSINESS_DAY_CLOSE_HOUR
 ): Date {
-    const hour = date.getHours();
+    // ⚠️ LOGIQUE CRITIQUE: Doit être IDENTIQUE au trigger SQL
+    // SQL: DATE(source_date - (closeHour || ' hours')::INTERVAL)
+    //
+    // Exemple avec closeHour = 6:
+    // - 10h du jour N: (N 10h - 6h) = N 04h → jour N ✓
+    // - 5h du jour N:  (N 05h - 6h) = N-1 23h → jour N-1 ✓
+    // - 6h du jour N:  (N 06h - 6h) = N 00h → jour N ✓
+    // - 1h du jour N:  (N 01h - 6h) = N-1 19h → jour N-1 ✓
+
     const businessDate = new Date(date);
 
-    // Si avant l'heure de clôture, c'est la journée commerciale d'hier
-    if (hour < closeHour) {
-        businessDate.setDate(businessDate.getDate() - 1);
-    }
+    // Soustraire closeHour heures de la date
+    businessDate.setHours(businessDate.getHours() - closeHour);
 
     // Normaliser à minuit (00:00:00.000)
     businessDate.setHours(0, 0, 0, 0);
