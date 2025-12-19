@@ -272,6 +272,7 @@ export function Cart({
                       await onCheckout(isSimplifiedMode ? selectedServer : undefined);
                       setSelectedServer(''); // Reset
                       showSuccess('🎉 Vente finalisée !', 1000);
+                      onToggle(); // ✨ Fermer le panier après succès
                       setLoading('checkout', false);
                     }}
                     disabled={isLoading('checkout')}
@@ -440,6 +441,7 @@ export function Cart({
                     await onCheckout(isSimplifiedMode ? selectedServer : undefined, paymentMethod);
                     setSelectedServer(''); // Reset
                     showSuccess('🎉 Vente finalisée !', 1000);
+                    onToggle(); // ✨ Fermer le panier après succès
                     setLoading('checkout', false);
                   }}
                   loading={isLoading('checkout')}

@@ -772,7 +772,7 @@ function SaleDetailModal({
                 <div className="p-6 space-y-4">
                     <div>
                         <p className="text-sm text-gray-600">Date et heure</p>
-                        <p className="font-medium">{(sale.validatedAt || sale.createdAt).toLocaleString('fr-FR')}</p>
+                        <p className="font-medium">{new Date(sale.validatedAt || sale.createdAt).toLocaleString('fr-FR')}</p>
                     </div>
 
                     <div>

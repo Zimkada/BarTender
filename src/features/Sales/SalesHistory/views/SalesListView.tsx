@@ -78,7 +78,7 @@ export function SalesListView({
                                 <td className="p-4">
                                     <div>
                                         <p className="text-sm">{getSaleDate(sale).toLocaleDateString('fr-FR')}</p>
-                                        <p className="text-xs text-gray-600">{getSaleDate(sale).toLocaleTimeString('fr-FR')}</p>
+                                        <p className="text-xs text-gray-600">{new Date(sale.validatedAt || sale.createdAt).toLocaleTimeString('fr-FR')}</p>
                                     </div>
                                 </td>
                                 <td className="p-4">

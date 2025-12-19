@@ -85,7 +85,7 @@ export function SaleCard({
                         </span>
                     </div>
                     <p className="text-sm text-gray-600">
-                        {getSaleDate(sale).toLocaleDateString('fr-FR')} • {getSaleDate(sale).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                        {getSaleDate(sale).toLocaleDateString('fr-FR')} • {new Date(sale.validatedAt || sale.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                     {creator && (
                         <p className="text-xs text-gray-500 mt-1">
