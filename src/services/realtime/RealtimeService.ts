@@ -239,6 +239,15 @@ export class RealtimeService {
     const state = this.channels.get(channelId);
     if (!state) return;
 
+    // Ignore false positives: "Subscribed to PostgreSQL" is a system message, not an error
+    if (error?.message === 'Subscribed to PostgreSQL') {
+      console.log(`[Realtime] Successfully subscribed to ${channelId}`);
+      state.isConnected = true;
+      state.retryCount = 0;
+      return;
+    }
+
+    // Only handle real errors
     console.error(`[Realtime] Channel error for ${channelId}:`, error);
     state.lastError = error;
     state.isConnected = false;
