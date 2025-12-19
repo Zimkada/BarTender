@@ -14,7 +14,7 @@ CREATE OR REPLACE FUNCTION public.admin_as_get_bar_sales_cursor(
     p_acting_as_user_id UUID,
     p_bar_id UUID,
     p_limit INTEGER DEFAULT 50,
-    p_cursor_date TIMESTAMPTZ DEFAULT NULL,
+    p_cursor_date DATE DEFAULT NULL,
     p_cursor_id UUID DEFAULT NULL
 )
 RETURNS JSONB
@@ -74,9 +74,9 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.admin_as_get_bar_sales_cursor(UUID, UUID, INTEGER, TIMESTAMPTZ, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_as_get_bar_sales_cursor(UUID, UUID, INTEGER, DATE, UUID) TO authenticated;
 
-COMMENT ON FUNCTION public.admin_as_get_bar_sales_cursor(UUID, UUID, INTEGER, TIMESTAMPTZ, UUID) IS
+COMMENT ON FUNCTION public.admin_as_get_bar_sales_cursor(UUID, UUID, INTEGER, DATE, UUID) IS
 'Get paginated bar sales using cursor-based pagination. More efficient than offset for large datasets. Parameters: acting_as_user_id, bar_id, limit (default 50), cursor_date (null for first page), cursor_id (null for first page)';
 
 -- =====================================================
@@ -87,7 +87,7 @@ COMMENT ON FUNCTION public.admin_as_get_bar_sales_cursor(UUID, UUID, INTEGER, TI
 CREATE OR REPLACE FUNCTION public.get_bar_sales_cursor(
     p_bar_id UUID,
     p_limit INTEGER DEFAULT 50,
-    p_cursor_date TIMESTAMPTZ DEFAULT NULL,
+    p_cursor_date DATE DEFAULT NULL,
     p_cursor_id UUID DEFAULT NULL
 )
 RETURNS TABLE (
@@ -148,9 +148,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
-GRANT EXECUTE ON FUNCTION public.get_bar_sales_cursor(UUID, INTEGER, TIMESTAMPTZ, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_bar_sales_cursor(UUID, INTEGER, DATE, UUID) TO authenticated;
 
-COMMENT ON FUNCTION public.get_bar_sales_cursor(UUID, INTEGER, TIMESTAMPTZ, UUID) IS
+COMMENT ON FUNCTION public.get_bar_sales_cursor(UUID, INTEGER, DATE, UUID) IS
 'Get paginated bar sales using cursor-based pagination for bar members. Parameters: bar_id, limit (default 50), cursor_date (null for first page), cursor_id (null for first page)';
 
 -- =====================================================
