@@ -102,15 +102,18 @@ export const useStockManagement = () => {
     if (!currentBar || !session) return null;
 
     const consignmentData = {
-      bar_id: currentBar.id,
-      product_id: data.productId,
+      saleId: data.saleId,
+      productId: data.productId,
+      productName: data.productName,
+      productVolume: data.productVolume,
       quantity: data.quantity,
-      client_name: data.clientName,
-      client_phone: data.clientPhone,
-      created_by: session.userId,
-      status: 'active',
-      // expires_at calculé côté serveur ou ici
-      expires_at: new Date(Date.now() + (data.expirationDays || 7) * 24 * 60 * 60 * 1000).toISOString(),
+      totalAmount: data.totalAmount,
+      customerName: data.customerName,
+      customerPhone: data.customerPhone,
+      notes: data.notes,
+      expiresAt: data.expiresAt,
+      expirationDays: data.expirationDays || 7,
+      originalSeller: data.originalSeller,
     };
 
     mutations.createConsignment.mutate(consignmentData);

@@ -154,6 +154,17 @@ export const useStockMutations = (barId: string) => {
                 throw new Error('Utilisateur non connecté');
             }
 
+            // Validate required fields
+            if (!data.saleId) {
+                throw new Error('Sale ID est obligatoire');
+            }
+            if (!data.productId) {
+                throw new Error('Product ID est obligatoire');
+            }
+            if (!data.quantity || data.quantity < 1) {
+                throw new Error('Quantité invalide');
+            }
+
             const consignmentData: any = {
                 bar_id: barId,
                 sale_id: data.saleId,
@@ -182,6 +193,9 @@ export const useStockMutations = (barId: string) => {
             toast.success('Consignation créée');
             queryClient.invalidateQueries({ queryKey: stockKeys.consignments(barId) });
         },
+        onError: (err: any) => {
+            toast.error(`Erreur: ${err.message}`);
+        }
     });
 
     const claimConsignment = useMutation({
