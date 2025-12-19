@@ -54,7 +54,12 @@ export function useSalesFilters({ sales, consignments, currentSession, closeHour
             );
         }
 
-        return finalFiltered.sort((a, b) => getSaleDate(b).getTime() - getSaleDate(a).getTime());
+        // D. Tri final par date de transaction réelle (plus récent en premier)
+        return finalFiltered.sort((a, b) => {
+            const dateA = new Date(a.validatedAt || a.createdAt);
+            const dateB = new Date(b.validatedAt || b.createdAt);
+            return dateB.getTime() - dateA.getTime();
+        });
     }, [sales, startDate, endDate, searchTerm, currentSession, closeHour]);
 
     // 3. Filtrage des consignations
@@ -69,62 +74,14 @@ export function useSalesFilters({ sales, consignments, currentSession, closeHour
             return true;
         });
 
-        // B. Appliquer les filtres de date
-        let filtered = baseConsignments;
-        const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        // B. Appliquer le filtre de date (logique business day unifiée)
+        const startDateStr = dateToYYYYMMDD(startDate);
+        const endDateStr = dateToYYYYMMDD(endDate);
+        const filtered = filterByBusinessDateRange(baseConsignments, startDateStr, endDateStr, closeHour);
 
-        switch (timeRange) {
-            case 'today': {
-                const currentBusinessDay = getCurrentBusinessDay(closeHour);
-                filtered = baseConsignments.filter(c => {
-                    const consignDate = new Date(c.createdAt);
-                    const consignBusinessDay = getBusinessDay(consignDate, closeHour);
-                    return isSameDay(consignBusinessDay, currentBusinessDay);
-                });
-                break;
-            }
-            case 'this_week': {
-                const currentDay = today.getDay();
-                const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
-                const monday = new Date();
-                monday.setDate(monday.getDate() - daysFromMonday);
-                monday.setHours(0, 0, 0, 0);
-                const sunday = new Date(monday);
-                sunday.setDate(monday.getDate() + 6);
-                sunday.setHours(23, 59, 59, 999);
-                filtered = baseConsignments.filter(c => {
-                    const consignDate = new Date(c.createdAt);
-                    return consignDate >= monday && consignDate <= sunday;
-                });
-                break;
-            }
-            case 'this_month': {
-                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-                firstDay.setHours(0, 0, 0, 0);
-                const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-                lastDay.setHours(23, 59, 59, 999);
-                filtered = baseConsignments.filter(c => {
-                    const consignDate = new Date(c.createdAt);
-                    return consignDate >= firstDay && consignDate <= lastDay;
-                });
-                break;
-            }
-            case 'custom': {
-                const customStartDate = new Date(customRange.start);
-                customStartDate.setHours(0, 0, 0, 0);
-                const customEndDate = new Date(customRange.end);
-                customEndDate.setDate(customEndDate.getDate() + 1);
-                filtered = baseConsignments.filter(c => {
-                    const consignDate = new Date(c.createdAt);
-                    return consignDate >= customStartDate && consignDate < customEndDate;
-                });
-                break;
-            }
-        }
-
+        // C. Tri final
         return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    }, [consignments, timeRange, customRange, currentSession, closeHour]);
+    }, [consignments, startDate, endDate, currentSession, closeHour]);
 
     return {
         ...dateFilter,

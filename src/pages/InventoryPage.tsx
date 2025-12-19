@@ -300,11 +300,16 @@ export default function InventoryPage() {
                                                     <p className="text-gray-600 text-sm">{product.volume}</p>
                                                     <p className="text-gray-500 text-xs mt-1">{getCategoryName(product.categoryId)}</p>
                                                 </div>
-                                                <div className={`flex-shrink-0 px-3 py-1 rounded-full text-sm font-bold ${(stockInfo?.physicalStock ?? 0) <= product.alertThreshold
+                                                <div className={`flex-shrink-0 text-right`}>
+                                                    <div className={`px-3 py-1 rounded-full text-sm font-bold ${(stockInfo?.physicalStock ?? 0) <= product.alertThreshold
                                                         ? 'bg-red-100 text-red-700'
                                                         : 'bg-amber-100 text-amber-700'
                                                     }`}>
-                                                    {stockInfo?.physicalStock ?? 'N/A'}
+                                                        {stockInfo?.physicalStock ?? 'N/A'}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                        Dispo: {stockInfo?.availableStock ?? 'N/A'}
+                                                    </div>
                                                 </div>
                                             </div>
 

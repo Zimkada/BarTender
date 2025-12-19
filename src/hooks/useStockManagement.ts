@@ -121,7 +121,7 @@ export const useStockManagement = () => {
   // ===== LOGIQUE DE CONSIGNATION =====
 
   const createConsignment = useCallback((data: any) => {
-    if (!currentBar || !session) return null;
+    if (!currentBar || !session) return Promise.reject('No bar or session');
 
     const consignmentData = {
       saleId: data.saleId,
@@ -138,8 +138,13 @@ export const useStockManagement = () => {
       originalSeller: data.originalSeller,
     };
 
-    mutations.createConsignment.mutate(consignmentData);
-    return null; // Legacy return
+    // ✅ BUG #1 FIX: Retourner une promesse qui se résout quand la mutation est terminée
+    return new Promise((resolve, reject) => {
+      mutations.createConsignment.mutate(consignmentData, {
+        onSuccess: (data) => resolve(data),
+        onError: (err) => reject(err)
+      });
+    });
   }, [currentBar, session, mutations]);
 
   const claimConsignment = useCallback((consignmentId: string) => {
@@ -220,15 +225,14 @@ export const useStockManagement = () => {
   ) => {
     // 1. Vérification du stock (Client-side check before mutation)
     for (const item of saleItems) {
-      const product = products.find(p => p.id === item.product.id);
-      // Note: On devrait utiliser getProductStockInfo ici pour être précis avec les consignations
-      // Mais pour simplifier, on regarde le stock physique brut du produit chargé
-      if (!product) {
+      const stockInfo = getProductStockInfo(item.product.id); // Utiliser getProductStockInfo pour vérifier le stock disponible
+
+      if (!stockInfo) {
         onError(`Produit ${item.product.name} introuvable`);
         return false;
       }
-      if (product.stock < item.quantity) {
-        onError(`Stock insuffisant pour ${item.product.name}`);
+      if (stockInfo.availableStock < item.quantity) { // Vérifier par rapport au stock disponible
+        onError(`Stock insuffisant pour ${item.product.name} (disponible: ${stockInfo.availableStock})`);
         return false;
       }
     }

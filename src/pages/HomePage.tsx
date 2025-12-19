@@ -1,5 +1,5 @@
 // src/pages/HomePage.tsx
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
@@ -12,14 +12,26 @@ import { Card } from '../components/ui/Card';
 import { Product } from '../types';
 import { useFilteredProducts } from '../hooks/useFilteredProducts';
 import { useCategoryManagement } from '../hooks/useCategoryManagement';
+import { useStockManagement } from '../hooks/useStockManagement';
 
 export function HomePage() {
-  const { products, categories, addToCart } = useAppContext();
+  // 1. Tous les hooks sont appelés inconditionnellement en haut
+  const { categories, addToCart } = useAppContext();
   const { currentBar } = useBarContext();
+  const { products: allProducts, getProductStockInfo } = useStockManagement();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  const productsWithAvailableStock = useMemo(() => {
+    return allProducts.map(product => {
+      const stockInfo = getProductStockInfo(product.id);
+      return {
+        ...product,
+        stock: stockInfo?.availableStock ?? 0 // Override 'stock' with availableStock
+      };
+    });
+  }, [allProducts, getProductStockInfo]);
 
-  // Hook consolidé pour la gestion des catégories
   const {
     isCategoryModalOpen,
     editingCategory,
@@ -35,18 +47,14 @@ export function HomePage() {
     handleConfirmDeleteCategory,
   } = useCategoryManagement();
 
-  // Utilisation du hook centralisé pour le filtrage
   const filteredProducts = useFilteredProducts({
-    products,
+    products: productsWithAvailableStock,
     searchQuery,
     selectedCategory,
     onlyInStock: true
   });
 
-  const handleAddToCart = (product: Product) => {
-    addToCart(product);
-  };
-
+  // 2. Le retour anticipé est placé après tous les hooks
   if (!currentBar) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-100px)] text-gray-800 p-4">
@@ -56,6 +64,11 @@ export function HomePage() {
     );
   }
 
+  const handleAddToCart = (product: Product) => {
+    addToCart(product);
+  };
+
+  // 3. Le reste du rendu du composant
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-4">
       {/* Header */}
@@ -67,7 +80,7 @@ export function HomePage() {
           </div>
           <div className="flex items-center gap-2 text-amber-600">
             <ShoppingCart size={24} />
-            <span className="text-sm font-medium">{products.length} produits</span>
+            <span className="text-sm font-medium">{allProducts.length} produits</span>
           </div>
         </div>
 
@@ -87,7 +100,7 @@ export function HomePage() {
         onEditCategory={handleEditCategory}
         onDeleteCategory={handleDeleteCategory}
         onAddCategory={handleAddCategory}
-        productCounts={products.reduce((acc, p) => {
+        productCounts={allProducts.reduce((acc, p) => {
           acc[p.categoryId] = (acc[p.categoryId] || 0) + 1;
           return acc;
         }, {} as Record<string, number>)}

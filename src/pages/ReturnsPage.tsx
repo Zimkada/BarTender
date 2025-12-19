@@ -495,7 +495,7 @@ export default function ReturnsPage() {
                               <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 mt-1">
                                 <span>ID: #{returnItem.id.slice(-6)}</span>
                                 <span>•</span>
-                                <span>{new Date(returnItem.returnedAt).toLocaleDateString('fr-FR')}</span>
+                                <span>{new Date(returnItem.returnedAt).toLocaleDateString('fr-FR')} à {new Date(returnItem.returnedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
                                 {originalSeller && (
                                   <>
                                     <span>•</span>
@@ -944,7 +944,7 @@ function CreateReturnForm({
                     >
                       <div className="flex items-center justify-between mb-1">
                         <span className="font-medium text-gray-800">#{sale.id.slice(-4)}</span>
-                        <span className="text-xs text-gray-500">{getSaleDate(sale).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="text-xs text-gray-500">{new Date(sale.validatedAt || sale.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       <div className="text-xs text-gray-600 truncate mb-1" title={productPreview}>
                         {productPreview}{moreCount > 0 ? ` +${moreCount}` : ''}

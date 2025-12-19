@@ -168,7 +168,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
       );
     }
 
-    return filtered;
+    return filtered.sort((a, b) => new Date(b.validatedAt || b.createdAt).getTime() - new Date(a.validatedAt || a.createdAt).getTime());
   }, [todaySales, filterSeller, searchTerm, currentBar, session]);
 
   const sellersWithSales = useMemo(() => {
@@ -361,7 +361,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
                   </div>
 
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-gray-500">{getSaleDate(sale).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span className="text-xs text-gray-500">{new Date(sale.validatedAt || sale.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
                     {seller && <span className="text-xs text-amber-600">👤 {seller.name}</span>}
                   </div>
                 </button>
@@ -539,14 +539,18 @@ const ActiveConsignmentsTab: React.FC = () => {
   );
 
   const filteredConsignments = useMemo(() => {
-    if (!searchTerm) return activeConsignments;
-    const term = searchTerm.toLowerCase();
-    return activeConsignments.filter((c: Consignment) =>
-      c.customerName?.toLowerCase().includes(term) ||
-      c.customerPhone?.includes(term) ||
-      c.productName.toLowerCase().includes(term) ||
-      c.id.toLowerCase().includes(term)
-    );
+    let filtered = activeConsignments;
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = activeConsignments.filter((c: Consignment) =>
+        c.customerName?.toLowerCase().includes(term) ||
+        c.customerPhone?.includes(term) ||
+        c.productName.toLowerCase().includes(term) ||
+        c.id.toLowerCase().includes(term)
+      );
+    }
+    // Trier par date d'expiration (plus proche en premier)
+    return filtered.sort((a, b) => new Date(a.expiresAt).getTime() - new Date(b.expiresAt).getTime());
   }, [activeConsignments, searchTerm]);
 
   const handleClaim = (consignment: Consignment) => {

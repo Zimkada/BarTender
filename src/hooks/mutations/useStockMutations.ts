@@ -187,48 +187,92 @@ export const useStockMutations = (barId: string) => {
             if (data.customerPhone) consignmentData.customer_phone = data.customerPhone;
             if (data.notes) consignmentData.notes = data.notes;
 
-            return StockService.createConsignment(consignmentData);
+            const newConsignment = await StockService.createConsignment(consignmentData);
+            // Increment physical stock as per clarified business logic:
+            // Consigned item is physically back in the bar, but reserved.
+            await ProductsService.incrementStock(consignmentData.product_id, consignmentData.quantity);
+            return newConsignment;
         },
-        onSuccess: () => {
+        onSuccess: (newConsignment) => {
             toast.success('Consignation créée');
-            queryClient.invalidateQueries({ queryKey: stockKeys.consignments(barId) });
+            // ✅ BUG #3 FIX: Valider que barId n'est pas vide avant d'invalider
+            if (barId) {
+                queryClient.invalidateQueries({ queryKey: stockKeys.consignments(barId) });
+                queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+            }
         },
         onError: (err: any) => {
             toast.error(`Erreur: ${err.message}`);
         }
     });
 
-    const claimConsignment = useMutation({
-        mutationFn: async ({ id, productId, quantity }: { id: string; productId: string; quantity: number; claimedBy: string }) => {
-            // Update Consignment
-            const consignment = await StockService.updateConsignmentStatus(id, 'sold', {
-                claimed_at: new Date().toISOString()
-                // claimed_by? If DB supports it. Lint said 'claimedBy' unused.
-            });
-            await ProductsService.decrementStock(productId, quantity);
-            return consignment;
-        },
-        onSuccess: () => {
-            toast.success('Consignation réclamée');
-            queryClient.invalidateQueries({ queryKey: stockKeys.consignments(barId) });
-            queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
-        },
-    });
+        const claimConsignment = useMutation({
 
-    const forfeitConsignment = useMutation({
-        mutationFn: async ({ id, productId, quantity }: { id: string; productId: string; quantity: number }) => {
-            const consignment = await StockService.updateConsignmentStatus(id, 'returned', {
-                // returned_at might not be in Partial<Consignment> if excluded from valid updates?
-                // But lint said it doesn't exist in Partial<...>.
-                // I will omit returned_at for now if it causes issues, or cast.
-            });
-            await ProductsService.incrementStock(productId, quantity);
-            return consignment;
-        },
+            mutationFn: async ({ id, productId, quantity }: { id: string; productId: string; quantity: number; claimedBy: string }) => {
+
+                // Update Consignment
+
+                const consignment = await StockService.updateConsignmentStatus(id, 'claimed', {
+
+                    claimed_at: new Date().toISOString()
+
+                    // claimed_by? If DB supports it. Lint said 'claimedBy' unused.
+
+                });
+
+                await ProductsService.decrementStock(productId, quantity);
+
+                return consignment;
+
+            },
+
+            onSuccess: () => {
+
+                toast.success('Consignation réclamée');
+
+                // ✅ BUG #3 FIX: Valider que barId n'est pas vide avant d'invalider
+                if (barId) {
+                    queryClient.invalidateQueries({ queryKey: stockKeys.consignments(barId) });
+
+                    queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+                }
+
+            },
+
+        });
+
+    
+
+        const forfeitConsignment = useMutation({
+
+            mutationFn: async ({ id, productId, quantity }: { id: string; productId: string; quantity: number }) => {
+
+                const consignment = await StockService.updateConsignmentStatus(id, 'forfeited', {
+
+                    // returned_at might not be in Partial<Consignment> if excluded from valid updates?
+
+                    // But lint said it doesn't exist in Partial<...>.
+
+                    // I will omit returned_at for now if it causes issues, or cast.
+
+                });
+
+                // DO NOT increment stock. The item was already in the bar, just reserved.
+
+                // This was the major bug causing phantom stock.
+
+                // await ProductsService.incrementStock(productId, quantity);
+
+                return consignment;
+
+            },
         onSuccess: () => {
             toast.success('Consignation abandonnée (stock réintégré)');
-            queryClient.invalidateQueries({ queryKey: stockKeys.consignments(barId) });
-            queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+            // ✅ BUG #3 FIX: Valider que barId n'est pas vide avant d'invalider
+            if (barId) {
+                queryClient.invalidateQueries({ queryKey: stockKeys.consignments(barId) });
+                queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+            }
         },
     });
 
