@@ -5,17 +5,21 @@ import { ProxyAdminService } from '../../services/supabase/proxy-admin.service';
 import { stockKeys } from '../queries/useStockQueries';
 import { useAuth } from '../../context/AuthContext';
 import { useActingAs } from '../../context/ActingAsContext';
+import { useBarContext } from '../../context/BarContext';
 import toast from 'react-hot-toast';
 
-export const useStockMutations = (barId: string) => {
+export const useStockMutations = () => {
     const queryClient = useQueryClient();
     const { currentSession } = useAuth();
     const { actingAs } = useActingAs();
+    const { currentBar } = useBarContext();
 
     // --- PRODUCTS ---
 
     const createProduct = useMutation({
         mutationFn: async (productData: any) => {
+            const barId = currentBar?.id;
+            if (!barId) throw new Error("No bar selected");
             // PROXY MODE
             if (actingAs.isActive && actingAs.userId) {
                 return ProxyAdminService.manageProductAsProxy(
@@ -29,13 +33,16 @@ export const useStockMutations = (barId: string) => {
             return ProductsService.createBarProduct(productData);
         },
         onSuccess: () => {
+            const barId = currentBar?.id;
             toast.success('Produit créé avec succès');
-            queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+            if (barId) queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
         },
     });
 
     const updateProduct = useMutation({
         mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
+            const barId = currentBar?.id;
+            if (!barId) throw new Error("No bar selected");
             // PROXY MODE
             if (actingAs.isActive && actingAs.userId) {
                 return ProxyAdminService.manageProductAsProxy(
@@ -49,13 +56,16 @@ export const useStockMutations = (barId: string) => {
             return ProductsService.updateBarProduct(id, updates);
         },
         onSuccess: () => {
+            const barId = currentBar?.id;
             toast.success('Produit mis à jour');
-            queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+            if (barId) queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
         },
     });
 
     const deleteProduct = useMutation({
         mutationFn: async (id: string) => {
+            const barId = currentBar?.id;
+            if (!barId) throw new Error("No bar selected");
             // PROXY MODE
             if (actingAs.isActive && actingAs.userId) {
                 return ProxyAdminService.manageProductAsProxy(
@@ -69,14 +79,17 @@ export const useStockMutations = (barId: string) => {
             return ProductsService.deactivateProduct(id);
         },
         onSuccess: () => {
+            const barId = currentBar?.id;
             toast.success('Produit supprimé');
-            queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+            if (barId) queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
         },
     });
 
     // --- STOCK ADJUSTMENT (New) ---
     const adjustStock = useMutation({
         mutationFn: async ({ productId, delta, reason }: { productId: string; delta: number; reason: string }) => {
+            const barId = currentBar?.id;
+            if (!barId) throw new Error("No bar selected");
             // PROXY MODE
             if (actingAs.isActive && actingAs.userId) {
                 return ProxyAdminService.updateStockAsProxy(
@@ -96,8 +109,9 @@ export const useStockMutations = (barId: string) => {
             }
         },
         onSuccess: () => {
+            const barId = currentBar?.id;
             toast.success('Stock mis à jour');
-            queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+            if (barId) queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
         },
         onError: (err: any) => {
             toast.error(`Erreur mise à jour stock: ${err.message}`);
@@ -137,9 +151,12 @@ export const useStockMutations = (barId: string) => {
             return rpcData.supply;
         },
         onSuccess: () => {
+            const barId = currentBar?.id;
             toast.success('Approvisionnement enregistré et CUMP mis à jour !');
-            queryClient.invalidateQueries({ queryKey: stockKeys.supplies(barId) });
-            queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+            if (barId) {
+                queryClient.invalidateQueries({ queryKey: stockKeys.supplies(barId) });
+                queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+            }
         },
         onError: (err: any) => {
             toast.error(`Erreur: ${err.message}`);
@@ -150,21 +167,16 @@ export const useStockMutations = (barId: string) => {
 
     const createConsignment = useMutation({
         mutationFn: async (data: any) => {
-            if (!currentSession?.userId) {
-                throw new Error('Utilisateur non connecté');
+            const barId = currentBar?.id;
+            if (!currentSession?.userId || !barId) {
+                throw new Error('Utilisateur non connecté ou bar non sélectionné');
             }
 
             // Validate required fields
-            if (!data.saleId) {
-                throw new Error('Sale ID est obligatoire');
-            }
-            if (!data.productId) {
-                throw new Error('Product ID est obligatoire');
-            }
-            if (!data.quantity || data.quantity < 1) {
-                throw new Error('Quantité invalide');
-            }
-
+            if (!data.saleId) throw new Error('Sale ID est obligatoire');
+            if (!data.productId) throw new Error('Product ID est obligatoire');
+            if (!data.quantity || data.quantity < 1) throw new Error('Quantité invalide');
+            
             const consignmentData: any = {
                 bar_id: barId,
                 sale_id: data.saleId,
@@ -189,13 +201,12 @@ export const useStockMutations = (barId: string) => {
 
             const newConsignment = await StockService.createConsignment(consignmentData);
             // Increment physical stock as per clarified business logic:
-            // Consigned item is physically back in the bar, but reserved.
             await ProductsService.incrementStock(consignmentData.product_id, consignmentData.quantity);
             return newConsignment;
         },
         onSuccess: (newConsignment) => {
+            const barId = currentBar?.id;
             toast.success('Consignation créée');
-            // ✅ BUG #3 FIX: Valider que barId n'est pas vide avant d'invalider
             if (barId) {
                 queryClient.invalidateQueries({ queryKey: stockKeys.consignments(barId) });
                 queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
@@ -206,76 +217,54 @@ export const useStockMutations = (barId: string) => {
         }
     });
 
-        const claimConsignment = useMutation({
-
-            mutationFn: async ({ id, productId, quantity }: { id: string; productId: string; quantity: number; claimedBy: string }) => {
-
-                // Update Consignment
-
-                const consignment = await StockService.updateConsignmentStatus(id, 'claimed', {
-
-                    claimed_at: new Date().toISOString()
-
-                    // claimed_by? If DB supports it. Lint said 'claimedBy' unused.
-
-                });
-
-                await ProductsService.decrementStock(productId, quantity);
-
-                return consignment;
-
-            },
-
-            onSuccess: () => {
-
-                toast.success('Consignation réclamée');
-
-                // ✅ BUG #3 FIX: Valider que barId n'est pas vide avant d'invalider
-                // ✅ REFETCH au lieu de juste invalider pour rafraîchir immédiatement
-                if (barId) {
-                    queryClient.refetchQueries({ queryKey: stockKeys.consignments(barId) });
-
-                    queryClient.refetchQueries({ queryKey: stockKeys.products(barId) });
-                }
-
-            },
-
-        });
-
-    
-
-        const forfeitConsignment = useMutation({
-
-            mutationFn: async ({ id, productId, quantity }: { id: string; productId: string; quantity: number }) => {
-
-                const consignment = await StockService.updateConsignmentStatus(id, 'forfeited', {
-
-                    // returned_at might not be in Partial<Consignment> if excluded from valid updates?
-
-                    // But lint said it doesn't exist in Partial<...>.
-
-                    // I will omit returned_at for now if it causes issues, or cast.
-
-                });
-
-                // DO NOT increment stock. The item was already in the bar, just reserved.
-
-                // This was the major bug causing phantom stock.
-
-                // await ProductsService.incrementStock(productId, quantity);
-
-                return consignment;
-
-            },
+    const claimConsignment = useMutation({
+        mutationFn: async ({ id, productId, quantity }: { id: string; productId: string; quantity: number; claimedBy: string }) => {
+            const consignment = await StockService.updateConsignmentStatus(id, 'claimed', {
+                claimed_at: new Date().toISOString()
+            });
+            await ProductsService.decrementStock(productId, quantity);
+            return consignment;
+        },
         onSuccess: () => {
-            toast.success('Consignation abandonnée (stock réintégré)');
-            // ✅ BUG #3 FIX: Valider que barId n'est pas vide avant d'invalider
-            // ✅ REFETCH au lieu de juste invalider pour rafraîchir immédiatement
+            const barId = currentBar?.id;
+            toast.success('Consignation réclamée');
             if (barId) {
                 queryClient.refetchQueries({ queryKey: stockKeys.consignments(barId) });
                 queryClient.refetchQueries({ queryKey: stockKeys.products(barId) });
             }
         },
+    });
+
+    const forfeitConsignment = useMutation({
+        mutationFn: async ({ id, productId, quantity }: { id: string; productId: string; quantity: number }) => {
+            const consignment = await StockService.updateConsignmentStatus(id, 'forfeited', {});
+            return consignment;
+        },
+        onSuccess: () => {
+            const barId = currentBar?.id;
+            toast.success('Consignation abandonnée (stock réintégré)');
+            if (barId) {
+                queryClient.refetchQueries({ queryKey: stockKeys.consignments(barId) });
+                queryClient.refetchQueries({ queryKey: stockKeys.products(barId) });
+            }
+        },
+    });
+
+    const expireConsignments = useMutation({
+        mutationFn: async (ids: string[]) => {
+            const promises = ids.map(id => StockService.updateConsignmentStatus(id, 'expired', {}));
+            return Promise.all(promises);
+        },
+        onSuccess: (data) => {
+            const barId = currentBar?.id;
+            toast.success(`${data.length} consignation(s) marquée(s) comme expirée(s)`);
+            if (barId) {
+                queryClient.invalidateQueries({ queryKey: stockKeys.consignments(barId) });
+            }
+        },
+        onError: (err: any) => {
+            toast.error(`Erreur lors de l'expiration: ${err.message}`);
+        }
     });
 
     // --- SALES ---
@@ -288,7 +277,8 @@ export const useStockMutations = (barId: string) => {
             await Promise.all(promises);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+            const barId = currentBar?.id;
+            if (barId) queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
         },
     });
 
@@ -301,6 +291,7 @@ export const useStockMutations = (barId: string) => {
         createConsignment,
         claimConsignment,
         forfeitConsignment,
+        expireConsignments,
         validateSale,
     };
 };
