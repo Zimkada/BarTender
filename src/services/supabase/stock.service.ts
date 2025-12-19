@@ -130,7 +130,7 @@ export class StockService {
 
     static async updateConsignmentStatus(
         id: string,
-        status: 'active' | 'returned' | 'sold',
+        status: 'active' | 'claimed' | 'expired' | 'forfeited',
         updates: Partial<Consignment> = {}
     ): Promise<Consignment> {
         try {

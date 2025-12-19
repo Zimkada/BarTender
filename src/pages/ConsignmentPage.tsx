@@ -262,7 +262,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim() || undefined,
         notes: notes.trim() || undefined,
-        expiresAt: new Date(),
+        // Ne pas envoyer expiresAt - laisser le serveur le calculer à partir de expirationDays
         expirationDays: expirationDays,
         originalSeller: selectedSale.createdBy,
       });
