@@ -1,3 +1,119 @@
+## 20251219100000_add_cursor_pagination_for_sales.sql (2025-12-19 10:00:00)
+
+**Status**: ✅ Ready for Deployment
+**Date**: 2025-12-19
+**Phase**: 3.4 - Lazy-Loading & Cursor Pagination
+**Feature**: Cursor-based Pagination for Sales
+
+### Overview
+
+Implements cursor-based pagination for sales using composite key (business_date, id). More efficient than offset-based pagination for large datasets and real-time data.
+
+### Problem Solved
+
+**Offset Pagination Limitations:**
+- O(n) complexity: database must scan n rows to skip n rows
+- Becomes slow with large datasets (1000+ rows)
+- Unstable with real-time data: data inserted between requests causes gaps/duplicates
+- Example: User on page 3, new sale inserted at top, pagination jumps
+
+**Cursor Pagination Solution:**
+- O(log n) complexity: uses index directly
+- Stable pagination: cursor position fixed, unaffected by data changes
+- Better for real-time data (sales constantly being added)
+
+### Solution Implemented
+
+**Files Created:**
+1. **supabase/migrations/20251219100000_add_cursor_pagination_for_sales.sql** (NEW)
+   - New RPC `admin_as_get_bar_sales_cursor()` - cursor pagination with RLS bypass
+   - New RPC `get_bar_sales_cursor()` - cursor pagination for bar members
+   - Index optimization: `idx_sales_business_date_id` on (bar_id, business_date DESC, id DESC)
+
+**Files Modified:**
+1. **src/services/supabase/sales.service.ts**
+   - New method `getBarSalesCursorPaginated(barId, options)` with cursor support
+   - Accepts `cursorDate` and `cursorId` (null = first page)
+
+### Technical Details
+
+**Cursor Pagination Flow:**
+```
+First request (no cursor):
+- admin_as_get_bar_sales_cursor(bar_id, limit=50)
+- Returns 50 newest sales
+
+Each item includes:
+{
+  ...sale,
+  cursor: {
+    date: '2025-12-19 14:30:00',
+    id: 'abc-123-def'
+  }
+}
+
+Next request (with cursor from last item of previous page):
+- admin_as_get_bar_sales_cursor(bar_id, limit=50, cursor_date='2025-12-19 14:30:00', cursor_id='abc-123-def')
+- Returns 50 sales AFTER cursor position
+- Guaranteed no duplicates/gaps
+```
+
+**Composite Key (business_date, id):**
+- `business_date` DESC: Orders by date newest first
+- `id` DESC: Breaks ties when multiple sales on same date (stable order)
+- Tuple comparison `(date1, id1) < (date2, id2)`: Gets items after cursor
+
+**Index Optimization:**
+```sql
+CREATE INDEX idx_sales_business_date_id ON sales(bar_id, business_date DESC, id DESC);
+```
+- Enables fast cursor pagination queries
+- Uses database index, no full table scan
+- O(log n) instead of O(n)
+
+### Performance Impact
+
+- 🚀 Pagination speed: Constant O(log n) vs O(n) with offset
+- ✅ Stable: Handles real-time data correctly
+- 🔄 No data duplication: Impossible with cursor pagination
+- 💾 Efficient: Single index lookup per request
+
+### Usage Example
+
+```typescript
+// First page (no cursor)
+const page1 = await SalesService.getBarSalesCursorPaginated(barId, { limit: 50 });
+
+// Get cursor from last item
+const lastSale = page1[page1.length - 1];
+const nextCursor = lastSale.cursor; // { date, id }
+
+// Next page (with cursor)
+const page2 = await SalesService.getBarSalesCursorPaginated(barId, {
+  limit: 50,
+  cursorDate: nextCursor.date,
+  cursorId: nextCursor.id,
+});
+```
+
+### Comparison: Offset vs Cursor
+
+| Factor | Offset | Cursor |
+|--------|--------|--------|
+| **Complexity** | O(n) | O(log n) |
+| **Speed** | Slow (1000+ rows) | Fast (constant) |
+| **Real-time Safe** | ❌ Can duplicate | ✅ Stable |
+| **Index Usage** | Full scan | Index seek |
+| **Code Complexity** | Simple | Moderate |
+
+### Next Steps
+
+- **Phase 3.4.3**: Lazy-loading UI (Load More buttons)
+- **Phase 3.4.4**: Virtual scrolling (react-window)
+- **Phase 3.4.5**: Performance testing
+
+---
+
 ## 20251219000000_add_pagination_to_rpcs.sql (2025-12-19 00:00:00)
 
 **Status**: ✅ Ready for Deployment

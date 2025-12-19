@@ -514,6 +514,47 @@ export class SalesService {
   }
 
   /**
+   * Récupérer les ventes avec cursor pagination via RPC (utilisé par les admins)
+   * Plus efficace que offset pour les gros datasets et données temps réel
+   * Cursor utilise clé composite (business_date, id)
+   */
+  static async getBarSalesCursorPaginated(
+    barId: string,
+    options?: {
+      limit?: number;
+      cursorDate?: string; // ISO timestamp YYYY-MM-DD ou null pour première page
+      cursorId?: string; // UUID ou null pour première page
+    }
+  ): Promise<SaleWithDetails[]> {
+    try {
+      const { data, error } = await supabase.rpc('admin_as_get_bar_sales_cursor', {
+        p_acting_as_user_id: null,
+        p_bar_id: barId,
+        p_limit: options?.limit || 50,
+        p_cursor_date: options?.cursorDate || null,
+        p_cursor_id: options?.cursorId || null,
+      });
+
+      if (error) {
+        console.error('[SalesService] RPC error:', error);
+        throw new Error('Erreur lors de la récupération des ventes avec cursor pagination');
+      }
+
+      // data est JSONB array depuis RPC, chaque item inclut info cursor
+      const sales = (data || []) as any[];
+      return sales.map((sale: any) => ({
+        ...sale,
+        items: sale.items || [],
+        seller_name: sale.seller_name || 'Inconnu',
+        validator_name: sale.validator_name || null,
+        items_count: (sale.items || []).length,
+      }));
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
    * Supprimer une vente (admin uniquement)
    * Restaure le stock si la vente était pending
    */
