@@ -107,9 +107,39 @@ export class ReturnsService {
      */
     static async updateReturn(id: string, updates: Partial<Return>): Promise<Return> {
         try {
+            // Map camelCase TypeScript field names to snake_case PostgreSQL column names
+            const mappedUpdates: Record<string, any> = {};
+
+            const fieldMapping: Record<string, string> = {
+                barId: 'bar_id',
+                saleId: 'sale_id',
+                productId: 'product_id',
+                productName: 'product_name',
+                productVolume: 'product_volume',
+                quantitySold: 'quantity_sold',
+                quantityReturned: 'quantity_returned',
+                returnedBy: 'returned_by',
+                returnedAt: 'returned_at',
+                businessDate: 'business_date',
+                refundAmount: 'refund_amount',
+                isRefunded: 'is_refunded',
+                autoRestock: 'auto_restock',
+                manualRestockRequired: 'manual_restock_required',
+                restockedAt: 'restocked_at',
+                customRefund: 'custom_refund',
+                customRestock: 'custom_restock',
+                originalSeller: 'original_seller',
+            };
+
+            // Convert camelCase keys to snake_case
+            Object.entries(updates).forEach(([key, value]) => {
+                const snakeKey = fieldMapping[key as keyof typeof fieldMapping] || key;
+                mappedUpdates[snakeKey] = value;
+            });
+
             const { data, error } = await supabase
                 .from('returns')
-                .update(updates)
+                .update(mappedUpdates)
                 .eq('id', id)
                 .select()
                 .single();
