@@ -38,6 +38,7 @@
     "react-hot-toast": "^2.5.2",
     "react-loading-skeleton": "^3.5.0",
     "react-router-dom": "^6.30.2",
+    "react-window": "^1.8.10",
     "recharts": "^3.2.1",
     "tailwind-merge": "^3.4.0",
     "use-debounce": "^10.0.6",
