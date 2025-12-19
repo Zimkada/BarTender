@@ -119,6 +119,8 @@ export default function SalesHistoryPage() {
             const role = member?.role || 'serveur';
 
             const saleDate = getSaleDate(sale);
+            // Get actual transaction time (not business date which is normalized to midnight)
+            const saleTimestamp = sale.validatedAt || sale.createdAt;
             sale.items.forEach((item: SaleItem) => {
                 const name = item.product_name;
                 const volume = item.product_volume || '';
@@ -133,7 +135,7 @@ export default function SalesHistoryPage() {
                 exportData.push({
                     'Type': 'Vente',
                     'Date': saleDate.toLocaleDateString('fr-FR'),
-                    'Heure': saleDate.toLocaleTimeString('fr-FR'),
+                    'Heure': saleTimestamp.toLocaleTimeString('fr-FR'),
                     'ID Transaction': sale.id.slice(-6),
                     'Produit': name,
                     'Catégorie': category?.name || 'Non classé',
@@ -770,7 +772,7 @@ function SaleDetailModal({
                 <div className="p-6 space-y-4">
                     <div>
                         <p className="text-sm text-gray-600">Date et heure</p>
-                        <p className="font-medium">{getSaleDate(sale).toLocaleString('fr-FR')}</p>
+                        <p className="font-medium">{(sale.validatedAt || sale.createdAt).toLocaleString('fr-FR')}</p>
                     </div>
 
                     <div>
