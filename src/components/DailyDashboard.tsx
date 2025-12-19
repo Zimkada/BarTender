@@ -10,7 +10,6 @@ import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { useStockManagement } from '../hooks/useStockManagement';
-import { useConsignments } from '../hooks/queries/useStockQueries';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
@@ -98,9 +97,7 @@ export function DailyDashboard() {
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession } = useAuth();
   const { showSuccess, showError, setLoading, isLoading } = useFeedback();
-
-  // ✅ FIX: Use hook directly to avoid stale closure
-  const { data: consignments = [] } = useConsignments(currentBar?.id);
+  const { consignments } = useStockManagement();
 
   const [showDetails, setShowDetails] = useState(false);
   const [cashClosed, setCashClosed] = useState(false);

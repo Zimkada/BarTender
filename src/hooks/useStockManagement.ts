@@ -173,10 +173,16 @@ export const useStockManagement = () => {
   }, [consignments, mutations]);
 
   const checkAndExpireConsignments = useCallback(() => {
-    // Géré côté serveur idéalement, ou via une tâche de fond
-    // Ici on peut juste vérifier et déclencher des mutations si besoin
-    // Pour l'instant, on laisse vide car React Query rafraîchit les données
-  }, []);
+    const now = new Date();
+    const expiredActiveConsignments = consignments.filter(c =>
+      c.status === 'active' && new Date(c.expiresAt) < now
+    );
+
+    if (expiredActiveConsignments.length > 0) {
+      const expiredIds = expiredActiveConsignments.map(c => c.id);
+      mutations.expireConsignments.mutate(expiredIds);
+    }
+  }, [consignments, mutations.expireConsignments]);
 
   // ===== SUPPLY MANAGEMENT =====
 
