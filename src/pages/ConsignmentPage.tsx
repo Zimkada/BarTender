@@ -79,7 +79,10 @@ export default function ConsignmentPage() {
           <AnimatePresence mode="wait">
             {activeTab === 'create' && (
               <motion.div key="create" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <CreateConsignmentTab onNavigateBack={() => navigate(-1)} />
+                <CreateConsignmentTab
+                  onNavigateBack={() => navigate(-1)}
+                  onCreationSuccess={() => setActiveTab('active')}
+                />
               </motion.div>
             )}
             {activeTab === 'active' && (
@@ -123,9 +126,10 @@ const TabButton: React.FC<TabButtonProps> = ({ active, onClick, icon, label }) =
 // ===== TAB 1: CRÉER CONSIGNATION =====
 interface CreateConsignmentTabProps {
   onNavigateBack: () => void;
+  onCreationSuccess?: () => void;
 }
 
-const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateBack }) => {
+const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateBack, onCreationSuccess }) => {
   const { getTodaySales } = useAppContext();
   const stockManager = useStockManagement();
   const { formatPrice } = useCurrencyFormatter();
@@ -231,7 +235,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
     ? selectedProductItem.quantity - getAlreadyReturnedFixed(selectedSale!.id, selectedProductItem.product_id) - getAlreadyConsigned(selectedSale!.id, selectedProductItem.product_id)
     : 0;
 
-  const handleCreateConsignment = () => {
+  const handleCreateConsignment = async () => {
     if (!selectedSale || !selectedProductItem) {
       showError('Veuillez sélectionner une vente et un produit');
       return;
@@ -247,30 +251,35 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
       return;
     }
 
-    const consignment = stockManager.createConsignment({
-      saleId: selectedSale.id,
-      productId: selectedProductItem.product_id,
-      productName: selectedProductItem.product_name,
-      productVolume: selectedProductItem.product_volume,
-      quantity,
-      totalAmount: selectedProductItem.unit_price * quantity,
-      customerName: customerName.trim(),
-      customerPhone: customerPhone.trim() || undefined,
-      notes: notes.trim() || undefined,
-      expiresAt: new Date(),
-      expirationDays: expirationDays,
-      originalSeller: selectedSale.createdBy,
-    });
+    try {
+      const consignment = await stockManager.createConsignment({
+        saleId: selectedSale.id,
+        productId: selectedProductItem.product_id,
+        productName: selectedProductItem.product_name,
+        productVolume: selectedProductItem.product_volume,
+        quantity,
+        totalAmount: selectedProductItem.unit_price * quantity,
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim() || undefined,
+        notes: notes.trim() || undefined,
+        expiresAt: new Date(),
+        expirationDays: expirationDays,
+        originalSeller: selectedSale.createdBy,
+      });
 
-    if (consignment) {
-      showSuccess(`Consignation créée: ${quantity} ${selectedProductItem.product_name} ${selectedProductItem.product_volume}`);
-      setSelectedSaleId('');
-      setSelectedProductId('');
-      setQuantity(1);
-      setCustomerName('');
-      setCustomerPhone('');
-      setNotes('');
-    } else {
+      if (consignment) {
+        showSuccess(`Consignation créée: ${quantity} ${selectedProductItem.product_name} ${selectedProductItem.product_volume}`);
+        setSelectedSaleId('');
+        setSelectedProductId('');
+        setQuantity(1);
+        setCustomerName('');
+        setCustomerPhone('');
+        setNotes('');
+
+        // Redirect to active consignments tab after successful creation
+        onCreationSuccess?.();
+      }
+    } catch (error) {
       showError('Erreur: Impossible de créer. Le bar est-il sélectionné et la session active ?');
     }
   };
