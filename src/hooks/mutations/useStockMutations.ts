@@ -225,12 +225,17 @@ export const useStockMutations = () => {
             await ProductsService.decrementStock(productId, quantity);
             return consignment;
         },
-        onSuccess: () => {
+        onSuccess: async () => {
             const barId = currentBar?.id;
+            console.log('🔄 claimConsignment onSuccess - barId:', barId);
             toast.success('Consignation réclamée');
             if (barId) {
-                queryClient.refetchQueries({ queryKey: stockKeys.consignments(barId) });
-                queryClient.refetchQueries({ queryKey: stockKeys.products(barId) });
+                console.log('🔄 Refetching consignments and products for barId:', barId);
+                await Promise.all([
+                    queryClient.refetchQueries({ queryKey: stockKeys.consignments(barId) }),
+                    queryClient.refetchQueries({ queryKey: stockKeys.products(barId) })
+                ]);
+                console.log('✅ Refetch completed');
             }
         },
     });
@@ -240,12 +245,17 @@ export const useStockMutations = () => {
             const consignment = await StockService.updateConsignmentStatus(id, 'forfeited', {});
             return consignment;
         },
-        onSuccess: () => {
+        onSuccess: async () => {
             const barId = currentBar?.id;
+            console.log('🔄 forfeitConsignment onSuccess - barId:', barId);
             toast.success('Consignation abandonnée (stock réintégré)');
             if (barId) {
-                queryClient.refetchQueries({ queryKey: stockKeys.consignments(barId) });
-                queryClient.refetchQueries({ queryKey: stockKeys.products(barId) });
+                console.log('🔄 Refetching consignments and products for barId:', barId);
+                await Promise.all([
+                    queryClient.refetchQueries({ queryKey: stockKeys.consignments(barId) }),
+                    queryClient.refetchQueries({ queryKey: stockKeys.products(barId) })
+                ]);
+                console.log('✅ Refetch completed');
             }
         },
     });
@@ -255,11 +265,13 @@ export const useStockMutations = () => {
             const promises = ids.map(id => StockService.updateConsignmentStatus(id, 'expired', {}));
             return Promise.all(promises);
         },
-        onSuccess: (data) => {
+        onSuccess: async (data) => {
             const barId = currentBar?.id;
             toast.success(`${data.length} consignation(s) marquée(s) comme expirée(s)`);
             if (barId) {
-                queryClient.invalidateQueries({ queryKey: stockKeys.consignments(barId) });
+                console.log('🔄 Refetching consignments after expire for barId:', barId);
+                await queryClient.refetchQueries({ queryKey: stockKeys.consignments(barId) });
+                console.log('✅ Refetch completed');
             }
         },
         onError: (err: any) => {

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   TrendingUp, DollarSign, ShoppingCart, Package, Share, Lock, Eye, EyeOff, RotateCcw, Archive, Check, X, User, AlertTriangle, ArrowLeft
 } from 'lucide-react';
@@ -9,6 +10,7 @@ import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { useStockManagement } from '../hooks/useStockManagement';
+import { useConsignments } from '../hooks/queries/useStockQueries';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
@@ -93,10 +95,12 @@ export function DailyDashboard() {
   const navigate = useNavigate();
   const { sales, products, getTodaySales, getLowStockProducts, returns, validateSale, rejectSale, users } = useAppContext();
   const { currentBar } = useBarContext();
-  const { consignments } = useStockManagement();
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession } = useAuth();
   const { showSuccess, showError, setLoading, isLoading } = useFeedback();
+
+  // ✅ FIX: Use hook directly to avoid stale closure
+  const { data: consignments = [] } = useConsignments(currentBar?.id);
 
   const [showDetails, setShowDetails] = useState(false);
   const [cashClosed, setCashClosed] = useState(false);

@@ -87,9 +87,11 @@ export const useConsignments = (barId: string | undefined) => {
             const dbConsignments = await StockService.getConsignments(barId);
 
             return dbConsignments.map(c => {
-                let status: Consignment['status'] = 'active';
-                if (c.status === 'sold') status = 'claimed';
-                if (c.status === 'returned') status = 'forfeited';
+                let status: Consignment['status'] = c.status as any || 'active';
+                // Direct mapping - statuses are already correct in DB
+                if (c.status === 'claimed') status = 'claimed';
+                if (c.status === 'forfeited') status = 'forfeited';
+                if (c.status === 'expired') status = 'expired';
 
                 const createdAt = new Date(c.created_at || Date.now());
                 const expiresAt = new Date(c.expires_at || createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);

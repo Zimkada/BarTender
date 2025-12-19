@@ -24,7 +24,7 @@ export const useStockManagement = () => {
   const { data: consignments = [] } = useConsignments(barId);
 
   // 2. Mutations (Écriture)
-  const mutations = useStockMutations(barId);
+  const mutations = useStockMutations();
 
   // ===== LOGIQUE DE BASE (PRODUITS) =====
 
