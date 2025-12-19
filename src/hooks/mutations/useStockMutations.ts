@@ -150,25 +150,26 @@ export const useStockMutations = (barId: string) => {
 
     const createConsignment = useMutation({
         mutationFn: async (data: any) => {
-            const products = await ProductsService.getBarProducts(barId, actingAs.isActive ? currentSession?.userId : undefined);
-            const product = products.find(p => p.id === data.product_id);
-            const unitPrice = product ? product.price : 0;
-
-            const consignmentData: any = { // Using any to bypass strict check if types are out of sync, but trying to match DB
-                bar_id: data.bar_id,
-                product_id: data.product_id,
-                product_name: product ? ((product as any).name || (product as any).display_name || 'Unknown') : 'Unknown',
-                quantity_out: data.quantity,
-                quantity_returned: 0,
-                unit_price: unitPrice,
-                customer_name: data.client_name,
-                customer_phone: data.client_phone,
+            const consignmentData = {
+                bar_id: barId,
+                sale_id: data.saleId,
+                product_id: data.productId,
+                product_name: data.productName || 'Unknown',
+                product_volume: data.productVolume || '',
+                quantity: data.quantity,
+                total_amount: data.totalAmount || 0,
+                created_at: new Date().toISOString(),
+                expires_at: data.expiresAt
+                    ? (data.expiresAt instanceof Date ? data.expiresAt.toISOString() : data.expiresAt)
+                    : new Date(Date.now() + (data.expirationDays || 7) * 24 * 60 * 60 * 1000).toISOString(),
+                claimed_at: null,
                 status: 'active',
-                created_by: data.created_by, // Changed from consigned_by
-                created_at: new Date().toISOString(), // Changed from consigned_at
-                business_date: new Date().toISOString().split('T')[0], // Add business_date
-                expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Add default expiration (7 days)
-                total_amount: unitPrice * data.quantity
+                created_by: currentSession?.userId || '',
+                claimed_by: null,
+                original_seller: data.originalSeller || null,
+                customer_name: data.customerName || null,
+                customer_phone: data.customerPhone || null,
+                notes: data.notes || null,
             };
 
             return StockService.createConsignment(consignmentData);
