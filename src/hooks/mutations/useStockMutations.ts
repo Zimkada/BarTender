@@ -231,10 +231,11 @@ export const useStockMutations = (barId: string) => {
                 toast.success('Consignation réclamée');
 
                 // ✅ BUG #3 FIX: Valider que barId n'est pas vide avant d'invalider
+                // ✅ REFETCH au lieu de juste invalider pour rafraîchir immédiatement
                 if (barId) {
-                    queryClient.invalidateQueries({ queryKey: stockKeys.consignments(barId) });
+                    queryClient.refetchQueries({ queryKey: stockKeys.consignments(barId) });
 
-                    queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+                    queryClient.refetchQueries({ queryKey: stockKeys.products(barId) });
                 }
 
             },
@@ -269,9 +270,10 @@ export const useStockMutations = (barId: string) => {
         onSuccess: () => {
             toast.success('Consignation abandonnée (stock réintégré)');
             // ✅ BUG #3 FIX: Valider que barId n'est pas vide avant d'invalider
+            // ✅ REFETCH au lieu de juste invalider pour rafraîchir immédiatement
             if (barId) {
-                queryClient.invalidateQueries({ queryKey: stockKeys.consignments(barId) });
-                queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+                queryClient.refetchQueries({ queryKey: stockKeys.consignments(barId) });
+                queryClient.refetchQueries({ queryKey: stockKeys.products(barId) });
             }
         },
     });
