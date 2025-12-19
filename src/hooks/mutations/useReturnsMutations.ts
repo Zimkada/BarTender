@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ReturnsService } from '../../services/supabase/returns.service';
 import { returnKeys } from '../queries/useReturnsQueries';
+import { stockKeys } from '../queries/useStockQueries';
+import { statsKeys } from '../queries/useStatsQueries';
 import toast from 'react-hot-toast';
 
 export const useReturnsMutations = (barId: string) => {
@@ -33,18 +35,37 @@ export const useReturnsMutations = (barId: string) => {
             };
             return ReturnsService.createReturn(returnData);
         },
-        onSuccess: () => {
+        onSuccess: (newReturn) => {
             toast.success('Retour enregistré');
             queryClient.invalidateQueries({ queryKey: returnKeys.list(barId) });
+            // Invalider aussi le CA si le retour est remboursé
+            if (newReturn.is_refunded) {
+                queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
+            }
+        },
+        onError: (error: any) => {
+            const errorMessage = error?.message || 'Erreur lors de la création du retour';
+            console.error('createReturn error:', error);
+            toast.error(errorMessage);
         },
     });
 
     const updateReturn = useMutation({
         mutationFn: ({ id, updates }: { id: string; updates: any }) =>
             ReturnsService.updateReturn(id, updates),
-        onSuccess: () => {
+        onSuccess: (updatedReturn) => {
             toast.success('Retour mis à jour');
             queryClient.invalidateQueries({ queryKey: returnKeys.list(barId) });
+            // Invalider stats/CA si le statut change ou si c'est un remboursement
+            if (updatedReturn.is_refunded || updatedReturn.status === 'restocked') {
+                queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
+                queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+            }
+        },
+        onError: (error: any) => {
+            const errorMessage = error?.message || 'Erreur lors de la mise à jour du retour';
+            console.error('updateReturn error:', error);
+            toast.error(errorMessage);
         },
     });
 
@@ -53,6 +74,13 @@ export const useReturnsMutations = (barId: string) => {
         onSuccess: () => {
             toast.success('Retour supprimé');
             queryClient.invalidateQueries({ queryKey: returnKeys.list(barId) });
+            // Invalider aussi les stats au cas où le retour était remboursé
+            queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
+        },
+        onError: (error: any) => {
+            const errorMessage = error?.message || 'Erreur lors de la suppression du retour';
+            console.error('deleteReturn error:', error);
+            toast.error(errorMessage);
         },
     });
 

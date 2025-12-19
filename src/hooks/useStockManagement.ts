@@ -83,18 +83,40 @@ export const useStockManagement = () => {
   }, [mutations]);
 
   // ===== LOGIQUE DE STOCK PHYSIQUE =====
-  // Note: Ces fonctions sont maintenant gérées via les mutations addSupply/validateSale
-  // On les garde pour compatibilité si appelées directement, mais elles devraient être dépréciées.
 
-  const increasePhysicalStock = useCallback((productId: string, quantity: number) => {
-    // Utilise le service directement ou une mutation dédiée si besoin
-    // Pour l'instant, on ne l'expose plus comme une action atomique isolée dans l'UI
-    console.warn('increasePhysicalStock called directly - prefer using addSupply');
-  }, []);
+  const increasePhysicalStock = useCallback((productId: string, quantity: number, reason: string = 'manual_restock') => {
+    if (!currentBar) {
+      console.error('Cannot increase stock: no bar selected');
+      return false;
+    }
 
-  const decreasePhysicalStock = useCallback((productId: string, quantity: number) => {
-    console.warn('decreasePhysicalStock called directly - prefer using validateSale');
-  }, []);
+    mutations.adjustStock.mutate(
+      { productId, delta: quantity, reason },
+      {
+        onError: (error: any) => {
+          console.error(`Failed to increase stock for product ${productId}:`, error);
+        }
+      }
+    );
+    return true;
+  }, [currentBar, mutations]);
+
+  const decreasePhysicalStock = useCallback((productId: string, quantity: number, reason: string = 'manual_decrease') => {
+    if (!currentBar) {
+      console.error('Cannot decrease stock: no bar selected');
+      return false;
+    }
+
+    mutations.adjustStock.mutate(
+      { productId, delta: -quantity, reason },
+      {
+        onError: (error: any) => {
+          console.error(`Failed to decrease stock for product ${productId}:`, error);
+        }
+      }
+    );
+    return true;
+  }, [currentBar, mutations]);
 
   // ===== LOGIQUE DE CONSIGNATION =====
 

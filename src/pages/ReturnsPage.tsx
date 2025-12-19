@@ -220,19 +220,47 @@ export default function ReturnsPage() {
         ? ` - Remboursement ${formatPrice(productPrice * quantity)}`
         : ' - Sans remboursement';
       showSuccess(`Retour créé pour ${quantity}x ${productName}${refundMsg}`);
+
+      // Redirection vers la liste des retours pour approval/rejection
       setShowCreateReturn(false);
       setSelectedSale(null);
+      // Scroll to the new return in the list (will be added by React Query)
+      setTimeout(() => {
+        const returnElement = document.getElementById(`return-${newReturn.id}`);
+        returnElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 500);
     }
+  };
+
+  // Validate status transition
+  const canTransition = (currentStatus: Return['status'], newStatus: Return['status']): boolean => {
+    const validTransitions: Record<Return['status'], Return['status'][]> = {
+      'pending': ['approved', 'rejected'],
+      'approved': ['restocked', 'rejected'],
+      'rejected': [], // Terminal state
+      'restocked': [], // Terminal state
+    };
+
+    return validTransitions[currentStatus]?.includes(newStatus) ?? false;
   };
 
   const approveReturn = (returnId: string) => {
     const returnItem = returns.find(r => r.id === returnId);
-    if (!returnItem) return;
+    if (!returnItem) {
+      showError('Retour introuvable');
+      return;
+    }
+
+    // Validate transition
+    if (!canTransition(returnItem.status, 'approved')) {
+      showError(`Impossible d'approuver un retour avec le statut "${returnItem.status}"`);
+      return;
+    }
 
     let newStatus: Return['status'] = 'approved';
 
     if (returnItem.autoRestock) {
-      increasePhysicalStock(returnItem.productId, returnItem.quantityReturned);
+      increasePhysicalStock(returnItem.productId, returnItem.quantityReturned, 'return_auto_restock');
       newStatus = 'restocked';
       const refundInfo = returnItem.isRefunded ? ` + Remboursement ${formatPrice(returnItem.refundAmount)}` : '';
       showSuccess(`Retour approuvé - ${returnItem.quantityReturned}x ${returnItem.productName} remis en stock${refundInfo}`);
@@ -249,9 +277,18 @@ export default function ReturnsPage() {
 
   const manualRestock = (returnId: string) => {
     const returnItem = returns.find(r => r.id === returnId);
-    if (!returnItem || returnItem.status !== 'approved') return;
+    if (!returnItem) {
+      showError('Retour introuvable');
+      return;
+    }
 
-    increasePhysicalStock(returnItem.productId, returnItem.quantityReturned);
+    // Validate transition
+    if (!canTransition(returnItem.status, 'restocked')) {
+      showError(`Impossible de remettre en stock un retour avec le statut "${returnItem.status}"`);
+      return;
+    }
+
+    increasePhysicalStock(returnItem.productId, returnItem.quantityReturned, 'return_manual_restock');
 
     updateReturn(returnId, {
       status: 'restocked',
@@ -262,6 +299,18 @@ export default function ReturnsPage() {
   };
 
   const rejectReturn = (returnId: string) => {
+    const returnItem = returns.find(r => r.id === returnId);
+    if (!returnItem) {
+      showError('Retour introuvable');
+      return;
+    }
+
+    // Validate transition
+    if (!canTransition(returnItem.status, 'rejected')) {
+      showError(`Impossible de rejeter un retour avec le statut "${returnItem.status}"`);
+      return;
+    }
+
     updateReturn(returnId, { status: 'rejected' });
     showSuccess('Retour rejeté');
   };
@@ -400,6 +449,7 @@ export default function ReturnsPage() {
                     return (
                       <motion.div
                         key={returnItem.id}
+                        id={`return-${returnItem.id}`}
                         layoutId={returnItem.id}
                         className="bg-white rounded-xl p-4 border border-gray-200 hover:border-amber-300 transition-colors shadow-sm"
                       >
