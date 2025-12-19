@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   RotateCcw,
   Package,
@@ -94,8 +94,24 @@ export default function ReturnsPage() {
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [lastCreatedReturnId, setLastCreatedReturnId] = useState<string | null>(null);
 
   const closeHour = currentBar?.closingHour ?? 6;
+
+  // Effet pour gérer la redirection et scroll-to après création de retour
+  useEffect(() => {
+    if (lastCreatedReturnId && !showCreateReturn) {
+      // Le formulaire est fermé et nous avons un ID, scroll vers le nouveau retour
+      const returnElement = document.getElementById(`return-${lastCreatedReturnId}`);
+      if (returnElement) {
+        setTimeout(() => {
+          returnElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
+      }
+      // Reset l'ID après scroll
+      setLastCreatedReturnId(null);
+    }
+  }, [lastCreatedReturnId, showCreateReturn]);
 
   const canReturnSale = (sale: Sale): { allowed: boolean; reason: string } => {
     // ✅ Utiliser la comparaison de strings YYYY-MM-DD (plus fiable)
@@ -194,7 +210,7 @@ export default function ReturnsPage() {
     const finalRefund = reason === 'other' ? (customRefund ?? false) : reasonConfig.autoRefund;
     const finalRestock = reason === 'other' ? (customRestock ?? false) : reasonConfig.autoRestock;
 
-    const newReturn = addReturn({
+    addReturn({
       saleId,
       productId,
       productName,
@@ -215,21 +231,28 @@ export default function ReturnsPage() {
       originalSeller: sale.createdBy
     });
 
-    if (newReturn) {
-      const refundMsg = finalRefund
-        ? ` - Remboursement ${formatPrice(productPrice * quantity)}`
-        : ' - Sans remboursement';
-      showSuccess(`Retour créé pour ${quantity}x ${productName}${refundMsg}`);
+    const refundMsg = finalRefund
+      ? ` - Remboursement ${formatPrice(productPrice * quantity)}`
+      : ' - Sans remboursement';
+    showSuccess(`Retour créé pour ${quantity}x ${productName}${refundMsg}`);
 
-      // Redirection vers la liste des retours pour approval/rejection
-      setShowCreateReturn(false);
-      setSelectedSale(null);
-      // Scroll to the new return in the list (will be added by React Query)
-      setTimeout(() => {
-        const returnElement = document.getElementById(`return-${newReturn.id}`);
-        returnElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 500);
-    }
+    // Chercher le dernier retour créé (React Query rafraîchit automatiquement)
+    // On utilise un timeout pour attendre que le nouveau retour soit dans la liste
+    setTimeout(() => {
+      const newestReturn = returns.find(r =>
+        r.saleId === saleId &&
+        r.productId === productId &&
+        r.quantityReturned === quantity &&
+        r.status === 'pending'
+      );
+      if (newestReturn) {
+        setLastCreatedReturnId(newestReturn.id);
+      }
+    }, 100);
+
+    // Fermer le formulaire immédiatement
+    setShowCreateReturn(false);
+    setSelectedSale(null);
   };
 
   // Validate status transition
