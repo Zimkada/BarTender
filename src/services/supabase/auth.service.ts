@@ -209,133 +209,60 @@ export class AuthService {
     role: 'gerant' | 'serveur'
   ): Promise<Omit<DbUser, 'password_hash'>> {
     try {
-      // Sauvegarder la session actuelle avant de créer le nouveau compte
-      const currentUser = AuthService.getCurrentUser();
-      const currentSessionData = localStorage.getItem('auth_user');
+      const { data: { session }, error: getSessionError } = await supabase.auth.getSession();
+      if (getSessionError || !session) {
+        throw new Error('User not authenticated. Please log in again.');
+      }
+      const token = session.access_token;
 
-      // 1. Créer l'utilisateur dans auth.users
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            name: data.name,
-            phone: data.phone,
-            username: data.username || data.email.split('@')[0],
-          },
+      const response = await supabase.functions.invoke('create-bar-member', {
+        body: { newUser: data, barId, role },
+        headers: {
+          'Authorization': `Bearer ${token}`,
         },
       });
 
-      if (authError || !authData.user) {
-        console.error('Auth signup error:', authError);
-        throw new Error(authError?.message || 'Erreur lors de la création du compte');
+      console.log('Edge Function Raw Response:', JSON.stringify(response, null, 2)); // <-- ADDED LOG
+
+      if (response.error) {
+        // Try to parse more details from the response.error object
+        const edgeFunctionError = response.error.context?.body?.error || response.error.message;
+        throw new Error(edgeFunctionError);
+      }
+      if (response.data && response.data.error) { // This handles custom errors from the Edge Function body
+        throw new Error(response.data.error);
       }
 
-      // 2. Déconnecter immédiatement le nouveau compte pour éviter de perdre la session du gérant
-      await supabase.auth.signOut();
-
-      // 3. Attendre que la déconnexion soit complètement propagée
-      // Ceci évite les erreurs 401 lors du rafraîchissement des données
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // 4. Restaurer la session du gérant dans localStorage
-      if (currentSessionData) {
-        localStorage.setItem('auth_user', currentSessionData);
+      // Assuming `response.data` is now correctly { success: true, user: ... }
+      if (!response.data || !response.data.success || !response.data.user) {
+        throw new Error(response.data?.error || 'Edge Function returned unexpected successful response.');
       }
 
-      // 5. Créer le profil via RPC (retourne directement le profil)
-      const { data: profileData, error: profileRpcError } = await supabase.rpc('create_user_profile', {
-        p_user_id: authData.user.id,
-        p_email: data.email,
-        p_username: data.username || data.email.split('@')[0],
-        p_name: data.name,
-        p_phone: data.phone,
-      });
+      return response.data.user as Omit<DbUser, 'password_hash'>;
 
-      if (profileRpcError || !profileData || profileData.length === 0) {
-        console.error('Profile creation RPC error:', profileRpcError);
-        throw new Error('Erreur lors de la création du profil utilisateur');
-      }
-
-      // Le RPC retourne un tableau avec colonnes préfixées user_
-      const profileRow = Array.isArray(profileData) ? profileData[0] : profileData;
-
-      // Mapper les colonnes user_* vers la structure attendue
-      const profile: Omit<DbUser, 'password_hash'> = {
-        id: profileRow.user_id,
-        email: profileRow.user_email,
-        username: profileRow.user_username,
-        name: profileRow.user_name,
-        phone: profileRow.user_phone,
-        avatar_url: profileRow.user_avatar_url,
-        is_active: profileRow.user_is_active,
-        first_login: profileRow.user_first_login,
-        created_at: profileRow.user_created_at,
-        updated_at: profileRow.user_updated_at,
-        last_login_at: profileRow.user_last_login_at,
-      };
-
-      // 6. Créer le membership via RPC atomique
-      const membershipResult = await AuthService.assignBarMember(
-        authData.user.id,
-        barId,
-        role,
-        currentUser?.id || authData.user.id
-      );
-
-      if (!membershipResult.success) {
-        console.error('Membership assignment error:', membershipResult.error);
-        throw new Error(membershipResult.error || 'Erreur lors de l\'assignation au bar');
-      }
-
-      return profile;
     } catch (error: any) {
-      console.error('AuthService signup error:', error);
-      throw new Error(error.message || 'Erreur lors de la création de l\'utilisateur');
+      console.error('AuthService signup caught error:', JSON.stringify(error, null, 2));
+
+      let errorMessage = 'Erreur lors de la création de l\'utilisateur';
+
+      // Check if it's a Supabase Functions error
+      if (error && error.name === 'FunctionsHttpError' && error.context) {
+        try {
+          // The body might be a string, or already parsed if Content-Type is application/json
+          const errorBody = typeof error.context.body === 'string' ? JSON.parse(error.context.body) : error.context.body;
+          errorMessage = errorBody.error || error.context.body || error.message;
+        } catch (parseError) {
+          errorMessage = error.message; // Fallback if body parsing fails
+        }
+      } else if (error && error.message) {
+        errorMessage = error.message;
+      }
+
+      throw new Error(errorMessage);
     }
   }
 
-  /**
-   * Assigner un utilisateur à un bar (via RPC atomique)
-   * Utilise la fonction assign_bar_member pour garantir l'atomicité
-   */
-  static async assignBarMember(
-    userId: string,
-    barId: string,
-    role: 'gerant' | 'serveur',
-    assignedBy: string
-  ): Promise<{ success: boolean; membershipId?: string; error?: string }> {
-    try {
-      const { data, error } = await supabase.rpc('assign_bar_member', {
-        p_user_id: userId,
-        p_bar_id: barId,
-        p_role: role,
-        p_assigned_by: assignedBy,
-      });
 
-      if (error) {
-        // Messages d'erreur utilisateur conviviaux
-        if (error.message.includes('User not found')) {
-          throw new Error('Utilisateur introuvable. Veuillez réessayer.');
-        }
-        if (error.message.includes('already a member')) {
-          throw new Error('Cet utilisateur est déjà membre de ce bar.');
-        }
-        throw new Error(error.message);
-      }
-
-      return {
-        success: data.success,
-        membershipId: data.membership_id,
-      };
-    } catch (error: any) {
-      console.error('AuthService assignBarMember error:', error);
-      return {
-        success: false,
-        error: error.message || 'Une erreur est survenue lors de l\'assignation du membre.',
-      };
-    }
-  }
 
   /**
    * Création d'un promoteur (sans bar initial)
@@ -345,104 +272,50 @@ export class AuthService {
     data: SignupData
   ): Promise<Omit<DbUser, 'password_hash'>> {
     try {
-      // Sauvegarder la session actuelle (Super Admin)
-      const currentUser = AuthService.getCurrentUser();
-      const currentSessionData = localStorage.getItem('auth_user');
+      const { data: { session }, error: getSessionError } = await supabase.auth.getSession();
+      if (getSessionError || !session) {
+        throw new Error('User not authenticated. Please log in again.');
+      }
+      const token = session.access_token;
 
-      // 1. Créer l'utilisateur dans auth.users
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            name: data.name,
-            phone: data.phone,
-            username: data.username || data.email.split('@')[0],
-          },
+      // Note: barId and role are NOT passed for promoter creation
+      const response = await supabase.functions.invoke('create-bar-member', {
+        body: { newUser: data },
+        headers: {
+          'Authorization': `Bearer ${token}`,
         },
       });
 
-      if (authError || !authData.user) {
-        throw new Error('Erreur lors de la création du compte promoteur');
+      console.log('Edge Function Raw Response (Promoter):', JSON.stringify(response, null, 2)); // <-- ADDED LOG
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+      if (response.data && response.data.error) {
+        throw new Error(response.data.error);
       }
 
-      // 2. Déconnecter immédiatement le nouveau compte
-      await supabase.auth.signOut();
-
-      // Petit délai pour la propagation
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // 3. Restaurer la session du Super Admin
-      if (currentSessionData) {
-        localStorage.setItem('auth_user', currentSessionData);
-      }
-
-      // Note: On ne peut pas utiliser recoverSession ici car on n'a pas le refresh token
-      // Mais comme on est Super Admin, on peut juste continuer avec le token actuel 
-      // si le client Supabase n'a pas perdu la session en mémoire (ce qui arrive avec signOut)
-
-      // IMPORTANT: Pour que le client Supabase récupère la session du Super Admin,
-      // il faudrait idéalement se reconnecter, mais on n'a pas le mot de passe.
-      // Cependant, dans notre app, on utilise souvent localStorage 'auth_user' comme source de vérité.
-      // Le problème est que supabase.auth.signOut() a effacé le token en mémoire.
-
-      // Solution: On compte sur le fait que le user va rafraîchir ou que AuthContext va gérer.
-      // MAIS pour les appels suivants (setupPromoterBar), on a besoin d'être authentifié.
-
-      // Si on est ici, c'est qu'on a perdu la session Supabase active.
-      // C'est problématique pour l'appel suivant setupPromoterBar qui a besoin d'être authentifié.
-
-      // Heureusement, on a implémenté la protection dans AuthContext qui devrait empêcher
-      // le changement de session UI, mais le client Supabase lui est déconnecté.
-
-      // On va essayer de récupérer la session si possible, sinon on devra demander au user de se reconnecter.
-      // Dans le cas du Super Admin, c'est critique.
-
-      // Alternative: Utiliser l'API Admin de Supabase si on avait la clé service_role, 
-      // mais on est côté client.
-
-      // On retourne le profil quand même.
-      // Comme on a signOut(), on ne peut pas lire la table users avec RLS si on n'est plus connecté.
-      // C'est là le piège !
-
-      // On ne peut pas faire l'étape 4 (Récupérer le profil) si on est déconnecté.
-      // Et si on reste connecté en tant que nouveau user, on n'a pas le droit de voir le profil 
-      // (sauf si RLS "Users can view own profile" est active, ce qui est le cas).
-
-      // Donc:
-      // 1. SignUp (devient le nouveau user)
-      // 2. Lire le profil (en tant que nouveau user) -> OK
-      // 3. SignOut
-      // 4. Restaurer localStorage
-
-      // Récupérer le profil AVANT de se déconnecter
-      const { data: profile, error: profileError } = await supabase
-        .from('users')
-        .select('id, username, email, name, phone, avatar_url, is_active, first_login, created_at, updated_at, last_login_at')
-        .eq('id', authData.user.id)
-        .single();
-
-      if (profileError || !profile) {
-        // Si on ne peut pas lire, on construit l'objet manuellement pour ne pas bloquer
-        console.warn('Impossible de lire le profil créé (RLS?), construction manuelle');
-        return {
-          id: authData.user.id,
-          email: data.email,
-          username: data.username || data.email.split('@')[0],
-          name: data.name,
-          phone: data.phone,
-          is_active: true,
-          first_login: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        } as any;
-      }
-
-      return profile as Omit<DbUser, 'password_hash'>;
+      // The Edge Function returns the created user, which matches the expected return type.
+      return response.data.user as Omit<DbUser, 'password_hash'>;
 
     } catch (error: any) {
-      console.error('AuthService createPromoter error:', error);
-      throw new Error(handleSupabaseError(error));
+      console.error('AuthService createPromoter caught error:', JSON.stringify(error, null, 2)); // <-- ADDED LOG
+
+      let errorMessage = 'Erreur lors de la création de l\'utilisateur';
+
+      // Check if it's a Supabase Functions error
+      if (error && error.name === 'FunctionsHttpError' && error.context) {
+        try {
+          const errorBody = typeof error.context.body === 'string' ? JSON.parse(error.context.body) : error.context.body;
+          errorMessage = errorBody.error || error.context.body || error.message;
+        } catch (parseError) {
+          errorMessage = error.message;
+        }
+      } else if (error && error.message) {
+        errorMessage = error.message;
+      }
+
+      throw new Error(errorMessage);
     }
   }
 
