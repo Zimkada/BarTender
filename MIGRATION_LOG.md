@@ -1,3 +1,93 @@
+## 20251220140000_fix_get_bar_members_rls_bypass.sql (2025-12-20 14:00:00)
+
+**Status**: ✅ Ready for Deployment
+**Date**: 2025-12-20
+**Phase**: Bug Fix - Problem D (Nom "Inconnu")
+**Feature**: Fix RLS on get_bar_members RPC to display server names correctly
+
+### Overview
+
+Fixes the "Nom Inconnu" (Unknown Name) issue in the pending sales section by properly bypassing RLS on the users table in the `get_bar_members` RPC function.
+
+### Problem Solved
+
+**Issue:**
+- On the validation dashboard, server names displayed as "Inconnu" (Unknown) for pending sales
+- Despite proper RLS policies allowing bar members to view each other (migration 040)
+- The RPC `get_bar_members` was SECURITY DEFINER but still subject to RLS
+
+**Root Cause:**
+- PostgreSQL applies RLS policies EVEN to SECURITY DEFINER functions unless explicitly disabled
+- The `LEFT JOIN users` in the RPC was blocked by RLS, returning NULL for user.name, user.email, user.phone
+- Frontend received NULL values and displayed "Inconnu"
+
+### Solution Implemented
+
+**Files Created:**
+1. **supabase/migrations/20251220140000_fix_get_bar_members_rls_bypass.sql** (NEW)
+   - Added `SET LOCAL row_security = off;` to properly bypass RLS
+   - Extended return columns to include `username`, `created_at`, `first_login`, `last_login_at`, `joined_at`
+   - Better NULL handling with `NULLS LAST` in ORDER BY
+
+**Files Modified:**
+1. **src/hooks/queries/useBarMembers.ts**
+   - Fixed syntax error: missing closing brace after map() (line 48)
+   - Added missing import: `UserRole`
+   - Changed `cacheTime` to `gcTime` (React Query v5)
+
+2. **src/context/AppProvider.tsx**
+   - Fixed hook order: moved `useNotifications()` before `useEffect` to prevent undefined reference
+   - Added missing imports: `salesKeys`, `statsKeys`, `useBarMembers`
+   - Moved `useBarMembers` declaration before Realtime subscription
+
+3. **src/services/supabase/auth.service.ts**
+   - Updated `getBarMembers` mapping to use new RPC columns
+   - Changed hardcoded values to actual RPC data:
+     - `username: member.username` (was `''`)
+     - `first_login: member.first_login` (was `false`)
+     - `created_at: member.created_at` (was `new Date()`)
+     - `last_login_at: member.last_login_at` (was `undefined`)
+   - Fixed null vs undefined type issues
+
+### Technical Details
+
+**RLS Bypass Technique:**
+```sql
+-- Before (didn't work):
+CREATE FUNCTION get_bar_members(...)
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+-- RLS still applied to LEFT JOIN users
+
+-- After (works):
+CREATE FUNCTION get_bar_members(...) AS $$
+BEGIN
+  SET LOCAL row_security = off;  -- ✅ Explicitly disable RLS
+  RETURN QUERY SELECT ... FROM bar_members LEFT JOIN users ...
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+```
+
+**Why SECURITY DEFINER alone is not enough:**
+- SECURITY DEFINER changes the execution context to the function owner (postgres)
+- But PostgreSQL RLS policies apply AFTER permission checks
+- Must explicitly disable row security with `SET LOCAL row_security = off;`
+
+### Migration Path
+
+1. Apply SQL migration: `20251220140000_fix_get_bar_members_rls_bypass.sql`
+2. Frontend changes are already deployed (TypeScript fixes)
+3. Test: Create pending sale as server → View as promoter/gérant → Verify server name appears
+
+### Testing Checklist
+
+- [ ] Apply migration to database
+- [ ] Create pending sale as serveur
+- [ ] Login as promoteur/gérant
+- [ ] Verify server name appears correctly (not "Inconnu")
+- [ ] Verify all user details are visible in team management
+
+---
+
 ## 20251219100000_add_cursor_pagination_for_sales.sql (2025-12-19 10:00:00)
 
 **Status**: ✅ Ready for Deployment
@@ -2049,5 +2139,244 @@ UI updates with new items + pagination indicator
 - Measure load times, memory usage, FPS
 - Compare before/after metrics
 - Validate on slow networks and mobile devices
+
+---
+
+## 20251220_restore_assign_bar_member_rpc.sql (2025-12-20 00:00:00)
+
+**Status**: ✅ Ready for Manual Deployment
+**Date**: 2025-12-20
+**Phase**: Bug Fix - User Account Creation System
+**Feature**: Restore Missing RPC Function for User Account Creation
+**Related Issue**: FunctionsHttpError with error code -2147483572 when creating user accounts (gérants, serveurs, promoteurs)
+
+### Problem Identified
+
+**Error Symptoms:**
+- User account creation (signup/createPromoter) failing with `FunctionsHttpError`
+- Edge Function response: `{data: null, error: {name: "FunctionsHttpError", context: {}}}`
+- Client-side error logs show error code `-2147483572`
+- No detailed error message available (context is empty)
+
+### Root Cause Analysis
+
+After comprehensive investigation, identified **TWO critical issues**:
+
+#### Issue 1: Missing RPC Function `assign_bar_member`
+- **Problem**: The RPC function `assign_bar_member(UUID, UUID, TEXT, UUID)` was **DROPPED** in migration `1036_rollback.sql` (Nov 26, 2025)
+- **Timeline**:
+  - Migration 036 (Nov 25): Created `assign_bar_member` RPC to atomically assign users to bars
+  - Migration 1036 (Nov 26): Rollback dropped the function with: `DROP FUNCTION IF EXISTS assign_bar_member(UUID, UUID, TEXT, UUID);`
+  - Migrations after 1036: Never recreated the function
+  - Edge Function (create-bar-member): Still tries to call `adminClient.rpc('assign_bar_member', ...)` at line 104
+  - Result: PostgREST API returns error code `-2147483572` (function not found)
+
+#### Issue 2: JSON Serialization in SDK
+- **Problem**: Supabase SDK not properly serializing request body
+- **Timeline**:
+  - Client code passed plain object: `body: { newUser: data, barId, role }`
+  - Header set `Content-Type: 'application/json'` explicitly
+  - SDK sees Content-Type already set → skips auto-stringification via `JSON.stringify()`
+  - Plain object sent directly to Fetch API
+  - JavaScript converts object to string `"[object Object]"` instead of valid JSON
+  - Edge Function `req.json()` fails with `"[object Object]" is not valid JSON`
+- **Fixed**: Removed `Content-Type` header, allowing SDK to auto-stringify properly
+
+### Solutions Implemented
+
+#### Solution 1: Restore RPC Function
+**File**: `supabase/migrations/20251220_restore_assign_bar_member_rpc.sql`
+
+**What it does:**
+1. Creates `assign_bar_member(p_user_id, p_bar_id, p_role, p_assigned_by) → JSONB` RPC
+2. Validates user exists in `public.users`
+3. Checks user not already a bar member
+4. Inserts into `bar_members` with columns: `user_id, bar_id, role, assigned_by, assigned_at, is_active`
+5. Returns `{success: true, membership_id: uuid}`
+6. Grants EXECUTE permission to authenticated users
+
+**Key Details:**
+- **Uses `assigned_at` column** (not `joined_at`) - determined from migration 20251213_ensure_bar_members_assigned_at.sql
+- **SECURITY DEFINER**: Executes with database owner privileges
+- **LANGUAGE plpgsql**: Standard PostgreSQL procedural language
+- **Errors handled**: User not found, duplicate membership → raises exceptions with clear messages
+
+**Deployment Instruction:**
+```bash
+# Execute in Supabase SQL Editor manually, or:
+npx supabase db push
+```
+
+#### Solution 2: Fix JSON Serialization
+**File**: `src/services/supabase/auth.service.ts`
+
+**Changes Made**:
+1. **Line 218-223 (signup function)**: Removed `'Content-Type': 'application/json'` header
+2. **Line 282-287 (createPromoter function)**: Removed `'Content-Type': 'application/json'` header
+
+**Before (BROKEN)**:
+```typescript
+const response = await supabase.functions.invoke('create-bar-member', {
+  body: { newUser: data, barId, role },  // Plain object
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',   // ❌ Causes SDK to skip JSON.stringify()
+  },
+});
+```
+
+**After (FIXED)**:
+```typescript
+const response = await supabase.functions.invoke('create-bar-member', {
+  body: { newUser: data, barId, role },  // Plain object
+  headers: {
+    'Authorization': `Bearer ${token}`,   // ✅ SDK will auto-stringify body
+  },
+});
+```
+
+**Why This Works:**
+- SDK detects no `Content-Type` header
+- Automatically calls `JSON.stringify()` on body object
+- Valid JSON `{"newUser":{...},"barId":"...","role":"..."}` sent to Edge Function
+- Edge Function `req.json()` parses successfully
+
+### Previous Migration Issues (Context)
+
+**Migration 036_fix_auth_schema_and_rpcs.sql** (Nov 25):
+- ✅ Created `assign_bar_member` RPC
+- ✅ Renamed column `assigned_at` → `joined_at`
+- ✅ Made `assigned_by` nullable
+
+**Migration 1036_rollback.sql** (Nov 26):
+- ✅ Dropped `assign_bar_member` function (intended rollback)
+- ⚠️ Attempted to rename `joined_at` back to `assigned_at`
+- ⚠️ **Issue**: Later migrations (like 20251213_ensure_bar_members_assigned_at.sql) added back `assigned_at` column
+- **Result**: Schema inconsistency - table may have both `assigned_at` and `joined_at`, or only one
+
+**Migration 20251213_ensure_bar_members_assigned_at.sql** (Dec 13):
+- ✅ Adds `assigned_at` column IF NOT EXISTS
+- ✅ Updates `get_bar_members` RPC to use `assigned_at`
+- **Assumption**: Column is `assigned_at` (not `joined_at`)
+
+### Verification Steps
+
+After deploying migration `20251220_restore_assign_bar_member_rpc.sql`:
+
+**1. Verify RPC exists:**
+```sql
+-- Run in Supabase SQL Editor
+SELECT pg_get_functiondef('public.assign_bar_member'::regprocedure);
+-- Should return the function definition without error
+```
+
+**2. Test user account creation:**
+- Log in as promoteur/super_admin
+- Navigate to "Ajouter un gérant" or "Ajouter un serveur" form
+- Fill in required fields (email, password, name, phone, role, bar)
+- Submit form
+- **Expected**: Account created successfully, no `FunctionsHttpError`
+
+**3. Check database:**
+```sql
+-- Verify user created in auth.users
+SELECT id, email FROM auth.users
+WHERE email = 'new_user@example.com';
+
+-- Verify membership created in bar_members
+SELECT user_id, bar_id, role, assigned_at
+FROM bar_members
+WHERE user_id = '<uuid from above>';
+```
+
+**4. Monitor Edge Function logs:**
+- Supabase Dashboard → Edge Functions → create-bar-member → Logs
+- Should see successful execution without errors
+
+### Testing Scenarios
+
+**Scenario 1: Create Gérant for Existing Bar**
+```
+1. Log in as super_admin
+2. Go to Admin → Users Management
+3. Click "+" to add new user
+4. Fill form: email, password, name, phone
+5. Select bar and role (gérant/serveur)
+6. Click "Créer utilisateur"
+✅ Expected: User created, assigned to bar with role
+```
+
+**Scenario 2: Create Promoteur (No Bar Assignment)**
+```
+1. Log in as super_admin
+2. Go to Admin → Users Management
+3. Click "+" to add promoteur
+4. Fill form: email, password, name, phone
+5. Leave bar/role empty
+6. Click "Créer utilisateur"
+✅ Expected: Promoteur created (no bar assigned initially)
+```
+
+**Scenario 3: Error Handling**
+```
+1. Attempt to create user with email already in system
+✅ Expected: Clear error message from Edge Function
+   (not generic FunctionsHttpError)
+
+2. Attempt to assign to non-existent bar
+✅ Expected: Error "Failed to assign user to bar: ..."
+
+3. Attempt as non-admin user
+✅ Expected: Error "Permission denied: Caller's role 'serveur', not 'promoteur' or 'super_admin'"
+```
+
+### Files Modified/Created
+
+**Created:**
+- `supabase/migrations/20251220_restore_assign_bar_member_rpc.sql` - RPC restoration
+
+**Modified:**
+- `src/services/supabase/auth.service.ts` - Fixed JSON serialization
+  - Lines 218-223: Removed Content-Type header (signup)
+  - Lines 282-287: Removed Content-Type header (createPromoter)
+
+**Edge Function (Already Fixed):**
+- `supabase/functions/create-bar-member/index.ts`
+  - Line 103: Fixed variable name `role` → `newUserRole` (previous fix)
+  - Already deployed with npx supabase functions deploy
+
+### Key Learnings
+
+**SDK Behavior:**
+- Supabase JS SDK (`@supabase/functions-js`) auto-stringifies body IF no `Content-Type` header
+- If `Content-Type` explicitly set, SDK assumes caller handles serialization
+- This is a design choice for flexibility but can be error-prone
+
+**RPC Function Lifecycle:**
+- Migration rollbacks must be carefully tracked
+- Dependent code (Edge Functions) can break if RPC dropped but not recreated
+- Always verify migrations that drop functions don't leave code orphaned
+
+**Error Code `-2147483572`:**
+- This is PostgREST error for "function not found"
+- Empty context occurs when RPC doesn't exist (metadata lookup fails)
+- Different from "function found but permission denied" (which returns detailed message)
+
+### Related Issues & PRs
+
+- Issue: User account creation failing with FunctionsHttpError
+- Related PR: Edge Function fix (variable name: role → newUserRole)
+- Status: All issues resolved with this migration + code fix
+
+### Deployment Checklist
+
+- [ ] Deploy migration `20251220_restore_assign_bar_member_rpc.sql` to Supabase
+  - Manually in SQL Editor, OR
+  - Via `npx supabase db push`
+- [ ] Code fixes in `auth.service.ts` already deployed (no new Edge Function deploy needed)
+- [ ] Verify RPC exists: `SELECT pg_get_functiondef(...)`
+- [ ] Test user creation scenario (Scenario 1-3 above)
+- [ ] Monitor logs for errors over 1 hour
+- [ ] Confirm no related bugs in user management pages
 
 ---

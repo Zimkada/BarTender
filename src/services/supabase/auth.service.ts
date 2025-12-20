@@ -767,19 +767,19 @@ export class AuthService {
       // Map RPC results to expected format
       return members.map((member: any) => ({
         id: member.user_id,
-        username: '',
+        username: member.username || null,
         email: member.user_email || '',
         name: member.user_name || '',
         phone: member.user_phone || '',
-        avatar_url: undefined,
+        avatar_url: null,
         is_active: true,
-        first_login: false,
-        created_at: new Date().toISOString(),
+        first_login: member.first_login ?? false,
+        created_at: member.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        last_login_at: undefined,
+        last_login_at: member.last_login_at ?? null,
         role: member.role,
-        joined_at: member.assigned_at,
-        member_is_active: member.is_active,
+        joined_at: member.joined_at || member.assigned_at,
+        member_is_active: member.member_is_active ?? member.is_active,
       })) as Array<Omit<DbUser, 'password_hash'> & { role: string; joined_at: string; member_is_active: boolean }>;
 
     } catch (error: any) {

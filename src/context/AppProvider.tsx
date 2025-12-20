@@ -24,9 +24,11 @@ import { BUSINESS_DAY_CLOSE_HOUR } from '../constants/businessDay';
 
 // React Query Hooks
 import { useCategories } from '../hooks/queries/useStockQueries';
-import { useSales } from '../hooks/queries/useSalesQueries';
+import { useSales, salesKeys } from '../hooks/queries/useSalesQueries';
 import { useExpenses, useCustomExpenseCategories } from '../hooks/queries/useExpensesQueries';
 import { useReturns } from '../hooks/queries/useReturnsQueries';
+import { useBarMembers } from '../hooks/queries/useBarMembers';
+import { statsKeys } from '../hooks/queries/useStatsQueries';
 
 import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
 import { useExpensesMutations } from '../hooks/mutations/useExpensesMutations';
@@ -81,10 +83,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const returnsMutations = useReturnsMutations(barId);
     const categoryMutations = useCategoryMutations(barId);
 
-    // Notifications
+    // Notifications - MUST be declared before use in useEffect
     const { showNotification } = useNotifications();
+
+    // Bar Members
+    const { data: barMembers = [] } = useBarMembers(barId);
+
+    // --- REALTIME SUBSCRIPTIONS ---
+    useEffect(() => {
+        if (!barId) return;
+
+        // Subscribe to sales table changes
+        const salesChannelId = realtimeService.subscribe({
+            table: 'sales',
+            event: '*', // Listen to INSERT, UPDATE, DELETE
+            filter: `bar_id=eq.${barId}`, // Filter for current bar
+            onMessage: (payload) => {
+                console.log('[Realtime] Sales change detected:', payload);
+                queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
+                queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) }); // Invalidate stats too, as sale changes affect them
+            },
+            onError: (error) => {
+                console.error('[Realtime] Sales subscription error:', error);
+                showNotification('error', 'Erreur de connexion temps réel pour les ventes.', { duration: 5000 });
+            }
+        });
+
+        // Clean up subscription on unmount or barId change
+        return () => {
+            realtimeService.unsubscribe(salesChannelId);
+            console.log('[Realtime] Unsubscribed from sales channel:', salesChannelId);
+        };
+    }, [barId, queryClient, showNotification]); // Add showNotification to dependencies
+
     const settings = defaultSettings;
-    const users: User[] = []; // Should come from Auth/BarContext
+    const users: User[] = barMembers.map(member => ({
+        id: member.user.id,
+        username: member.user.username,
+        name: member.user.name,
+        email: member.user.email,
+        phone: member.user.phone,
+        role: member.role, // Assuming role is available on BarMember
+        isActive: member.isActive,
+        firstLogin: member.user.firstLogin,
+        lastLoginAt: member.user.lastLoginAt,
+        createdAt: member.user.createdAt,
+        createdBy: member.user.createdBy,
+        avatarUrl: member.user.avatarUrl,
+    }));
 
     // --- CART STATE & LOGIC ---
     const [cart, setCart] = useState<CartItem[]>([]);
@@ -279,13 +325,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         salesMutations.rejectSale.mutate({ id: saleId, rejectorId });
     }, [hasPermission, salesMutations]);
 
-    const getSalesByDate = useCallback((startDate: Date, endDate: Date) => {
+    const getSalesByDate = useCallback((startDate: Date, endDate: Date, includePending: boolean = false) => {
         const closeHour = currentBar?.closingHour ?? BUSINESS_DAY_CLOSE_HOUR;
         const startDateStr = dateToYYYYMMDD(startDate);
         const endDateStr = dateToYYYYMMDD(endDate);
 
-        const baseSales = sales.filter(sale => sale.status === 'validated');
-        const filteredSales = filterByBusinessDateRange(baseSales, startDateStr, endDateStr, closeHour);
+        const salesToFilter = includePending
+            ? sales.filter(sale => sale.status !== 'rejected') // Si on inclut pending, on exclut juste rejected
+            : sales.filter(sale => sale.status === 'validated'); // Sinon, on garde seulement validated
+
+        const filteredSales = filterByBusinessDateRange(salesToFilter, startDateStr, endDateStr, closeHour);
 
         if (currentSession?.role === 'serveur') {
             return filteredSales.filter(sale => sale.createdBy === currentSession.userId);
@@ -293,12 +342,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return filteredSales;
     }, [sales, currentSession, currentBar]);
 
-    const getTodaySales = useCallback(() => {
+    const getTodaySales = useCallback((includePending: boolean = false) => {
         const closeHour = currentBar?.closingHour ?? BUSINESS_DAY_CLOSE_HOUR;
         const todayStr = getCurrentBusinessDateString(closeHour);
 
-        const baseSales = sales.filter(sale => sale.status === 'validated');
-        const todaySales = filterByBusinessDateRange(baseSales, todayStr, todayStr, closeHour);
+        const salesToFilter = includePending
+            ? sales.filter(sale => sale.status !== 'rejected')
+            : sales.filter(sale => sale.status === 'validated');
+
+        const todaySales = filterByBusinessDateRange(salesToFilter, todayStr, todayStr, closeHour);
 
         if (currentSession?.role === 'serveur') {
             return todaySales.filter(sale => sale.createdBy === currentSession.userId);
