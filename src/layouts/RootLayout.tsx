@@ -1,11 +1,14 @@
 import { Outlet, Navigate } from 'react-router-dom';
-import { Suspense, lazy, useState } from 'react';
+import { Suspense, lazy, useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { useAppContext } from '../context/AppContext';
 import { useActingAs } from '../context/ActingAsContext';
 import { ModalProvider, useModal } from '../context/ModalContext';
 import { useStockMutations } from '../hooks/mutations/useStockMutations';
+import { useQueryClient } from '@tanstack/react-query';
+import { realtimeService } from '../services/realtime/RealtimeService';
+import { broadcastService } from '../services/broadcast/BroadcastService';
 
 import { Header } from '../components/Header';
 import { MobileNavigation } from '../components/MobileNavigation';
@@ -28,10 +31,29 @@ function RootLayoutContent() {
   const { categories, products, addProduct, addCategory, updateCategory, linkCategory, showNotification } = useAppContext();
   const { addSupply } = useStockMutations(currentBar?.id || '');
   const { isActingAs } = useActingAs();
+  const queryClient = useQueryClient();
 
   const { modalState, openModal, closeModal } = useModal();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false); // NEW
+
+  // 🔐 Redirection automatique et nettoyage en cas de perte de session
+  useEffect(() => {
+    if (!isAuthenticated || !currentSession) {
+      console.log('[RootLayout] Session perdue, nettoyage et redirection vers login');
+
+      // ✅ 1. Nettoyer React Query cache
+      queryClient.clear();
+
+      // ✅ 2. Fermer les subscriptions Realtime et Broadcast
+      realtimeService.unsubscribeAll().catch(err =>
+        console.warn('[RootLayout] Erreur lors de la fermeture Realtime:', err)
+      );
+      broadcastService.closeAllChannels();
+
+      // La navigation sera gérée par le Navigate ci-dessous
+    }
+  }, [isAuthenticated, currentSession, queryClient]);
 
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" replace />;
