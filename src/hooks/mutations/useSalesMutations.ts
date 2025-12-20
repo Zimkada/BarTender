@@ -99,6 +99,7 @@ export const useSalesMutations = (barId: string) => {
         onSuccess: () => {
             toast.success('Vente validée');
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
+            queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) }); // NEW: Invalidate stats
         },
     });
 
@@ -109,6 +110,7 @@ export const useSalesMutations = (barId: string) => {
             toast.success('Vente rejetée (stock restauré)');
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+            queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) }); // NEW: Invalidate stats
         },
     });
 
@@ -118,6 +120,7 @@ export const useSalesMutations = (barId: string) => {
             toast.success('Vente supprimée');
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+            queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) }); // NEW: Invalidate stats
         },
     });
 

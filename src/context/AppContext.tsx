@@ -49,8 +49,8 @@ export interface AppContextType {
   addSale: (saleData: Partial<Sale>) => Promise<Sale | null>;
   validateSale: (saleId: string, validatorId: string) => void;
   rejectSale: (saleId: string, rejectorId: string) => void;
-  getSalesByDate: (startDate: Date, endDate: Date) => Sale[];
-  getTodaySales: () => Sale[];
+  getSalesByDate: (startDate: Date, endDate: Date, includePending?: boolean) => Sale[];
+  getTodaySales: (includePending?: boolean) => Sale[];
   getTodayTotal: () => number;
   getSalesByUser: (userId: string) => Sale[];
   getServerRevenue: (userId: string, startDate?: Date, endDate?: Date) => number;

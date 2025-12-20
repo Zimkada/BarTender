@@ -6,7 +6,6 @@ export type UserRole = 'super_admin' | 'promoteur' | 'gerant' | 'serveur';
 export interface User {
   id: string;
   username: string;
-  password: string;
   name: string;
   phone: string;
   email?: string;
@@ -15,6 +14,7 @@ export interface User {
   isActive: boolean;
   firstLogin: boolean;
   lastLoginAt?: Date;
+  role: UserRole;
 }
 
 export interface UserSession {
