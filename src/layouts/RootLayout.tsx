@@ -10,6 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { realtimeService } from '../services/realtime/RealtimeService';
 import { broadcastService } from '../services/broadcast/BroadcastService';
 import { supabase } from '../lib/supabase';
+import { VersionCheckService } from '../services/versionCheck.service';
 
 import { Header } from '../components/Header';
 import { MobileNavigation } from '../components/MobileNavigation';
@@ -23,6 +24,7 @@ import { QuickSaleFlow } from '../components/QuickSaleFlow';
 import { SupplyModal } from '../components/SupplyModal';
 import { Category } from '../types';
 import { ActingAsBar } from '../components/ActingAsBar';
+import { UpdateNotification } from '../components/UpdateNotification';
 
 const LazyBarStatsModal = lazy(() => import('../components/BarStatsModal').then(m => ({ default: m.BarStatsModal })));
 
@@ -79,6 +81,18 @@ function RootLayoutContent() {
     return () => clearInterval(heartbeatInterval);
   }, [isAuthenticated, currentSession]);
 
+  // 🔄 Initialiser la vérification de version au démarrage de l'app
+  useEffect(() => {
+    VersionCheckService.initialize().catch(err => {
+      console.warn('[RootLayout] Erreur lors de l\'initialisation VersionCheckService:', err);
+    });
+
+    // Cleanup: arrêter la vérification si le composant se démonte
+    return () => {
+      VersionCheckService.stopChecking();
+    };
+  }, []);
+
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" replace />;
   }
@@ -90,6 +104,7 @@ function RootLayoutContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-50 pb-16 md:pb-0">
+      <UpdateNotification />
       <ActingAsBar />
       <Header
         onShowQuickSale={() => openModal('QUICK_SALE')}
