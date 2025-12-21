@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, UserPlus, Shield, User as UserIcon, X, Check, Trash2, ArrowLeft } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Users, UserPlus, Shield, User as UserIcon, Check, Trash2, ArrowLeft } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useAuth } from "../context/AuthContext";
 import { useBarContext } from '../context/BarContext';
 import { UserRole } from '../types';
@@ -148,9 +148,21 @@ export default function TeamManagementPage() {
     }
   };
 
-  const handleRemoveMember = (memberId: string, userName: string) => {
+  const handleRemoveMember = async (memberId: string, userName: string) => {
     if (window.confirm(`Êtes-vous sûr de vouloir retirer ${userName} ?`)) {
-      removeBarMember(memberId);
+      try {
+        const result = await removeBarMember(memberId);
+
+        if (result.success) {
+          toast.success(`✅ ${userName} a été retiré(e) de l'équipe`);
+        } else {
+          toast.error(`❌ Erreur: ${result.error || 'Impossible de retirer le membre'}`);
+          console.error('[TeamManagement] Remove failed:', result.error);
+        }
+      } catch (error: any) {
+        toast.error('❌ Une erreur est survenue lors du retrait du membre');
+        console.error('[TeamManagement] Remove error:', error);
+      }
     }
   };
 
@@ -300,7 +312,7 @@ export default function TeamManagementPage() {
           open={showAddUser}
           onClose={() => setShowAddUser(false)}
           title="Ajouter un membre"
-          size="md"
+          size="sm"
           footer={
             <div className="flex gap-3 pt-2">
               <Button

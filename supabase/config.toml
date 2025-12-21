@@ -1,11 +1,9 @@
 # Supabase Configuration
-# Project: yekomwjdznvtnialpdcz
 
-[project]
-project_id = "yekomwjdznvtnialpdcz"
+# The project_id is now automatically detected by the CLI and should not be set here.
+# project_id = "yekomwjdznvtnialpdcz"
 
 [api]
-enabled = true
 port = 54321
 schemas = ["public"]
 extra_search_path = ["public"]
@@ -13,49 +11,40 @@ max_rows = 1000
 
 [db]
 port = 54322
-major_version = 15
+major_version = 17
 
+# Realtime settings have been simplified. The CLI uses defaults.
 [realtime]
 enabled = true
-max_bytes_per_second = 1048576
-max_connections = 100
-max_message_size = 8388608
-max_subscriptions_per_connection = 500
-max_updates_per_second = 100
-relation_id_prefix = "evf"
-temporary_slot_height_in_meters = 300
-timeout_adjust = 10000
-timeout_max = 600000
 
 [studio]
-enabled = true
 port = 54323
-api_url = "http://localhost:54321"
 
 [auth]
-enabled = true
 site_url = "http://localhost:5173"
 additional_redirect_urls = ["http://localhost:3000", "http://localhost:3001"]
-jwt_expiry = 3600
 enable_signup = true
-email_change_email_verification = false
-double_confirm_changes = true
-secure_email_change_confirmation = true
+jwt_expiry = 3600
 
 [storage]
 file_size_limit = 52428800
-s3_host = "localhost"
-s3_port = 54321
-s3_protocol = "http"
-s3_url_style_path = false
 
+# The structure for functions has changed. 
+# It is now configured per-function.
+# e.g., [functions.my-function]
+# import_map = "./functions/import_map.json"
 [functions]
-# Node functions
-nodes_port = 54321
-import_map_path = "./functions/import_map.json"
 
 [analytics]
 enabled = false
 
-[vector]
-enabled = false
+[functions.create-bar-member]
+enabled = true
+verify_jwt = true
+import_map = "./functions/create-bar-member/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/create-bar-member/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/create-bar-member/*.html" ]

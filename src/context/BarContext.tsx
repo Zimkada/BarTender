@@ -29,7 +29,7 @@ interface BarContextType {
   barMembers: BarMember[];
   getBarMembers: (barId: string) => Promise<(BarMember & { user: User })[]>;
   addBarMember: (userId: string, role: UserRole) => Promise<BarMember | null>;
-  removeBarMember: (memberId: string) => Promise<void>;
+  removeBarMember: (memberId: string) => Promise<{ success: boolean; error?: string }>;
   updateBarMember: (memberId: string, updates: Partial<BarMember>) => Promise<void>;
 
   // Helpers
@@ -543,66 +543,63 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [currentSession, currentBar, hasPermission, actingAs]);
 
-  const removeBarMember = useCallback(async (memberId: string) => {
+  const removeBarMember = useCallback(async (memberId: string): Promise<{ success: boolean; error?: string }> => {
     // Handling Proxy
     if (actingAs.isActive && actingAs.userId && currentBar) {
-      // memberId might be composite like barId_userId or just userId depending on how it's passed.
-      // Usually remove uses internal ID.
-      // We need the USER ID for the RPC.
-      // We need to look up the member to get User ID.
-      // But local state might differ in Proxy mode.
-      // Assuming memberId is passed correctly or we can find it.
-      // But strict RPC signature requires targetUserId.
-      // If the UI passes row ID from `bar_members` table, we need to map it.
-      // However, `getBarMembersAsProxy` returns items with ID.
-      // If removing, we need target User ID.
-
-      // Let's assume finding it in `barMembers` state works if state is populated correctly via proxy getter.
-      // We haven't fully wired `barMembers` STATE to proxy getter yet (it is done in getBarMembers but not state setter).
-      // Actually `BarProvider` has `setBarMembers`.
-      // I need to ensure state is kept in sync.
-
-      // For safe lookup:
-      // Wait, `removeBarMember` signature is `memberId`.
-      // Our proxy RPC expects `targetUserId`.
-      // We must find the member in `barMembers` array.
       const member = barMembers.find(m => m.id === memberId);
       if (member) {
-        await ProxyAdminService.manageTeamMemberAsProxy(
-          actingAs.userId,
-          currentBar.id,
-          member.userId,
-          'REMOVE'
-        );
-        setBarMembers(prev => prev.filter(m => m.id !== memberId));
+        try {
+          await ProxyAdminService.manageTeamMemberAsProxy(
+            actingAs.userId,
+            currentBar.id,
+            member.userId,
+            'REMOVE'
+          );
+          setBarMembers(prev => prev.filter(m => m.id !== memberId));
+          return { success: true };
+        } catch (error: any) {
+          console.error('[BarContext] Error removing member (proxy):', error);
+          return { success: false, error: error.message || 'Failed to remove member' };
+        }
       }
-      return;
+      return { success: false, error: 'Member not found' };
     }
 
-    if (!currentSession) return;
+    if (!currentSession) return { success: false, error: 'No session' };
 
     try {
       const member = barMembers.find(m => m.id === memberId);
-      if (!member) return;
+      if (!member) return { success: false, error: 'Member not found' };
 
       // Seul le promoteur peut retirer des gérants
-      if (member.role === 'gerant' && !hasPermission('canCreateManagers')) return;
+      if (member.role === 'gerant' && !hasPermission('canCreateManagers')) {
+        return { success: false, error: 'No permission to remove managers' };
+      }
       // Gérants et promoteurs peuvent retirer des serveurs
-      if (member.role === 'serveur' && !hasPermission('canCreateServers')) return;
+      if (member.role === 'serveur' && !hasPermission('canCreateServers')) {
+        return { success: false, error: 'No permission to remove servers' };
+      }
 
-      // Désactiver via Supabase
-      const updateData: BarMemberUpdate = { is_active: false };
-      await (supabase as any)
+      // Désactiver via Supabase with error handling
+      const { error: updateError } = await (supabase as any)
         .from('bar_members')
-        .update(updateData)
+        .update({ is_active: false })
         .eq('id', memberId);
+
+      if (updateError) {
+        console.error('[BarContext] Supabase update error:', updateError);
+        return { success: false, error: updateError.message || 'Database update failed' };
+      }
 
       // Mettre à jour localement
       setBarMembers(prev => prev.map(m =>
         m.id === memberId ? { ...m, isActive: false } : m
       ));
-    } catch (error) {
+
+      return { success: true };
+    } catch (error: any) {
       console.error('[BarContext] Error removing member:', error);
+      return { success: false, error: error.message || 'Unknown error occurred' };
     }
   }, [currentSession, hasPermission, barMembers, actingAs, currentBar]);
 
