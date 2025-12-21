@@ -4,6 +4,7 @@ import { UserSession, UserRole, getPermissionsByRole, RolePermissions } from '..
 import { auditLogger } from '../services/AuditLogger';
 import { AuthService, LoginResult } from '../services/supabase/auth.service';
 import { supabase } from '../lib/supabase';
+import { CacheManagerService } from '../services/cacheManager.service';
 
 interface AuthContextType {
   currentSession: UserSession | null;
@@ -149,7 +150,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const handleTokenExpired = async () => {
       console.warn('[AuthContext] 🔴 Token expiré détecté, forçage du logout');
-      await AuthService.logout();
+      try {
+        await AuthService.logout();
+      } catch (err) {
+        console.warn('[AuthContext] Erreur lors de la déconnexion:', err);
+      }
+
+      // 🧹 Purger les caches avant de fermer la session
+      console.log('[AuthContext] Purge des caches après token expiré');
+      await CacheManagerService.fullCleanup();
+
       setCurrentSession(null);
     };
 
@@ -286,7 +296,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       });
     }
 
-    await AuthService.logout();
+    try {
+      await AuthService.logout();
+    } catch (err) {
+      console.warn('[AuthContext] Erreur lors de la déconnexion Supabase:', err);
+    }
+
+    // 🧹 Nettoyer tous les caches avant de fermer la session
+    console.log('[AuthContext] Purge des caches avant logout');
+    await CacheManagerService.fullCleanup();
+
     setCurrentSession(null);
   }, [currentSession, setCurrentSession]);
 
