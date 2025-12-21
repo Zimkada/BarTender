@@ -54,8 +54,25 @@ serve(async (req) => {
             status: 403,
         });
     }
-    const callerRole = callerProfileData.user.app_metadata?.role || callerProfileData.user.user_metadata?.role;
-    console.log('[create-bar-member] Caller role:', callerRole);
+    // Try to get role from app_metadata first
+    let callerRole = callerProfileData.user.app_metadata?.role || callerProfileData.user.user_metadata?.role;
+    console.log('[create-bar-member] Caller role from app_metadata:', callerRole);
+
+    // If role not found in app_metadata, check bar_members table as fallback
+    if (!callerRole) {
+      console.log('[create-bar-member] Role not in app_metadata, checking bar_members...');
+      const { data: barMemberData, error: barMemberError } = await adminClient
+        .from('bar_members')
+        .select('role')
+        .eq('user_id', callingUser.id)
+        .eq('is_active', true)
+        .limit(1);
+
+      if (!barMemberError && barMemberData && barMemberData.length > 0) {
+        callerRole = barMemberData[0].role;
+        console.log('[create-bar-member] Caller role from bar_members:', callerRole);
+      }
+    }
 
     if (callerRole !== 'promoteur' && callerRole !== 'super_admin') {
       return new Response(JSON.stringify({ error: `Permission denied: Caller's role '${callerRole}', not 'promoteur' or 'super_admin'.` }), {
