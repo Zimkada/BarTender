@@ -1,3 +1,66 @@
+## 20251221_optimize_bars_service.sql (2025-12-21 20:00:00)
+
+**Status**: ✅ Ready for Deployment
+**Date**: 2025-12-21
+**Phase**: 3.1 - Supabase Optimization & Cost Reduction
+**Feature**: Optimize BarsService with View and RPC
+
+### Overview
+
+Replaces inefficient N+1 queries in `BarsService` with a dedicated SQL View and an optimized RPC function. This dramatically reduces the number of database requests and computational load when listing bars and viewing their statistics in the SuperAdmin dashboard.
+
+### Problem Solved
+
+**Issue:**
+- `BarsService.getAllBars` and `getBarById` were performing N+1 queries (looping through unrelated tables) to fetch owner names and member counts.
+- `BarsService.getBarStats` was executing 4 separate `count()` and `sum()` queries sequentially.
+- This approach is not scalable for 100+ bars and thousands of sales, leading to high latency and Supabase costs.
+
+**Solution:**
+- **View `admin_bars_list`**: Pre-joins `bars`, `users`, and `bar_members` (aggregated) for instant list retrieval.
+- **RPC `get_bar_admin_stats`**: Computes all 4 financial metrics (sales, revenue, products, pending) in a single optimized database call.
+- **Result**: Reduced networking overhead from ~200+ requests (for 50 bars) to 1 request.
+
+### Solution Implemented
+
+**Files Created:**
+1. **supabase/migrations/20251221_optimize_bars_service.sql** (NEW)
+   - Creates view `admin_bars_list`
+   - Creates RPC `get_bar_admin_stats`
+   - Grants necessary permissions
+
+**Files Modified:**
+1. **src/services/supabase/bars.service.ts**
+   - Refactored `getAllBars` to query `admin_bars_list`.
+   - Refactored `getBarById` to query `admin_bars_list`.
+   - Refactored `getBarStats` to call RPC `get_bar_admin_stats`.
+   - Added automatic fallback mechanisms to legacy methods if migration is not applied, ensuring zero downtime usage.
+
+### Technical Details
+
+**Optimized View Strategy:**
+```sql
+CREATE VIEW admin_bars_list AS
+SELECT b.*, u.name as owner_name, COUNT(bm.user_id) as member_count
+FROM bars b
+LEFT JOIN users u ON b.owner_id = u.id
+LEFT JOIN bar_members bm ON b.id = bm.bar_id
+GROUP BY b.id, u.id;
+```
+*Note: The actual view implementation handles `owner_phone` and `closing_hour` as well.*
+
+**Performance Gain:**
+- **List Page**: O(1) query instead of O(N).
+- **Detail Stats**: 1 RPC call instead of 4 sequential SELECTs.
+
+### Migration Path
+
+1. Apply SQL migration: `20251221_optimize_bars_service.sql`.
+2. No frontend code changes needed (Service interface remains identical).
+3. Verify speed improvement on SuperAdmin "Bars" page.
+
+---
+
 ## 20251220140000_fix_get_bar_members_rls_bypass.sql (2025-12-20 14:00:00)
 
 **Status**: ✅ Ready for Deployment

@@ -2,6 +2,7 @@ import { QueryClient, MutationCache, QueryCache } from '@tanstack/react-query';
 import { persistQueryClient } from '@tanstack/query-persist-client-core';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 import toast from 'react-hot-toast';
+import { CACHE_STRATEGY } from './cache-strategy';
 
 /**
  * Configuration Expert pour React Query
@@ -16,7 +17,7 @@ import toast from 'react-hot-toast';
 const retryFn = (failureCount: number, error: any) => {
   // Ne pas réessayer si erreur 404 (Not Found) ou 401 (Unauthorized) ou 403 (Forbidden)
   if (error?.status === 404 || error?.status === 401 || error?.status === 403) return false;
-  
+
   // Max 3 tentatives pour les autres erreurs
   return failureCount < 3;
 };
@@ -34,18 +35,18 @@ const onError = (error: any) => {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Données considérées fraîches pendant 5 minutes
-      staleTime: 5 * 60 * 1000,
-      // Garder en cache pendant 24h (pour le support offline futur)
-      gcTime: 24 * 60 * 60 * 1000,
+      // Stratégie par défaut optimisée pour les opérations courantes (Ventes & Stock)
+      // 5 min stale (évite flickering), 24h GC (offline)
+      staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
+      gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
+
       // Retry intelligent
       retry: retryFn,
       // Délai exponentiel entre les retries (1s, 2s, 4s...)
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
       // Ne pas refetcher si on change de fenêtre (sauf si stale)
       refetchOnWindowFocus: false,
-      // Gestion d'erreur globale (optionnel, souvent mieux géré au niveau composant)
-      // mais utile pour le debugging
+      // Gestion d'erreur globale
     },
     mutations: {
       // Pas de retry automatique sur les mutations (sauf cas très spécifiques)
@@ -73,5 +74,5 @@ const localStoragePersister = createSyncStoragePersister({
 persistQueryClient({
   queryClient,
   persister: localStoragePersister,
-  maxAge: 24 * 60 * 60 * 1000, // Garder le cache pendant 24h (identique à gcTime)
+  maxAge: CACHE_STRATEGY.salesAndStock.gcTime, // Harmonisé avec GC Time
 });

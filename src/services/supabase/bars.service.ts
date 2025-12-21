@@ -28,20 +28,20 @@ export interface CreateBarData {
 export class BarsService {
   /**
    * Helper pour convertir une ligne Supabase en objet Bar frontend
+   * Extensible pour gérer BarRow classique ou la vue admin_bars_list
    */
-  private static mapToBar(row: BarRow): Bar {
+  private static mapToBar(row: any): Bar {
     return {
       id: row.id,
       name: row.name,
       address: row.address || undefined,
       phone: row.phone || undefined,
-      email: undefined, // Pas dans la table bars actuelle
+      email: undefined,
       ownerId: row.owner_id || '',
       createdAt: new Date(row.created_at || Date.now()),
       isActive: row.is_active || false,
-      closingHour: (row as any).closing_hour ?? 6, // ✅ Mappage explicite
+      closingHour: row.closing_hour ?? 6, // ✅ Mappage explicite
       settings: row.settings as any,
-      // logoUrl: row.logo_url || undefined // ❌ Pas dans l'interface Bar actuelle
     };
   }
 
@@ -95,76 +95,131 @@ export class BarsService {
   }
 
   /**
-   * Récupérer un bar par son ID
+   * Récupérer un bar par son ID (Optimisé via Vue)
    */
   static async getBarById(barId: string): Promise<BarWithOwner | null> {
     try {
+      // ✅ Utilisation de la vue optimisée admin_bars_list
       const { data, error } = await supabase
-        .from('bars')
+        .from('admin_bars_list' as any) // Cast as any because type might not be generated yet
         .select('*')
         .eq('id', barId)
         .eq('is_active', true)
         .single();
 
       if (error || !data) {
+        // Fallback or return null
+        if (error.code === '42P01') { // undefined_table
+            console.warn('View admin_bars_list not found, falling back to legacy.');
+            return this.getBarByIdLegacy(barId);
+        }
         return null;
       }
 
-      // Récupérer le owner
-      const { data: owner } = await supabase
-        .from('users')
-        .select('name, phone')
-        .eq('id', data.owner_id || '') // ✅ Fix null check
-        .single();
-
-      // Compter les membres actifs
-      const { count } = await supabase
-        .from('bar_members')
-        .select('*', { count: 'exact', head: true })
-        .eq('bar_id', barId)
-        .eq('is_active', true);
-
       const bar = this.mapToBar(data);
 
-      const barWithOwner: BarWithOwner = {
+      return {
         ...bar,
-        owner_name: owner?.name || '',
-        owner_phone: owner?.phone || '',
-        member_count: count || 0,
+        owner_name: data.owner_name || '',
+        owner_phone: data.owner_phone || '',
+        member_count: data.member_count || 0,
       };
-
-      return barWithOwner;
     } catch (error: any) {
-      throw new Error(handleSupabaseError(error));
+       console.warn('Fallback legacy getBarById due to error:', error);
+       return this.getBarByIdLegacy(barId);
     }
   }
 
   /**
-   * Récupérer tous les bars (super_admin uniquement)
+   * Fallback Legacy: Récupérer un bar par son ID (non optimisé)
+   */
+  private static async getBarByIdLegacy(barId: string): Promise<BarWithOwner | null> {
+    try {
+        const { data, error } = await supabase
+            .from('bars')
+            .select('*')
+            .eq('id', barId)
+            .eq('is_active', true)
+            .single();
+
+        if (error || !data) return null;
+
+        const { data: owner } = await supabase
+            .from('users')
+            .select('name, phone')
+            .eq('id', data.owner_id || '')
+            .single();
+
+        const { count } = await supabase
+            .from('bar_members')
+            .select('*', { count: 'exact', head: true })
+            .eq('bar_id', barId)
+            .eq('is_active', true);
+
+        const bar = this.mapToBar(data);
+        return {
+            ...bar,
+            owner_name: owner?.name || '',
+            owner_phone: owner?.phone || '',
+            member_count: count || 0
+        };
+    } catch (e: any) {
+        throw new Error(handleSupabaseError(e));
+    }
+  }
+
+  /**
+   * Récupérer tous les bars (super_admin uniquement) - Optimisé via Vue
    */
   static async getAllBars(): Promise<BarWithOwner[]> {
     try {
+      // ✅ Utilisation de la vue optimisée admin_bars_list
+      const { data, error } = await supabase
+        .from('admin_bars_list' as any)
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        if (error.code === '42P01') { // undefined_table
+             console.warn('View admin_bars_list not found, falling back to legacy.');
+             return this.getAllBarsLegacy();
+        }
+        throw new Error('Erreur lors de la récupération des bars');
+      }
+
+      return (data || []).map((row: any) => ({
+        ...this.mapToBar(row),
+        owner_name: row.owner_name || '',
+        owner_phone: row.owner_phone || '',
+        member_count: row.member_count || 0,
+      }));
+    } catch (error: any) {
+      console.warn('Fallback legacy getAllBars due to error:', error);
+      return this.getAllBarsLegacy();
+    }
+  }
+
+  /**
+   * Fallback Legacy: Récupérer tous les bars
+   */
+  private static async getAllBarsLegacy(): Promise<BarWithOwner[]> {
       const { data, error } = await supabase
         .from('bars')
         .select('*')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        throw new Error('Erreur lors de la récupération des bars');
-      }
+      if (error) throw new Error('Erreur lors de la récupération des bars (legacy)');
 
-      // Pour chaque bar, récupérer owner et compter les membres
       const barsWithOwner: BarWithOwner[] = await Promise.all(
         (data || []).map(async (row) => {
-          // Récupérer le owner
           const { data: owner } = await supabase
             .from('users')
             .select('name, phone')
-            .eq('id', row.owner_id || '') // ✅ Fix null check
+            .eq('id', row.owner_id || '')
             .single();
 
-          // Compter les membres
           const { count } = await supabase
             .from('bar_members')
             .select('*', { count: 'exact', head: true })
@@ -172,7 +227,6 @@ export class BarsService {
             .eq('is_active', true);
 
           const bar = this.mapToBar(row);
-
           return {
             ...bar,
             owner_name: owner?.name || '',
@@ -181,11 +235,7 @@ export class BarsService {
           };
         })
       );
-
       return barsWithOwner;
-    } catch (error: any) {
-      throw new Error(handleSupabaseError(error));
-    }
   }
 
   /**
@@ -194,7 +244,6 @@ export class BarsService {
    */
   static async getUserBars(userId: string, impersonatingUserId?: string): Promise<Bar[]> {
     try {
-      // Use RPC with optional impersonating_user_id parameter
       const { data, error } = await supabase
         .rpc('get_user_bars', {
           p_user_id: userId,
@@ -253,7 +302,7 @@ export class BarsService {
         throw new Error('Erreur lors de la mise à jour du bar');
       }
 
-      return this.mapToBar(data); // ✅ Mapper le retour
+      return this.mapToBar(data);
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
     }
@@ -335,7 +384,7 @@ export class BarsService {
   }
 
   /**
-   * Récupérer les statistiques d'un bar
+   * Récupérer les statistiques d'un bar (Optimisé via RPC)
    */
   static async getBarStats(barId: string): Promise<{
     totalProducts: number;
@@ -344,21 +393,54 @@ export class BarsService {
     pendingSales: number;
   }> {
     try {
-      // Nombre de produits actifs
+      // ✅ Utilisation du RPC optimisé get_bar_admin_stats
+      const { data, error } = await supabase
+        .rpc('get_bar_admin_stats', { p_bar_id: barId });
+
+      if (error) {
+        // Fallback si RPC introuvable
+        if (error.code === '42883') { // undefined_function
+             console.warn('RPC get_bar_admin_stats not found, falling back to legacy.');
+             return this.getBarStatsLegacy(barId);
+        }
+        console.error('[BarsService] RPC stats error:', error);
+        throw error;
+      }
+
+      const stats = Array.isArray(data) ? data[0] : data;
+
+      if (!stats) {
+        return { totalProducts: 0, totalSales: 0, totalRevenue: 0, pendingSales: 0 };
+      }
+
+      return {
+        totalProducts: stats.total_products || 0,
+        totalSales: stats.total_sales || 0,
+        totalRevenue: stats.total_revenue || 0,
+        pendingSales: stats.pending_sales || 0,
+      };
+    } catch (error: any) {
+      console.warn('Fallback legacy getBarStats due to error:', error);
+      return this.getBarStatsLegacy(barId);
+    }
+  }
+
+  /**
+   * Fallback Legacy: Stats bar (lent)
+   */
+  private static async getBarStatsLegacy(barId: string) {
       const { count: productCount } = await supabase
         .from('bar_products')
         .select('*', { count: 'exact', head: true })
         .eq('bar_id', barId)
         .eq('is_active', true);
 
-      // Nombre de ventes validées
       const { count: salesCount } = await supabase
         .from('sales')
         .select('*', { count: 'exact', head: true })
         .eq('bar_id', barId)
         .eq('status', 'validated');
 
-      // Revenu total (ventes validées)
       const { data: salesData } = await supabase
         .from('sales')
         .select('total')
@@ -367,7 +449,6 @@ export class BarsService {
 
       const totalRevenue = (salesData || []).reduce((sum, sale) => sum + (sale.total || 0), 0);
 
-      // Ventes en attente
       const { count: pendingCount } = await supabase
         .from('sales')
         .select('*', { count: 'exact', head: true })
@@ -380,8 +461,5 @@ export class BarsService {
         totalRevenue,
         pendingSales: pendingCount || 0,
       };
-    } catch (error: any) {
-      throw new Error(handleSupabaseError(error));
-    }
   }
 }

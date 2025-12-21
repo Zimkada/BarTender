@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { ExpensesService } from '../../services/supabase/expenses.service';
+import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 import type { Expense, ExpenseCategoryCustom } from '../../types';
 
 export const expenseKeys = {
@@ -29,6 +30,8 @@ export const useExpenses = (barId: string | undefined) => {
             }));
         },
         enabled: !!barId,
+        staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
+        gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
     });
 };
 
@@ -51,5 +54,7 @@ export const useCustomExpenseCategories = (barId: string | undefined) => {
             }));
         },
         enabled: !!barId,
+        staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
+        gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
     });
 };

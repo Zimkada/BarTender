@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { ReturnsService } from '../../services/supabase/returns.service';
+import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 import type { Return } from '../../types';
 
 export const returnKeys = {
@@ -40,5 +41,7 @@ export const useReturns = (barId: string | undefined) => {
             }));
         },
         enabled: !!barId,
+        staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
+        gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
     });
 };

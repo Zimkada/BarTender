@@ -1,6 +1,7 @@
 
 import { SalesService } from '../../services/supabase/sales.service';
 import type { Sale, SaleItem } from '../../types';
+import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 
 export const salesKeys = {
     all: ['sales'] as const,
@@ -29,6 +30,8 @@ export const useSales = (barId: string | undefined) => {
         },
         {
             enabled: !!barId,
+            staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
+            gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
         }
     );
 };

@@ -5,6 +5,7 @@ import { useApiQuery, useApiQuerySimple } from './useApiQuery';
 import { useProxyQuery } from './useProxyQuery';
 import { ProxyAdminService } from '../../services/supabase/proxy-admin.service';
 import type { Product, Supply, Consignment, Category } from '../../types';
+import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 
 // Clés de requête pour l'invalidation
 export const stockKeys = {
@@ -33,7 +34,11 @@ export const useProducts = (barId: string | undefined) => {
             const dbProducts = await ProxyAdminService.getBarProductsAsProxy(userId, barIdArg);
             return mapProducts(dbProducts);
         },
-        { enabled: !!barId }
+        {
+            enabled: !!barId,
+            staleTime: CACHE_STRATEGY.products.staleTime,
+            gcTime: CACHE_STRATEGY.products.gcTime,
+        }
     );
 };
 
@@ -75,7 +80,11 @@ export const useSupplies = (barId: string | undefined) => {
                 productName: (s.bar_product as any)?.display_name || 'Produit inconnu',
             }));
         },
-        { enabled: !!barId }
+        {
+            enabled: !!barId,
+            staleTime: CACHE_STRATEGY.products.staleTime,
+            gcTime: CACHE_STRATEGY.products.gcTime,
+        }
     );
 };
 
@@ -117,7 +126,11 @@ export const useConsignments = (barId: string | undefined) => {
                 };
             });
         },
-        { enabled: !!barId }
+        {
+            enabled: !!barId,
+            staleTime: CACHE_STRATEGY.products.staleTime,
+            gcTime: CACHE_STRATEGY.products.gcTime,
+        }
     );
 };
 
@@ -141,7 +154,11 @@ export const useCategories = (barId: string | undefined) => {
                 };
             });
         },
-        { enabled: !!barId }
+        {
+            enabled: !!barId,
+            staleTime: CACHE_STRATEGY.categories.staleTime,
+            gcTime: CACHE_STRATEGY.categories.gcTime,
+        }
     );
 };
 

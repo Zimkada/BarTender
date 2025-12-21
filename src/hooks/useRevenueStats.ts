@@ -7,6 +7,7 @@ import { getCurrentBusinessDateString, filterByBusinessDateRange } from '../util
 import { statsKeys } from './queries/useStatsQueries';
 import { useProxyQuery } from './queries/useProxyQuery';
 import { ProxyAdminService } from '../services/supabase/proxy-admin.service';
+import { CACHE_STRATEGY } from '../lib/cache-strategy';
 
 interface RevenueStats {
     netRevenue: number;
@@ -90,7 +91,8 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         {
             enabled: enabled && !!currentBarId,
             placeholderData: calculateLocalStats,
-            staleTime: 5 * 60 * 1000, // 5 minutes
+            staleTime: CACHE_STRATEGY.dailyStats.staleTime,
+            gcTime: CACHE_STRATEGY.dailyStats.gcTime,
         }
     );
 

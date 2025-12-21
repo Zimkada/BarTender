@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { AuthService } from '../../services/supabase/auth.service';
 import { AppUser, BarMember, UserRole } from '../../types';
+import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 
 export const barMembersKeys = {
     all: ['barMembers'] as const,
@@ -48,7 +49,7 @@ export const useBarMembers = (barId: string | undefined) => {
             }));
         },
         enabled: !!barId,
-        staleTime: 5 * 60 * 1000, // 5 minutes
-        gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime in React Query v5)
+        staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
+        gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
     });
 };
