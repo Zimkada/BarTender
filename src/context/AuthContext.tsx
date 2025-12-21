@@ -145,6 +145,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, [setCurrentSession]);
 
+  // 🔄 Écouter l'événement custom de token expiré (depuis RootLayout heartbeat)
+  useEffect(() => {
+    const handleTokenExpired = async () => {
+      console.warn('[AuthContext] 🔴 Token expiré détecté, forçage du logout');
+      await AuthService.logout();
+      setCurrentSession(null);
+    };
+
+    window.addEventListener('token-expired', handleTokenExpired);
+    return () => window.removeEventListener('token-expired', handleTokenExpired);
+  }, [setCurrentSession]);
+
   // 🔐 Login avec Supabase Auth (email + password)
   const login = useCallback(async (email: string, password: string): Promise<LoginResult> => {
     try {

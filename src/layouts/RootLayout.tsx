@@ -9,6 +9,7 @@ import { useStockMutations } from '../hooks/mutations/useStockMutations';
 import { useQueryClient } from '@tanstack/react-query';
 import { realtimeService } from '../services/realtime/RealtimeService';
 import { broadcastService } from '../services/broadcast/BroadcastService';
+import { supabase } from '../lib/supabase';
 
 import { Header } from '../components/Header';
 import { MobileNavigation } from '../components/MobileNavigation';
@@ -54,6 +55,29 @@ function RootLayoutContent() {
       // La navigation sera gérée par le Navigate ci-dessous
     }
   }, [isAuthenticated, currentSession, queryClient]);
+
+  // 🔄 Heartbeat: Vérifier la validité du token toutes les 30 secondes
+  useEffect(() => {
+    if (!isAuthenticated || !currentSession) return;
+
+    const heartbeatInterval = setInterval(async () => {
+      try {
+        // Vérifier si le session Supabase est toujours valide
+        const { data: { session: supabaseSession }, error } = await supabase.auth.getSession();
+
+        if (!supabaseSession || error) {
+          console.warn('[RootLayout] ⚠️ Token expiré détecté lors du heartbeat');
+
+          // Dispatcher un événement custom que AuthContext va écouter
+          window.dispatchEvent(new Event('token-expired'));
+        }
+      } catch (err) {
+        console.warn('[RootLayout] Erreur lors de la vérification du heartbeat:', err);
+      }
+    }, 30000); // Vérifier toutes les 30 secondes
+
+    return () => clearInterval(heartbeatInterval);
+  }, [isAuthenticated, currentSession]);
 
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" replace />;
