@@ -191,16 +191,18 @@ export function DailyDashboard() {
               <div>
                 <div className="flex items-center gap-3">
                   <h1 className="text-xl font-bold">Tableau de bord</h1>
-                  <DataFreshnessIndicatorCompact
-                    viewName="daily_sales_summary"
-                    onRefreshComplete={async () => {
-                      if (currentBar) {
-                        const stats = await AnalyticsService.getDailySummary(currentBar.id, todayDateStr, todayDateStr, 'day');
-                        if (stats.length > 0) setTodayStats(stats[0]);
-                        showSuccess('✅ Données actualisées avec succès');
-                      }
-                    }}
-                  />
+                  {currentBar?.id && currentBar.id !== '00000000-0000-0000-0000-000000000000' && (
+                    <DataFreshnessIndicatorCompact
+                      viewName="daily_sales_summary"
+                      onRefreshComplete={async () => {
+                        if (currentBar) {
+                          const stats = await AnalyticsService.getDailySummary(currentBar.id, todayDateStr, todayDateStr, 'day');
+                          if (stats.length > 0) setTodayStats(stats[0]);
+                          showSuccess('✅ Données actualisées avec succès');
+                        }
+                      }}
+                    />
+                  )}
                 </div>
                 <p className="text-sm text-amber-100">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
               </div>

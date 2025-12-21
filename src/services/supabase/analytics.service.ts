@@ -98,6 +98,12 @@ export const AnalyticsService = {
         endDate: Date | string,
         groupBy: 'day' | 'week' | 'month' = 'day'
     ): Promise<DailySalesSummary[]> {
+        // Guard: Reject invalid bar IDs (null, undefined, or empty UUID)
+        if (!barId || barId === '00000000-0000-0000-0000-000000000000') {
+            console.warn('[AnalyticsService] getDailySummary called with invalid barId:', barId);
+            return [];
+        }
+
         const dateColumn = groupBy === 'day' ? 'sale_date' :
             groupBy === 'week' ? 'sale_week' : 'sale_month';
 
