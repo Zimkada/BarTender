@@ -32,6 +32,7 @@ export const useSales = (barId: string | undefined) => {
             enabled: !!barId,
             staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
             gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
+            refetchInterval: 2000, // Poll every 2 seconds for real-time sales updates
         }
     );
 };

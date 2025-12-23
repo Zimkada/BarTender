@@ -23,10 +23,7 @@ export const useProducts = (barId: string | undefined) => {
         // 1. Fetcher Standard
         async () => {
             if (!barId) return [];
-            // Note: Le paramètre impersonatingUserId n'est plus nécessaire ici car géré par le proxy
-            // Si l'ancienne auth impersonation est encore utilisée ailleurs, on laisse undefined
             const dbProducts = await ProductsService.getBarProducts(barId);
-
             return mapProducts(dbProducts);
         },
         // 2. Fetcher Proxy (Super Admin As User)

@@ -1,17 +1,16 @@
-# 🔍 Analyse Détaillée des Phases 3 & 4
+# 🔍 Analyse Détaillée des Phases 3 & 4 (Mise à jour)
 ## BarTender Production - État Actuel
 
-**Date**: 21 Décembre 2025
-**Statut Global**: 42-50% de complétude vers production
-**Auteur**: Claude Code Analysis
+**Date**: 22 Décembre 2025
+**Statut Global**: 65-75% de complétude vers production
+**Auteur**: Gemini Code Analysis
 
 ---
 
 ## 📋 Table des matières
 1. [Phase 3 : Optimisation Supabase](#phase-3--optimisation-supabase)
 2. [Phase 4 : Performance Frontend](#phase-4--performance-frontend)
-3. [Recommandations Immédiates](#recommandations-immédiates)
-4. [Plan d'Action Détaillé](#plan-daction-détaillé)
+3. [Prochaines Étapes Prioritaires](#prochaines-étapes-prioritaires)
 
 ---
 
@@ -19,373 +18,83 @@
 
 **Durée estimée**: 1-2 semaines
 **Impact attendu**: Réduction 60-80% des coûts
-**Statut**: 🟠 **PARTIELLEMENT COMPLÉTÉ - ~50%**
+**Statut**: 🟢 **LARGEMENT AVANCÉ - ~80%**
 
-### ✅ Ce qui est Bien Fait
+### ✅ Travaux Complétés
 
-#### 1. Infrastructure Offline Robuste
-**Fichier**: `src/hooks/mutations/useSalesMutations.ts`
-- ✅ Calcul local de `businessDate` pour les ventes offline
-- ✅ Invalidation du cache immédiatement après mutation réussie
-- ✅ Gestion intelligente du fallback en cas de perte réseau
-- ✅ SyncHandler avec file d'attente persistante
+#### 1. ✅ BarsService Optimisé - BLOCKER CRITIQUE RÉSOLU
+**Fichiers**: `src/services/supabase/bars.service.ts`, `supabase/migrations/`
 
-```typescript
-// Exemple correct d'invalidation ciblée après mutation
-queryClient.invalidateQueries({
-  queryKey: stockKeys.products(barId)
-})
-```
+**Problème initial**: Requêtes N+1 (2N+1) dans `getAllBars()` et requêtes multiples dans `getBarById()` et `getBarStats()`.
+**Solution Implémentée**:
+-   **Vue `admin_bars_list`**: Une vue légère a été créée pour récupérer la liste des bars avec les informations de base (propriétaire, nombre de membres), résolvant le problème N+1 pour les listes.
+-   **RPC `get_bar_admin_stats`**: Une fonction RPC a été créée pour agréger les statistiques d'un bar à la demande, évitant 4 requêtes séparées.
+-   **Refactoring de `bars.service.ts`**: Le service a été mis à jour pour utiliser la vue et la RPC, avec une logique de fallback pour assurer la compatibilité.
 
-**Impact**: Excellent pour la réactivité UI et l'économie de requêtes Realtime.
+**Impact**: **PROBLÈME RÉSOLU**. Réduction drastique des requêtes, alignée avec l'objectif de 75% d'économie.
 
-#### 2. Code Splitting Optimisé
-**Fichier**: `vite.config.ts` (lignes 22-30)
-- ✅ Manual chunks par vendor:
-  - vendor-react (React core)
-  - vendor-motion (Framer Motion)
-  - vendor-charts (Recharts)
-  - vendor-xlsx (Excel)
-  - vendor-supabase (Supabase SDK)
-  - vendor-react-query (TanStack Query)
-  - vendor-date-fns (Date utilities)
-- ✅ Lazy loading des routes principales via `React.lazy`
-- ✅ Rollup visualizer pour analyse du bundle
+#### 2. ✅ Stratégie de Cache Granulaire Implémentée
+**Fichiers**: `src/lib/cache-strategy.ts`, `src/lib/react-query.ts`, et tous les hooks de requêtes (`useSalesQueries`, `useStockQueries`, etc.)
 
-**Impact**: Réduction de ~40-50% du bundle initial.
+**Problème initial**: Un `staleTime` global de 5 minutes était inadapté et ne correspondait pas au plan.
+**Solution Implémentée**:
+-   **Fichier centralisé `cache-strategy.ts`**: Création d'un fichier exportant des constantes de temps de cache (`staleTime`, `gcTime`) par type de données (ventes, produits, etc.).
+-   **Application généralisée**: Tous les hooks de React Query ont été refactorisés pour utiliser ces constantes, assurant une stratégie de cache cohérente et optimisée à travers toute l'application.
 
-#### 3. React Query Bien Configuré
-**Fichier**: `src/lib/react-query.ts`
-- ✅ Retry intelligent (max 3 tentatives)
-- ✅ Exponential backoff: 1s → 2s → 4s → 8s...
-- ✅ staleTime global: 5 minutes
-- ✅ gcTime: 24h pour support offline
-- ✅ Persistance localStorage pour cache
-- ✅ Pas de refetch au focus si stale
+**Impact**: **PROBLÈME RÉSOLU**. L'application respecte désormais une stratégie de cache différenciée, améliorant la réactivité et réduisant les requêtes inutiles.
 
-**Configuration existante**:
-```typescript
-// src/lib/react-query.ts - ligne 38
-staleTime: 5 * 60 * 1000, // 5 minutes globalement
-gcTime: 24 * 60 * 60 * 1000, // 24h en cache
-```
+#### 3. ✅ Pagination & Lazy Loading Avancés
+**Fichiers**: `src/services/supabase/sales.service.ts`, `stock.service.ts`, etc.
 
-#### 4. Materialized Views en Production
-**Fichier**: `supabase/migrations/` (fichiers 042-063)
-- ✅ 15+ vues matérialisées implémentées:
-  - `product_sales_stats`
-  - `daily_sales_summary`
-  - `top_products_by_period`
-  - `bar_stats_multi_period`
-  - `expenses_summary`
-  - `salaries_summary`
-- ✅ Refresh triggers avec debouncing
-- ✅ Monitoring via `materialized_view_metrics`
-- ✅ Business date logic standardisée (6h)
+**État initial**: Le rapport initial indiquait que la pagination par curseur était manquante.
+**État Actuel**:
+-   **Pagination par curseur implémentée**: `sales.service.ts` contient une RPC (`admin_as_get_bar_sales_cursor`) pour une pagination par curseur efficace sur les grands ensembles de données de ventes.
+-   **Pagination `limit`/`offset` répandue**: La pagination traditionnelle est utilisée dans de nombreux autres services.
+-   **Limites initiales**: Des limites par défaut (ex: 50) sont en place pour éviter de charger des données excessives au premier affichage.
 
-**Performance**: 85% d'amélioration rapportée sur analytics.
+**Impact**: L'infrastructure de pagination est bien plus robuste que prévu initialement.
 
-#### 5. Migrations SQL Complètes
-- ✅ 80+ migrations appliquées (001-065+)
-- ✅ RLS policies robustes
-- ✅ Indexes de performance ajoutés
-- ✅ Functions et RPCs sécurisées
-- ✅ Audit logging intégré
+#### 4. ✅ Synchronisation Inter-onglets (Broadcast Channel)
+**Fichiers**: `src/services/broadcast/BroadcastService.ts`, `src/hooks/useBroadcastSync.ts`
+
+**État initial**: Faisait partie de la stratégie Realtime à implémenter.
+**État Actuel**: Une implémentation robuste de `BroadcastChannel` est en place pour synchroniser l'état entre les onglets du même navigateur sans coût serveur.
+
+**Impact**: Excellente fondation pour la stratégie de synchronisation hybride.
 
 ---
 
-### ❌ Points Critiques (À Corriger Immédiatement)
+### ⚠️ Prochaines Étapes (Phase 3)
 
-#### 1. 🔴 BarsService Non Optimisé - BLOCKER CRITIQUE
+#### 1. 🟠 Finaliser la Stratégie Hybride Realtime
+**Problème Restant**: Bien que `BroadcastChannel` soit en place, l'utilisation de `supabase.channel` pour le Realtime est soit absente, soit trop généralisée. La stratégie de polling n'est pas utilisée.
 
-**Fichier**: `src/services/supabase/bars.service.ts`
+**Actions Requises**:
+1.  **Implémenter le Polling (fallback)**: Utiliser l'option `refetchInterval` dans les hooks de requêtes pertinents pour assurer une synchronisation périodique, agissant comme un filet de sécurité.
+2.  **Implémenter le Realtime Chirurgical**: Pour les cas d'usage où une attente est inacceptable (ex: notification de nouvelle commande), implémenter une souscription à un canal Supabase spécifique et filtré.
 
-**Problème**: Requêtes N+1 masquées dans les fonctions principales
+**Impact**: Réduction des coûts Realtime et assurance d'une expérience utilisateur fluide pour les cas critiques.
 
-```typescript
-// ❌ PROBLÈME IDENTIFIÉ dans getAllBars() - lignes 145-189
-static async getAllBars(): Promise<BarWithOwner[]> {
-  // Requête 1: Récupérer tous les bars
-  const { data } = await supabase
-    .from('bars')
-    .select('*')
-    .eq('is_active', true);
+#### 2. 🟡 Hook Centralisé Manquant: `useAnalyticsQueries`
+**Problème Restant**: La logique pour récupérer les données d'analyse est dispersée. `useRevenueStats.ts` existe mais n'est pas standardisé.
 
-  // ❌ PUIS: Pour chaque bar, faire 2 requêtes additionnelles!
-  const barsWithOwner: BarWithOwner[] = await Promise.all(
-    (data || []).map(async (row) => {
-      // Requête N+1: Récupérer le owner (1 requête par bar)
-      const { data: owner } = await supabase
-        .from('users')
-        .select('name, phone')
-        .eq('id', row.owner_id || '')
-        .single();
-
-      // Requête N+2: Compter les membres (1 requête par bar)
-      const { count } = await supabase
-        .from('bar_members')
-        .select('*', { count: 'exact', head: true })
-        .eq('bar_id', row.id)
-        .eq('is_active', true);
-
-      // ... return...
-    })
-  );
-}
-```
-
-**Impact**: Avec 100 bars = 200+ requêtes au lieu de 1!
-
-**Fonction identique**: `getBarById()` (lignes 100-140)
-```typescript
-// ❌ 3 requêtes séquentielles pour UNE bar!
-// 1. Récupérer le bar
-// 2. Récupérer le owner
-// 3. Compter les membres
-```
-
-**Fonction identique**: `getBarStats()` (lignes 340-386)
-```typescript
-// ❌ 4 requêtes séparées
-const { count: productCount } = await supabase
-  .from('bar_products').select('*', { count: 'exact', head: true })...
-
-const { count: salesCount } = await supabase
-  .from('sales').select('*', { count: 'exact', head: true })...
-
-const { data: salesData } = await supabase
-  .from('sales').select('total')... // Récupère TOUS les totaux
-
-const { count: pendingCount } = await supabase
-  .from('sales').select('*', { count: 'exact', head: true })...
-```
-
-**💰 Coût Supabase Estimé**:
-- Avant optimisation: 5,000+ requêtes/jour/bar
-- Après optimisation: 800-1,200 requêtes/jour/bar
-- **Économie**: ~75% avec plan Pro
-
-**✅ Solution Requise**: Utiliser une vue SQL agrégée
-```sql
--- À créer dans une migration:
-CREATE OR REPLACE VIEW bars_with_stats AS
-SELECT
-  b.id, b.name, b.address, b.owner_id, b.is_active, b.created_at,
-  u.name as owner_name, u.phone as owner_phone,
-  COUNT(DISTINCT bm.user_id) as member_count,
-  COUNT(DISTINCT bp.id) as product_count,
-  COUNT(DISTINCT s.id) as total_sales,
-  COALESCE(SUM(s.total), 0) as total_revenue,
-  COUNT(DISTINCT CASE WHEN s.status = 'pending' THEN s.id END) as pending_sales
-FROM bars b
-LEFT JOIN users u ON u.id = b.owner_id
-LEFT JOIN bar_members bm ON bm.bar_id = b.id AND bm.is_active = true
-LEFT JOIN bar_products bp ON bp.bar_id = b.id AND bp.is_active = true
-LEFT JOIN sales s ON s.bar_id = b.id AND s.status IN ('validated', 'pending')
-WHERE b.is_active = true
-GROUP BY b.id, u.id;
-```
-
-Puis refactoriser BarsService pour consommer cette vue.
+**Action Requise**:
+-   Créer le hook `src/hooks/queries/useAnalyticsQueries.ts` comme décrit dans le plan initial pour centraliser la récupération des statistiques (`daily_sales_summary`, `top_products`, etc.) et leur appliquer la bonne stratégie de cache.
 
 ---
 
-#### 2. 🟠 Stratégie de Cache Divergente du Plan
+### 📊 Résumé Phase 3 (Mis à jour)
 
-**Fichier**: `src/lib/react-query.ts` (ligne 38)
-
-**Problème**: staleTime global de 5 minutes ne correspond pas au plan
-
-**Plan prévu**:
-| Type de données | staleTime | Raison |
+| Item | Statut | Priorité |
 |---|---|---|
-| Produits/Catégories | 30 minutes | Rarement modifiés |
-| **Ventes du jour** | **2 minutes** | Fréquemment mis à jour |
-| Stock | 5 minutes | Invalidé sur mutation |
-| Analytics | 1 heure | Données agrégées |
+| **BarsService N+1** | ✅ Terminé | - |
+| **Cache strategy** | ✅ Terminé | - |
+| Offline sync | ✅ Bon | - |
+| Pagination & Lazy Loading | ✅ Avancé | - |
+| **Realtime hybrid** | 🟠 Partiel | 🟠 P1 |
+| **useAnalyticsQueries** | ❌ Manquant | 🟠 P1 |
 
-**Implémentation actuelle**:
-```typescript
-staleTime: 5 * 60 * 1000, // 5 minutes pour TOUT
-```
-
-**Problèmes**:
-- ❌ Ventes temps réel: 5 min c'est trop long (plan dit 2 min)
-- ❌ Produits: 5 min c'est trop court (plan dit 30 min)
-- ❌ Pas de granularité par type de données
-- ❌ Les hooks ne surchargent pas ces valeurs
-
-**Impact**:
-- Requêtes DB inutiles (produits refetchés trop souvent)
-- UI pas assez à jour (ventes tardent trop)
-
-**Solution Requise**:
-- Créer des constantes par type de données
-- Surcharger staleTime dans chaque hook
-
-```typescript
-// À ajouter dans src/config/cacheStrategy.ts
-export const CACHE_STRATEGY = {
-  products: 30 * 60 * 1000,      // 30 minutes
-  sales: 2 * 60 * 1000,          // 2 minutes
-  stock: 5 * 60 * 1000,          // 5 minutes
-  analytics: 60 * 60 * 1000,     // 1 heure
-  categories: 30 * 60 * 1000,    // 30 minutes
-  barMembers: 10 * 60 * 1000,    // 10 minutes
-} as const;
-```
-
-Puis utiliser dans les hooks:
-```typescript
-export const useSales = (barId: string | undefined) => {
-  return useProxyQuery(
-    salesKeys.list(barId || ''),
-    async (): Promise<Sale[]> => { /* ... */ },
-    async (userId, _barId): Promise<Sale[]> => { /* ... */ },
-    {
-      enabled: !!barId,
-      staleTime: CACHE_STRATEGY.sales,  // ✅ 2 min au lieu de 5 min
-    }
-  );
-};
-```
-
----
-
-#### 3. 🟡 Subscriptions Realtime Trop Généreuses
-
-**Problème**: Realtime utilisé de manière généralisée pour tous les types de données
-
-**Observations**:
-- ✅ Le plan 3.3 prévoyait une stratégie **hybride** (invalidation majorité + Realtime chirurgical)
-- ❌ L'implémentation semble dépendre trop des subscriptions Realtime
-- ⚠️ Coût Realtime: $1 par connexion/mois sur Plan Pro
-
-**Solution du Plan**:
-```typescript
-// Stratégie Hybride Prévue:
-
-// 1. Invalidation ciblée (majorité des cas) - DÉJÀ BON
-queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) })
-
-// 2. Polling comme fallback - À IMPLÉMENTER
-// staleTime + refetchInterval gèrent automatiquement
-
-// 3. Realtime chirurgical (cas critiques) - À UTILISER SPARINGLY
-// Exemple: Attente de validation de commande en temps réel
-// Channel Realtime SPÉCIFIQUE: sales:status=pending
-const channel = supabase
-  .channel(`sales:${barId}:pending`)
-  .on(
-    'postgres_changes',
-    { event: 'UPDATE', schema: 'public', table: 'sales', filter: `bar_id=eq.${barId}` },
-    (payload) => {
-      queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
-    }
-  )
-  .subscribe();
-```
-
-**Impact**: Réduction 70% des coûts Realtime.
-
----
-
-#### 4. 🟡 Hook Centralisé Manquant: useAnalyticsQueries
-
-**Observations**:
-- ❌ Pas de hook `useAnalyticsQueries` uniformisé
-- ⚠️ Logique d'analytics dispersée dans plusieurs fichiers
-- ⚠️ `useRevenueStats.ts` existe mais n'est pas centralisé
-
-**À créer**: `src/hooks/queries/useAnalyticsQueries.ts`
-```typescript
-import { useProxyQuery } from './useProxyQuery';
-import { AnalyticsService } from '../../services/supabase/analytics.service';
-import { CACHE_STRATEGY } from '../../config/cacheStrategy';
-
-export const analyticsKeys = {
-  all: ['analytics'] as const,
-  bySummary: (barId: string) => [...analyticsKeys.all, 'summary', barId] as const,
-  summary: (barId: string, startDate: Date, endDate: Date) =>
-    [...analyticsKeys.bySummary(barId), { startDate, endDate }] as const,
-  topProducts: (barId: string, period: string) =>
-    [...analyticsKeys.all, 'topProducts', barId, period] as const,
-};
-
-export const useDailySalesSummary = (
-  barId: string | undefined,
-  startDate: Date,
-  endDate: Date
-) => {
-  return useProxyQuery(
-    analyticsKeys.summary(barId || '', startDate, endDate),
-    async () => {
-      if (!barId) return null;
-      return AnalyticsService.getDailySalesSummary(barId, startDate, endDate);
-    },
-    async (userId, _barId) => {
-      if (!barId) return null;
-      return ProxyAdminService.getDailySalesSummaryAsProxy(userId, barId, startDate, endDate);
-    },
-    {
-      enabled: !!barId,
-      staleTime: CACHE_STRATEGY.analytics, // 1 heure
-    }
-  );
-};
-
-export const useTopProducts = (
-  barId: string | undefined,
-  period: 'day' | 'week' | 'month' = 'day'
-) => {
-  return useProxyQuery(
-    analyticsKeys.topProducts(barId || '', period),
-    async () => {
-      if (!barId) return [];
-      return AnalyticsService.getTopProducts(barId, period);
-    },
-    async (userId, _barId) => {
-      if (!barId) return [];
-      return ProxyAdminService.getTopProductsAsProxy(userId, barId, period);
-    },
-    {
-      enabled: !!barId,
-      staleTime: CACHE_STRATEGY.analytics,
-    }
-  );
-};
-```
-
----
-
-#### 5. ⚠️ Pagination & Lazy Loading Partiels
-
-**Observé**:
-- ✅ `react-window` est installé et importé pour virtualisation
-- ❌ Pagination cursor-based non implémentée
-- ❌ Lazy loading par défaut = pas de limite initiale
-
-**À faire**:
-- Implémenter pagination cursor-based pour historique de ventes
-- Limiter requêtes initiales à 50 items max
-- Utiliser IntersectionObserver pour lazy load items à la scroll
-
----
-
-### 📊 Résumé Phase 3
-
-| Item | Statut | Priorité | Effort |
-|------|--------|----------|--------|
-| Code splitting | ✅ Excellent | - | - |
-| React Query base | ✅ Bon | - | - |
-| Offline sync | ✅ Bon | - | - |
-| **BarsService N+1** | ❌ CRITIQUE | 🔴 P0 | 2-3 jours |
-| **Cache strategy** | ⚠️ Divergent | 🟠 P1 | 1 jour |
-| **Realtime hybrid** | ⚠️ À implémenter | 🟠 P1 | 2-3 jours |
-| useAnalyticsQueries | ❌ Manquant | 🟠 P1 | 1 jour |
-| Pagination cursor | ❌ Manquante | 🟡 P2 | 2 jours |
-
-**Complétude Phase 3**: 50% → **Cible**: 95%
+**Complétude Phase 3**: 80% → **Cible**: 95%
 
 ---
 
@@ -395,389 +104,97 @@ export const useTopProducts = (
 **Objectif**: Time to Interactive < 3s sur 4G
 **Statut**: 🟢 **EXCELLENTE - ~85%**
 
+*(Le contenu de la section "Ce qui est bien fait" reste majoritairement valide)*
+
 ### ✅ Ce qui est Bien Fait
-
-#### 1. 🎯 Code Splitting Agressif - EXCELLENT
-
-**Fichier**: `src/routes/index.tsx` + `vite.config.ts`
-
-**Configuration**:
-```typescript
-// Routes splitées avec React.lazy
-const HomePage = lazy(() => import('../pages/HomePage'));
-const DashboardPage = lazy(() => import('../pages/DashboardPage'));
-const SalesHistoryPage = lazy(() => import('../pages/SalesHistoryPage'));
-const AnalyticsPage = lazy(() => import('../pages/AnalyticsPage'));
-// ... ~20 routes lazy-loaded
-```
-
-**Vite splitting**:
-```typescript
-manualChunks: {
-  'vendor-react': ['react', 'react-dom'],
-  'vendor-motion': ['framer-motion'],
-  'vendor-charts': ['recharts'],
-  'vendor-xlsx': ['xlsx'],
-  'vendor-supabase': ['@supabase/supabase-js'],
-  'vendor-react-query': ['@tanstack/react-query'],
-  'vendor-date-fns': ['date-fns'],
-}
-```
-
-**Impact**:
-- ✅ Bundle initial: ~70KB gzipped (estimation)
-- ✅ Route chunks: ~20-30KB chacun (lazy loaded)
-- ✅ Vendor chunks: Cachés séparément
-- ✅ Visualizer configuré pour analyse
-
-**Résultat**: Parallélisation des downloads, meilleure utilisation du cache browser.
-
-#### 2. 🔄 Offline-First & Sync Robustes
-
-**Fichiers**:
-- `src/services/sync/SyncHandler.ts` - Queue + retry
-- `src/services/sync/SyncQueue.ts` - Persistence
-- `src/lib/react-query.ts` - Cache persistence localStorage
-
-**Caractéristiques**:
-- ✅ Queue de sync persistent (localStorage)
-- ✅ Retry automatique avec backoff exponentiel
-- ✅ Optimistic updates UI
-- ✅ Conflict resolution strategies
-- ✅ Sync indicator en UI
-
-**Codebase**: ~300 lignes de sync logic bien testée
-
-#### 3. 📊 Tooling Complet
-
-**Rollup Visualizer**: `vite.config.ts` (lignes 9-14)
-```typescript
-visualizer({
-  filename: './dist/stats.html',
-  open: false,
-  gzipSize: true,
-  brotliSize: true,
-})
-```
-
-Permet d'analyser le bundle après build: `npm run build && open dist/stats.html`
-
-#### 4. ✨ Rendering Optimizations Basiques
-
-**Observé**:
-- ✅ Skeleton loaders implémentés (react-loading-skeleton)
-- ✅ Virtual lists utilisées (react-window)
-- ✅ Lazy loading des assets statiques
-- ✅ Mobile-first Tailwind
+- **Code Splitting Agressif**
+- **Offline-First & Sync Robustes**
+- **Tooling Complet (Visualizer)**
+- **Rendering Optimizations Basiques (Skeletons, Mobile-first)**
 
 ---
 
-### ⚠️ Points À Améliorer (Non-bloquants)
+### ⚠️ Prochaines Étapes (Phase 4)
 
-#### 1. React.memo & useMemo/useCallback
+#### 1. 🟡 Optimisation des Rendus React
+**Statut**: Partiel
+**Actions Requises**:
+-   Appliquer systématiquement `React.memo()` sur les composants purs (ex: `ProductCard`, `SaleItemRow`).
+-   Utiliser `useMemo` et `useCallback` pour mémoriser les calculs coûteux et les fonctions passées à des composants mémoïsés.
 
-**Statut**: Partiels
+#### 2. 🟡 Debounce sur Inputs de Recherche
+**Statut**: Manquant
+**Action Requise**:
+-   Implémenter un `useDebounce` (300ms) sur les champs de recherche pour éviter les requêtes/filtrages excessifs à chaque frappe.
 
-**À vérifier**:
-- Appliquer `React.memo()` sur:
-  - ProductCard (composant pure)
-  - SaleItemRow (composant liste)
-  - Analytics charts
+#### 3. 🟡 Vérifier et Appliquer l'Utilisation de `react-window`
+**Statut**: Partiel (installé mais usage non vérifié)
+**Action Requise**:
+-   Auditer les composants de listes longues (historique des ventes, liste globale de produits) et s'assurer qu'ils utilisent bien `react-window` (ou `tanstack-virtual`) pour la virtualisation.
 
-```typescript
-// Exemple:
-export const ProductCard = React.memo(({ product, onSelect }: Props) => {
-  return <div>{product.name}</div>;
-}, (prevProps, nextProps) => {
-  return prevProps.product.id === nextProps.product.id;
-});
-```
+#### 4. 🟡 Service Worker & Workbox
+**Statut**: Manquant
+**Action Requise**:
+-   Configurer `vite-plugin-pwa` et Workbox pour mettre en place des stratégies de cache avancées pour les assets statiques et les appels API.
 
-- Wrapping de fonctions avec `useCallback`:
-```typescript
-const handleProductSelect = useCallback((productId: string) => {
-  // logic
-}, [barId]); // Dépendances minimales
-
-// Et memoization de calculs coûteux:
-const filteredProducts = useMemo(() => {
-  return products.filter(p => p.barId === barId);
-}, [products, barId]);
-```
-
-#### 2. Debounce sur Inputs de Recherche
-
-**Status**: À implémenter
-
-**Où**:
-- Barre de recherche dans ProductList
-- Barre de recherche dans SalesHistory
-- Barre de recherche dans AnalyticsPage
-
-**Exemple**:
-```typescript
-import { useDebouncedValue } from '../hooks/useDebouncedValue';
-
-export const SearchBar = () => {
-  const [input, setInput] = useState('');
-  const debouncedSearch = useDebouncedValue(input, 300); // 300ms
-
-  useEffect(() => {
-    // Fetch avec debouncedSearch
-    queryClient.invalidateQueries({
-      queryKey: productsKeys.search(debouncedSearch)
-    });
-  }, [debouncedSearch]);
-
-  return <input value={input} onChange={e => setInput(e.target.value)} />;
-};
-```
-
-#### 3. Service Worker & Workbox
-
-**Status**: À configurer
-
-**Objectif**: Caching stratégies pour assets statiques
-
-**À ajouter** `vite.config.ts`:
-```typescript
-import { VitePWA } from 'vite-plugin-pwa';
-
-export default defineConfig({
-  plugins: [
-    react(),
-    visualizer(...),
-    VitePWA({
-      strategies: 'injectManifest',
-      manifest: {
-        name: 'BarTender',
-        short_name: 'BarTender',
-        icons: [/* ... */],
-      },
-      workbox: {
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/yekomwjdznvtnialpdcz\.supabase\.co\/.*$/,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'supabase-api-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 24 * 60 * 60,
-              },
-            },
-          },
-          {
-            urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp)$/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'images-cache',
-            },
-          },
-        ],
-      },
-    }),
-  ],
-});
-```
-
-#### 4. Lighthouse Audit
-
+#### 5. 🟡 Audit Lighthouse
 **Statut**: À faire
-
-**Commande**:
-```bash
-npm run build
-npx lighthouse https://yourdomain.com --view
-```
-
-**Cibles**:
-- Performance: > 80
-- Accessibility: > 90
-- Best Practices: > 90
-- SEO: > 90
-
-**Estimé actuellement**: ~70-75 (besoin de Phase 5 UX/UI)
+**Action Requise**:
+-   Lancer un audit Lighthouse complet et adresser les points de régression en performance, accessibilité, etc.
 
 ---
 
-### 📊 Résumé Phase 4
+### 📊 Résumé Phase 4 (Mis à jour)
 
-| Item | Statut | Priorité | Effort |
-|------|--------|----------|--------|
-| Code splitting | ✅ Excellent | - | - |
-| Offline sync | ✅ Excellent | - | - |
-| Tooling (visualizer) | ✅ Bon | - | - |
-| **React.memo** | ⚠️ Partiel | 🟡 P2 | 1-2 jours |
-| **Debounce inputs** | ❌ Manquant | 🟡 P2 | 1 jour |
-| **Service Worker** | ❌ Manquant | 🟡 P2 | 2-3 jours |
-| Lighthouse audit | ⚠️ À valider | 🟡 P2 | 1 jour |
+| Item | Statut | Priorité |
+|---|---|---|
+| Code splitting | ✅ Excellent | - |
+| Offline sync | ✅ Excellent | - |
+| **React.memo/useMemo** | ⚠️ Partiel | 🟡 P2 |
+| **Debounce inputs** | ❌ Manquant | 🟡 P2 |
+| **Virtualisation (react-window)** | ⚠️ À vérifier | 🟡 P2 |
+| **Service Worker** | ❌ Manquant | 🟡 P2 |
+| **Lighthouse audit** | ❌ Manquant | 🟡 P2 |
 
 **Complétude Phase 4**: 85% → **Cible**: 95%
 
 ---
 
-## 🎯 Recommandations Immédiates
+## 🎯 Prochaines Étapes Prioritaires (Feuille de Route)
 
-### 🔴 BLOQUANTS (Semaines 1-2)
+L'ancien plan d'action est obsolète. Voici la nouvelle feuille de route pour finaliser les Phases 3 et 4.
 
-#### 1. Refactoriser BarsService.ts
-**Effort**: 2-3 jours
-**Impact**: 75% réduction coûts Supabase
+### Priorité 1 : Finaliser la Phase 3 (Supabase)
 
-**Checklist**:
-- [ ] Créer migration SQL pour vue `bars_with_stats`
-- [ ] Refactoriser `getAllBars()` pour lire depuis la vue
-- [ ] Refactoriser `getBarById()` pour utiliser LEFT JOINs
-- [ ] Refactoriser `getBarStats()` pour lire depuis la vue
-- [ ] Tester sur 1000+ bars
+1.  **Implémenter le Polling (fallback)**
+    *   **Objectif**: Assurer une synchronisation périodique des données.
+    *   **Action**: Ajouter `refetchInterval` aux hooks de requêtes pour les données qui peuvent changer sans action directe de l'utilisateur (ex: `useSalesQueries`, `useStockQueries`).
 
-#### 2. Implémenter Stratégie de Cache Différenciée
-**Effort**: 1 jour
-**Impact**: Meilleure réactivité + moins de requêtes
+2.  **Créer le hook `useAnalyticsQueries.ts`**
+    *   **Objectif**: Centraliser la logique de récupération des données analytiques.
+    *   **Action**: Créer le fichier et les hooks `useDailySalesSummary`, `useTopProducts`, etc., en leur appliquant la `CACHE_STRATEGY.analytics`.
 
-**Checklist**:
-- [ ] Créer `src/config/cacheStrategy.ts`
-- [ ] Ajouter constantes par type de données
-- [ ] Mettre à jour tous les hooks queries
-- [ ] Tester avec Network throttling (Fast 3G)
+3.  **Implémenter le Realtime Chirurgical**
+    *   **Objectif**: Fournir une réactivité instantanée pour les événements critiques.
+    *   **Action**: Identifier 1 ou 2 cas d'usage (ex: nouvelle vente en attente) et implémenter une souscription à un canal Supabase filtré.
 
-#### 3. Créer useAnalyticsQueries.ts
-**Effort**: 1 jour
-**Impact**: Centralisation + maintenance
+### Priorité 2 : Finaliser la Phase 4 (Frontend)
 
-**Checklist**:
-- [ ] Créer hook centralisé
-- [ ] Documenter queryKeys
-- [ ] Tester avec `react-query devtools`
+4.  **Optimiser les Rendus React & Debounce**
+    *   **Objectif**: Améliorer la fluidité de l'UI.
+    *   **Action**: Appliquer `React.memo` sur 5 composants clés et implémenter le `debounce` sur la barre de recherche principale.
 
----
+5.  **Vérifier l'utilisation de `react-window`**
+    *   **Objectif**: Garantir la performance des listes longues.
+    *   **Action**: Auditer l'historique des ventes et la liste globale de produits et y appliquer `react-window` si ce n'est pas déjà fait.
 
-### 🟠 IMPORTANTS (Semaines 2-3)
+6.  **Configurer le Service Worker**
+    *   **Objectif**: Améliorer les capacités offline.
+    *   **Action**: Mettre en place la configuration de base de `vite-plugin-pwa` et Workbox.
 
-#### 4. Implémenter Realtime Hybrid Strategy
-**Effort**: 2-3 jours
-**Impact**: 70% réduction coûts Realtime
-
-**Checklist**:
-- [ ] Documenter quels cas nécessitent Realtime
-- [ ] Implémenter subscriptions ciblées
-- [ ] Retirer subscriptions généralisées
-- [ ] Ajouter Broadcast Channel API pour sync cross-tabs
-
-#### 5. Optimiser Rendering React
-**Effort**: 2 jours
-**Impact**: +20% performance TTI
-
-**Checklist**:
-- [ ] Appliquer React.memo sur composants purs
-- [ ] Ajouter useMemo sur calculs coûteux
-- [ ] Debounce inputs de recherche (300ms)
-- [ ] Vérifier virtualisation des listes > 100 items
-
----
-
-### 🟡 NICE-TO-HAVE (Semaines 3-4)
-
-#### 6. Service Worker & Workbox
-**Effort**: 2-3 jours
-**Impact**: Offline-first complète
-
-#### 7. Pagination Cursor-based
-**Effort**: 2 jours
-**Impact**: Scalabilité des listes longues
-
----
-
-## 📈 Plan d'Action Détaillé
-
-### Semaine 1: Fondations Supabase
-
-**Jour 1**: BarsService - Partie 1
-- Créer migration SQL `bars_with_stats`
-- Tester la vue en Supabase Studio
-- Valider les JOINs et aggrégations
-
-**Jour 2-3**: BarsService - Partie 2
-- Refactoriser `getAllBars()`, `getBarById()`, `getBarStats()`
-- Tester avec 100+ bars
-- Valider RLS (Row Level Security)
-
-**Jour 4**: Cache Strategy
-- Créer `src/config/cacheStrategy.ts`
-- Mettre à jour hooks queries
-- Tester avec DevTools React Query
-
-**Jour 5**: useAnalyticsQueries
-- Créer hook centralisé
-- Relier aux components
-- Documentation
-
-**Jour 6-7**: Tests & Validation
-- E2E tests sur flux critiques
-- Monitoring coûts Supabase (API logs)
-- Benchmark avant/après
-
-### Semaine 2: Realtime & Performance
-
-**Jour 1-2**: Realtime Hybrid
-- Audit des subscriptions actuelles
-- Documentatie des cas d'usage
-- Implémentation ciblée
-
-**Jour 3-4**: React Optimization
-- React.memo sur 10-15 composants
-- Debounce inputs
-- useMemo/useCallback strategique
-
-**Jour 5-6**: Service Worker
-- Configurer Workbox
-- Tester offline scenarios
-- Lighthouse audit
-
-**Jour 7**: Validation Complète
-- Load testing 4G
-- TTI < 3s target
-- Documentation finalisée
-
----
-
-## 📊 Résultat Attendu
-
-### Avant Optimisation
-```
-Requêtes/jour/100 bars: 500,000+
-Realtime connections: 50-100 (gérants actifs)
-Bundle initial: ~100KB gzipped
-TTI (Time to Interactive): 4-5s (4G)
-Coût/mois: $75+
-```
-
-### Après Optimisation (Target)
-```
-Requêtes/jour/100 bars: 80,000-120,000 ✅
-Realtime connections: 10-20 (ciblées)
-Bundle initial: ~70KB gzipped ✅
-TTI (Time to Interactive): < 3s ✅
-Coût/mois: < $25 ✅
-```
-
-### Savings
-- **75% réduction coûts Supabase** (BarsService)
-- **70% réduction coûts Realtime** (Hybrid)
-- **20% amélioration performance** (React optimizations)
-
----
-
-## ✅ Validation Finale
-
-**Tests à Passer**:
-- [ ] Lighthouse > 80 (Phase 4 + Phase 5)
-- [ ] Load test 100 concurrent users
-- [ ] E2E flux vente complète
-- [ ] Offline sync functional
-- [ ] RLS policies pass audit
-- [ ] Bundle analysis < 100KB gzipped
+7.  **Audit Lighthouse**
+    *   **Objectif**: Valider les performances globales.
+    *   **Action**: Lancer un premier audit pour établir une baseline.
 
 ---
 
@@ -791,4 +208,4 @@ Coût/mois: < $25 ✅
 ---
 
 **Fin du rapport**
-*Généré le 21 Décembre 2025*
+*Généré le 22 Décembre 2025*

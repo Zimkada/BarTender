@@ -32,7 +32,6 @@ $$ LANGUAGE plpgsql;
 -- =====================================================
 
 DROP TRIGGER IF EXISTS trg_supplies_after_insert ON supplies;
-
 CREATE TRIGGER trg_supplies_after_insert
 AFTER INSERT ON supplies
 FOR EACH ROW

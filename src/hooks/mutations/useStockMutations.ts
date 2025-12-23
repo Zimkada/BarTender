@@ -8,6 +8,20 @@ import { useActingAs } from '../../context/ActingAsContext';
 import { useBarContext } from '../../context/BarContext';
 import toast from 'react-hot-toast';
 
+// Helper: Centralized cache invalidation for stock queries
+const invalidateStockQuery = (
+    queryClient: ReturnType<typeof useQueryClient>,
+    queryKey: readonly any[],
+    barId: string,
+    actingAs: { isActive: boolean; userId?: string }
+) => {
+    const proxySuffix = actingAs.isActive ? `proxy:${actingAs.userId}` : 'standard';
+    queryClient.invalidateQueries({
+        queryKey: [...queryKey, proxySuffix],
+        exact: true
+    });
+};
+
 export const useStockMutations = () => {
     const queryClient = useQueryClient();
     const { currentSession } = useAuth();
@@ -35,7 +49,9 @@ export const useStockMutations = () => {
         onSuccess: () => {
             const barId = currentBar?.id;
             toast.success('Produit créé avec succès');
-            if (barId) queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+            if (barId) {
+                invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
+            }
         },
     });
 
@@ -58,7 +74,9 @@ export const useStockMutations = () => {
         onSuccess: () => {
             const barId = currentBar?.id;
             toast.success('Produit mis à jour');
-            if (barId) queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+            if (barId) {
+                invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
+            }
         },
     });
 
@@ -81,7 +99,9 @@ export const useStockMutations = () => {
         onSuccess: () => {
             const barId = currentBar?.id;
             toast.success('Produit supprimé');
-            if (barId) queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+            if (barId) {
+                invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
+            }
         },
     });
 
@@ -111,7 +131,9 @@ export const useStockMutations = () => {
         onSuccess: () => {
             const barId = currentBar?.id;
             toast.success('Stock mis à jour');
-            if (barId) queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+            if (barId) {
+                invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
+            }
         },
         onError: (err: any) => {
             toast.error(`Erreur mise à jour stock: ${err.message}`);
@@ -154,8 +176,8 @@ export const useStockMutations = () => {
             const barId = currentBar?.id;
             toast.success('Approvisionnement enregistré et CUMP mis à jour !');
             if (barId) {
-                queryClient.invalidateQueries({ queryKey: stockKeys.supplies(barId) });
-                queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+                invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
+                invalidateStockQuery(queryClient, stockKeys.supplies(barId), barId, actingAs);
             }
         },
         onError: (err: any) => {
@@ -208,8 +230,8 @@ export const useStockMutations = () => {
             const barId = currentBar?.id;
             toast.success('Consignation créée');
             if (barId) {
-                queryClient.invalidateQueries({ queryKey: stockKeys.consignments(barId) });
-                queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+                invalidateStockQuery(queryClient, stockKeys.consignments(barId), barId, actingAs);
+                invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
             }
         },
         onError: (err: any) => {
@@ -229,10 +251,8 @@ export const useStockMutations = () => {
             const barId = currentBar?.id;
             toast.success('Consignation réclamée');
             if (barId) {
-                await Promise.all([
-                    queryClient.refetchQueries({ queryKey: stockKeys.consignments(barId) }),
-                    queryClient.refetchQueries({ queryKey: stockKeys.products(barId) })
-                ]);
+                invalidateStockQuery(queryClient, stockKeys.consignments(barId), barId, actingAs);
+                invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
             }
         },
     });
@@ -246,10 +266,8 @@ export const useStockMutations = () => {
             const barId = currentBar?.id;
             toast.success('Consignation abandonnée (stock réintégré)');
             if (barId) {
-                await Promise.all([
-                    queryClient.refetchQueries({ queryKey: stockKeys.consignments(barId) }),
-                    queryClient.refetchQueries({ queryKey: stockKeys.products(barId) })
-                ]);
+                invalidateStockQuery(queryClient, stockKeys.consignments(barId), barId, actingAs);
+                invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
             }
         },
     });
@@ -282,7 +300,9 @@ export const useStockMutations = () => {
         },
         onSuccess: () => {
             const barId = currentBar?.id;
-            if (barId) queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+            if (barId) {
+                invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
+            }
         },
     });
 

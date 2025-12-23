@@ -12,7 +12,6 @@ import { motion } from 'framer-motion';
 import { useFeedback } from '../hooks/useFeedback';
 import { useViewport } from '../hooks/useViewport';
 import { useFeatureFlag } from '../hooks/useFeatureFlag'; // 1. IMPORT DU HOOK
-import { useRealtimeStock } from '../hooks/useRealtimeStock';
 import { ProductImport } from '../components/ProductImport';
 import { searchProducts } from '../utils/productFilters';
 import { sortProducts, SortMode } from '../utils/productSorting';
@@ -50,10 +49,6 @@ export default function InventoryPage() {
 
     // 2. UTILISATION DU HOOK POUR LE FEATURE FLAG
     const { data: isProductImportEnabled } = useFeatureFlag('product-import');
-    // Enable real-time inventory updates
-    const { barId } = useBarContext();
-    useRealtimeStock({ barId });
-
     // États pour confirmation suppression
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);

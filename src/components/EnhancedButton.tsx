@@ -18,7 +18,7 @@ type ButtonAnimation = 'bounce' | 'pulse' | 'shake' | 'glow' | 'ripple' | 'none'
 
 interface EnhancedButtonProps {
   children: React.ReactNode;
-  onClick?: () => void | Promise<void>;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void | Promise<void>;
   variant?: ButtonVariant;
   size?: ButtonSize;
   animation?: ButtonAnimation;
@@ -131,7 +131,7 @@ export function EnhancedButton({
     setTimeout(() => setIsPressed(false), 150);
 
     if (onClick) {
-      await onClick();
+      await onClick(e);
     }
   };
 

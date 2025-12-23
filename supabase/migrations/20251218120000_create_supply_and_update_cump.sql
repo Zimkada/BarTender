@@ -24,6 +24,8 @@ DECLARE
   new_average_cost NUMERIC;
   new_total_stock INT;
 BEGIN
+  RAISE NOTICE 'Starting create_supply_and_update_product for product % in bar %', p_product_id, p_bar_id;
+
   -- 1. Get current product state
   SELECT
     stock,
@@ -38,6 +40,8 @@ BEGIN
     RAISE EXCEPTION 'Product with ID % not found in bar %', p_product_id, p_bar_id;
   END IF;
 
+  RAISE NOTICE 'Product current stock: %, current average cost: %', product_current_stock, product_current_cost;
+
   -- 2. Calculate new unit cost for this supply
   IF p_lot_size <= 0 THEN
     RAISE EXCEPTION 'Lot size must be greater than 0';
@@ -48,8 +52,6 @@ BEGIN
   new_total_stock := product_current_stock + p_quantity;
 
   IF new_total_stock <= 0 THEN
-    -- This handles cases of negative adjustments, though this function is for adding supply.
-    -- We keep the old cost if stock becomes zero or less.
     new_average_cost := product_current_cost;
   ELSE
     new_average_cost := (
@@ -58,7 +60,8 @@ BEGIN
   END IF;
 
   -- 4. Insert the new supply record
-  INSERT INTO public.supplies (bar_id, product_id, quantity, unit_cost, total_cost, supplier_name, created_by, supplied_at, supplied_by)
+  -- Note: p_created_by maps to supplied_by column (tracks which user authorized this supply)
+  INSERT INTO public.supplies (bar_id, product_id, quantity, unit_cost, total_cost, supplier_name, supplied_at, supplied_by)
   VALUES (
     p_bar_id,
     p_product_id,
@@ -66,11 +69,12 @@ BEGIN
     new_unit_cost,
     (p_quantity * new_unit_cost), -- total cost for this supply
     p_supplier,
-    p_created_by,
     NOW(),
     p_created_by
   )
   RETURNING * INTO new_supply;
+
+  RAISE NOTICE 'Supply record inserted: ID = %', new_supply.id;
 
   -- 5. Update the product with new stock and new CUMP
   UPDATE public.bar_products
@@ -80,6 +84,8 @@ BEGIN
     updated_at = NOW()
   WHERE id = p_product_id;
 
+  RAISE NOTICE 'Product % updated: new_total_stock = %, new_average_cost = %', p_product_id, new_total_stock, new_average_cost;
+
   -- 6. Return the created supply record as confirmation
   RETURN jsonb_build_object(
     'success', TRUE,
@@ -88,10 +94,9 @@ BEGIN
 
 EXCEPTION
   WHEN OTHERS THEN
-    RETURN jsonb_build_object(
-      'success', FALSE,
-      'message', SQLERRM
-    );
+    -- Instead of returning JSONB with success:false, we raise an exception
+    -- so the client (supabase.rpc) gets an actual error object.
+    RAISE EXCEPTION 'RPC Error in create_supply_and_update_product: %', SQLERRM;
 END;
 $$;
 

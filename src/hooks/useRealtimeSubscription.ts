@@ -24,7 +24,15 @@ interface UseRealtimeSubscriptionConfig {
   onMessage?: (payload: any) => void;
   onError?: (error: Error) => void;
   fallbackPollingInterval?: number; // ms, used if Realtime fails
-  queryKeysToInvalidate?: string[]; // React Query keys to invalidate on change
+  /**
+   * BREAKING CHANGE (v2.0+): queryKeysToInvalidate now expects array of query keys (not strings)
+   *
+   * @example
+   * ❌ INCORRECT (old): queryKeysToInvalidate: ['sales', barId]
+   * ✅ CORRECT (new): queryKeysToInvalidate: [['sales', barId]]
+   * ✅ CORRECT (new): queryKeysToInvalidate: [salesKeys.list(barId)]
+   */
+  queryKeysToInvalidate?: readonly (readonly unknown[])[]; // Array of React Query keys to invalidate on change
 }
 
 /**
@@ -37,7 +45,7 @@ interface UseRealtimeSubscriptionConfig {
  *   table: 'sales',
  *   event: 'INSERT',
  *   filter: `bar_id=eq.${barId}`,
- *   queryKeysToInvalidate: ['sales', barId],
+ *   queryKeysToInvalidate: [salesKeys.list(barId)],
  *   fallbackPollingInterval: 5000, // 5 seconds
  * });
  * ```
@@ -60,7 +68,7 @@ export function useRealtimeSubscription(config: UseRealtimeSubscriptionConfig) {
       // Invalidate React Query keys if specified
       if (config.queryKeysToInvalidate && config.queryKeysToInvalidate.length > 0) {
         config.queryKeysToInvalidate.forEach((key) => {
-          queryClient.invalidateQueries({ queryKey: [key] });
+          queryClient.invalidateQueries({ queryKey: key });
         });
       }
     },

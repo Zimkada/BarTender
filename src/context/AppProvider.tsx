@@ -23,12 +23,11 @@ import { filterByBusinessDateRange, getCurrentBusinessDateString, dateToYYYYMMDD
 import { BUSINESS_DAY_CLOSE_HOUR } from '../constants/businessDay';
 
 // React Query Hooks
-import { useCategories } from '../hooks/queries/useStockQueries';
-import { useSales, salesKeys } from '../hooks/queries/useSalesQueries';
+import { useCategories } from '../hooks/queries/useStockQueries'; 
+import { useSales } from '../hooks/queries/useSalesQueries'; 
 import { useExpenses, useCustomExpenseCategories } from '../hooks/queries/useExpensesQueries';
 import { useReturns } from '../hooks/queries/useReturnsQueries';
-import { useBarMembers } from '../hooks/queries/useBarMembers';
-import { statsKeys } from '../hooks/queries/useStatsQueries';
+import { useBarMembers } from '../hooks/queries/useBarMembers'; 
 
 import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
 import { useExpensesMutations } from '../hooks/mutations/useExpensesMutations';
@@ -84,37 +83,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const categoryMutations = useCategoryMutations(barId);
 
     // Notifications - MUST be declared before use in useEffect
+    // Notifications - MUST be declared before use in useEffect
     const { showNotification } = useNotifications();
 
     // Bar Members
     const { data: barMembers = [] } = useBarMembers(barId);
-
-    // --- REALTIME SUBSCRIPTIONS ---
-    useEffect(() => {
-        if (!barId) return;
-
-        // Subscribe to sales table changes
-        const salesChannelId = realtimeService.subscribe({
-            table: 'sales',
-            event: '*', // Listen to INSERT, UPDATE, DELETE
-            filter: `bar_id=eq.${barId}`, // Filter for current bar
-            onMessage: (payload) => {
-                console.log('[Realtime] Sales change detected:', payload);
-                queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
-                queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) }); // Invalidate stats too, as sale changes affect them
-            },
-            onError: (error) => {
-                console.error('[Realtime] Sales subscription error:', error);
-                showNotification('error', 'Erreur de connexion temps réel pour les ventes.', { duration: 5000 });
-            }
-        });
-
-        // Clean up subscription on unmount or barId change
-        return () => {
-            realtimeService.unsubscribe(salesChannelId);
-            console.log('[Realtime] Unsubscribed from sales channel:', salesChannelId);
-        };
-    }, [barId, queryClient, showNotification]); // Add showNotification to dependencies
 
     const settings = defaultSettings;
     const users: User[] = barMembers.map(member => ({
