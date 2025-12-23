@@ -32,6 +32,7 @@ export const useExpenses = (barId: string | undefined) => {
         enabled: !!barId,
         staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
         gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
+        refetchInterval: 10000, // 10s polling for expenses (infrequent admin operations)
     });
 };
 

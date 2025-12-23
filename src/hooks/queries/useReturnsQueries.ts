@@ -43,5 +43,6 @@ export const useReturns = (barId: string | undefined) => {
         enabled: !!barId,
         staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
         gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
+        refetchInterval: 3000, // 3s polling for real-time return updates
     });
 };

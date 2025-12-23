@@ -35,6 +35,7 @@ export const useProducts = (barId: string | undefined) => {
             enabled: !!barId,
             staleTime: CACHE_STRATEGY.products.staleTime,
             gcTime: CACHE_STRATEGY.products.gcTime,
+            refetchInterval: 3000, // 3s polling for real-time stock updates
         }
     );
 };
@@ -81,6 +82,7 @@ export const useSupplies = (barId: string | undefined) => {
             enabled: !!barId,
             staleTime: CACHE_STRATEGY.products.staleTime,
             gcTime: CACHE_STRATEGY.products.gcTime,
+            refetchInterval: 3000, // 3s polling for real-time supply updates
         }
     );
 };
@@ -127,6 +129,7 @@ export const useConsignments = (barId: string | undefined) => {
             enabled: !!barId,
             staleTime: CACHE_STRATEGY.products.staleTime,
             gcTime: CACHE_STRATEGY.products.gcTime,
+            refetchInterval: 10000, // 10s polling for consignments (infrequent admin operations)
         }
     );
 };
