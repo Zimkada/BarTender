@@ -129,7 +129,7 @@ export const useConsignments = (barId: string | undefined) => {
             enabled: !!barId,
             staleTime: CACHE_STRATEGY.products.staleTime,
             gcTime: CACHE_STRATEGY.products.gcTime,
-            refetchInterval: 10000, // 10s polling for consignments (infrequent admin operations)
+            refetchInterval: 30000, // 30s polling for consignments (post-sale, no stock impact, rare operation)
         }
     );
 };
