@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { X, Save, Calendar, Tag, Percent, DollarSign, Gift, Search } from 'lucide-react';
 import { useBarContext } from '../../context/BarContext';
 import { useAppContext } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { useStockManagement } from '../../hooks/useStockManagement';
 import { PromotionsService } from '../../services/supabase/promotions.service';
 import { Promotion, PromotionType, Product } from '../../types';
@@ -29,6 +30,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
     const { categories } = useAppContext();
     const { products } = useStockManagement();
     const { showNotification } = useNotifications();
+    const { currentSession } = useAuth();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Form State
@@ -91,7 +93,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!currentBar) return;
+        if (!currentBar || !currentSession?.userId) return;
 
         // Validation
         if (!name) {
@@ -124,7 +126,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                 targetProductIds: targetType === 'product' ? selectedProductIds : undefined,
                 status: initialData ? initialData.status : 'active',
                 priority: 0, // Default priority
-                createdBy: 'user-id-placeholder' // Should be handled by service or backend
+                createdBy: currentSession.userId // Use actual authenticated user ID
             };
 
             // Add type-specific fields
