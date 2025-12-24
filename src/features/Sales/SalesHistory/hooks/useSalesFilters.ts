@@ -3,6 +3,7 @@ import { useDateRangeFilter } from '../../../../hooks/useDateRangeFilter';
 import { dateToYYYYMMDD, filterByBusinessDateRange } from '../../../../utils/businessDateHelpers';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../../../../utils/businessDay';
 import { getSaleDate } from '../../../../utils/saleHelpers';
+import { useBarContext } from '../../../../context/BarContext';
 import type { Sale, SaleItem, Consignment } from '../../../../types';
 
 interface UseSalesFiltersProps {
@@ -14,6 +15,7 @@ interface UseSalesFiltersProps {
 
 export function useSalesFilters({ sales, consignments, currentSession, closeHour }: UseSalesFiltersProps) {
     const [searchTerm, setSearchTerm] = useState('');
+    const { currentBar } = useBarContext();
 
     // 1. Hook de filtrage temporel
     const dateFilter = useDateRangeFilter({
@@ -27,12 +29,26 @@ export function useSalesFilters({ sales, consignments, currentSession, closeHour
     // 2. Filtrage des ventes
     const filteredSales = useMemo(() => {
         const isServer = currentSession?.role === 'serveur';
+        const operatingMode = currentBar?.settings?.operatingMode || 'full';
 
-        // A. Filtrage initial basé sur le rôle
+        // A. Filtrage initial basé sur le rôle et le mode opérationnel
         const baseSales = sales.filter(sale => {
             if (isServer) {
-                return sale.createdBy === currentSession.userId;
+                // Logique différente selon le mode opérationnel
+                if (operatingMode === 'simplified') {
+                    // Mode simplifié: le gérant a créé la vente et assigné le serveur par son NOM
+                    // Format des notes: "Serveur: <serverName>" (ex: "Serveur: Ahmed")
+                    // Comparaison: vérifier si le nom du serveur dans notes correspond au userName courant
+                    const notesMatch = sale.notes?.match(/Serveur:\s*(.+)/);
+                    const serverNameInNotes = notesMatch ? notesMatch[1].trim() : null;
+                    return serverNameInNotes === currentSession.userName;
+                } else {
+                    // Mode complet: le serveur a créé la vente lui-même
+                    // Vérifier que le créateur (UUID) est le serveur courant
+                    return sale.createdBy === currentSession.userId;
+                }
             } else {
+                // Gérant/Promoteur/Admin: voir uniquement les ventes validées
                 return sale.status === 'validated';
             }
         });
@@ -60,16 +76,28 @@ export function useSalesFilters({ sales, consignments, currentSession, closeHour
             const dateB = new Date(b.validatedAt || b.createdAt);
             return dateB.getTime() - dateA.getTime();
         });
-    }, [sales, startDate, endDate, searchTerm, currentSession, closeHour]);
+    }, [sales, startDate, endDate, searchTerm, currentSession, closeHour, currentBar?.settings?.operatingMode]);
 
     // 3. Filtrage des consignations
     const filteredConsignments = useMemo(() => {
         const isServer = currentSession?.role === 'serveur';
+        const operatingMode = currentBar?.settings?.operatingMode || 'full';
 
-        // A. Filtrage initial basé sur le rôle
+        // A. Filtrage initial basé sur le rôle et le mode opérationnel
         const baseConsignments = consignments.filter(consignment => {
             if (isServer) {
-                return consignment.originalSeller === currentSession.userId;
+                // Logique différente selon le mode opérationnel
+                if (operatingMode === 'simplified') {
+                    // Mode simplifié: les consignations sont liées aux ventes du gérant
+                    // Mais elles doivent être visibles au serveur assigné
+                    // LIMITATION ACTUELLE: sans lien explicite sale_id→consignment, on ne peut pas filtrer correctement
+                    // Solution temporaire: les serveurs ne voient pas les consignations en mode simplifié
+                    // (sera amélioré lors du switching-mode avec server_id et consignment.serverId)
+                    return false;
+                } else {
+                    // Mode complet: le serveur voit ses consignations (vendeur original)
+                    return consignment.originalSeller === currentSession.userId;
+                }
             }
             return true;
         });
@@ -81,7 +109,7 @@ export function useSalesFilters({ sales, consignments, currentSession, closeHour
 
         // C. Tri final
         return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    }, [consignments, startDate, endDate, currentSession, closeHour]);
+    }, [consignments, startDate, endDate, currentSession, closeHour, currentBar?.settings?.operatingMode]);
 
     return {
         ...dateFilter,

@@ -106,7 +106,7 @@ export function PromotionsAnalytics() {
                 </div>
 
                 {/* Filtres Pills (comme SalesHistory) */}
-                <div className="flex gap-2 overflow-x-auto">
+                <div className="flex gap-2 overflow-x-auto w-full max-w-full">
                     {PROMOTIONS_FILTERS.map(filter => (
                         <button
                             key={filter}

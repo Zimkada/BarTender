@@ -1,3 +1,59 @@
+## 20251224120000_fix_promotion_analytics_business_date.sql (2025-12-24 12:00:00)
+
+**Status**: ✅ Ready for Deployment
+**Date**: 2025-12-24
+**Phase**: Bug Fix - Analytics
+**Feature**: Harmonize Promotion Analytics with Business Date Logic
+
+### Overview
+
+This migration fixes a critical bug where the promotion analytics dashboard incorrectly displayed "0 sales" even for active promotions with sales. The root cause was a logical inconsistency between how sales were recorded (using a "business date") and how promotion analytics were calculated (using a standard calendar date timestamp).
+
+### Problem Solved
+
+**Issue:**
+- The promotion analytics functions (`get_bar_global_promotion_stats`, `get_bar_promotion_stats`) used the raw `applied_at` timestamp for date filtering.
+- The rest of the application (e.g., sales reporting) relies on a calculated `business_date` column, where a "day" can run from 6 AM to 6 AM, not midnight to midnight.
+- This discrepancy caused all sales made after midnight but before the bar's closing time to be attributed to the wrong day by the promotion analytics, resulting in incorrect "0 sales" data for the selected period.
+
+**Solution Implemented:**
+This migration makes the promotion analytics system "business date aware" in three steps:
+
+1.  **Schema Change**: Adds a `business_date` column to the `promotion_applications` table to align its structure with the `sales` table.
+2.  **Data Synchronization**:
+    - A trigger (`trg_sync_promotion_business_date`) is created to automatically copy the `business_date` from the parent `sales` record whenever a promotion is applied.
+    - An `UPDATE` script backfills the `business_date` for all existing records in `promotion_applications`, ensuring historical data is correct.
+3.  **Logic Fix**:
+    - The RPC functions `get_bar_global_promotion_stats` and `get_bar_promotion_stats` are updated to use the new `business_date` column for all date-range filtering, instead of `applied_at`.
+
+### Technical Details
+
+**Before (Incorrect Logic):**
+```sql
+-- Analytics RPC filtering
+... WHERE applied_at >= p_start_date AND applied_at <= p_end_date
+```
+
+**After (Correct Logic):**
+```sql
+-- Analytics RPC filtering
+... WHERE business_date >= p_start_date::DATE AND business_date <= p_end_date::DATE
+```
+
+### Impact
+
+- **Fixes**: The promotion analytics dashboard will now display correct sales figures that are consistent with all other sales reports in the application.
+- **Data Integrity**: Ensures that promotion application data is consistently tied to the correct business day.
+- **Performance**: A new index (`idx_promo_apps_business_date`) is added on the `business_date` column to maintain query performance.
+
+### Migration Path
+
+1. Apply this SQL migration (`20251224120000_fix_promotion_analytics_business_date.sql`).
+2. No frontend code changes are required as the service layer interface remains the same.
+3. Verify that the promotion analytics dashboard now shows the correct data for active promotions.
+
+---
+
 ## 20251221_optimize_bars_service.sql (2025-12-21 20:00:00)
 
 **Status**: ✅ Ready for Deployment
@@ -1077,8 +1133,7 @@ WHERE name = 'pg_cron' AND installed_version IS NOT NULL;
 - ✅ Free tier: YES (fully supported)
 - ✅ Pro tier: YES (fully supported)
 - ✅ Enterprise tier: YES (fully supported)
-- ✅ Backward compatible: YES (no breaking changes)
-
+✅ Backward compatible: YES (no breaking changes)
 ---
 
 ## PASSWORD RESET FIX - OTP Expired Error (2025-12-18)

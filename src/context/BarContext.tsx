@@ -580,11 +580,18 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         return { success: false, error: 'No permission to remove servers' };
       }
 
-      // Désactiver via Supabase with error handling
+      // 🔧 BUG FIX: memberId est un ID composé (barId_userId) pour affichage
+      // Mais la table bar_members utilise user_id + bar_id comme clé composite unique
+      // Solution: utiliser directement user_id et bar_id pour identifier et désactiver
+
+      const targetBarId = currentBar?.id || member.barId;
+
+      // Désactiver via Supabase en utilisant la clé composite (user_id + bar_id)
       const { error: updateError } = await (supabase as any)
         .from('bar_members')
         .update({ is_active: false })
-        .eq('id', memberId);
+        .eq('user_id', member.userId)
+        .eq('bar_id', targetBarId);
 
       if (updateError) {
         console.error('[BarContext] Supabase update error:', updateError);

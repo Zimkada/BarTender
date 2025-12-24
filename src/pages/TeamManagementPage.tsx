@@ -260,7 +260,7 @@ export default function TeamManagementPage() {
           </div>
 
           <div className="divide-y divide-gray-100">
-            {barMembers.map(member => {
+            {barMembers.filter(member => member.isActive).map(member => {
               const Icon = getRoleIcon(member.role);
               const colorClass = getRoleColor(member.role);
 
