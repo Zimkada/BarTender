@@ -219,4 +219,75 @@ export class ServerMappingsService {
       throw error;
     }
   }
+
+  /**
+   * Auto-populate mappings from bar members with role='serveur'
+   * Called when entering simplified mode to automatically create mappings
+   * from existing bar members with server role
+   */
+  static async autoPopulateMappingsFromBarMembers(barId: string): Promise<ServerNameMapping[]> {
+    try {
+      // Fetch all bar members with role='serveur' and is_active=true
+      const { data: barMembers, error: fetchError } = await supabase
+        .from('bar_members')
+        .select(`
+          user_id,
+          users (
+            id,
+            name,
+            email
+          )
+        `)
+        .eq('bar_id', barId)
+        .eq('role', 'serveur')
+        .eq('is_active', true);
+
+      if (fetchError) throw fetchError;
+
+      if (!barMembers || barMembers.length === 0) {
+        console.info('[ServerMappingsService] No active server members found for bar:', barId);
+        return [];
+      }
+
+      // Prepare mappings from the fetched bar members
+      const mappingsToCreate = barMembers
+        .filter(bm => bm.users && bm.users.name) // Ensure user data exists
+        .map(bm => ({
+          bar_id: barId,
+          server_name: bm.users.name.trim(),
+          user_id: bm.user_id,
+        }));
+
+      if (mappingsToCreate.length === 0) {
+        console.info('[ServerMappingsService] No valid server members to map for bar:', barId);
+        return [];
+      }
+
+      // Upsert all mappings at once (creates if not exist, updates if exist)
+      const { data, error: upsertError } = await supabase
+        .from('server_name_mappings')
+        .upsert(mappingsToCreate, {
+          onConflict: 'bar_id,server_name',
+        })
+        .select();
+
+      if (upsertError) throw upsertError;
+
+      console.info(
+        `[ServerMappingsService] Auto-populated ${data?.length || 0} mappings for bar: ${barId}`
+      );
+
+      return (data || []).map(m => ({
+        id: m.id,
+        barId: m.bar_id,
+        userId: m.user_id,
+        serverName: m.server_name,
+        createdAt: new Date(m.created_at),
+        updatedAt: new Date(m.updated_at),
+      }));
+    } catch (error) {
+      console.error('[ServerMappingsService] Error auto-populating mappings:', error);
+      throw error;
+    }
+  }
 }
