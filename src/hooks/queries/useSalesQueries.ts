@@ -59,6 +59,9 @@ const mapSalesData = (dbSales: any[]): Sale[] => {
         customerName: s.customer_name || undefined,
         customerPhone: s.customer_phone || undefined,
         notes: s.notes || undefined,
-        serverId: s.sold_by,
+        // 🔴 BUG #5 FIX: Use server_id instead of sold_by for filtering
+        // - Full mode: server_id = sold_by (same person)
+        // - Simplified mode: server_id = assigned server, sold_by = gérant
+        serverId: s.server_id || s.sold_by, // Fallback to sold_by if server_id is NULL
     }));
 };
