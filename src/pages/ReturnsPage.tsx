@@ -26,6 +26,8 @@ import { Textarea } from '../components/ui/Textarea';
 import { Label } from '../components/ui/Label';
 import { Input } from '../components/ui/Input';
 import { Select, SelectOption } from '../components/ui/Select';
+import { ServerMappingsService } from '../services/supabase/server-mappings.service';
+import { FEATURES } from '../config/features';
 
 const returnReasons: Record<ReturnReason, ReturnReasonConfig> = {
   defective: {
@@ -95,6 +97,20 @@ export default function ReturnsPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [lastCreatedReturnId, setLastCreatedReturnId] = useState<string | null>(null);
+  const [selectedServer, setSelectedServer] = useState<string>(''); // ✨ NUEVO: Servidor seleccionado en modo simplificado
+  const [isResolvingServer, setIsResolvingServer] = useState(false); // ✨ NUEVO: Estado de carga para resolución
+
+  // ✨ NUEVO: Detectar modo de operación
+  const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
+
+  // ✨ NUEVO: Liste des serveurs disponibles pour le mode simplifié
+  const availableServers = useMemo(() => {
+    if (!isSimplifiedMode || !users) return [];
+    return users.map(user => ({
+      value: user.name || user.id,
+      label: user.name || 'Inconnu'
+    }));
+  }, [isSimplifiedMode, users]);
 
   const closeHour = currentBar?.closingHour ?? 6;
 
@@ -153,7 +169,7 @@ export default function ReturnsPage() {
     });
   }, [sales, closeHour]);
 
-  const createReturn = (
+  const createReturn = async (
     saleId: string,
     productId: string,
     quantity: number,
@@ -210,6 +226,45 @@ export default function ReturnsPage() {
     const finalRefund = reason === 'other' ? (customRefund ?? false) : reasonConfig.autoRefund;
     const finalRestock = reason === 'other' ? (customRestock ?? false) : reasonConfig.autoRestock;
 
+    // ✨ NUEVO: Validar y resolver server_id en modo simplificado
+    let serverId: string | undefined;
+    if (isSimplifiedMode && selectedServer) {
+      setIsResolvingServer(true);
+      try {
+        serverId = await ServerMappingsService.getUserIdForServerName(
+          currentBar!.id,
+          selectedServer
+        );
+
+        // 🔴 BUG #10 FIX: BLOQUER si mapping échoue
+        if (!serverId) {
+          const errorMessage =
+            `⚠️ Erreur Critique:\n\n` +
+            `Le serveur "${selectedServer}" n'existe pas ou n'est pas mappé.\n\n` +
+            `Actions:\n` +
+            `1. Vérifier la correspondance des serveurs en Paramètres > Opérationnel\n` +
+            `2. Réessayer`;
+
+          alert(errorMessage);
+          console.error(`[ReturnsPage] Blocking return creation: No mapping for "${selectedServer}"`);
+          setIsResolvingServer(false);
+          return;
+        }
+      } catch (error) {
+        const errorMessage =
+          `❌ Impossible d'attribuer le retour:\n\n` +
+          `${error instanceof Error ? error.message : 'Erreur réseau lors de la résolution du serveur'}\n\n` +
+          `Réessayez ou contactez l'administrateur.`;
+
+        alert(errorMessage);
+        console.error('[ReturnsPage] Error resolving server ID:', error);
+        setIsResolvingServer(false);
+        return;
+      } finally {
+        setIsResolvingServer(false);
+      }
+    }
+
     addReturn({
       saleId,
       productId,
@@ -228,7 +283,8 @@ export default function ReturnsPage() {
       notes,
       customRefund: reason === 'other' ? customRefund : undefined,
       customRestock: reason === 'other' ? customRestock : undefined,
-      originalSeller: sale.createdBy
+      originalSeller: sale.createdBy,
+      serverId, // ✨ NUEVO: Passer le server_id résolu
     });
 
     const refundMsg = finalRefund
@@ -253,6 +309,7 @@ export default function ReturnsPage() {
     // Fermer le formulaire immédiatement
     setShowCreateReturn(false);
     setSelectedSale(null);
+    setSelectedServer(''); // ✨ NUEVO: Réinitialiser la sélection du serveur
   };
 
   // Validate status transition
@@ -620,12 +677,18 @@ export default function ReturnsPage() {
                 onCancel={() => {
                   setShowCreateReturn(false);
                   setSelectedSale(null);
+                  setSelectedServer('');
                 }}
                 selectedSale={selectedSale}
                 onSelectSale={setSelectedSale}
                 canReturnSale={canReturnSale}
                 closeHour={closeHour}
                 consignments={consignments}
+                isSimplifiedMode={isSimplifiedMode} // ✨ NUEVO
+                availableServers={availableServers} // ✨ NUEVO
+                selectedServer={selectedServer} // ✨ NUEVO
+                onServerChange={setSelectedServer} // ✨ NUEVO
+                isResolvingServer={isResolvingServer} // ✨ NUEVO
               />
             </motion.div>
           )}
@@ -751,17 +814,27 @@ function CreateReturnForm({
   onSelectSale,
   canReturnSale,
   closeHour,
-  consignments
+  consignments,
+  isSimplifiedMode, // ✨ NUEVO
+  availableServers, // ✨ NUEVO
+  selectedServer, // ✨ NUEVO
+  onServerChange, // ✨ NUEVO
+  isResolvingServer // ✨ NUEVO
 }: {
   returnableSales: Sale[];
   returnReasons: Record<ReturnReason, ReturnReasonConfig>;
-  onCreateReturn: (saleId: string, productId: string, quantity: number, reason: ReturnReason, notes?: string, customRefund?: boolean, customRestock?: boolean) => void;
+  onCreateReturn: (saleId: string, productId: string, quantity: number, reason: ReturnReason, notes?: string, customRefund?: boolean, customRestock?: boolean) => Promise<void> | void;
   onCancel: () => void;
   selectedSale: Sale | null;
   onSelectSale: (sale: Sale) => void;
   canReturnSale: (sale: Sale) => { allowed: boolean; reason: string };
   closeHour: number;
   consignments: any[];
+  isSimplifiedMode?: boolean; // ✨ NUEVO
+  availableServers?: Array<{ value: string; label: string }>; // ✨ NUEVO
+  selectedServer?: string; // ✨ NUEVO
+  onServerChange?: (value: string) => void; // ✨ NUEVO
+  isResolvingServer?: boolean; // ✨ NUEVO
 }) {
   const { getReturnsBySale } = useAppContext();
   const { barMembers } = useBarContext();
@@ -824,7 +897,7 @@ function CreateReturnForm({
     return users.filter(user => sellerIds.has(user.id));
   }, [returnableSales, users]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedSale || !selectedProduct) return;
 
     const productId = selectedProduct.product_id;
@@ -838,10 +911,10 @@ function CreateReturnForm({
       return;
     }
 
-    onCreateReturn(selectedSale.id, productId, quantity, reason, notes || undefined);
+    await onCreateReturn(selectedSale.id, productId, quantity, reason, notes || undefined);
   };
 
-  const handleOtherReasonConfirm = (customRefund: boolean, customRestock: boolean, customNotes: string) => {
+  const handleOtherReasonConfirm = async (customRefund: boolean, customRestock: boolean, customNotes: string) => {
     if (!selectedSale || !selectedProduct) return;
 
     const productId = selectedProduct.product_id;
@@ -851,7 +924,7 @@ function CreateReturnForm({
     }
 
     setShowOtherReasonDialog(false);
-    onCreateReturn(
+    await onCreateReturn(
       selectedSale.id,
       productId,
       quantity,
@@ -1021,6 +1094,28 @@ function CreateReturnForm({
 
               {selectedProduct && (
                 <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                  {/* ✨ NUEVO: Server selection in simplified mode */}
+                  {isSimplifiedMode && availableServers && availableServers.length > 0 && (
+                    <div className="mb-4">
+                      <Label htmlFor="returnServer">Assigner à un serveur *</Label>
+                      <Select
+                        id="returnServer"
+                        options={[
+                          { value: '', label: 'Sélectionner un serveur...' },
+                          ...availableServers
+                        ]}
+                        value={selectedServer || ''}
+                        onChange={(e) => onServerChange?.(e.target.value)}
+                        disabled={isResolvingServer}
+                      />
+                      {isResolvingServer && (
+                        <p className="text-xs text-amber-600 mt-1">
+                          ⏳ Vérification du serveur...
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
                       <Label htmlFor="returnQuantity">Quantité</Label>

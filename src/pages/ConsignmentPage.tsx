@@ -32,6 +32,8 @@ import { Textarea } from '../components/ui/Textarea';
 import { Label } from '../components/ui/Label';
 import { Alert } from '../components/ui/Alert';
 import { Select } from '../components/ui/Select';
+import { ServerMappingsService } from '../services/supabase/server-mappings.service';
+import { FEATURES } from '../config/features';
 
 type TabType = 'create' | 'active' | 'history';
 
@@ -149,6 +151,11 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSeller, setFilterSeller] = useState<string>('all');
   const [expirationDays, setExpirationDays] = useState(currentBar?.settings?.consignmentExpirationDays ?? 7);
+  const [selectedServer, setSelectedServer] = useState<string>(''); // ✨ NUEVO: Servidor seleccionado en modo simplificado
+  const [isResolvingServer, setIsResolvingServer] = useState(false); // ✨ NUEVO: Estado de carga para resolución
+
+  // ✨ NUEVO: Detectar modo de operación
+  const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
 
   useEffect(() => {
     setExpirationDays(currentBar?.settings?.consignmentExpirationDays ?? 7);
@@ -180,6 +187,15 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
     const sellerIds = new Set(todaySales.map(sale => sale.createdBy).filter(Boolean));
     return users.filter(user => sellerIds.has(user.id));
   }, [todaySales, users, currentBar, session]);
+
+  // ✨ NUEVO: Liste des serveurs disponibles pour le mode simplifié
+  const availableServers = useMemo(() => {
+    if (!isSimplifiedMode || !users) return [];
+    return users.map(user => ({
+      value: user.name || user.id,
+      label: user.name || 'Inconnu'
+    }));
+  }, [isSimplifiedMode, users]);
 
   if (!currentBar || !session) {
     return (
@@ -251,6 +267,45 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
       return;
     }
 
+    // ✨ NUEVO: Validar y resolver server_id en modo simplificado
+    let serverId: string | undefined;
+    if (isSimplifiedMode && selectedServer) {
+      setIsResolvingServer(true);
+      try {
+        serverId = await ServerMappingsService.getUserIdForServerName(
+          currentBar!.id,
+          selectedServer
+        );
+
+        // 🔴 BUG #10 FIX: BLOQUER si mapping échoue
+        if (!serverId) {
+          const errorMessage =
+            `⚠️ Erreur Critique:\n\n` +
+            `Le serveur "${selectedServer}" n'existe pas ou n'est pas mappé.\n\n` +
+            `Actions:\n` +
+            `1. Vérifier la correspondance des serveurs en Paramètres > Opérationnel\n` +
+            `2. Réessayer`;
+
+          alert(errorMessage);
+          console.error(`[ConsignmentPage] Blocking consignment creation: No mapping for "${selectedServer}"`);
+          setIsResolvingServer(false);
+          return;
+        }
+      } catch (error) {
+        const errorMessage =
+          `❌ Impossible d'attribuer la consignation:\n\n` +
+          `${error instanceof Error ? error.message : 'Erreur réseau lors de la résolution du serveur'}\n\n` +
+          `Réessayez ou contactez l'administrateur.`;
+
+        alert(errorMessage);
+        console.error('[ConsignmentPage] Error resolving server ID:', error);
+        setIsResolvingServer(false);
+        return;
+      } finally {
+        setIsResolvingServer(false);
+      }
+    }
+
     try {
       const consignment = await stockManager.createConsignment({
         saleId: selectedSale.id,
@@ -265,6 +320,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
         // Ne pas envoyer expiresAt - laisser le serveur le calculer à partir de expirationDays
         expirationDays: expirationDays,
         originalSeller: selectedSale.createdBy,
+        serverId, // ✨ NUEVO: Passer le server_id résolu
       });
 
       if (consignment) {
@@ -275,6 +331,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
         setCustomerName('');
         setCustomerPhone('');
         setNotes('');
+        setSelectedServer(''); // ✨ NUEVO: Réinitialiser la sélection du serveur
 
         // Redirect to active consignments tab after successful creation
         onCreationSuccess?.();
@@ -437,9 +494,33 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
 
       {selectedProductItem && (
         <div className="space-y-4 animate-in slide-in-from-top-4 fade-in duration-300 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+          {/* ✨ NUEVO: Server selection in simplified mode */}
+          {isSimplifiedMode && availableServers.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                3. Assigner à un serveur *
+              </label>
+              <Select
+                options={[
+                  { value: '', label: 'Sélectionner un serveur...' },
+                  ...availableServers
+                ]}
+                value={selectedServer}
+                onChange={(e) => setSelectedServer(e.target.value)}
+                className="w-full"
+                disabled={isResolvingServer}
+              />
+              {isResolvingServer && (
+                <p className="text-xs text-amber-600 mt-1">
+                  ⏳ Vérification du serveur...
+                </p>
+              )}
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              3. Quantité à consigner
+              {isSimplifiedMode ? '4.' : '3.'} Quantité à consigner
             </label>
             <input
               type="number"
@@ -457,7 +538,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 <User className="inline w-4 h-4 mr-1" />
-                Nom du client *
+                {isSimplifiedMode ? '5.' : '4.'} Nom du client *
               </label>
               <input
                 type="text"
