@@ -8,7 +8,8 @@
       "Bash(find:*)",
       "Bash(git rm:*)",
       "Bash(cd:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

@@ -291,59 +291,36 @@ export function AnalyticsView({
     const performanceSales = sales;
 
     // 1. Ajouter les ventes (déjà filtrées par période)
+    // ✨ BUG #9 FIX: Utiliser serverId (UUID) pour identifier le serveur assigné
+    // - serverId est présent dans les deux modes (full et simplified)
+    // - Fallback à createdBy si serverId n'est pas disponible
     performanceSales.forEach(sale => {
-      // Mode simplifié : utiliser assignedTo si présent
-      // Mode complet : utiliser createdBy (userId)
-      if (sale.assignedTo) {
-        // Mode simplifié - assignedTo contient le nom du serveur
-        const serverName = sale.assignedTo;
+      // Utiliser serverId comme identifiant principal
+      const serverId = sale.serverId || sale.createdBy;
 
-        if (!userStats[serverName]) {
-          // Détecter si c'est le gérant/promoteur qui a servi lui-même
-          let role = 'serveur';
-          if (serverName.includes('Moi (')) {
-            if (serverName.includes('Gérant')) role = 'gerant';
-            else if (serverName.includes('Promoteur')) role = 'promoteur';
-          }
-
-          userStats[serverName] = {
-            name: serverName,
-            role,
-            revenue: 0,
-            sales: 0,
-            items: 0
-          };
-        }
-
-        userStats[serverName].revenue += sale.total;
-        userStats[serverName].sales += 1;
-        userStats[serverName].items += sale.items.reduce((sum, item) => sum + item.quantity, 0);
-      } else {
-        // Mode complet - utiliser createdBy (userId)
-        const user = safeUsers.find(u => u.id === sale.createdBy);
-        if (!user) {
-
-          return;
-        }
-
-        // Chercher d'abord dans barMembers, sinon utiliser le rôle de l'utilisateur
-        const member = safeBarMembers.find(m => m.userId === user.id);
-        const role = member?.role || 'serveur';
-
-        if (!userStats[user.id]) {
-          userStats[user.id] = {
-            name: user.name,
-            role,
-            revenue: 0,
-            sales: 0,
-            items: 0
-          };
-        }
-
-        userStats[user.id].revenue += sale.total;
-        userStats[user.id].sales += 1;
-        userStats[user.id].items += sale.items.reduce((sum, item) => sum + item.quantity, 0);
+      // Trouver l'utilisateur correspondant
+      const user = safeUsers.find(u => u.id === serverId);
+      if (!user) {
+        return; // Skip si utilisateur non trouvé
       }
+
+      // Chercher d'abord dans barMembers, sinon utiliser le rôle de l'utilisateur
+      const member = safeBarMembers.find(m => m.userId === user.id);
+      const role = member?.role || 'serveur';
+
+      if (!userStats[user.id]) {
+        userStats[user.id] = {
+          name: user.name,
+          role,
+          revenue: 0,
+          sales: 0,
+          items: 0
+        };
+      }
+
+      userStats[user.id].revenue += sale.total;
+      userStats[user.id].sales += 1;
+      userStats[user.id].items += sale.items.reduce((sum, item) => sum + item.quantity, 0);
     });
 
     // 2. Déduire les retours remboursés de la période filtrée
@@ -366,22 +343,22 @@ export function AnalyticsView({
     });
 
     // Déduire les retours du revenue de chaque vendeur
+    // ✨ BUG #9 FIX: Utiliser serverId pour identifier le serveur assigné
     filteredReturns.forEach(ret => {
       // Trouver la vente originale pour identifier le vendeur
       // ✅ IMPORTANT: Chercher dans performanceSales (même période)
       const originalSale = performanceSales.find(s => s.id === ret.saleId);
       if (!originalSale) {
-
         return; // Vente hors période, ignorer
       }
 
-      const identifier = originalSale.assignedTo || originalSale.createdBy;
+      // Utiliser serverId comme identifiant principal
+      const serverId = originalSale.serverId || originalSale.createdBy;
 
-
-      if (userStats[identifier]) {
-        userStats[identifier].revenue -= ret.refundAmount;
+      if (userStats[serverId]) {
+        userStats[serverId].revenue -= ret.refundAmount;
       } else {
-        console.warn('❌ Identifier non trouvé dans userStats:', identifier);
+        console.warn('❌ Server ID non trouvé dans userStats:', serverId);
       }
     });
 
@@ -683,7 +660,10 @@ export function AnalyticsView({
       {/* Performance équipe */}
       <div className="bg-white rounded-xl p-4 border border-amber-100">
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-semibold text-gray-800">Performance Équipe</h4>
+          <div>
+            <h4 className="text-sm font-semibold text-gray-800">Performance Équipe</h4>
+            <p className="text-xs text-gray-500">Par serveur assigné (serverId)</p>
+          </div>
           <Select
             options={[
               { value: 'all', label: 'Tous' },

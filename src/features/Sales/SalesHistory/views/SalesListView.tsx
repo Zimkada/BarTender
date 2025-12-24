@@ -26,7 +26,10 @@ export function SalesListView({
                         <th className="text-left p-4 font-medium text-gray-700">ID</th>
                         <th className="text-left p-4 font-medium text-gray-700">Statut</th>
                         <th className="text-left p-4 font-medium text-gray-700">Date</th>
-                        <th className="text-left p-4 font-medium text-gray-700">Vendeur</th>
+                        <th className="text-left p-4 font-medium text-gray-700">
+                            <div>Créé par</div>
+                            <div className="text-xs font-normal text-gray-500">Auteur vente</div>
+                        </th>
                         <th className="text-left p-4 font-medium text-gray-700">Articles</th>
                         <th className="text-left p-4 font-medium text-gray-700">Total</th>
                         <th className="text-left p-4 font-medium text-gray-700">Retours</th>
