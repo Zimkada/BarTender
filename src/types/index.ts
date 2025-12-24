@@ -275,6 +275,7 @@ export interface Sale {
 
   // Traçabilité des actions
   createdBy: string;      // ID du serveur qui a initié la vente
+  serverId?: string;      // ✨ NOUVEAU: UUID du serveur assigné (mode switching support)
   validatedBy?: string;   // ID du gérant qui a validé et sorti le stock
   rejectedBy?: string;    // ID du gérant qui a rejeté la demande
 
@@ -320,6 +321,7 @@ export interface Return {
   quantityReturned: number;
   reason: ReturnReason;
   returnedBy: string; // userId
+  serverId?: string;  // ✨ NOUVEAU: UUID du serveur assigné (mode switching support)
   returnedAt: Date;
   businessDate: Date; // ✅ NOUVEAU : Date commerciale (synchronisée avec DB)
   refundAmount: number;
@@ -373,6 +375,7 @@ export interface Consignment {
   // Traçabilité
   createdBy: string;              // userId qui a créé la consignation
   claimedBy?: string;             // userId qui a validé la récupération
+  serverId?: string;              // ✨ NOUVEAU: UUID du serveur assigné (mode switching support)
   originalSeller?: string;        // ✅ userId du vendeur qui a créé la vente originale
 
   // Optionnel - Identification client
