@@ -1,7 +1,7 @@
 # Mode Switching Implementation - Status Update
 
 **Date**: 24 Décembre 2025
-**Statut Général**: ✅ **PHASE 1-3 + 7/10 BUGS CRITIQUES CORRIGÉS - 80% du projet finalisé**
+**Statut Général**: ✅ **PHASE 1-3 + 8/10 BUGS CRITIQUES CORRIGÉS - 85% du projet finalisé**
 
 ---
 
@@ -574,7 +574,52 @@ COMMENT ON INDEX idx_bars_operating_mode IS
 
 ---
 
-## ⏳ Bugs Restants (3/10)
+## ✅ **BUG #10: Consignments & Returns**
+
+**Statut**: ✅ **CORRIGÉ**
+**Fichiers**: `src/pages/ConsignmentPage.tsx`, `src/pages/ReturnsPage.tsx`, `src/hooks/useStockManagement.ts`, `src/features/Sales/SalesHistory/hooks/useSalesFilters.ts`
+**Problème**: Consignments/Returns créées en mode simplifié n'avaient pas de server_id, serveurs ne voyaient pas leurs consignations
+**Fix Appliqué**:
+
+1. **ConsignmentPage** - Ajout UI et résolution server_id:
+   - Import ServerMappingsService
+   - États: `selectedServer`, `isResolvingServer`, détection mode simplifié
+   - Liste des serveurs disponibles
+   - Logique async de résolution avec blocage si mapping échoue
+   - UI pour sélection du serveur (visible en mode simplifié)
+   - Passage de `serverId` au createConsignment
+
+2. **ReturnsPage** - Même implémentation pour retours:
+   - États pour serveur et mode détection
+   - Liste des serveurs disponibles
+   - Logique async de résolution dans `createReturn`
+   - UI pour sélection du serveur dans formulaire CreateReturnForm
+   - Passage de `serverId` à addReturn
+
+3. **useStockManagement** - Support du paramètre:
+   - Ajout `serverId` au payload de consignmentData
+
+4. **useSalesFilters** - Filtrage par server_id:
+   - Consignments en mode simplifié: filtrer par `consignment.serverId === currentSession.userId`
+   - Consignments en mode complet: inchangé (via `originalSeller`)
+
+5. **ReturnsPage - Filtrage direct**:
+   - Returns en mode simplifié: filtrer par `returnItem.serverId === currentSession.userId`
+   - Returns en mode complet: filtrer par `returnItem.returnedBy === currentSession.userId`
+
+**Impact**:
+- Consignments et retours supportent maintenant pleinement le server_id en mode simplifié
+- Serveurs peuvent créer consignments/retours avec assignation correcte
+- Filtrage affiche uniquement les opérations assignées au serveur
+- Pattern identique aux ventes pour cohérence
+
+**Commits**:
+- `535825a` - Add server_id resolution to Consignments & Returns (UI + créations)
+- `466855d` - Update filtering for Consignments & Returns by server_id
+
+---
+
+## ⏳ Bugs Restants (2/10)
 
 ### **BUG #8: Atomic Deployment**
 
