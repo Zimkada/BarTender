@@ -1,7 +1,7 @@
 # Mode Switching Implementation - Status Update
 
 **Date**: 24 Décembre 2025
-**Statut Général**: ✅ **PHASE 1-3 + 8/10 BUGS CRITIQUES CORRIGÉS - 85% du projet finalisé**
+**Statut Général**: ✅ **PHASE 1-3 + 9/10 BUGS CRITIQUES CORRIGÉS - 90% du projet finalisé**
 
 ---
 
@@ -11,9 +11,9 @@ Implémentation progressive du Mode Switching pour BarTender, permettant aux bar
 
 **Accomplissements**:
 - ✅ Phases 1-3 complétées (migrations DB + services backend + UI intégration)
-- ✅ 7/10 bugs critiques corrigés (race conditions, fallbacks, RLS, FK, mapping, backfill, performance)
-- ✅ 7 commits sur `feature/switching-mode` avec code + 3 migrations supplémentaires
-- 🔄 3 bugs restants pour post-production (deployment atomique, clarification UI, consignments/returns)
+- ✅ 9/10 bugs critiques corrigés (race conditions, fallbacks, RLS, FK, mapping, backfill, performance, consignments, UI clarity)
+- ✅ 8 commits sur `feature/switching-mode` avec code + 3 migrations supplémentaires
+- 🔄 1 bug restant pour post-production (deployment atomique)
 
 ### Commits Effectués
 1. **df45b8c** - Correctifs immédiats (main) - Serveur visibility fix, team member removal
@@ -23,6 +23,10 @@ Implémentation progressive du Mode Switching pour BarTender, permettant aux bar
 5. **2bd0c41** - Phase 3 Final: ServerMappingsManager UI + SettingsPage
 6. **cc5d6f4** - BUG #1-2, #4, #6-7 fixes - Error handling + FK migration + backfill + index
 7. **748b8eb** - BUG #5 fix - serverId mapping in useSalesQueries
+8. **535825a** - BUG #10: Add server_id resolution to Consignments & Returns (UI + créations)
+9. **466855d** - BUG #10: Update filtering for Consignments & Returns by server_id
+10. **d0815d6** - BUG #10: Final consistency fixes for Consignments & Returns
+11. **1816695** - BUG #9: Clarify sold_by vs server_id in UI labels and analytics
 
 ---
 
@@ -619,7 +623,7 @@ COMMENT ON INDEX idx_bars_operating_mode IS
 
 ---
 
-## ⏳ Bugs Restants (2/10)
+## ⏳ Bugs Restants (1/10)
 
 ### **BUG #8: Atomic Deployment**
 
@@ -633,15 +637,42 @@ COMMENT ON INDEX idx_bars_operating_mode IS
 
 ---
 
-### **BUG #9: Sémantique - sold_by vs server_id**
+### ✅ **BUG #9: Sémantique - sold_by vs server_id**
 
-**Statut**: 🔄 PENDING - Clarification UI/UX
-**Issue**: Deux champs avec significations différentes → confusion dans analytics/reports
-**À faire**:
-1. Mettre à jour SalesListView pour montrer colonnes `createdBy` + `assignedServer` clairement
-2. Mettre à jour Analytics "Top Servers" pour utiliser `server_id` au lieu de `sold_by`
-3. Ajouter documentation clarifiante
-**Timeline**: Pré-production, avant release
+**Statut**: ✅ **CORRIGÉ**
+**Fichiers**: `src/features/Sales/SalesHistory/views/SalesListView.tsx`, `src/features/Sales/SalesHistory/views/AnalyticsView.tsx`
+**Problème**: Deux champs avec significations différentes → confusion dans analytics/reports
+- `createdBy` / `sold_by`: Qui a créé la vente
+- `serverId`: Qui a été assigné pour servir (mode switching)
+- AnalyticsView mélangeait les deux, causant des rapports incorrects
+
+**Fix Appliqué**:
+
+1. **SalesListView** - Clarification de l'en-tête (lines 29-32):
+```typescript
+<th className="text-left p-4 font-medium text-gray-700">
+  <div>Créé par</div>
+  <div className="text-xs font-normal text-gray-500">Auteur vente</div>
+</th>
+```
+
+2. **AnalyticsView** - Refactorisation logique performance (lines 286-363):
+   - Éliminer le code qui mélangeait `assignedTo` (string) et `createdBy` (UUID)
+   - Utiliser `serverId || createdBy` comme identifiant unique
+   - Pour les deux modes (full et simplified), chercher l'utilisateur via UUID
+   - Même logique pour la déduction des retours
+
+3. **Sous-titre informatif** (line 665):
+```typescript
+<p className="text-xs text-gray-500">Par serveur assigné (serverId)</p>
+```
+
+**Impact**:
+- SalesListView clarifie maintenant que la colonne affiche le créateur
+- AnalyticsView utilise `serverId` de manière cohérente
+- Les deux modes (full et simplified) utilisent la même logique d'identification
+
+**Commit**: `1816695` - BUG #9: Clarify sold_by vs server_id in UI labels and analytics
 
 ---
 
@@ -678,6 +709,11 @@ COMMENT ON INDEX idx_bars_operating_mode IS
 - [src/components/QuickSaleFlow.tsx](src/components/QuickSaleFlow.tsx) - Server resolution
 - [src/components/Cart.tsx](src/components/Cart.tsx) - Server resolution
 - [src/pages/SettingsPage.tsx](src/pages/SettingsPage.tsx) - ServerMappingsManager UI
+- [src/pages/ConsignmentPage.tsx](src/pages/ConsignmentPage.tsx) - Server_id resolution (BUG #10)
+- [src/pages/ReturnsPage.tsx](src/pages/ReturnsPage.tsx) - Server_id resolution (BUG #10)
+- [src/features/Sales/SalesHistory/hooks/useSalesFilters.ts](src/features/Sales/SalesHistory/hooks/useSalesFilters.ts) - Filtering by server_id (BUG #10)
+- [src/features/Sales/SalesHistory/views/SalesListView.tsx](src/features/Sales/SalesHistory/views/SalesListView.tsx) - Header clarification (BUG #9)
+- [src/features/Sales/SalesHistory/views/AnalyticsView.tsx](src/features/Sales/SalesHistory/views/AnalyticsView.tsx) - serverId logic (BUG #9)
 - [src/types/index.ts](src/types/index.ts) - serverId fields
 - [src/config/features.ts](src/config/features.ts) - Feature flags
 
