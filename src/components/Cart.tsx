@@ -54,17 +54,34 @@ export function Cart({
         : assignedTo;
 
       try {
-        serverId = (await ServerMappingsService.getUserIdForServerName(
+        serverId = await ServerMappingsService.getUserIdForServerName(
           currentBar.id,
           serverName
-        )) || undefined;
+        );
 
+        // 🔴 BUG #1-2 FIX: BLOQUER la création si mapping échoue
         if (!serverId) {
-          console.warn(`[Cart] No mapping found for server: ${serverName}`);
+          const errorMessage =
+            `⚠️ Erreur Critique:\n\n` +
+            `Le serveur "${serverName}" n'existe pas ou n'est pas mappé.\n\n` +
+            `Actions:\n` +
+            `1. Créer un compte pour ce serveur en Gestion Équipe\n` +
+            `2. Mapper le compte dans Paramètres > Opérationnel > Correspondance Serveurs\n` +
+            `3. Réessayer la vente`;
+
+          alert(errorMessage);
+          console.error(`[Cart] Blocking sale creation: No mapping for "${serverName}"`);
+          return; // ← BLOQUER LA CRÉATION
         }
       } catch (error) {
+        const errorMessage =
+          `❌ Impossible d'attribuer la vente:\n\n` +
+          `${error instanceof Error ? error.message : 'Erreur réseau lors de la résolution du serveur'}\n\n` +
+          `Réessayez ou contactez l'administrateur.`;
+
+        alert(errorMessage);
         console.error('[Cart] Error resolving server ID:', error);
-        // Continue without server_id if resolution fails
+        return; // ← BLOQUER LA CRÉATION
       }
     }
 
