@@ -400,7 +400,20 @@ export default function ReturnsPage() {
     const matchesSearch = !searchTerm ||
       (returnItem.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
        returnItem.id?.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesStatus && matchesSearch;
+
+    // ✨ BUG #10f FIX: Filtrer par server_id en mode simplifié
+    let matchesServer = true;
+    if (currentSession?.role === 'serveur') {
+      if (isSimplifiedMode) {
+        // Serveur voit uniquement les retours qui lui sont assignés
+        matchesServer = returnItem.serverId === currentSession.userId;
+      } else {
+        // Mode complet: serveur voit les retours qu'il a créés
+        matchesServer = returnItem.returnedBy === currentSession.userId;
+      }
+    }
+
+    return matchesStatus && matchesSearch && matchesServer;
   });
 
   return (

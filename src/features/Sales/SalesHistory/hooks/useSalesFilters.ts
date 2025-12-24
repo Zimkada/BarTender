@@ -88,12 +88,9 @@ export function useSalesFilters({ sales, consignments, currentSession, closeHour
             if (isServer) {
                 // Logique différente selon le mode opérationnel
                 if (operatingMode === 'simplified') {
-                    // Mode simplifié: les consignations sont liées aux ventes du gérant
-                    // Mais elles doivent être visibles au serveur assigné
-                    // LIMITATION ACTUELLE: sans lien explicite sale_id→consignment, on ne peut pas filtrer correctement
-                    // Solution temporaire: les serveurs ne voient pas les consignations en mode simplifié
-                    // (sera amélioré lors du switching-mode avec server_id et consignment.serverId)
-                    return false;
+                    // ✨ BUG #10f FIX: Mode simplifié - maintenant avec server_id
+                    // Le serveur voit les consignations qui lui sont assignées via server_id
+                    return consignment.serverId === currentSession.userId;
                 } else {
                     // Mode complet: le serveur voit ses consignations (vendeur original)
                     return consignment.originalSeller === currentSession.userId;
