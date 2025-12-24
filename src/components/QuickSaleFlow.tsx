@@ -21,6 +21,7 @@ import { Product, CartItem, Promotion } from '../types';
 import { useViewport } from '../hooks/useViewport';
 import { ProductGrid } from './ProductGrid';
 import { PromotionsService } from '../services/supabase/promotions.service';
+import { ServerMappingsService } from '../services/supabase/server-mappings.service';
 import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
 import { PaymentMethodSelector, PaymentMethod } from './cart/PaymentMethodSelector';
 import { useFilteredProducts } from '../hooks/useFilteredProducts';
@@ -102,11 +103,35 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
         promotion_id: item.promotionId
       }));
 
+      // ✨ NOUVEAU: Résoudre le nom du serveur vers UUID en mode simplifié
+      let serverId: string | undefined;
+      if (isSimplifiedMode && selectedServer) {
+        // Extraire le nom du serveur (format: "Serveur Name" ou "Moi (UserName)")
+        const serverName = selectedServer.startsWith('Moi (')
+          ? (currentSession?.userName || selectedServer)
+          : selectedServer;
+
+        try {
+          serverId = (await ServerMappingsService.getUserIdForServerName(
+            currentBar.id,
+            serverName
+          )) || undefined;
+
+          if (!serverId) {
+            console.warn(`[QuickSaleFlow] No mapping found for server: ${serverName}`);
+          }
+        } catch (error) {
+          console.error('[QuickSaleFlow] Error resolving server ID:', error);
+          // Continue without server_id if resolution fails
+        }
+      }
+
       await createSale.mutateAsync({
         bar_id: currentBar.id,
         items: saleItems,
         payment_method: paymentMethod,
         sold_by: currentSession.userId,
+        server_id: serverId, // ✨ NOUVEAU: Passer le server_id résolu
         status: isServerRole ? 'pending' : 'validated',
         customer_name: customerInfo || undefined,
         notes: isSimplifiedMode ? `Serveur: ${selectedServer}` : undefined

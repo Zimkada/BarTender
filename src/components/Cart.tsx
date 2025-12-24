@@ -9,6 +9,7 @@ import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { useAppContext } from '../context/AppContext'; // NEW
 import { usePromotions } from '../hooks/usePromotions';
+import { ServerMappingsService } from '../services/supabase/server-mappings.service';
 import { FEATURES } from '../config/features';
 import { PaymentMethodSelector, PaymentMethod } from './cart/PaymentMethodSelector';
 import { Select, SelectOption } from './ui/Select';
@@ -44,10 +45,34 @@ export function Cart({
   const onCheckout = async (assignedTo?: string, paymentMethod?: PaymentMethod) => {
     if (items.length === 0) return;
 
+    // ✨ NOUVEAU: Résoudre le nom du serveur vers UUID en mode simplifié
+    let serverId: string | undefined;
+    if (isSimplifiedMode && assignedTo && currentBar?.id) {
+      // Extraire le nom du serveur (format: "Serveur Name" ou "Moi (UserName)")
+      const serverName = assignedTo.startsWith('Moi (')
+        ? (currentSession?.userName || assignedTo)
+        : assignedTo;
+
+      try {
+        serverId = (await ServerMappingsService.getUserIdForServerName(
+          currentBar.id,
+          serverName
+        )) || undefined;
+
+        if (!serverId) {
+          console.warn(`[Cart] No mapping found for server: ${serverName}`);
+        }
+      } catch (error) {
+        console.error('[Cart] Error resolving server ID:', error);
+        // Continue without server_id if resolution fails
+      }
+    }
+
     await addSale({
       items,
       paymentMethod,
-      assignedTo: assignedTo // Pass assignedTo, which might be used by addSale logic
+      assignedTo: assignedTo, // Pass assignedTo, which might be used by addSale logic
+      serverId // ✨ NOUVEAU: Passer le server_id résolu
     });
   };
 

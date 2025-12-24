@@ -24,6 +24,7 @@ export interface CreateSaleData {
   items: SaleItem[];
   payment_method: 'cash' | 'mobile_money' | 'card' | 'credit';
   sold_by: string;
+  server_id?: string; // ✨ NOUVEAU: UUID du serveur assigné (mode switching support)
   customer_name?: string;
   customer_phone?: string;
   notes?: string;
@@ -57,6 +58,7 @@ export class SalesService {
           p_items: data.items,
           p_payment_method: data.payment_method,
           p_sold_by: data.sold_by,
+          p_server_id: data.server_id || null, // ✨ NOUVEAU: Mode switching support
           p_status: status,
           p_customer_name: data.customer_name || null,
           p_customer_phone: data.customer_phone || null,
