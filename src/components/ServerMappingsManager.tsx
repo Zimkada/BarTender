@@ -63,6 +63,29 @@ export function ServerMappingsManager({
     }
   };
 
+  const handleAutoPopulate = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+
+      const autoCreatedMappings = await ServerMappingsService.autoPopulateMappingsFromBarMembers(barId);
+
+      if (autoCreatedMappings.length === 0) {
+        setError('Aucun serveur actif trouvé pour auto-populer');
+      } else {
+        setSuccess(`${autoCreatedMappings.length} mapping(s) créé(s) automatiquement`);
+        await loadMappings();
+        setTimeout(() => setSuccess(null), 3000);
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur lors de l\'auto-population';
+      setError(message);
+      console.error('[ServerMappingsManager] Error auto-populating mappings:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleAddMapping = async () => {
     if (!newServerName.trim() || !newServerId) {
       setError('Veuillez remplir tous les champs');
@@ -165,6 +188,22 @@ export function ServerMappingsManager({
         </div>
       ) : (
         <>
+          {/* Auto-populate button */}
+          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+            <h4 className="font-medium text-gray-800 mb-2">Création automatique</h4>
+            <p className="text-sm text-gray-600 mb-3">
+              Créez automatiquement les mappings à partir de vos serveurs actifs (membres avec le rôle "serveur")
+            </p>
+            <button
+              onClick={handleAutoPopulate}
+              disabled={saving}
+              className="w-full h-10 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2"
+            >
+              {saving && <Loader size={16} className="animate-spin" />}
+              Auto-populer les mappings
+            </button>
+          </div>
+
           {/* Existing mappings */}
           {mappings.length > 0 && (
             <div className="space-y-2">
