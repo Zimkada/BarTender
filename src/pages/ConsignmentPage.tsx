@@ -267,9 +267,12 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
       return;
     }
 
-    // ✨ NUEVO: Validar y resolver server_id en modo simplificado
+    // ✨ CRITICAL FIX: Toujours déduire le server_id de la vente associée
+    // Cela garantit que la consignation est attribuée au bon serveur, peu importe le mode
     let serverId: string | undefined;
+
     if (isSimplifiedMode && selectedServer) {
+      // Mode simplifié avec sélection manuelle: résoudre le serveur
       setIsResolvingServer(true);
       try {
         serverId = await ServerMappingsService.getUserIdForServerName(
@@ -304,6 +307,11 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
       } finally {
         setIsResolvingServer(false);
       }
+    } else {
+      // Mode complet ou mode simplifié sans sélection manuelle: déduire de la vente associée
+      serverId = isSimplifiedMode
+        ? selectedSale.serverId    // Mode simplifié: serveur assigné à la vente
+        : selectedSale.createdBy;  // Mode complet: créateur de la vente
     }
 
     try {
@@ -494,15 +502,15 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
 
       {selectedProductItem && (
         <div className="space-y-4 animate-in slide-in-from-top-4 fade-in duration-300 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-          {/* ✨ NUEVO: Server selection in simplified mode */}
+          {/* ✨ NUEVO: Server selection in simplified mode (optional - will be auto-deduced from sale) */}
           {isSimplifiedMode && availableServers.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                3. Assigner à un serveur *
+                3. Assigner à un serveur spécifique (optionnel)
               </label>
               <Select
                 options={[
-                  { value: '', label: 'Sélectionner un serveur...' },
+                  { value: '', label: 'Laisser vide - assigné automatiquement au serveur de la vente' },
                   ...availableServers
                 ]}
                 value={selectedServer}
@@ -515,6 +523,9 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
                   ⏳ Vérification du serveur...
                 </p>
               )}
+              <p className="text-xs text-gray-500 mt-1">
+                💡 La consignation sera automatiquement assignée au serveur qui a créé la vente.
+              </p>
             </div>
           )}
 

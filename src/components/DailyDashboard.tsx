@@ -92,7 +92,7 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
  */
 export function DailyDashboard() {
   const navigate = useNavigate();
-  const { sales, products, getTodaySales, getLowStockProducts, returns, validateSale, rejectSale, users } = useAppContext();
+  const { sales, products, getTodaySales, getTodayReturns, getLowStockProducts, returns, validateSale, rejectSale, users } = useAppContext();
   const { currentBar } = useBarContext();
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession } = useAuth();
@@ -122,12 +122,7 @@ export function DailyDashboard() {
   }, [currentBar, todayDateStr]);
 
   const todayValidatedSales = getTodaySales();
-  const todaySaleIds = useMemo(() => new Set(todayValidatedSales.map(s => s.id)), [todayValidatedSales]);
-
-  const todayReturns = returns.filter(r =>
-    new Date(r.returnedAt).toDateString() === new Date().toDateString() &&
-    (currentSession?.role !== 'serveur' || todaySaleIds.has(r.saleId))
-  );
+  const todayReturns = getTodayReturns();
 
   const { netRevenue: todayTotal } = useRevenueStats({ startDate: todayDateStr, endDate: todayDateStr, enabled: true });
 
@@ -164,9 +159,33 @@ export function DailyDashboard() {
   const serverFilteredConsignments = useMemo(() => {
     if (!isServerRole) return activeConsignments;
     if (operatingMode === 'simplified') {
-      return activeConsignments.filter(c => c.serverId === currentSession?.userId);
+      const filtered = activeConsignments.filter(c => c.serverId === currentSession?.userId);
+      console.log('[DailyDashboard] Simplified mode consignments filter:', {
+        totalActive: activeConsignments.length,
+        filtered: filtered.length,
+        currentServerId: currentSession?.userId,
+        consignmentsDebug: activeConsignments.map(c => ({
+          id: c.id,
+          serverId: c.serverId,
+          originalSeller: c.originalSeller,
+          status: c.status,
+        }))
+      });
+      return filtered;
     } else {
-      return activeConsignments.filter(c => c.originalSeller === currentSession?.userId);
+      const filtered = activeConsignments.filter(c => c.originalSeller === currentSession?.userId);
+      console.log('[DailyDashboard] Full mode consignments filter:', {
+        totalActive: activeConsignments.length,
+        filtered: filtered.length,
+        currentUserId: currentSession?.userId,
+        consignmentsDebug: activeConsignments.map(c => ({
+          id: c.id,
+          serverId: c.serverId,
+          originalSeller: c.originalSeller,
+          status: c.status,
+        }))
+      });
+      return filtered;
     }
   }, [activeConsignments, isServerRole, operatingMode, currentSession?.userId]);
 

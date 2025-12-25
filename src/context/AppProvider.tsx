@@ -354,7 +354,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const todaySales = filterByBusinessDateRange(salesToFilter, todayStr, todayStr, closeHour);
 
         if (currentSession?.role === 'serveur') {
-            return todaySales.filter(sale => sale.createdBy === currentSession.userId);
+            const mode = currentBar?.settings?.operatingMode || 'full';
+            if (mode === 'simplified') {
+                // Simplified mode: filter by serverId (assigned server)
+                return todaySales.filter(sale => sale.serverId === currentSession.userId);
+            } else {
+                // Full mode: filter by createdBy (creator)
+                return todaySales.filter(sale => sale.createdBy === currentSession.userId);
+            }
         }
         return todaySales;
     }, [sales, currentSession, currentBar]);
@@ -453,6 +460,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const getReturnsBySale = useCallback((saleId: string) => returns.filter(r => r.saleId === saleId), [returns]);
     const getPendingReturns = useCallback(() => returns.filter(r => r.status === 'pending'), [returns]);
 
+    const getTodayReturns = useCallback(() => {
+        const closeHour = currentBar?.closingHour ?? BUSINESS_DAY_CLOSE_HOUR;
+        const todayStr = getCurrentBusinessDateString(closeHour);
+
+        const todayReturnsList = filterByBusinessDateRange(returns, todayStr, todayStr, closeHour);
+
+        if (currentSession?.role === 'serveur') {
+            const mode = currentBar?.settings?.operatingMode || 'full';
+            if (mode === 'simplified') {
+                // Simplified mode: filter by serverId (assigned server)
+                return todayReturnsList.filter(r => r.serverId === currentSession.userId);
+            } else {
+                // Full mode: filter by returnedBy (creator)
+                return todayReturnsList.filter(r => r.returnedBy === currentSession.userId);
+            }
+        }
+        return todayReturnsList;
+    }, [returns, currentSession, currentBar]);
+
 
     // --- EXPENSES ---
     const addExpense = useCallback((expenseData: Omit<Expense, 'id' | 'barId' | 'createdAt'>) => {
@@ -493,7 +519,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addSale, validateSale, rejectSale,
         getSalesByDate, getTodaySales, getTodayTotal, getSalesByUser,
         getServerRevenue, getServerReturns,
-        addReturn, updateReturn, deleteReturn, getReturnsBySale, getPendingReturns,
+        addReturn, updateReturn, deleteReturn, getReturnsBySale, getPendingReturns, getTodayReturns,
         addExpense, deleteExpense, addCustomExpenseCategory,
         updateSettings,
         initializeBarData,
