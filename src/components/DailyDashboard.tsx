@@ -140,6 +140,9 @@ export function DailyDashboard() {
   const isServerRole = currentSession?.role === 'serveur';
   const operatingMode = currentBar?.settings?.operatingMode || 'full';
 
+  // Define activeConsignments BEFORE using it in serverFilteredConsignments
+  const activeConsignments = consignments.filter(c => c.status === 'active' && (currentSession?.role !== 'serveur' || c.originalSeller === currentSession?.userId));
+
   const serverFilteredSales = useMemo(() => {
     if (!isServerRole) return todayValidatedSales;
     if (operatingMode === 'simplified') {
@@ -174,8 +177,6 @@ export function DailyDashboard() {
     name: p.product_volume ? `${p.product_name} (${p.product_volume})` : p.product_name,
     qty: p.total_quantity
   }));
-
-  const activeConsignments = consignments.filter(c => c.status === 'active' && (currentSession?.role !== 'serveur' || c.originalSeller === currentSession?.userId));
 
   const handleValidateSale = (id: string) => currentSession && validateSale(id, currentSession.userId);
   const handleRejectSale = (id: string) => currentSession && rejectSale(id, currentSession.userId);
