@@ -18,6 +18,7 @@ BEGIN;
 
 DROP POLICY IF EXISTS "Bar members can create sales" ON public.sales;
 DROP POLICY IF EXISTS "Managers and Promoters can create sales" ON public.sales;
+DROP POLICY IF EXISTS "Bar members can create sales with mode restriction" ON public.sales;
 
 -- =====================================================
 -- STEP 2: Create new mode-aware RLS policy for INSERT

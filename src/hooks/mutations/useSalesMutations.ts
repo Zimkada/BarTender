@@ -45,6 +45,7 @@ export const useSalesMutations = (barId: string) => {
                     items: itemsFormatted,
                     payment_method: saleData.paymentMethod || 'cash',
                     status: saleData.status,
+                    server_id: saleData.serverId || null,  // ✨ NOUVEAU: Pass server_id for simplified mode
                     customer_name: saleData.customerName,
                     customer_phone: saleData.customerPhone,
                     notes: saleData.notes,
@@ -67,6 +68,7 @@ export const useSalesMutations = (barId: string) => {
                 items: itemsFormatted,
                 payment_method: saleData.paymentMethod || 'cash',
                 sold_by: currentSession?.userId || '',
+                server_id: saleData.serverId || null,  // ✨ NOUVEAU: Pass server_id for simplified mode
                 customer_name: saleData.customerName,
                 customer_phone: saleData.customerPhone,
                 notes: saleData.notes,
@@ -142,6 +144,7 @@ const mapSaleRowToSale = (savedSaleRow: any): Sale => {
         currency: 'XOF',
         status: savedSaleRow.status as 'pending' | 'validated' | 'rejected',
         createdBy: savedSaleRow.created_by || savedSaleRow.sold_by, // Fallback
+        serverId: savedSaleRow.server_id || undefined,  // ✨ NOUVEAU: Include serverId from DB
         validatedBy: savedSaleRow.validated_by || undefined,
         rejectedBy: savedSaleRow.rejected_by || undefined,
         createdAt: new Date(savedSaleRow.created_at || new Date().toISOString()),

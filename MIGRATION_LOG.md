@@ -2498,3 +2498,279 @@ WHERE user_id = '<uuid from above>';
 - [ ] Confirm no related bugs in user management pages
 
 ---
+
+## Mode Switching Feature - Auto-Population Implementation (2025-12-24)
+
+**Status**: ✅ Fully Implemented & Tested
+**Date**: 2025-12-24
+**Phase**: Mode Switching Enhancement
+**Feature**: Auto-populate server name mappings from bar members
+
+### Overview
+
+Implemented the auto-population feature for Mode Switching that allows bar managers to automatically create server name mappings from existing bar members with role='serveur'. This enables seamless transitions between Full Mode (individual server accounts) and Simplified Mode (manager-selected server names).
+
+### Files Created/Modified
+
+**Created:**
+- `supabase/migrations/20251224130100_create_server_name_mappings_table.sql` - Main table & RLS setup
+- `supabase/migrations/20251224130300_add_simplified_mode_sale_creation_policy.sql` - Mode-aware sale creation RLS
+- `supabase/migrations/20251224130400_fix_server_id_foreign_keys_on_delete.sql` - FK cleanup & ON DELETE SET NULL
+- `supabase/migrations/20251224170000_grant_permissions_server_name_mappings.sql` - **CRITICAL FIX**
+- `supabase/migrations/20251224180000_enable_rls_server_name_mappings.sql` - Re-enable RLS with proper policies
+- `src/services/supabase/server-mappings.service.ts` - Service layer for mappings management
+
+**Modified:**
+- `src/config/features.ts` - Enabled `ENABLE_SWITCHING_MODE` and `SHOW_SWITCHING_MODE_UI` flags
+- `src/features/Settings/ServerMappingsManager.tsx` - UI component with auto-populate button
+- `src/features/Sales/SalesHistory/views/SalesListView.tsx` - Display "Auteur vente" column
+
+### The Critical Problem We Encountered
+
+#### RLS Permission Denied Error (Code 42501)
+
+**Symptom:**
+```
+{code: "42501", message: "permission denied for table server_name_mappings"}
+```
+
+Even after creating proper RLS policies, authenticated users received 403 permission denied errors when trying to:
+- SELECT from `server_name_mappings`
+- INSERT new mappings
+- Use the auto-populate feature
+
+**Root Cause: Missing GRANT Permissions**
+
+The table `server_name_mappings` had **NO GRANT PERMISSIONS** to the `authenticated` role!
+
+```sql
+-- Diagnostic query we ran:
+SELECT grantee, privilege_type FROM information_schema.table_privileges
+WHERE table_name = 'server_name_mappings';
+
+-- Results showed:
+-- Only "postgres" role had SELECT, INSERT, UPDATE, DELETE, etc.
+-- "authenticated" role had ZERO permissions!
+```
+
+**Why This Was Extremely Tricky to Debug:**
+
+1. **RLS policies were technically correct** - Manual SQL tests of the EXISTS conditions worked fine
+2. **The issue was at a different layer** - GRANT permissions are checked BEFORE RLS policies
+3. **Supabase doesn't auto-grant by default** - Unlike some other migrations, authenticated users aren't automatically granted table permissions
+4. **Silent failure is dangerous** - Supabase returns error code 42501 for BOTH:
+   - "Table permission missing" (outer gate)
+   - "RLS policy blocking" (inner gate)
+   - No way to distinguish!
+
+**Debugging Timeline:**
+
+| Step | Action | Result | Lesson |
+|------|--------|--------|--------|
+| 1 | Modified RLS policies (migration 20251224150000) | Still 403 error | RLS wasn't the problem |
+| 2 | Completely disabled RLS (migration 20251224160000) | **STILL got 403!** | Issue is deeper than RLS |
+| 3 | Checked table permissions in SQL Editor | Found only `postgres` | GRANT permissions missing! |
+| 4 | Added explicit GRANT statements | ✅ Works! | Always check outer gates first |
+
+#### The Fix That Worked
+
+**Migration 20251224170000:**
+```sql
+GRANT SELECT ON public.server_name_mappings TO authenticated;
+GRANT INSERT ON public.server_name_mappings TO authenticated;
+GRANT UPDATE ON public.server_name_mappings TO authenticated;
+GRANT DELETE ON public.server_name_mappings TO authenticated;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+```
+
+This single migration solved the 403 error completely. All subsequent tests passed.
+
+### Solution Implemented
+
+#### 1. Core Service Layer
+
+**ServerMappingsService** (`src/services/supabase/server-mappings.service.ts`):
+
+Key methods:
+- `autoPopulateMappingsFromBarMembers(barId)` - Auto-creates mappings from active serveurs
+- `upsertServerMapping(barId, serverName, userId)` - Create or update a single mapping
+- `getAllMappingsForBar(barId)` - List all mappings for a bar
+- `batchUpsertMappings()` - Bulk operations for settings UI
+
+**Important Implementation Detail:**
+Had to split bar_members + users into two separate queries due to Supabase limitation:
+```
+Error: "Could not embed because more than one relationship was found"
+Solution: Fetch bar_members first, extract user_ids, fetch users separately, then map
+```
+
+#### 2. UI Component
+
+**ServerMappingsManager** (`src/features/Settings/ServerMappingsManager.tsx`):
+
+- Blue "Création automatique" section in Operational Settings
+- "Auto-populer les mappings" button
+- Success message: "X mapping(s) créé(s) automatiquement"
+- Error handling for empty server lists
+- Only shows when `ENABLE_SWITCHING_MODE && SHOW_SWITCHING_MODE_UI && mode === 'simplified'`
+
+#### 3. Database Architecture
+
+**Table: server_name_mappings**
+```sql
+CREATE TABLE server_name_mappings (
+  id UUID PRIMARY KEY,
+  bar_id UUID NOT NULL REFERENCES bars(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  server_name TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT unique_bar_server_name UNIQUE(bar_id, server_name),
+  CONSTRAINT server_name_not_empty CHECK(server_name != '')
+);
+```
+
+**3 Performance Indexes:**
+- `(bar_id, server_name)` - Main lookup for server name → UUID resolution
+- `(bar_id)` - Finding all mappings for a bar
+- `(user_id)` - Finding which bars have user as server
+
+**4 RLS Policies:**
+- SELECT: Bar members can read mappings for their bar
+- INSERT: Bar members can create mappings for their bar
+- UPDATE: Bar members can modify mappings for their bar
+- DELETE: Bar members can remove mappings for their bar
+
+#### 4. Mode-Aware Business Logic
+
+**Sale Creation RLS Policy:**
+- Full Mode: All bar members can create sales via RLS check
+- Simplified Mode: ONLY gerant/promoteur/super_admin can create sales
+- Prevents compromised/malicious servers from creating invalid sales in simplified mode
+
+**FK Constraints with Cleanup:**
+- Problem: Existing sales/consignments/returns had invalid server_id values
+- Solution: Migration cleans up invalid references before adding FK
+- Result: `ON DELETE SET NULL` allows safe deletion of user accounts
+
+### How Auto-Population Works (User Perspective)
+
+```
+1. Manager switches bar to "Simplified Mode"
+2. Navigates to Settings → Operational Settings
+3. Sees blue box "Création automatique"
+4. Clicks "Auto-populer les mappings"
+5. System fetches all bar_members with role='serveur' and is_active=true
+6. Fetches their user names (e.g., "Ahmed", "Marie")
+7. Creates mappings: "Ahmed" → UUID, "Marie" → UUID
+8. Shows success: "2 mapping(s) créé(s) automatiquement"
+9. Can now create sales in simplified mode by selecting server names from dropdown
+```
+
+### Testing & Validation
+
+**Before Migration 20251224170000 (BROKEN):**
+```
+❌ Auto-populate button: 403 permission denied
+❌ View mappings: 403 permission denied
+❌ Any SELECT/INSERT: 403 permission denied
+Error: {code: "42501", message: "permission denied for table server_name_mappings"}
+```
+
+**After Migration 20251224170000 & 20251224180000 (FIXED):**
+```
+✅ Auto-populate button: Creates 3 mappings successfully
+✅ View mappings: Lists "Serveur Test", "Serveur TEST4", "Serveur TEST5"
+✅ RLS policies: Enforce bar membership correctly
+✅ Each user: Can only see mappings for their bars
+✅ Feature: Fully functional with proper security
+```
+
+### Key Learnings & Best Practices
+
+#### 1. Supabase Authorization Model (Two Layers)
+
+```
+User Request
+    ↓
+┌─────────────────────────────────┐
+│ Layer 1: GRANT Permissions      │ ← Check FIRST
+│ "Can this role access table?"   │
+│ Missing GRANT = 42501 error     │
+└─────────────────────────────────┘
+    ↓ (if GRANT allows)
+┌─────────────────────────────────┐
+│ Layer 2: RLS Policies           │
+│ "Which rows can this user see?" │
+│ RLS blocks row = empty result   │
+└─────────────────────────────────┘
+    ↓ (if RLS allows)
+Return data
+```
+
+#### 2. Error Code 42501 Is Ambiguous
+
+PostgreSQL error 42501 means "permission denied" but doesn't distinguish between:
+- **Outer gate** (GRANT): User lacks table-level permission
+- **Inner gate** (RLS): User has permission but RLS blocks all rows
+
+**Debugging Strategy:**
+1. Disable RLS temporarily to isolate the issue
+2. If still 403 → GRANT permissions issue
+3. If works with RLS disabled → Fix RLS policy
+4. Re-enable RLS with proper permissions
+
+#### 3. Supabase SDK Quirks
+
+**Relationship Embedding Error:**
+```typescript
+// ❌ This fails with "multiple relationships found"
+.select('user_id, users(id, name, email)')
+
+// ✅ This works - fetch separately
+const { data: barMembers } = await supabase
+  .from('bar_members')
+  .select('user_id');
+
+const userIds = barMembers.map(bm => bm.user_id);
+const { data: users } = await supabase
+  .from('users')
+  .select('id, name')
+  .in('id', userIds);
+```
+
+#### 4. RLS Policies Don't Trigger on Missing GRANT
+
+- RLS policies only execute if GRANT permissions allow access
+- If GRANT is missing, you get 42501 before RLS is even evaluated
+- Always verify both layers when debugging permission issues
+
+### Deployment Checklist
+
+- [x] Create server_name_mappings table with 3 indexes & RLS enabled
+- [x] Fix FK constraints with ON DELETE SET NULL (cleanup invalid references)
+- [x] Add mode-aware sale creation RLS policy
+- [x] **Grant permissions to authenticated role** ← THE CRITICAL FIX
+- [x] Re-enable RLS with 4 separate policies (SELECT, INSERT, UPDATE, DELETE)
+- [x] Implement ServerMappingsService with auto-populate logic
+- [x] Create ServerMappingsManager UI component
+- [x] Enable feature flags (ENABLE_SWITCHING_MODE, SHOW_SWITCHING_MODE_UI)
+- [x] Test auto-populate with actual bar members
+- [x] Verify RLS restricts access to bar members only
+- [x] Confirm no regressions with sales creation
+
+### Related Files
+
+**Core Implementation:**
+- Service: `src/services/supabase/server-mappings.service.ts` (server name ↔ UUID mapping)
+- Component: `src/features/Settings/ServerMappingsManager.tsx` (UI for auto-populate)
+- Config: `src/config/features.ts` (feature flags)
+
+**Database:**
+- Main: `supabase/migrations/20251224130100_create_server_name_mappings_table.sql`
+- RLS: `supabase/migrations/20251224130300_add_simplified_mode_sale_creation_policy.sql`
+- FK: `supabase/migrations/20251224130400_fix_server_id_foreign_keys_on_delete.sql`
+- Permissions: `supabase/migrations/20251224170000_grant_permissions_server_name_mappings.sql`
+- Policies: `supabase/migrations/20251224180000_enable_rls_server_name_mappings.sql`
+
+---

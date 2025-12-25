@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useAppContext } from '../context/AppContext'; // NEW
 import { usePromotions } from '../hooks/usePromotions';
 import { ServerMappingsService } from '../services/supabase/server-mappings.service';
+import { useServerMappings } from '../hooks/useServerMappings';
 import { FEATURES } from '../config/features';
 import { PaymentMethodSelector, PaymentMethod } from './cart/PaymentMethodSelector';
 import { Select, SelectOption } from './ui/Select';
@@ -121,11 +122,14 @@ export function Cart({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
 
+  // Fetch server mappings from database instead of settings
+  const { serverNames } = useServerMappings(isSimplifiedMode ? currentBar?.id : undefined);
+
   // Préparer les options pour le select serveur
   const serverOptions: SelectOption[] = [
     { value: '', label: 'Sélectionner un serveur...' },
     { value: `Moi (${currentSession?.userName})`, label: `Moi (${currentSession?.userName})` },
-    ...(currentBar?.settings?.serversList || []).map(serverName => ({
+    ...serverNames.map(serverName => ({
       value: serverName,
       label: serverName
     }))

@@ -60,6 +60,7 @@ export class ProxyAdminService {
       items: any[];
       payment_method: string;
       status?: string;
+      server_id?: string | null;
       customer_name?: string;
       customer_phone?: string;
       notes?: string;
@@ -72,6 +73,7 @@ export class ProxyAdminService {
       p_items: saleData.items,
       p_payment_method: saleData.payment_method,
       p_status: saleData.status || 'pending',
+      p_server_id: saleData.server_id || null,  // ✨ NOUVEAU: Pass server_id for simplified mode
       p_customer_name: saleData.customer_name,
       p_customer_phone: saleData.customer_phone,
       p_notes: saleData.notes,

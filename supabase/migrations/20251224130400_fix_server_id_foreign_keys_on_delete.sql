@@ -10,7 +10,30 @@
 
 BEGIN;
 
--- Drop existing foreign keys (if they were created with RESTRICT)
+-- =====================================================
+-- STEP 1: Clean up invalid server_id references
+-- =====================================================
+-- Before we can add the FK constraint, we need to ensure all existing
+-- server_id values either exist in auth.users OR are NULL
+
+UPDATE public.sales
+SET server_id = NULL
+WHERE server_id IS NOT NULL
+  AND server_id NOT IN (SELECT id FROM auth.users);
+
+UPDATE public.consignments
+SET server_id = NULL
+WHERE server_id IS NOT NULL
+  AND server_id NOT IN (SELECT id FROM auth.users);
+
+UPDATE public.returns
+SET server_id = NULL
+WHERE server_id IS NOT NULL
+  AND server_id NOT IN (SELECT id FROM auth.users);
+
+-- =====================================================
+-- STEP 2: Drop existing foreign keys (if they exist)
+-- =====================================================
 ALTER TABLE public.sales
   DROP CONSTRAINT IF EXISTS sales_server_id_fkey;
 
@@ -20,7 +43,9 @@ ALTER TABLE public.consignments
 ALTER TABLE public.returns
   DROP CONSTRAINT IF EXISTS returns_server_id_fkey;
 
--- Recreate with proper ON DELETE SET NULL behavior
+-- =====================================================
+-- STEP 3: Recreate with proper ON DELETE SET NULL behavior
+-- =====================================================
 ALTER TABLE public.sales
   ADD CONSTRAINT sales_server_id_fkey
   FOREIGN KEY (server_id) REFERENCES auth.users(id) ON DELETE SET NULL;
@@ -32,8 +57,5 @@ ALTER TABLE public.consignments
 ALTER TABLE public.returns
   ADD CONSTRAINT returns_server_id_fkey
   FOREIGN KEY (server_id) REFERENCES auth.users(id) ON DELETE SET NULL;
-
--- Note: If tables don't have the FK yet, the ADD CONSTRAINT will create it
--- If they already have it with proper ON DELETE SET NULL, this is idempotent
 
 COMMIT;

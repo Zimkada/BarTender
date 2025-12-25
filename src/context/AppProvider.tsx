@@ -272,7 +272,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             customer_name: saleData.customerName,
             customer_phone: saleData.customerPhone,
             notes: saleData.notes,
-            status: (currentSession.role === 'promoteur' || currentSession.role === 'gerant') ? 'validated' : 'pending'
+            status: (currentSession.role === 'promoteur' || currentSession.role === 'gerant') ? 'validated' : 'pending',
+            serverId: saleData.serverId || undefined  // ✨ NOUVEAU: Pass server_id for simplified mode
         };
 
         const result = await salesMutations.createSale.mutateAsync(newSaleData as any);

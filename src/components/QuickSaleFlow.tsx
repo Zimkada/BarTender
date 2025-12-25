@@ -22,6 +22,7 @@ import { useViewport } from '../hooks/useViewport';
 import { ProductGrid } from './ProductGrid';
 import { PromotionsService } from '../services/supabase/promotions.service';
 import { ServerMappingsService } from '../services/supabase/server-mappings.service';
+import { useServerMappings } from '../hooks/useServerMappings';
 import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
 import { PaymentMethodSelector, PaymentMethod } from './cart/PaymentMethodSelector';
 import { useFilteredProducts } from '../hooks/useFilteredProducts';
@@ -208,11 +209,15 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     // Nos produits enrichis ont 'stock'. Donc on peut laisser le hook faire le filtrage final.
   });
 
-  // 3. Préparer les options pour le select serveur
+  // 3. Fetch server mappings from database instead of settings
+  const enableServerTracking = currentBar?.settings?.operatingMode === 'simplified';
+  const { serverNames } = useServerMappings(enableServerTracking ? currentBar?.id : undefined);
+
+  // Préparer les options pour le select serveur
   const serverOptions: SelectOption[] = [
     { value: '', label: 'Sélectionner un serveur...' },
     { value: `Moi (${currentSession?.userName})`, label: `Moi (${currentSession?.userName})` },
-    ...(currentBar?.settings?.serversList || []).map(serverName => ({
+    ...serverNames.map(serverName => ({
       value: serverName,
       label: serverName
     }))

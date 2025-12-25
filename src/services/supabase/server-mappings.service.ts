@@ -230,14 +230,7 @@ export class ServerMappingsService {
       // Fetch all bar members with role='serveur' and is_active=true
       const { data: barMembers, error: fetchError } = await supabase
         .from('bar_members')
-        .select(`
-          user_id,
-          users (
-            id,
-            name,
-            email
-          )
-        `)
+        .select('user_id')
         .eq('bar_id', barId)
         .eq('role', 'serveur')
         .eq('is_active', true);
@@ -249,14 +242,26 @@ export class ServerMappingsService {
         return [];
       }
 
+      // Fetch user names for these user IDs
+      const userIds = barMembers.map(bm => bm.user_id);
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, name')
+        .in('id', userIds);
+
+      if (usersError) throw usersError;
+
+      // Create a map of user ID to name
+      const userNameMap = new Map((users || []).map(u => [u.id, u.name]));
+
       // Prepare mappings from the fetched bar members
       const mappingsToCreate = barMembers
-        .filter(bm => bm.users && bm.users.name) // Ensure user data exists
         .map(bm => ({
           bar_id: barId,
-          server_name: bm.users.name.trim(),
+          server_name: (userNameMap.get(bm.user_id) || '').trim(),
           user_id: bm.user_id,
-        }));
+        }))
+        .filter(m => m.server_name); // Only include if user has a name
 
       if (mappingsToCreate.length === 0) {
         console.info('[ServerMappingsService] No valid server members to map for bar:', barId);

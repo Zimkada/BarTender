@@ -47,12 +47,12 @@ export const FEATURES = {
      * - server_id field tracks servers across modes
      * - ServerMappingsManager UI available in settings
      */
-    ENABLE_SWITCHING_MODE: false,
+    ENABLE_SWITCHING_MODE: true,
 
     /**
      * Advanced: Show mode switching UI in settings (only if ENABLE_SWITCHING_MODE is true)
      */
-    SHOW_SWITCHING_MODE_UI: false,
+    SHOW_SWITCHING_MODE_UI: true,
 } as const;
 
 /**

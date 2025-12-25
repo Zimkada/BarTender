@@ -66,17 +66,47 @@ COMMENT ON INDEX idx_server_mappings_user_id IS 'Improves performance of queries
 -- =====================================================
 ALTER TABLE public.server_name_mappings ENABLE ROW LEVEL SECURITY;
 
--- Policy: Gerants and Promoters can manage mappings for their bar
-CREATE POLICY "Managers can manage server mappings"
+-- Drop old policies if they exist
+DROP POLICY IF EXISTS "Managers can manage server mappings" ON public.server_name_mappings;
+DROP POLICY IF EXISTS "Bar members can read server mappings" ON public.server_name_mappings;
+
+-- Policy: Everyone can READ mappings for their bar (needed for sale creation)
+CREATE POLICY "Bar members can read server mappings"
 ON public.server_name_mappings
-FOR ALL
+FOR SELECT
 TO authenticated
 USING (
   EXISTS (
     SELECT 1 FROM public.bar_members bm
     WHERE bm.user_id = auth.uid()
     AND bm.bar_id = server_name_mappings.bar_id
-    AND bm.role IN ('gerant', 'promoteur', 'super_admin')
+    AND bm.is_active = true
+  )
+);
+
+-- Policy: Bar members can INSERT mappings for their bar (simplified mode setup)
+CREATE POLICY "Managers can manage server mappings"
+ON public.server_name_mappings
+FOR INSERT
+TO authenticated
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM public.bar_members bm
+    WHERE bm.user_id = auth.uid()
+    AND bm.bar_id = server_name_mappings.bar_id
+    AND bm.is_active = true
+  )
+);
+
+CREATE POLICY "Managers can update server mappings"
+ON public.server_name_mappings
+FOR UPDATE
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM public.bar_members bm
+    WHERE bm.user_id = auth.uid()
+    AND bm.bar_id = server_name_mappings.bar_id
     AND bm.is_active = true
   )
 )
@@ -85,15 +115,13 @@ WITH CHECK (
     SELECT 1 FROM public.bar_members bm
     WHERE bm.user_id = auth.uid()
     AND bm.bar_id = server_name_mappings.bar_id
-    AND bm.role IN ('gerant', 'promoteur', 'super_admin')
     AND bm.is_active = true
   )
 );
 
--- Policy: Everyone can read mappings for their bar (needed for sale creation)
-CREATE POLICY "Bar members can read server mappings"
+CREATE POLICY "Managers can delete server mappings"
 ON public.server_name_mappings
-FOR SELECT
+FOR DELETE
 TO authenticated
 USING (
   EXISTS (
