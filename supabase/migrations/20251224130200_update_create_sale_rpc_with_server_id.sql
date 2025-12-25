@@ -14,7 +14,10 @@ BEGIN;
 -- =====================================================
 -- STEP 1: Update create_sale_with_promotions RPC function
 -- =====================================================
-CREATE OR REPLACE FUNCTION public.create_sale_with_promotions(
+-- Drop the existing function first (return type changed from TABLE to sales)
+DROP FUNCTION IF EXISTS public.create_sale_with_promotions(UUID, JSONB, TEXT, UUID, UUID, TEXT, TEXT, TEXT, TEXT, DATE) CASCADE;
+
+CREATE FUNCTION public.create_sale_with_promotions(
   p_bar_id UUID,
   p_items JSONB,
   p_payment_method TEXT,
@@ -26,15 +29,12 @@ CREATE OR REPLACE FUNCTION public.create_sale_with_promotions(
   p_notes TEXT DEFAULT NULL,
   p_business_date DATE DEFAULT NULL
 )
-RETURNS TABLE (
-  sale_id UUID,
-  created_at TIMESTAMP WITH TIME ZONE,
-  business_date DATE,
-  total_amount DECIMAL,
-  error_message TEXT
-) AS $$
+RETURNS sales  -- ✨ FIXED: Return complete sales row, not TABLE
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
 DECLARE
-  v_sale_id UUID;
+  v_sale sales;
   v_business_date DATE;
   v_total_amount DECIMAL := 0;
   v_item JSONB;
@@ -45,13 +45,7 @@ DECLARE
 BEGIN
   -- Validate inputs
   IF p_bar_id IS NULL OR p_sold_by IS NULL OR p_items IS NULL THEN
-    RETURN QUERY SELECT
-      NULL::UUID,
-      NULL::TIMESTAMP WITH TIME ZONE,
-      NULL::DATE,
-      NULL::DECIMAL,
-      'Missing required parameters'::TEXT;
-    RETURN;
+    RAISE EXCEPTION 'Missing required parameters: bar_id, sold_by, items';
   END IF;
 
   -- Determine business date
@@ -60,7 +54,7 @@ BEGIN
   -- Validate business_date is in correct timezone context
   -- (Assuming p_business_date comes pre-calculated from frontend with correct timezone)
 
-  -- Process each item
+  -- Process each item and calculate totals
   FOR v_item IN SELECT jsonb_array_elements(p_items)
   LOOP
     v_product_id := (v_item->>'product_id')::UUID;
@@ -68,28 +62,7 @@ BEGIN
     v_unit_price := (v_item->>'unit_price')::DECIMAL;
 
     IF v_product_id IS NULL OR v_quantity IS NULL OR v_unit_price IS NULL THEN
-      RETURN QUERY SELECT
-        NULL::UUID,
-        NULL::TIMESTAMP WITH TIME ZONE,
-        NULL::DATE,
-        NULL::DECIMAL,
-        'Invalid item format'::TEXT;
-      RETURN;
-    END IF;
-
-    -- Check stock
-    SELECT stock INTO v_product_stock
-    FROM public.products
-    WHERE id = v_product_id AND bar_id = p_bar_id;
-
-    IF v_product_stock IS NULL OR v_product_stock < v_quantity THEN
-      RETURN QUERY SELECT
-        NULL::UUID,
-        NULL::TIMESTAMP WITH TIME ZONE,
-        NULL::DATE,
-        NULL::DECIMAL,
-        'Insufficient stock for product: ' || v_product_id::TEXT;
-      RETURN;
+      RAISE EXCEPTION 'Invalid item format in sale items';
     END IF;
 
     -- Accumulate total
@@ -99,78 +72,63 @@ BEGIN
   -- Create the sale record
   INSERT INTO public.sales (
     bar_id,
-    sold_by,
+    items,  -- Store items as JSONB (required)
+    subtotal,  -- Calculate subtotal
+    discount_total,  -- Calculate discount total
+    total,  -- Calculate final total
+    payment_method,  -- Required
+    status,  -- Set status
+    sold_by,  -- Who created the sale (required)
+    validated_by,  -- Set if status is validated
+    validated_at,  -- Set if status is validated
+    applied_promotions,  -- Store applied promotions
     server_id,  -- NEW: Insert server_id
-    payment_method,
-    customer_name,
-    customer_phone,
-    notes,
-    status,
-    business_date,
-    created_at,
-    validated_at
+    created_by,  -- Audit trail
+    customer_name,  -- Optional customer info
+    customer_phone,  -- Optional customer info
+    notes,  -- Optional notes
+    business_date,  -- Business date
+    created_at  -- Timestamp
   ) VALUES (
     p_bar_id,
-    p_sold_by,
-    p_server_id,  -- NEW: Use provided server_id (or NULL if not provided)
-    p_payment_method,
-    p_customer_name,
-    p_customer_phone,
-    p_notes,
-    p_status,
-    v_business_date,
-    CURRENT_TIMESTAMP,
-    CASE WHEN p_status = 'validated' THEN CURRENT_TIMESTAMP ELSE NULL END
+    p_items,  -- Store items array
+    v_total_amount,  -- Subtotal = total of all items (no discounts yet)
+    0,  -- discount_total - calculated later when promotions are applied
+    v_total_amount,  -- total = subtotal - discount (no discounts yet)
+    p_payment_method,  -- Payment method (required)
+    p_status,  -- Use provided status
+    p_sold_by,  -- Who created the sale (required)
+    CASE WHEN p_status = 'validated' THEN p_sold_by ELSE NULL END,  -- validated_by if validated
+    CASE WHEN p_status = 'validated' THEN CURRENT_TIMESTAMP ELSE NULL END,  -- validated_at if validated
+    '[]'::JSONB,  -- Empty promotions array initially
+    p_server_id,  -- Use provided server_id (or NULL if not provided)
+    p_sold_by,  -- Audit: who created (same as sold_by)
+    p_customer_name,  -- Customer name
+    p_customer_phone,  -- Customer phone
+    p_notes,  -- Notes
+    v_business_date,  -- Business date
+    CURRENT_TIMESTAMP  -- Created timestamp
   )
-  RETURNING id INTO v_sale_id;
+  RETURNING * INTO v_sale;
 
   -- Deduct stock for each item
   FOR v_item IN SELECT jsonb_array_elements(p_items)
   LOOP
     v_product_id := (v_item->>'product_id')::UUID;
     v_quantity := (v_item->>'quantity')::INT;
-    v_unit_price := (v_item->>'unit_price')::DECIMAL;
 
-    UPDATE public.products
+    UPDATE public.bar_products
     SET stock = stock - v_quantity
     WHERE id = v_product_id AND bar_id = p_bar_id;
-
-    -- Create sale_items
-    INSERT INTO public.sale_items (
-      sale_id,
-      product_id,
-      product_name,
-      quantity,
-      unit_price,
-      total_price
-    )
-    SELECT
-      v_sale_id,
-      v_product_id,
-      p.name,
-      v_quantity,
-      v_unit_price,
-      v_unit_price * v_quantity
-    FROM public.products p
-    WHERE p.id = v_product_id;
   END LOOP;
 
-  RETURN QUERY SELECT
-    v_sale_id,
-    CURRENT_TIMESTAMP,
-    v_business_date,
-    v_total_amount,
-    NULL::TEXT;
+  -- Return the complete sales row
+  RETURN v_sale;
 
 EXCEPTION WHEN OTHERS THEN
-  RETURN QUERY SELECT
-    NULL::UUID,
-    NULL::TIMESTAMP WITH TIME ZONE,
-    NULL::DATE,
-    NULL::DECIMAL,
-    SQLERRM;
+  RAISE EXCEPTION 'Error creating sale: %', SQLERRM;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 COMMENT ON FUNCTION public.create_sale_with_promotions(UUID, JSONB, TEXT, UUID, UUID, TEXT, TEXT, TEXT, TEXT, DATE) IS 'Create a sale with promotion handling. New parameter p_server_id tracks which server (in simplified mode) performed the sale.';
 

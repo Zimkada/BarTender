@@ -315,11 +315,16 @@ export function Cart({
                         return;
                       }
                       setLoading('checkout', true);
-                      await onCheckout(isSimplifiedMode ? selectedServer : undefined);
-                      setSelectedServer(''); // Reset
-                      showSuccess('🎉 Vente finalisée !', 1000);
-                      onToggle(); // ✨ Fermer le panier après succès
-                      setLoading('checkout', false);
+                      try {
+                        await onCheckout(isSimplifiedMode ? selectedServer : undefined);
+                        setSelectedServer(''); // Reset
+                        showSuccess('🎉 Vente finalisée !', 1000);
+                        onToggle(); // ✨ Fermer le panier après succès
+                      } catch (error) {
+                        // Error handled by mutation onError
+                      } finally {
+                        setLoading('checkout', false);
+                      }
                     }}
                     disabled={isLoading('checkout')}
                     className="flex-1 h-14 bg-amber-500 text-white font-bold text-lg rounded-2xl active:bg-amber-600 disabled:bg-gray-400 transition-colors flex items-center justify-center"

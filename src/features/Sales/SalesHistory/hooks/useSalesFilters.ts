@@ -36,12 +36,10 @@ export function useSalesFilters({ sales, consignments, currentSession, closeHour
             if (isServer) {
                 // Logique différente selon le mode opérationnel
                 if (operatingMode === 'simplified') {
-                    // Mode simplifié: le gérant a créé la vente et assigné le serveur par son NOM
-                    // Format des notes: "Serveur: <serverName>" (ex: "Serveur: Ahmed")
-                    // Comparaison: vérifier si le nom du serveur dans notes correspond au userName courant
-                    const notesMatch = sale.notes?.match(/Serveur:\s*(.+)/);
-                    const serverNameInNotes = notesMatch ? notesMatch[1].trim() : null;
-                    return serverNameInNotes === currentSession.userName;
+                    // Mode simplifié: le gérant a créé la vente et assigné le serveur
+                    // ✨ FIXED: Utilise server_id (UUID) au lieu de parser les notes
+                    // Le serveur voit les ventes où server_id correspond à son UUID
+                    return sale.serverId === currentSession.userId;
                 } else {
                     // Mode complet: le serveur a créé la vente lui-même
                     // Vérifier que le créateur (UUID) est le serveur courant

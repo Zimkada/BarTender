@@ -68,7 +68,6 @@ export class SalesService {
       ).single();
 
       if (rpcError) {
-        console.error('[SalesService] RPC error:', rpcError);
         throw new Error(`Erreur lors de la création de la vente: ${rpcError.message}`);
       }
 
@@ -78,7 +77,6 @@ export class SalesService {
 
       return newSale;
     } catch (error: any) {
-      console.error('[SalesService] createSale error:', error);
       throw new Error(handleSupabaseError(error));
     }
   }

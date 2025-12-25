@@ -90,7 +90,6 @@ export const useSalesMutations = (barId: string) => {
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
         },
         onError: (error: any) => {
-            console.error(error);
             toast.error(`Erreur lors de la vente: ${error.message}`);
         }
     });
