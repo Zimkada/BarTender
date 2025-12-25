@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
+import { useAuth } from '../context/AuthContext';
 import { SalesService } from '../services/supabase/sales.service';
 import { ReturnsService } from '../services/supabase/returns.service';
 import { getCurrentBusinessDateString, filterByBusinessDateRange } from '../utils/businessDateHelpers';
@@ -23,8 +24,11 @@ interface RevenueStats {
 export function useRevenueStats(options: { startDate?: string; endDate?: string; enabled?: boolean } = {}): RevenueStats {
     const { currentBar } = useBarContext();
     const { sales, returns } = useAppContext();
+    const { currentSession } = useAuth();
 
     const currentBarId = currentBar?.id || '';
+    const isServerRole = currentSession?.role === 'serveur';
+    const operatingMode = currentBar?.settings?.operatingMode || 'full';
 
     // Dates par défaut = Aujourd'hui (Commercial)
     const todayStr = getCurrentBusinessDateString(currentBar?.closingHour);
@@ -39,9 +43,21 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
 
         const closeHour = currentBar?.closingHour ?? 6;
 
+        // ✨ Filter by server if role is serveur
+        let baseSales = sales.filter(s => s.status === 'validated');
+        if (isServerRole) {
+            if (operatingMode === 'simplified') {
+                // Simplified mode: server sees sales assigned via server_id
+                baseSales = baseSales.filter(s => s.serverId === currentSession?.userId);
+            } else {
+                // Full mode: server sees sales they created
+                baseSales = baseSales.filter(s => s.createdBy === currentSession?.userId);
+            }
+        }
+
         // Filter sales by business date range
         const filteredSales = filterByBusinessDateRange(
-            sales.filter(s => s.status === 'validated'),
+            baseSales,
             startDate,
             endDate,
             closeHour
@@ -50,9 +66,21 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         const grossRevenue = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
         const saleCount = filteredSales.length;
 
+        // ✨ Filter returns by server if applicable
+        let baseReturns = returns.filter(r => r.isRefunded && (r.status === 'approved' || r.status === 'restocked'));
+        if (isServerRole) {
+            if (operatingMode === 'simplified') {
+                // Simplified mode: server sees returns assigned via server_id
+                baseReturns = baseReturns.filter(r => r.serverId === currentSession?.userId);
+            } else {
+                // Full mode: server sees returns they created
+                baseReturns = baseReturns.filter(r => r.returnedBy === currentSession?.userId);
+            }
+        }
+
         // Filter returns by business date range
         const filteredReturns = filterByBusinessDateRange(
-            returns.filter(r => r.isRefunded && (r.status === 'approved' || r.status === 'restocked')),
+            baseReturns,
             startDate,
             endDate,
             closeHour
@@ -62,7 +90,7 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         const netRevenue = grossRevenue - refundsTotal;
 
         return { netRevenue, grossRevenue, refundsTotal, saleCount };
-    }, [sales, returns, startDate, endDate, currentBar?.closingHour]);
+    }, [sales, returns, startDate, endDate, currentBar?.closingHour, isServerRole, operatingMode, currentSession?.userId]);
 
     // Use Proxy Query to handle impersonation automatically
     const { data: stats, isLoading, error } = useProxyQuery(

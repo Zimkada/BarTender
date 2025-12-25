@@ -136,8 +136,39 @@ export function DailyDashboard() {
     return sales.filter(s => s.status === 'pending' && (isManager || s.createdBy === currentSession?.userId));
   }, [sales, currentSession]);
 
+  // ✨ Filter metrics for servers
+  const isServerRole = currentSession?.role === 'serveur';
+  const operatingMode = currentBar?.settings?.operatingMode || 'full';
+
+  const serverFilteredSales = useMemo(() => {
+    if (!isServerRole) return todayValidatedSales;
+    if (operatingMode === 'simplified') {
+      return todayValidatedSales.filter(s => s.serverId === currentSession?.userId);
+    } else {
+      return todayValidatedSales.filter(s => s.createdBy === currentSession?.userId);
+    }
+  }, [todayValidatedSales, isServerRole, operatingMode, currentSession?.userId]);
+
+  const serverFilteredReturns = useMemo(() => {
+    if (!isServerRole) return todayReturns;
+    if (operatingMode === 'simplified') {
+      return todayReturns.filter(r => r.serverId === currentSession?.userId);
+    } else {
+      return todayReturns.filter(r => r.returnedBy === currentSession?.userId);
+    }
+  }, [todayReturns, isServerRole, operatingMode, currentSession?.userId]);
+
+  const serverFilteredConsignments = useMemo(() => {
+    if (!isServerRole) return activeConsignments;
+    if (operatingMode === 'simplified') {
+      return activeConsignments.filter(c => c.serverId === currentSession?.userId);
+    } else {
+      return activeConsignments.filter(c => c.originalSeller === currentSession?.userId);
+    }
+  }, [activeConsignments, isServerRole, operatingMode, currentSession?.userId]);
+
   const lowStockProducts = getLowStockProducts();
-  const totalItems = todayStats?.total_items_sold ?? todayValidatedSales.reduce((sum, sale) => sum + sale.items.reduce((s, i) => s + i.quantity, 0), 0);
+  const totalItems = todayStats?.total_items_sold ?? serverFilteredSales.reduce((sum, sale) => sum + sale.items.reduce((s, i) => s + i.quantity, 0), 0);
 
   const topProductsList = topProductsData.map(p => ({
     name: p.product_volume ? `${p.product_name} (${p.product_volume})` : p.product_name,
@@ -227,7 +258,7 @@ export function DailyDashboard() {
         </div>
         <div className="bg-gradient-to-br from-blue-100 to-cyan-100 rounded-xl p-4 border border-blue-200">
           <div className="flex items-center justify-between mb-2"><ShoppingCart className="w-8 h-8 text-blue-600" /><span className="text-blue-600 text-sm">Ventes</span></div>
-          <AnimatedCounter value={todayValidatedSales.length} className="text-2xl font-bold text-gray-800" />
+          <AnimatedCounter value={serverFilteredSales.length} className="text-2xl font-bold text-gray-800" />
           {pendingSales.length > 0 && <p className="text-xs text-amber-600">{pendingSales.length} en attente</p>}
         </div>
         <div className="bg-gradient-to-br from-purple-100 to-violet-100 rounded-xl p-4 border border-purple-200">
@@ -241,11 +272,11 @@ export function DailyDashboard() {
         </div>
         <div className="bg-gradient-to-br from-red-100 to-pink-100 rounded-xl p-4 border border-red-200">
           <div className="flex items-center justify-between mb-2"><RotateCcw className="w-8 h-8 text-red-600" /><span className="text-red-600 text-sm">Retours</span></div>
-          <div className="text-2xl font-bold text-gray-800">{todayReturns.length}</div>
+          <div className="text-2xl font-bold text-gray-800">{serverFilteredReturns.length}</div>
         </div>
         <div className="bg-gradient-to-br from-indigo-100 to-purple-100 rounded-xl p-4 border border-indigo-200">
           <div className="flex items-center justify-between mb-2"><Archive className="w-8 h-8 text-indigo-600" /><span className="text-indigo-600 text-sm">Consignations</span></div>
-          <div className="text-2xl font-bold text-gray-800">{activeConsignments.length}</div>
+          <div className="text-2xl font-bold text-gray-800">{serverFilteredConsignments.length}</div>
         </div>
       </div>
 
