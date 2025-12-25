@@ -45,13 +45,34 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
 
         // ✨ Filter by server if role is serveur
         let baseSales = sales.filter(s => s.status === 'validated');
+
+        console.log('[useRevenueStats] DEBUG:', {
+            isServerRole,
+            operatingMode,
+            currentSessionUserId: currentSession?.userId,
+            totalSales: sales.length,
+            validatedSales: baseSales.length,
+        });
+
         if (isServerRole) {
             if (operatingMode === 'simplified') {
                 // Simplified mode: server sees sales assigned via server_id
+                const beforeFilter = baseSales.length;
                 baseSales = baseSales.filter(s => s.serverId === currentSession?.userId);
+                console.log('[useRevenueStats] Simplified mode filter:', {
+                    before: beforeFilter,
+                    after: baseSales.length,
+                    filteredByServerId: currentSession?.userId,
+                });
             } else {
                 // Full mode: server sees sales they created
+                const beforeFilter = baseSales.length;
                 baseSales = baseSales.filter(s => s.createdBy === currentSession?.userId);
+                console.log('[useRevenueStats] Full mode filter:', {
+                    before: beforeFilter,
+                    after: baseSales.length,
+                    filteredByCreatedBy: currentSession?.userId,
+                });
             }
         }
 
@@ -97,12 +118,56 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         statsKeys.summary(currentBarId, startDate, endDate),
         // 1. Standard Fetcher (Normal User) - Requires 2 calls (Sales + Returns)
         async () => {
-            const stats = await SalesService.getSalesStats(currentBarId, startDate, endDate);
+            // ✨ Pass serverId if server role to filter their stats
+            const serverId = isServerRole ? currentSession?.userId : undefined;
+            const stats = await SalesService.getSalesStats(currentBarId, startDate, endDate, serverId);
 
-            const returnsData = await ReturnsService.getReturns(currentBarId, startDate, endDate);
-            const refundsTotal = returnsData
-                .filter((r: any) => r.is_refunded && (r.status === 'approved' || r.status === 'restocked'))
-                .reduce((sum: number, r: any) => sum + Number(r.refund_amount), 0);
+            console.log('[useRevenueStats] Fetched stats from DB:', {
+                isServerRole,
+                serverId,
+                operatingMode,
+                startDate,
+                endDate,
+                stats,
+            });
+
+            // ✨ Also filter returns by server if applicable (pass serverId to filter at DB level)
+            const returnServerId = isServerRole ? currentSession?.userId : undefined;
+            const returnsData = await ReturnsService.getReturns(currentBarId, startDate, endDate, returnServerId, operatingMode);
+
+            console.log('[useRevenueStats] Fetched returns from DB:', {
+                isServerRole,
+                returnServerId,
+                operatingMode,
+                totalReturns: returnsData.length,
+                returns: returnsData.map((r: any) => ({
+                    id: r.id,
+                    server_id: r.server_id,
+                    returned_by: r.returned_by,
+                    is_refunded: r.is_refunded,
+                    status: r.status,
+                    refund_amount: r.refund_amount
+                }))
+            });
+
+            const filteredReturns = returnsData
+                .filter((r: any) => r.is_refunded && (r.status === 'approved' || r.status === 'restocked'));
+
+            console.log('[useRevenueStats] Filtered returns:', {
+                totalAfterFilter: filteredReturns.length,
+                filteredReturns: filteredReturns.map((r: any) => ({
+                    id: r.id,
+                    refund_amount: r.refund_amount
+                }))
+            });
+
+            const refundsTotal = filteredReturns.reduce((sum: number, r: any) => sum + Number(r.refund_amount), 0);
+
+            console.log('[useRevenueStats] Final calculation:', {
+                totalRevenue: stats.totalRevenue,
+                refundsTotal,
+                netRevenue: stats.totalRevenue - refundsTotal
+            });
 
             return {
                 netRevenue: stats.totalRevenue - refundsTotal,

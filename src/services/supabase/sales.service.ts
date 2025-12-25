@@ -319,11 +319,13 @@ export class SalesService {
 
   /**
    * Récupérer les statistiques de vente d'un bar
+   * Optionnellement filtrer par serverId (pour voir uniquement ses ventes)
    */
   static async getSalesStats(
     barId: string,
     startDate?: string,
-    endDate?: string
+    endDate?: string,
+    serverId?: string
   ): Promise<{
     totalSales: number;
     totalRevenue: number;
@@ -337,6 +339,11 @@ export class SalesService {
         .select('total')
         .eq('bar_id', barId)
         .eq('status', 'validated');
+
+      // ✨ Filter by server if provided (for serveur role)
+      if (serverId) {
+        validatedQuery = validatedQuery.eq('server_id', serverId);
+      }
 
       if (startDate) {
         validatedQuery = validatedQuery.gte('business_date', startDate);
@@ -353,11 +360,18 @@ export class SalesService {
       const averageSale = totalSales > 0 ? totalRevenue / totalSales : 0;
 
       // Ventes en attente (Toujours temps réel, pas de filtre date nécessaire généralement, ou created_at)
-      const { count: pendingCount } = await supabase
+      let pendingQuery = supabase
         .from('sales')
         .select('*', { count: 'exact', head: true })
         .eq('bar_id', barId)
         .eq('status', 'pending');
+
+      // ✨ Filter by server if provided
+      if (serverId) {
+        pendingQuery = pendingQuery.eq('server_id', serverId);
+      }
+
+      const { count: pendingCount } = await pendingQuery;
 
       return {
         totalSales,

@@ -44,7 +44,7 @@ const defaultSettings: AppSettings = {
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { currentSession, hasPermission } = useAuth();
-    const { currentBar } = useBarContext();
+    const { currentBar, loading: barContextLoading } = useBarContext();
     const queryClient = useQueryClient();
 
     // Initialize Realtime and Broadcast services
@@ -67,6 +67,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [isWarming]);
 
     const barId = currentBar?.id || '';
+    const operatingMode = currentBar?.settings?.operatingMode || 'full';
+
+    // DEBUG: Log barId initialization and BarContext loading state
+    useEffect(() => {
+        console.log('[AppProvider] DEBUG barId initialization:', {
+            barId,
+            currentBarId: currentBar?.id,
+            currentBarName: currentBar?.name,
+            barContextLoading,
+            operatingMode,
+            timestamp: new Date().toISOString()
+        });
+    }, [barId, currentBar, barContextLoading, operatingMode]);
 
     // React Query: Fetch data
     const { data: categories = [] } = useCategories(barId);
@@ -408,12 +421,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const addReturn = useCallback((returnData: Omit<Return, 'id' | 'barId'>) => {
         if (!hasPermission('canManageInventory') || !currentBar || !currentSession) return;
 
+        // ✨ CRITICAL FIX: Toujours déduire le server_id de la vente associée
+        // Cela garantit que le retour est attribué au bon serveur, peu importe qui le crée
+        const associatedSale = sales.find(s => s.id === returnData.saleId);
+        let deducedServerId: string | undefined;
+
+        if (associatedSale) {
+            deducedServerId = operatingMode === 'simplified'
+                ? associatedSale.serverId  // Mode simplifié: serveur assigné à la vente
+                : associatedSale.createdBy; // Mode complet: créateur de la vente
+        }
+
         returnsMutations.createReturn.mutate({
             ...returnData,
             barId: currentBar.id,
-            returnedBy: currentSession.userId
+            returnedBy: currentSession.userId,
+            server_id: deducedServerId || undefined
         });
-    }, [hasPermission, currentBar, currentSession, returnsMutations]);
+    }, [hasPermission, currentBar, currentSession, returnsMutations, sales, operatingMode]);
 
     const updateReturn = useCallback((returnId: string, updates: Partial<Return>) => {
         if (!hasPermission('canManageInventory')) return;

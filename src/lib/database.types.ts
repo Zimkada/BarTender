@@ -872,6 +872,7 @@ export type Database = {
           product_volume: string
           quantity: number
           sale_id: string
+          server_id: string | null
           status: string
           total_amount: number
         }
@@ -893,6 +894,7 @@ export type Database = {
           product_volume: string
           quantity: number
           sale_id: string
+          server_id?: string | null
           status: string
           total_amount: number
         }
@@ -914,6 +916,7 @@ export type Database = {
           product_volume?: string
           quantity?: number
           sale_id?: string
+          server_id?: string | null
           status?: string
           total_amount?: number
         }
@@ -1630,6 +1633,7 @@ export type Database = {
           returned_at: string
           returned_by: string
           sale_id: string
+          server_id: string | null
           status: string
         }
         Insert: {
@@ -1654,6 +1658,7 @@ export type Database = {
           returned_at?: string
           returned_by: string
           sale_id: string
+          server_id?: string | null
           status: string
         }
         Update: {
@@ -1678,6 +1683,7 @@ export type Database = {
           returned_at?: string
           returned_by?: string
           sale_id?: string
+          server_id?: string | null
           status?: string
         }
         Relationships: [
@@ -1865,6 +1871,7 @@ export type Database = {
           notes: string | null
           payment_method: string
           rejected_by: string | null
+          server_id: string | null
           sold_by: string
           status: string | null
           subtotal: number
@@ -1887,6 +1894,7 @@ export type Database = {
           notes?: string | null
           payment_method: string
           rejected_by?: string | null
+          server_id?: string | null
           sold_by: string
           status?: string | null
           subtotal: number
@@ -1909,6 +1917,7 @@ export type Database = {
           notes?: string | null
           payment_method?: string
           rejected_by?: string | null
+          server_id?: string | null
           sold_by?: string
           status?: string | null
           subtotal?: number

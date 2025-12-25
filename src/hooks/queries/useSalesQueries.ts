@@ -14,22 +14,34 @@ import { useProxyQuery } from './useProxyQuery';
 import { ProxyAdminService } from '../../services/supabase/proxy-admin.service';
 
 export const useSales = (barId: string | undefined) => {
+    const isEnabled = !!barId;
+
+    if (isEnabled) {
+        console.log('[useSales] Query ENABLED for barId:', barId);
+    } else {
+        console.log('[useSales] Query DISABLED - barId is empty:', { barId, isEnabled });
+    }
+
     return useProxyQuery(
         salesKeys.list(barId || ''),
         // Standard Fetcher
         async (): Promise<Sale[]> => {
             if (!barId) return [];
+            console.log('[useSales] Fetching sales for barId:', barId);
             const dbSales = await SalesService.getBarSales(barId);
+            console.log('[useSales] Fetched', dbSales.length, 'sales');
             return mapSalesData(dbSales);
         },
         // Proxy Fetcher
         async (userId, _barId): Promise<Sale[]> => {
             if (!barId) return [];
+            console.log('[useSales] Fetching sales via proxy for barId:', barId, 'userId:', userId);
             const dbSales = await ProxyAdminService.getBarSalesAsProxy(userId, barId);
+            console.log('[useSales] Fetched', dbSales.length, 'sales via proxy');
             return mapSalesData(dbSales);
         },
         {
-            enabled: !!barId,
+            enabled: isEnabled,
             staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
             gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
             refetchInterval: 2000, // Poll every 2 seconds for real-time sales updates

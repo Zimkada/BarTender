@@ -26,6 +26,7 @@ export const useReturns = (barId: string | undefined) => {
                 quantityReturned: r.quantity_returned,
                 reason: r.reason as any,
                 returnedBy: r.returned_by,
+                serverId: r.server_id || undefined,
                 returnedAt: new Date(r.returned_at),
                 businessDate: r.business_date ? new Date(r.business_date) : new Date(r.returned_at),
                 refundAmount: Number(r.refund_amount) || 0,

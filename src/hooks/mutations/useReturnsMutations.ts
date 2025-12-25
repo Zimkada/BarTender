@@ -20,6 +20,7 @@ export const useReturnsMutations = (barId: string) => {
                 quantity_returned: data.quantityReturned,
                 reason: data.reason,
                 returned_by: data.returnedBy,
+                server_id: data.server_id || null,
                 returned_at: data.returnedAt instanceof Date
                     ? data.returnedAt.toISOString()
                     : (data.returnedAt || new Date().toISOString()),

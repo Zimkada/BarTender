@@ -171,6 +171,7 @@ export function DailyDashboard() {
   }, [activeConsignments, isServerRole, operatingMode, currentSession?.userId]);
 
   const lowStockProducts = getLowStockProducts();
+  // ✨ Filter totalItems by server if applicable
   const totalItems = todayStats?.total_items_sold ?? serverFilteredSales.reduce((sum, sale) => sum + sale.items.reduce((s, i) => s + i.quantity, 0), 0);
 
   const topProductsList = topProductsData.map(p => ({

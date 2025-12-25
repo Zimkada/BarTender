@@ -25,11 +25,14 @@ export class ReturnsService {
 
     /**
      * Récupérer les retours d'un bar
+     * Optionnellement filtrer par serverId (pour voir uniquement ses retours)
      */
     static async getReturns(
         barId: string,
         startDate?: Date | string,
-        endDate?: Date | string
+        endDate?: Date | string,
+        serverId?: string,
+        operatingMode?: 'full' | 'simplified'
     ): Promise<Return[]> {
         try {
             let query = supabase
@@ -37,6 +40,15 @@ export class ReturnsService {
                 .select('*')
                 .eq('bar_id', barId)
                 .order('returned_at', { ascending: false });
+
+            // ✨ Filter by server if provided (for serveur role)
+            if (serverId) {
+                if (operatingMode === 'simplified') {
+                    query = query.eq('server_id', serverId);
+                } else {
+                    query = query.eq('returned_by', serverId);
+                }
+            }
 
             // Helper pour formater la date au format YYYY-MM-DD attendu par PostgreSQL
             const formatToYYYYMMDD = (date: Date | string): string => {
