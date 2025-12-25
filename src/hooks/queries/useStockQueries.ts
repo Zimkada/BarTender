@@ -119,6 +119,8 @@ export const useConsignments = (barId: string | undefined) => {
                     businessDate: c.business_date ? new Date(c.business_date) : undefined,
                     status: status,
                     createdBy: c.created_by,
+                    serverId: c.server_id || undefined,
+                    originalSeller: c.original_seller || undefined,
                     customerName: c.customer_name || undefined,
                     customerPhone: c.customer_phone || undefined,
                     notes: c.notes || undefined,

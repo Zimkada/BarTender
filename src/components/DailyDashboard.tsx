@@ -141,7 +141,7 @@ export function DailyDashboard() {
   const operatingMode = currentBar?.settings?.operatingMode || 'full';
 
   // Define activeConsignments BEFORE using it in serverFilteredConsignments
-  const activeConsignments = consignments.filter(c => c.status === 'active' && (currentSession?.role !== 'serveur' || c.originalSeller === currentSession?.userId));
+  const activeConsignments = consignments.filter(c => c.status === 'active');
 
   const serverFilteredSales = useMemo(() => {
     if (!isServerRole) return todayValidatedSales;
