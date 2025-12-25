@@ -263,7 +263,6 @@ export default function ReturnsPage() {
     // Fermer le formulaire immédiatement
     setShowCreateReturn(false);
     setSelectedSale(null);
-    setSelectedServer(''); // ✨ NUEVO: Réinitialiser la sélection du serveur
   };
 
   // Validate status transition
