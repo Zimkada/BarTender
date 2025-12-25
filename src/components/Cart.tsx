@@ -121,6 +121,7 @@ export function Cart({
   const [selectedServer, setSelectedServer] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
+  const isServerRole = currentSession?.role === 'serveur';
 
   // Fetch server mappings from database instead of settings
   const { serverNames } = useServerMappings(isSimplifiedMode ? currentBar?.id : undefined);
@@ -139,8 +140,8 @@ export function Cart({
   if (isMobile) {
     return (
       <>
-        {/* Bouton panier flottant - Masqué quand QuickSale est ouvert */}
-        {!hideFloatingButton && (
+        {/* Bouton panier flottant - Masqué quand QuickSale est ouvert ou en mode simplifié (serveurs) */}
+        {!hideFloatingButton && !(isSimplifiedMode && isServerRole) && (
           <button
             onClick={onToggle}
             className="fixed bottom-20 right-4 z-50 w-16 h-16 bg-amber-500 text-white rounded-full shadow-2xl active:scale-95 transition-transform flex items-center justify-center"
@@ -157,8 +158,8 @@ export function Cart({
           </button>
         )}
 
-        {/* Modal panier FULL-SCREEN Android natif */}
-        {isOpen && (
+        {/* Modal panier FULL-SCREEN Android natif - Masqué pour serveurs en mode simplifié */}
+        {isOpen && !(isSimplifiedMode && isServerRole) && (
           <div className="fixed inset-0 bg-white z-50 flex flex-col">
             {/* Header fixe sticky */}
             <div className="flex-shrink-0 sticky top-0 bg-white border-b border-gray-200 px-4 py-3 shadow-sm">

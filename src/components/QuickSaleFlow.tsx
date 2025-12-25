@@ -298,6 +298,45 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
 
   if (!isOpen) return null;
 
+  // Restreindre l'accès aux serveurs en mode simplifié
+  const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
+  const isServerRole = currentSession?.role === 'serveur';
+
+  if (isSimplifiedMode && isServerRole) {
+    return (
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            onClick={onClose}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="bg-white rounded-2xl p-8 max-w-md mx-4 shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Accès Restreint</h2>
+              <p className="text-gray-600 mb-6">
+                En mode simplifié, seul le gérant crée les ventes.
+              </p>
+              <button
+                onClick={onClose}
+                className="w-full bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition-colors"
+              >
+                Fermer
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
+  }
+
   return (
     <AnimatePresence>
       {isOpen && (

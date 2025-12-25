@@ -109,6 +109,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [cart, setCart] = useState<CartItem[]>([]);
 
     const addToCart = useCallback((product: Product) => {
+        // Check if server in simplified mode - prevent adding to cart
+        const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
+        const isServerRole = currentSession?.role === 'serveur';
+
+        if (isSimplifiedMode && isServerRole) {
+            import('react-hot-toast').then(({ default: toast }) => {
+                toast('En mode simplifié, seul le gérant crée les ventes.', {
+                    icon: 'ℹ️',
+                    duration: 3000
+                });
+            });
+            return;
+        }
+
         setCart(currentCart => {
             const existingItem = currentCart.find(item => item.product.id === product.id);
             if (existingItem) {
@@ -120,7 +134,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
             return [...currentCart, { product, quantity: 1 }];
         });
-    }, []);
+    }, [currentBar?.settings?.operatingMode, currentSession?.role]);
 
     const updateCartQuantity = useCallback((productId: string, quantity: number) => {
         setCart(currentCart => {
