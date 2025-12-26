@@ -130,21 +130,34 @@ export const AnalyticsService = {
         startDate: Date | string,
         endDate: Date | string,
         limit: number = 10,
-        sortBy: 'quantity' | 'revenue' = 'quantity'
+        sortBy: 'quantity' | 'revenue' = 'quantity',
+        serverId?: string // Optional: filter by server_id for servers
     ): Promise<TopProduct[]> {
 
         const startStr = typeof startDate === 'string' ? startDate : this.formatDate(startDate);
         const endStr = typeof endDate === 'string' ? endDate : this.formatDate(endDate);
 
-        // ✨ NEW: Use aggregated RPC that groups by product only (not by date)
+        // ✨ NEW: Use server-filtered RPC when serverId is provided, otherwise use aggregated RPC
         // This ensures same product sold on different dates appears as single aggregated row
-        const { data, error } = await supabase.rpc('get_top_products_aggregated', {
-            p_bar_id: barId,
-            p_start_date: startStr,
-            p_end_date: endStr,
-            p_limit: limit,
-            p_sort_by: sortBy === 'revenue' ? 'revenue' : 'quantity'
-        });
+        const rpcName = serverId ? 'get_top_products_by_server' : 'get_top_products_aggregated';
+        const rpcParams = serverId
+            ? {
+                p_bar_id: barId,
+                p_start_date: startStr,
+                p_end_date: endStr,
+                p_server_id: serverId,
+                p_limit: limit,
+                p_sort_by: sortBy === 'revenue' ? 'revenue' : 'quantity'
+            }
+            : {
+                p_bar_id: barId,
+                p_start_date: startStr,
+                p_end_date: endStr,
+                p_limit: limit,
+                p_sort_by: sortBy === 'revenue' ? 'revenue' : 'quantity'
+            };
+
+        const { data, error } = await supabase.rpc(rpcName, rpcParams);
 
         if (error) throw error;
 

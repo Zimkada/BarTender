@@ -33,6 +33,8 @@ export const useReturnsMutations = (barId: string) => {
                 custom_refund: data.customRefund || null,
                 custom_restock: data.customRestock || null,
                 original_seller: data.originalSeller || null,
+                // ✨ MODE SWITCHING SUPPORT: Store operating mode at creation
+                operating_mode_at_creation: data.operatingModeAtCreation || 'full',
             };
             return ReturnsService.createReturn(returnData);
         },

@@ -16,6 +16,7 @@ interface UseTopProductsOptions {
     endDate?: Date | string;
     limit?: number;
     sortBy?: 'quantity' | 'revenue';
+    serverId?: string; // Optional: filter by server for server accounts
     enabled?: boolean;
 }
 
@@ -30,6 +31,7 @@ export const useTopProducts = ({
     endDate,
     limit = 10,
     sortBy = 'quantity',
+    serverId,
     enabled = true,
 }: UseTopProductsOptions) => {
     return useQuery<TopProduct[], Error>({
@@ -39,8 +41,15 @@ export const useTopProducts = ({
                 return [];
             }
             // L'appel au service SQL est la seule source de vérité.
-            // Le service doit être capable de gérer le paramètre `sortBy`.
-            const products = await AnalyticsService.getTopProducts(barId, startDate, endDate, limit, sortBy);
+            // Le service gère automatiquement le filtrage par serverId si fourni.
+            const products = await AnalyticsService.getTopProducts(
+                barId,
+                startDate,
+                endDate,
+                limit,
+                sortBy,
+                serverId
+            );
             return products;
         },
         enabled: enabled && !!barId && !!startDate && !!endDate,

@@ -261,6 +261,8 @@ export default function ReturnsPage() {
       customRestock: reason === 'other' ? customRestock : undefined,
       originalSeller: sale.createdBy,
       serverId, // ✨ NUEVO: Passer le server_id résolu
+      // ✨ MODE SWITCHING SUPPORT: Store current operating mode
+      operatingModeAtCreation: currentBar?.settings?.operatingMode || 'full',
     });
 
     const refundMsg = finalRefund
@@ -525,15 +527,11 @@ export default function ReturnsPage() {
               ) : (
                 <div className="grid grid-cols-1 gap-4">
                   {filteredReturns.map(returnItem => {
-                    let originalSeller = null;
-                    if (returnItem.originalSeller) {
-                      originalSeller = users.find(u => u.id === returnItem.originalSeller);
-                    } else {
-                      const originalSale = sales.find(s => s.id === returnItem.saleId);
-                      if (originalSale?.createdBy) {
-                        originalSeller = users.find(u => u.id === originalSale.createdBy);
-                      }
-                    }
+                    // ✨ FIX: Use server_id from return (consistent with filtering logic)
+                    // This shows the server responsible for the sale, not the person who processed the return
+                    const serverUser = returnItem.server_id
+                      ? users.find(u => u.id === returnItem.server_id)
+                      : null;
 
                     return (
                       <motion.div
@@ -562,11 +560,11 @@ export default function ReturnsPage() {
                                 <span>ID: #{returnItem.id.slice(-6)}</span>
                                 <span>•</span>
                                 <span>{new Date(returnItem.returnedAt).toLocaleDateString('fr-FR')} à {new Date(returnItem.returnedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-                                {originalSeller && (
+                                {serverUser && (
                                   <>
                                     <span>•</span>
                                     <span className="text-purple-600 font-medium">
-                                      Vendeur: {originalSeller.name}
+                                      Serveur: {serverUser.name}
                                     </span>
                                   </>
                                 )}
@@ -877,7 +875,12 @@ function CreateReturnForm({
     let filtered = returnableSales;
 
     if (filterSeller !== 'all') {
-      filtered = filtered.filter(sale => sale.createdBy === filterSeller);
+      // ✨ FIX: Filter by server_id instead of createdBy
+      // This matches the server displayed in the list (consistent with mode logic)
+      filtered = filtered.filter(sale => {
+        const serverUserId = isSimplifiedMode ? sale.serverId : sale.createdBy;
+        return serverUserId === filterSeller;
+      });
     }
 
     if (searchTerm.trim()) {
@@ -888,13 +891,18 @@ function CreateReturnForm({
     }
 
     return filtered;
-  }, [returnableSales, filterSeller, searchTerm]);
+  }, [returnableSales, filterSeller, searchTerm, isSimplifiedMode]);
 
   const sellersWithSales = useMemo(() => {
     if (!Array.isArray(returnableSales) || !Array.isArray(users)) return [];
-    const sellerIds = new Set(returnableSales.map(sale => sale.createdBy).filter(Boolean));
-    return users.filter(user => sellerIds.has(user.id));
-  }, [returnableSales, users]);
+    // ✨ FIX: Get servers based on mode (serverId in simplified, createdBy in full)
+    const serverIds = new Set(
+      returnableSales
+        .map(sale => isSimplifiedMode ? sale.serverId : sale.createdBy)
+        .filter(Boolean)
+    );
+    return users.filter(user => serverIds.has(user.id));
+  }, [returnableSales, users, isSimplifiedMode]);
 
   const handleSubmit = async () => {
     if (!selectedSale || !selectedProduct) return;

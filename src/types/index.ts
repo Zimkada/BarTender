@@ -338,6 +338,10 @@ export interface Return {
 
   // ✅ NOUVEAU : Traçabilité vendeur original
   originalSeller?: string;  // userId du vendeur qui a créé la vente originale
+
+  // ✨ NOUVEAU : Mode opérationnel à la création (pour gérer le switching de mode)
+  operatingModeAtCreation?: 'full' | 'simplified'; // Mode lors de la création du retour
+  server_id?: string; // Alias snake_case pour compatibility DB
 }
 
 // ===== CONSIGNATIONS =====

@@ -115,8 +115,11 @@ export function useSalesFilters({ sales, consignments, returns = [], currentSess
         // A. Filtrage initial basé sur le rôle et le mode opérationnel
         const baseReturns = returns.filter(returnItem => {
             if (isServer) {
-                // Logique différente selon le mode opérationnel
-                if (operatingMode === 'simplified') {
+                // ✨ MODE SWITCHING SUPPORT: Use operatingModeAtCreation if available
+                // This ensures data created in a different mode is filtered correctly
+                const modeAtCreation = returnItem.operatingModeAtCreation || operatingMode;
+
+                if (modeAtCreation === 'simplified') {
                     // Mode simplifié: le serveur voit les retours où server_id correspond
                     return returnItem.server_id === currentSession.userId;
                 } else {

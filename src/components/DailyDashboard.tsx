@@ -18,7 +18,7 @@ import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import { Sale, SaleItem, User as UserType } from '../types';
 import { AnalyticsService, DailySalesSummary } from '../services/supabase/analytics.service';
 import { useTopProducts } from '../hooks/queries/useTopProductsQuery';
-import { getCurrentBusinessDateString } from '../utils/dateRangeCalculator';
+import { getCurrentBusinessDateString } from '../utils/businessDateHelpers';
 import { Button } from './ui/Button';
 
 // Sous-composant pour les ventes en attente
@@ -105,11 +105,17 @@ export function DailyDashboard() {
 
   const todayDateStr = useMemo(() => getCurrentBusinessDateString(), []);
 
+  // ✨ Filter metrics for servers
+  const isServerRole = currentSession?.role === 'serveur';
+  const operatingMode = currentBar?.settings?.operatingMode || 'full';
+  const serverIdForTopProducts = isServerRole ? currentSession?.userId : undefined;
+
   const { data: topProductsData = [] } = useTopProducts({
     barId: currentBar?.id || '',
     startDate: todayDateStr,
     endDate: todayDateStr,
     limit: 5,
+    serverId: serverIdForTopProducts, // Pass serverId for server filtering
     enabled: !!currentBar,
   });
 
@@ -130,10 +136,6 @@ export function DailyDashboard() {
     const isManager = currentSession?.role === 'gerant' || currentSession?.role === 'promoteur';
     return sales.filter(s => s.status === 'pending' && (isManager || s.createdBy === currentSession?.userId));
   }, [sales, currentSession]);
-
-  // ✨ Filter metrics for servers
-  const isServerRole = currentSession?.role === 'serveur';
-  const operatingMode = currentBar?.settings?.operatingMode || 'full';
 
   // Define activeConsignments BEFORE using it in serverFilteredConsignments
   const activeConsignments = consignments.filter(c => c.status === 'active');
