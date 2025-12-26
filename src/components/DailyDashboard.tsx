@@ -30,6 +30,7 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
   users: UserType[];
 }) => {
   const { formatPrice } = useCurrencyFormatter();
+  const { currentSession } = useAuth();
 
   const salesByServer = useMemo(() => {
     return sales.reduce((acc, sale) => {
@@ -48,11 +49,17 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
 
   if (sales.length === 0) return null;
 
+  // ✨ MODE SWITCHING FIX: Only show bulk validation buttons to managers
+  const isServerRole = currentSession?.role === 'serveur';
+  const showBulkValidation = !isServerRole;
+
   return (
     <div className="bg-white rounded-xl p-4 border border-amber-200">
       <div className="flex justify-between items-center mb-4">
         <h3 className="font-semibold text-gray-800 text-lg">Commandes en attente ({sales.length})</h3>
-        <EnhancedButton onClick={() => onValidateAll(sales)} size="sm" variant="primary">Tout Valider</EnhancedButton>
+        {showBulkValidation && (
+          <EnhancedButton onClick={() => onValidateAll(sales)} size="sm" variant="primary">Tout Valider</EnhancedButton>
+        )}
       </div>
       <div className="space-y-4 max-h-96 overflow-y-auto">
         {sortedServerIds.map(serverId => {
@@ -62,21 +69,31 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
             <div key={serverId} className="bg-gray-50 rounded-lg p-3">
               <div className="flex justify-between items-center mb-3">
                 <h4 className="font-semibold text-gray-700 flex items-center gap-2"><User size={16} /> {server?.name || 'Inconnu'}</h4>
-                <EnhancedButton onClick={() => onValidateAll(serverSales)} size="sm">Valider tout</EnhancedButton>
+                {showBulkValidation && (
+                  <EnhancedButton onClick={() => onValidateAll(serverSales)} size="sm">Valider tout</EnhancedButton>
+                )}
               </div>
               <div className="space-y-2">
-                {serverSales.map(sale => (
-                  <div key={sale.id} className="bg-amber-50 p-3 rounded-lg border border-amber-100 flex justify-between items-center">
-                    <div>
-                      <p className="text-xs text-gray-500">{new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                      <p className="font-bold text-amber-600">{formatPrice(sale.total)}</p>
+                {serverSales.map(sale => {
+                  // ✨ MODE SWITCHING FIX: Hide validate/reject buttons for servers viewing their own pending sales
+                  const isServerRole = currentSession?.role === 'serveur';
+                  const showButtons = !isServerRole;
+
+                  return (
+                    <div key={sale.id} className="bg-amber-50 p-3 rounded-lg border border-amber-100 flex justify-between items-center">
+                      <div>
+                        <p className="text-xs text-gray-500">{new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p className="font-bold text-amber-600">{formatPrice(sale.total)}</p>
+                      </div>
+                      {showButtons && (
+                        <div className="flex gap-2">
+                          <button onClick={() => onValidate(sale.id)} className="p-2 bg-green-500 text-white rounded-lg"><Check size={16} /></button>
+                          <button onClick={() => onReject(sale.id)} className="p-2 bg-red-500 text-white rounded-lg"><X size={16} /></button>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => onValidate(sale.id)} className="p-2 bg-green-500 text-white rounded-lg"><Check size={16} /></button>
-                      <button onClick={() => onReject(sale.id)} className="p-2 bg-red-500 text-white rounded-lg"><X size={16} /></button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );
