@@ -692,6 +692,8 @@ export default function ReturnsPage() {
                 canReturnSale={canReturnSale}
                 closeHour={closeHour}
                 consignments={consignments}
+                isSimplifiedMode={isSimplifiedMode}
+                currentBar={currentBar}
               />
             </motion.div>
           )}
@@ -817,7 +819,9 @@ function CreateReturnForm({
   onSelectSale,
   canReturnSale,
   closeHour,
-  consignments
+  consignments,
+  isSimplifiedMode,
+  currentBar
 }: {
   returnableSales: Sale[];
   returnReasons: Record<ReturnReason, ReturnReasonConfig>;
@@ -828,6 +832,8 @@ function CreateReturnForm({
   canReturnSale: (sale: Sale) => { allowed: boolean; reason: string };
   closeHour: number;
   consignments: any[];
+  isSimplifiedMode: boolean;
+  currentBar: any;
 }) {
   const { getReturnsBySale } = useAppContext();
   const { barMembers } = useBarContext();
