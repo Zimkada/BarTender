@@ -89,6 +89,11 @@ export default function SalesHistoryPage() {
         closeHour
     });
 
+    // ✨ Filter metrics for servers
+    const isServerRole = currentSession?.role === 'serveur';
+    const operatingMode = currentBar?.settings?.operatingMode || 'full';
+    const serverIdForAnalytics = isServerRole ? currentSession?.userId : undefined;
+
     // HOOK: Statistiques & Top Produits
     const {
         stats,
@@ -103,7 +108,8 @@ export default function SalesHistoryPage() {
         timeRange,
         startDate,
         endDate,
-        currentBar
+        currentBar,
+        serverId: serverIdForAnalytics // Pass serverId for server filtering
     });
 
     const exportSales = () => {
