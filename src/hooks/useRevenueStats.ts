@@ -46,33 +46,13 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         // ✨ Filter by server if role is serveur
         let baseSales = sales.filter(s => s.status === 'validated');
 
-        console.log('[useRevenueStats] DEBUG:', {
-            isServerRole,
-            operatingMode,
-            currentSessionUserId: currentSession?.userId,
-            totalSales: sales.length,
-            validatedSales: baseSales.length,
-        });
-
         if (isServerRole) {
             if (operatingMode === 'simplified') {
                 // Simplified mode: server sees sales assigned via server_id
-                const beforeFilter = baseSales.length;
                 baseSales = baseSales.filter(s => s.serverId === currentSession?.userId);
-                console.log('[useRevenueStats] Simplified mode filter:', {
-                    before: beforeFilter,
-                    after: baseSales.length,
-                    filteredByServerId: currentSession?.userId,
-                });
             } else {
                 // Full mode: server sees sales they created
-                const beforeFilter = baseSales.length;
                 baseSales = baseSales.filter(s => s.createdBy === currentSession?.userId);
-                console.log('[useRevenueStats] Full mode filter:', {
-                    before: beforeFilter,
-                    after: baseSales.length,
-                    filteredByCreatedBy: currentSession?.userId,
-                });
             }
         }
 

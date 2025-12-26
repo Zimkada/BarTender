@@ -69,17 +69,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const barId = currentBar?.id || '';
     const operatingMode = currentBar?.settings?.operatingMode || 'full';
 
-    // DEBUG: Log barId initialization and BarContext loading state
-    useEffect(() => {
-        console.log('[AppProvider] DEBUG barId initialization:', {
-            barId,
-            currentBarId: currentBar?.id,
-            currentBarName: currentBar?.name,
-            barContextLoading,
-            operatingMode,
-            timestamp: new Date().toISOString()
-        });
-    }, [barId, currentBar, barContextLoading, operatingMode]);
 
     // React Query: Fetch data
     const { data: categories = [] } = useCategories(barId);

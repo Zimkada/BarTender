@@ -159,33 +159,9 @@ export function DailyDashboard() {
   const serverFilteredConsignments = useMemo(() => {
     if (!isServerRole) return activeConsignments;
     if (operatingMode === 'simplified') {
-      const filtered = activeConsignments.filter(c => c.serverId === currentSession?.userId);
-      console.log('[DailyDashboard] Simplified mode consignments filter:', {
-        totalActive: activeConsignments.length,
-        filtered: filtered.length,
-        currentServerId: currentSession?.userId,
-        consignmentsDebug: activeConsignments.map(c => ({
-          id: c.id,
-          serverId: c.serverId,
-          originalSeller: c.originalSeller,
-          status: c.status,
-        }))
-      });
-      return filtered;
+      return activeConsignments.filter(c => c.serverId === currentSession?.userId);
     } else {
-      const filtered = activeConsignments.filter(c => c.originalSeller === currentSession?.userId);
-      console.log('[DailyDashboard] Full mode consignments filter:', {
-        totalActive: activeConsignments.length,
-        filtered: filtered.length,
-        currentUserId: currentSession?.userId,
-        consignmentsDebug: activeConsignments.map(c => ({
-          id: c.id,
-          serverId: c.serverId,
-          originalSeller: c.originalSeller,
-          status: c.status,
-        }))
-      });
-      return filtered;
+      return activeConsignments.filter(c => c.originalSeller === currentSession?.userId);
     }
   }, [activeConsignments, isServerRole, operatingMode, currentSession?.userId]);
 
