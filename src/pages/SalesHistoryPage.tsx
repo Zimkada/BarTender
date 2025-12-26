@@ -543,18 +543,26 @@ export default function SalesHistoryPage() {
                             </div>
                             <div className="flex items-center gap-2">
                                 {/* Sélecteur de format d'export */}
-                                <div className="flex items-center gap-1 mr-2">
+                                <div className="flex items-center gap-1 mr-2 bg-white/20 rounded-lg p-1">
                                     <Button
                                         onClick={() => setExportFormat('excel')}
-                                        variant={exportFormat === 'excel' ? 'default' : 'secondary'}
-                                        className="px-3 py-1.5 text-xs font-medium rounded-l-lg transition-colors rounded-r-none"
+                                        variant="ghost"
+                                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                                            exportFormat === 'excel'
+                                                ? 'bg-white text-amber-900'
+                                                : 'text-white hover:bg-white/10'
+                                        }`}
                                     >
                                         Excel
                                     </Button>
                                     <Button
                                         onClick={() => setExportFormat('csv')}
-                                        variant={exportFormat === 'csv' ? 'default' : 'secondary'}
-                                        className="px-3 py-1.5 text-xs font-medium rounded-r-lg transition-colors rounded-l-none"
+                                        variant="ghost"
+                                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                                            exportFormat === 'csv'
+                                                ? 'bg-white text-amber-900'
+                                                : 'text-white hover:bg-white/10'
+                                        }`}
                                     >
                                         CSV
                                     </Button>
