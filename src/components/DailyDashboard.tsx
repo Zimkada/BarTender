@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  TrendingUp, DollarSign, ShoppingCart, Package, Share, Lock, Eye, EyeOff, RotateCcw, Archive, Check, X, User, AlertTriangle, ArrowLeft
+  TrendingUp, DollarSign, ShoppingCart, Package, Share, Lock, Eye, EyeOff, RotateCcw, Archive, Check, X, User, AlertTriangle, ArrowLeft, ChevronDown, ChevronUp, ShoppingBag
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRevenueStats } from '../hooks/useRevenueStats';
@@ -31,6 +31,19 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
 }) => {
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession } = useAuth();
+  const [expandedSales, setExpandedSales] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (saleId: string) => {
+    setExpandedSales(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(saleId)) {
+        newSet.delete(saleId);
+      } else {
+        newSet.add(saleId);
+      }
+      return newSet;
+    });
+  };
 
   const salesByServer = useMemo(() => {
     return sales.reduce((acc, sale) => {
@@ -78,19 +91,65 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
                   // ✨ MODE SWITCHING FIX: Hide validate/reject buttons for servers viewing their own pending sales
                   const isServerRole = currentSession?.role === 'serveur';
                   const showButtons = !isServerRole;
+                  const isExpanded = expandedSales.has(sale.id);
+                  const totalItems = sale.items.reduce((sum, item) => sum + item.quantity, 0);
 
                   return (
-                    <div key={sale.id} className="bg-amber-50 p-3 rounded-lg border border-amber-100 flex justify-between items-center">
-                      <div>
-                        <p className="text-xs text-gray-500">{new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                        <p className="font-bold text-amber-600">{formatPrice(sale.total)}</p>
-                      </div>
-                      {showButtons && (
-                        <div className="flex gap-2">
-                          <button onClick={() => onValidate(sale.id)} className="p-2 bg-green-500 text-white rounded-lg"><Check size={16} /></button>
-                          <button onClick={() => onReject(sale.id)} className="p-2 bg-red-500 text-white rounded-lg"><X size={16} /></button>
+                    <div key={sale.id} className="bg-amber-50 rounded-lg border border-amber-100 overflow-hidden">
+                      <div className="p-3 flex justify-between items-center">
+                        <div className="flex items-center gap-3 flex-1">
+                          <div>
+                            <p className="text-xs text-gray-500">{new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                            <p className="font-bold text-amber-600">{formatPrice(sale.total)}</p>
+                          </div>
+                          <button
+                            onClick={() => toggleExpanded(sale.id)}
+                            className="flex items-center gap-1 text-xs text-gray-600 hover:text-amber-600 transition-colors px-2 py-1 rounded-md hover:bg-amber-100"
+                          >
+                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            <span>Détails ({totalItems})</span>
+                          </button>
                         </div>
-                      )}
+                        {showButtons && (
+                          <div className="flex gap-2">
+                            <button onClick={() => onValidate(sale.id)} className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"><Check size={16} /></button>
+                            <button onClick={() => onReject(sale.id)} className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"><X size={16} /></button>
+                          </div>
+                        )}
+                      </div>
+
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="border-t border-amber-200 bg-amber-50/50"
+                          >
+                            <div className="p-3 space-y-2">
+                              <p className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+                                <ShoppingBag size={14} />
+                                Articles ({sale.items.length}):
+                              </p>
+                              {sale.items.map((item: SaleItem, index: number) => (
+                                <div key={index} className="flex items-center justify-between text-sm pl-5 border-l-2 border-amber-300">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-gray-700">{item.quantity}x</span>
+                                    <span className="text-gray-600">{item.product_name}</span>
+                                    {item.product_volume && (
+                                      <span className="text-gray-400 text-xs">({item.product_volume})</span>
+                                    )}
+                                  </div>
+                                  <span className="font-semibold text-amber-600">
+                                    {formatPrice(item.total_price)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   );
                 })}
