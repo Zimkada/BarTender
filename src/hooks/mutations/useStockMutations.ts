@@ -216,6 +216,7 @@ export const useStockMutations = () => {
             };
 
             // Add optional fields only if they have valid values
+            if (data.serverId) consignmentData.server_id = data.serverId;
             if (data.originalSeller) consignmentData.original_seller = data.originalSeller;
             if (data.customerName) consignmentData.customer_name = data.customerName;
             if (data.customerPhone) consignmentData.customer_phone = data.customerPhone;

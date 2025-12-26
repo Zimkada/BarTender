@@ -265,6 +265,14 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
       ? selectedSale.serverId
       : selectedSale.createdBy;
 
+    console.log('[ConsignmentPage] Creating consignment with:', {
+      isSimplifiedMode,
+      saleId: selectedSale.id,
+      'selectedSale.serverId': selectedSale.serverId,
+      'selectedSale.createdBy': selectedSale.createdBy,
+      deducedServerId: serverId,
+    });
+
     try {
       const consignment = await stockManager.createConsignment({
         saleId: selectedSale.id,
