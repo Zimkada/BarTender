@@ -76,7 +76,7 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
       label: 'Retours',
       path: '/returns',
       color: 'text-red-600',
-      roles: ['promoteur', 'gerant']
+      roles: ['promoteur', 'gerant', 'serveur']
     },
     {
       icon: <FileSpreadsheet size={24} />,
