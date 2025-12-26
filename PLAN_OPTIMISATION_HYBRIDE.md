@@ -1675,9 +1675,16 @@ export async function middleware(request: Request) {
 
 ---
 
-### Phase 3 : Optimisation Supabase (3-4 jours)
+### Phase 3 : Optimisation Supabase (5-6 jours)
 
-**Objectif** : Performance + Économie + Scalabilité
+**Objectif** : Performance + Économie + Scalabilité + Sécurité
+
+> [!IMPORTANT]
+> **Ajustements suite retour d'expert** (95/100 → 98-99/100)
+> - ✅ Monitoring RLS runtime (sécurité)
+> - ✅ Garde-fous pg_cron (stabilité)
+> - ✅ Fallback polling > 30 users/bar (scalabilité)
+> - ✅ Tests edge cases (robustesse)
 
 #### Jour 1 : Préparation Backend
 - [ ] Activer pg_cron (Supabase Dashboard)
@@ -1687,25 +1694,40 @@ export async function middleware(request: Request) {
 - [ ] Créer fonction `create_sale_with_stock_lock` (verrous SQL + timeouts)
 - [ ] Configurer rafraîchissement pg_cron hors pointe
 
-#### Jour 2 : Implémentation Frontend (Realtime + Broadcast)
+#### Jour 2 : Sécurité & Monitoring (NOUVEAU)
+- [ ] Créer table `rls_violations_log`
+- [ ] Implémenter triggers monitoring RLS
+- [ ] Créer fonction `log_rls_violation()`
+- [ ] Dashboard admin sécurité (`/admin/security`)
+- [ ] Garde-fous pg_cron (timeout + logging)
+- [ ] Fonction `safe_refresh_materialized_view()`
+- [ ] Alertes échecs refresh consécutifs
+
+#### Jour 3 : Frontend Realtime + Broadcast
 - [ ] Créer `lib/broadcast.ts`
 - [ ] Refactorer `useStockQueries.ts` (ajouter Realtime stock)
+- [ ] **Implémenter fallback polling si > 30 users/bar** (NOUVEAU)
 - [ ] Supprimer `refetchInterval: 3000` de `useProducts`
 - [ ] Intégrer `useBroadcastSync` dans App.tsx
 
-#### Jour 3 : Optimistic Updates + Polling Adaptatif
+#### Jour 4 : Optimistic Updates + Polling Adaptatif
 - [ ] Refactorer mutations ventes (Optimistic Update)
 - [ ] Refactorer mutations retours (Optimistic Update)
 - [ ] Implémenter polling adaptatif dans `useSales`
 - [ ] Créer `useSalesPaginated.ts`
 - [ ] Supprimer `refetchInterval: 2000` de `useSales`
 
-#### Jour 4 : Tests & Validation
+#### Jour 5-6 : Tests & Validation
 - [ ] Test conflit stock (2 users, dernière bouteille)
+- [ ] **Test conflit stock 3+ users simultanés** (NOUVEAU)
 - [ ] Test haute affluence (> 10 ventes/5min)
+- [ ] **Test multi-item sale avec stock insuffisant partiel** (NOUVEAU)
+- [ ] **Test reconnexion Realtime pendant vente** (NOUVEAU)
 - [ ] Test mobile instable (reconnexion WiFi)
 - [ ] Test offline (mode avion)
+- [ ] **Test offline > 1h puis reconnexion** (NOUVEAU)
 - [ ] Monitoring coûts Supabase Dashboard
+- [ ] Vérifier logs RLS violations (aucune attendue)
 
 ---
 
@@ -1750,9 +1772,15 @@ export async function middleware(request: Request) {
 - [ ] Tests E2E flux vente (Playwright)
 - [ ] Tests E2E flux retour (Playwright)
 - [ ] Tests E2E multi-utilisateurs (Playwright)
+- [ ] **Tests E2E edge cases détaillés** (NOUVEAU)
+  - [ ] Multi-item sale avec stock insuffisant partiel
+  - [ ] Reconnexion Realtime pendant vente
+  - [ ] Conflit stock 3+ users simultanés
+  - [ ] Offline > 1h puis reconnexion
 - [ ] Suite tests RLS automatisée (SQL)
 - [ ] Intégration CI (GitHub Actions)
 - [ ] Tests charge k6 (100 users simultanés)
+- [ ] **Tests k6 avec reconnexions simulées** (NOUVEAU)
 
 ---
 
@@ -1773,6 +1801,17 @@ export async function middleware(request: Request) {
 - [ ] Labels sémantiques formulaires
 - [ ] Lighthouse Accessibility > 95
 - [ ] Test lecteur d'écran (NVDA/JAWS)
+
+> [!NOTE]
+> **IndexedDB Offline (Conditionnel)**
+> 
+> Implémenter **UNIQUEMENT SI** monitoring Semaine 1 Prod révèle :
+> - Offline > 1h fréquent (> 5% bars)
+> - Pertes mutations critiques
+> 
+> Sinon : Garder offline temporaire (React Query cache)
+> 
+> **Effort si nécessaire** : +2-3 jours
 
 ---
 
@@ -1800,13 +1839,16 @@ export async function middleware(request: Request) {
 | Phase | Durée | Dates (si début 26 déc) | Statut |
 |-------|-------|-------------------------|--------|
 | **Phase 1-2** | - | - | ✅ **Terminées** |
-| **Phase 3 : Optimisation Supabase** | 3-4 jours | 26-30 déc | 🔄 **En cours** |
-| **Phase 4 : Performance Frontend** | 2-3 semaines | 31 déc - 21 jan | ⏳ À venir |
-| **Phase 5 : Tests & Qualité** | 2 semaines | 22 jan - 4 fév | ⏳ À venir |
-| **Phase 6 : Excellence UX/UI** | 1-2 semaines | 5 fév - 18 fév | ⏳ À venir |
-| **Phase 7 : Scalabilité & Monitoring** | 1-2 semaines | 19 fév - 4 mars | ⏳ À venir |
+| **Phase 3 : Optimisation Supabase** | **5-6 jours** | 26 déc - 2 jan | 🔄 **En cours** |
+| **Phase 4 : Performance Frontend** | 2-3 semaines | 3-24 jan | ⏳ À venir |
+| **Phase 5 : Tests & Qualité** | 2 semaines | 25 jan - 7 fév | ⏳ À venir |
+| **Phase 6 : Excellence UX/UI** | 1-2 semaines | 8-21 fév | ⏳ À venir |
+| **Phase 7 : Scalabilité & Monitoring** | 1-2 semaines | 22 fév - 7 mars | ⏳ À venir |
 
-**Livraison Production** : **4 mars 2026** (estimation conservatrice)
+**Livraison Production** : **7 mars 2026** (+3 jours pour robustesse optimale)
+
+> [!NOTE]
+> **Ajustements suite retour d'expert** : +2 jours Phase 3 (95/100 → 98-99/100)
 
 **Objectif** : Préparer infrastructure Supabase
 
@@ -2300,7 +2342,7 @@ sequenceDiagram
 
 ## ✅ Validation d'Expert
 
-> **Niveau de maturité** : **98-99% production-ready**
+> **Niveau de maturité** : **98-99% production-ready** (après ajustements)
 > 
 > **Points validés** :
 > - ✅ Architecture hybride moderne
@@ -2314,11 +2356,15 @@ sequenceDiagram
 > - ✅ Diagrammes d'architecture (C4)
 > 
 > **Corrections critiques intégrées** :
-> - ✅ Verrou SQL transactionnel + timeouts
-> - ✅ Coûts Realtime réalistes
-> - ✅ Optimisation COUNT (table agrégats)
-> - ✅ Clarification offline
-> - ✅ Planification pg_cron intelligente
-> - ✅ Limite users/bar documentée
+- ✅ Verrou SQL transactionnel + timeouts
+- ✅ Coûts Realtime réalistes
+- ✅ Optimisation COUNT (table agrégats)
+- ✅ Clarification offline
+- ✅ Planification pg_cron intelligente
+- ✅ Limite users/bar documentée
+- ✅ **Monitoring RLS runtime** (NOUVEAU)
+- ✅ **Garde-fous pg_cron** (NOUVEAU)
+- ✅ **Fallback polling > 30 users/bar** (NOUVEAU)
+- ✅ **Tests edge cases détaillés** (NOUVEAU)
 > 
 > **Prêt pour implémentation production** 🚀
