@@ -47,13 +47,11 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         let baseSales = sales.filter(s => s.status === 'validated');
 
         if (isServerRole) {
-            if (operatingMode === 'simplified') {
-                // Simplified mode: server sees sales assigned via server_id
-                baseSales = baseSales.filter(s => s.serverId === currentSession?.userId);
-            } else {
-                // Full mode: server sees sales they created
-                baseSales = baseSales.filter(s => s.createdBy === currentSession?.userId);
-            }
+            // ✨ MODE SWITCHING FIX: A server should see ALL their sales regardless of mode
+            // Check BOTH serverId (simplified mode) AND createdBy (full mode)
+            baseSales = baseSales.filter(s =>
+                s.serverId === currentSession?.userId || s.createdBy === currentSession?.userId
+            );
         }
 
         // Filter sales by business date range
@@ -70,13 +68,11 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         // ✨ Filter returns by server if applicable
         let baseReturns = returns.filter(r => r.isRefunded && (r.status === 'approved' || r.status === 'restocked'));
         if (isServerRole) {
-            if (operatingMode === 'simplified') {
-                // Simplified mode: server sees returns assigned via server_id
-                baseReturns = baseReturns.filter(r => r.serverId === currentSession?.userId);
-            } else {
-                // Full mode: server sees returns they created
-                baseReturns = baseReturns.filter(r => r.returnedBy === currentSession?.userId);
-            }
+            // ✨ MODE SWITCHING FIX: A server should see ALL their returns regardless of mode
+            // Check BOTH serverId (simplified mode) AND returnedBy (full mode)
+            baseReturns = baseReturns.filter(r =>
+                r.serverId === currentSession?.userId || r.returnedBy === currentSession?.userId
+            );
         }
 
         // Filter returns by business date range

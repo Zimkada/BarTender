@@ -6,6 +6,8 @@ import {
   Search,
   Filter,
   AlertTriangle,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -176,12 +178,23 @@ export default function ReturnsPage() {
 
   const getReturnableSales = useMemo((): Sale[] => {
     const currentBusinessDate = getCurrentBusinessDateString(closeHour);
+    const isServerRole = currentSession?.role === 'serveur';
+
     return sales.filter(sale => {
       if (sale.status !== 'validated') return false;
+
       const saleBusinessDate = getBusinessDate(sale, closeHour);
-      return saleBusinessDate === currentBusinessDate;
+      if (saleBusinessDate !== currentBusinessDate) return false;
+
+      // ✨ MODE SWITCHING FIX: Servers should only see returns for their own sales
+      // Check BOTH serverId (simplified mode) AND createdBy (full mode)
+      if (isServerRole && currentSession?.userId) {
+        return sale.serverId === currentSession.userId || sale.createdBy === currentSession.userId;
+      }
+
+      return true;
     });
-  }, [sales, closeHour]);
+  }, [sales, closeHour, currentSession]);
 
   const createReturn = async (
     saleId: string,
@@ -240,9 +253,11 @@ export default function ReturnsPage() {
     const finalRefund = reason === 'other' ? (customRefund ?? false) : reasonConfig.autoRefund;
     const finalRestock = reason === 'other' ? (customRestock ?? false) : reasonConfig.autoRestock;
 
-    // ✨ FIXED: Déduire automatiquement le serveur de la vente
-    // Ne pas demander à l'utilisateur - le retour doit affecter le même serveur que la vente
-    const serverId = isSimplifiedMode ? sale.serverId : sale.createdBy;
+    // ✨ MODE SWITCHING FIX: Déduire automatiquement le serveur de la vente
+    // Un retour doit TOUJOURS être assigné au même serveur que la vente d'origine
+    // Utiliser serverId si présent (vente en mode simplifié), sinon createdBy (mode complet)
+    // Cela garantit que les retours fonctionnent même après un switch de mode
+    const serverId = sale.serverId || sale.createdBy;
 
     addReturn({
       saleId,
@@ -849,6 +864,7 @@ function CreateReturnForm({
   const [showOtherReasonDialog, setShowOtherReasonDialog] = useState(false);
   const [filterSeller, setFilterSeller] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isInfoExpanded, setIsInfoExpanded] = useState(false);
 
   const reasonConfig = returnReasons[reason];
 
@@ -878,10 +894,10 @@ function CreateReturnForm({
     let filtered = returnableSales;
 
     if (filterSeller !== 'all') {
-      // ✨ FIX: Filter by server_id instead of createdBy
-      // This matches the server displayed in the list (consistent with mode logic)
+      // ✨ MODE SWITCHING FIX: Filter using mode-agnostic server detection
+      // Use serverId if present (simplified mode sale), otherwise createdBy (full mode sale)
       filtered = filtered.filter(sale => {
-        const serverUserId = isSimplifiedMode ? sale.serverId : sale.createdBy;
+        const serverUserId = sale.serverId || sale.createdBy;
         return serverUserId === filterSeller;
       });
     }
@@ -893,19 +909,25 @@ function CreateReturnForm({
       );
     }
 
-    return filtered;
-  }, [returnableSales, filterSeller, searchTerm, isSimplifiedMode]);
+    // ✨ Sort by time: most recent first (validatedAt or createdAt)
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.validatedAt || a.createdAt);
+      const dateB = new Date(b.validatedAt || b.createdAt);
+      return dateB.getTime() - dateA.getTime(); // Descending order
+    });
+  }, [returnableSales, filterSeller, searchTerm]);
 
   const sellersWithSales = useMemo(() => {
     if (!Array.isArray(returnableSales) || !Array.isArray(users)) return [];
-    // ✨ FIX: Get servers based on mode (serverId in simplified, createdBy in full)
+    // ✨ MODE SWITCHING FIX: Get servers using mode-agnostic detection
+    // Use serverId if present (simplified mode sale), otherwise createdBy (full mode sale)
     const serverIds = new Set(
       returnableSales
-        .map(sale => isSimplifiedMode ? sale.serverId : sale.createdBy)
+        .map(sale => sale.serverId || sale.createdBy)
         .filter(Boolean)
     );
     return users.filter(user => serverIds.has(user.id));
-  }, [returnableSales, users, isSimplifiedMode]);
+  }, [returnableSales, users]);
 
   const handleSubmit = async () => {
     if (!selectedSale || !selectedProduct) return;
@@ -957,13 +979,49 @@ function CreateReturnForm({
         <h3 className="text-lg font-semibold text-gray-800">Créer un nouveau retour</h3>
 
         <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="text-blue-600" size={18} />
-              <p className="text-blue-700 text-sm font-medium">
-                Retours autorisés uniquement AVANT clôture caisse ({closeHour}h)
-              </p>
-            </div>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg overflow-hidden">
+            <button
+              onClick={() => setIsInfoExpanded(!isInfoExpanded)}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-blue-100 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-blue-600" />
+                <p className="font-semibold text-blue-800">Processus de retour</p>
+              </div>
+              {isInfoExpanded ? (
+                <ChevronUp className="w-5 h-5 text-blue-600" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-blue-600" />
+              )}
+            </button>
+            <AnimatePresence>
+              {isInfoExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="px-4 pb-3 border-t border-blue-200">
+                    <ol className="list-decimal list-inside space-y-1 text-blue-700 mt-2 text-sm">
+                      <li>Sélectionnez la vente de la journée commerciale actuelle</li>
+                      <li>Choisissez le produit à retourner et la quantité</li>
+                      <li>Indiquez le motif du retour (défectueux, erreur, etc.)</li>
+                      <li>Le stock sera automatiquement réapprovisionné selon le motif</li>
+                    </ol>
+                    <div className="mt-3 pt-2 border-t border-blue-200">
+                      <p className="text-blue-700 text-xs font-medium flex items-center gap-1">
+                        <AlertTriangle size={14} />
+                        Retours autorisés uniquement AVANT clôture caisse ({closeHour}h)
+                      </p>
+                      <p className="text-blue-600 text-xs mt-1">
+                        Votre bar ferme à {closeHour}h. Les retours ne peuvent être créés qu'avant cette heure.
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <div>
@@ -1008,8 +1066,9 @@ function CreateReturnForm({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
                 {filteredSales.map(sale => {
                   const returnCheck = canReturnSale(sale);
-                  // ✨ NEW: Show server responsible for this sale
-                  const serverUserId = isSimplifiedMode ? sale.serverId : sale.createdBy;
+                  // ✨ MODE SWITCHING FIX: Show server using mode-agnostic detection
+                  // Use serverId if present (simplified mode sale), otherwise createdBy (full mode sale)
+                  const serverUserId = sale.serverId || sale.createdBy;
                   const serverUser = serverUserId ? users.find(u => u.id === serverUserId) : undefined;
                   const productPreview = sale.items.slice(0, 2).map(i => `${i.quantity}x ${i.product_name}`).join(', ');
                   const moreCount = sale.items.length - 2;

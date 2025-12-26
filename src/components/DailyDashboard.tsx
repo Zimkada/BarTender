@@ -142,30 +142,30 @@ export function DailyDashboard() {
 
   const serverFilteredSales = useMemo(() => {
     if (!isServerRole) return todayValidatedSales;
-    if (operatingMode === 'simplified') {
-      return todayValidatedSales.filter(s => s.serverId === currentSession?.userId);
-    } else {
-      return todayValidatedSales.filter(s => s.createdBy === currentSession?.userId);
-    }
-  }, [todayValidatedSales, isServerRole, operatingMode, currentSession?.userId]);
+    // ✨ MODE SWITCHING FIX: A server should see ALL their sales regardless of mode
+    // Check BOTH serverId (simplified mode) AND createdBy (full mode)
+    return todayValidatedSales.filter(s =>
+      s.serverId === currentSession?.userId || s.createdBy === currentSession?.userId
+    );
+  }, [todayValidatedSales, isServerRole, currentSession?.userId]);
 
   const serverFilteredReturns = useMemo(() => {
     if (!isServerRole) return todayReturns;
-    if (operatingMode === 'simplified') {
-      return todayReturns.filter(r => r.serverId === currentSession?.userId);
-    } else {
-      return todayReturns.filter(r => r.returnedBy === currentSession?.userId);
-    }
-  }, [todayReturns, isServerRole, operatingMode, currentSession?.userId]);
+    // ✨ MODE SWITCHING FIX: A server should see ALL their returns regardless of mode
+    // Check BOTH serverId (simplified mode) AND returnedBy (full mode)
+    return todayReturns.filter(r =>
+      r.serverId === currentSession?.userId || r.returnedBy === currentSession?.userId
+    );
+  }, [todayReturns, isServerRole, currentSession?.userId]);
 
   const serverFilteredConsignments = useMemo(() => {
     if (!isServerRole) return activeConsignments;
-    if (operatingMode === 'simplified') {
-      return activeConsignments.filter(c => c.serverId === currentSession?.userId);
-    } else {
-      return activeConsignments.filter(c => c.originalSeller === currentSession?.userId);
-    }
-  }, [activeConsignments, isServerRole, operatingMode, currentSession?.userId]);
+    // ✨ MODE SWITCHING FIX: A server should see ALL their consignments regardless of mode
+    // Check BOTH serverId (simplified mode) AND originalSeller (full mode)
+    return activeConsignments.filter(c =>
+      c.serverId === currentSession?.userId || c.originalSeller === currentSession?.userId
+    );
+  }, [activeConsignments, isServerRole, currentSession?.userId]);
 
   const lowStockProducts = getLowStockProducts();
   // ✨ Filter totalItems by server if applicable

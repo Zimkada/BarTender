@@ -336,14 +336,9 @@ export class SalesService {
       // Ventes validées (Filtre sur business_date)
       let validatedQuery = supabase
         .from('sales')
-        .select('total')
+        .select('id, total, server_id, created_by, business_date, status')
         .eq('bar_id', barId)
         .eq('status', 'validated');
-
-      // ✨ Filter by server if provided (for serveur role)
-      if (serverId) {
-        validatedQuery = validatedQuery.eq('server_id', serverId);
-      }
 
       if (startDate) {
         validatedQuery = validatedQuery.gte('business_date', startDate);
@@ -353,25 +348,63 @@ export class SalesService {
         validatedQuery = validatedQuery.lte('business_date', endDate);
       }
 
-      const { data: validatedSales } = await validatedQuery;
+      const { data: allValidatedSales } = await validatedQuery;
 
-      const totalRevenue = (validatedSales || []).reduce((sum, sale) => sum + (sale.total || 0), 0);
-      const totalSales = validatedSales?.length || 0;
+      // ✨ MODE SWITCHING FIX: Filter by server with client-side OR logic
+      // Apply server filter in JavaScript to ensure proper AND/OR precedence
+      // A server should see sales where they are EITHER the assigned server OR the creator
+      let validatedSales = allValidatedSales || [];
+      if (serverId) {
+        validatedSales = validatedSales.filter((sale: any) =>
+          sale.server_id === serverId || sale.created_by === serverId
+        );
+
+        // 🔍 DEBUG: Log sales data for mode switching analysis
+        console.log('[SalesService.getSalesStats] Query results:', {
+          barId,
+          serverId,
+          startDate,
+          endDate,
+          totalBeforeFilter: allValidatedSales?.length || 0,
+          totalAfterFilter: validatedSales.length,
+          salesDetails: validatedSales.map((s: any) => ({
+            id: s.id,
+            total: s.total,
+            server_id: s.server_id,
+            created_by: s.created_by,
+            business_date: s.business_date
+          }))
+        });
+      }
+
+      const totalRevenue = validatedSales.reduce((sum: number, sale: any) => sum + (sale.total || 0), 0);
+      const totalSales = validatedSales.length;
       const averageSale = totalSales > 0 ? totalRevenue / totalSales : 0;
 
+      // 🔍 DEBUG: Log calculated totals
+      if (serverId) {
+        console.log('[SalesService.getSalesStats] Calculated totals:', {
+          totalSales,
+          totalRevenue,
+          averageSale
+        });
+      }
+
       // Ventes en attente (Toujours temps réel, pas de filtre date nécessaire généralement, ou created_at)
-      let pendingQuery = supabase
+      const { data: allPendingSales } = await supabase
         .from('sales')
-        .select('*', { count: 'exact', head: true })
+        .select('id, server_id, created_by')
         .eq('bar_id', barId)
         .eq('status', 'pending');
 
-      // ✨ Filter by server if provided
-      if (serverId) {
-        pendingQuery = pendingQuery.eq('server_id', serverId);
+      // ✨ MODE SWITCHING FIX: Filter by server with client-side OR logic
+      let pendingCount = allPendingSales?.length || 0;
+      if (serverId && allPendingSales) {
+        const filteredPending = allPendingSales.filter((sale: any) =>
+          sale.server_id === serverId || sale.created_by === serverId
+        );
+        pendingCount = filteredPending.length;
       }
-
-      const { count: pendingCount } = await pendingQuery;
 
       return {
         totalSales,

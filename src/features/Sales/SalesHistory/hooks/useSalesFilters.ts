@@ -35,17 +35,11 @@ export function useSalesFilters({ sales, consignments, returns = [], currentSess
         // A. Filtrage initial basé sur le rôle et le mode opérationnel
         const baseSales = sales.filter(sale => {
             if (isServer) {
-                // Logique différente selon le mode opérationnel
-                if (operatingMode === 'simplified') {
-                    // Mode simplifié: le gérant a créé la vente et assigné le serveur
-                    // ✨ FIXED: Utilise server_id (UUID) au lieu de parser les notes
-                    // Le serveur voit les ventes où server_id correspond à son UUID
-                    return sale.serverId === currentSession.userId;
-                } else {
-                    // Mode complet: le serveur a créé la vente lui-même
-                    // Vérifier que le créateur (UUID) est le serveur courant
-                    return sale.createdBy === currentSession.userId;
-                }
+                // ✨ MODE SWITCHING FIX: A server should see ALL their sales regardless of mode
+                // Check BOTH serverId (simplified mode) AND createdBy (full mode)
+                // This ensures data visibility persists across mode switches
+                // ✅ REVENUE FIX: Only count validated sales for revenue calculations
+                return sale.status === 'validated' && (sale.serverId === currentSession.userId || sale.createdBy === currentSession.userId);
             } else {
                 // Gérant/Promoteur/Admin: voir uniquement les ventes validées
                 return sale.status === 'validated';
@@ -85,15 +79,10 @@ export function useSalesFilters({ sales, consignments, returns = [], currentSess
         // A. Filtrage initial basé sur le rôle et le mode opérationnel
         const baseConsignments = consignments.filter(consignment => {
             if (isServer) {
-                // Logique différente selon le mode opérationnel
-                if (operatingMode === 'simplified') {
-                    // ✨ BUG #10f FIX: Mode simplifié - maintenant avec server_id
-                    // Le serveur voit les consignations qui lui sont assignées via server_id
-                    return consignment.serverId === currentSession.userId;
-                } else {
-                    // Mode complet: le serveur voit ses consignations (vendeur original)
-                    return consignment.originalSeller === currentSession.userId;
-                }
+                // ✨ MODE SWITCHING FIX: A server should see ALL their consignments regardless of mode
+                // Check BOTH serverId (simplified mode) AND originalSeller (full mode)
+                // This ensures data visibility persists across mode switches
+                return consignment.serverId === currentSession.userId || consignment.originalSeller === currentSession.userId;
             }
             return true;
         });
@@ -115,17 +104,10 @@ export function useSalesFilters({ sales, consignments, returns = [], currentSess
         // A. Filtrage initial basé sur le rôle et le mode opérationnel
         const baseReturns = returns.filter(returnItem => {
             if (isServer) {
-                // ✨ MODE SWITCHING SUPPORT: Use operatingModeAtCreation if available
-                // This ensures data created in a different mode is filtered correctly
-                const modeAtCreation = returnItem.operatingModeAtCreation || operatingMode;
-
-                if (modeAtCreation === 'simplified') {
-                    // Mode simplifié: le serveur voit les retours où server_id correspond
-                    return returnItem.server_id === currentSession.userId;
-                } else {
-                    // Mode complet: le serveur voit les retours qu'il a traités
-                    return returnItem.returnedBy === currentSession.userId;
-                }
+                // ✨ MODE SWITCHING FIX: A server should see ALL their returns regardless of mode
+                // Check BOTH server_id (simplified mode) AND returnedBy (full mode)
+                // This ensures data visibility persists across mode switches
+                return returnItem.server_id === currentSession.userId || returnItem.returnedBy === currentSession.userId;
             }
             return true; // Gérant/Admin: voir tous les retours
         });

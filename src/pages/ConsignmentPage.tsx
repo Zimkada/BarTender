@@ -12,6 +12,8 @@ import {
   Calendar,
   Archive,
   Filter,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -142,11 +144,10 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
   const stockManager = useStockManagement();
   const { formatPrice } = useCurrencyFormatter();
   const { showSuccess, showError } = useFeedback();
-  const { currentBar, getBarMembers } = useBarContext();
+  const { currentBar, barMembers } = useBarContext();
   const { currentSession: session } = useAuth();
 
-  const barMembers = currentBar ? getBarMembers(currentBar.id) : [];
-  const users = Array.isArray(barMembers) ? barMembers.map((m: any) => m.user) : [];
+  const users = Array.isArray(barMembers) ? barMembers.map((m: any) => m.user).filter(Boolean) : [];
 
   const [selectedSaleId, setSelectedSaleId] = useState('');
   const [selectedProductId, setSelectedProductId] = useState('');
@@ -156,6 +157,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
   const [notes, setNotes] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSeller, setFilterSeller] = useState<string>('all');
+  const [isInfoExpanded, setIsInfoExpanded] = useState(false);
   const [expirationDays, setExpirationDays] = useState(currentBar?.settings?.consignmentExpirationDays ?? 7);
 
   // Detecter le mode de opération
@@ -172,7 +174,12 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
     let filtered = todaySales;
 
     if (filterSeller !== 'all') {
-      filtered = filtered.filter(sale => sale.createdBy === filterSeller);
+      // ✨ MODE SWITCHING FIX: Filter using mode-agnostic server detection
+      // Use serverId if present (simplified mode sale), otherwise createdBy (full mode sale)
+      filtered = filtered.filter(sale => {
+        const serverUserId = sale.serverId || sale.createdBy;
+        return serverUserId === filterSeller;
+      });
     }
 
     if (searchTerm) {
@@ -188,7 +195,11 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
 
   const sellersWithSales = useMemo(() => {
     if (!currentBar || !session || !Array.isArray(todaySales) || !Array.isArray(users)) return [];
-    const sellerIds = new Set(todaySales.map(sale => sale.createdBy).filter(Boolean));
+    // ✨ MODE SWITCHING FIX: Extract server IDs using mode-agnostic detection
+    // Use serverId if present (simplified mode sale), otherwise createdBy (full mode sale)
+    const sellerIds = new Set(
+      todaySales.map(sale => sale.serverId || sale.createdBy).filter(Boolean)
+    );
     return users.filter(user => sellerIds.has(user.id));
   }, [todaySales, users, currentBar, session]);
 
@@ -263,13 +274,10 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
       return;
     }
 
-    // ✨ CRITICAL FIX: Toujours déduire le server_id de la vente associée
-    // Cela garantit que la consignation est attribuée au bon serveur, peu importe le mode
-    // - Mode simplifié: serverId = sale.serverId (serveur assigné à la vente)
-    // - Mode complet: serverId = sale.createdBy (qui a créé la vente)
-    const serverId = isSimplifiedMode
-      ? selectedSale.serverId
-      : selectedSale.createdBy;
+    // ✨ MODE SWITCHING FIX: Always deduce server_id from the sale itself
+    // Use serverId if present (simplified mode sale), otherwise createdBy (full mode sale)
+    // This ensures consignment is assigned to the correct server regardless of CURRENT mode
+    const serverId = selectedSale.serverId || selectedSale.createdBy;
 
     try {
       const consignment = await stockManager.createConsignment({
@@ -307,15 +315,41 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      <Alert show={true} variant="warning">
-        <p className="font-semibold mb-1">Comment créer une consignation ?</p>
-        <ol className="list-decimal list-inside space-y-1 text-amber-700">
-          <li>Sélectionnez la vente d'origine (aujourd'hui uniquement)</li>
-          <li>Choisissez le produit à consigner</li>
-          <li>Indiquez la quantité et les infos client</li>
-          <li>Le stock consigné sera réservé automatiquement</li>
-        </ol>
-      </Alert>
+      <div className="bg-amber-50 border border-amber-200 rounded-lg overflow-hidden">
+        <button
+          onClick={() => setIsInfoExpanded(!isInfoExpanded)}
+          className="w-full px-4 py-3 flex items-center justify-between hover:bg-amber-100 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-amber-600" />
+            <p className="font-semibold text-amber-800">Comment créer une consignation ?</p>
+          </div>
+          {isInfoExpanded ? (
+            <ChevronUp className="w-5 h-5 text-amber-600" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-amber-600" />
+          )}
+        </button>
+        <AnimatePresence>
+          {isInfoExpanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="px-4 pb-3 border-t border-amber-200">
+                <ol className="list-decimal list-inside space-y-1 text-amber-700 mt-2">
+                  <li>Sélectionnez la vente d'origine (aujourd'hui uniquement)</li>
+                  <li>Choisissez le produit à consigner</li>
+                  <li>Indiquez la quantité et les infos client</li>
+                  <li>Le stock consigné sera réservé automatiquement</li>
+                </ol>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -330,7 +364,11 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
                 options={[
                   { value: 'all', label: `Tous les vendeurs (${todaySales.length})` },
                   ...sellersWithSales.map(seller => {
-                    const count = todaySales.filter(s => s.createdBy === seller.id).length;
+                    // ✨ MODE SWITCHING FIX: Count using mode-agnostic server detection
+                    const count = todaySales.filter(s => {
+                      const serverUserId = s.serverId || s.createdBy;
+                      return serverUserId === seller.id;
+                    }).length;
                     return { value: seller.id, label: `${seller.name} (${count})` };
                   })
                 ]}
@@ -365,7 +403,9 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
             </p>
           ) : (
             filteredSales.map(sale => {
-              const seller = sale.createdBy ? users.find(u => u.id === sale.createdBy) : null;
+              // ✨ MODE SWITCHING FIX: Get seller using mode-agnostic detection
+              const serverUserId = sale.serverId || sale.createdBy;
+              const seller = serverUserId ? users.find(u => u.id === serverUserId) : null;
               const productPreview = sale.items.slice(0, 2).map(i => `${i.quantity}x ${i.product_name}`).join(', ');
               const moreCount = sale.items.length - 2;
 
@@ -391,8 +431,12 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
                   </div>
 
                   <div className="flex items-center justify-between mt-2">
+                    {seller ? (
+                      <span className="text-xs text-purple-600">👤 {seller.name}</span>
+                    ) : serverUserId ? (
+                      <span className="text-xs text-gray-400">👤 ID: {serverUserId.slice(0, 8)}...</span>
+                    ) : <span></span>}
                     <span className="text-xs text-gray-500">{new Date(sale.validatedAt || sale.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-                    {seller && <span className="text-xs text-amber-600">👤 {seller.name}</span>}
                   </div>
                 </button>
               );
@@ -556,17 +600,28 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
 const ActiveConsignmentsTab: React.FC<{ isReadOnly?: boolean }> = ({ isReadOnly = false }) => {
   const stockManager = useStockManagement();
   const { sales } = useAppContext();
-  const { currentBar, getBarMembers } = useBarContext();
+  const { currentBar, barMembers } = useBarContext();
+  const { currentSession } = useAuth();
   const { showSuccess, showError } = useFeedback();
   const [searchTerm, setSearchTerm] = useState('');
 
-  const barMembers = currentBar ? getBarMembers(currentBar.id) : [];
-  const users = Array.isArray(barMembers) ? barMembers.map((m: any) => m.user) : [];
+  const users = Array.isArray(barMembers) ? barMembers.map((m: any) => m.user).filter(Boolean) : [];
 
-  const activeConsignments = useMemo(() =>
-    stockManager.consignments.filter((c: Consignment) => c.status === 'active'),
-    [stockManager.consignments]
-  );
+  const isServerRole = currentSession?.role === 'serveur';
+
+  const activeConsignments = useMemo(() => {
+    let consignments = stockManager.consignments.filter((c: Consignment) => c.status === 'active');
+
+    // ✨ MODE SWITCHING FIX: Filter by server if applicable
+    // A server should see ALL their consignments regardless of mode
+    if (isServerRole && currentSession?.userId) {
+      consignments = consignments.filter((c: Consignment) =>
+        c.serverId === currentSession.userId || c.originalSeller === currentSession.userId
+      );
+    }
+
+    return consignments;
+  }, [stockManager.consignments, isServerRole, currentSession?.userId]);
 
   const filteredConsignments = useMemo(() => {
     let filtered = activeConsignments;
@@ -670,18 +725,29 @@ const ActiveConsignmentsTab: React.FC<{ isReadOnly?: boolean }> = ({ isReadOnly 
 const HistoryTab: React.FC = () => {
   const stockManager = useStockManagement();
   const { sales } = useAppContext();
-  const { currentBar, getBarMembers } = useBarContext();
+  const { currentBar, barMembers } = useBarContext();
+  const { currentSession } = useAuth();
   const { formatPrice } = useCurrencyFormatter();
   const [filterStatus, setFilterStatus] = useState<'all' | 'claimed' | 'expired' | 'forfeited'>('all');
 
-  const barMembers = currentBar ? getBarMembers(currentBar.id) : [];
-  const users = Array.isArray(barMembers) ? barMembers.map((m: any) => m.user) : [];
+  const users = Array.isArray(barMembers) ? barMembers.map((m: any) => m.user).filter(Boolean) : [];
+
+  const isServerRole = currentSession?.role === 'serveur';
 
   const historyConsignments = useMemo(() => {
-    const filtered = stockManager.consignments.filter((c: Consignment) => c.status !== 'active');
+    let filtered = stockManager.consignments.filter((c: Consignment) => c.status !== 'active');
+
+    // ✨ MODE SWITCHING FIX: Filter by server if applicable
+    // A server should see ALL their consignments regardless of mode
+    if (isServerRole && currentSession?.userId) {
+      filtered = filtered.filter((c: Consignment) =>
+        c.serverId === currentSession.userId || c.originalSeller === currentSession.userId
+      );
+    }
+
     if (filterStatus === 'all') return filtered;
     return filtered.filter((c: Consignment) => c.status === filterStatus);
-  }, [stockManager.consignments, filterStatus]);
+  }, [stockManager.consignments, filterStatus, isServerRole, currentSession?.userId]);
 
   const sortedHistory = useMemo(() => {
     return [...historyConsignments].sort((a, b) =>
@@ -723,9 +789,11 @@ const HistoryTab: React.FC = () => {
             if (consignment.originalSeller) {
               originalSeller = users.find(u => u.id === consignment.originalSeller);
             } else {
+              // ✨ MODE SWITCHING FIX: Fallback using mode-agnostic detection
               const originalSale = sales.find(s => s.id === consignment.saleId);
-              if (originalSale?.createdBy) {
-                originalSeller = users.find(u => u.id === originalSale.createdBy);
+              if (originalSale) {
+                const serverUserId = originalSale.serverId || originalSale.createdBy;
+                originalSeller = users.find(u => u.id === serverUserId);
               }
             }
 
@@ -802,9 +870,11 @@ const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim,
   if (consignment.originalSeller) {
     originalSeller = users.find(u => u.id === consignment.originalSeller);
   } else {
+    // ✨ MODE SWITCHING FIX: Fallback using mode-agnostic detection
     const originalSale = sales.find(s => s.id === consignment.saleId);
-    if (originalSale?.createdBy) {
-      originalSeller = users.find(u => u.id === originalSale.createdBy);
+    if (originalSale) {
+      const serverUserId = originalSale.serverId || originalSale.createdBy;
+      originalSeller = users.find(u => u.id === serverUserId);
     }
   }
 
@@ -848,12 +918,16 @@ const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim,
           <span className="text-gray-600">Expire le:</span>
           <span className="text-xs">{expiresAt.toLocaleDateString('fr-FR')}</span>
         </div>
-        {originalSeller && (
-          <div className="flex items-center justify-between">
-            <span className="text-gray-600">Vendeur:</span>
-            <span className="text-xs font-medium text-amber-600">👤 {originalSeller.name}</span>
-          </div>
-        )}
+        <div className="flex items-center justify-between">
+          <span className="text-gray-600">Vendeur:</span>
+          {originalSeller ? (
+            <span className="text-xs font-medium text-purple-600">👤 {originalSeller.name}</span>
+          ) : consignment.originalSeller || consignment.serverId ? (
+            <span className="text-xs text-gray-400">👤 ID: {(consignment.originalSeller || consignment.serverId)?.slice(0, 8)}...</span>
+          ) : (
+            <span className="text-xs text-gray-400">N/A</span>
+          )}
+        </div>
       </div>
 
       {consignment.notes && (

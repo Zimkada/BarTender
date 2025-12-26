@@ -69,7 +69,7 @@ export default function SalesHistoryPage() {
     const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
     const [exportFormat, setExportFormat] = useState<'csv' | 'excel'>('excel');
 
-    // HOOK: Filtrage (Ventes & Consignations)
+    // HOOK: Filtrage (Ventes & Consignations & Retours)
     const {
         timeRange,
         setTimeRange,
@@ -81,10 +81,12 @@ export default function SalesHistoryPage() {
         searchTerm,
         setSearchTerm,
         filteredSales,
-        filteredConsignments
+        filteredConsignments,
+        filteredReturns // ✨ MODE SWITCHING FIX: Get filtered returns from hook
     } = useSalesFilters({
         sales,
         consignments,
+        returns, // Pass returns to filter them by server
         currentSession,
         closeHour
     });
@@ -104,7 +106,7 @@ export default function SalesHistoryPage() {
         isLoadingTopProducts
     } = useSalesStats({
         filteredSales,
-        returns,
+        returns: filteredReturns, // ✨ MODE SWITCHING FIX: Use filtered returns instead of all returns
         timeRange,
         startDate,
         endDate,

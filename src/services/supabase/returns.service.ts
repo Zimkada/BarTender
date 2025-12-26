@@ -35,21 +35,6 @@ export class ReturnsService {
         operatingMode?: 'full' | 'simplified'
     ): Promise<Return[]> {
         try {
-            let query = supabase
-                .from('returns')
-                .select('*')
-                .eq('bar_id', barId)
-                .order('returned_at', { ascending: false });
-
-            // ✨ Filter by server if provided (for serveur role)
-            if (serverId) {
-                if (operatingMode === 'simplified') {
-                    query = query.eq('server_id', serverId);
-                } else {
-                    query = query.eq('returned_by', serverId);
-                }
-            }
-
             // Helper pour formater la date au format YYYY-MM-DD attendu par PostgreSQL
             const formatToYYYYMMDD = (date: Date | string): string => {
                 if (typeof date === 'string') return date; // Si c'est déjà une chaîne, on la retourne
@@ -59,6 +44,12 @@ export class ReturnsService {
                 return `${year}-${month}-${day}`;
             };
 
+            let query = supabase
+                .from('returns')
+                .select('*')
+                .eq('bar_id', barId)
+                .order('returned_at', { ascending: false });
+
             if (startDate) {
                 query = query.gte('business_date', formatToYYYYMMDD(startDate));
             }
@@ -67,10 +58,39 @@ export class ReturnsService {
                 query = query.lte('business_date', formatToYYYYMMDD(endDate));
             }
 
-            const { data, error } = await query;
+            const { data: allReturns, error } = await query;
 
             if (error) throw error;
-            return data || [];
+
+            // ✨ MODE SWITCHING FIX: Filter by server with client-side OR logic
+            // Apply server filter in JavaScript to ensure proper AND/OR precedence
+            // A server should see returns where they are EITHER the assigned server OR the one who processed it
+            let data = allReturns || [];
+            if (serverId && allReturns) {
+                data = allReturns.filter((returnItem: any) =>
+                    returnItem.server_id === serverId || returnItem.returned_by === serverId
+                );
+
+                // 🔍 DEBUG: Log returns data for mode switching analysis
+                console.log('[ReturnsService.getReturns] Query results:', {
+                    barId,
+                    serverId,
+                    startDate,
+                    endDate,
+                    totalBeforeFilter: allReturns.length,
+                    totalAfterFilter: data.length,
+                    returnsDetails: data.map((r: any) => ({
+                        id: r.id,
+                        server_id: r.server_id,
+                        returned_by: r.returned_by,
+                        refund_amount: r.refund_amount,
+                        is_refunded: r.is_refunded,
+                        status: r.status
+                    }))
+                });
+            }
+
+            return data;
         } catch (error: any) {
             throw new Error(handleSupabaseError(error));
         }
