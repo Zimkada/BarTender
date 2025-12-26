@@ -28,6 +28,8 @@ import { Input } from '../components/ui/Input';
 import { Select, SelectOption } from '../components/ui/Select';
 import { ServerMappingsService } from '../services/supabase/server-mappings.service';
 import { FEATURES } from '../config/features';
+import { useSalesFilters } from '../features/Sales/SalesHistory/hooks/useSalesFilters';
+import { SALES_HISTORY_FILTERS, TIME_RANGE_CONFIGS } from '../config/dateFilters';
 
 const returnReasons: Record<ReturnReason, ReturnReasonConfig> = {
   defective: {
@@ -95,13 +97,33 @@ export default function ReturnsPage() {
   const [showCreateReturn, setShowCreateReturn] = useState(false);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
-  const [searchTerm, setSearchTerm] = useState('');
   const [lastCreatedReturnId, setLastCreatedReturnId] = useState<string | null>(null);
 
   // ✨ NUEVO: Detectar modo de operación
   const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
 
   const closeHour = currentBar?.closingHour ?? 6;
+
+  // ✨ NEW: Use shared filtering hook for period + server filtering
+  const {
+    timeRange,
+    setTimeRange,
+    startDate,
+    endDate,
+    customRange,
+    updateCustomRange,
+    isCustom,
+    searchTerm,
+    setSearchTerm,
+    filteredSales,
+    filteredReturns: filteredReturnsByFilters
+  } = useSalesFilters({
+    sales,
+    consignments,
+    returns,
+    currentSession,
+    closeHour
+  });
 
   // Effet pour gérer la redirection et scroll-to après création de retour
   useEffect(() => {
@@ -348,25 +370,10 @@ export default function ReturnsPage() {
     showSuccess('Retour rejeté');
   };
 
-  const filteredReturns = returns.filter(returnItem => {
+  // ✨ Apply additional status filter on top of hook-filtered returns
+  const filteredReturns = filteredReturnsByFilters.filter(returnItem => {
     const matchesStatus = filterStatus === 'all' || returnItem.status === filterStatus;
-    const matchesSearch = !searchTerm ||
-      (returnItem.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       returnItem.id?.toLowerCase().includes(searchTerm.toLowerCase()));
-
-    // ✨ BUG #10f FIX: Filtrer par server_id en mode simplifié
-    let matchesServer = true;
-    if (currentSession?.role === 'serveur') {
-      if (isSimplifiedMode) {
-        // Serveur voit uniquement les retours qui lui sont assignés
-        matchesServer = returnItem.serverId === currentSession.userId;
-      } else {
-        // Mode complet: serveur voit les retours qu'il a créés
-        matchesServer = returnItem.returnedBy === currentSession.userId;
-      }
-    }
-
-    return matchesStatus && matchesSearch && matchesServer;
+    return matchesStatus;
   });
 
   return (
@@ -430,30 +437,66 @@ export default function ReturnsPage() {
 
         {/* Filters Area (Only visible in list mode) */}
         {!showCreateReturn && (
-          <div className="flex flex-wrap gap-4 pt-4 border-t border-gray-100">
-            <Input
-                type="text"
-                placeholder="Rechercher un retour..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                leftIcon={<Search size={18} />}
-                className="flex-1 min-w-[200px]"
-            />
-            <div className="flex items-center gap-2">
-              <Filter size={18} className="text-gray-400" />
-              <Select
-                options={
-                    [
-                        { value: 'all', label: 'Tous les statuts' },
-                        { value: 'pending', label: 'En attente' },
-                        { value: 'approved', label: 'Approuvés' },
-                        { value: 'rejected', label: 'Rejetés' }
-                    ]
-                }
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as 'all' | 'pending' | 'approved' | 'rejected')}
-                className="flex-1"
+          <div className="space-y-4 pt-4 border-t border-gray-100">
+            {/* Period Filters */}
+            <div className="flex bg-gray-100 rounded-lg p-1 flex-wrap gap-1">
+              {SALES_HISTORY_FILTERS.map(filter => (
+                <Button
+                  key={filter}
+                  onClick={() => setTimeRange(filter)}
+                  variant={timeRange === filter ? 'default' : 'ghost'}
+                  className="px-3 py-1.5 rounded-md text-xs font-medium transition-all flex-1 min-w-[80px]"
+                >
+                  {TIME_RANGE_CONFIGS[filter].label}
+                </Button>
+              ))}
+            </div>
+
+            {/* Custom Date Range */}
+            {isCustom && (
+              <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
+                <Input
+                  type="date"
+                  value={customRange.start}
+                  onChange={(e) => updateCustomRange('start', e.target.value)}
+                  className="flex-1 text-sm"
+                />
+                <span className="text-gray-400">-</span>
+                <Input
+                  type="date"
+                  value={customRange.end}
+                  onChange={(e) => updateCustomRange('end', e.target.value)}
+                  className="flex-1 text-sm"
+                />
+              </div>
+            )}
+
+            {/* Search and Status Filter */}
+            <div className="flex flex-wrap gap-4">
+              <Input
+                  type="text"
+                  placeholder="Rechercher un retour..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  leftIcon={<Search size={18} />}
+                  className="flex-1 min-w-[200px]"
               />
+              <div className="flex items-center gap-2">
+                <Filter size={18} className="text-gray-400" />
+                <Select
+                  options={
+                      [
+                          { value: 'all', label: 'Tous les statuts' },
+                          { value: 'pending', label: 'En attente' },
+                          { value: 'approved', label: 'Approuvés' },
+                          { value: 'rejected', label: 'Rejetés' }
+                      ]
+                  }
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value as 'all' | 'pending' | 'approved' | 'rejected')}
+                  className="flex-1 min-w-[150px]"
+                />
+              </div>
             </div>
           </div>
         )}
@@ -948,7 +991,9 @@ function CreateReturnForm({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
                 {filteredSales.map(sale => {
                   const returnCheck = canReturnSale(sale);
-                  const seller = sale.createdBy ? users.find(u => u.id === sale.createdBy) : undefined;
+                  // ✨ NEW: Show server responsible for this sale
+                  const serverUserId = isSimplifiedMode ? sale.serverId : sale.createdBy;
+                  const serverUser = serverUserId ? users.find(u => u.id === serverUserId) : undefined;
                   const productPreview = sale.items.slice(0, 2).map(i => `${i.quantity}x ${i.product_name}`).join(', ');
                   const moreCount = sale.items.length - 2;
 
@@ -974,8 +1019,8 @@ function CreateReturnForm({
                       </div>
 
                       <div className="flex items-center justify-between mt-2">
-                        {seller ? (
-                          <span className="text-xs text-purple-600">👤 {seller.name}</span>
+                        {serverUser ? (
+                          <span className="text-xs text-purple-600">👤 {serverUser.name}</span>
                         ) : <span></span>}
                         {returnCheck.allowed ? (
                           <span className="text-xs font-bold text-gray-700">{formatPrice(sale.total)}</span>

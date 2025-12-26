@@ -4,16 +4,17 @@ import { dateToYYYYMMDD, filterByBusinessDateRange } from '../../../../utils/bus
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../../../../utils/businessDay';
 import { getSaleDate } from '../../../../utils/saleHelpers';
 import { useBarContext } from '../../../../context/BarContext';
-import type { Sale, SaleItem, Consignment } from '../../../../types';
+import type { Sale, SaleItem, Consignment, Return } from '../../../../types';
 
 interface UseSalesFiltersProps {
     sales: Sale[];
     consignments: Consignment[];
+    returns?: Return[]; // Optional: for returns filtering
     currentSession: any; // UserSession type would be better if available
     closeHour: number;
 }
 
-export function useSalesFilters({ sales, consignments, currentSession, closeHour }: UseSalesFiltersProps) {
+export function useSalesFilters({ sales, consignments, returns = [], currentSession, closeHour }: UseSalesFiltersProps) {
     const [searchTerm, setSearchTerm] = useState('');
     const { currentBar } = useBarContext();
 
@@ -106,11 +107,41 @@ export function useSalesFilters({ sales, consignments, currentSession, closeHour
         return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }, [consignments, startDate, endDate, currentSession, closeHour, currentBar?.settings?.operatingMode]);
 
+    // 4. Filtrage des retours
+    const filteredReturns = useMemo(() => {
+        const isServer = currentSession?.role === 'serveur';
+        const operatingMode = currentBar?.settings?.operatingMode || 'full';
+
+        // A. Filtrage initial basé sur le rôle et le mode opérationnel
+        const baseReturns = returns.filter(returnItem => {
+            if (isServer) {
+                // Logique différente selon le mode opérationnel
+                if (operatingMode === 'simplified') {
+                    // Mode simplifié: le serveur voit les retours où server_id correspond
+                    return returnItem.server_id === currentSession.userId;
+                } else {
+                    // Mode complet: le serveur voit les retours qu'il a traités
+                    return returnItem.returnedBy === currentSession.userId;
+                }
+            }
+            return true; // Gérant/Admin: voir tous les retours
+        });
+
+        // B. Appliquer le filtre de date
+        const startDateStr = dateToYYYYMMDD(startDate);
+        const endDateStr = dateToYYYYMMDD(endDate);
+        const filtered = filterByBusinessDateRange(baseReturns, startDateStr, endDateStr, closeHour);
+
+        // C. Tri final
+        return filtered.sort((a, b) => new Date(b.returnedAt).getTime() - new Date(a.returnedAt).getTime());
+    }, [returns, startDate, endDate, currentSession, closeHour, currentBar?.settings?.operatingMode]);
+
     return {
         ...dateFilter,
         searchTerm,
         setSearchTerm,
         filteredSales,
-        filteredConsignments
+        filteredConsignments,
+        filteredReturns
     };
 }
