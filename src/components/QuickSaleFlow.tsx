@@ -522,7 +522,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                           </div>
                         ))}
 
-                        {currentBar?.settings?.enableServerTracking && (
+                        {currentBar?.settings?.operatingMode === 'simplified' && (
                           <div className="mt-6">
                             <Select
                               label="Serveur"
