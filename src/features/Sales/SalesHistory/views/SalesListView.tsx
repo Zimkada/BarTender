@@ -58,7 +58,9 @@ export function SalesListView({
                         }[sale.status] || { label: 'Inconnu', color: 'bg-gray-100 text-gray-700 border-gray-200' };
 
                         // Infos utilisateurs
-                        const creator = users?.find(u => u.id === sale.createdBy);
+                        // ✨ MODE SWITCHING FIX: Use serverId (assigned server) if present, otherwise createdBy
+                        const serverUserId = sale.serverId || sale.createdBy;
+                        const seller = users?.find(u => u.id === serverUserId);
                         const validator = sale.validatedBy ? users?.find(u => u.id === sale.validatedBy) : null;
 
                         return (
@@ -86,7 +88,7 @@ export function SalesListView({
                                 </td>
                                 <td className="p-4">
                                     <div>
-                                        <p className="text-sm font-medium">{creator?.name || 'Inconnu'}</p>
+                                        <p className="text-sm font-medium">{seller?.name || 'Inconnu'}</p>
                                         {validator && (
                                             <p className="text-xs text-gray-500">Val.: {validator.name}</p>
                                         )}

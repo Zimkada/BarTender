@@ -121,10 +121,15 @@ export default function SalesHistoryPage() {
 
         // 1. Ajouter toutes les ventes
         filteredSales.forEach(sale => {
-            const user = safeUsers.find(u => u.id === sale.createdBy);
+            // ✨ MODE SWITCHING FIX: Use serverId (assigned server) if present, otherwise createdBy
+            const serverUserId = sale.serverId || sale.createdBy;
+            const user = safeUsers.find(u => u.id === serverUserId);
             const member = safeBarMembers.find(m => m.userId === user?.id);
             const vendeur = user?.name || 'Inconnu';
             const role = member?.role || 'serveur';
+
+            // Déterminer le mode d'opération de cette vente
+            const operationMode = sale.serverId ? 'Simplifié' : 'Complet';
 
             const saleDate = getSaleDate(sale);
             // Get actual transaction time (not business date which is normalized to midnight)
@@ -142,6 +147,7 @@ export default function SalesHistoryPage() {
 
                 exportData.push({
                     'Type': 'Vente',
+                    'Mode': operationMode,
                     'Date': saleDate.toLocaleDateString('fr-FR'),
                     'Heure': saleTimestamp.toLocaleTimeString('fr-FR'),
                     'ID Transaction': sale.id.slice(-6),
@@ -173,10 +179,16 @@ export default function SalesHistoryPage() {
                 return;
             }
 
-            const user = safeUsers.find(u => u.id === ret.returnedBy);
+            // ✨ MODE SWITCHING FIX: Use server_id if present, otherwise returnedBy
+            const serverUserId = ret.server_id || ret.returnedBy;
+            const user = safeUsers.find(u => u.id === serverUserId);
             const member = safeBarMembers.find(m => m.userId === user?.id);
             const utilisateur = user?.name || 'Inconnu';
             const role = member?.role || 'serveur';
+
+            // Déterminer le mode d'opération de ce retour (basé sur la vente originale)
+            const originalSale = sales.find(s => s.id === ret.saleId);
+            const operationMode = originalSale?.serverId ? 'Simplifié' : 'Complet';
 
             const category = categories.find(c => c.id === product.categoryId);
             const cost = 0; // TODO: Calculer depuis Supply
@@ -185,6 +197,7 @@ export default function SalesHistoryPage() {
 
             exportData.push({
                 'Type': 'Retour',
+                'Mode': operationMode,
                 'Date': new Date(ret.returnedAt).toLocaleDateString('fr-FR'),
                 'Heure': new Date(ret.returnedAt).toLocaleTimeString('fr-FR'),
                 'ID Transaction': ret.id.slice(-6),
@@ -210,10 +223,22 @@ export default function SalesHistoryPage() {
                 return;
             }
 
-            const user = safeUsers.find(u => u.id === consignment.createdBy);
-            const member = safeBarMembers.find(m => m.userId === user?.id);
-            const utilisateur = user?.name || 'Inconnu';
-            const role = member?.role || 'serveur';
+            // ✨ MODE SWITCHING FIX: Always deduce seller from the sale, not from consignment.createdBy
+            // This matches the logic in ConsignmentPage: prioritize serverId (assigned server) over createdBy
+            let utilisateur = 'Inconnu';
+            let role = 'serveur';
+            let operationMode = 'Complet';
+
+            const originalSale = sales.find(s => s.id === consignment.saleId);
+            if (originalSale) {
+                // Use serverId if present (simplified mode - assigned server), otherwise createdBy (full mode)
+                const serverUserId = originalSale.serverId || originalSale.createdBy;
+                const user = safeUsers.find(u => u.id === serverUserId);
+                const member = safeBarMembers.find(m => m.userId === user?.id);
+                utilisateur = user?.name || 'Inconnu';
+                role = member?.role || 'serveur';
+                operationMode = originalSale.serverId ? 'Simplifié' : 'Complet';
+            }
 
             const category = categories.find(c => c.id === product.categoryId);
 
@@ -236,6 +261,7 @@ export default function SalesHistoryPage() {
 
             exportData.push({
                 'Type': 'Consignation',
+                'Mode': operationMode,
                 'Date': new Date(consignment.createdAt).toLocaleDateString('fr-FR'),
                 'Heure': new Date(consignment.createdAt).toLocaleTimeString('fr-FR'),
                 'ID Transaction': consignment.id.slice(-6),
@@ -282,6 +308,7 @@ export default function SalesHistoryPage() {
             // Ajuster la largeur des colonnes
             const columnWidths = [
                 { wch: 10 }, // Type
+                { wch: 12 }, // Mode
                 { wch: 12 }, // Date
                 { wch: 10 }, // Heure
                 { wch: 12 }, // ID Transaction

@@ -785,16 +785,14 @@ const HistoryTab: React.FC = () => {
       ) : (
         <div className="space-y-3">
           {sortedHistory.map(consignment => {
+            // ✨ MODE SWITCHING FIX: Always deduce seller from the sale, not from consignment.originalSeller
+            // This matches the logic in ReturnsPage: prioritize serverId (assigned server) over createdBy
             let originalSeller: UserType | undefined = undefined;
-            if (consignment.originalSeller) {
-              originalSeller = users.find(u => u.id === consignment.originalSeller);
-            } else {
-              // ✨ MODE SWITCHING FIX: Fallback using mode-agnostic detection
-              const originalSale = sales.find(s => s.id === consignment.saleId);
-              if (originalSale) {
-                const serverUserId = originalSale.serverId || originalSale.createdBy;
-                originalSeller = users.find(u => u.id === serverUserId);
-              }
+            const originalSale = sales.find(s => s.id === consignment.saleId);
+            if (originalSale) {
+              // Use serverId if present (simplified mode - assigned server), otherwise createdBy (full mode)
+              const serverUserId = originalSale.serverId || originalSale.createdBy;
+              originalSeller = users.find(u => u.id === serverUserId);
             }
 
             return (
@@ -866,16 +864,14 @@ interface ConsignmentCardProps {
 const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim, onForfeit, users, sales, isReadOnly = false }) => {
   const { formatPrice } = useCurrencyFormatter();
 
+  // ✨ MODE SWITCHING FIX: Always deduce seller from the sale, not from consignment.originalSeller
+  // This matches the logic in ReturnsPage: prioritize serverId (assigned server) over createdBy
   let originalSeller: UserType | undefined = undefined;
-  if (consignment.originalSeller) {
-    originalSeller = users.find(u => u.id === consignment.originalSeller);
-  } else {
-    // ✨ MODE SWITCHING FIX: Fallback using mode-agnostic detection
-    const originalSale = sales.find(s => s.id === consignment.saleId);
-    if (originalSale) {
-      const serverUserId = originalSale.serverId || originalSale.createdBy;
-      originalSeller = users.find(u => u.id === serverUserId);
-    }
+  const originalSale = sales.find(s => s.id === consignment.saleId);
+  if (originalSale) {
+    // Use serverId if present (simplified mode - assigned server), otherwise createdBy (full mode)
+    const serverUserId = originalSale.serverId || originalSale.createdBy;
+    originalSeller = users.find(u => u.id === serverUserId);
   }
 
   const expiresAt = new Date(consignment.expiresAt);
