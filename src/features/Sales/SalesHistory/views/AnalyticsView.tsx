@@ -601,17 +601,17 @@ export function AnalyticsView({
 
       {/* Section Consignations */}
       {consignmentStats.total > 0 && (
-        <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-200">
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200">
           <div className="flex items-center gap-2 mb-3">
-            <Archive className="w-5 h-5 text-indigo-600" />
+            <Archive className="w-5 h-5 text-amber-600" />
             <h4 className="text-sm font-semibold text-gray-800">Consignations</h4>
           </div>
 
           {/* Stats grid */}
           <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-5'} gap-3 mb-3`}>
-            <div className="bg-white rounded-lg p-3 border border-indigo-100">
+            <div className="bg-white rounded-lg p-3 border border-amber-100">
               <p className="text-xs text-gray-600 mb-1">Total</p>
-              <p className="text-lg font-bold text-indigo-900">{consignmentStats.total}</p>
+              <p className="text-lg font-bold text-amber-900">{consignmentStats.total}</p>
               <p className="text-xs text-gray-500 mt-1">{formatPrice(consignmentStats.totalValue)}</p>
             </div>
 
@@ -639,14 +639,14 @@ export function AnalyticsView({
           </div>
 
           {/* Taux de récupération */}
-          <div className="bg-white rounded-lg p-3 border border-indigo-100">
+          <div className="bg-white rounded-lg p-3 border border-amber-100">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-medium text-gray-700">Taux de récupération</span>
-              <span className="text-sm font-bold text-indigo-900">{consignmentStats.claimRate.toFixed(1)}%</span>
+              <span className="text-sm font-bold text-amber-900">{consignmentStats.claimRate.toFixed(1)}%</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
-                className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+                className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${Math.min(consignmentStats.claimRate, 100)}%` }}
               />
             </div>
