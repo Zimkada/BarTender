@@ -717,9 +717,1096 @@ export const useBroadcastSync = () => {
 
 ---
 
-## 🚀 Plan de Migration (5 jours)
+## ⚡ Phase 4 : Performance Frontend (P1)
 
-### Phase 1 : Préparation Backend (1 jour)
+**Durée estimée** : 2-3 semaines | **Objectif** : Time to Interactive < 3s sur 4G
+
+> [!NOTE]
+> **Prérequis** : Phases 1-2 du Plan Finalisation Production déjà implémentées
+> - ✅ Phase 1 : Consolidation & Nettoyage (dette technique résolue)
+> - ✅ Phase 2 : Design System & Fondations UI (primitives UI + Storybook)
+
+---
+
+### 4.1 Optimisation du Bundle
+
+**Actions** :
+1. ✅ Analyser le bundle avec `rollup-plugin-visualizer` (déjà configuré)
+2. ✅ Code splitting agressif : Un chunk par route principale (`React.lazy`)
+3. ✅ Tree shaking : Vérifier imports partiels (lucide-react, date-fns)
+4. ✅ Lazy load dépendances lourdes (`recharts`, `xlsx`) uniquement quand affichées
+
+**Implémentation** :
+```typescript
+// src/App.tsx - Lazy loading routes
+const SalesHistory = lazy(() => import('./pages/SalesHistory'));
+const Analytics = lazy(() => import('./pages/Analytics'));
+const Inventory = lazy(() => import('./pages/Inventory'));
+
+// Lazy load recharts uniquement dans Analytics
+const RechartsComponents = lazy(() => import('./components/charts/RechartsWrapper'));
+
+// Lazy load xlsx uniquement dans ProductImport
+const ExcelImport = lazy(() => import('./components/import/ExcelImport'));
+```
+
+**Validation** :
+```bash
+# Analyser bundle
+npm run build
+# Vérifier taille chunks (target: < 200KB par chunk)
+```
+
+---
+
+### 4.2 Optimisation des Rendus React
+
+**Actions** :
+1. ✅ `React.memo()` sur composants liste purs (ex: `ProductCard`)
+2. ✅ `useMemo` et `useCallback` pour calculs coûteux
+3. ✅ Virtualisation : `react-window` pour listes > 100 items
+4. ✅ Debounce 300ms sur inputs recherche
+
+**Implémentation** :
+```typescript
+// components/ProductCard.tsx
+export const ProductCard = React.memo(({ product, onSelect }) => {
+  // Composant pur, re-render uniquement si props changent
+  return <Card>...</Card>;
+});
+
+// hooks/useProductSearch.ts
+import { useMemo } from 'react';
+import { debounce } from 'lodash-es';
+
+export const useProductSearch = (products: Product[], searchTerm: string) => {
+  // Debounce recherche (300ms)
+  const debouncedSearch = useMemo(
+    () => debounce((term: string) => {
+      // Logique de recherche
+    }, 300),
+    []
+  );
+
+  // Mémoriser résultats filtrés
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => 
+      p.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [products, searchTerm]);
+
+  return filteredProducts;
+};
+
+// components/SalesHistoryList.tsx - Virtualisation
+import { FixedSizeList } from 'react-window';
+
+export const SalesHistoryList = ({ sales }) => {
+  return (
+    <FixedSizeList
+      height={600}
+      itemCount={sales.length}
+      itemSize={80}
+      width="100%"
+    >
+      {({ index, style }) => (
+        <div style={style}>
+          <SaleCard sale={sales[index]} />
+        </div>
+      )}
+    </FixedSizeList>
+  );
+};
+```
+
+**Validation** :
+- React DevTools Profiler : Vérifier re-renders inutiles
+- Lighthouse Performance : Score > 90
+
+---
+
+### 4.3 Service Worker & Offline-First
+
+**Actions** :
+1. ✅ Configurer Workbox pour caching assets statiques (`CacheFirst`)
+2. ✅ Implémenter `NetworkFirst` pour appels API
+3. ✅ Améliorer `SyncHandler` avec retry backoff exponentiel
+4. ✅ Indicateur visuel statut offline/sync
+
+> [!CAUTION]
+> **Limites Offline**
+> 
+> React Query cache = **mémoire volatile** (RAM)
+> - ✅ Offline temporaire : Fonctionne (perte réseau < 1h)
+> - ❌ Fermeture app : Cache perdu
+> - ❌ Rechargement page : Cache perdu
+> 
+> **Si offline critique (> 1h)** :
+> - Implémenter **IndexedDB** (Dexie.js / localForage)
+> - Queue mutations persistées
+> - Sync automatique au retour réseau
+> 
+> **Recommandation actuelle** : Offline temporaire suffisant (bars = WiFi stable)
+
+**Implémentation** :
+```typescript
+// vite.config.ts - Workbox
+import { VitePWA } from 'vite-plugin-pwa';
+
+export default defineConfig({
+  plugins: [
+    VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      registerType: 'autoUpdate',
+      workbox: {
+        // Cache assets statiques
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 an
+              },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'supabase-api-cache',
+              networkTimeoutSeconds: 10,
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 5, // 5min
+              },
+            },
+          },
+        ],
+      },
+    }),
+  ],
+});
+
+// src/sw.ts - Service Worker custom
+import { precacheAndRoute } from 'workbox-precaching';
+import { registerRoute } from 'workbox-routing';
+import { NetworkFirst, CacheFirst } from 'workbox-strategies';
+import { BackgroundSyncPlugin } from 'workbox-background-sync';
+
+// Precache assets
+precacheAndRoute(self.__WB_MANIFEST);
+
+// Background sync pour mutations
+const bgSyncPlugin = new BackgroundSyncPlugin('mutations-queue', {
+  maxRetentionTime: 24 * 60, // 24h
+  onSync: async ({ queue }) => {
+    let entry;
+    while ((entry = await queue.shiftRequest())) {
+      try {
+        await fetch(entry.request.clone());
+      } catch (error) {
+        await queue.unshiftRequest(entry);
+        throw error;
+      }
+    }
+  },
+});
+
+// components/OfflineIndicator.tsx
+export const OfflineIndicator = () => {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  if (isOnline) return null;
+
+  return (
+    <div className="fixed top-0 left-0 right-0 bg-amber-500 text-white px-4 py-2 text-center z-50">
+      {isSyncing ? '🔄 Synchronisation...' : '📡 Mode hors ligne'}
+    </div>
+  );
+};
+```
+
+---
+
+## 🧪 Phase 5 : Tests & Assurance Qualité (P2)
+
+> [!IMPORTANT]
+> **Phase réordonnée** : Tests après Performance Frontend pour validation technique précoce
+> 
+> **Avantages** :
+> - ✅ Tester optimisations pendant qu'elles sont fraîches
+> - ✅ Détecter bugs avant ajout UX/UI
+> - ✅ Base stable pour Phase 6 (UX/UI)
+
+**Durée estimée** : 1-2 semaines | **Impact** : Adoption et satisfaction utilisateur
+
+---
+
+### 5.1 Responsive Mobile Excellence
+
+**Actions** :
+1. ✅ Tester chaque page sur 320px (petits écrans)
+2. ✅ Vérifier cibles tactiles ≥ 44x44px
+3. ✅ Ajouter gestes tactiles (`swipe to delete`, `pull to refresh`)
+4. ✅ Tester contraste en forte luminosité
+
+**Implémentation** :
+```typescript
+// hooks/useSwipeToDelete.ts
+import { useSwipeable } from 'react-swipeable';
+
+export const useSwipeToDelete = (onDelete: () => void) => {
+  const handlers = useSwipeable({
+    onSwipedLeft: () => {
+      if (window.confirm('Supprimer cet élément ?')) {
+        onDelete();
+      }
+    },
+    trackMouse: false,
+    trackTouch: true,
+  });
+
+  return handlers;
+};
+
+// components/SaleCard.tsx
+export const SaleCard = ({ sale, onDelete }) => {
+  const swipeHandlers = useSwipeToDelete(() => onDelete(sale.id));
+
+  return (
+    <div {...swipeHandlers} className="min-h-[44px] min-w-[44px]">
+      {/* Contenu */}
+    </div>
+  );
+};
+```
+
+**Validation** :
+- Tester sur iPhone SE (375px), Android (360px)
+- Vérifier contraste WCAG AA (ratio ≥ 4.5:1)
+
+---
+
+### 5.2 Micro-interactions & Feedback
+
+**Actions** :
+1. ✅ **Loading states** : Skeleton loaders (`react-loading-skeleton`)
+2. ✅ **Success feedback** : Animations + toast non-bloquant
+3. ✅ **Error states** : Messages clairs + action récupération
+4. ✅ **Empty states** : Illustrations + CTA clairs
+
+**Implémentation** :
+```typescript
+// components/ProductListSkeleton.tsx
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
+
+export const ProductListSkeleton = () => (
+  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    {Array.from({ length: 8 }).map((_, i) => (
+      <div key={i} className="p-4 border rounded">
+        <Skeleton height={120} />
+        <Skeleton count={2} className="mt-2" />
+      </div>
+    ))}
+  </div>
+);
+
+// components/EmptyState.tsx
+export const EmptyState = ({ 
+  icon: Icon, 
+  title, 
+  description, 
+  action 
+}) => (
+  <div className="flex flex-col items-center justify-center py-12 text-center">
+    <Icon className="w-16 h-16 text-gray-400 mb-4" />
+    <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+    <p className="text-gray-600 mb-6 max-w-md">{description}</p>
+    {action && (
+      <button className="btn-primary">{action.label}</button>
+    )}
+  </div>
+);
+
+// Usage
+<EmptyState
+  icon={Package}
+  title="Aucun produit trouvé"
+  description="Commencez par ajouter des produits à votre inventaire"
+  action={{ label: 'Ajouter un produit', onClick: () => {} }}
+/>
+```
+
+---
+
+### 5.3 Accessibilité (A11y)
+
+**Actions** :
+1. ✅ Attributs ARIA sur composants interactifs
+2. ✅ Contraste couleurs WCAG AA
+3. ✅ Navigation clavier fluide
+4. ✅ Labels sémantiques sur formulaires
+
+**Implémentation** :
+```typescript
+// components/ui/Button.tsx
+export const Button = ({ 
+  children, 
+  onClick, 
+  disabled,
+  ariaLabel 
+}) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    aria-label={ariaLabel}
+    aria-disabled={disabled}
+    className="btn"
+  >
+    {children}
+  </button>
+);
+
+// components/SearchInput.tsx
+export const SearchInput = ({ value, onChange }) => (
+  <div>
+    <label htmlFor="search-input" className="sr-only">
+      Rechercher un produit
+    </label>
+    <input
+      id="search-input"
+      type="search"
+      value={value}
+      onChange={onChange}
+      aria-label="Rechercher un produit"
+      className="input"
+    />
+  </div>
+);
+```
+
+**Validation** :
+- Lighthouse Accessibility : Score > 95
+- Test navigation clavier (Tab, Enter, Esc)
+- Test lecteur d'écran (NVDA/JAWS)
+
+---
+
+**Durée estimée** : 2 semaines | **Objectif** : 80% coverage sur chemins critiques
+
+---
+
+### 5.1 Stratégie de Tests
+
+| Type | Outils | Cibles | Coverage |
+|------|--------|--------|----------|
+| **Unitaire** | Vitest | Hooks métier, services, utils | 80% |
+| **Intégration** | Testing Library | Flux complets (vente, retour) | 70% |
+| **E2E** | Playwright | Scénarios critiques bout en bout | 50% |
+| **Charge** | k6 | Performance haute affluence | - |
+
+---
+
+### 5.2 Tests Prioritaires
+
+**A. Tests Unitaires (Vitest)**
+```typescript
+// tests/hooks/useStockManagement.test.ts
+import { renderHook, act } from '@testing-library/react';
+import { useStockManagement } from '@/hooks/useStockManagement';
+
+describe('useStockManagement', () => {
+  it('should decrement stock on sale', async () => {
+    const { result } = renderHook(() => useStockManagement('bar-id'));
+    
+    await act(async () => {
+      await result.current.decrementStock('product-id', 5);
+    });
+    
+    expect(result.current.stock).toBe(95); // Assuming initial stock = 100
+  });
+
+  it('should throw error if stock insufficient', async () => {
+    const { result } = renderHook(() => useStockManagement('bar-id'));
+    
+    await expect(
+      result.current.decrementStock('product-id', 200)
+    ).rejects.toThrow('Stock insuffisant');
+  });
+});
+
+// tests/services/SalesService.test.ts
+describe('SalesService', () => {
+  it('should create sale with stock lock', async () => {
+    const sale = await SalesService.createSale({
+      barId: 'bar-id',
+      items: [{ productId: 'p1', quantity: 2 }],
+      total: 2000,
+    });
+    
+    expect(sale.id).toBeDefined();
+    expect(sale.status).toBe('pending');
+  });
+});
+```
+
+**B. Tests Intégration (Testing Library)**
+```typescript
+// tests/flows/SaleFlow.test.tsx
+import { render, screen, fireEvent } from '@testing-library/react';
+import { App } from '@/App';
+
+describe('Sale Flow', () => {
+  it('should complete full sale flow', async () => {
+    render(<App />);
+    
+    // 1. Ajouter produit au panier
+    fireEvent.click(screen.getByText('Heineken'));
+    expect(screen.getByText('1 article')).toBeInTheDocument();
+    
+    // 2. Valider vente
+    fireEvent.click(screen.getByText('Valider'));
+    
+    // 3. Vérifier confirmation
+    await screen.findByText('Vente validée');
+    
+    // 4. Vérifier stock décrémenté
+    expect(screen.getByText('Stock: 99')).toBeInTheDocument();
+  });
+});
+```
+
+**C. Tests E2E (Playwright)**
+```typescript
+// tests/e2e/critical-flows.spec.ts
+import { test, expect } from '@playwright/test';
+
+test('complete sale flow with stock update', async ({ page }) => {
+  await page.goto('http://localhost:5173');
+  
+  // Login
+  await page.fill('[name="email"]', 'test@bar.com');
+  await page.fill('[name="password"]', 'password');
+  await page.click('button[type="submit"]');
+  
+  // Add product to cart
+  await page.click('text=Heineken');
+  await expect(page.locator('.cart-count')).toHaveText('1');
+  
+  // Checkout
+  await page.click('text=Valider');
+  await expect(page.locator('.toast-success')).toBeVisible();
+  
+  // Verify stock in database
+  const stock = await page.evaluate(async () => {
+    const res = await fetch('/api/products/heineken');
+    const data = await res.json();
+    return data.stock;
+  });
+  expect(stock).toBe(99);
+});
+```
+
+---
+
+### 5.3 Tests RLS Automatisés (CRITIQUE)
+
+**Implémentation** :
+```sql
+-- supabase/tests/rls_test_suite.sql
+
+-- 1. Setup: créer utilisateurs de test
+CREATE OR REPLACE FUNCTION create_test_user(
+  p_email TEXT,
+  p_role TEXT,
+  p_bar_id UUID
+) RETURNS UUID AS $$
+DECLARE
+  v_user_id UUID;
+BEGIN
+  INSERT INTO auth.users (email, role)
+  VALUES (p_email, p_role)
+  RETURNING id INTO v_user_id;
+  
+  INSERT INTO bar_members (user_id, bar_id, role)
+  VALUES (v_user_id, p_bar_id, p_role);
+  
+  RETURN v_user_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 2. Tests positifs
+DO $$
+DECLARE
+  v_serveur_id UUID;
+  v_bar_id UUID := 'test-bar-1';
+BEGIN
+  v_serveur_id := create_test_user('serveur@test.com', 'serveur', v_bar_id);
+  
+  -- Serveur peut lire ventes de son bar
+  SET LOCAL role TO 'authenticated';
+  SET LOCAL request.jwt.claims TO json_build_object('sub', v_serveur_id)::text;
+  
+  PERFORM * FROM sales WHERE bar_id = v_bar_id;
+  RAISE NOTICE 'Test passed: Serveur can read sales';
+  
+  -- Serveur peut créer vente
+  INSERT INTO sales (bar_id, total, sold_by)
+  VALUES (v_bar_id, 1000, v_serveur_id);
+  RAISE NOTICE 'Test passed: Serveur can create sale';
+END;
+$$;
+
+-- 3. Tests négatifs
+DO $$
+DECLARE
+  v_serveur_id UUID;
+  v_other_bar_id UUID := 'test-bar-2';
+BEGIN
+  SET LOCAL role TO 'authenticated';
+  SET LOCAL request.jwt.claims TO json_build_object('sub', v_serveur_id)::text;
+  
+  -- Serveur ne peut PAS lire ventes d'un autre bar
+  BEGIN
+    PERFORM * FROM sales WHERE bar_id = v_other_bar_id;
+    RAISE EXCEPTION 'Test failed: Serveur should not read other bar sales';
+  EXCEPTION WHEN insufficient_privilege THEN
+    RAISE NOTICE 'Test passed: Serveur cannot read other bar sales';
+  END;
+END;
+$$;
+```
+
+**Intégration CI** :
+```yaml
+# .github/workflows/test.yml
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      # Tests RLS
+      - name: Run RLS tests
+        run: |
+          psql $DATABASE_URL -f supabase/tests/rls_test_suite.sql
+      
+      # Tests unitaires
+      - name: Run unit tests
+        run: npm run test
+      
+      # Tests E2E
+      - name: Run E2E tests
+        run: npx playwright test
+```
+
+---
+
+## 🎨 Phase 6 : Excellence UX/UI (P1)
+
+**Durée estimée** : 1-2 semaines | **Impact** : Adoption et satisfaction utilisateur
+
+> [!NOTE]
+> **Phase réordonnée** : UX/UI après Tests pour polish sur base technique validée
+
+---
+
+### 6.1 Responsive Mobile Excellence
+
+**Actions** :
+1. ✅ Tester chaque page sur 320px (petits écrans)
+2. ✅ Vérifier cibles tactiles ≥ 44x44px
+3. ✅ Ajouter gestes tactiles (`swipe to delete`, `pull to refresh`)
+4. ✅ Tester contraste en forte luminosité
+
+**Implémentation** :
+```typescript
+// hooks/useSwipeToDelete.ts
+import { useSwipeable } from 'react-swipeable';
+
+export const useSwipeToDelete = (onDelete: () => void) => {
+  const handlers = useSwipeable({
+    onSwipedLeft: () => {
+      if (window.confirm('Supprimer cet élément ?')) {
+        onDelete();
+      }
+    },
+    trackMouse: false,
+    trackTouch: true,
+  });
+
+  return handlers;
+};
+
+// components/SaleCard.tsx
+export const SaleCard = ({ sale, onDelete }) => {
+  const swipeHandlers = useSwipeToDelete(() => onDelete(sale.id));
+
+  return (
+    <div {...swipeHandlers} className="min-h-[44px] min-w-[44px]">
+      {/* Contenu */}
+    </div>
+  );
+};
+```
+
+**Validation** :
+- Tester sur iPhone SE (375px), Android (360px)
+- Vérifier contraste WCAG AA (ratio ≥ 4.5:1)
+
+---
+
+### 6.2 Micro-interactions & Feedback
+
+**Actions** :
+1. ✅ **Loading states** : Skeleton loaders (`react-loading-skeleton`)
+2. ✅ **Success feedback** : Animations + toast non-bloquant
+3. ✅ **Error states** : Messages clairs + action récupération
+4. ✅ **Empty states** : Illustrations + CTA clairs
+
+**Implémentation** :
+```typescript
+// components/ProductListSkeleton.tsx
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
+
+export const ProductListSkeleton = () => (
+  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    {Array.from({ length: 8 }).map((_, i) => (
+      <div key={i} className="p-4 border rounded">
+        <Skeleton height={120} />
+        <Skeleton count={2} className="mt-2" />
+      </div>
+    ))}
+  </div>
+);
+
+// components/EmptyState.tsx
+export const EmptyState = ({ 
+  icon: Icon, 
+  title, 
+  description, 
+  action 
+}) => (
+  <div className="flex flex-col items-center justify-center py-12 text-center">
+    <Icon className="w-16 h-16 text-gray-400 mb-4" />
+    <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+    <p className="text-gray-600 mb-6 max-w-md">{description}</p>
+    {action && (
+      <button className="btn-primary">{action.label}</button>
+    )}
+  </div>
+);
+
+// Usage
+<EmptyState
+  icon={Package}
+  title="Aucun produit trouvé"
+  description="Commencez par ajouter des produits à votre inventaire"
+  action={{ label: 'Ajouter un produit', onClick: () => {} }}
+/>
+```
+
+---
+
+### 6.3 Accessibilité (A11y)
+
+**Actions** :
+1. ✅ Attributs ARIA sur composants interactifs
+2. ✅ Contraste couleurs WCAG AA
+3. ✅ Navigation clavier fluide
+4. ✅ Labels sémantiques sur formulaires
+
+**Implémentation** :
+```typescript
+// components/ui/Button.tsx
+export const Button = ({ 
+  children, 
+  onClick, 
+  disabled,
+  ariaLabel 
+}) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    aria-label={ariaLabel}
+    aria-disabled={disabled}
+    className="btn"
+  >
+    {children}
+  </button>
+);
+
+// components/SearchInput.tsx
+export const SearchInput = ({ value, onChange }) => (
+  <div>
+    <label htmlFor="search-input" className="sr-only">
+      Rechercher un produit
+    </label>
+    <input
+      id="search-input"
+      type="search"
+      value={value}
+      onChange={onChange}
+      aria-label="Rechercher un produit"
+      className="input"
+    />
+  </div>
+);
+```
+
+**Validation** :
+- Lighthouse Accessibility : Score > 95
+- Test navigation clavier (Tab, Enter, Esc)
+- Test lecteur d'écran (NVDA/JAWS)
+
+---
+
+## 📊 Phase 7 : Scalabilité & Monitoring (P3)
+
+**Durée estimée** : 1-2 semaines | **Capacité cible** : 100+ bars simultanés
+
+---
+
+### 7.1 Observabilité Production
+
+**A. Sentry (Error Tracking)**
+```typescript
+// src/main.tsx
+import * as Sentry from '@sentry/react';
+
+Sentry.init({
+  dsn: import.meta.env.VITE_SENTRY_DSN,
+  environment: import.meta.env.MODE,
+  integrations: [
+    new Sentry.BrowserTracing(),
+    new Sentry.Replay(),
+  ],
+  tracesSampleRate: 0.1,
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+});
+```
+
+**B. Analytics Custom**
+```typescript
+// lib/analytics.ts
+export const trackEvent = (event: string, properties?: Record<string, any>) => {
+  // Table Supabase pour événements métier
+  supabase.from('analytics_events').insert({
+    event_name: event,
+    properties,
+    user_id: currentSession?.userId,
+    bar_id: currentBar?.id,
+    created_at: new Date(),
+  });
+};
+
+// Usage
+trackEvent('sale_created', { total: 1000, items: 3 });
+trackEvent('product_low_stock', { productId: 'p1', stock: 2 });
+```
+
+**C. Performance Monitoring (Web Vitals)**
+```typescript
+// src/main.tsx
+import { onCLS, onFID, onLCP } from 'web-vitals';
+
+onCLS(console.log);
+onFID(console.log);
+onLCP(console.log);
+```
+
+---
+
+### 7.2 Dashboard Admin Monitoring
+
+**Implémentation** :
+```typescript
+// pages/admin/Monitoring.tsx
+export const MonitoringDashboard = () => {
+  const { data: viewMetrics } = useQuery({
+    queryKey: ['materialized-view-metrics'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('materialized_view_metrics')
+        .select('*');
+      return data;
+    },
+  });
+
+  return (
+    <div className="space-y-6">
+      <h1>Monitoring Production</h1>
+      
+      {/* État vues matérialisées */}
+      <Card>
+        <h2>Vues Matérialisées</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Vue</th>
+              <th>Dernier Refresh</th>
+              <th>Durée (ms)</th>
+              <th>Lignes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {viewMetrics?.map(view => (
+              <tr key={view.view_name}>
+                <td>{view.view_name}</td>
+                <td>{formatDate(view.last_successful_refresh)}</td>
+                <td>{view.avg_duration_ms}</td>
+                <td>{view.current_row_count}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+      
+      {/* Métriques Supabase */}
+      <Card>
+        <h2>Quotas Supabase</h2>
+        <div className="grid grid-cols-3 gap-4">
+          <MetricCard 
+            label="Requêtes DB" 
+            value="3.2M / 5M" 
+            percentage={64} 
+          />
+          <MetricCard 
+            label="Connexions Realtime" 
+            value="320 / 500" 
+            percentage={64} 
+          />
+          <MetricCard 
+            label="Storage" 
+            value="45 GB / 100 GB" 
+            percentage={45} 
+          />
+        </div>
+      </Card>
+    </div>
+  );
+};
+```
+
+---
+
+### 7.3 Préparation Multi-Tenant Grande Échelle
+
+**A. Connection Pooling (PgBouncer)**
+```sql
+-- Supabase Dashboard > Settings > Database
+-- Activer PgBouncer (mode transaction)
+-- Connection string: postgresql://postgres.xxx:6543/postgres
+```
+
+**B. CDN pour Assets**
+```typescript
+// Upload images via Supabase Storage
+const { data } = await supabase.storage
+  .from('product-images')
+  .upload(`${barId}/${productId}.jpg`, file, {
+    cacheControl: '3600',
+    upsert: true,
+  });
+
+// URL avec CDN automatique
+const imageUrl = supabase.storage
+  .from('product-images')
+  .getPublicUrl(`${barId}/${productId}.jpg`).data.publicUrl;
+```
+
+**C. Rate Limiting (Vercel)**
+```typescript
+// middleware.ts
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(10, '10 s'),
+});
+
+export async function middleware(request: Request) {
+  const ip = request.headers.get('x-forwarded-for');
+  const { success } = await ratelimit.limit(ip);
+  
+  if (!success) {
+    return new Response('Too Many Requests', { status: 429 });
+  }
+}
+```
+
+---
+
+## 🚀 Plan de Migration Complet
+
+### **Durée Totale : 6-9 semaines**
+
+> [!NOTE]
+> **Phases 1-2 déjà implémentées** ✅
+> - Phase 1 : Consolidation & Nettoyage
+> - Phase 2 : Design System & Fondations UI
+
+---
+
+### Phase 3 : Optimisation Supabase (3-4 jours)
+
+**Objectif** : Performance + Économie + Scalabilité
+
+#### Jour 1 : Préparation Backend
+- [ ] Activer pg_cron (Supabase Dashboard)
+- [ ] Créer table `bar_activity` + trigger
+- [ ] Créer vue `bars_with_stats`
+- [ ] Ajouter indexes stratégiques
+- [ ] Créer fonction `create_sale_with_stock_lock` (verrous SQL + timeouts)
+- [ ] Configurer rafraîchissement pg_cron hors pointe
+
+#### Jour 2 : Implémentation Frontend (Realtime + Broadcast)
+- [ ] Créer `lib/broadcast.ts`
+- [ ] Refactorer `useStockQueries.ts` (ajouter Realtime stock)
+- [ ] Supprimer `refetchInterval: 3000` de `useProducts`
+- [ ] Intégrer `useBroadcastSync` dans App.tsx
+
+#### Jour 3 : Optimistic Updates + Polling Adaptatif
+- [ ] Refactorer mutations ventes (Optimistic Update)
+- [ ] Refactorer mutations retours (Optimistic Update)
+- [ ] Implémenter polling adaptatif dans `useSales`
+- [ ] Créer `useSalesPaginated.ts`
+- [ ] Supprimer `refetchInterval: 2000` de `useSales`
+
+#### Jour 4 : Tests & Validation
+- [ ] Test conflit stock (2 users, dernière bouteille)
+- [ ] Test haute affluence (> 10 ventes/5min)
+- [ ] Test mobile instable (reconnexion WiFi)
+- [ ] Test offline (mode avion)
+- [ ] Monitoring coûts Supabase Dashboard
+
+---
+
+### Phase 4 : Performance Frontend (2-3 semaines)
+
+#### Semaine 1 : Optimisation Bundle & Rendus
+- [ ] Analyser bundle (`rollup-plugin-visualizer`)
+- [ ] Code splitting routes (`React.lazy`)
+- [ ] Lazy load `recharts`, `xlsx`
+- [ ] Implémenter `React.memo()` sur composants liste
+- [ ] Ajouter `useMemo`, `useCallback`
+- [ ] Virtualisation listes (`react-window`)
+- [ ] Debounce recherche (300ms)
+
+#### Semaine 2 : Service Worker & Offline
+- [ ] Configurer Workbox (Vite PWA)
+- [ ] Implémenter `CacheFirst` assets
+- [ ] Implémenter `NetworkFirst` API
+- [ ] Background sync mutations
+- [ ] Indicateur visuel offline
+- [ ] Tests offline (< 1h)
+
+#### Semaine 3 : Validation Performance
+- [ ] Lighthouse Performance > 90
+- [ ] React DevTools Profiler (vérifier re-renders)
+- [ ] Time to Interactive < 3s (4G)
+- [ ] Bundle size < 200KB/chunk
+
+---
+
+### Phase 5 : Tests & Qualité (2 semaines)
+
+#### Semaine 1 : Tests Unitaires & Intégration
+- [ ] Tests `useStockManagement` (Vitest)
+- [ ] Tests `SalesService` (Vitest)
+- [ ] Tests `AuthService` (Vitest)
+- [ ] Tests flux vente complet (Testing Library)
+- [ ] Tests flux retour (Testing Library)
+- [ ] Coverage > 80% chemins critiques
+
+#### Semaine 2 : Tests E2E & RLS
+- [ ] Tests E2E flux vente (Playwright)
+- [ ] Tests E2E flux retour (Playwright)
+- [ ] Tests E2E multi-utilisateurs (Playwright)
+- [ ] Suite tests RLS automatisée (SQL)
+- [ ] Intégration CI (GitHub Actions)
+- [ ] Tests charge k6 (100 users simultanés)
+
+---
+
+### Phase 6 : Excellence UX/UI (1-2 semaines)
+
+#### Semaine 1 : Responsive & Micro-interactions
+- [ ] Tester pages 320px (petits écrans)
+- [ ] Vérifier cibles tactiles ≥ 44x44px
+- [ ] Gestes tactiles (`swipe to delete`)
+- [ ] Skeleton loaders (`react-loading-skeleton`)
+- [ ] Empty states (illustrations + CTA)
+- [ ] Success/Error feedback (animations + toast)
+
+#### Semaine 2 : Accessibilité
+- [ ] Attributs ARIA composants interactifs
+- [ ] Contraste WCAG AA (ratio ≥ 4.5:1)
+- [ ] Navigation clavier fluide
+- [ ] Labels sémantiques formulaires
+- [ ] Lighthouse Accessibility > 95
+- [ ] Test lecteur d'écran (NVDA/JAWS)
+
+---
+
+### Phase 7 : Scalabilité & Monitoring (1-2 semaines)
+
+#### Semaine 1 : Observabilité
+- [ ] Configurer Sentry (error tracking)
+- [ ] Analytics custom (événements métier)
+- [ ] Web Vitals monitoring
+- [ ] Dashboard admin monitoring
+- [ ] Métriques vues matérialisées
+- [ ] Quotas Supabase
+
+#### Semaine 2 : Scalabilité
+- [ ] Activer PgBouncer (connection pooling)
+- [ ] CDN Supabase Storage (images produits)
+- [ ] Rate limiting (Vercel/Upstash)
+- [ ] Documentation sharding strategy
+- [ ] Tests charge k6 (validation limites)
+
+---
+
+## 📅 Planning Récapitulatif
+
+| Phase | Durée | Dates (si début 26 déc) | Statut |
+|-------|-------|-------------------------|--------|
+| **Phase 1-2** | - | - | ✅ **Terminées** |
+| **Phase 3 : Optimisation Supabase** | 3-4 jours | 26-30 déc | 🔄 **En cours** |
+| **Phase 4 : Performance Frontend** | 2-3 semaines | 31 déc - 21 jan | ⏳ À venir |
+| **Phase 5 : Tests & Qualité** | 2 semaines | 22 jan - 4 fév | ⏳ À venir |
+| **Phase 6 : Excellence UX/UI** | 1-2 semaines | 5 fév - 18 fév | ⏳ À venir |
+| **Phase 7 : Scalabilité & Monitoring** | 1-2 semaines | 19 fév - 4 mars | ⏳ À venir |
+
+**Livraison Production** : **4 mars 2026** (estimation conservatrice)
 
 **Objectif** : Préparer infrastructure Supabase
 
