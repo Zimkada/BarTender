@@ -94,6 +94,9 @@ export default function ReturnsPage() {
   const { showSuccess, showError } = useFeedback();
   const { isMobile } = useViewport();
 
+  // ✨ Déterminer si l'utilisateur est en mode read-only (serveur)
+  const isReadOnly = currentSession?.role === 'serveur';
+
   const [showCreateReturn, setShowCreateReturn] = useState(false);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
@@ -388,7 +391,7 @@ export default function ReturnsPage() {
         actions={
           // Desktop : Icône seule pour "Nouveau retour"
           <div className="flex items-center gap-2">
-            {!showCreateReturn && (
+            {!showCreateReturn && !isReadOnly && (
               <Button
                 onClick={() => setShowCreateReturn(true)}
                 className="shadow-sm"
@@ -412,7 +415,7 @@ export default function ReturnsPage() {
         mobileActions={
           // Mobile : Bouton explicite avec texte et icône
           <div className="flex items-center gap-2 w-full">
-            {!showCreateReturn && (
+            {!showCreateReturn && !isReadOnly && (
               <Button
                 onClick={() => setShowCreateReturn(true)}
                 className="shadow-sm flex-1"
@@ -615,7 +618,7 @@ export default function ReturnsPage() {
                           </div>
 
                           <div className="flex items-center gap-2 self-end sm:self-auto">
-                            {returnItem.status === 'pending' && (
+                            {!isReadOnly && returnItem.status === 'pending' && (
                               <>
                                 <EnhancedButton
                                   variant="danger"
@@ -634,7 +637,7 @@ export default function ReturnsPage() {
                               </>
                             )}
 
-                            {returnItem.status === 'approved' && returnItem.manualRestockRequired && (
+                            {!isReadOnly && returnItem.status === 'approved' && returnItem.manualRestockRequired && (
                               <EnhancedButton
                                 variant="info"
                                 size="sm"

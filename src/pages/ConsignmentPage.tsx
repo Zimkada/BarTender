@@ -41,6 +41,10 @@ export default function ConsignmentPage() {
   const [activeTab, setActiveTab] = useState<TabType>('active');
   const navigate = useNavigate();
   const { isMobile } = useViewport();
+  const { currentSession } = useAuth();
+
+  // ✨ Déterminer si l'utilisateur est en mode read-only (serveur)
+  const isReadOnly = currentSession?.role === 'serveur';
 
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-4">
@@ -55,12 +59,14 @@ export default function ConsignmentPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="border-b border-gray-200 bg-gray-50">
           <div className="flex overflow-x-auto">
-            <TabButton
-              active={activeTab === 'create'}
-              onClick={() => setActiveTab('create')}
-              icon={<Package className="w-5 h-5" />}
-              label="Créer Consignation"
-            />
+            {!isReadOnly && (
+              <TabButton
+                active={activeTab === 'create'}
+                onClick={() => setActiveTab('create')}
+                icon={<Package className="w-5 h-5" />}
+                label="Créer Consignation"
+              />
+            )}
             <TabButton
               active={activeTab === 'active'}
               onClick={() => setActiveTab('active')}
@@ -89,7 +95,7 @@ export default function ConsignmentPage() {
             )}
             {activeTab === 'active' && (
               <motion.div key="active" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <ActiveConsignmentsTab />
+                <ActiveConsignmentsTab isReadOnly={isReadOnly} />
               </motion.div>
             )}
             {activeTab === 'history' && (
@@ -547,7 +553,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
 };
 
 // ===== TAB 2: CONSIGNATIONS ACTIVES =====
-const ActiveConsignmentsTab: React.FC = () => {
+const ActiveConsignmentsTab: React.FC<{ isReadOnly?: boolean }> = ({ isReadOnly = false }) => {
   const stockManager = useStockManagement();
   const { sales } = useAppContext();
   const { currentBar, getBarMembers } = useBarContext();
@@ -651,6 +657,7 @@ const ActiveConsignmentsTab: React.FC = () => {
               onForfeit={() => handleForfeit(consignment)}
               users={users}
               sales={sales}
+              isReadOnly={isReadOnly}
             />
           ))}
         </div>
@@ -785,9 +792,10 @@ interface ConsignmentCardProps {
   onForfeit: () => void;
   users: UserType[];
   sales: Sale[];
+  isReadOnly?: boolean; // ✨ Mode read-only pour serveurs
 }
 
-const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim, onForfeit, users, sales }) => {
+const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim, onForfeit, users, sales, isReadOnly = false }) => {
   const { formatPrice } = useCurrencyFormatter();
 
   let originalSeller: UserType | undefined = undefined;
@@ -854,22 +862,24 @@ const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim,
         </div>
       )}
 
-      <div className="flex gap-2">
-        <button
-          onClick={onClaim}
-          className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
-        >
-          <CheckCircle className="w-4 h-4" />
-          Récupéré
-        </button>
-        <button
-          onClick={onForfeit}
-          className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
-        >
-          <XCircle className="w-4 h-4" />
-          Confisquer
-        </button>
-      </div>
+      {!isReadOnly && (
+        <div className="flex gap-2">
+          <button
+            onClick={onClaim}
+            className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+          >
+            <CheckCircle className="w-4 h-4" />
+            Récupéré
+          </button>
+          <button
+            onClick={onForfeit}
+            className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+          >
+            <XCircle className="w-4 h-4" />
+            Confisquer
+          </button>
+        </div>
+      )}
     </div>
   );
 };
