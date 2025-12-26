@@ -565,7 +565,7 @@ export default function SalesHistoryPage() {
                                     className="px-4 py-2 flex items-center gap-2"
                                 >
                                     <Download size={16} className="mr-2" />
-                                    <span className="text-sm font-medium">Exporter</span>
+                                    <span className="text-sm font-medium">Exporter ({exportFormat.toUpperCase()})</span>
                                 </Button>
                             </div>
                         </div>
