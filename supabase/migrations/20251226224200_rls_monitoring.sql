@@ -32,8 +32,10 @@ CREATE POLICY "SuperAdmin can view all violations"
   ON rls_violations_log FOR SELECT
   USING (
     EXISTS (
-      SELECT 1 FROM users 
-      WHERE id = auth.uid() AND role = 'superadmin'
+      SELECT 1 FROM bar_members
+      WHERE user_id = auth.uid()
+        AND role = 'super_admin'
+        AND is_active = true
     )
   );
 
