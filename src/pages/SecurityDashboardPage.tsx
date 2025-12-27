@@ -11,6 +11,9 @@ import {
   Users,
   TrendingUp,
   AlertCircle,
+  Download,
+  Bell,
+  BellOff,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -19,10 +22,13 @@ import {
   SecurityDashboardData,
   RecentRLSViolation,
   MaterializedViewRefreshStats,
+  MaterializedViewRefreshLog,
   ActiveRefreshAlert,
 } from '../services/supabase/security.service';
 import { LoadingFallback } from '../components/LoadingFallback';
 import { Alert } from '../components/ui/Alert';
+import { exportToCSV } from '../utils/exportToCSV';
+import { formatRelativeTime } from '../utils/formatRelativeTime';
 
 export default function SecurityDashboardPage() {
   const { currentSession } = useAuth();
@@ -36,6 +42,9 @@ export default function SecurityDashboardPage() {
   const [refreshStats, setRefreshStats] = useState<MaterializedViewRefreshStats[]>([]);
   const [activeAlerts, setActiveAlerts] = useState<ActiveRefreshAlert[]>([]);
   const [refreshing, setRefreshing] = useState<string | null>(null);
+  const [refreshHistory, setRefreshHistory] = useState<MaterializedViewRefreshLog[]>([]);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [previousAlertsCount, setPreviousAlertsCount] = useState(0);
 
   const loadSecurityData = useCallback(async () => {
     if (currentSession?.role !== 'super_admin') return;
@@ -44,23 +53,31 @@ export default function SecurityDashboardPage() {
       setLoading(true);
 
       // Load all security data in parallel
-      const [dashboard, violations, stats, alerts] = await Promise.all([
+      const [dashboard, violations, stats, alerts, history] = await Promise.all([
         SecurityService.getSecurityDashboard(),
         SecurityService.getRecentRLSViolations(),
         MaterializedViewService.getRefreshStats(),
         MaterializedViewService.getActiveRefreshAlerts(),
+        MaterializedViewService.getRefreshHistory('bars_with_stats', 100),
       ]);
 
       setSecurityDashboard(dashboard);
       setRecentViolations(violations);
       setRefreshStats(stats);
+
+      // Detect new alerts for notifications
+      if (notificationsEnabled && alerts.length > previousAlertsCount) {
+        showBrowserNotification('Nouvelle alerte de refresh détectée!');
+      }
+      setPreviousAlertsCount(alerts.length);
       setActiveAlerts(alerts);
+      setRefreshHistory(history);
     } catch (error) {
       console.error('Error loading security data:', error);
     } finally {
       setLoading(false);
     }
-  }, [currentSession]);
+  }, [currentSession, notificationsEnabled, previousAlertsCount]);
 
   useEffect(() => {
     loadSecurityData();
@@ -68,6 +85,77 @@ export default function SecurityDashboardPage() {
     const interval = setInterval(loadSecurityData, 30000);
     return () => clearInterval(interval);
   }, [loadSecurityData]);
+
+  // Browser notification utility
+  const showBrowserNotification = (message: string) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('BarTender Security Alert', {
+        body: message,
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+      });
+    }
+  };
+
+  // Toggle browser notifications
+  const toggleNotifications = async () => {
+    if (!('Notification' in window)) {
+      alert('Votre navigateur ne supporte pas les notifications');
+      return;
+    }
+
+    if (Notification.permission === 'default') {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        setNotificationsEnabled(true);
+      }
+    } else if (Notification.permission === 'granted') {
+      setNotificationsEnabled(!notificationsEnabled);
+    } else {
+      alert('Notifications bloquées. Autorisez-les dans les paramètres du navigateur.');
+    }
+  };
+
+  // Refresh all views in parallel
+  const handleRefreshAllViews = async () => {
+    try {
+      setRefreshing('all');
+      const result = await MaterializedViewService.refreshBarsWithStats();
+
+      if (result.success) {
+        alert(`Refresh réussi en ${result.duration_ms}ms`);
+        loadSecurityData();
+      } else {
+        alert(`Échec du refresh: ${result.error_message}`);
+      }
+    } catch (error) {
+      console.error('Error refreshing all views:', error);
+      alert('Erreur lors du refresh');
+    } finally {
+      setRefreshing(null);
+    }
+  };
+
+  // Export refresh logs to CSV
+  const handleExportLogs = () => {
+    if (refreshHistory.length === 0) {
+      alert('Aucun log à exporter');
+      return;
+    }
+
+    const exportData = refreshHistory.map((log) => ({
+      view_name: log.view_name,
+      status: log.status,
+      started_at: log.started_at,
+      completed_at: log.completed_at || 'N/A',
+      duration_ms: log.duration_ms || 0,
+      error_message: log.error_message || '',
+      created_at: log.created_at,
+    }));
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    exportToCSV(exportData, `refresh_logs_${timestamp}`);
+  };
 
   const handleRefreshView = async (viewName: string) => {
     try {
@@ -263,21 +351,46 @@ export default function SecurityDashboardPage() {
       {/* Materialized Views Stats */}
       <section className="mb-6">
         <div className="bg-white rounded-2xl shadow-sm border border-purple-100 p-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
             <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
               <Database className="w-5 h-5 text-purple-600" />
               Performance Materialized Views (7 derniers jours)
             </h3>
-            <button
-              onClick={() => handleRefreshView('bars_with_stats')}
-              disabled={refreshing !== null}
-              className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 transition-colors"
-            >
-              <RefreshCw
-                className={`w-4 h-4 ${refreshing === 'bars_with_stats' ? 'animate-spin' : ''}`}
-              />
-              Refresh bars_with_stats
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleNotifications}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
+                  notificationsEnabled
+                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {notificationsEnabled ? (
+                  <Bell className="w-4 h-4" />
+                ) : (
+                  <BellOff className="w-4 h-4" />
+                )}
+                Notifications
+              </button>
+              <button
+                onClick={handleExportLogs}
+                disabled={refreshHistory.length === 0}
+                className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                Export CSV
+              </button>
+              <button
+                onClick={handleRefreshAllViews}
+                disabled={refreshing !== null}
+                className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 transition-colors"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 ${refreshing === 'all' ? 'animate-spin' : ''}`}
+                />
+                Refresh All Views
+              </button>
+            </div>
           </div>
 
           <div className="overflow-x-auto">
@@ -314,12 +427,25 @@ export default function SecurityDashboardPage() {
                       ? Math.round((stat.success_count / stat.total_refreshes) * 100)
                       : 0;
 
+                  // Check if refresh is stale (>10 minutes)
+                  const lastRefreshDate = new Date(stat.last_refresh_at);
+                  const minutesSinceRefresh = Math.floor(
+                    (Date.now() - lastRefreshDate.getTime()) / 60000
+                  );
+                  const needsRefresh = minutesSinceRefresh > 10;
+
                   return (
                     <tr key={stat.view_name} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <Database className="w-4 h-4 text-gray-400" />
                           <span className="font-medium text-sm">{stat.view_name}</span>
+                          {needsRefresh && (
+                            <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold flex items-center gap-1">
+                              <AlertTriangle className="w-3 h-3" />
+                              Needs Refresh
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-center text-sm">
@@ -355,8 +481,20 @@ export default function SecurityDashboardPage() {
                       <td className="px-4 py-3 text-center">
                         <span className="text-sm">{Math.round(stat.avg_duration_ms)}</span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {new Date(stat.last_refresh_at).toLocaleString('fr-FR')}
+                      <td className="px-4 py-3">
+                        <div className="text-sm">
+                          <div className="text-gray-900 font-medium">
+                            {formatRelativeTime(stat.last_refresh_at)}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {new Date(stat.last_refresh_at).toLocaleString('fr-FR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   );
