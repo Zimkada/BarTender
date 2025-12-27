@@ -40,6 +40,7 @@ const BarStatsModalPage = lazy(() => import('../components/BarStatsModal'));
 const UsersManagementPage = lazy(() => import('../pages/admin/UsersManagementPage'));
 const GlobalCatalogPage = lazy(() => import('../pages/GlobalCatalogPage'));
 const AuditLogsPage = lazy(() => import('../pages/AuditLogsPage'));
+const SecurityDashboardPage = lazy(() => import('../pages/SecurityDashboardPage'));
 
 export const router = createBrowserRouter([
   // =====================
@@ -57,6 +58,7 @@ export const router = createBrowserRouter([
       { path: 'catalog', element: <Suspense fallback={<LoadingFallback />}><GlobalCatalogPage /></Suspense> },
       { path: 'audit-logs', element: <Suspense fallback={<LoadingFallback />}><AuditLogsPage /></Suspense> },
       { path: 'notifications', element: <Suspense fallback={<LoadingFallback />}><AdminNotificationsPage /></Suspense> },
+      { path: 'security', element: <Suspense fallback={<LoadingFallback />}><SecurityDashboardPage /></Suspense> },
     ],
   },
   

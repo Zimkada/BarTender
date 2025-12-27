@@ -1,0 +1,508 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Shield,
+  AlertTriangle,
+  RefreshCw,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Activity,
+  Database,
+  Users,
+  TrendingUp,
+  AlertCircle,
+} from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import {
+  SecurityService,
+  MaterializedViewService,
+  SecurityDashboardData,
+  RecentRLSViolation,
+  MaterializedViewRefreshStats,
+  ActiveRefreshAlert,
+} from '../services/supabase/security.service';
+import { LoadingFallback } from '../components/LoadingFallback';
+import { Alert } from '../components/ui/Alert';
+
+export default function SecurityDashboardPage() {
+  const { currentSession } = useAuth();
+  const [loading, setLoading] = useState(true);
+
+  // RLS Violations State
+  const [securityDashboard, setSecurityDashboard] = useState<SecurityDashboardData[]>([]);
+  const [recentViolations, setRecentViolations] = useState<RecentRLSViolation[]>([]);
+
+  // Materialized View State
+  const [refreshStats, setRefreshStats] = useState<MaterializedViewRefreshStats[]>([]);
+  const [activeAlerts, setActiveAlerts] = useState<ActiveRefreshAlert[]>([]);
+  const [refreshing, setRefreshing] = useState<string | null>(null);
+
+  const loadSecurityData = useCallback(async () => {
+    if (currentSession?.role !== 'super_admin') return;
+
+    try {
+      setLoading(true);
+
+      // Load all security data in parallel
+      const [dashboard, violations, stats, alerts] = await Promise.all([
+        SecurityService.getSecurityDashboard(),
+        SecurityService.getRecentRLSViolations(),
+        MaterializedViewService.getRefreshStats(),
+        MaterializedViewService.getActiveRefreshAlerts(),
+      ]);
+
+      setSecurityDashboard(dashboard);
+      setRecentViolations(violations);
+      setRefreshStats(stats);
+      setActiveAlerts(alerts);
+    } catch (error) {
+      console.error('Error loading security data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentSession]);
+
+  useEffect(() => {
+    loadSecurityData();
+    // Refresh every 30 seconds
+    const interval = setInterval(loadSecurityData, 30000);
+    return () => clearInterval(interval);
+  }, [loadSecurityData]);
+
+  const handleRefreshView = async (viewName: string) => {
+    try {
+      setRefreshing(viewName);
+      const result = await MaterializedViewService.refreshMaterializedView(viewName);
+
+      if (result.success) {
+        alert(`Refresh réussi en ${result.duration_ms}ms`);
+        loadSecurityData(); // Reload stats
+      } else {
+        alert(`Échec du refresh: ${result.error_message}`);
+      }
+    } catch (error) {
+      console.error('Error refreshing view:', error);
+      alert('Erreur lors du refresh');
+    } finally {
+      setRefreshing(null);
+    }
+  };
+
+  const handleAcknowledgeAlert = async (alertId: string) => {
+    try {
+      const success = await MaterializedViewService.acknowledgeAlert(alertId);
+      if (success) {
+        alert('Alerte acknowledgée avec succès');
+        loadSecurityData(); // Reload alerts
+      } else {
+        alert('Échec acknowledgement alerte');
+      }
+    } catch (error) {
+      console.error('Error acknowledging alert:', error);
+      alert('Erreur lors de l\'acknowledgement');
+    }
+  };
+
+  if (loading) {
+    return <LoadingFallback />;
+  }
+
+  // Calculate summary stats
+  const totalViolations = securityDashboard.reduce(
+    (sum, item) => sum + item.violation_count,
+    0
+  );
+  const totalFailedRefreshes = refreshStats.reduce(
+    (sum, stat) => sum + stat.failed_count + stat.timeout_count,
+    0
+  );
+  const totalActiveAlerts = activeAlerts.length;
+
+  return (
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 md:p-8">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-3">
+          <Shield className="w-7 h-7 text-red-600" />
+          Dashboard Sécurité & Monitoring
+        </h1>
+        <p className="text-gray-500 mt-1 text-sm md:text-base">
+          Surveillance RLS violations et performance materialized views
+        </p>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        {/* RLS Violations Card */}
+        <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-2xl p-6 shadow-sm border border-red-200">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-6 h-6 text-red-600 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-gray-600 text-sm mb-1">RLS Violations (24h)</p>
+              <p className="text-3xl font-bold text-red-600">{totalViolations}</p>
+              {recentViolations.length > 0 && (
+                <p className="text-xs text-red-700 mt-2">
+                  {recentViolations.length} utilisateur(s) suspect(s)
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Failed Refreshes Card */}
+        <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-2xl p-6 shadow-sm border border-amber-200">
+          <div className="flex items-start gap-3">
+            <Database className="w-6 h-6 text-amber-600 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-gray-600 text-sm mb-1">Échecs Refresh (7j)</p>
+              <p className="text-3xl font-bold text-amber-600">{totalFailedRefreshes}</p>
+              {totalFailedRefreshes > 0 && (
+                <p className="text-xs text-amber-700 mt-2">
+                  {refreshStats.length} vue(s) affectée(s)
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Active Alerts Card */}
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-6 shadow-sm border border-purple-200">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-6 h-6 text-purple-600 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-gray-600 text-sm mb-1">Alertes Actives</p>
+              <p className="text-3xl font-bold text-purple-600">{totalActiveAlerts}</p>
+              {totalActiveAlerts > 0 && (
+                <p className="text-xs text-purple-700 mt-2">Nécessitent attention</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Active Alerts Section */}
+      {activeAlerts.length > 0 && (
+        <section className="mb-6">
+          <Alert show={true} variant="destructive" className="mb-4">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              <p className="font-semibold">
+                {activeAlerts.length} alerte(s) de refresh consécutifs détectée(s)
+              </p>
+            </div>
+          </Alert>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-red-100 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-red-600" />
+              Alertes Échecs Refresh Consécutifs
+            </h3>
+
+            <div className="space-y-3">
+              {activeAlerts.map((alert) => (
+                <div
+                  key={alert.id}
+                  className="bg-red-50 border border-red-200 rounded-lg p-4"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Database className="w-4 h-4 text-red-600" />
+                        <p className="font-semibold text-gray-900">{alert.view_name}</p>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            alert.status === 'active'
+                              ? 'bg-red-100 text-red-700'
+                              : 'bg-yellow-100 text-yellow-700'
+                          }`}
+                        >
+                          {alert.status}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <p className="text-gray-600">Échecs consécutifs:</p>
+                          <p className="font-semibold text-red-600">
+                            {alert.consecutive_failures}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-600">Durée incident:</p>
+                          <p className="font-semibold">
+                            {Math.floor(alert.incident_duration_seconds / 60)} min
+                          </p>
+                        </div>
+                      </div>
+
+                      {alert.error_messages.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-xs text-gray-600 mb-1">Dernier message:</p>
+                          <p className="text-xs font-mono bg-red-100 p-2 rounded">
+                            {alert.error_messages[alert.error_messages.length - 1]}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => handleAcknowledgeAlert(alert.id)}
+                      disabled={alert.status !== 'active'}
+                      className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Acknowledger
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Materialized Views Stats */}
+      <section className="mb-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-purple-100 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Database className="w-5 h-5 text-purple-600" />
+              Performance Materialized Views (7 derniers jours)
+            </h3>
+            <button
+              onClick={() => handleRefreshView('bars_with_stats')}
+              disabled={refreshing !== null}
+              className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 transition-colors"
+            >
+              <RefreshCw
+                className={`w-4 h-4 ${refreshing === 'bars_with_stats' ? 'animate-spin' : ''}`}
+              />
+              Refresh bars_with_stats
+            </button>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                    Vue
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
+                    Total
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
+                    Succès
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
+                    Échecs
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
+                    Timeouts
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
+                    Avg (ms)
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                    Dernier Refresh
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {refreshStats.map((stat) => {
+                  const successRate =
+                    stat.total_refreshes > 0
+                      ? Math.round((stat.success_count / stat.total_refreshes) * 100)
+                      : 0;
+
+                  return (
+                    <tr key={stat.view_name} className="hover:bg-gray-50">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <Database className="w-4 h-4 text-gray-400" />
+                          <span className="font-medium text-sm">{stat.view_name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center text-sm">
+                        {stat.total_refreshes}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <span className="text-sm font-semibold text-green-600">
+                            {stat.success_count}
+                          </span>
+                          <span className="text-xs text-gray-500">({successRate}%)</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span
+                          className={`text-sm font-semibold ${
+                            stat.failed_count > 0 ? 'text-red-600' : 'text-gray-400'
+                          }`}
+                        >
+                          {stat.failed_count}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span
+                          className={`text-sm font-semibold ${
+                            stat.timeout_count > 0 ? 'text-amber-600' : 'text-gray-400'
+                          }`}
+                        >
+                          {stat.timeout_count}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="text-sm">{Math.round(stat.avg_duration_ms)}</span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {new Date(stat.last_refresh_at).toLocaleString('fr-FR')}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* RLS Violations - Recent Suspicious Users */}
+      {recentViolations.length > 0 && (
+        <section className="mb-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-red-100 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5 text-red-600" />
+              Utilisateurs Suspects (3+ violations en 1h)
+            </h3>
+
+            <div className="space-y-3">
+              {recentViolations.map((violation) => (
+                <div
+                  key={violation.user_id}
+                  className="bg-red-50 border border-red-200 rounded-lg p-4"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Users className="w-4 h-4 text-red-600" />
+                        <p className="font-semibold text-gray-900">
+                          {violation.user_email || 'Email inconnu'}
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-3 text-sm">
+                        <div>
+                          <p className="text-gray-600">Violations:</p>
+                          <p className="font-semibold text-red-600">
+                            {violation.violation_count}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-gray-600">Tables affectées:</p>
+                          <p className="font-semibold">{violation.tables_affected.length}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-600">Dernière violation:</p>
+                          <p className="font-semibold text-xs">
+                            {new Date(violation.last_violation).toLocaleTimeString('fr-FR')}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-2">
+                        <p className="text-xs text-gray-600">
+                          Tables:{' '}
+                          <span className="font-mono">
+                            {violation.tables_affected.join(', ')}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* RLS Violations - 24h Heatmap */}
+      {securityDashboard.length > 0 && (
+        <section>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Activity className="w-5 h-5 text-gray-600" />
+              Heatmap Violations RLS (24h)
+            </h3>
+
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                      Heure
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                      Table
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                      Opération
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
+                      Violations
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">
+                      Utilisateurs
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {securityDashboard.slice(0, 20).map((item, index) => (
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm">
+                        {new Date(item.hour).toLocaleString('fr-FR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-mono">{item.table_name}</td>
+                      <td className="px-4 py-3">
+                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-semibold">
+                          {item.operation}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className="text-sm font-semibold text-red-600">
+                          {item.violation_count}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center text-sm">
+                        {item.unique_users}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Empty State */}
+      {securityDashboard.length === 0 &&
+        recentViolations.length === 0 &&
+        refreshStats.length === 0 && (
+          <div className="text-center py-12">
+            <Shield className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500 text-lg">Aucune donnée de sécurité disponible</p>
+            <p className="text-gray-400 text-sm mt-2">
+              Les violations RLS et erreurs de refresh apparaîtront ici
+            </p>
+          </div>
+        )}
+    </div>
+  );
+}

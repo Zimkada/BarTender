@@ -13,7 +13,8 @@ import {
   LogOut,
   Menu,
   X,
-  ShieldCheck
+  ShieldCheck,
+  Shield
 } from 'lucide-react';
 
 const adminNavItems = [
@@ -23,6 +24,7 @@ const adminNavItems = [
   { path: '/admin/catalog', label: 'Catalogue Global', icon: Package },
   { path: '/admin/audit-logs', label: 'Audit Logs', icon: FileText },
   { path: '/admin/notifications', label: 'Notifications', icon: Bell },
+  { path: '/admin/security', label: 'Sécurité & Monitoring', icon: Shield },
 ];
 
 function AdminLayoutContent() {
