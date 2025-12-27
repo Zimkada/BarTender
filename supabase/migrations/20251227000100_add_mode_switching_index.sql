@@ -16,14 +16,16 @@ WHERE status = 'validated';
 
 -- Index composite pour retours mode switching
 -- Utilisé par: Historique Retours, Performance Équipe (déductions)
+-- Note: returns n'a pas server_id, utilise returned_by pour mode-agnostic
 CREATE INDEX IF NOT EXISTS idx_returns_mode_switching
-ON returns(bar_id, COALESCE(server_id, sale_id), created_at DESC)
+ON returns(bar_id, returned_by, returned_at DESC)
 WHERE status IN ('approved', 'restocked');
 
 -- Index composite pour consignations mode switching
 -- Utilisé par: Page Consignations, déduction seller
+-- Note: consignments n'a pas server_id, utilise original_seller
 CREATE INDEX IF NOT EXISTS idx_consignments_mode_switching
-ON consignments(bar_id, COALESCE(server_id, sale_id), status, created_at DESC);
+ON consignments(bar_id, original_seller, status, created_at DESC);
 
 -- =====================================================
 -- Index pour RPC top_products_by_server (mode switching)
