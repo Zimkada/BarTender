@@ -69,7 +69,7 @@ export default function SalesHistoryPage() {
     const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
     const [exportFormat, setExportFormat] = useState<'csv' | 'excel'>('excel');
 
-    // HOOK: Filtrage (Ventes & Consignations)
+    // HOOK: Filtrage (Ventes & Consignations & Retours)
     const {
         timeRange,
         setTimeRange,
@@ -81,13 +81,20 @@ export default function SalesHistoryPage() {
         searchTerm,
         setSearchTerm,
         filteredSales,
-        filteredConsignments
+        filteredConsignments,
+        filteredReturns // ✨ MODE SWITCHING FIX: Get filtered returns from hook
     } = useSalesFilters({
         sales,
         consignments,
+        returns, // Pass returns to filter them by server
         currentSession,
         closeHour
     });
+
+    // ✨ Filter metrics for servers
+    const isServerRole = currentSession?.role === 'serveur';
+    const operatingMode = currentBar?.settings?.operatingMode || 'full';
+    const serverIdForAnalytics = isServerRole ? currentSession?.userId : undefined;
 
     // HOOK: Statistiques & Top Produits
     const {
@@ -99,11 +106,12 @@ export default function SalesHistoryPage() {
         isLoadingTopProducts
     } = useSalesStats({
         filteredSales,
-        returns,
+        returns: filteredReturns, // ✨ MODE SWITCHING FIX: Use filtered returns instead of all returns
         timeRange,
         startDate,
         endDate,
-        currentBar
+        currentBar,
+        serverId: serverIdForAnalytics // Pass serverId for server filtering
     });
 
     const exportSales = () => {
@@ -113,10 +121,15 @@ export default function SalesHistoryPage() {
 
         // 1. Ajouter toutes les ventes
         filteredSales.forEach(sale => {
-            const user = safeUsers.find(u => u.id === sale.createdBy);
+            // ✨ MODE SWITCHING FIX: Use serverId (assigned server) if present, otherwise createdBy
+            const serverUserId = sale.serverId || sale.createdBy;
+            const user = safeUsers.find(u => u.id === serverUserId);
             const member = safeBarMembers.find(m => m.userId === user?.id);
             const vendeur = user?.name || 'Inconnu';
             const role = member?.role || 'serveur';
+
+            // Déterminer le mode d'opération de cette vente
+            const operationMode = sale.serverId ? 'Simplifié' : 'Complet';
 
             const saleDate = getSaleDate(sale);
             // Get actual transaction time (not business date which is normalized to midnight)
@@ -134,6 +147,7 @@ export default function SalesHistoryPage() {
 
                 exportData.push({
                     'Type': 'Vente',
+                    'Mode': operationMode,
                     'Date': saleDate.toLocaleDateString('fr-FR'),
                     'Heure': saleTimestamp.toLocaleTimeString('fr-FR'),
                     'ID Transaction': sale.id.slice(-6),
@@ -165,10 +179,16 @@ export default function SalesHistoryPage() {
                 return;
             }
 
-            const user = safeUsers.find(u => u.id === ret.returnedBy);
+            // ✨ MODE SWITCHING FIX: Use server_id if present, otherwise returnedBy
+            const serverUserId = ret.server_id || ret.returnedBy;
+            const user = safeUsers.find(u => u.id === serverUserId);
             const member = safeBarMembers.find(m => m.userId === user?.id);
             const utilisateur = user?.name || 'Inconnu';
             const role = member?.role || 'serveur';
+
+            // Déterminer le mode d'opération de ce retour (basé sur la vente originale)
+            const originalSale = sales.find(s => s.id === ret.saleId);
+            const operationMode = originalSale?.serverId ? 'Simplifié' : 'Complet';
 
             const category = categories.find(c => c.id === product.categoryId);
             const cost = 0; // TODO: Calculer depuis Supply
@@ -177,6 +197,7 @@ export default function SalesHistoryPage() {
 
             exportData.push({
                 'Type': 'Retour',
+                'Mode': operationMode,
                 'Date': new Date(ret.returnedAt).toLocaleDateString('fr-FR'),
                 'Heure': new Date(ret.returnedAt).toLocaleTimeString('fr-FR'),
                 'ID Transaction': ret.id.slice(-6),
@@ -202,10 +223,22 @@ export default function SalesHistoryPage() {
                 return;
             }
 
-            const user = safeUsers.find(u => u.id === consignment.createdBy);
-            const member = safeBarMembers.find(m => m.userId === user?.id);
-            const utilisateur = user?.name || 'Inconnu';
-            const role = member?.role || 'serveur';
+            // ✨ MODE SWITCHING FIX: Always deduce seller from the sale, not from consignment.createdBy
+            // This matches the logic in ConsignmentPage: prioritize serverId (assigned server) over createdBy
+            let utilisateur = 'Inconnu';
+            let role = 'serveur';
+            let operationMode = 'Complet';
+
+            const originalSale = sales.find(s => s.id === consignment.saleId);
+            if (originalSale) {
+                // Use serverId if present (simplified mode - assigned server), otherwise createdBy (full mode)
+                const serverUserId = originalSale.serverId || originalSale.createdBy;
+                const user = safeUsers.find(u => u.id === serverUserId);
+                const member = safeBarMembers.find(m => m.userId === user?.id);
+                utilisateur = user?.name || 'Inconnu';
+                role = member?.role || 'serveur';
+                operationMode = originalSale.serverId ? 'Simplifié' : 'Complet';
+            }
 
             const category = categories.find(c => c.id === product.categoryId);
 
@@ -228,6 +261,7 @@ export default function SalesHistoryPage() {
 
             exportData.push({
                 'Type': 'Consignation',
+                'Mode': operationMode,
                 'Date': new Date(consignment.createdAt).toLocaleDateString('fr-FR'),
                 'Heure': new Date(consignment.createdAt).toLocaleTimeString('fr-FR'),
                 'ID Transaction': consignment.id.slice(-6),
@@ -274,6 +308,7 @@ export default function SalesHistoryPage() {
             // Ajuster la largeur des colonnes
             const columnWidths = [
                 { wch: 10 }, // Type
+                { wch: 12 }, // Mode
                 { wch: 12 }, // Date
                 { wch: 10 }, // Heure
                 { wch: 12 }, // ID Transaction
@@ -537,18 +572,26 @@ export default function SalesHistoryPage() {
                             </div>
                             <div className="flex items-center gap-2">
                                 {/* Sélecteur de format d'export */}
-                                <div className="flex items-center gap-1 mr-2">
+                                <div className="flex items-center gap-1 mr-2 bg-white/20 rounded-lg p-1">
                                     <Button
                                         onClick={() => setExportFormat('excel')}
-                                        variant={exportFormat === 'excel' ? 'default' : 'secondary'}
-                                        className="px-3 py-1.5 text-xs font-medium rounded-l-lg transition-colors rounded-r-none"
+                                        variant="ghost"
+                                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                                            exportFormat === 'excel'
+                                                ? 'bg-white text-amber-900'
+                                                : 'text-white hover:bg-white/10'
+                                        }`}
                                     >
                                         Excel
                                     </Button>
                                     <Button
                                         onClick={() => setExportFormat('csv')}
-                                        variant={exportFormat === 'csv' ? 'default' : 'secondary'}
-                                        className="px-3 py-1.5 text-xs font-medium rounded-r-lg transition-colors rounded-l-none"
+                                        variant="ghost"
+                                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                                            exportFormat === 'csv'
+                                                ? 'bg-white text-amber-900'
+                                                : 'text-white hover:bg-white/10'
+                                        }`}
                                     >
                                         CSV
                                     </Button>
@@ -559,7 +602,7 @@ export default function SalesHistoryPage() {
                                     className="px-4 py-2 flex items-center gap-2"
                                 >
                                     <Download size={16} className="mr-2" />
-                                    <span className="text-sm font-medium">Exporter</span>
+                                    <span className="text-sm font-medium">Exporter ({exportFormat.toUpperCase()})</span>
                                 </Button>
                             </div>
                         </div>

@@ -26,7 +26,10 @@ export function SalesListView({
                         <th className="text-left p-4 font-medium text-gray-700">ID</th>
                         <th className="text-left p-4 font-medium text-gray-700">Statut</th>
                         <th className="text-left p-4 font-medium text-gray-700">Date</th>
-                        <th className="text-left p-4 font-medium text-gray-700">Vendeur</th>
+                        <th className="text-left p-4 font-medium text-gray-700">
+                            <div>Créé par</div>
+                            <div className="text-xs font-normal text-gray-500">Auteur vente</div>
+                        </th>
                         <th className="text-left p-4 font-medium text-gray-700">Articles</th>
                         <th className="text-left p-4 font-medium text-gray-700">Total</th>
                         <th className="text-left p-4 font-medium text-gray-700">Retours</th>
@@ -55,7 +58,9 @@ export function SalesListView({
                         }[sale.status] || { label: 'Inconnu', color: 'bg-gray-100 text-gray-700 border-gray-200' };
 
                         // Infos utilisateurs
-                        const creator = users?.find(u => u.id === sale.createdBy);
+                        // ✨ MODE SWITCHING FIX: Use serverId (assigned server) if present, otherwise createdBy
+                        const serverUserId = sale.serverId || sale.createdBy;
+                        const seller = users?.find(u => u.id === serverUserId);
                         const validator = sale.validatedBy ? users?.find(u => u.id === sale.validatedBy) : null;
 
                         return (
@@ -83,7 +88,7 @@ export function SalesListView({
                                 </td>
                                 <td className="p-4">
                                     <div>
-                                        <p className="text-sm font-medium">{creator?.name || 'Inconnu'}</p>
+                                        <p className="text-sm font-medium">{seller?.name || 'Inconnu'}</p>
                                         {validator && (
                                             <p className="text-xs text-gray-500">Val.: {validator.name}</p>
                                         )}

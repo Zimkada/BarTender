@@ -68,7 +68,9 @@ export function SaleCard({
     }[sale.status] || { label: 'Inconnu', color: 'bg-gray-100 text-gray-700 border-gray-200' };
 
     // Infos utilisateurs
-    const creator = users?.find(u => u.id === sale.createdBy);
+    // ✨ MODE SWITCHING FIX: Use serverId (assigned server) if present, otherwise createdBy
+    const serverUserId = sale.serverId || sale.createdBy;
+    const seller = users?.find(u => u.id === serverUserId);
     const validator = sale.validatedBy ? users?.find(u => u.id === sale.validatedBy) : null;
 
     return (
@@ -87,9 +89,9 @@ export function SaleCard({
                     <p className="text-sm text-gray-600">
                         {getSaleDate(sale).toLocaleDateString('fr-FR')} • {new Date(sale.validatedAt || sale.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
-                    {creator && (
+                    {seller && (
                         <p className="text-xs text-gray-500 mt-1">
-                            Par: {creator.name}
+                            Par: {seller.name}
                             {validator && ` • Validée par: ${validator.name}`}
                         </p>
                     )}

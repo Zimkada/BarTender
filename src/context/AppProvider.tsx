@@ -44,7 +44,7 @@ const defaultSettings: AppSettings = {
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { currentSession, hasPermission } = useAuth();
-    const { currentBar } = useBarContext();
+    const { currentBar, loading: barContextLoading } = useBarContext();
     const queryClient = useQueryClient();
 
     // Initialize Realtime and Broadcast services
@@ -67,6 +67,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [isWarming]);
 
     const barId = currentBar?.id || '';
+    const operatingMode = currentBar?.settings?.operatingMode || 'full';
+
 
     // React Query: Fetch data
     const { data: categories = [] } = useCategories(barId);
@@ -109,6 +111,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [cart, setCart] = useState<CartItem[]>([]);
 
     const addToCart = useCallback((product: Product) => {
+        // Check if server in simplified mode - prevent adding to cart
+        const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
+        const isServerRole = currentSession?.role === 'serveur';
+
+        if (isSimplifiedMode && isServerRole) {
+            import('react-hot-toast').then(({ default: toast }) => {
+                toast('En mode simplifié, seul le gérant crée les ventes.', {
+                    icon: 'ℹ️',
+                    duration: 3000
+                });
+            });
+            return;
+        }
+
         setCart(currentCart => {
             const existingItem = currentCart.find(item => item.product.id === product.id);
             if (existingItem) {
@@ -120,7 +136,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
             return [...currentCart, { product, quantity: 1 }];
         });
-    }, []);
+    }, [currentBar?.settings?.operatingMode, currentSession?.role]);
 
     const updateCartQuantity = useCallback((productId: string, quantity: number) => {
         setCart(currentCart => {
@@ -272,7 +288,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             customer_name: saleData.customerName,
             customer_phone: saleData.customerPhone,
             notes: saleData.notes,
-            status: (currentSession.role === 'promoteur' || currentSession.role === 'gerant') ? 'validated' : 'pending'
+            status: (currentSession.role === 'promoteur' || currentSession.role === 'gerant') ? 'validated' : 'pending',
+            serverId: saleData.serverId || undefined  // ✨ NOUVEAU: Pass server_id for simplified mode
         };
 
         const result = await salesMutations.createSale.mutateAsync(newSaleData as any);
@@ -310,7 +327,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const filteredSales = filterByBusinessDateRange(salesToFilter, startDateStr, endDateStr, closeHour);
 
         if (currentSession?.role === 'serveur') {
-            return filteredSales.filter(sale => sale.createdBy === currentSession.userId);
+            // ✨ MODE SWITCHING FIX: A server should see ALL their sales regardless of mode
+            // Check BOTH serverId (simplified mode) AND createdBy (full mode)
+            return filteredSales.filter(sale =>
+                sale.serverId === currentSession.userId || sale.createdBy === currentSession.userId
+            );
         }
         return filteredSales;
     }, [sales, currentSession, currentBar]);
@@ -326,7 +347,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const todaySales = filterByBusinessDateRange(salesToFilter, todayStr, todayStr, closeHour);
 
         if (currentSession?.role === 'serveur') {
-            return todaySales.filter(sale => sale.createdBy === currentSession.userId);
+            // ✨ MODE SWITCHING FIX: A server should see ALL their sales regardless of mode
+            // Check BOTH serverId (simplified mode) AND createdBy (full mode)
+            // This ensures data visibility persists across mode switches
+            return todaySales.filter(sale =>
+                sale.serverId === currentSession.userId || sale.createdBy === currentSession.userId
+            );
         }
         return todaySales;
     }, [sales, currentSession, currentBar]);
@@ -363,7 +389,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const startDateStr = startDate ? dateToYYYYMMDD(startDate) : undefined;
         const endDateStr = endDate ? dateToYYYYMMDD(endDate) : undefined;
 
-        let baseSales = sales.filter(sale => sale.status === 'validated' && sale.createdBy === userId);
+        // ✨ MODE SWITCHING FIX: Include sales where server is EITHER creator OR assigned server
+        let baseSales = sales.filter(sale =>
+            sale.status === 'validated' && (sale.createdBy === userId || sale.serverId === userId)
+        );
         if (startDateStr && endDateStr) {
             baseSales = filterByBusinessDateRange(baseSales, startDateStr, endDateStr, closeHour);
         }
@@ -382,8 +411,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [sales, returns, currentBar]);
 
     const getServerReturns = useCallback((userId: string): Return[] => {
+        // ✨ MODE SWITCHING FIX: Include sales where server is EITHER creator OR assigned server
         const serverSaleIds = sales
-            .filter(s => s.createdBy === userId && s.status === 'validated')
+            .filter(s => (s.createdBy === userId || s.serverId === userId) && s.status === 'validated')
             .map(s => s.id);
         return returns.filter(r => serverSaleIds.includes(r.saleId));
     }, [sales, returns]);
@@ -393,12 +423,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const addReturn = useCallback((returnData: Omit<Return, 'id' | 'barId'>) => {
         if (!hasPermission('canManageInventory') || !currentBar || !currentSession) return;
 
+        // ✨ MODE SWITCHING FIX: Always deduce server_id from the sale itself, mode-agnostic
+        // Use serverId if present (simplified mode sale), otherwise createdBy (full mode sale)
+        // This ensures the return is assigned to the correct server regardless of CURRENT mode
+        const associatedSale = sales.find(s => s.id === returnData.saleId);
+        let deducedServerId: string | undefined;
+
+        if (associatedSale) {
+            // Mode-agnostic: Check both fields, prioritize the one that exists
+            deducedServerId = associatedSale.serverId || associatedSale.createdBy;
+        }
+
         returnsMutations.createReturn.mutate({
             ...returnData,
             barId: currentBar.id,
-            returnedBy: currentSession.userId
+            returnedBy: currentSession.userId,
+            server_id: deducedServerId || undefined
         });
-    }, [hasPermission, currentBar, currentSession, returnsMutations]);
+    }, [hasPermission, currentBar, currentSession, returnsMutations, sales, operatingMode]);
 
     const updateReturn = useCallback((returnId: string, updates: Partial<Return>) => {
         if (!hasPermission('canManageInventory')) return;
@@ -412,6 +454,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const getReturnsBySale = useCallback((saleId: string) => returns.filter(r => r.saleId === saleId), [returns]);
     const getPendingReturns = useCallback(() => returns.filter(r => r.status === 'pending'), [returns]);
+
+    const getTodayReturns = useCallback(() => {
+        const closeHour = currentBar?.closingHour ?? BUSINESS_DAY_CLOSE_HOUR;
+        const todayStr = getCurrentBusinessDateString(closeHour);
+
+        const todayReturnsList = filterByBusinessDateRange(returns, todayStr, todayStr, closeHour);
+
+        if (currentSession?.role === 'serveur') {
+            // ✨ MODE SWITCHING FIX: A server should see ALL their returns regardless of mode
+            // Check BOTH serverId (simplified mode) AND returnedBy (full mode)
+            // This ensures data visibility persists across mode switches
+            return todayReturnsList.filter(r =>
+                r.serverId === currentSession.userId || r.returnedBy === currentSession.userId
+            );
+        }
+        return todayReturnsList;
+    }, [returns, currentSession, currentBar]);
 
 
     // --- EXPENSES ---
@@ -453,7 +512,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addSale, validateSale, rejectSale,
         getSalesByDate, getTodaySales, getTodayTotal, getSalesByUser,
         getServerRevenue, getServerReturns,
-        addReturn, updateReturn, deleteReturn, getReturnsBySale, getPendingReturns,
+        addReturn, updateReturn, deleteReturn, getReturnsBySale, getPendingReturns, getTodayReturns,
         addExpense, deleteExpense, addCustomExpenseCategory,
         updateSettings,
         initializeBarData,

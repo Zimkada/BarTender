@@ -12,6 +12,7 @@ interface UseSalesStatsProps {
     startDate: Date;
     endDate: Date;
     currentBar: Bar | null;
+    serverId?: string; // Optional: for filtering top products by server
 }
 
 export function useSalesStats({
@@ -20,7 +21,8 @@ export function useSalesStats({
     timeRange,
     startDate,
     endDate,
-    currentBar
+    currentBar,
+    serverId
 }: UseSalesStatsProps) {
     // --- CONTEXTE ---
     const { actingAs } = useActingAs();
@@ -71,12 +73,14 @@ export function useSalesStats({
                     }));
 
                 } else {
-                    // MODE STANDARD
+                    // MODE STANDARD (with optional server filtering)
                     products = await AnalyticsService.getTopProducts(
                         currentBar.id,
                         startDate,
                         endDate,
-                        topProductsLimit
+                        topProductsLimit,
+                        'quantity', // Default sort by quantity
+                        serverId // Optional: filter by server_id for server accounts
                     );
                 }
 
@@ -90,7 +94,7 @@ export function useSalesStats({
         };
 
         loadTopProducts();
-    }, [currentBar, startDate, endDate, topProductsLimit, actingAs.isActive, actingAs.userId, actingAs.barId]);
+    }, [currentBar, startDate, endDate, topProductsLimit, actingAs.isActive, actingAs.userId, actingAs.barId, serverId]);
 
     // --- CALCULS ---
     const stats = useMemo(() => {

@@ -20,6 +20,7 @@ export const useReturnsMutations = (barId: string) => {
                 quantity_returned: data.quantityReturned,
                 reason: data.reason,
                 returned_by: data.returnedBy,
+                server_id: data.server_id || null,
                 returned_at: data.returnedAt instanceof Date
                     ? data.returnedAt.toISOString()
                     : (data.returnedAt || new Date().toISOString()),
@@ -32,6 +33,8 @@ export const useReturnsMutations = (barId: string) => {
                 custom_refund: data.customRefund || null,
                 custom_restock: data.customRestock || null,
                 original_seller: data.originalSeller || null,
+                // ✨ MODE SWITCHING SUPPORT: Store operating mode at creation
+                operating_mode_at_creation: data.operatingModeAtCreation || 'full',
             };
             return ReturnsService.createReturn(returnData);
         },

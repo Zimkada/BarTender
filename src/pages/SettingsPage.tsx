@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Settings as SettingsIcon, DollarSign, Clock, Users, Plus, Trash2, Building2, Mail, Phone, MapPin, ShieldCheck, CheckCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, DollarSign, Clock, Users, Building2, Mail, Phone, MapPin, ShieldCheck, CheckCircle, AlertCircle, GitBranch } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useNotifications } from '../components/Notifications';
 import { useSettings } from '../hooks/useSettings';
@@ -10,6 +10,8 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Alert } from '../components/ui/Alert';
 import { RadioGroup, RadioGroupItem } from '../components/ui/Radio';
+import { ServerMappingsManager } from '../components/ServerMappingsManager';
+import { FEATURES } from '../config/features';
 
 const currencyOptions = [
     { code: 'FCFA', symbol: 'FCFA', name: 'Franc CFA' },
@@ -67,11 +69,48 @@ export default function SettingsPage() {
         checkMfaStatus();
     }, [currentSession?.userId]);
 
+    // ✨ NOUVEAU: Charger les membres du bar pour ServerMappingsManager
+    useEffect(() => {
+        const loadBarMembers = async () => {
+            if (!currentBar?.id) return;
+            try {
+                const { data, error } = await supabase
+                    .from('bar_members')
+                    .select('user_id, role')
+                    .eq('bar_id', currentBar.id)
+                    .eq('is_active', true);
+
+                if (error) throw error;
+
+                // Enrichir avec les noms des utilisateurs
+                const enrichedMembers = await Promise.all((data || []).map(async (member) => {
+                    const { data: user } = await supabase
+                        .from('users')
+                        .select('name')
+                        .eq('id', member.user_id)
+                        .single();
+
+                    return {
+                        userId: member.user_id,
+                        name: user?.name || 'Inconnu',
+                        role: member.role
+                    };
+                }));
+
+                setBarMembers(enrichedMembers);
+            } catch (error) {
+                console.error('[SettingsPage] Error loading bar members:', error);
+            }
+        };
+        loadBarMembers();
+    }, [currentBar?.id]);
+
     // États Bar
     const [barName, setBarName] = useState(currentBar?.name ?? '');
     const [barAddress, setBarAddress] = useState(currentBar?.address ?? '');
     const [barPhone, setBarPhone] = useState(currentBar?.phone ?? '');
     const [barEmail, setBarEmail] = useState(currentBar?.email ?? '');
+    const [barMembers, setBarMembers] = useState<Array<{ userId: string; name: string; role: string }>>([]);
 
     // États Settings
     const [tempSettings, setTempSettings] = useState(settings);
@@ -79,8 +118,6 @@ export default function SettingsPage() {
     const [tempConsignmentExpirationDays, setTempConsignmentExpirationDays] = useState(currentBar?.settings?.consignmentExpirationDays ?? 7);
     const [tempSupplyFrequency, setTempSupplyFrequency] = useState(currentBar?.settings?.supplyFrequency ?? 7);
     const [tempOperatingMode, setTempOperatingMode] = useState<'full' | 'simplified'>(currentBar?.settings?.operatingMode ?? 'full');
-    const [tempServersList, setTempServersList] = useState<string[]>(currentBar?.settings?.serversList ?? []);
-    const [newServerName, setNewServerName] = useState('');
 
     // Tabs configuration
     const tabs = [
@@ -156,17 +193,6 @@ export default function SettingsPage() {
         }
     };
 
-    const handleAddServer = () => {
-        if (newServerName.trim() && !tempServersList.includes(newServerName.trim())) {
-            setTempServersList([...tempServersList, newServerName.trim()]);
-            setNewServerName('');
-        }
-    };
-
-    const handleRemoveServer = (serverName: string) => {
-        setTempServersList(tempServersList.filter(s => s !== serverName));
-    };
-
     const handleSave = () => {
         updateSettings(tempSettings);
         if (currentBar) {
@@ -180,7 +206,6 @@ export default function SettingsPage() {
                     consignmentExpirationDays: tempConsignmentExpirationDays,
                     supplyFrequency: tempSupplyFrequency,
                     operatingMode: tempOperatingMode,
-                    serversList: tempOperatingMode === 'simplified' ? tempServersList : undefined,
                 },
                 closingHour: tempCloseHour,
             });
@@ -472,35 +497,21 @@ export default function SettingsPage() {
                         </div>
 
                         {tempOperatingMode === 'simplified' && (
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-3">Liste des serveurs</label>
-                                <div className="flex gap-2 mb-3">
-                                    <Input
-                                        type="text"
-                                        value={newServerName}
-                                        onChange={(e) => setNewServerName(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleAddServer()}
-                                        placeholder="Nom du serveur"
-                                        className="flex-1"
-                                    />
-                                    <Button onClick={handleAddServer} className="px-4 py-2 rounded-lg flex items-center gap-2">
-                                        <Plus size={16} className="mr-2" /> Ajouter
-                                    </Button>
-                                </div>
-                                <div className="space-y-2 max-h-40 overflow-y-auto">
-                                    {tempServersList.length === 0 ? (
-                                        <p className="text-gray-500 text-xs text-center py-4">Aucun serveur ajouté.</p>
-                                    ) : (
-                                        tempServersList.map((serverName, index) => (
-                                            <div key={index} className="flex items-center justify-between p-2 bg-white rounded-lg border">
-                                                <span className="text-sm">{serverName}</span>
-                                                <Button onClick={() => handleRemoveServer(serverName)} variant="ghost" size="icon" className="p-1 text-red-500 hover:bg-red-50 rounded">
-                                                    <Trash2 size={14} />
-                                                </Button>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
+                            <div className="space-y-6">
+                                {/* ✨ NOUVEAU: ServerMappingsManager pour mode switching */}
+                                {FEATURES.ENABLE_SWITCHING_MODE && (
+                                    <div className="border-t pt-6">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <GitBranch size={16} className="text-amber-500" />
+                                            <h4 className="text-sm font-medium text-gray-700">Configuration du Mode Switching</h4>
+                                        </div>
+                                        <ServerMappingsManager
+                                            barId={currentBar.id}
+                                            barMembers={barMembers}
+                                            enabled={FEATURES.SHOW_SWITCHING_MODE_UI}
+                                        />
+                                    </div>
+                                )}
                             </div>
                         )}
                     </>

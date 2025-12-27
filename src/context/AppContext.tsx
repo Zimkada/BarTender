@@ -63,6 +63,7 @@ export interface AppContextType {
   deleteReturn: (returnId: string) => void;
   getReturnsBySale: (saleId: string) => Return[];
   getPendingReturns: () => Return[];
+  getTodayReturns: () => Return[];
 
   // Dépenses
   expenses: Expense[];

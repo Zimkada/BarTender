@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  TrendingUp, DollarSign, ShoppingCart, Package, Share, Lock, Eye, EyeOff, RotateCcw, Archive, Check, X, User, AlertTriangle, ArrowLeft
+  TrendingUp, DollarSign, ShoppingCart, Package, Share, Lock, Eye, EyeOff, RotateCcw, Archive, Check, X, User, AlertTriangle, ArrowLeft, ChevronDown, ChevronUp, ShoppingBag
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRevenueStats } from '../hooks/useRevenueStats';
@@ -18,7 +18,7 @@ import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import { Sale, SaleItem, User as UserType } from '../types';
 import { AnalyticsService, DailySalesSummary } from '../services/supabase/analytics.service';
 import { useTopProducts } from '../hooks/queries/useTopProductsQuery';
-import { getCurrentBusinessDateString } from '../utils/dateRangeCalculator';
+import { getCurrentBusinessDateString } from '../utils/businessDateHelpers';
 import { Button } from './ui/Button';
 
 // Sous-composant pour les ventes en attente
@@ -30,6 +30,20 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
   users: UserType[];
 }) => {
   const { formatPrice } = useCurrencyFormatter();
+  const { currentSession } = useAuth();
+  const [expandedSales, setExpandedSales] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (saleId: string) => {
+    setExpandedSales(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(saleId)) {
+        newSet.delete(saleId);
+      } else {
+        newSet.add(saleId);
+      }
+      return newSet;
+    });
+  };
 
   const salesByServer = useMemo(() => {
     return sales.reduce((acc, sale) => {
@@ -48,11 +62,17 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
 
   if (sales.length === 0) return null;
 
+  // ✨ MODE SWITCHING FIX: Only show bulk validation buttons to managers
+  const isServerRole = currentSession?.role === 'serveur';
+  const showBulkValidation = !isServerRole;
+
   return (
     <div className="bg-white rounded-xl p-4 border border-amber-200">
       <div className="flex justify-between items-center mb-4">
         <h3 className="font-semibold text-gray-800 text-lg">Commandes en attente ({sales.length})</h3>
-        <EnhancedButton onClick={() => onValidateAll(sales)} size="sm" variant="primary">Tout Valider</EnhancedButton>
+        {showBulkValidation && (
+          <EnhancedButton onClick={() => onValidateAll(sales)} size="sm" variant="primary">Tout Valider</EnhancedButton>
+        )}
       </div>
       <div className="space-y-4 max-h-96 overflow-y-auto">
         {sortedServerIds.map(serverId => {
@@ -62,21 +82,77 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
             <div key={serverId} className="bg-gray-50 rounded-lg p-3">
               <div className="flex justify-between items-center mb-3">
                 <h4 className="font-semibold text-gray-700 flex items-center gap-2"><User size={16} /> {server?.name || 'Inconnu'}</h4>
-                <EnhancedButton onClick={() => onValidateAll(serverSales)} size="sm">Valider tout</EnhancedButton>
+                {showBulkValidation && (
+                  <EnhancedButton onClick={() => onValidateAll(serverSales)} size="sm">Valider tout</EnhancedButton>
+                )}
               </div>
               <div className="space-y-2">
-                {serverSales.map(sale => (
-                  <div key={sale.id} className="bg-amber-50 p-3 rounded-lg border border-amber-100 flex justify-between items-center">
-                    <div>
-                      <p className="text-xs text-gray-500">{new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                      <p className="font-bold text-amber-600">{formatPrice(sale.total)}</p>
+                {serverSales.map(sale => {
+                  // ✨ MODE SWITCHING FIX: Hide validate/reject buttons for servers viewing their own pending sales
+                  const isServerRole = currentSession?.role === 'serveur';
+                  const showButtons = !isServerRole;
+                  const isExpanded = expandedSales.has(sale.id);
+                  const totalItems = sale.items.reduce((sum, item) => sum + item.quantity, 0);
+
+                  return (
+                    <div key={sale.id} className="bg-amber-50 rounded-lg border border-amber-100 overflow-hidden">
+                      <div className="p-3 flex justify-between items-center">
+                        <div className="flex items-center gap-3 flex-1">
+                          <div>
+                            <p className="text-xs text-gray-500">{new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                            <p className="font-bold text-amber-600">{formatPrice(sale.total)}</p>
+                          </div>
+                          <button
+                            onClick={() => toggleExpanded(sale.id)}
+                            className="flex items-center gap-1 text-xs text-gray-600 hover:text-amber-600 transition-colors px-2 py-1 rounded-md hover:bg-amber-100"
+                          >
+                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            <span>Détails ({totalItems})</span>
+                          </button>
+                        </div>
+                        {showButtons && (
+                          <div className="flex gap-2">
+                            <button onClick={() => onValidate(sale.id)} className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"><Check size={16} /></button>
+                            <button onClick={() => onReject(sale.id)} className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"><X size={16} /></button>
+                          </div>
+                        )}
+                      </div>
+
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="border-t border-amber-200 bg-amber-50/50"
+                          >
+                            <div className="p-3 space-y-2">
+                              <p className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+                                <ShoppingBag size={14} />
+                                Articles ({sale.items.length}):
+                              </p>
+                              {sale.items.map((item: SaleItem, index: number) => (
+                                <div key={index} className="flex items-center justify-between text-sm pl-5 border-l-2 border-amber-300">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-gray-700">{item.quantity}x</span>
+                                    <span className="text-gray-600">{item.product_name}</span>
+                                    {item.product_volume && (
+                                      <span className="text-gray-400 text-xs">({item.product_volume})</span>
+                                    )}
+                                  </div>
+                                  <span className="font-semibold text-amber-600">
+                                    {formatPrice(item.total_price)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => onValidate(sale.id)} className="p-2 bg-green-500 text-white rounded-lg"><Check size={16} /></button>
-                      <button onClick={() => onReject(sale.id)} className="p-2 bg-red-500 text-white rounded-lg"><X size={16} /></button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );
@@ -92,7 +168,7 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
  */
 export function DailyDashboard() {
   const navigate = useNavigate();
-  const { sales, products, getTodaySales, getLowStockProducts, returns, validateSale, rejectSale, users } = useAppContext();
+  const { sales, products, getTodaySales, getTodayReturns, getLowStockProducts, returns, validateSale, rejectSale, users } = useAppContext();
   const { currentBar } = useBarContext();
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession } = useAuth();
@@ -105,11 +181,17 @@ export function DailyDashboard() {
 
   const todayDateStr = useMemo(() => getCurrentBusinessDateString(), []);
 
+  // ✨ Filter metrics for servers
+  const isServerRole = currentSession?.role === 'serveur';
+  const operatingMode = currentBar?.settings?.operatingMode || 'full';
+  const serverIdForTopProducts = isServerRole ? currentSession?.userId : undefined;
+
   const { data: topProductsData = [] } = useTopProducts({
     barId: currentBar?.id || '',
     startDate: todayDateStr,
     endDate: todayDateStr,
     limit: 5,
+    serverId: serverIdForTopProducts, // Pass serverId for server filtering
     enabled: !!currentBar,
   });
 
@@ -122,12 +204,7 @@ export function DailyDashboard() {
   }, [currentBar, todayDateStr]);
 
   const todayValidatedSales = getTodaySales();
-  const todaySaleIds = useMemo(() => new Set(todayValidatedSales.map(s => s.id)), [todayValidatedSales]);
-
-  const todayReturns = returns.filter(r =>
-    new Date(r.returnedAt).toDateString() === new Date().toDateString() &&
-    (currentSession?.role !== 'serveur' || todaySaleIds.has(r.saleId))
-  );
+  const todayReturns = getTodayReturns();
 
   const { netRevenue: todayTotal } = useRevenueStats({ startDate: todayDateStr, endDate: todayDateStr, enabled: true });
 
@@ -136,15 +213,44 @@ export function DailyDashboard() {
     return sales.filter(s => s.status === 'pending' && (isManager || s.createdBy === currentSession?.userId));
   }, [sales, currentSession]);
 
+  // Define activeConsignments BEFORE using it in serverFilteredConsignments
+  const activeConsignments = consignments.filter(c => c.status === 'active');
+
+  const serverFilteredSales = useMemo(() => {
+    if (!isServerRole) return todayValidatedSales;
+    // ✨ MODE SWITCHING FIX: A server should see ALL their sales regardless of mode
+    // Check BOTH serverId (simplified mode) AND createdBy (full mode)
+    return todayValidatedSales.filter(s =>
+      s.serverId === currentSession?.userId || s.createdBy === currentSession?.userId
+    );
+  }, [todayValidatedSales, isServerRole, currentSession?.userId]);
+
+  const serverFilteredReturns = useMemo(() => {
+    if (!isServerRole) return todayReturns;
+    // ✨ MODE SWITCHING FIX: A server should see ALL their returns regardless of mode
+    // Check BOTH serverId (simplified mode) AND returnedBy (full mode)
+    return todayReturns.filter(r =>
+      r.serverId === currentSession?.userId || r.returnedBy === currentSession?.userId
+    );
+  }, [todayReturns, isServerRole, currentSession?.userId]);
+
+  const serverFilteredConsignments = useMemo(() => {
+    if (!isServerRole) return activeConsignments;
+    // ✨ MODE SWITCHING FIX: A server should see ALL their consignments regardless of mode
+    // Check BOTH serverId (simplified mode) AND originalSeller (full mode)
+    return activeConsignments.filter(c =>
+      c.serverId === currentSession?.userId || c.originalSeller === currentSession?.userId
+    );
+  }, [activeConsignments, isServerRole, currentSession?.userId]);
+
   const lowStockProducts = getLowStockProducts();
-  const totalItems = todayStats?.total_items_sold ?? todayValidatedSales.reduce((sum, sale) => sum + sale.items.reduce((s, i) => s + i.quantity, 0), 0);
+  // ✨ Filter totalItems by server if applicable
+  const totalItems = todayStats?.total_items_sold ?? serverFilteredSales.reduce((sum, sale) => sum + sale.items.reduce((s, i) => s + i.quantity, 0), 0);
 
   const topProductsList = topProductsData.map(p => ({
     name: p.product_volume ? `${p.product_name} (${p.product_volume})` : p.product_name,
     qty: p.total_quantity
   }));
-
-  const activeConsignments = consignments.filter(c => c.status === 'active' && (currentSession?.role !== 'serveur' || c.originalSeller === currentSession?.userId));
 
   const handleValidateSale = (id: string) => currentSession && validateSale(id, currentSession.userId);
   const handleRejectSale = (id: string) => currentSession && rejectSale(id, currentSession.userId);
@@ -227,7 +333,7 @@ export function DailyDashboard() {
         </div>
         <div className="bg-gradient-to-br from-blue-100 to-cyan-100 rounded-xl p-4 border border-blue-200">
           <div className="flex items-center justify-between mb-2"><ShoppingCart className="w-8 h-8 text-blue-600" /><span className="text-blue-600 text-sm">Ventes</span></div>
-          <AnimatedCounter value={todayValidatedSales.length} className="text-2xl font-bold text-gray-800" />
+          <AnimatedCounter value={serverFilteredSales.length} className="text-2xl font-bold text-gray-800" />
           {pendingSales.length > 0 && <p className="text-xs text-amber-600">{pendingSales.length} en attente</p>}
         </div>
         <div className="bg-gradient-to-br from-purple-100 to-violet-100 rounded-xl p-4 border border-purple-200">
@@ -241,11 +347,11 @@ export function DailyDashboard() {
         </div>
         <div className="bg-gradient-to-br from-red-100 to-pink-100 rounded-xl p-4 border border-red-200">
           <div className="flex items-center justify-between mb-2"><RotateCcw className="w-8 h-8 text-red-600" /><span className="text-red-600 text-sm">Retours</span></div>
-          <div className="text-2xl font-bold text-gray-800">{todayReturns.length}</div>
+          <div className="text-2xl font-bold text-gray-800">{serverFilteredReturns.length}</div>
         </div>
         <div className="bg-gradient-to-br from-indigo-100 to-purple-100 rounded-xl p-4 border border-indigo-200">
           <div className="flex items-center justify-between mb-2"><Archive className="w-8 h-8 text-indigo-600" /><span className="text-indigo-600 text-sm">Consignations</span></div>
-          <div className="text-2xl font-bold text-gray-800">{activeConsignments.length}</div>
+          <div className="text-2xl font-bold text-gray-800">{serverFilteredConsignments.length}</div>
         </div>
       </div>
 

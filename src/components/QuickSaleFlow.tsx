@@ -21,6 +21,8 @@ import { Product, CartItem, Promotion } from '../types';
 import { useViewport } from '../hooks/useViewport';
 import { ProductGrid } from './ProductGrid';
 import { PromotionsService } from '../services/supabase/promotions.service';
+import { ServerMappingsService } from '../services/supabase/server-mappings.service';
+import { useServerMappings } from '../hooks/useServerMappings';
 import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
 import { PaymentMethodSelector, PaymentMethod } from './cart/PaymentMethodSelector';
 import { useFilteredProducts } from '../hooks/useFilteredProducts';
@@ -102,11 +104,52 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
         promotion_id: item.promotionId
       }));
 
+      // ✨ NOUVEAU: Résoudre le nom du serveur vers UUID en mode simplifié
+      let serverId: string | undefined;
+      if (isSimplifiedMode && selectedServer) {
+        // Extraire le nom du serveur (format: "Serveur Name" ou "Moi (UserName)")
+        const serverName = selectedServer.startsWith('Moi (')
+          ? (currentSession?.userName || selectedServer)
+          : selectedServer;
+
+        try {
+          serverId = await ServerMappingsService.getUserIdForServerName(
+            currentBar.id,
+            serverName
+          );
+
+          // 🔴 BUG #1-2 FIX: BLOQUER la création si mapping échoue
+          if (!serverId) {
+            const errorMessage =
+              `⚠️ Erreur Critique:\n\n` +
+              `Le serveur "${serverName}" n'existe pas ou n'est pas mappé.\n\n` +
+              `Actions:\n` +
+              `1. Créer un compte pour ce serveur en Gestion Équipe\n` +
+              `2. Mapper le compte dans Paramètres > Opérationnel > Correspondance Serveurs\n` +
+              `3. Réessayer la vente`;
+
+            alert(errorMessage);
+            console.error(`[QuickSaleFlow] Blocking sale creation: No mapping for "${serverName}"`);
+            return; // ← BLOQUER LA CRÉATION
+          }
+        } catch (error) {
+          const errorMessage =
+            `❌ Impossible d'attribuer la vente:\n\n` +
+            `${error instanceof Error ? error.message : 'Erreur réseau lors de la résolution du serveur'}\n\n` +
+            `Réessayez ou contactez l'administrateur.`;
+
+          alert(errorMessage);
+          console.error('[QuickSaleFlow] Error resolving server ID:', error);
+          return; // ← BLOQUER LA CRÉATION
+        }
+      }
+
       await createSale.mutateAsync({
         bar_id: currentBar.id,
         items: saleItems,
         payment_method: paymentMethod,
         sold_by: currentSession.userId,
+        server_id: serverId, // ✨ NOUVEAU: Passer le server_id résolu
         status: isServerRole ? 'pending' : 'validated',
         customer_name: customerInfo || undefined,
         notes: isSimplifiedMode ? `Serveur: ${selectedServer}` : undefined
@@ -166,11 +209,15 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     // Nos produits enrichis ont 'stock'. Donc on peut laisser le hook faire le filtrage final.
   });
 
-  // 3. Préparer les options pour le select serveur
+  // 3. Fetch server mappings from database instead of settings
+  const enableServerTracking = currentBar?.settings?.operatingMode === 'simplified';
+  const { serverNames } = useServerMappings(enableServerTracking ? currentBar?.id : undefined);
+
+  // Préparer les options pour le select serveur
   const serverOptions: SelectOption[] = [
     { value: '', label: 'Sélectionner un serveur...' },
     { value: `Moi (${currentSession?.userName})`, label: `Moi (${currentSession?.userName})` },
-    ...(currentBar?.settings?.serversList || []).map(serverName => ({
+    ...serverNames.map(serverName => ({
       value: serverName,
       label: serverName
     }))
@@ -250,6 +297,45 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   if (!isOpen) return null;
+
+  // Restreindre l'accès aux serveurs en mode simplifié
+  const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
+  const isServerRole = currentSession?.role === 'serveur';
+
+  if (isSimplifiedMode && isServerRole) {
+    return (
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            onClick={onClose}
+          >
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              className="bg-white rounded-2xl p-8 max-w-md mx-4 shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Accès Restreint</h2>
+              <p className="text-gray-600 mb-6">
+                En mode simplifié, seul le gérant crée les ventes.
+              </p>
+              <button
+                onClick={onClose}
+                className="w-full bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition-colors"
+              >
+                Fermer
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
+  }
 
   return (
     <AnimatePresence>
@@ -436,7 +522,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                           </div>
                         ))}
 
-                        {currentBar?.settings?.enableServerTracking && (
+                        {currentBar?.settings?.operatingMode === 'simplified' && (
                           <div className="mt-6">
                             <Select
                               label="Serveur"

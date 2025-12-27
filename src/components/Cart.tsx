@@ -9,6 +9,8 @@ import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { useAppContext } from '../context/AppContext'; // NEW
 import { usePromotions } from '../hooks/usePromotions';
+import { ServerMappingsService } from '../services/supabase/server-mappings.service';
+import { useServerMappings } from '../hooks/useServerMappings';
 import { FEATURES } from '../config/features';
 import { PaymentMethodSelector, PaymentMethod } from './cart/PaymentMethodSelector';
 import { Select, SelectOption } from './ui/Select';
@@ -44,10 +46,51 @@ export function Cart({
   const onCheckout = async (assignedTo?: string, paymentMethod?: PaymentMethod) => {
     if (items.length === 0) return;
 
+    // ✨ NOUVEAU: Résoudre le nom du serveur vers UUID en mode simplifié
+    let serverId: string | undefined;
+    if (isSimplifiedMode && assignedTo && currentBar?.id) {
+      // Extraire le nom du serveur (format: "Serveur Name" ou "Moi (UserName)")
+      const serverName = assignedTo.startsWith('Moi (')
+        ? (currentSession?.userName || assignedTo)
+        : assignedTo;
+
+      try {
+        serverId = await ServerMappingsService.getUserIdForServerName(
+          currentBar.id,
+          serverName
+        );
+
+        // 🔴 BUG #1-2 FIX: BLOQUER la création si mapping échoue
+        if (!serverId) {
+          const errorMessage =
+            `⚠️ Erreur Critique:\n\n` +
+            `Le serveur "${serverName}" n'existe pas ou n'est pas mappé.\n\n` +
+            `Actions:\n` +
+            `1. Créer un compte pour ce serveur en Gestion Équipe\n` +
+            `2. Mapper le compte dans Paramètres > Opérationnel > Correspondance Serveurs\n` +
+            `3. Réessayer la vente`;
+
+          alert(errorMessage);
+          console.error(`[Cart] Blocking sale creation: No mapping for "${serverName}"`);
+          return; // ← BLOQUER LA CRÉATION
+        }
+      } catch (error) {
+        const errorMessage =
+          `❌ Impossible d'attribuer la vente:\n\n` +
+          `${error instanceof Error ? error.message : 'Erreur réseau lors de la résolution du serveur'}\n\n` +
+          `Réessayez ou contactez l'administrateur.`;
+
+        alert(errorMessage);
+        console.error('[Cart] Error resolving server ID:', error);
+        return; // ← BLOQUER LA CRÉATION
+      }
+    }
+
     await addSale({
       items,
       paymentMethod,
-      assignedTo: assignedTo // Pass assignedTo, which might be used by addSale logic
+      assignedTo: assignedTo, // Pass assignedTo, which might be used by addSale logic
+      serverId // ✨ NOUVEAU: Passer le server_id résolu
     });
   };
 
@@ -78,12 +121,16 @@ export function Cart({
   const [selectedServer, setSelectedServer] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
+  const isServerRole = currentSession?.role === 'serveur';
+
+  // Fetch server mappings from database instead of settings
+  const { serverNames } = useServerMappings(isSimplifiedMode ? currentBar?.id : undefined);
 
   // Préparer les options pour le select serveur
   const serverOptions: SelectOption[] = [
     { value: '', label: 'Sélectionner un serveur...' },
     { value: `Moi (${currentSession?.userName})`, label: `Moi (${currentSession?.userName})` },
-    ...(currentBar?.settings?.serversList || []).map(serverName => ({
+    ...serverNames.map(serverName => ({
       value: serverName,
       label: serverName
     }))
@@ -93,8 +140,8 @@ export function Cart({
   if (isMobile) {
     return (
       <>
-        {/* Bouton panier flottant - Masqué quand QuickSale est ouvert */}
-        {!hideFloatingButton && (
+        {/* Bouton panier flottant - Masqué quand QuickSale est ouvert ou en mode simplifié (serveurs) */}
+        {!hideFloatingButton && !(isSimplifiedMode && isServerRole) && (
           <button
             onClick={onToggle}
             className="fixed bottom-20 right-4 z-50 w-16 h-16 bg-amber-500 text-white rounded-full shadow-2xl active:scale-95 transition-transform flex items-center justify-center"
@@ -111,8 +158,8 @@ export function Cart({
           </button>
         )}
 
-        {/* Modal panier FULL-SCREEN Android natif */}
-        {isOpen && (
+        {/* Modal panier FULL-SCREEN Android natif - Masqué pour serveurs en mode simplifié */}
+        {isOpen && !(isSimplifiedMode && isServerRole) && (
           <div className="fixed inset-0 bg-white z-50 flex flex-col">
             {/* Header fixe sticky */}
             <div className="flex-shrink-0 sticky top-0 bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
@@ -269,11 +316,16 @@ export function Cart({
                         return;
                       }
                       setLoading('checkout', true);
-                      await onCheckout(isSimplifiedMode ? selectedServer : undefined);
-                      setSelectedServer(''); // Reset
-                      showSuccess('🎉 Vente finalisée !', 1000);
-                      onToggle(); // ✨ Fermer le panier après succès
-                      setLoading('checkout', false);
+                      try {
+                        await onCheckout(isSimplifiedMode ? selectedServer : undefined);
+                        setSelectedServer(''); // Reset
+                        showSuccess('🎉 Vente finalisée !', 1000);
+                        onToggle(); // ✨ Fermer le panier après succès
+                      } catch (error) {
+                        // Error handled by mutation onError
+                      } finally {
+                        setLoading('checkout', false);
+                      }
                     }}
                     disabled={isLoading('checkout')}
                     className="flex-1 h-14 bg-amber-500 text-white font-bold text-lg rounded-2xl active:bg-amber-600 disabled:bg-gray-400 transition-colors flex items-center justify-center"

@@ -6,6 +6,8 @@ import {
   Search,
   Filter,
   AlertTriangle,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -26,6 +28,10 @@ import { Textarea } from '../components/ui/Textarea';
 import { Label } from '../components/ui/Label';
 import { Input } from '../components/ui/Input';
 import { Select, SelectOption } from '../components/ui/Select';
+import { ServerMappingsService } from '../services/supabase/server-mappings.service';
+import { FEATURES } from '../config/features';
+import { useSalesFilters } from '../features/Sales/SalesHistory/hooks/useSalesFilters';
+import { SALES_HISTORY_FILTERS, TIME_RANGE_CONFIGS } from '../config/dateFilters';
 
 const returnReasons: Record<ReturnReason, ReturnReasonConfig> = {
   defective: {
@@ -90,13 +96,39 @@ export default function ReturnsPage() {
   const { showSuccess, showError } = useFeedback();
   const { isMobile } = useViewport();
 
+  // ✨ Déterminer si l'utilisateur est en mode read-only (serveur)
+  const isReadOnly = currentSession?.role === 'serveur';
+
   const [showCreateReturn, setShowCreateReturn] = useState(false);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
-  const [searchTerm, setSearchTerm] = useState('');
   const [lastCreatedReturnId, setLastCreatedReturnId] = useState<string | null>(null);
 
+  // ✨ NUEVO: Detectar modo de operación
+  const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
+
   const closeHour = currentBar?.closingHour ?? 6;
+
+  // ✨ NEW: Use shared filtering hook for period + server filtering
+  const {
+    timeRange,
+    setTimeRange,
+    startDate,
+    endDate,
+    customRange,
+    updateCustomRange,
+    isCustom,
+    searchTerm,
+    setSearchTerm,
+    filteredSales,
+    filteredReturns: filteredReturnsByFilters
+  } = useSalesFilters({
+    sales,
+    consignments,
+    returns,
+    currentSession,
+    closeHour
+  });
 
   // Effet pour gérer la redirection et scroll-to après création de retour
   useEffect(() => {
@@ -146,14 +178,25 @@ export default function ReturnsPage() {
 
   const getReturnableSales = useMemo((): Sale[] => {
     const currentBusinessDate = getCurrentBusinessDateString(closeHour);
+    const isServerRole = currentSession?.role === 'serveur';
+
     return sales.filter(sale => {
       if (sale.status !== 'validated') return false;
-      const saleBusinessDate = getBusinessDate(sale, closeHour);
-      return saleBusinessDate === currentBusinessDate;
-    });
-  }, [sales, closeHour]);
 
-  const createReturn = (
+      const saleBusinessDate = getBusinessDate(sale, closeHour);
+      if (saleBusinessDate !== currentBusinessDate) return false;
+
+      // ✨ MODE SWITCHING FIX: Servers should only see returns for their own sales
+      // Check BOTH serverId (simplified mode) AND createdBy (full mode)
+      if (isServerRole && currentSession?.userId) {
+        return sale.serverId === currentSession.userId || sale.createdBy === currentSession.userId;
+      }
+
+      return true;
+    });
+  }, [sales, closeHour, currentSession]);
+
+  const createReturn = async (
     saleId: string,
     productId: string,
     quantity: number,
@@ -210,6 +253,12 @@ export default function ReturnsPage() {
     const finalRefund = reason === 'other' ? (customRefund ?? false) : reasonConfig.autoRefund;
     const finalRestock = reason === 'other' ? (customRestock ?? false) : reasonConfig.autoRestock;
 
+    // ✨ MODE SWITCHING FIX: Déduire automatiquement le serveur de la vente
+    // Un retour doit TOUJOURS être assigné au même serveur que la vente d'origine
+    // Utiliser serverId si présent (vente en mode simplifié), sinon createdBy (mode complet)
+    // Cela garantit que les retours fonctionnent même après un switch de mode
+    const serverId = sale.serverId || sale.createdBy;
+
     addReturn({
       saleId,
       productId,
@@ -228,7 +277,10 @@ export default function ReturnsPage() {
       notes,
       customRefund: reason === 'other' ? customRefund : undefined,
       customRestock: reason === 'other' ? customRestock : undefined,
-      originalSeller: sale.createdBy
+      originalSeller: sale.createdBy,
+      serverId, // ✨ NUEVO: Passer le server_id résolu
+      // ✨ MODE SWITCHING SUPPORT: Store current operating mode
+      operatingModeAtCreation: currentBar?.settings?.operatingMode || 'full',
     });
 
     const refundMsg = finalRefund
@@ -338,12 +390,10 @@ export default function ReturnsPage() {
     showSuccess('Retour rejeté');
   };
 
-  const filteredReturns = returns.filter(returnItem => {
+  // ✨ Apply additional status filter on top of hook-filtered returns
+  const filteredReturns = filteredReturnsByFilters.filter(returnItem => {
     const matchesStatus = filterStatus === 'all' || returnItem.status === filterStatus;
-    const matchesSearch = !searchTerm ||
-      (returnItem.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       returnItem.id?.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesStatus && matchesSearch;
+    return matchesStatus;
   });
 
   return (
@@ -356,7 +406,7 @@ export default function ReturnsPage() {
         actions={
           // Desktop : Icône seule pour "Nouveau retour"
           <div className="flex items-center gap-2">
-            {!showCreateReturn && (
+            {!showCreateReturn && !isReadOnly && (
               <Button
                 onClick={() => setShowCreateReturn(true)}
                 className="shadow-sm"
@@ -380,7 +430,7 @@ export default function ReturnsPage() {
         mobileActions={
           // Mobile : Bouton explicite avec texte et icône
           <div className="flex items-center gap-2 w-full">
-            {!showCreateReturn && (
+            {!showCreateReturn && !isReadOnly && (
               <Button
                 onClick={() => setShowCreateReturn(true)}
                 className="shadow-sm flex-1"
@@ -407,30 +457,66 @@ export default function ReturnsPage() {
 
         {/* Filters Area (Only visible in list mode) */}
         {!showCreateReturn && (
-          <div className="flex flex-wrap gap-4 pt-4 border-t border-gray-100">
-            <Input
-                type="text"
-                placeholder="Rechercher un retour..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                leftIcon={<Search size={18} />}
-                className="flex-1 min-w-[200px]"
-            />
-            <div className="flex items-center gap-2">
-              <Filter size={18} className="text-gray-400" />
-              <Select
-                options={
-                    [
-                        { value: 'all', label: 'Tous les statuts' },
-                        { value: 'pending', label: 'En attente' },
-                        { value: 'approved', label: 'Approuvés' },
-                        { value: 'rejected', label: 'Rejetés' }
-                    ]
-                }
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as 'all' | 'pending' | 'approved' | 'rejected')}
-                className="flex-1"
+          <div className="space-y-4 pt-4 border-t border-gray-100">
+            {/* Period Filters */}
+            <div className="flex bg-gray-100 rounded-lg p-1 flex-wrap gap-1">
+              {SALES_HISTORY_FILTERS.map(filter => (
+                <Button
+                  key={filter}
+                  onClick={() => setTimeRange(filter)}
+                  variant={timeRange === filter ? 'default' : 'ghost'}
+                  className="px-3 py-1.5 rounded-md text-xs font-medium transition-all flex-1 min-w-[80px]"
+                >
+                  {TIME_RANGE_CONFIGS[filter].label}
+                </Button>
+              ))}
+            </div>
+
+            {/* Custom Date Range */}
+            {isCustom && (
+              <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
+                <Input
+                  type="date"
+                  value={customRange.start}
+                  onChange={(e) => updateCustomRange('start', e.target.value)}
+                  className="flex-1 text-sm"
+                />
+                <span className="text-gray-400">-</span>
+                <Input
+                  type="date"
+                  value={customRange.end}
+                  onChange={(e) => updateCustomRange('end', e.target.value)}
+                  className="flex-1 text-sm"
+                />
+              </div>
+            )}
+
+            {/* Search and Status Filter */}
+            <div className="flex flex-wrap gap-4">
+              <Input
+                  type="text"
+                  placeholder="Rechercher un retour..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  leftIcon={<Search size={18} />}
+                  className="flex-1 min-w-[200px]"
               />
+              <div className="flex items-center gap-2">
+                <Filter size={18} className="text-gray-400" />
+                <Select
+                  options={
+                      [
+                          { value: 'all', label: 'Tous les statuts' },
+                          { value: 'pending', label: 'En attente' },
+                          { value: 'approved', label: 'Approuvés' },
+                          { value: 'rejected', label: 'Rejetés' }
+                      ]
+                  }
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value as 'all' | 'pending' | 'approved' | 'rejected')}
+                  className="flex-1 min-w-[150px]"
+                />
+              </div>
             </div>
           </div>
         )}
@@ -459,15 +545,11 @@ export default function ReturnsPage() {
               ) : (
                 <div className="grid grid-cols-1 gap-4">
                   {filteredReturns.map(returnItem => {
-                    let originalSeller = null;
-                    if (returnItem.originalSeller) {
-                      originalSeller = users.find(u => u.id === returnItem.originalSeller);
-                    } else {
-                      const originalSale = sales.find(s => s.id === returnItem.saleId);
-                      if (originalSale?.createdBy) {
-                        originalSeller = users.find(u => u.id === originalSale.createdBy);
-                      }
-                    }
+                    // ✨ FIX: Use server_id from return (consistent with filtering logic)
+                    // This shows the server responsible for the sale, not the person who processed the return
+                    const serverUser = returnItem.server_id
+                      ? users.find(u => u.id === returnItem.server_id)
+                      : null;
 
                     return (
                       <motion.div
@@ -496,11 +578,11 @@ export default function ReturnsPage() {
                                 <span>ID: #{returnItem.id.slice(-6)}</span>
                                 <span>•</span>
                                 <span>{new Date(returnItem.returnedAt).toLocaleDateString('fr-FR')} à {new Date(returnItem.returnedAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-                                {originalSeller && (
+                                {serverUser && (
                                   <>
                                     <span>•</span>
                                     <span className="text-purple-600 font-medium">
-                                      Vendeur: {originalSeller.name}
+                                      Serveur: {serverUser.name}
                                     </span>
                                   </>
                                 )}
@@ -551,7 +633,7 @@ export default function ReturnsPage() {
                           </div>
 
                           <div className="flex items-center gap-2 self-end sm:self-auto">
-                            {returnItem.status === 'pending' && (
+                            {!isReadOnly && returnItem.status === 'pending' && (
                               <>
                                 <EnhancedButton
                                   variant="danger"
@@ -570,7 +652,7 @@ export default function ReturnsPage() {
                               </>
                             )}
 
-                            {returnItem.status === 'approved' && returnItem.manualRestockRequired && (
+                            {!isReadOnly && returnItem.status === 'approved' && returnItem.manualRestockRequired && (
                               <EnhancedButton
                                 variant="info"
                                 size="sm"
@@ -626,6 +708,8 @@ export default function ReturnsPage() {
                 canReturnSale={canReturnSale}
                 closeHour={closeHour}
                 consignments={consignments}
+                isSimplifiedMode={isSimplifiedMode}
+                currentBar={currentBar}
               />
             </motion.div>
           )}
@@ -751,17 +835,21 @@ function CreateReturnForm({
   onSelectSale,
   canReturnSale,
   closeHour,
-  consignments
+  consignments,
+  isSimplifiedMode,
+  currentBar
 }: {
   returnableSales: Sale[];
   returnReasons: Record<ReturnReason, ReturnReasonConfig>;
-  onCreateReturn: (saleId: string, productId: string, quantity: number, reason: ReturnReason, notes?: string, customRefund?: boolean, customRestock?: boolean) => void;
+  onCreateReturn: (saleId: string, productId: string, quantity: number, reason: ReturnReason, notes?: string, customRefund?: boolean, customRestock?: boolean) => Promise<void> | void;
   onCancel: () => void;
   selectedSale: Sale | null;
   onSelectSale: (sale: Sale) => void;
   canReturnSale: (sale: Sale) => { allowed: boolean; reason: string };
   closeHour: number;
   consignments: any[];
+  isSimplifiedMode: boolean;
+  currentBar: any;
 }) {
   const { getReturnsBySale } = useAppContext();
   const { barMembers } = useBarContext();
@@ -776,6 +864,7 @@ function CreateReturnForm({
   const [showOtherReasonDialog, setShowOtherReasonDialog] = useState(false);
   const [filterSeller, setFilterSeller] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [isInfoExpanded, setIsInfoExpanded] = useState(false);
 
   const reasonConfig = returnReasons[reason];
 
@@ -805,7 +894,12 @@ function CreateReturnForm({
     let filtered = returnableSales;
 
     if (filterSeller !== 'all') {
-      filtered = filtered.filter(sale => sale.createdBy === filterSeller);
+      // ✨ MODE SWITCHING FIX: Filter using mode-agnostic server detection
+      // Use serverId if present (simplified mode sale), otherwise createdBy (full mode sale)
+      filtered = filtered.filter(sale => {
+        const serverUserId = sale.serverId || sale.createdBy;
+        return serverUserId === filterSeller;
+      });
     }
 
     if (searchTerm.trim()) {
@@ -815,16 +909,27 @@ function CreateReturnForm({
       );
     }
 
-    return filtered;
+    // ✨ Sort by time: most recent first (validatedAt or createdAt)
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.validatedAt || a.createdAt);
+      const dateB = new Date(b.validatedAt || b.createdAt);
+      return dateB.getTime() - dateA.getTime(); // Descending order
+    });
   }, [returnableSales, filterSeller, searchTerm]);
 
   const sellersWithSales = useMemo(() => {
     if (!Array.isArray(returnableSales) || !Array.isArray(users)) return [];
-    const sellerIds = new Set(returnableSales.map(sale => sale.createdBy).filter(Boolean));
-    return users.filter(user => sellerIds.has(user.id));
+    // ✨ MODE SWITCHING FIX: Get servers using mode-agnostic detection
+    // Use serverId if present (simplified mode sale), otherwise createdBy (full mode sale)
+    const serverIds = new Set(
+      returnableSales
+        .map(sale => sale.serverId || sale.createdBy)
+        .filter(Boolean)
+    );
+    return users.filter(user => serverIds.has(user.id));
   }, [returnableSales, users]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedSale || !selectedProduct) return;
 
     const productId = selectedProduct.product_id;
@@ -838,10 +943,10 @@ function CreateReturnForm({
       return;
     }
 
-    onCreateReturn(selectedSale.id, productId, quantity, reason, notes || undefined);
+    await onCreateReturn(selectedSale.id, productId, quantity, reason, notes || undefined);
   };
 
-  const handleOtherReasonConfirm = (customRefund: boolean, customRestock: boolean, customNotes: string) => {
+  const handleOtherReasonConfirm = async (customRefund: boolean, customRestock: boolean, customNotes: string) => {
     if (!selectedSale || !selectedProduct) return;
 
     const productId = selectedProduct.product_id;
@@ -851,7 +956,7 @@ function CreateReturnForm({
     }
 
     setShowOtherReasonDialog(false);
-    onCreateReturn(
+    await onCreateReturn(
       selectedSale.id,
       productId,
       quantity,
@@ -874,13 +979,49 @@ function CreateReturnForm({
         <h3 className="text-lg font-semibold text-gray-800">Créer un nouveau retour</h3>
 
         <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="text-blue-600" size={18} />
-              <p className="text-blue-700 text-sm font-medium">
-                Retours autorisés uniquement AVANT clôture caisse ({closeHour}h)
-              </p>
-            </div>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg overflow-hidden">
+            <button
+              onClick={() => setIsInfoExpanded(!isInfoExpanded)}
+              className="w-full px-4 py-3 flex items-center justify-between hover:bg-blue-100 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-blue-600" />
+                <p className="font-semibold text-blue-800">Processus de retour</p>
+              </div>
+              {isInfoExpanded ? (
+                <ChevronUp className="w-5 h-5 text-blue-600" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-blue-600" />
+              )}
+            </button>
+            <AnimatePresence>
+              {isInfoExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className="px-4 pb-3 border-t border-blue-200">
+                    <ol className="list-decimal list-inside space-y-1 text-blue-700 mt-2 text-sm">
+                      <li>Sélectionnez la vente de la journée commerciale actuelle</li>
+                      <li>Choisissez le produit à retourner et la quantité</li>
+                      <li>Indiquez le motif du retour (défectueux, erreur, etc.)</li>
+                      <li>Le stock sera automatiquement réapprovisionné selon le motif</li>
+                    </ol>
+                    <div className="mt-3 pt-2 border-t border-blue-200">
+                      <p className="text-blue-700 text-xs font-medium flex items-center gap-1">
+                        <AlertTriangle size={14} />
+                        Retours autorisés uniquement AVANT clôture caisse ({closeHour}h)
+                      </p>
+                      <p className="text-blue-600 text-xs mt-1">
+                        Votre bar ferme à {closeHour}h. Les retours ne peuvent être créés qu'avant cette heure.
+                      </p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <div>
@@ -925,7 +1066,10 @@ function CreateReturnForm({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
                 {filteredSales.map(sale => {
                   const returnCheck = canReturnSale(sale);
-                  const seller = sale.createdBy ? users.find(u => u.id === sale.createdBy) : undefined;
+                  // ✨ MODE SWITCHING FIX: Show server using mode-agnostic detection
+                  // Use serverId if present (simplified mode sale), otherwise createdBy (full mode sale)
+                  const serverUserId = sale.serverId || sale.createdBy;
+                  const serverUser = serverUserId ? users.find(u => u.id === serverUserId) : undefined;
                   const productPreview = sale.items.slice(0, 2).map(i => `${i.quantity}x ${i.product_name}`).join(', ');
                   const moreCount = sale.items.length - 2;
 
@@ -951,8 +1095,8 @@ function CreateReturnForm({
                       </div>
 
                       <div className="flex items-center justify-between mt-2">
-                        {seller ? (
-                          <span className="text-xs text-purple-600">👤 {seller.name}</span>
+                        {serverUser ? (
+                          <span className="text-xs text-purple-600">👤 {serverUser.name}</span>
                         ) : <span></span>}
                         {returnCheck.allowed ? (
                           <span className="text-xs font-bold text-gray-700">{formatPrice(sale.total)}</span>

@@ -24,6 +24,7 @@ export interface CreateSaleData {
   items: SaleItem[];
   payment_method: 'cash' | 'mobile_money' | 'card' | 'credit';
   sold_by: string;
+  server_id?: string; // ✨ NOUVEAU: UUID du serveur assigné (mode switching support)
   customer_name?: string;
   customer_phone?: string;
   notes?: string;
@@ -57,6 +58,7 @@ export class SalesService {
           p_items: data.items,
           p_payment_method: data.payment_method,
           p_sold_by: data.sold_by,
+          p_server_id: data.server_id || null, // ✨ NOUVEAU: Mode switching support
           p_status: status,
           p_customer_name: data.customer_name || null,
           p_customer_phone: data.customer_phone || null,
@@ -66,7 +68,6 @@ export class SalesService {
       ).single();
 
       if (rpcError) {
-        console.error('[SalesService] RPC error:', rpcError);
         throw new Error(`Erreur lors de la création de la vente: ${rpcError.message}`);
       }
 
@@ -76,7 +77,6 @@ export class SalesService {
 
       return newSale;
     } catch (error: any) {
-      console.error('[SalesService] createSale error:', error);
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -319,11 +319,13 @@ export class SalesService {
 
   /**
    * Récupérer les statistiques de vente d'un bar
+   * Optionnellement filtrer par serverId (pour voir uniquement ses ventes)
    */
   static async getSalesStats(
     barId: string,
     startDate?: string,
-    endDate?: string
+    endDate?: string,
+    serverId?: string
   ): Promise<{
     totalSales: number;
     totalRevenue: number;
@@ -334,7 +336,7 @@ export class SalesService {
       // Ventes validées (Filtre sur business_date)
       let validatedQuery = supabase
         .from('sales')
-        .select('total')
+        .select('id, total, server_id, created_by, business_date, status')
         .eq('bar_id', barId)
         .eq('status', 'validated');
 
@@ -346,18 +348,63 @@ export class SalesService {
         validatedQuery = validatedQuery.lte('business_date', endDate);
       }
 
-      const { data: validatedSales } = await validatedQuery;
+      const { data: allValidatedSales } = await validatedQuery;
 
-      const totalRevenue = (validatedSales || []).reduce((sum, sale) => sum + (sale.total || 0), 0);
-      const totalSales = validatedSales?.length || 0;
+      // ✨ MODE SWITCHING FIX: Filter by server with client-side OR logic
+      // Apply server filter in JavaScript to ensure proper AND/OR precedence
+      // A server should see sales where they are EITHER the assigned server OR the creator
+      let validatedSales = allValidatedSales || [];
+      if (serverId) {
+        validatedSales = validatedSales.filter((sale: any) =>
+          sale.server_id === serverId || sale.created_by === serverId
+        );
+
+        // 🔍 DEBUG: Log sales data for mode switching analysis
+        console.log('[SalesService.getSalesStats] Query results:', {
+          barId,
+          serverId,
+          startDate,
+          endDate,
+          totalBeforeFilter: allValidatedSales?.length || 0,
+          totalAfterFilter: validatedSales.length,
+          salesDetails: validatedSales.map((s: any) => ({
+            id: s.id,
+            total: s.total,
+            server_id: s.server_id,
+            created_by: s.created_by,
+            business_date: s.business_date
+          }))
+        });
+      }
+
+      const totalRevenue = validatedSales.reduce((sum: number, sale: any) => sum + (sale.total || 0), 0);
+      const totalSales = validatedSales.length;
       const averageSale = totalSales > 0 ? totalRevenue / totalSales : 0;
 
+      // 🔍 DEBUG: Log calculated totals
+      if (serverId) {
+        console.log('[SalesService.getSalesStats] Calculated totals:', {
+          totalSales,
+          totalRevenue,
+          averageSale
+        });
+      }
+
       // Ventes en attente (Toujours temps réel, pas de filtre date nécessaire généralement, ou created_at)
-      const { count: pendingCount } = await supabase
+      const { data: allPendingSales } = await supabase
         .from('sales')
-        .select('*', { count: 'exact', head: true })
+        .select('id, server_id, created_by')
         .eq('bar_id', barId)
         .eq('status', 'pending');
+
+      // ✨ MODE SWITCHING FIX: Filter by server with client-side OR logic
+      let pendingCount = allPendingSales?.length || 0;
+      if (serverId && allPendingSales) {
+        const filteredPending = allPendingSales.filter((sale: any) =>
+          sale.server_id === serverId || sale.created_by === serverId
+        );
+        pendingCount = filteredPending.length;
+      }
 
       return {
         totalSales,
