@@ -72,7 +72,10 @@ $$ LANGUAGE plpgsql;
 -- Amélioration fonction cleanup (nettoyage périodique)
 -- =====================================================
 
-CREATE OR REPLACE FUNCTION cleanup_bar_activity()
+-- Drop existing function with different return type
+DROP FUNCTION IF EXISTS cleanup_bar_activity();
+
+CREATE FUNCTION cleanup_bar_activity()
 RETURNS TABLE(
   bars_updated INTEGER,
   execution_time_ms INTEGER
