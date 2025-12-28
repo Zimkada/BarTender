@@ -1,26 +1,35 @@
-import React, { useState, useEffect } from 'react';
 import { RefreshCw, WifiOff, Zap, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNetworkOptimization } from '../hooks/useNetworkOptimization';
-import { optimizedSyncService } from '../services/optimizedSyncService';
+import { syncQueue } from '../services/SyncQueue';
+import { syncHandler } from '../services/SyncHandler';
 
 export function SyncButton() {
-  const { networkInfo} = useNetworkOptimization();
+  const { networkInfo } = useNetworkOptimization();
   const [isSyncing, setIsSyncing] = useState(false);
   const [queueSize, setQueueSize] = useState(0);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
   // Mise à jour de la taille de la queue
   useEffect(() => {
-    const updateQueueSize = async () => {
-      const size = await optimizedSyncService.getQueueSize();
-      setQueueSize(size);
+    const updateQueueSize = () => {
+      const stats = syncQueue.getStats();
+      setQueueSize(stats.pending); // Utilisation correcte de pendingCount
     };
 
     updateQueueSize();
-    const interval = setInterval(updateQueueSize, 10000); // Vérifier toutes les 10s
+    // Souscription aux événements de la queue pour mise à jour temps réel
+    const unsubscribe = syncQueue.subscribe(() => {
+      updateQueueSize();
+    });
 
-    return () => clearInterval(interval);
+    // Polling de backup
+    const interval = setInterval(updateQueueSize, 5000);
+
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
   }, []);
 
   const handleSync = async () => {
@@ -28,16 +37,8 @@ export function SyncButton() {
 
     setIsSyncing(true);
     try {
-      await optimizedSyncService.smartSync({
-        type: networkInfo.effectiveType,
-        downlink: networkInfo.downlink,
-        saveData: networkInfo.saveData,
-        batteryLevel: networkInfo.batteryLevel
-      });
-
+      await syncHandler.forceSync();
       setLastSyncTime(new Date());
-      setQueueSize(0);
-
     } catch (error) {
       console.error('Erreur de synchronisation:', error);
     } finally {
@@ -45,26 +46,8 @@ export function SyncButton() {
     }
   };
 
-  const handleSyncCriticalOnly = async () => {
-    if (isSyncing || !networkInfo.isOnline) return;
-
-    setIsSyncing(true);
-    try {
-      await optimizedSyncService.syncCriticalOnly({
-        type: networkInfo.effectiveType,
-        downlink: networkInfo.downlink,
-        saveData: networkInfo.saveData,
-        batteryLevel: networkInfo.batteryLevel
-      });
-
-      setLastSyncTime(new Date());
-
-    } catch (error) {
-      console.error('Erreur de synchronisation critique:', error);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
+  // Le bouton critique force aussi la sync standard maintenant (SyncHandler gère tout)
+  const handleSyncCriticalOnly = handleSync;
 
   const getSyncIcon = () => {
     if (!networkInfo.isOnline) return <WifiOff size={16} />;
@@ -158,14 +141,14 @@ export function CompactSyncButton() {
   const [queueSize, setQueueSize] = useState(0);
 
   useEffect(() => {
-    const updateQueueSize = async () => {
-      const size = await optimizedSyncService.getQueueSize();
-      setQueueSize(size);
+    const updateQueueSize = () => {
+      const stats = syncQueue.getStats();
+      setQueueSize(stats.pending);
     };
 
     updateQueueSize();
-    const interval = setInterval(updateQueueSize, 15000);
-    return () => clearInterval(interval);
+    const unsubscribe = syncQueue.subscribe(updateQueueSize);
+    return () => unsubscribe();
   }, []);
 
   const handleQuickSync = async () => {
@@ -173,21 +156,7 @@ export function CompactSyncButton() {
 
     setIsSyncing(true);
     try {
-      if (networkInfo.isSlowConnection) {
-        await optimizedSyncService.syncCriticalOnly({
-          type: networkInfo.effectiveType,
-          downlink: networkInfo.downlink,
-          saveData: networkInfo.saveData,
-          batteryLevel: networkInfo.batteryLevel
-        });
-      } else {
-        await optimizedSyncService.smartSync({
-          type: networkInfo.effectiveType,
-          downlink: networkInfo.downlink,
-          saveData: networkInfo.saveData,
-          batteryLevel: networkInfo.batteryLevel
-        });
-      }
+      await syncHandler.forceSync();
     } finally {
       setIsSyncing(false);
     }

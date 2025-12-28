@@ -30,6 +30,7 @@ import { Alert } from '../components/ui/Alert';
 import { exportToCSV } from '../utils/exportToCSV';
 import { exportToExcel } from '../utils/exportToExcel';
 import { formatRelativeTime } from '../utils/formatRelativeTime';
+import { RefreshHistoryChart } from '../components/charts/RefreshHistoryChart';
 
 export default function SecurityDashboardPage() {
   const { currentSession } = useAuth();
@@ -791,6 +792,102 @@ export default function SecurityDashboardPage() {
             </p>
           </div>
         )}
+
+      {/* Performance Charts Section */}
+      {refreshHistory.length > 0 && (
+        <section className="mb-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              Analyse de Performance
+            </h3>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Duration Timeline */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                  Historique Durée Refresh (20 derniers)
+                </h4>
+                <RefreshHistoryChart logs={refreshHistory} chartType="line" />
+              </div>
+
+              {/* Status Distribution */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                  Distribution Statuts
+                </h4>
+                <RefreshHistoryChart logs={refreshHistory} chartType="pie" />
+              </div>
+
+              {/* Duration Trend */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                  Tendance Performance
+                </h4>
+                <RefreshHistoryChart logs={refreshHistory} chartType="area" />
+              </div>
+
+              {/* Average by View */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                  Durée Moyenne par Vue
+                </h4>
+                <RefreshHistoryChart logs={refreshHistory} chartType="bar" />
+              </div>
+            </div>
+
+            {/* Performance Insights */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="w-4 h-4 text-blue-600" />
+                  <p className="text-sm font-semibold text-gray-700">Refresh le Plus Rapide</p>
+                </div>
+                <p className="text-2xl font-bold text-blue-600">
+                  {Math.min(
+                    ...refreshHistory
+                      .filter((log) => log.duration_ms && log.status === 'success')
+                      .map((log) => log.duration_ms!)
+                  )}
+                  ms
+                </p>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Activity className="w-4 h-4 text-amber-600" />
+                  <p className="text-sm font-semibold text-gray-700">Durée Moyenne Totale</p>
+                </div>
+                <p className="text-2xl font-bold text-amber-600">
+                  {Math.round(
+                    refreshHistory
+                      .filter((log) => log.duration_ms && log.status === 'success')
+                      .reduce((sum, log) => sum + log.duration_ms!, 0) /
+                      refreshHistory.filter((log) => log.duration_ms && log.status === 'success')
+                        .length
+                  )}
+                  ms
+                </p>
+              </div>
+
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className="w-4 h-4 text-green-600" />
+                  <p className="text-sm font-semibold text-gray-700">Taux de Succès</p>
+                </div>
+                <p className="text-2xl font-bold text-green-600">
+                  {(
+                    (refreshHistory.filter((log) => log.status === 'success').length /
+                      refreshHistory.length) *
+                    100
+                  ).toFixed(1)}
+                  %
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

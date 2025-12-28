@@ -2,8 +2,9 @@
 
 **Date de début**: 2025-12-27
 **Branche**: `feature/optimisation-hybride`
-**Objectif**: Performance + Économie + Scalabilité + Sécurité
+**Objectif**: Performance + Économie + Scalabilité + Sécurité + Monitoring
 **Statut**: 🔄 En cours - Jour 1 ✅ | Jour 2 ✅ | Jour 3 ✅ | Jour 4 🔄
+**Migrations**: 16 fichiers | **Edge Functions**: 1 (send-refresh-alerts)
 
 ---
 
@@ -2032,15 +2033,323 @@ LIMIT 5;
 
 ---
 
-## Jour 4 : Tests & Validation
+## Jour 4 : Tests & Validation + Monitoring Avancé
 
 **Date**: 2025-12-28
 **Statut**: 🔄 En cours
-**Objectif**: Validation end-to-end + Tests performance
+**Objectif**: Validation end-to-end + Tests performance + Features monitoring avancées
+**Migrations déployées**: 15 → 16 (alert email cron)
 
 ### Vue d'ensemble
 
-Tests complets de toutes les features Jour 1-3 et validation de la performance en conditions réelles de production.
+1. Tests complets de toutes les features Jour 1-3 et validation de la performance en conditions réelles de production
+2. Implémentation monitoring avancé avec graphiques de performance et alertes email automatiques
+
+---
+
+### 20251228010000_setup_alert_email_cron.sql
+
+**Status**: ✅ Créé (en attente déploiement)
+**Phase**: Jour 4 - Monitoring Avancé
+**Feature**: Alertes email automatiques via Edge Function
+
+#### Overview
+
+Configure le système d'alertes email automatiques pour notifier les admins en cas d'échecs répétés de refresh de vues matérialisées. Utilise pg_cron pour déclencher une Edge Function Supabase toutes les 15 minutes.
+
+#### Problème Résolu
+
+**Besoin:**
+- Détection proactive des incidents de refresh
+- Notification instantanée des admins par email
+- Réduction du MTTR (Mean Time To Resolution)
+- Automatisation du monitoring 24/7
+
+**Solution:**
+- Edge Function `send-refresh-alerts` avec emails HTML formatés
+- pg_cron job toutes les 15 minutes
+- Intégration avec API Resend pour envoi SMTP
+- Table `alert_email_log` pour tracking
+- Seuil configurable (défaut: 3 échecs consécutifs)
+
+#### Technical Details
+
+**Composants créés:**
+
+1. **Edge Function: send-refresh-alerts**
+   - Localisation: `supabase/functions/send-refresh-alerts/index.ts`
+   - Langage: TypeScript (Deno runtime)
+   - API: Resend (alternative: SendGrid, AWS SES)
+   - Authentification: Bearer token
+   - Format: Email HTML responsive
+
+2. **Table: alert_email_log**
+   ```sql
+   CREATE TABLE alert_email_log (
+     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+     triggered_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+     status TEXT CHECK (status IN ('triggered', 'success', 'failed')),
+     alerts_sent INTEGER DEFAULT 0,
+     error_message TEXT,
+     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+   );
+   ```
+
+3. **Colonne ajoutée: refresh_failure_alerts.alert_sent_at**
+   ```sql
+   ALTER TABLE refresh_failure_alerts
+   ADD COLUMN alert_sent_at TIMESTAMPTZ NULL;
+   ```
+
+4. **Fonction trigger: trigger_alert_email_edge_function()**
+   - Type: SECURITY DEFINER
+   - Rôle: Appelée par pg_cron toutes les 15 minutes
+   - Action: Déclenche l'Edge Function via HTTP
+
+5. **pg_cron Job**
+   ```sql
+   SELECT cron.schedule(
+     'send-refresh-alerts-email',
+     '*/15 * * * *',  -- Toutes les 15 minutes
+     $$ SELECT trigger_alert_email_edge_function(); $$
+   );
+   ```
+
+6. **Vues de monitoring**
+   - `alert_email_stats`: Statistiques d'envoi des 7 derniers jours
+   - `test_alert_email_system()`: Fonction de test pour voir quelles alertes seraient envoyées
+
+#### Configuration requise
+
+**Secrets Supabase (via CLI ou Dashboard):**
+```bash
+supabase secrets set RESEND_API_KEY=re_xxxxx
+supabase secrets set ADMIN_EMAIL=admin@bartender.app
+supabase secrets set FUNCTION_SECRET=$(openssl rand -base64 32)
+supabase secrets set SMTP_FROM=alerts@bartender.app
+supabase secrets set ALERT_THRESHOLD=3
+```
+
+**PostgreSQL Settings (via Dashboard):**
+```sql
+ALTER DATABASE postgres SET app.edge_function_url = 'https://[project-ref].supabase.co/functions/v1/send-refresh-alerts';
+ALTER DATABASE postgres SET app.function_secret = '[function-secret]';
+```
+
+**Déploiement Edge Function:**
+```bash
+supabase functions deploy send-refresh-alerts
+```
+
+#### Format Email
+
+L'email HTML envoyé contient:
+- **Header rouge**: Alerte critique avec nom de la vue
+- **Statistiques**: Échecs consécutifs, durée de l'incident
+- **Détails temporels**: Premier échec, dernier échec
+- **Messages d'erreur**: 5 derniers messages pour débogage
+- **Actions recommandées**: Checklist de troubleshooting
+- **Footer**: Branding BarTender + disclaimer auto-généré
+
+#### Flux de fonctionnement
+
+```
+1. pg_cron déclenche trigger_alert_email_edge_function() (toutes les 15min)
+   ↓
+2. Fonction appelle Edge Function via HTTP POST
+   ↓
+3. Edge Function query active_refresh_alerts
+   ↓
+4. Filtre: consecutive_failures >= 3 AND alert_sent_at IS NULL
+   ↓
+5. Pour chaque alerte:
+   - Génère email HTML
+   - Envoie via Resend API
+   - Met à jour alert_sent_at
+   - Log dans alert_email_log
+   ↓
+6. Retourne résumé: X/Y alertes envoyées
+```
+
+#### Monitoring & Debug
+
+**Voir les emails envoyés:**
+```sql
+SELECT * FROM alert_email_log
+ORDER BY triggered_at DESC
+LIMIT 10;
+```
+
+**Statistiques des 7 derniers jours:**
+```sql
+SELECT * FROM alert_email_stats;
+```
+
+**Tester quelles alertes seraient envoyées:**
+```sql
+SELECT * FROM test_alert_email_system();
+```
+
+**Vérifier le cron job:**
+```sql
+SELECT * FROM cron.job
+WHERE jobname = 'send-refresh-alerts-email';
+
+SELECT * FROM cron.job_run_details
+ORDER BY start_time DESC LIMIT 5;
+```
+
+**Logs Edge Function:**
+- Supabase Dashboard > Edge Functions > send-refresh-alerts > Logs
+
+#### Quotas et Limites
+
+**Resend (Plan Gratuit):**
+- 3,000 emails/mois
+- 100 emails/jour
+
+**Supabase Edge Functions:**
+- 500,000 invocations/mois (gratuit)
+- 2M invocations/mois (Pro)
+
+**pg_cron:**
+- Toutes les 15 min = 2,880 invocations/mois
+- ✅ Largement dans les quotas
+
+#### Sécurité
+
+- ✅ Edge Function protégée par Bearer token (FUNCTION_SECRET)
+- ✅ RLS activée sur alert_email_log (admin uniquement)
+- ✅ Secrets stockés dans Supabase Vault (chiffrés)
+- ✅ HTTPS uniquement
+- ✅ trigger_alert_email_edge_function() en SECURITY DEFINER
+
+#### Impact
+
+- **Avant**: Admins doivent checker manuellement le Security Dashboard
+- **Après**: Notification email automatique en cas d'incident
+- **MTTR**: Réduction de plusieurs heures à quelques minutes
+- **Disponibilité**: Monitoring 24/7 sans intervention humaine
+
+#### Fichiers associés
+
+- Migration: `supabase/migrations/20251228010000_setup_alert_email_cron.sql`
+- Edge Function: `supabase/functions/send-refresh-alerts/index.ts`
+- Documentation: `supabase/functions/send-refresh-alerts/README.md`
+- Config exemple: `supabase/functions/.env.example`
+
+---
+
+### Monitoring Frontend: RefreshHistoryChart
+
+**Status**: ✅ Implémenté et Testé
+**Phase**: Jour 4 - Monitoring Avancé
+**Feature**: Graphiques de performance avec recharts
+
+#### Overview
+
+Composant React réutilisable pour visualiser l'historique des refreshes de vues matérialisées avec 4 types de graphiques interactifs.
+
+#### Fichier créé
+
+- **Composant**: `src/components/charts/RefreshHistoryChart.tsx` (188 lignes)
+- **Bibliothèque**: recharts (installée via npm)
+- **Intégration**: SecurityDashboardPage (ligne 797-890)
+
+#### Graphiques implémentés
+
+1. **Line Chart**: Historique durée refresh (20 derniers)
+   - Axe X: Timestamp (HH:MM)
+   - Axe Y: Durée (ms)
+   - Couleur: Bleu (#3b82f6)
+
+2. **Pie Chart**: Distribution statuts
+   - Success: Vert (#10b981)
+   - Failed: Rouge (#ef4444)
+   - Timeout: Ambre (#f59e0b)
+   - Labels: Nom + pourcentage
+
+3. **Area Chart**: Tendance performance
+   - Similaire au line chart avec remplissage
+   - Opacité: 0.3
+   - Détecte les patterns de dégradation
+
+4. **Bar Chart**: Durée moyenne par vue
+   - Axe X: Nom de vue (rotation -45°)
+   - Axe Y: Durée moyenne (ms)
+   - Couleur: Violet (#8b5cf6)
+
+#### Cartes de métriques
+
+Sous les graphiques, 3 cartes affichent:
+- **Carte bleue**: Refresh le plus rapide (MIN)
+- **Carte ambre**: Durée moyenne totale (AVG)
+- **Carte verte**: Taux de succès (%)
+
+#### Code clé
+
+```tsx
+interface RefreshLog {
+  id: string;
+  view_name: string;
+  status: 'success' | 'failed' | 'timeout';
+  duration_ms: number | null;
+  refresh_started_at: string;
+  refresh_completed_at: string | null;
+  created_at: string;
+}
+
+interface RefreshHistoryChartProps {
+  logs: RefreshLog[];
+  chartType?: 'line' | 'area' | 'bar' | 'pie';
+}
+
+export function RefreshHistoryChart({ logs, chartType = 'line' }) {
+  // Traitement des données selon le type de graphique
+  // Rendu avec ResponsiveContainer pour responsive design
+}
+```
+
+#### Intégration SecurityDashboard
+
+```tsx
+{refreshHistory.length > 0 && (
+  <section className="mb-6">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+      <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center gap-2">
+        <TrendingUp className="w-5 h-5 text-blue-600" />
+        Analyse de Performance
+      </h3>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 4 graphiques en grille 2x2 */}
+        <RefreshHistoryChart logs={refreshHistory} chartType="line" />
+        <RefreshHistoryChart logs={refreshHistory} chartType="pie" />
+        <RefreshHistoryChart logs={refreshHistory} chartType="area" />
+        <RefreshHistoryChart logs={refreshHistory} chartType="bar" />
+      </div>
+
+      {/* 3 cartes de métriques */}
+    </div>
+  </section>
+)}
+```
+
+#### Responsive Design
+
+- **Desktop (≥1024px)**: Grille 2x2
+- **Tablet (768-1023px)**: Grille 2x2 avec moins d'espace
+- **Mobile (<768px)**: Stack vertical (1 colonne)
+- Charts: Hauteur fixe 300px avec ResponsiveContainer
+
+#### Impact
+
+- **Avant**: Tableau statique de logs uniquement
+- **Après**: Visualisation interactive avec tendances
+- **Bénéfice**: Détection rapide des patterns de performance
+- **UX**: Dashboard professionnel niveau enterprise
+
+---
 
 ### Plan de Tests
 
