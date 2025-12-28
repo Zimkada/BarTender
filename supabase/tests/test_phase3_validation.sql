@@ -300,16 +300,25 @@ DECLARE
   v_bar_id UUID;
   v_business_date DATE;
   v_result TEXT;
+  v_owner_id UUID;
 BEGIN
+  -- Get first user as owner
+  SELECT id INTO v_owner_id FROM users LIMIT 1;
+
+  IF v_owner_id IS NULL THEN
+    RAISE NOTICE 'Test 6.1: Bar without closing_hour - SKIP ⚠️ - No users in database';
+    RETURN;
+  END IF;
+
   -- Create temp bar without closing_hour
-  INSERT INTO bars (name, address, phone, email, closing_hour)
-  VALUES ('Test Bar No Closing Hour', 'Test Address', '0000000000', 'test@test.com', NULL)
+  INSERT INTO bars (name, owner_id, closing_hour)
+  VALUES ('Test Bar No Closing Hour', v_owner_id, NULL)
   RETURNING id INTO v_bar_id;
 
   SELECT get_current_business_date(v_bar_id) INTO v_business_date;
 
   IF v_business_date IS NOT NULL THEN
-    v_result := 'PASS ✅ - Fallback to default working';
+    v_result := 'PASS ✅ - Fallback to default working (returned ' || v_business_date::TEXT || ')';
   ELSE
     v_result := 'FAIL ❌ - Fallback failed';
   END IF;
@@ -318,6 +327,9 @@ BEGIN
   DELETE FROM bars WHERE id = v_bar_id;
 
   RAISE NOTICE 'Test 6.1: Bar without closing_hour - %', v_result;
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE NOTICE 'Test 6.1: Bar without closing_hour - FAIL ❌ - %', SQLERRM;
 END $$;
 
 -- Test 6.2: Refresh with no data
