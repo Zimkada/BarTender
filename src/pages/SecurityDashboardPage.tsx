@@ -28,6 +28,7 @@ import {
 import { LoadingFallback } from '../components/LoadingFallback';
 import { Alert } from '../components/ui/Alert';
 import { exportToCSV } from '../utils/exportToCSV';
+import { exportToExcel } from '../utils/exportToExcel';
 import { formatRelativeTime } from '../utils/formatRelativeTime';
 
 export default function SecurityDashboardPage() {
@@ -137,7 +138,7 @@ export default function SecurityDashboardPage() {
   };
 
   // Export refresh logs to CSV
-  const handleExportLogs = () => {
+  const handleExportCSV = () => {
     if (refreshHistory.length === 0) {
       alert('Aucun log à exporter');
       return;
@@ -155,6 +156,27 @@ export default function SecurityDashboardPage() {
 
     const timestamp = new Date().toISOString().split('T')[0];
     exportToCSV(exportData, `refresh_logs_${timestamp}`);
+  };
+
+  // Export refresh logs to Excel
+  const handleExportExcel = () => {
+    if (refreshHistory.length === 0) {
+      alert('Aucun log à exporter');
+      return;
+    }
+
+    const exportData = refreshHistory.map((log) => ({
+      'Vue': log.view_name,
+      'Statut': log.status,
+      'Démarré à': new Date(log.started_at).toLocaleString('fr-FR'),
+      'Terminé à': log.completed_at ? new Date(log.completed_at).toLocaleString('fr-FR') : 'N/A',
+      'Durée (ms)': log.duration_ms || 0,
+      'Message d\'erreur': log.error_message || '',
+      'Créé le': new Date(log.created_at).toLocaleString('fr-FR'),
+    }));
+
+    const timestamp = new Date().toISOString().split('T')[0];
+    exportToExcel(exportData, `refresh_logs_${timestamp}`);
   };
 
   const handleRefreshView = async (viewName: string) => {
@@ -356,7 +378,8 @@ export default function SecurityDashboardPage() {
               <Database className="w-5 h-5 text-purple-600" />
               Performance Materialized Views (7 derniers jours)
             </h3>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Notifications Button */}
               <button
                 onClick={toggleNotifications}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
@@ -364,36 +387,55 @@ export default function SecurityDashboardPage() {
                     ? 'bg-green-100 text-green-700 hover:bg-green-200'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
+                title="Activer/Désactiver les notifications"
               >
                 {notificationsEnabled ? (
                   <Bell className="w-4 h-4" />
                 ) : (
                   <BellOff className="w-4 h-4" />
                 )}
-                Notifications
+                <span className="hidden sm:inline">Notifications</span>
               </button>
+
+              {/* Export CSV Button */}
               <button
-                onClick={handleExportLogs}
+                onClick={handleExportCSV}
                 disabled={refreshHistory.length === 0}
                 className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                title="Exporter en CSV"
               >
                 <Download className="w-4 h-4" />
-                Export CSV
+                <span className="hidden sm:inline">CSV</span>
               </button>
+
+              {/* Export Excel Button */}
+              <button
+                onClick={handleExportExcel}
+                disabled={refreshHistory.length === 0}
+                className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors"
+                title="Exporter en Excel"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Excel</span>
+              </button>
+
+              {/* Refresh All Button */}
               <button
                 onClick={handleRefreshAllViews}
                 disabled={refreshing !== null}
                 className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm font-semibold hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                title="Rafraîchir toutes les vues"
               >
                 <RefreshCw
                   className={`w-4 h-4 ${refreshing === 'all' ? 'animate-spin' : ''}`}
                 />
-                Refresh All Views
+                <span className="hidden md:inline">Refresh All</span>
               </button>
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop: Table View */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
@@ -501,6 +543,114 @@ export default function SecurityDashboardPage() {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile: Card View */}
+          <div className="md:hidden space-y-3">
+            {refreshStats.map((stat) => {
+              const successRate =
+                stat.total_refreshes > 0
+                  ? Math.round((stat.success_count / stat.total_refreshes) * 100)
+                  : 0;
+
+              // Check if refresh is stale (>10 minutes)
+              const lastRefreshDate = new Date(stat.last_refresh_at);
+              const minutesSinceRefresh = Math.floor(
+                (Date.now() - lastRefreshDate.getTime()) / 60000
+              );
+              const needsRefresh = minutesSinceRefresh > 10;
+
+              return (
+                <div
+                  key={stat.view_name}
+                  className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Database className="w-4 h-4 text-gray-400" />
+                      <span className="font-semibold text-sm">{stat.view_name}</span>
+                    </div>
+                    {needsRefresh && (
+                      <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        Needs Refresh
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Total */}
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Total</div>
+                      <div className="text-lg font-bold text-gray-900">
+                        {stat.total_refreshes}
+                      </div>
+                    </div>
+
+                    {/* Success */}
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Succès</div>
+                      <div className="flex items-center gap-1">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span className="text-lg font-bold text-green-600">
+                          {stat.success_count}
+                        </span>
+                        <span className="text-xs text-gray-500">({successRate}%)</span>
+                      </div>
+                    </div>
+
+                    {/* Failures */}
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Échecs</div>
+                      <div
+                        className={`text-lg font-bold ${
+                          stat.failed_count > 0 ? 'text-red-600' : 'text-gray-400'
+                        }`}
+                      >
+                        {stat.failed_count}
+                      </div>
+                    </div>
+
+                    {/* Timeouts */}
+                    <div>
+                      <div className="text-xs text-gray-500 mb-1">Timeouts</div>
+                      <div
+                        className={`text-lg font-bold ${
+                          stat.timeout_count > 0 ? 'text-amber-600' : 'text-gray-400'
+                        }`}
+                      >
+                        {stat.timeout_count}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer */}
+                  <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="text-gray-500">Avg:</span>{' '}
+                      <span className="font-semibold text-gray-900">
+                        {Math.round(stat.avg_duration_ms)}ms
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-medium text-gray-900">
+                        {formatRelativeTime(stat.last_refresh_at)}
+                      </div>
+                      <div className="text-gray-500">
+                        {new Date(stat.last_refresh_at).toLocaleString('fr-FR', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
