@@ -269,8 +269,8 @@ BEGIN
 
     PERFORM * FROM get_top_products_aggregated(
       v_bar_id,
-      CURRENT_DATE - INTERVAL '30 days',
-      CURRENT_DATE,
+      (CURRENT_DATE - INTERVAL '30 days')::DATE,
+      CURRENT_DATE::DATE,
       10
     );
 
