@@ -2,6 +2,7 @@
 import { SalesService } from '../../services/supabase/sales.service';
 import type { Sale, SaleItem } from '../../types';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
+import { useSmartSync } from '../useSmartSync';
 
 export const salesKeys = {
     all: ['sales'] as const,
@@ -15,6 +16,16 @@ import { ProxyAdminService } from '../../services/supabase/proxy-admin.service';
 
 export const useSales = (barId: string | undefined) => {
     const isEnabled = !!barId;
+
+    // 🔧 PHASE 1-2: SmartSync pour sales (INSERT car nouvelles ventes)
+    const smartSync = useSmartSync({
+        table: 'sales',
+        event: 'INSERT',
+        barId: barId || undefined,
+        enabled: isEnabled,
+        staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
+        refetchInterval: 30000, // Fallback 30s (vs 2s avant) - économie 93%
+    });
 
     if (isEnabled) {
         console.log('[useSales] Query ENABLED for barId:', barId);
@@ -44,7 +55,7 @@ export const useSales = (barId: string | undefined) => {
             enabled: isEnabled,
             staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
             gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
-            refetchInterval: 2000, // Poll every 2 seconds for real-time sales updates
+            refetchInterval: smartSync.isSynced ? false : 30000, // 🚀 Hybride: Realtime ou polling 30s
         }
     );
 };

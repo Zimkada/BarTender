@@ -11,6 +11,7 @@ import { useActingAs } from '../../context/ActingAsContext';
 import { calculateBusinessDate, dateToYYYYMMDD } from '../../utils/businessDateHelpers';
 import { BUSINESS_DAY_CLOSE_HOUR } from '../../config/constants';
 import type { Sale } from '../../types';
+import { broadcastService } from '../../services/broadcast/BroadcastService';
 
 export const useSalesMutations = (barId: string) => {
     const queryClient = useQueryClient();
@@ -135,6 +136,17 @@ export const useSalesMutations = (barId: string) => {
             if (!(sale as any).isOptimistic) {
                 toast.success('Vente enregistrée');
             }
+
+            // 🚀 PHASE 3-4: Broadcast aux autres onglets (sync instant 0ms)
+            if (broadcastService.isSupported() && !(sale as any).isOptimistic) {
+                broadcastService.broadcast({
+                    event: 'INSERT',
+                    table: 'sales',
+                    barId,
+                    data: sale,
+                });
+            }
+
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
@@ -150,8 +162,19 @@ export const useSalesMutations = (barId: string) => {
     const validateSale = useMutation({
         mutationFn: ({ id, validatorId }: { id: string; validatorId: string }) =>
             SalesService.validateSale(id, validatorId),
-        onSuccess: () => {
+        onSuccess: (data, variables) => {
             toast.success('Vente validée');
+
+            // 🚀 PHASE 3-4: Broadcast aux autres onglets
+            if (broadcastService.isSupported()) {
+                broadcastService.broadcast({
+                    event: 'UPDATE',
+                    table: 'sales',
+                    barId,
+                    data: { id: variables.id, status: 'validated' },
+                });
+            }
+
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) }); // NEW: Invalidate stats
         },
@@ -160,8 +183,19 @@ export const useSalesMutations = (barId: string) => {
     const rejectSale = useMutation({
         mutationFn: ({ id, rejectorId }: { id: string; rejectorId: string }) =>
             SalesService.rejectSale(id, rejectorId),
-        onSuccess: () => {
+        onSuccess: (data, variables) => {
             toast.success('Vente rejetée (stock restauré)');
+
+            // 🚀 PHASE 3-4: Broadcast aux autres onglets
+            if (broadcastService.isSupported()) {
+                broadcastService.broadcast({
+                    event: 'UPDATE',
+                    table: 'sales',
+                    barId,
+                    data: { id: variables.id, status: 'rejected' },
+                });
+            }
+
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) }); // NEW: Invalidate stats
@@ -170,8 +204,19 @@ export const useSalesMutations = (barId: string) => {
 
     const deleteSale = useMutation({
         mutationFn: SalesService.deleteSale,
-        onSuccess: () => {
+        onSuccess: (data, saleId) => {
             toast.success('Vente supprimée');
+
+            // 🚀 PHASE 3-4: Broadcast aux autres onglets
+            if (broadcastService.isSupported()) {
+                broadcastService.broadcast({
+                    event: 'DELETE',
+                    table: 'sales',
+                    barId,
+                    data: { id: saleId },
+                });
+            }
+
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) }); // NEW: Invalidate stats

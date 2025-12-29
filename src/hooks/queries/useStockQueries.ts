@@ -6,6 +6,7 @@ import { useProxyQuery } from './useProxyQuery';
 import { ProxyAdminService } from '../../services/supabase/proxy-admin.service';
 import type { Product, Supply, Consignment, Category } from '../../types';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
+import { useSmartSync } from '../useSmartSync';
 
 // Clés de requête pour l'invalidation
 export const stockKeys = {
@@ -17,6 +18,16 @@ export const stockKeys = {
 };
 
 export const useProducts = (barId: string | undefined) => {
+    // 🔧 PHASE 1-2: SmartSync branché - Hybride Broadcast + Realtime + Polling adaptatif
+    const smartSync = useSmartSync({
+        table: 'bar_products',
+        event: 'UPDATE',
+        barId: barId || undefined,
+        enabled: !!barId,
+        staleTime: CACHE_STRATEGY.products.staleTime,
+        refetchInterval: 30000, // Fallback 30s (vs 3s avant) - économie 90%
+    });
+
     // Utiliser useProxyQuery pour supporter l'impersonnation Super Admin
     return useProxyQuery(
         stockKeys.products(barId || ''),
@@ -35,7 +46,7 @@ export const useProducts = (barId: string | undefined) => {
             enabled: !!barId,
             staleTime: CACHE_STRATEGY.products.staleTime,
             gcTime: CACHE_STRATEGY.products.gcTime,
-            refetchInterval: 3000, // 3s polling for real-time stock updates
+            refetchInterval: smartSync.isSynced ? false : 30000, // 🚀 Hybride: Realtime si connecté, sinon polling 30s
         }
     );
 };
@@ -58,6 +69,16 @@ const mapProducts = (dbProducts: any[]): Product[] => {
 };
 
 export const useSupplies = (barId: string | undefined) => {
+    // 🔧 PHASE 1-2: SmartSync pour supplies
+    const smartSync = useSmartSync({
+        table: 'supplies',
+        event: 'INSERT',
+        barId: barId || undefined,
+        enabled: !!barId,
+        staleTime: CACHE_STRATEGY.products.staleTime,
+        refetchInterval: 60000, // Fallback 60s (supplies changent moins souvent)
+    });
+
     return useApiQuerySimple(
         stockKeys.supplies(barId || ''),
         async (): Promise<Supply[]> => {
@@ -82,7 +103,7 @@ export const useSupplies = (barId: string | undefined) => {
             enabled: !!barId,
             staleTime: CACHE_STRATEGY.products.staleTime,
             gcTime: CACHE_STRATEGY.products.gcTime,
-            refetchInterval: 3000, // 3s polling for real-time supply updates
+            refetchInterval: smartSync.isSynced ? false : 60000, // 🚀 Hybride: Realtime ou polling 60s
         }
     );
 };
