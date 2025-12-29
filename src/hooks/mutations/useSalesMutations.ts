@@ -129,14 +129,21 @@ export const useSalesMutations = (barId: string) => {
                 throw error;
             }
         },
-        onSuccess: () => {
-            toast.success('Vente enregistrée');
+        onSuccess: (sale) => {
+            // Ne pas afficher de toast si c'est une vente optimiste (offline)
+            // Le toast est déjà affiché dans le mutationFn
+            if (!(sale as any).isOptimistic) {
+                toast.success('Vente enregistrée');
+            }
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
         },
         onError: (error: any) => {
-            toast.error(`Erreur lors de la vente: ${error.message}`);
+            // Ne pas afficher d'erreur si c'est une erreur réseau (offline géré)
+            if (!isNetworkError(error)) {
+                toast.error(`Erreur lors de la création de la vente: ${error.message}`);
+            }
         }
     });
 

@@ -5,6 +5,7 @@ import { auditLogger } from '../services/AuditLogger';
 import { AuthService, LoginResult } from '../services/supabase/auth.service';
 import { supabase } from '../lib/supabase';
 import { CacheManagerService } from '../services/cacheManager.service';
+import { OfflineStorage } from '../utils/offlineStorage';
 
 interface AuthContextType {
   currentSession: UserSession | null;
@@ -77,8 +78,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     }).catch(err => {
       console.error('[AuthContext] Failed to initialize Supabase session:', err);
+
+      // 🌐 MODE HORS LIGNE: Garder la session en cache si elle existe
+      if (!navigator.onLine && currentSession) {
+        console.log('[AuthContext] 📵 Mode hors ligne détecté - conservation de la session en cache');
+        // Ne pas effacer la session existante en mode hors ligne
+      } else if (!currentSession) {
+        setCurrentSession(null);
+      }
     });
-  }, [setCurrentSession]);
+  }, [setCurrentSession, currentSession]);
 
   // 🔐 Écouter les changements d'authentification Supabase
   useEffect(() => {
@@ -169,6 +178,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // 🔐 Login avec Supabase Auth (email + password)
   const login = useCallback(async (email: string, password: string): Promise<LoginResult> => {
+    // 🌐 Vérifier la connexion internet
+    if (!navigator.onLine) {
+      console.warn('[AuthContext] 📵 Tentative de connexion en mode hors ligne');
+      return {
+        error: 'Connexion internet requise pour se connecter. Veuillez vérifier votre connexion et réessayer.'
+      };
+    }
+
     try {
       const result = await AuthService.login({ email, password });
 
@@ -305,6 +322,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // 🧹 Nettoyer tous les caches avant de fermer la session
     console.log('[AuthContext] Purge des caches avant logout');
     await CacheManagerService.fullCleanup();
+
+    // 💾 Nettoyer le stockage offline (bars, sélection)
+    OfflineStorage.clear();
 
     setCurrentSession(null);
   }, [currentSession, setCurrentSession]);

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Dégradé pour la bière (jaune vers orange) -->
+    <linearGradient id="beerGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#F4D03F;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#F5B041;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#EB984E;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Ombre portée légère -->
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Verre avec contour gris -->
+  <g filter="url(#shadow)">
+    <!-- Contour du verre (gris clair) -->
+    <rect x="110" y="150" width="260" height="280" rx="15" ry="15"
+          fill="none" stroke="#CCCCCC" stroke-width="10"/>
+
+    <!-- Bière (remplissage jaune/orange) -->
+    <rect x="120" y="210" width="240" height="210" rx="10" ry="10"
+          fill="url(#beerGradient)"/>
+
+    <!-- BarChart - 4 barres d'orange foncé à l'intérieur -->
+    <g opacity="0.8">
+      <rect x="145" y="330" width="35" height="80" fill="#FFA500" rx="3"/>
+      <rect x="195" y="305" width="35" height="105" fill="#FF8C00" rx="3"/>
+      <rect x="245" y="325" width="35" height="85" fill="#FFA500" rx="3"/>
+      <rect x="295" y="310" width="35" height="100" fill="#FF8C00" rx="3"/>
+    </g>
+
+    <!-- LineChart blanc avec 4 points -->
+    <g opacity="0.95">
+      <polyline points="155,290 210,260 260,280 315,250"
+                fill="none"
+                stroke="#FFFFFF"
+                stroke-width="7"
+                stroke-linecap="round"
+                stroke-linejoin="round"/>
+      <circle cx="155" cy="290" r="8" fill="#FFFFFF"/>
+      <circle cx="210" cy="260" r="8" fill="#FFFFFF"/>
+      <circle cx="260" cy="280" r="8" fill="#FFFFFF"/>
+      <circle cx="315" cy="250" r="8" fill="#FFFFFF"/>
+    </g>
+
+    <!-- Petites bulles blanches à l'intérieur de la bière -->
+    <circle cx="135" cy="360" r="2.5" fill="#FFFFFF" opacity="0.6">
+      <animate attributeName="cy" values="360;340;320;300;280" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;0.7;0.8;0.4;0" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="190" cy="385" r="2" fill="#FFFFFF" opacity="0.5">
+      <animate attributeName="cy" values="385;360;340;320;300" dur="3.5s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.5;0.6;0.7;0.4;0" dur="3.5s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="270" cy="375" r="2.5" fill="#FFFFFF" opacity="0.6">
+      <animate attributeName="cy" values="375;355;335;315;295" dur="3.2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;0.7;0.8;0.4;0" dur="3.2s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="330" cy="380" r="2" fill="#FFFFFF" opacity="0.5">
+      <animate attributeName="cy" values="380;360;340;320;300" dur="3.8s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.5;0.6;0.7;0.4;0" dur="3.8s" repeatCount="indefinite"/>
+    </circle>
+
+    <!-- Mousse blanche en haut (généreuse) -->
+    <ellipse cx="240" cy="195" rx="145" ry="50" fill="#FFFFFF" opacity="0.95"/>
+    <ellipse cx="200" cy="180" rx="70" ry="30" fill="#FFFFFF" opacity="0.9"/>
+    <ellipse cx="280" cy="185" rx="75" ry="28" fill="#FFFFFF" opacity="0.9"/>
+    <ellipse cx="240" cy="170" rx="55" ry="25" fill="#FFFFFF" opacity="1"/>
+
+    <!-- Bulles dans la mousse -->
+    <circle cx="160" cy="155" r="4" fill="#FFFFFF" opacity="0.7"/>
+    <circle cx="270" cy="150" r="3.5" fill="#FFFFFF" opacity="0.6"/>
+    <circle cx="320" cy="165" r="3" fill="#FFFFFF" opacity="0.7"/>
+
+    <!-- Reflet léger sur le verre (gauche) -->
+    <path d="M 125 170 Q 130 220 132 280"
+          fill="none"
+          stroke="#FFFFFF"
+          stroke-width="7"
+          opacity="0.25"
+          stroke-linecap="round"/>
+
+    <!-- Manche du verre (côté droit) - proportionné et centré -->
+    <!-- Manche externe (gris) -->
+    <path d="M 370 210 Q 430 210 450 250 Q 460 280 460 320 Q 460 360 450 390 Q 430 410 370 410"
+          fill="none"
+          stroke="#CCCCCC"
+          stroke-width="15"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          opacity="0.9"/>
+
+    <!-- Manche interne (reflet blanc) -->
+    <path d="M 370 210 Q 430 210 450 250 Q 460 280 460 320 Q 460 360 450 390 Q 430 410 370 410"
+          fill="none"
+          stroke="#FFFFFF"
+          stroke-width="5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          opacity="0.2"/>
+  </g>
+</svg>

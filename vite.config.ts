@@ -198,6 +198,15 @@ export default defineConfig({
     exclude: ['lucide-react'],
   },
   build: {
+    // Minification et optimisation
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true, // Supprimer tous les console.* en production
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.info', 'console.debug', 'console.warn']
+      }
+    },
     rollupOptions: {
       output: {
         manualChunks: {
@@ -209,6 +218,8 @@ export default defineConfig({
           // Note: xlsx and recharts are lazy loaded, so they're not in manualChunks
         }
       }
-    }
+    },
+    // CSS Minification
+    cssMinify: true
   }
 });
