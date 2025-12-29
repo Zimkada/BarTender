@@ -1,0 +1,1393 @@
+{
+  "timestamp": "2025-12-29T07:53:54.087Z",
+  "version": "0.0.0",
+  "audit": {
+    "build": {
+      "totalChunks": 55,
+      "totalSize": 2355090,
+      "totalSizeKB": "2299.89",
+      "totalSizeMB": "2.25",
+      "chunks": [
+        {
+          "name": "xlsx-D_0l8YDs.js",
+          "size": 429487,
+          "sizeKB": "419.42",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": true
+        },
+        {
+          "name": "index-ChFK6gl0.js",
+          "size": 415352,
+          "sizeKB": "405.62",
+          "type": "main",
+          "isCritical": true,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": true
+        },
+        {
+          "name": "PieChart-DTPFQGY1.js",
+          "size": 368466,
+          "sizeKB": "359.83",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": true,
+          "hasXlsx": false
+        },
+        {
+          "name": "vendor-supabase-sD5Fm-Cx.js",
+          "size": 176937,
+          "sizeKB": "172.79",
+          "type": "vendor",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "vendor-react-DMZd5R-Z.js",
+          "size": 141788,
+          "sizeKB": "138.46",
+          "type": "vendor",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "vendor-motion-CXgKHSuu.js",
+          "size": 117898,
+          "sizeKB": "115.13",
+          "type": "vendor",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "InventoryPage-gHgZBdn7.js",
+          "size": 87316,
+          "sizeKB": "85.27",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": true
+        },
+        {
+          "name": "index-CstTx3MM.css",
+          "size": 82281,
+          "sizeKB": "80.35",
+          "type": "css",
+          "isCritical": true
+        },
+        {
+          "name": "AccountingPage-DPGREDAr.js",
+          "size": 59568,
+          "sizeKB": "58.17",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": true
+        },
+        {
+          "name": "SalesHistoryPage-CduU3K5q.js",
+          "size": 46938,
+          "sizeKB": "45.84",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": true
+        },
+        {
+          "name": "vendor-react-query-Lzc0P9br.js",
+          "size": 40464,
+          "sizeKB": "39.52",
+          "type": "vendor",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "UsersManagementPage-DsO4k8M5.js",
+          "size": 34302,
+          "sizeKB": "33.50",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "PromotionsPage-DbO7EDun.js",
+          "size": 34160,
+          "sizeKB": "33.36",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "SecurityDashboardPage-CYKimCx0.js",
+          "size": 27514,
+          "sizeKB": "26.87",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": true
+        },
+        {
+          "name": "ReturnsPage-Bf3fIopI.js",
+          "size": 24656,
+          "sizeKB": "24.08",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "GlobalCatalogPage-CBNHqc2V.js",
+          "size": 23897,
+          "sizeKB": "23.34",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "ConsignmentPage-6C62bBCT.js",
+          "size": 22108,
+          "sizeKB": "21.59",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "vendor-date-fns-DF3zju1I.js",
+          "size": 20780,
+          "sizeKB": "20.29",
+          "type": "vendor",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "ForecastingPage-BluVVhqn.js",
+          "size": 19197,
+          "sizeKB": "18.75",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": true
+        },
+        {
+          "name": "SettingsPage-5V5YTjlo.js",
+          "size": 18490,
+          "sizeKB": "18.06",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "Radio-C3bdKsnc.js",
+          "size": 17192,
+          "sizeKB": "16.79",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "AuditLogsPage-CaPgFLHp.js",
+          "size": 15417,
+          "sizeKB": "15.06",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "RefreshHistoryChart-5Skl0EZW.js",
+          "size": 14931,
+          "sizeKB": "14.58",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": true,
+          "hasXlsx": false
+        },
+        {
+          "name": "DashboardPage-iBrDWZea.js",
+          "size": 13767,
+          "sizeKB": "13.44",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "AdminNotificationsPage-SKuFdyTP.js",
+          "size": 13039,
+          "sizeKB": "12.73",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "BarStatsModal-DLi-RBvv.js",
+          "size": 12960,
+          "sizeKB": "12.66",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "TeamManagementPage-DFXwREHv.js",
+          "size": 9853,
+          "sizeKB": "9.62",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "BarsManagementPage-CatdBj_S.js",
+          "size": 9776,
+          "sizeKB": "9.55",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "LoginScreen-CJecPc0_.js",
+          "size": 6721,
+          "sizeKB": "6.56",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "SaleDetailsPage-D0_G-bwb.js",
+          "size": 6194,
+          "sizeKB": "6.05",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "SuperAdminPage-DHATX8JP.js",
+          "size": 6120,
+          "sizeKB": "5.98",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "admin.service-CkMUVu-E.js",
+          "size": 4270,
+          "sizeKB": "4.17",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "useDateRangeFilter-fmU80WYN.js",
+          "size": 4040,
+          "sizeKB": "3.95",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "ForgotPasswordScreen-Cj9yyF-P.js",
+          "size": 3941,
+          "sizeKB": "3.85",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "AdminPanelSkeleton-Y_HEr2Mb.js",
+          "size": 3687,
+          "sizeKB": "3.60",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "ResetPasswordScreen-Cdh8rYca.js",
+          "size": 3567,
+          "sizeKB": "3.48",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "AnalyticsPage-C-a0GGI7.js",
+          "size": 2919,
+          "sizeKB": "2.85",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "AnalyticsCharts-Bn6qOlsd.js",
+          "size": 2236,
+          "sizeKB": "2.18",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "Alert-Bk-WMM-8.js",
+          "size": 1973,
+          "sizeKB": "1.93",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "useSalesFilters-DdnoHB8H.js",
+          "size": 1897,
+          "sizeKB": "1.85",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "PageHeader-CRYjuzM6.js",
+          "size": 1468,
+          "sizeKB": "1.43",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "AdminPanelErrorBoundary-Cg8ldtaP.js",
+          "size": 1378,
+          "sizeKB": "1.35",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "DataFreshnessIndicator-BIIq-Pte.js",
+          "size": 869,
+          "sizeKB": "0.85",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "loader-CBnQOAC0.js",
+          "size": 734,
+          "sizeKB": "0.72",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "list-Biskvp4V.js",
+          "size": 580,
+          "sizeKB": "0.57",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "Textarea-BZGybvAb.js",
+          "size": 564,
+          "sizeKB": "0.55",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "chevron-right-BTvAND9-.js",
+          "size": 547,
+          "sizeKB": "0.53",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "user-plus-obXXx1D8.js",
+          "size": 478,
+          "sizeKB": "0.47",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "download-BAxgRYiI.js",
+          "size": 431,
+          "sizeKB": "0.42",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "shopping-bag-DvPxFhgB.js",
+          "size": 419,
+          "sizeKB": "0.41",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "database-CpJ6J0tW.js",
+          "size": 412,
+          "sizeKB": "0.40",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "trending-down-DxtEACZl.js",
+          "size": 376,
+          "sizeKB": "0.37",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "filter-7uNF3fBv.js",
+          "size": 330,
+          "sizeKB": "0.32",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "chevron-up-DY75T5Nm.js",
+          "size": 296,
+          "sizeKB": "0.29",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "saleHelpers-k0V6eu9_.js",
+          "size": 109,
+          "sizeKB": "0.11",
+          "type": "chunk",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        }
+      ],
+      "critical": [
+        {
+          "name": "index-ChFK6gl0.js",
+          "size": 415352,
+          "sizeKB": "405.62",
+          "type": "main",
+          "isCritical": true,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": true
+        },
+        {
+          "name": "index-CstTx3MM.css",
+          "size": 82281,
+          "sizeKB": "80.35",
+          "type": "css",
+          "isCritical": true
+        }
+      ],
+      "vendors": [
+        {
+          "name": "vendor-supabase-sD5Fm-Cx.js",
+          "size": 176937,
+          "sizeKB": "172.79",
+          "type": "vendor",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "vendor-react-DMZd5R-Z.js",
+          "size": 141788,
+          "sizeKB": "138.46",
+          "type": "vendor",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "vendor-motion-CXgKHSuu.js",
+          "size": 117898,
+          "sizeKB": "115.13",
+          "type": "vendor",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "vendor-react-query-Lzc0P9br.js",
+          "size": 40464,
+          "sizeKB": "39.52",
+          "type": "vendor",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "vendor-date-fns-DF3zju1I.js",
+          "size": 20780,
+          "sizeKB": "20.29",
+          "type": "vendor",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": false,
+          "hasRechart": false,
+          "hasXlsx": false
+        }
+      ],
+      "pages": [
+        {
+          "name": "InventoryPage-gHgZBdn7.js",
+          "size": 87316,
+          "sizeKB": "85.27",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": true
+        },
+        {
+          "name": "AccountingPage-DPGREDAr.js",
+          "size": 59568,
+          "sizeKB": "58.17",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": true
+        },
+        {
+          "name": "SalesHistoryPage-CduU3K5q.js",
+          "size": 46938,
+          "sizeKB": "45.84",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": true
+        },
+        {
+          "name": "UsersManagementPage-DsO4k8M5.js",
+          "size": 34302,
+          "sizeKB": "33.50",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "PromotionsPage-DbO7EDun.js",
+          "size": 34160,
+          "sizeKB": "33.36",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "SecurityDashboardPage-CYKimCx0.js",
+          "size": 27514,
+          "sizeKB": "26.87",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": true
+        },
+        {
+          "name": "ReturnsPage-Bf3fIopI.js",
+          "size": 24656,
+          "sizeKB": "24.08",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "GlobalCatalogPage-CBNHqc2V.js",
+          "size": 23897,
+          "sizeKB": "23.34",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "ConsignmentPage-6C62bBCT.js",
+          "size": 22108,
+          "sizeKB": "21.59",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "ForecastingPage-BluVVhqn.js",
+          "size": 19197,
+          "sizeKB": "18.75",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": true
+        },
+        {
+          "name": "SettingsPage-5V5YTjlo.js",
+          "size": 18490,
+          "sizeKB": "18.06",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "AuditLogsPage-CaPgFLHp.js",
+          "size": 15417,
+          "sizeKB": "15.06",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "DashboardPage-iBrDWZea.js",
+          "size": 13767,
+          "sizeKB": "13.44",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "AdminNotificationsPage-SKuFdyTP.js",
+          "size": 13039,
+          "sizeKB": "12.73",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "TeamManagementPage-DFXwREHv.js",
+          "size": 9853,
+          "sizeKB": "9.62",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "BarsManagementPage-CatdBj_S.js",
+          "size": 9776,
+          "sizeKB": "9.55",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "SaleDetailsPage-D0_G-bwb.js",
+          "size": 6194,
+          "sizeKB": "6.05",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "SuperAdminPage-DHATX8JP.js",
+          "size": 6120,
+          "sizeKB": "5.98",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        },
+        {
+          "name": "AnalyticsPage-C-a0GGI7.js",
+          "size": 2919,
+          "sizeKB": "2.85",
+          "type": "page",
+          "isCritical": false,
+          "hasReactQuery": false,
+          "hasSupabase": true,
+          "hasRechart": false,
+          "hasXlsx": false
+        }
+      ],
+      "css": [
+        {
+          "name": "index-CstTx3MM.css",
+          "size": 82281,
+          "sizeKB": "80.35",
+          "type": "css",
+          "isCritical": true
+        }
+      ]
+    },
+    "supabaseEndpoints": [
+      "acknowledge_refresh_alert",
+      "active_refresh_alerts",
+      "admin_as_create_sale",
+      "admin_as_create_supply",
+      "admin_as_get_bar_members",
+      "admin_as_get_bar_products",
+      "admin_as_get_bar_sales",
+      "admin_as_get_bar_sales_cursor",
+      "admin_as_get_sales_stats",
+      "admin_as_get_top_products",
+      "admin_as_manage_product",
+      "admin_as_manage_promotion",
+      "admin_as_manage_team_member",
+      "admin_as_update_bar_settings",
+      "admin_as_update_stock",
+      "admin_security_dashboard",
+      "admin_update_user",
+      "app_feedback",
+      "bar_ancillary_stats_mat",
+      "bar_categories",
+      "bar_events",
+      "bar_members",
+      "bar_products",
+      "bar_stats_multi_period",
+      "bars",
+      "check_recent_rls_violations",
+      "cleanup_old_refresh_alerts",
+      "cleanup_old_refresh_logs",
+      "complete_first_login",
+      "consignments",
+      "create_or_update_failure_alerts",
+      "create_supply_and_update_product",
+      "decrement_stock",
+      "detect_consecutive_refresh_failures",
+      "expense_categories_custom",
+      "expenses",
+      "feature_flags",
+      "get_bar_admin_stats",
+      "get_bar_live_alerts",
+      "get_bar_members",
+      "get_bar_products",
+      "get_my_bars",
+      "get_paginated_catalog_logs_for_admin",
+      "get_user_bars",
+      "get_view_freshness",
+      "global_catalog_audit_log",
+      "global_categories",
+      "global_products",
+      "increment_promotion_uses",
+      "increment_stock",
+      "log_rls_violation",
+      "log_user_login",
+      "materialized_view_metrics",
+      "materialized_view_refresh_log",
+      "materialized_view_refresh_stats",
+      "promotion_applications",
+      "promotions",
+      "refresh_all_materialized_views",
+      "refresh_bars_with_stats",
+      "refresh_materialized_view_with_logging",
+      "refresh_product_sales_stats",
+      "returns",
+      "rls_violations_log",
+      "safe_refresh_materialized_view",
+      "sales",
+      "server_name_mappings",
+      "setup_promoter_bar",
+      "supplies",
+      "users"
+    ],
+    "routes": {
+      "total": 23,
+      "critical": [
+        {
+          "component": "DashboardPage",
+          "path": "../pages/DashboardPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": true
+        },
+        {
+          "component": "InventoryPage",
+          "path": "../pages/InventoryPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": true
+        },
+        {
+          "component": "SalesHistoryPage",
+          "path": "../pages/SalesHistoryPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": true
+        }
+      ],
+      "admin": [
+        {
+          "component": "BarsManagementPage",
+          "path": "../pages/admin/BarsManagementPage",
+          "isAdmin": true,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "UsersManagementPage",
+          "path": "../pages/admin/UsersManagementPage",
+          "isAdmin": true,
+          "isAuth": false,
+          "isCritical": false
+        }
+      ],
+      "auth": [
+        {
+          "component": "LoginScreen",
+          "path": "../components/LoginScreen",
+          "isAdmin": false,
+          "isAuth": true,
+          "isCritical": false
+        },
+        {
+          "component": "ForgotPasswordScreen",
+          "path": "../components/ForgotPasswordScreen",
+          "isAdmin": false,
+          "isAuth": true,
+          "isCritical": false
+        },
+        {
+          "component": "ResetPasswordScreen",
+          "path": "../components/ResetPasswordScreen",
+          "isAdmin": false,
+          "isAuth": true,
+          "isCritical": false
+        }
+      ],
+      "regular": [
+        {
+          "component": "DashboardPage",
+          "path": "../pages/DashboardPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": true
+        },
+        {
+          "component": "SaleDetailsPage",
+          "path": "../pages/SaleDetailsPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "ForecastingPage",
+          "path": "../pages/ForecastingPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "ReturnsPage",
+          "path": "../pages/ReturnsPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "ConsignmentPage",
+          "path": "../pages/ConsignmentPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "AdminNotificationsPage",
+          "path": "../pages/AdminNotificationsPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "AnalyticsPage",
+          "path": "../pages/AnalyticsPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "TeamPage",
+          "path": "../pages/TeamManagementPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "PromotionsPage",
+          "path": "../pages/PromotionsPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "InventoryPage",
+          "path": "../pages/InventoryPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": true
+        },
+        {
+          "component": "AccountingPage",
+          "path": "../pages/AccountingPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "SettingsPage",
+          "path": "../pages/SettingsPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "SalesHistoryPage",
+          "path": "../pages/SalesHistoryPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": true
+        },
+        {
+          "component": "SuperAdminPage",
+          "path": "../pages/SuperAdminPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "BarStatsModalPage",
+          "path": "../components/BarStatsModal",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "GlobalCatalogPage",
+          "path": "../pages/GlobalCatalogPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "AuditLogsPage",
+          "path": "../pages/AuditLogsPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "SecurityDashboardPage",
+          "path": "../pages/SecurityDashboardPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        }
+      ],
+      "routes": [
+        {
+          "component": "DashboardPage",
+          "path": "../pages/DashboardPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": true
+        },
+        {
+          "component": "SaleDetailsPage",
+          "path": "../pages/SaleDetailsPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "ForecastingPage",
+          "path": "../pages/ForecastingPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "ReturnsPage",
+          "path": "../pages/ReturnsPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "ConsignmentPage",
+          "path": "../pages/ConsignmentPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "AdminNotificationsPage",
+          "path": "../pages/AdminNotificationsPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "AnalyticsPage",
+          "path": "../pages/AnalyticsPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "TeamPage",
+          "path": "../pages/TeamManagementPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "PromotionsPage",
+          "path": "../pages/PromotionsPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "InventoryPage",
+          "path": "../pages/InventoryPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": true
+        },
+        {
+          "component": "AccountingPage",
+          "path": "../pages/AccountingPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "SettingsPage",
+          "path": "../pages/SettingsPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "SalesHistoryPage",
+          "path": "../pages/SalesHistoryPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": true
+        },
+        {
+          "component": "LoginScreen",
+          "path": "../components/LoginScreen",
+          "isAdmin": false,
+          "isAuth": true,
+          "isCritical": false
+        },
+        {
+          "component": "ForgotPasswordScreen",
+          "path": "../components/ForgotPasswordScreen",
+          "isAdmin": false,
+          "isAuth": true,
+          "isCritical": false
+        },
+        {
+          "component": "ResetPasswordScreen",
+          "path": "../components/ResetPasswordScreen",
+          "isAdmin": false,
+          "isAuth": true,
+          "isCritical": false
+        },
+        {
+          "component": "SuperAdminPage",
+          "path": "../pages/SuperAdminPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "BarsManagementPage",
+          "path": "../pages/admin/BarsManagementPage",
+          "isAdmin": true,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "BarStatsModalPage",
+          "path": "../components/BarStatsModal",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "UsersManagementPage",
+          "path": "../pages/admin/UsersManagementPage",
+          "isAdmin": true,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "GlobalCatalogPage",
+          "path": "../pages/GlobalCatalogPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "AuditLogsPage",
+          "path": "../pages/AuditLogsPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        },
+        {
+          "component": "SecurityDashboardPage",
+          "path": "../pages/SecurityDashboardPage",
+          "isAdmin": false,
+          "isAuth": false,
+          "isCritical": false
+        }
+      ]
+    },
+    "indexedDB": {
+      "enabled": true,
+      "dbName": "BarTenderBenin",
+      "stores": []
+    }
+  },
+  "recommendations": {
+    "precache": [
+      "/index.html",
+      "/manifest.json",
+      "/offline.html",
+      "index-CstTx3MM.css"
+    ],
+    "runtimeCache": [
+      "xlsx-D_0l8YDs.js",
+      "index-ChFK6gl0.js",
+      "PieChart-DTPFQGY1.js",
+      "vendor-supabase-sD5Fm-Cx.js",
+      "vendor-react-DMZd5R-Z.js",
+      "vendor-motion-CXgKHSuu.js"
+    ],
+    "exclude": [
+      "**/*.map"
+    ],
+    "cacheStrategies": {
+      "app-shell": {
+        "pattern": "/",
+        "strategy": "NetworkFirst",
+        "maxAgeSeconds": 86400
+      },
+      "static-assets": {
+        "pattern": {},
+        "strategy": "CacheFirst",
+        "maxAgeSeconds": 604800
+      },
+      "supabase-api": {
+        "pattern": {},
+        "strategy": "NetworkFirst",
+        "networkTimeoutSeconds": 5,
+        "maxAgeSeconds": 900,
+        "maxEntries": 100
+      },
+      "images": {
+        "pattern": {},
+        "strategy": "CacheFirst",
+        "maxAgeSeconds": 2592000,
+        "maxEntries": 50
+      }
+    },
+    "estimatedPrecacheSize": {
+      "bytes": 82281,
+      "kb": "80.35",
+      "mb": "0.08"
+    }
+  }
+}

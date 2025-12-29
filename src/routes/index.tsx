@@ -1,46 +1,45 @@
 // src/routes/index.tsx
-import React, { lazy, Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
+import { lazyWithRetry } from '../utils/lazyWithRetry';
 import { RootLayout } from '../layouts/RootLayout';
 import { AdminLayout } from '../layouts/AdminLayout';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { ErrorPage } from '../pages/ErrorPage';
 import { HomePage } from '../pages/HomePage';
-import { LoadingFallback } from '../components/LoadingFallback';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 
-// === Pages (export default) ===
-const DashboardPage = lazy(() => import('../pages/DashboardPage'));
-const SaleDetailsPage = lazy(() => import('../pages/SaleDetailsPage'));
-const ForecastingPage = lazy(() => import('../pages/ForecastingPage'));
-const ReturnsPage = lazy(() => import('../pages/ReturnsPage'));
-const ConsignmentPage = lazy(() => import('../pages/ConsignmentPage'));
-const AdminNotificationsPage = lazy(() => import('../pages/AdminNotificationsPage'));
-const AnalyticsPage = lazy(() => import('../pages/AnalyticsPage'));
-const TeamPage = lazy(() => import('../pages/TeamManagementPage'));
-const PromotionsPage = lazy(() => import('../pages/PromotionsPage'));
+// === Pages (export default) - With automatic retry on chunk load failure ===
+const DashboardPage = lazyWithRetry(() => import('../pages/DashboardPage'));
+const SaleDetailsPage = lazyWithRetry(() => import('../pages/SaleDetailsPage'));
+const ForecastingPage = lazyWithRetry(() => import('../pages/ForecastingPage'));
+const ReturnsPage = lazyWithRetry(() => import('../pages/ReturnsPage'));
+const ConsignmentPage = lazyWithRetry(() => import('../pages/ConsignmentPage'));
+const AdminNotificationsPage = lazyWithRetry(() => import('../pages/AdminNotificationsPage'));
+const AnalyticsPage = lazyWithRetry(() => import('../pages/AnalyticsPage'));
+const TeamPage = lazyWithRetry(() => import('../pages/TeamManagementPage'));
+const PromotionsPage = lazyWithRetry(() => import('../pages/PromotionsPage'));
 
 // === Composants refactorisés en pages (export default) ===
-const InventoryPage = lazy(() => import('../pages/InventoryPage'));
-const AccountingPage = lazy(() => import('../pages/AccountingPage'));
-const SettingsPage = lazy(() => import('../pages/SettingsPage'));
+const InventoryPage = lazyWithRetry(() => import('../pages/InventoryPage'));
+const AccountingPage = lazyWithRetry(() => import('../pages/AccountingPage'));
+const SettingsPage = lazyWithRetry(() => import('../pages/SettingsPage'));
 
 // === Composants avec named exports ===
-const SalesHistoryPage = lazy(() => import('../pages/SalesHistoryPage'));
+const SalesHistoryPage = lazyWithRetry(() => import('../pages/SalesHistoryPage'));
 
 // === Auth Components (Default Exports) ===
-const LoginScreen = lazy(() => import('../components/LoginScreen'));
-const ForgotPasswordScreen = lazy(() => import('../components/ForgotPasswordScreen'));
-const ResetPasswordScreen = lazy(() => import('../components/ResetPasswordScreen'));
+const LoginScreen = lazyWithRetry(() => import('../components/LoginScreen'));
+const ForgotPasswordScreen = lazyWithRetry(() => import('../components/ForgotPasswordScreen'));
+const ResetPasswordScreen = lazyWithRetry(() => import('../components/ResetPasswordScreen'));
 
 // === Admin Components (Default Exports) ===
-const SuperAdminPage = lazy(() => import('../pages/SuperAdminPage'));
-const BarsManagementPage = lazy(() => import('../pages/admin/BarsManagementPage'));
-const BarStatsModalPage = lazy(() => import('../components/BarStatsModal'));
-const UsersManagementPage = lazy(() => import('../pages/admin/UsersManagementPage'));
-const GlobalCatalogPage = lazy(() => import('../pages/GlobalCatalogPage'));
-const AuditLogsPage = lazy(() => import('../pages/AuditLogsPage'));
-const SecurityDashboardPage = lazy(() => import('../pages/SecurityDashboardPage'));
+const SuperAdminPage = lazyWithRetry(() => import('../pages/SuperAdminPage'));
+const BarsManagementPage = lazyWithRetry(() => import('../pages/admin/BarsManagementPage'));
+const BarStatsModalPage = lazyWithRetry(() => import('../components/BarStatsModal'));
+const UsersManagementPage = lazyWithRetry(() => import('../pages/admin/UsersManagementPage'));
+const GlobalCatalogPage = lazyWithRetry(() => import('../pages/GlobalCatalogPage'));
+const AuditLogsPage = lazyWithRetry(() => import('../pages/AuditLogsPage'));
+const SecurityDashboardPage = lazyWithRetry(() => import('../pages/SecurityDashboardPage'));
 
 export const router = createBrowserRouter([
   // =====================
@@ -52,13 +51,13 @@ export const router = createBrowserRouter([
     errorElement: <ErrorPage />,
     children: [
       { index: true, element: <SuperAdminPage /> },
-      { path: 'bars', element: <Suspense fallback={<LoadingFallback />}><BarsManagementPage /></Suspense> },
+      { path: 'bars', element: <BarsManagementPage /> },
       { path: 'bars/:barId', element: <BarStatsModalPage /> },
-      { path: 'users', element: <Suspense fallback={<LoadingFallback />}><UsersManagementPage /></Suspense> },
-      { path: 'catalog', element: <Suspense fallback={<LoadingFallback />}><GlobalCatalogPage /></Suspense> },
-      { path: 'audit-logs', element: <Suspense fallback={<LoadingFallback />}><AuditLogsPage /></Suspense> },
-      { path: 'notifications', element: <Suspense fallback={<LoadingFallback />}><AdminNotificationsPage /></Suspense> },
-      { path: 'security', element: <Suspense fallback={<LoadingFallback />}><SecurityDashboardPage /></Suspense> },
+      { path: 'users', element: <UsersManagementPage /> },
+      { path: 'catalog', element: <GlobalCatalogPage /> },
+      { path: 'audit-logs', element: <AuditLogsPage /> },
+      { path: 'notifications', element: <AdminNotificationsPage /> },
+      { path: 'security', element: <SecurityDashboardPage /> },
     ],
   },
   
@@ -71,35 +70,35 @@ export const router = createBrowserRouter([
     errorElement: <ErrorPage />,
     children: [
       { index: true, element: <HomePage /> },
-      { path: 'dashboard', element: <Suspense fallback={<LoadingFallback />}><DashboardPage /></Suspense> },
+      { path: 'dashboard', element: <DashboardPage /> },
       {
         path: 'sales',
         children: [
-          { index: true, element: <Suspense fallback={<LoadingFallback />}><SalesHistoryPage /></Suspense> },
-          { path: ':saleId', element: <Suspense fallback={<LoadingFallback />}><SaleDetailsPage /></Suspense> },
+          { index: true, element: <SalesHistoryPage /> },
+          { path: ':saleId', element: <SaleDetailsPage /> },
         ],
       },
       {
         path: 'inventory',
         element: <ProtectedRoute permission="canViewInventory" />,
         children: [
-          { index: true, element: <Suspense fallback={<LoadingFallback />}><InventoryPage /></Suspense> },
+          { index: true, element: <InventoryPage /> },
         ],
       },
-      { path: 'analytics', element: <Suspense fallback={<LoadingFallback />}><AnalyticsPage /></Suspense> },
+      { path: 'analytics', element: <AnalyticsPage /> },
       {
         path: 'accounting',
         element: <ProtectedRoute permission="canViewAccounting" />,
         children: [
-          { index: true, element: <Suspense fallback={<LoadingFallback />}><AccountingPage /></Suspense> },
+          { index: true, element: <AccountingPage /> },
         ],
       },
-      { path: 'settings', element: <Suspense fallback={<LoadingFallback />}><SettingsPage /></Suspense> },
-      { path: 'forecasting', element: <Suspense fallback={<LoadingFallback />}><ForecastingPage /></Suspense> },
-      { path: 'returns', element: <Suspense fallback={<LoadingFallback />}><ReturnsPage /></Suspense> },
-      { path: 'consignments', element: <Suspense fallback={<LoadingFallback />}><ConsignmentPage /></Suspense> },
-      { path: 'team', element: <Suspense fallback={<LoadingFallback />}><TeamPage /></Suspense> },
-      { path: 'promotions', element: <Suspense fallback={<LoadingFallback />}><PromotionsPage /></Suspense> },
+      { path: 'settings', element: <SettingsPage /> },
+      { path: 'forecasting', element: <ForecastingPage /> },
+      { path: 'returns', element: <ReturnsPage /> },
+      { path: 'consignments', element: <ConsignmentPage /> },
+      { path: 'team', element: <TeamPage /> },
+      { path: 'promotions', element: <PromotionsPage /> },
     ],
   },
   
@@ -110,9 +109,9 @@ export const router = createBrowserRouter([
     path: '/auth',
     element: <AuthLayout />,
     children: [
-      { path: 'login', element: <Suspense fallback={<LoadingFallback />}><LoginScreen /></Suspense> },
-      { path: 'forgot-password', element: <Suspense fallback={<LoadingFallback />}><ForgotPasswordScreen /></Suspense> },
-      { path: 'reset-password', element: <Suspense fallback={<LoadingFallback />}><ResetPasswordScreen /></Suspense> },
+      { path: 'login', element: <LoginScreen /> },
+      { path: 'forgot-password', element: <ForgotPasswordScreen /> },
+      { path: 'reset-password', element: <ResetPasswordScreen /> },
     ],
   },
 ]);

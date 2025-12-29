@@ -1,8 +1,10 @@
 // src/layouts/AuthLayout.tsx
 import { Outlet, Navigate, useNavigate } from 'react-router-dom';
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, Suspense } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
+import { LoadingFallback } from '../components/LoadingFallback';
+import { LazyLoadErrorBoundary } from '../components/LazyLoadErrorBoundary';
 
 // 1. Création du contexte de navigation
 type AuthNavContextType = {
@@ -71,7 +73,11 @@ export function AuthLayout() {
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-50">
       {/* 4. Fournir le contexte aux composants enfants (Outlet) */}
       <AuthNavContext.Provider value={navValue}>
-        <Outlet />
+        <LazyLoadErrorBoundary maxRetries={3}>
+          <Suspense fallback={<LoadingFallback />}>
+            <Outlet />
+          </Suspense>
+        </LazyLoadErrorBoundary>
       </AuthNavContext.Provider>
     </div>
   );

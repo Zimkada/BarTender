@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import {
   Shield,
   AlertTriangle,
@@ -30,7 +30,13 @@ import { Alert } from '../components/ui/Alert';
 import { exportToCSV } from '../utils/exportToCSV';
 import { exportToExcel } from '../utils/exportToExcel';
 import { formatRelativeTime } from '../utils/formatRelativeTime';
-import { RefreshHistoryChart } from '../components/charts/RefreshHistoryChart';
+
+// Lazy load charts to reduce initial bundle size (saves ~110 KB gzipped)
+const RefreshHistoryChart = lazy(() =>
+  import('../components/charts/RefreshHistoryChart').then((module) => ({
+    default: module.RefreshHistoryChart,
+  }))
+);
 
 export default function SecurityDashboardPage() {
   const { currentSession } = useAuth();
@@ -160,7 +166,7 @@ export default function SecurityDashboardPage() {
   };
 
   // Export refresh logs to Excel
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (refreshHistory.length === 0) {
       alert('Aucun log à exporter');
       return;
@@ -177,7 +183,7 @@ export default function SecurityDashboardPage() {
     }));
 
     const timestamp = new Date().toISOString().split('T')[0];
-    exportToExcel(exportData, `refresh_logs_${timestamp}`);
+    await exportToExcel(exportData, `refresh_logs_${timestamp}`);
   };
 
   const handleRefreshView = async (viewName: string) => {
@@ -802,39 +808,41 @@ export default function SecurityDashboardPage() {
               Analyse de Performance
             </h3>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Duration Timeline */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">
-                  Historique Durée Refresh (20 derniers)
-                </h4>
-                <RefreshHistoryChart logs={refreshHistory} chartType="line" />
-              </div>
+            <Suspense fallback={<div className="text-center py-8 text-gray-500">Chargement des graphiques...</div>}>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Duration Timeline */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                    Historique Durée Refresh (20 derniers)
+                  </h4>
+                  <RefreshHistoryChart logs={refreshHistory} chartType="line" />
+                </div>
 
-              {/* Status Distribution */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">
-                  Distribution Statuts
-                </h4>
-                <RefreshHistoryChart logs={refreshHistory} chartType="pie" />
-              </div>
+                {/* Status Distribution */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                    Distribution Statuts
+                  </h4>
+                  <RefreshHistoryChart logs={refreshHistory} chartType="pie" />
+                </div>
 
-              {/* Duration Trend */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">
-                  Tendance Performance
-                </h4>
-                <RefreshHistoryChart logs={refreshHistory} chartType="area" />
-              </div>
+                {/* Duration Trend */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                    Tendance Performance
+                  </h4>
+                  <RefreshHistoryChart logs={refreshHistory} chartType="area" />
+                </div>
 
-              {/* Average by View */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">
-                  Durée Moyenne par Vue
-                </h4>
-                <RefreshHistoryChart logs={refreshHistory} chartType="bar" />
+                {/* Average by View */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                    Durée Moyenne par Vue
+                  </h4>
+                  <RefreshHistoryChart logs={refreshHistory} chartType="bar" />
+                </div>
               </div>
-            </div>
+            </Suspense>
 
             {/* Performance Insights */}
             <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">

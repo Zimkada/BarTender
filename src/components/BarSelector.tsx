@@ -57,7 +57,11 @@ export function BarSelector({ onCreateNew }: BarSelectorProps) {
         aria-label="Sélectionner un bar"
         aria-expanded={isOpen}
       >
-        <span className="mr-1 text-lg">🍺</span>
+        <img
+          src="/icons/icon-48x48.png"
+          alt="BarTender"
+          className="w-5 h-5 mr-2 flex-shrink-0 rounded"
+        />
         <AnimatedBarName text={currentBar?.name || 'Sélectionner un bar'} className="text-white" />
         <ChevronDown
           size={16}

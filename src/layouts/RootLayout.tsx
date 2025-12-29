@@ -11,12 +11,14 @@ import { realtimeService } from '../services/realtime/RealtimeService';
 import { broadcastService } from '../services/broadcast/BroadcastService';
 import { supabase } from '../lib/supabase';
 import { VersionCheckService } from '../services/versionCheck.service';
+import { useRoutePreload } from '../hooks/useRoutePreload';
 
 import { Header } from '../components/Header';
 import { MobileNavigation } from '../components/MobileNavigation';
 import { MobileSidebar } from '../components/MobileSidebar'; // NEW
 import { Cart } from '../components/Cart';
 import { LoadingFallback } from '../components/LoadingFallback';
+import { LazyLoadErrorBoundary } from '../components/LazyLoadErrorBoundary';
 import { ProductModal } from '../components/ProductModal';
 import { CategoryModal } from '../components/CategoryModal';
 import { QuickSaleFlow } from '../components/QuickSaleFlow';
@@ -39,6 +41,15 @@ function RootLayoutContent() {
   const { modalState, openModal, closeModal } = useModal();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false); // NEW
+
+  // 📦 Préchargement des pages critiques pour les utilisateurs bar
+  useRoutePreload([
+    () => import('../pages/DashboardPage'),
+    () => import('../pages/InventoryPage'),
+    () => import('../pages/SalesHistoryPage'),
+    () => import('../pages/AccountingPage'),
+    () => import('../pages/AnalyticsPage'),
+  ], isAuthenticated && !!currentBar);
 
   // 🔐 Redirection automatique et nettoyage en cas de perte de session
   useEffect(() => {
@@ -116,7 +127,11 @@ function RootLayoutContent() {
         onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)} // NEW
       />
       <main className="container mx-auto px-3 md:px-4 py-4 md:py-6">
-        <Outlet />
+        <LazyLoadErrorBoundary maxRetries={3}>
+          <Suspense fallback={<LoadingFallback />}>
+            <Outlet />
+          </Suspense>
+        </LazyLoadErrorBoundary>
       </main>
       <MobileNavigation
         onShowQuickSale={() => openModal('QUICK_SALE')}

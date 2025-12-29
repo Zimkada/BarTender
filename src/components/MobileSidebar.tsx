@@ -129,10 +129,19 @@ export function MobileSidebar({
               ? 'border-purple-200 bg-gradient-to-r from-purple-600 to-indigo-600'
               : 'border-amber-200 bg-gradient-to-r from-amber-500 to-amber-500'
               }`}>
-              <div>
+              <div className="flex items-center gap-2">
+                {currentSession?.role === 'super_admin' && (
+                  <img
+                    src="/icons/icon-48x48.png"
+                    alt="BarTender"
+                    className="w-6 h-6 flex-shrink-0 rounded"
+                  />
+                )}
                 <h2 className="text-white font-bold text-lg">
-                  {currentSession?.role === 'super_admin' ? '🍺 BarTender Pro Administration' : 'Menu'}
+                  {currentSession?.role === 'super_admin' ? 'BarTender Pro Administration' : 'Menu'}
                 </h2>
+              </div>
+              <div>
                 <p className={currentSession?.role === 'super_admin' ? 'text-purple-100 text-xs' : 'text-amber-100 text-xs'}>
                   {currentSession?.userName} • {currentSession?.role}
                 </p>

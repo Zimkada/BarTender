@@ -1,17 +1,19 @@
-import * as XLSX from 'xlsx';
-
 /**
  * Export data to Excel (.xlsx) file
+ * Lazy loads xlsx library only when needed (saves ~142 KB gzipped on initial load)
  * @param data - Array of objects to export
  * @param filename - Filename without extension (e.g., "refresh_logs_2025-12-28")
  */
-export function exportToExcel(data: any[], filename: string): void {
+export async function exportToExcel(data: any[], filename: string): Promise<void> {
   if (!data || data.length === 0) {
     console.warn('No data to export');
     return;
   }
 
   try {
+    // Lazy load xlsx library only when export is triggered
+    const XLSX = await import('xlsx');
+
     // Create a new workbook
     const workbook = XLSX.utils.book_new();
 
