@@ -234,7 +234,7 @@ export default function PromotionsPage() {
                             <div className="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <Gift size={48} className="text-amber-500" />
                             </div>
-                            <h3 className="text-xl font-bold text-gray-800 mb-2">Aucune promotion trouvée</h3>
+                            <h2 className="text-xl font-bold text-gray-800 mb-2">Aucune promotion trouvée</h2>
                             <p className="text-gray-500 mb-6">Commencez par créer votre première offre spéciale !</p>
                             <EnhancedButton
                                 variant="primary"
@@ -291,7 +291,7 @@ export default function PromotionsPage() {
                                             </div>
                                         </div>
 
-                                        <h3 className="text-lg font-bold text-gray-800 mb-2">{promo.name}</h3>
+                                        <h2 className="text-lg font-bold text-gray-800 mb-2">{promo.name}</h2>
                                         <p className="text-gray-500 text-sm mb-4 line-clamp-2">{promo.description || 'Aucune description'}</p>
 
                                         <div className="space-y-3">

@@ -537,7 +537,7 @@ export default function ReturnsPage() {
                   <div className="bg-gray-50 p-6 rounded-full mb-4">
                     <RotateCcw size={48} className="text-gray-300" />
                   </div>
-                  <h3 className="text-lg font-medium text-gray-600 mb-2">Aucun retour trouvé</h3>
+                  <h2 className="text-lg font-medium text-gray-600 mb-2">Aucun retour trouvé</h2>
                   <p className="text-gray-500 max-w-md">
                     Il n'y a pas de retours correspondant à vos critères. Cliquez sur "Nouveau retour" pour en créer un.
                   </p>
@@ -762,7 +762,7 @@ function OtherReasonDialog({
           <div className="p-6">
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle className="text-amber-600" size={24} />
-              <h3 className="text-lg font-bold text-gray-800">Retour - Autre raison</h3>
+              <h2 className="text-lg font-bold text-gray-800">Retour - Autre raison</h2>
             </div>
 
             <div className="space-y-4">
@@ -976,7 +976,7 @@ function CreateReturnForm({
       />
 
       <div className="space-y-6">
-        <h3 className="text-lg font-semibold text-gray-800">Créer un nouveau retour</h3>
+        <h2 className="text-lg font-semibold text-gray-800">Créer un nouveau retour</h2>
 
         <div className="space-y-4">
           <div className="bg-blue-50 border border-blue-200 rounded-lg overflow-hidden">

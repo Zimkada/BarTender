@@ -207,7 +207,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
   if (!currentBar || !session) {
     return (
       <Alert show={true} variant="warning" className="h-full">
-        <h3 className="text-xl font-semibold text-gray-800">Accès non autorisé</h3>
+        <h1 className="text-xl font-semibold text-gray-800">Accès non autorisé</h1>
         <p className="text-gray-600 mt-2 max-w-md mx-auto">
           {!currentBar
             ? "Veuillez d'abord sélectionner un bar pour pouvoir créer une consignation."
@@ -575,7 +575,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
           </div>
 
           <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-            <h4 className="font-semibold text-amber-900 mb-2">Récapitulatif</h4>
+            <h2 className="font-semibold text-amber-900 mb-2">Récapitulatif</h2>
             <div className="space-y-1 text-sm text-amber-800">
               <p>• Produit: {selectedProductItem.product_name} {selectedProductItem.product_volume}</p>
               <p>• Quantité: {quantity}</p>
