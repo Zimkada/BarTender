@@ -33,9 +33,8 @@ vi.mock('../../lib/supabaseClient', () => ({
 describe('useSmartSync - Phase 1-2 Validation', () => {
   let queryClient: QueryClient;
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
+  const wrapper = ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: queryClient }, children);
 
   beforeEach(() => {
     queryClient = new QueryClient({
@@ -469,9 +468,8 @@ describe('useSmartSync - Phase 1-2 Validation', () => {
 describe('useSmartSync - Cost Optimization Validation', () => {
   let queryClient: QueryClient;
 
-  const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
+  const wrapper = ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: queryClient }, children);
 
   beforeEach(() => {
     queryClient = new QueryClient({

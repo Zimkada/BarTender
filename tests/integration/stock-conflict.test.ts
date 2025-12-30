@@ -30,18 +30,16 @@ describe('Stock Conflict Test - Phase 5 Validation', () => {
   beforeAll(async () => {
     supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Setup: Créer un bar de test
-    const { data: bar, error: barError } = await supabase
+    // Setup: Utiliser le premier bar existant
+    const { data: bars, error: barError } = await supabase
       .from('bars')
-      .insert({
-        name: 'Test Bar - Stock Conflict',
-        manager_id: 'test-user-id',
-      })
-      .select()
-      .single();
+      .select('id')
+      .limit(1);
 
-    if (barError) throw barError;
-    testBarId = bar.id;
+    if (barError || !bars || bars.length === 0) {
+      throw new Error('No bars found in database. Please create at least one bar first.');
+    }
+    testBarId = bars[0].id;
 
     // Setup: Créer un produit avec stock = 1 (dernière bouteille)
     const { data: product, error: productError } = await supabase
@@ -63,13 +61,11 @@ describe('Stock Conflict Test - Phase 5 Validation', () => {
   });
 
   afterAll(async () => {
-    // Cleanup: Supprimer les données de test
+    // Cleanup: Supprimer uniquement le produit de test
     if (testProductId) {
       await supabase.from('bar_products').delete().eq('id', testProductId);
     }
-    if (testBarId) {
-      await supabase.from('bars').delete().eq('id', testBarId);
-    }
+    // Ne pas supprimer le bar car il existait déjà
   });
 
   it('should handle concurrent sales on last item correctly', async () => {
