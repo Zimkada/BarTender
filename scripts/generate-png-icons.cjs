@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Génère toutes les icônes PWA à partir de icon_bartender.jpg
+ * Convertit le SVG de base en toutes les tailles PNG nécessaires pour la PWA
  */
 
 const fs = require('fs');
@@ -12,65 +12,27 @@ const ICON_SIZES = [
   16, 32, 48, 72, 96, 120, 128, 144, 152, 180, 192, 384, 512
 ];
 
-const inputJPG = path.join(__dirname, '..', 'public', 'icons', 'icon_app.jpeg');
+const inputSVG = path.join(__dirname, '..', 'public', 'icons', 'icon-base.svg');
 const outputDir = path.join(__dirname, '..', 'public', 'icons');
 
-async function generatePNGIconsFromJPG() {
-  console.log('🎨 Génération des icônes PNG à partir de icon_app.jpeg...\n');
+async function generatePNGIcons() {
+  console.log('🎨 Génération des icônes PNG à partir du SVG...\n');
 
-  // Vérifier que le JPEG existe
-  if (!fs.existsSync(inputJPG)) {
-    console.error('❌ Erreur: icon_app.jpeg n\'existe pas');
+  // Vérifier que le SVG existe
+  if (!fs.existsSync(inputSVG)) {
+    console.error('❌ Erreur: icon-base.svg n\'existe pas');
+    console.error('   Lancez d\'abord: node scripts/generate-modern-icon.cjs');
     process.exit(1);
   }
 
-  const jpgBuffer = fs.readFileSync(inputJPG);
+  const svgBuffer = fs.readFileSync(inputSVG);
 
-  // Étape 1: Retirer TOUT le fond sombre
-  console.log('🔄 Suppression du fond...\n');
-
-  // Convertir JPEG en PNG avec suppression complète du fond
-  const transparentBuffer = await sharp(jpgBuffer)
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true })
-    .then(({ data, info }) => {
-      const pixels = new Uint8ClampedArray(data);
-
-      // Approche agressive: retirer TOUS les pixels sombres (probablement du fond)
-      const threshold = 100; // Seuil élevé pour capturer tout le fond sombre
-
-      for (let i = 0; i < pixels.length; i += info.channels) {
-        const r = pixels[i];
-        const g = pixels[i + 1];
-        const b = pixels[i + 2];
-
-        // Calculer la luminosité moyenne
-        const brightness = (r + g + b) / 3;
-
-        // Si le pixel est sombre (probablement fond)
-        if (brightness < threshold) {
-          pixels[i + 3] = 0; // Rendre transparent
-        }
-      }
-
-      return sharp(pixels, {
-        raw: {
-          width: info.width,
-          height: info.height,
-          channels: info.channels
-        }
-      })
-      .png()
-      .toBuffer();
-    });
-
-  // Générer chaque taille à partir de l'image sans fond
+  // Générer chaque taille
   for (const size of ICON_SIZES) {
     const outputPath = path.join(outputDir, `icon-${size}x${size}.png`);
 
     try {
-      await sharp(transparentBuffer)
+      await sharp(svgBuffer)
         .resize(size, size, {
           fit: 'contain',
           background: { r: 0, g: 0, b: 0, alpha: 0 } // Fond transparent
@@ -104,7 +66,7 @@ async function generatePNGIconsFromJPG() {
         }
       })
       .composite([{
-        input: await sharp(transparentBuffer)
+        input: await sharp(svgBuffer)
           .resize(iconSize, iconSize, {
             fit: 'contain',
             background: { r: 0, g: 0, b: 0, alpha: 0 }
@@ -128,7 +90,7 @@ async function generatePNGIconsFromJPG() {
 
   const appleIconPath = path.join(outputDir, 'apple-touch-icon.png');
   try {
-    await sharp(transparentBuffer)
+    await sharp(svgBuffer)
       .resize(180, 180, {
         fit: 'contain',
         background: { r: 0, g: 0, b: 0, alpha: 0 }
@@ -169,7 +131,7 @@ async function generatePNGIconsFromJPG() {
   console.log('   Puis tester: npm run preview');
 }
 
-generatePNGIconsFromJPG().catch(error => {
+generatePNGIcons().catch(error => {
   console.error('❌ Erreur lors de la génération:', error);
   process.exit(1);
 });
