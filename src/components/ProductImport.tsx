@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, UploadCloud, FileText, AlertTriangle } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
-import * as XLSX from 'xlsx';
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { useStockManagement } from '../hooks/useStockManagement';
@@ -22,15 +21,18 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
   const [importedProducts, setImportedProducts] = useState<any[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
 
-  const onDrop = (acceptedFiles: File[]) => {
+  const onDrop = async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file) return;
 
     setFileName(file.name);
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
+        // Lazy load XLSX library only when file is dropped (~300 Kio savings)
+        const XLSX = await import('xlsx');
+
         const data = new Uint8Array(event.target!.result as ArrayBuffer);
         const workbook = XLSX.read(data, { type: 'array' });
         const sheetName = workbook.SheetNames[0];

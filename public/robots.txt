@@ -1,0 +1,19 @@
+# Robots.txt pour BarTender Pro
+# Application de gestion de bar - Accès restreint
+
+# Règles pour tous les robots
+User-agent: *
+Disallow: /admin/
+Disallow: /settings/
+Disallow: /accounting/
+Disallow: /team/
+Disallow: /inventory/
+Disallow: /sales/
+Disallow: /analytics/
+Disallow: /api/
+
+# Autoriser l'accès à la page d'accueil uniquement
+Allow: /$
+
+# Sitemap (optionnel - si tu en crées un plus tard)
+# Sitemap: https://bar-tender-ten.vercel.app/sitemap.xml

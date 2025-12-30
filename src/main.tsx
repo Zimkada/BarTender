@@ -53,7 +53,7 @@ createRoot(document.getElementById('root')!).render(
           </ActingAsProvider>
         </AuthProvider>
       </NotificationsProvider>
-      <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />
+      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />}
     </QueryClientProvider>
   </StrictMode>
 );

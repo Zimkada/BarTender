@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import * as XLSX from 'xlsx';
 import { useNavigate } from 'react-router-dom';
 import {
     Search,
@@ -114,7 +113,7 @@ export default function SalesHistoryPage() {
         serverId: serverIdForAnalytics // Pass serverId for server filtering
     });
 
-    const exportSales = () => {
+    const exportSales = async () => {
 
         // Préparer les données avec la nouvelle structure: lignes pour ventes + lignes pour retours
         const exportData: any[] = [];
@@ -300,6 +299,9 @@ export default function SalesHistoryPage() {
         }
 
         if (exportFormat === 'excel') {
+            // Lazy load XLSX library only when export is triggered (~300 Kio savings)
+            const XLSX = await import('xlsx');
+
             // Export Excel
             const worksheet = XLSX.utils.json_to_sheet(exportData);
             const workbook = XLSX.utils.book_new();

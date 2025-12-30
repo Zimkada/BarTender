@@ -1,6 +1,6 @@
 import { QueryClient, MutationCache, QueryCache } from '@tanstack/react-query';
 import { persistQueryClient } from '@tanstack/query-persist-client-core';
-import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import toast from 'react-hot-toast';
 import { CACHE_STRATEGY } from './cache-strategy';
 
@@ -73,12 +73,34 @@ export const queryClient = new QueryClient({
 });
 
 // CONFIGURATION DE LA PERSISTANCE DU CACHE (OFFLINE-FIRST)
-const localStoragePersister = createSyncStoragePersister({
-  storage: window.localStorage,
+// Utilisation de la persistance ASYNCHRONE pour éviter de bloquer le thread principal
+const asyncStoragePersister = createAsyncStoragePersister({
+  storage: {
+    getItem: async (key) => {
+      const value = window.localStorage.getItem(key);
+      return value;
+    },
+    setItem: async (key, value) => {
+      window.localStorage.setItem(key, value);
+    },
+    removeItem: async (key) => {
+      window.localStorage.removeItem(key);
+    },
+  },
+  throttleTime: 1000, // Écrire max 1 fois par seconde (réduit la charge sur le thread principal)
 });
 
 persistQueryClient({
   queryClient,
-  persister: localStoragePersister,
+  persister: asyncStoragePersister,
   maxAge: CACHE_STRATEGY.salesAndStock.gcTime, // Harmonisé avec GC Time
+  // Désactiver la restoration automatique au démarrage (lazy restore)
+  // Cela évite de bloquer le thread principal pendant le chargement initial
+  dehydrateOptions: {
+    shouldDehydrateQuery: (query) => {
+      // Ne persister que les queries critiques (ventes, stock)
+      const queryKey = query.queryKey[0] as string;
+      return queryKey?.includes('sales') || queryKey?.includes('stock') || queryKey?.includes('products');
+    },
+  },
 });
