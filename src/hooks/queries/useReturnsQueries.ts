@@ -8,7 +8,7 @@ export const returnKeys = {
     list: (barId: string) => [...returnKeys.all, 'list', barId] as const,
 };
 
-export const useReturns = (barId: string | undefined) => {
+export const useReturns = (barId: string | undefined, options?: { refetchInterval?: number | false }) => {
     return useQuery({
         queryKey: returnKeys.list(barId || ''),
         queryFn: async (): Promise<Return[]> => {
@@ -46,6 +46,6 @@ export const useReturns = (barId: string | undefined) => {
         enabled: !!barId,
         staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
         gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
-        refetchInterval: 30000, // 30s polling for returns (less critical than sales)
+        refetchInterval: options?.refetchInterval !== undefined ? options.refetchInterval : 30000, // 30s polling by default, can be overridden
     });
 };

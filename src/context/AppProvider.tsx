@@ -74,7 +74,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { data: categories = [] } = useCategories(barId);
     const { products: allProducts, supplies: allSupplies } = useStock(); // From StockContext
     const { data: sales = [] } = useSales(barId);
-    const { data: returns = [] } = useReturns(barId);
+    // 🚀 FIX: Désactiver polling pour returns/barMembers dans AppProvider (data synced via Broadcast+Realtime+Manual refresh)
+    const { data: returns = [] } = useReturns(barId, { refetchInterval: false });
     const { data: expenses = [] } = useExpenses(barId);
     const { data: customExpenseCategories = [] } = useCustomExpenseCategories(barId);
 
@@ -89,7 +90,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { showNotification } = useNotifications();
 
     // Bar Members
-    const { data: barMembers = [] } = useBarMembers(barId);
+    // 🚀 FIX: Désactiver polling (data synced via mutations + manual refresh)
+    const { data: barMembers = [] } = useBarMembers(barId, { refetchInterval: false });
 
     const settings = defaultSettings;
     const users: User[] = barMembers.map(member => ({

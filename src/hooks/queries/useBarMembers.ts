@@ -8,7 +8,7 @@ export const barMembersKeys = {
     list: (barId: string) => [...barMembersKeys.all, 'list', barId] as const,
 };
 
-export const useBarMembers = (barId: string | undefined) => {
+export const useBarMembers = (barId: string | undefined, options?: { refetchInterval?: number | false }) => {
     return useQuery({
         queryKey: barMembersKeys.list(barId || ''),
         queryFn: async (): Promise<(BarMember & { user: AppUser })[]> => {
@@ -51,6 +51,6 @@ export const useBarMembers = (barId: string | undefined) => {
         enabled: !!barId,
         staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
         gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
-        refetchInterval: 60000, // 60s polling for team member updates (manual process: gerant+promoteur approval)
+        refetchInterval: options?.refetchInterval !== undefined ? options.refetchInterval : 60000, // 60s polling by default, can be overridden
     });
 };
