@@ -1,6 +1,6 @@
 ## 🎯 Objectif
 
-Réduire drastiquement les coûts Supabase et améliorer les performances via une architecture de synchronisation hybride à 3 niveaux.
+Réduire drastiquement les coûts Supabase et améliorer les performances via une architecture de synchronisation hybride à 3 niveaux + amélioration de l'identité visuelle PWA.
 
 ## ✅ Changements
 
@@ -17,6 +17,16 @@ Réduire drastiquement les coûts Supabase et améliorer les performances via un
 ### Security Hardening
 - RLS monitoring avec rate limiting (5 logs/min/user)
 - Protection contre saturation logs à l'échelle
+
+### PWA Icon Improvements
+- Nouveau système de génération d'icônes avec fond transparent
+- Icônes optimisées pour tous supports (light/dark backgrounds)
+- Remplacement de l'icône de connexion par le logo de l'application
+- Script de génération automatique depuis icon_app.jpeg
+
+### Infrastructure
+- Suppression de la configuration cron job invalide dans vercel.json
+- Correction des checks Vercel qui échouaient
 
 ## 📊 Impact
 
