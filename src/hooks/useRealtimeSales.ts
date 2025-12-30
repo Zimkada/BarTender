@@ -62,7 +62,7 @@ export function useRealtimeSales(config: UseRealtimeSalesConfig) {
     enabled: isConfigValid,
     onMessage: handleSalesMessage,
     onError: handleError,
-    fallbackPollingInterval: 5000, // 5 second polling fallback
+    fallbackPollingInterval: 30000, // 30 second polling fallback
     queryKeysToInvalidate: [
       ['sales', barId],
       ['bar_products', barId],
@@ -78,7 +78,7 @@ export function useRealtimeSales(config: UseRealtimeSalesConfig) {
     enabled: isConfigValid,
     onMessage: handleSalesMessage,
     onError: handleError,
-    fallbackPollingInterval: 5000,
+    fallbackPollingInterval: 30000,
     queryKeysToInvalidate: [
       ['sales', barId],
       ['stats', barId],

@@ -46,6 +46,6 @@ export const useReturns = (barId: string | undefined) => {
         enabled: !!barId,
         staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
         gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
-        refetchInterval: 5000, // 5s polling for returns (less critical than sales)
+        refetchInterval: 30000, // 30s polling for returns (less critical than sales)
     });
 };
