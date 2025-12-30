@@ -8,6 +8,9 @@
     <meta name="theme-color" content="#f59e0b" />
     <meta name="color-scheme" content="light" />
 
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+
     <!-- Icons -->
     <link rel="icon" type="image/png" sizes="32x32" href="/icon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/icon-16x16.png" />
@@ -48,6 +51,22 @@
         <div>Chargement BarTender...</div>
       </div>
     </div>
+
+    <!-- Service Worker Registration (Critical for PWA score) -->
+    <script>
+      // Register Service Worker immediately for Lighthouse detection
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js', { scope: '/' })
+            .then(registration => {
+              console.log('[PWA] Service Worker registered:', registration.scope);
+            })
+            .catch(error => {
+              console.error('[PWA] Service Worker registration failed:', error);
+            });
+        });
+      }
+    </script>
 
     <!-- Performance and Connection Monitoring -->
     <script>
