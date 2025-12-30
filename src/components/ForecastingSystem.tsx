@@ -24,7 +24,7 @@ import { useFeedback } from '../hooks/useFeedback';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { EnhancedButton } from './EnhancedButton';
 import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
-import * as XLSX from 'xlsx';
+// XLSX lazy loaded in exportOrderList function to save ~138 KB gzipped on initial bundle
 import { ForecastingService, ProductSalesStats, OrderSuggestion } from '../services/supabase/forecasting.service';
 import { Button } from './ui/Button';
 
@@ -178,7 +178,10 @@ export function ForecastingSystem() {
   };
 
   // Export bon de commande Excel
-  const exportOrderList = () => {
+  const exportOrderList = async () => {
+    // Lazy load XLSX library only when export is triggered (saves ~138 KB gzipped on initial load)
+    const XLSX = await import('xlsx');
+
     const exportData = orderSuggestions.map(suggestion => ({
       'Produit': suggestion.productName,
       'Volume': suggestion.productVolume,

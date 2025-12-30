@@ -1,18 +1,20 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Package, AlertTriangle, Plus, Edit, Trash2, UploadCloud, TruckIcon, BarChart3 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
-import { ProductModal } from '../components/ProductModal';
-import { SupplyModal } from '../components/SupplyModal';
 import { Product } from '../types';
 import { motion } from 'framer-motion';
 import { useFeedback } from '../hooks/useFeedback';
 import { useViewport } from '../hooks/useViewport';
 import { useFeatureFlag } from '../hooks/useFeatureFlag'; // 1. IMPORT DU HOOK
-import { ProductImport } from '../components/ProductImport';
+
+// Lazy load heavy modals to reduce initial bundle size (~40-50 KB savings)
+const ProductModal = lazy(() => import('../components/ProductModal').then(m => ({ default: m.ProductModal })));
+const SupplyModal = lazy(() => import('../components/SupplyModal').then(m => ({ default: m.SupplyModal })));
+const ProductImport = lazy(() => import('../components/ProductImport').then(m => ({ default: m.ProductImport })));
 import { searchProducts } from '../utils/productFilters';
 import { sortProducts, SortMode } from '../utils/productSorting';
 import { SearchBar } from '../components/common/SearchBar';
@@ -353,27 +355,29 @@ export default function InventoryPage() {
                 </div>
 
                 {/* Modales */}
-                <ProductImport isOpen={showProductImport} onClose={() => setShowProductImport(false)} />
-                <ProductModal
-                    isOpen={showProductModal}
-                    onClose={() => setShowProductModal(false)}
-                    onSave={(productData) => {
-                        if (editingProduct) {
-                            updateProduct(editingProduct.id, productData);
-                        } else {
-                            addProduct(productData);
-                        }
-                        setShowProductModal(false);
-                    }}
-                    categories={categories}
-                    product={editingProduct}
-                />
-                <SupplyModal
-                    isOpen={showSupplyModal}
-                    onClose={() => setShowSupplyModal(false)}
-                    onSave={handleSupply}
-                    products={products}
-                />
+                <Suspense fallback={null}>
+                    <ProductImport isOpen={showProductImport} onClose={() => setShowProductImport(false)} />
+                    <ProductModal
+                        isOpen={showProductModal}
+                        onClose={() => setShowProductModal(false)}
+                        onSave={(productData) => {
+                            if (editingProduct) {
+                                updateProduct(editingProduct.id, productData);
+                            } else {
+                                addProduct(productData);
+                            }
+                            setShowProductModal(false);
+                        }}
+                        categories={categories}
+                        product={editingProduct}
+                    />
+                    <SupplyModal
+                        isOpen={showSupplyModal}
+                        onClose={() => setShowSupplyModal(false)}
+                        onSave={handleSupply}
+                        products={products}
+                    />
+                </Suspense>
                 <ConfirmationModal
                     isOpen={!!productToDelete}
                     onClose={() => setProductToDelete(null)}
@@ -612,27 +616,29 @@ export default function InventoryPage() {
             )}
 
             {/* Modales */}
-            <ProductImport isOpen={showProductImport} onClose={() => setShowProductImport(false)} />
-            <ProductModal
-                isOpen={showProductModal}
-                onClose={() => setShowProductModal(false)}
-                onSave={(productData) => {
-                    if (editingProduct) {
-                        updateProduct(editingProduct.id, productData);
-                    } else {
-                        addProduct(productData);
-                    }
-                    setShowProductModal(false);
-                }}
-                categories={categories}
-                product={editingProduct}
-            />
-            <SupplyModal
-                isOpen={showSupplyModal}
-                onClose={() => setShowSupplyModal(false)}
-                onSave={handleSupply}
-                products={products}
-            />
+            <Suspense fallback={null}>
+                <ProductImport isOpen={showProductImport} onClose={() => setShowProductImport(false)} />
+                <ProductModal
+                    isOpen={showProductModal}
+                    onClose={() => setShowProductModal(false)}
+                    onSave={(productData) => {
+                        if (editingProduct) {
+                            updateProduct(editingProduct.id, productData);
+                        } else {
+                            addProduct(productData);
+                        }
+                        setShowProductModal(false);
+                    }}
+                    categories={categories}
+                    product={editingProduct}
+                />
+                <SupplyModal
+                    isOpen={showSupplyModal}
+                    onClose={() => setShowSupplyModal(false)}
+                    onSave={handleSupply}
+                    products={products}
+                />
+            </Suspense>
             <ConfirmationModal
                 isOpen={!!productToDelete}
                 onClose={() => setProductToDelete(null)}

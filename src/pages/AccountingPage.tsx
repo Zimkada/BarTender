@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart3, Receipt, DollarSign, ArrowLeft } from 'lucide-react';
-import { AccountingOverview } from '../components/AccountingOverview';
-import { ExpenseManager } from '../components/ExpenseManager';
-import { SalaryManager } from '../components/SalaryManager';
 import { useAuth } from '../context/AuthContext';
+
+// Lazy load heavy accounting components to reduce initial bundle size
+const AccountingOverview = lazy(() => import('../components/AccountingOverview').then(m => ({ default: m.AccountingOverview })));
+const ExpenseManager = lazy(() => import('../components/ExpenseManager').then(m => ({ default: m.ExpenseManager })));
+const SalaryManager = lazy(() => import('../components/SalaryManager').then(m => ({ default: m.SalaryManager })));
 import { useBarContext } from '../context/BarContext';
 import { useViewport } from '../hooks/useViewport';
 import { Button } from '../components/ui/Button';
@@ -97,9 +99,16 @@ export default function AccountingPage() {
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.2 }}
                 >
-                    {activeTab === 'overview' && <AccountingOverview />}
-                    {activeTab === 'expenses' && <ExpenseManager />}
-                    {activeTab === 'salaries' && <SalaryManager />}
+                    <Suspense fallback={
+                        <div className="flex items-center justify-center py-12">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+                            <span className="ml-3 text-gray-600">Chargement...</span>
+                        </div>
+                    }>
+                        {activeTab === 'overview' && <AccountingOverview />}
+                        {activeTab === 'expenses' && <ExpenseManager />}
+                        {activeTab === 'salaries' && <SalaryManager />}
+                    </Suspense>
                 </motion.div>
             </AnimatePresence>
         </div>

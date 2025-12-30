@@ -69,7 +69,10 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
           <img
             src={product.image}
             alt={product.name}
+            width={200}
+            height={200}
             className="w-full h-full object-contain mix-blend-multiply"
+            loading="lazy"
           />
         ) : (
           <Package size={24} className="text-gray-300" />
