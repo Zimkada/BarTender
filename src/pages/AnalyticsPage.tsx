@@ -1,13 +1,11 @@
 // src/pages/AnalyticsPage.tsx
-import { useMemo, Suspense, lazy } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, BarChart3 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { Button } from '../components/ui/Button';
-
-// Lazy load charts to reduce initial bundle size (saves ~110 KB gzipped)
-const AnalyticsCharts = lazy(() => import('../components/AnalyticsCharts'));
+import AnalyticsCharts from '../components/AnalyticsCharts';
 
 /**
  * Page Analytics - Wrapper pour AnalyticsCharts avec données
@@ -76,8 +74,14 @@ export default function AnalyticsPage() {
       }
     });
 
+    // Debug: log les données
+    console.log('Analytics - Sales count:', sales.length);
+    console.log('Analytics - Expenses count:', expenses.length);
+    console.log('Analytics - Chart data:', chartData);
+    console.log('Analytics - Expenses by category:', categories);
+
     return categories;
-  }, [expenses]);
+  }, [expenses, sales, chartData]);
 
   if (!currentBar) {
     return (
@@ -114,12 +118,10 @@ export default function AnalyticsPage() {
 
       {/* Charts */}
       <div className="bg-white rounded-2xl shadow-sm border border-amber-100 p-6">
-        <Suspense fallback={<div className="text-center py-8 text-gray-500">Chargement des graphiques...</div>}>
-          <AnalyticsCharts
-            data={chartData}
-            expensesByCategory={expensesByCategory}
-          />
-        </Suspense>
+        <AnalyticsCharts
+          data={chartData}
+          expensesByCategory={expensesByCategory}
+        />
       </div>
     </div>
   );
