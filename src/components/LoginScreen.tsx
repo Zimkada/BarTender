@@ -281,8 +281,12 @@ function LoginScreen() {
         className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-amber-500 to-amber-500 rounded-full flex items-center justify-center mb-4">
-            <Building2 className="w-8 h-8 text-white" />
+          <div className="mx-auto w-20 h-20 mb-4 flex items-center justify-center">
+            <img
+              src="/icons/icon-180x180.png"
+              alt="BarTender Pro"
+              className="w-20 h-20"
+            />
           </div>
           <h1 className="text-3xl font-bold text-gray-800">BarTender Pro</h1>
           <p className="text-gray-600 mt-2">Connectez-vous à votre espace</p>
