@@ -59,8 +59,8 @@ export function TopProductsChart({
 
   // Get current metric data
   const chartData = metric === 'units' ? data.byUnits :
-                    metric === 'revenue' ? data.byRevenue :
-                    data.byProfit;
+    metric === 'revenue' ? data.byRevenue :
+      data.byProfit;
 
   // Empty State
   if (!chartData || chartData.length === 0) {
@@ -112,33 +112,33 @@ export function TopProductsChart({
             {!isMobile && (
               <span className="text-sm font-medium text-gray-600">Affiché par :</span>
             )}
-          <button
-            onClick={() => onMetricChange('units')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
+            <button
+              onClick={() => onMetricChange('units')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
               ${metric === 'units'
-                ? 'bg-amber-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-          >
-            📦 Unités vendues
-          </button>
-          <button
-            onClick={() => onMetricChange('revenue')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            >
+              📦 Unités vendues
+            </button>
+            <button
+              onClick={() => onMetricChange('revenue')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
               ${metric === 'revenue'
-                ? 'bg-amber-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-          >
-            💰 Chiffre d'affaires
-          </button>
-          <button
-            onClick={() => onMetricChange('profit')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            >
+              💰 Chiffre d'affaires
+            </button>
+            <button
+              onClick={() => onMetricChange('profit')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
               ${metric === 'profit'
-                ? 'bg-amber-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-          >
-            📈 Marge
-          </button>
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            >
+              📈 Marge
+            </button>
           </div>
         </div>
       </div>
@@ -163,8 +163,8 @@ export function TopProductsChart({
                 height={isMobile ? 100 : 80}
               />
               <YAxis tick={{ fill: '#9ca3af', fontSize: isMobile ? 10 : 12 }} />
-              <Tooltip formatter={(value: number) => formatPrice(value)} />
-              <Bar dataKey={metric} fill="#f97316" radius={[8, 8, 0, 0]} />
+              <Tooltip formatter={(value: any) => formatPrice(Number(value))} />
+              <Bar dataKey={metric} fill="#f97316" radius={[8, 8, 0, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </div>

@@ -1,5 +1,5 @@
 // src/features/Sales/SalesHistory/views/AnalyticsView.tsx
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
   LineChart,
   Line,
@@ -13,34 +13,23 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
-import { motion } from 'framer-motion';
+
 import { useAppContext } from '../../../../context/AppContext';
-import { useBarContext } from '../../../../context/BarContext';
-import { useAuth } from '../../../../context/AuthContext';
-import { useCurrencyFormatter } from '../../../../hooks/useBeninCurrency';
-import { Select } from '../../../../components/ui/Select';
-import { useViewport } from '../../../../hooks/useViewport';
-import { AnalyticsService, TopProduct } from '../../../../services/supabase/analytics.service';
 import { useDateRangeFilter } from '../../../../hooks/useDateRangeFilter';
 import { SALES_HISTORY_FILTERS, TIME_RANGE_CONFIGS } from '../../../../config/dateFilters';
 import { dateToYYYYMMDD, filterByBusinessDateRange, getBusinessDate } from '../../../../utils/businessDateHelpers';
 import { getSaleDate } from '../../../../utils/saleHelpers'; // NEW: Added getSaleDate for evolutionChartData
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../../../../utils/businessDay'; // NEW: Added for filteredConsignments logic
+import { Select } from '../../../../components/ui/Select';
 import { TopProductsChart } from '../../../../components/analytics/TopProductsChart'; // Corrected Path
 import {
   TrendingUp,
-  TrendingDown,
   ArrowUp,
   ArrowDown,
   Minus,
-  RotateCcw,
   Archive,
-  ShoppingCart,
-  ShieldCheck, // For Super Admin
-  Crown, // For promoteur
-  Settings, // For gerant
-  Users, // For serveur
-  Clock // NEW
+  BarChart3,
+  Clock
 } from 'lucide-react';
 import { Sale, Category, Product, User, BarMember, Return } from '../../../../types';
 
@@ -252,12 +241,22 @@ export function AnalyticsView({
 
   }, [sales, startDate, endDate, closeHour]);
 
-  // Répartition par catégorie (sur CA BRUT pour avoir le détail des ventes)
+  // Répartition par catégorie (sur CA NET pour cohérence avec le reste du dashboard)
   const categoryData = useMemo(() => {
     const catRevenue: Record<string, number> = {};
-    let totalGross = 0;
+    let totalNet = 0;
 
-    sales.forEach(sale => { // 'sales' is now the filtered list passed in props
+    sales.forEach(sale => {
+      if (sale.status !== 'validated') return;
+
+      // Calcul du net pour cette vente (total - retours associés)
+      const saleReturns = returns.filter(r => r.saleId === sale.id && r.isRefunded && (r.status === 'approved' || r.status === 'restocked'));
+      const refundAmount = saleReturns.reduce((sum, r) => sum + r.refundAmount, 0);
+      const saleNet = sale.total - refundAmount;
+
+      // Pro-rata du net sur les items (simplification: on applique le ratio net/brut à chaque item)
+      const ratio = sale.total > 0 ? saleNet / sale.total : 0;
+
       sale.items.forEach((item: any) => {
         const productId = item.product?.id || item.product_id;
         const product = _products.find(p => p.id === productId);
@@ -265,20 +264,20 @@ export function AnalyticsView({
 
         const category = categories.find(c => c.id === categoryId);
         const catName = category?.name || 'Autre';
-        const price = item.unit_price || 0;
-        const itemRevenue = price * item.quantity;
-        catRevenue[catName] = (catRevenue[catName] || 0) + itemRevenue;
-        totalGross += itemRevenue;
+        const itemGross = (item.unit_price || 0) * item.quantity;
+        const itemNet = itemGross * ratio;
+
+        catRevenue[catName] = (catRevenue[catName] || 0) + itemNet;
+        totalNet += itemNet;
       });
     });
 
-    // Calculer les pourcentages sur le total BRUT pour cohérence
     return Object.entries(catRevenue).map(([name, value]) => ({
       name,
       value,
-      percentage: totalGross > 0 ? (value / totalGross) * 100 : 0
+      percentage: totalNet > 0 ? (value / totalNet) * 100 : 0
     }));
-  }, [sales, categories, _products]);
+  }, [sales, categories, _products, returns]);
 
   // Performance par utilisateur
   const [userFilter, setUserFilter] = useState<'all' | 'servers' | 'management'>('all');
@@ -373,105 +372,7 @@ export function AnalyticsView({
     return allUsers;
   }, [sales, returns, safeUsers, safeBarMembers, userFilter, closeHour, startDate, endDate]);
 
-  // Top produits - 3 analyses (CA NET = Ventes - Retours) avec CUMP pour profit exact
-  const topProductsData = useMemo(() => {
-    const productStats: Record<string, { name: string; volume: string; units: number; revenue: number; profit: number; cost: number }> = {};
 
-    // 1. Ajouter les ventes
-    sales.forEach(sale => {
-      sale.items.forEach((item: any) => {
-        const productId = item.product?.id || item.product_id;
-        const productName = item.product?.name || item.product_name || 'Produit';
-        const productVolume = item.product?.volume || item.product_volume || '';
-        const productPrice = item.product?.price || item.unit_price || 0;
-
-        if (!productId) return; // Skip items without product ID
-
-        // ✨ NEW: Get CUMP from product or fallback to 0
-        const product = _products.find(p => p.id === productId);
-        const currentAverageCost = product?.currentAverageCost ?? 0;
-
-        if (!productStats[productId]) {
-          productStats[productId] = {
-            name: productName,
-            volume: productVolume,
-            units: 0,
-            revenue: 0,
-            cost: 0,
-            profit: 0
-          };
-        }
-
-        const quantity = item.quantity;
-        const revenue = productPrice * quantity;
-        const cost = currentAverageCost * quantity;
-
-        productStats[productId].units += quantity;
-        productStats[productId].revenue += revenue;
-        productStats[productId].cost += cost;
-        productStats[productId].profit += (revenue - cost); // ✨ CUMP: profit = revenue - cost
-      });
-    });
-
-    // 2. Déduire les retours remboursés
-    const filteredReturns = returns.filter(r => {
-      if (r.status !== 'approved' && r.status !== 'restocked') return false;
-      if (!r.isRefunded) return false;
-
-      const returnDate = new Date(r.returnedAt);
-
-      if (timeRange === 'today') {
-        const currentBusinessDay = getCurrentBusinessDay(closeHour);
-        const returnBusinessDay = getBusinessDay(returnDate, closeHour);
-        return isSameDay(returnBusinessDay, currentBusinessDay);
-      } else if (timeRange === 'week') {
-        const currentDay = new Date().getDay();
-        const daysFromMonday = currentDay === 0 ? 6 : currentDay - 1;
-        const monday = new Date();
-        monday.setDate(monday.getDate() - daysFromMonday);
-        monday.setHours(0, 0, 0, 0);
-        const sunday = new Date(monday);
-        sunday.setDate(monday.getDate() + 6);
-        sunday.setHours(23, 59, 59, 999);
-        return returnDate >= monday && returnDate <= sunday;
-      } else if (timeRange === 'month') {
-        const today = new Date();
-        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-        firstDay.setHours(0, 0, 0, 0);
-        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        lastDay.setHours(23, 59, 59, 999);
-        return returnDate >= firstDay && returnDate <= lastDay;
-      } else if (timeRange === 'custom') {
-        return true;
-      }
-      return false;
-    });
-
-    filteredReturns.forEach(ret => {
-      if (productStats[ret.productId]) {
-        // ✨ NEW: Deduct cost proportionally when item is returned
-        const product = _products.find(p => p.id === ret.productId);
-        const currentAverageCost = product?.currentAverageCost ?? 0;
-        const returnedCost = currentAverageCost * ret.quantityReturned;
-
-        productStats[ret.productId].units -= ret.quantityReturned;
-        productStats[ret.productId].revenue -= ret.refundAmount;
-        productStats[ret.productId].cost -= returnedCost;
-        productStats[ret.productId].profit -= (ret.refundAmount - returnedCost); // Revenue loss - cost recovery
-      }
-    });
-
-    const products = Object.values(productStats).map(p => ({
-      ...p,
-      displayName: `${p.name} ${p.volume ? `(${p.volume})` : ''}`
-    }));
-
-    return {
-      byUnits: products.sort((a, b) => b.units - a.units).slice(0, 5),
-      byRevenue: products.sort((a, b) => b.revenue - a.revenue).slice(0, 5),
-      byProfit: products.sort((a, b) => b.profit - a.profit).slice(0, 5)
-    };
-  }, [sales, returns, timeRange, closeHour, _products]);
 
   const TrendIcon = ({ change }: { change: number }) => {
     if (change > 0) return <ArrowUp className="w-4 h-4 text-green-600" />;
@@ -561,9 +462,9 @@ export function AnalyticsView({
               <YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} />
               <Tooltip
                 contentStyle={{ backgroundColor: '#fff', border: '1px solid #fdba74', borderRadius: '8px' }}
-                formatter={(value: number) => formatPrice(value)}
+                formatter={(value: any) => formatPrice(Number(value))}
               />
-              <Line type="monotone" dataKey="revenue" stroke="#f97316" strokeWidth={2} dot={{ fill: '#f97316', r: 4 }} />
+              <Line type="monotone" dataKey="revenue" stroke="#f97316" strokeWidth={2} dot={{ fill: '#f97316', r: 4 }} isAnimationActive={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -581,13 +482,14 @@ export function AnalyticsView({
                 outerRadius={isMobile ? 70 : 90}
                 paddingAngle={2}
                 dataKey="value"
+                isAnimationActive={false}
                 label={(entry: any) => `${entry.percentage.toFixed(0)}%`}
               >
                 {categoryData.map((_entry, index) => (
                   <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value: number) => formatPrice(value)} />
+              <Tooltip formatter={(value: any) => formatPrice(Number(value))} />
               <Legend
                 layout={isMobile ? "horizontal" : "vertical"}
                 align={isMobile ? "center" : "right"}
@@ -671,7 +573,7 @@ export function AnalyticsView({
               { value: 'management', label: 'Management' },
             ]}
             value={userFilter}
-            onChange={(e) => setUserFilter(e.target.value as any)}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setUserFilter(e.target.value as any)}
             size="sm"
             className="w-40"
           />

@@ -56,13 +56,29 @@ const AnalyticsCharts = ({ data, expensesByCategory }) => {
         <h3 className="font-semibold mb-4">Évolution de la Trésorerie</h3>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={filteredData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey="name" stroke="#6b7280" />
+            <YAxis stroke="#6b7280" />
             <Tooltip />
             <Legend />
-            <Line type="monotone" dataKey="Revenus" stroke="#10b981" strokeWidth={2} />
-            <Line type="monotone" dataKey="Coûts Opérationnels" stroke="#f97316" strokeWidth={2} />
+            <Line
+              type="monotone"
+              dataKey="Revenus"
+              stroke="#10b981"
+              strokeWidth={3}
+              dot={{ fill: '#10b981', r: 5, strokeWidth: 0 }}
+              activeDot={{ r: 7 }}
+              isAnimationActive={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="Coûts Opérationnels"
+              stroke="#f97316"
+              strokeWidth={3}
+              dot={{ fill: '#f97316', r: 5, strokeWidth: 0 }}
+              activeDot={{ r: 7 }}
+              isAnimationActive={false}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -81,6 +97,9 @@ const AnalyticsCharts = ({ data, expensesByCategory }) => {
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"
+                isAnimationActive={false}
+                stroke="#ffffff"
+                strokeWidth={2}
               >
                 {expenseData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -97,13 +116,13 @@ const AnalyticsCharts = ({ data, expensesByCategory }) => {
           <h3 className="font-semibold mb-4">Revenus vs. Coûts Opérationnels</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={filteredData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="name" stroke="#6b7280" />
+              <YAxis stroke="#6b7280" />
               <Tooltip />
               <Legend />
-              <Bar dataKey="Revenus" fill="#10b981" />
-              <Bar dataKey="Coûts Opérationnels" fill="#f97316" />
+              <Bar dataKey="Revenus" fill="#10b981" isAnimationActive={false} />
+              <Bar dataKey="Coûts Opérationnels" fill="#f97316" isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </div>
