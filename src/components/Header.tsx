@@ -24,6 +24,7 @@ import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { BarSelector } from './BarSelector';
 import { SyncStatusBadge } from './SyncStatusBadge'; // ✅ Badge sync unifié (remplace OfflineIndicator, NetworkIndicator, SyncButton)
 import { NetworkBadge } from './NetworkBadge'; // ✅ Badge réseau compact pour le header
+import { RefreshButton } from './RefreshButton'; // ✅ Bouton rafraîchissement manuel
 import { useViewport } from '../hooks/useViewport';
 import { ProfileSettings } from './ProfileSettings';
 import { Button } from './ui/Button';
@@ -116,6 +117,7 @@ export function Header({
               <div className="flex items-center gap-1 flex-shrink-0">
                 {/* ✅ Nouveau badge sync unifié (remplace OfflineIndicator + NetworkIndicator + SyncButton) */}
                 <SyncStatusBadge compact position="header" />
+                <RefreshButton />
                 {/* Bouton retour à l'admin - visible seulement si en impersonation */}
                 {isAdminInImpersonation && (
                   <Button
@@ -173,6 +175,7 @@ export function Header({
                 {/* Badges + Actions - RIGHT */}
                 <div className="flex items-center gap-1 flex-shrink-0">
                   <SyncStatusBadge compact position="header" />
+                  <RefreshButton />
                   <NetworkBadge />
                   <Button
                     onClick={() => setShowProfileSettings(true)}
@@ -286,6 +289,7 @@ export function Header({
 
             {/* ✅ Nouveau badge sync unifié (remplace OfflineIndicator + NetworkIndicator + SyncButton) */}
             <SyncStatusBadge position="header" />
+            <RefreshButton />
 
             {/* ✅ Badge réseau compact (offline/connexion lente) */}
             <NetworkBadge />
