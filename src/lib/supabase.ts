@@ -32,6 +32,17 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     headers: {
       'x-application-name': 'BarTender Pro',
     },
+    fetch: (url, options = {}) => {
+      // Ajouter timeout de 10s pour toutes les requêtes Supabase
+      // Évite d'attendre 30s si le RPC timeout côté serveur (3s)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+      return fetch(url, {
+        ...options,
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeoutId));
+    },
   },
 });
 

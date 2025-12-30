@@ -40,10 +40,16 @@ export const queryClient = new QueryClient({
       staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
       gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
 
-      // Retry intelligent
-      retry: retryFn,
-      // Délai exponentiel entre les retries (1s, 2s, 4s...)
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      // Retry intelligent (max 2 fois au lieu de 3 pour éviter lenteur)
+      retry: (failureCount, error: any) => {
+        // Ne pas retry si erreur 404/401/403 OU erreur de timeout
+        if (error?.status === 404 || error?.status === 401 || error?.status === 403) return false;
+        if (error?.name === 'AbortError' || error?.message?.includes('aborted')) return false;
+        // Max 2 tentatives (au lieu de 3) pour réduire la latence perçue
+        return failureCount < 2;
+      },
+      // Délai réduit entre retries (500ms, 1s) au lieu de (1s, 2s, 4s)
+      retryDelay: (attemptIndex) => Math.min(500 * 2 ** attemptIndex, 2000),
       // Ne pas refetcher si on change de fenêtre (sauf si stale)
       refetchOnWindowFocus: false,
       // Gestion d'erreur globale
