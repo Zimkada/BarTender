@@ -1,7 +1,7 @@
 import { ProductsService } from '../../services/supabase/products.service';
 import { CategoriesService } from '../../services/supabase/categories.service';
 import { StockService } from '../../services/supabase/stock.service';
-import { useApiQuery, useApiQuerySimple } from './useApiQuery';
+import { useApiQuerySimple } from './useApiQuery';
 import { useProxyQuery } from './useProxyQuery';
 import { ProxyAdminService } from '../../services/supabase/proxy-admin.service';
 import type { Product, Supply, Consignment, Category } from '../../types';
@@ -21,16 +21,17 @@ export const useProducts = (barId: string | undefined) => {
     // 🔧 PHASE 1-2: SmartSync branché - Hybride Broadcast + Realtime + Polling adaptatif
     const smartSync = useSmartSync({
         table: 'bar_products',
-        event: 'UPDATE',
+        event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
         barId: barId || undefined,
         enabled: !!barId,
         staleTime: CACHE_STRATEGY.products.staleTime,
-        refetchInterval: 30000, // Fallback 30s (vs 3s avant) - économie 90%
+        refetchInterval: 30000,
+        queryKeysToInvalidate: [stockKeys.products(barId || '')] // 🚀 FIX: Invalidate specific stock keys
     });
 
     // Utiliser useProxyQuery pour supporter l'impersonnation Super Admin
     return useProxyQuery(
-        stockKeys.products(barId || ''),
+        stockKeys.products(barId || '') as any,
         // 1. Fetcher Standard
         async () => {
             if (!barId) return [];
@@ -76,11 +77,15 @@ export const useSupplies = (barId: string | undefined) => {
         barId: barId || undefined,
         enabled: !!barId,
         staleTime: CACHE_STRATEGY.products.staleTime,
-        refetchInterval: 60000, // Fallback 60s (supplies changent moins souvent)
+        refetchInterval: 60000,
+        queryKeysToInvalidate: [
+            stockKeys.supplies(barId || '') as any,
+            stockKeys.products(barId || '') as any
+        ]
     });
 
     return useApiQuerySimple(
-        stockKeys.supplies(barId || ''),
+        stockKeys.supplies(barId || '') as any,
         async (): Promise<Supply[]> => {
             if (!barId) return [];
             const dbSupplies = await StockService.getSupplies(barId);
@@ -96,7 +101,7 @@ export const useSupplies = (barId: string | undefined) => {
                 date: new Date(s.supplied_at || s.created_at || Date.now()),
                 totalCost: s.total_cost,
                 createdBy: s.supplied_by,
-                productName: (s.bar_product as any)?.display_name || 'Produit inconnu',
+                productName: (s as any).bar_product?.display_name || 'Produit inconnu',
             }));
         },
         {
@@ -109,8 +114,22 @@ export const useSupplies = (barId: string | undefined) => {
 };
 
 export const useConsignments = (barId: string | undefined) => {
+    // 🔧 PHASE 1-2: SmartSync pour consignations
+    const smartSync = useSmartSync({
+        table: 'consignments',
+        event: '*', // INSERT, UPDATE, DELETE (pour claim/forfeit)
+        barId: barId || undefined,
+        enabled: !!barId,
+        staleTime: CACHE_STRATEGY.products.staleTime,
+        refetchInterval: 60000,
+        queryKeysToInvalidate: [
+            stockKeys.consignments(barId || '') as any,
+            stockKeys.products(barId || '') as any // Les consignations impactent le calcul du stock dispo
+        ]
+    });
+
     return useApiQuerySimple(
-        stockKeys.consignments(barId || ''),
+        stockKeys.consignments(barId || '') as any,
         async (): Promise<Consignment[]> => {
             if (!barId) return [];
             const dbConsignments = await StockService.getConsignments(barId);
@@ -137,7 +156,7 @@ export const useConsignments = (barId: string | undefined) => {
                     createdAt: createdAt,
                     expiresAt: expiresAt,
                     claimedAt: c.claimed_at ? new Date(c.claimed_at) : undefined,
-                    businessDate: c.business_date ? new Date(c.business_date) : undefined,
+                    businessDate: c.business_date ? new Date(c.business_date) : new Date(),
                     status: status,
                     createdBy: c.created_by,
                     serverId: c.server_id || undefined,
@@ -152,14 +171,14 @@ export const useConsignments = (barId: string | undefined) => {
             enabled: !!barId,
             staleTime: CACHE_STRATEGY.products.staleTime,
             gcTime: CACHE_STRATEGY.products.gcTime,
-            refetchInterval: 30000, // 30s polling for consignments (post-sale, no stock impact, rare operation)
+            refetchInterval: smartSync.isSynced ? false : 60000,
         }
     );
 };
 
 export const useCategories = (barId: string | undefined) => {
     return useApiQuerySimple(
-        stockKeys.categories(barId || ''),
+        stockKeys.categories(barId || '') as any,
         async (): Promise<Category[]> => {
             if (!barId) return [];
             const enrichedCategories = await CategoriesService.getCategories(barId);

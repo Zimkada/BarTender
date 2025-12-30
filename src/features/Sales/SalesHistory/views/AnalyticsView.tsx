@@ -299,17 +299,19 @@ export function AnalyticsView({
 
       // Trouver l'utilisateur correspondant
       const user = safeUsers.find(u => u.id === serverId);
-      if (!user) {
-        return; // Skip si utilisateur non trouvé
-      }
 
       // Chercher d'abord dans barMembers, sinon utiliser le rôle de l'utilisateur
-      const member = safeBarMembers.find(m => m.userId === user.id);
-      const role = member?.role || 'serveur';
+      const member = safeBarMembers.find(m => m.userId === serverId);
+      const role = member?.role || (user?.role) || 'serveur';
 
-      if (!userStats[user.id]) {
-        userStats[user.id] = {
-          name: user.name,
+      // ✨ FIX: Ne plus ignorer si l'utilisateur n'est pas trouvé
+      // Cela permet d'inclure les ventes des anciens membres supprimés ou du promoteur non listé
+      const userId = serverId;
+      const userName = user?.name || sale.assignedTo || 'Ancien membre';
+
+      if (!userStats[userId]) {
+        userStats[userId] = {
+          name: userName,
           role,
           revenue: 0,
           sales: 0,
@@ -317,10 +319,11 @@ export function AnalyticsView({
         };
       }
 
-      userStats[user.id].revenue += sale.total;
-      userStats[user.id].sales += 1;
-      userStats[user.id].items += sale.items.reduce((sum, item) => sum + item.quantity, 0);
+      userStats[userId].revenue += sale.total;
+      userStats[userId].sales += 1;
+      userStats[userId].items += sale.items.reduce((sum, item) => sum + item.quantity, 0);
     });
+
 
     // 2. Déduire les retours remboursés de la période filtrée
     // 🔒 SERVEURS : Seulement retours de LEURS ventes (même logique que getTodayTotal)

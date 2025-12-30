@@ -11,7 +11,7 @@
  * Result: Maximum freshness with minimum Supabase cost
  */
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRealtimeSubscription } from './useRealtimeSubscription';
 import { useBroadcastSync } from './useBroadcastSync';
@@ -19,39 +19,21 @@ import { broadcastService } from '../services/broadcast/BroadcastService';
 
 interface UseSmartSyncConfig {
   table: string;
-  event: 'INSERT' | 'UPDATE' | 'DELETE';
+  event: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
   barId?: string;
   enabled?: boolean;
   staleTime?: number; // ms until data is considered stale
   refetchInterval?: number; // Fallback polling interval (ms)
+  /**
+   * Optional: Specific React Query keys to invalidate on change.
+   * If not provided, it will fallback to a best-guess based on [table, barId].
+   */
+  queryKeysToInvalidate?: readonly (readonly unknown[])[];
 }
 
 /**
  * Hook combining all synchronization strategies
  * Automatically chooses the most efficient method for data freshness
- *
- * @example
- * ```typescript
- * function SalesPage() {
- *   const { barId } = useBar();
- *
- *   // Automatic sync: Broadcast → Realtime → Polling
- *   const sync = useSmartSync({
- *     table: 'sales',
- *     event: 'INSERT',
- *     barId,
- *     staleTime: 1000,      // 1 second
- *     refetchInterval: 5000, // 5 second fallback
- *   });
- *
- *   return (
- *     <>
- *       {sync.isSynced && <p>✓ Real-time sync active</p>}
- *       <SalesTable />
- *     </>
- *   );
- * }
- * ```
  */
 export function useSmartSync(config: UseSmartSyncConfig) {
   const {
@@ -59,8 +41,8 @@ export function useSmartSync(config: UseSmartSyncConfig) {
     event,
     barId,
     enabled = true,
-    staleTime = 1000,
     refetchInterval = 5000,
+    queryKeysToInvalidate,
   } = config;
 
   const queryClient = useQueryClient();
@@ -76,17 +58,21 @@ export function useSmartSync(config: UseSmartSyncConfig) {
   });
 
   // 2. Set up Realtime (COST - multi-tab/user sync)
+  // Determine keys to invalidate (explicit or best-guess)
+  const keys: readonly (readonly unknown[])[] = queryKeysToInvalidate || (barId ? [[table, barId]] : [[table]]);
+
   const realtimeSubscription = useRealtimeSubscription({
     table,
-    event,
+    event: event as any,
     filter: barId ? `bar_id=eq.${barId}` : undefined,
     enabled: enabled && broadcastSupported,
-    queryKeysToInvalidate: barId ? [[table, barId].join()] : [[table]],
+    queryKeysToInvalidate: keys,
     fallbackPollingInterval: refetchInterval,
     onMessage: (payload) => {
+      console.log(`[SmartSync] Realtime change detected for ${table}:`, payload.event);
       // When Realtime message received, broadcast to other tabs
       if (broadcastSupported) {
-        broadcast(event, payload.new || payload.old);
+        broadcast(payload.event === 'DELETE' ? 'DELETE' : (payload.event as any), payload.new || payload.old);
       }
       syncStatusRef.current = 'realtime';
     },

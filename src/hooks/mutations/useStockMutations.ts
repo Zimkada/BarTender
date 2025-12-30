@@ -14,11 +14,11 @@ const invalidateStockQuery = (
     queryClient: ReturnType<typeof useQueryClient>,
     queryKey: readonly any[],
     barId: string,
-    actingAs: { isActive: boolean; userId?: string }
+    actingAs: { isActive: boolean; userId: string | null }
 ) => {
     const proxySuffix = actingAs.isActive ? `proxy:${actingAs.userId}` : 'standard';
     queryClient.invalidateQueries({
-        queryKey: [...queryKey, proxySuffix],
+        queryKey: [...queryKey, proxySuffix] as any[],
         exact: true
     });
 };
@@ -108,9 +108,20 @@ export const useStockMutations = () => {
             // STANDARD MODE
             return ProductsService.deactivateProduct(id);
         },
-        onSuccess: () => {
+        onSuccess: (data, id) => {
             const barId = currentBar?.id;
             toast.success('Produit supprimé');
+
+            // 🚀 PHASE 3-4: Broadcast aux autres onglets
+            if (barId && broadcastService.isSupported()) {
+                broadcastService.broadcast({
+                    event: 'DELETE',
+                    table: 'bar_products',
+                    barId,
+                    data: { id },
+                });
+            }
+
             if (barId) {
                 invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
             }
@@ -175,7 +186,7 @@ export const useStockMutations = () => {
             supplier: string;
             created_by: string;
         }) => {
-            const { data: rpcData, error } = await StockService.createSupplyAndUpdateProduct({
+            const rpcData = await StockService.createSupplyAndUpdateProduct({
                 p_bar_id: data.bar_id,
                 p_product_id: data.product_id,
                 p_quantity: data.quantity,
@@ -184,10 +195,6 @@ export const useStockMutations = () => {
                 p_supplier: data.supplier,
                 p_created_by: data.created_by,
             });
-
-            if (error) {
-                throw new Error(error.message);
-            }
 
             if (rpcData && !rpcData.success) {
                 throw new Error(rpcData.message || 'Une erreur est survenue dans la base de données.');
@@ -239,7 +246,7 @@ export const useStockMutations = () => {
             if (!data.saleId) throw new Error('Sale ID est obligatoire');
             if (!data.productId) throw new Error('Product ID est obligatoire');
             if (!data.quantity || data.quantity < 1) throw new Error('Quantité invalide');
-            
+
             const consignmentData: any = {
                 bar_id: barId,
                 sale_id: data.saleId,
@@ -271,6 +278,24 @@ export const useStockMutations = () => {
         onSuccess: (newConsignment) => {
             const barId = currentBar?.id;
             toast.success('Consignation créée');
+
+            // 🚀 PHASE 3-4: Broadcast aux autres onglets
+            if (barId && broadcastService.isSupported()) {
+                broadcastService.broadcast({
+                    event: 'INSERT',
+                    table: 'consignments',
+                    barId,
+                    data: newConsignment,
+                });
+                // Notifier aussi le changement de stock (incrément)
+                broadcastService.broadcast({
+                    event: 'UPDATE',
+                    table: 'bar_products',
+                    barId,
+                    data: { id: newConsignment.product_id },
+                });
+            }
+
             if (barId) {
                 invalidateStockQuery(queryClient, stockKeys.consignments(barId), barId, actingAs);
                 invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
@@ -289,9 +314,27 @@ export const useStockMutations = () => {
             await ProductsService.decrementStock(productId, quantity);
             return consignment;
         },
-        onSuccess: async () => {
+        onSuccess: (consignment, variables) => {
             const barId = currentBar?.id;
             toast.success('Consignation réclamée');
+
+            // 🚀 PHASE 3-4: Broadcast aux autres onglets
+            if (barId && broadcastService.isSupported()) {
+                broadcastService.broadcast({
+                    event: 'UPDATE',
+                    table: 'consignments',
+                    barId,
+                    data: { id: variables.id, status: 'claimed' },
+                });
+                // Notifier aussi le changement de stock (décrément)
+                broadcastService.broadcast({
+                    event: 'UPDATE',
+                    table: 'bar_products',
+                    barId,
+                    data: { id: variables.productId },
+                });
+            }
+
             if (barId) {
                 invalidateStockQuery(queryClient, stockKeys.consignments(barId), barId, actingAs);
                 invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
@@ -340,8 +383,21 @@ export const useStockMutations = () => {
             );
             await Promise.all(promises);
         },
-        onSuccess: () => {
+        onSuccess: (data, items) => {
             const barId = currentBar?.id;
+
+            // 🚀 PHASE 3-4: Broadcast aux autres onglets
+            if (barId && broadcastService.isSupported()) {
+                items.forEach(item => {
+                    broadcastService.broadcast({
+                        event: 'UPDATE',
+                        table: 'bar_products',
+                        barId,
+                        data: { id: item.product.id },
+                    });
+                });
+            }
+
             if (barId) {
                 invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
             }

@@ -54,9 +54,7 @@ export function useSalesStats({
                         topProductsLimit
                     );
 
-                    // Mapper le résultat RPC (déjà snake_case ou camelCase selon le retour RPC)
-                    // Le RPC retourne: product_name, product_volume, total_quantity, total_revenue, avg_unit_price
-                    // On doit mapper vers TopProduct interface
+                    // Mapper le résultat RPC
                     products = proxyData.map((p: any) => ({
                         product_id: 'proxy', // Placeholder
                         product_name: p.product_name,
@@ -64,12 +62,12 @@ export function useSalesStats({
                         total_quantity: p.total_quantity,
                         total_revenue: p.total_revenue,
                         avg_unit_price: p.avg_unit_price,
-                        // Champs optionnels ou calculés
                         bar_id: currentBar.id,
                         sale_date: '',
                         sale_week: '',
                         sale_month: '',
-                        transaction_count: 0
+                        transaction_count: 0,
+                        profit: p.profit
                     }));
 
                 } else {
@@ -94,7 +92,17 @@ export function useSalesStats({
         };
 
         loadTopProducts();
-    }, [currentBar, startDate, endDate, topProductsLimit, actingAs.isActive, actingAs.userId, actingAs.barId, serverId]);
+    }, [
+        currentBar?.id,
+        startDate.toISOString(), // ✨ STABILISATION: Utiliser ISO string
+        endDate.toISOString(),   // ✨ STABILISATION: Utiliser ISO string
+        topProductsLimit,
+        actingAs.isActive,
+        actingAs.userId,
+        actingAs.barId,
+        serverId
+    ]);
+
 
     // --- CALCULS ---
     const stats = useMemo(() => {

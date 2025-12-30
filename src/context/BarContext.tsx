@@ -73,28 +73,22 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       setLoading(true);
 
-      // 🔄 OFFLINE-FIRST: Charger d'abord depuis le cache
+      // Charger le cache offline en premier pour la réactivité
       const cachedBars = OfflineStorage.getBars();
       if (cachedBars && cachedBars.length > 0) {
-        console.log('[BarContext] Loading bars from offline cache');
         setBars(cachedBars);
         setUserBars(cachedBars);
       }
 
       // Puis essayer de récupérer depuis le serveur
       if (currentSession.role === 'super_admin') {
-        // Super admin voit tous les bars
         const allBars = await BarsService.getAllBars();
-        // BarsService returns BarWithOwner[], compatible with Bar[]
         setBars(allBars);
         setUserBars(allBars);
-        // 💾 Sauvegarder en cache
         OfflineStorage.saveBars(allBars);
       } else {
-        // Les autres utilisateurs voient seulement leurs bars
         if (currentSession.userId === '1') {
           console.warn('[BarContext] Skipping bar fetch for invalid user ID 1');
-          // Mais on garde le cache si disponible
           if (!cachedBars || cachedBars.length === 0) {
             setBars([]);
             setUserBars([]);
@@ -105,93 +99,105 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const userBarsData = await BarsService.getMyBars();
         setBars(userBarsData);
         setUserBars(userBarsData);
-        // 💾 Sauvegarder en cache
         OfflineStorage.saveBars(userBarsData);
-      }
-
-      // Charger les membres du bar courant (priorité à actingAs)
-      const targetBarId = (actingAs.isActive && actingAs.barId) ? actingAs.barId : currentSession.barId;
-
-      if (targetBarId && targetBarId !== 'admin_global') {
-        let mappedMembers: BarMember[] = [];
-
-        if (actingAs.isActive && actingAs.userId && targetBarId === actingAs.barId) {
-          // PROXY MODE
-          try {
-            const rawMembers = await ProxyAdminService.getBarMembersAsProxy(actingAs.userId, targetBarId);
-            mappedMembers = rawMembers.map((m: any) => ({
-              id: m.id,
-              userId: m.user_id,
-              barId: m.bar_id,
-              role: m.role as UserRole,
-              assignedBy: 'super_admin',
-              assignedAt: new Date(),
-              isActive: m.is_active,
-              user: {
-                id: m.user_data.id,
-                username: m.user_data.email || '',
-                password: '',
-                name: m.user_data.name,
-                phone: m.user_data.phone,
-                email: m.user_data.email,
-                createdAt: new Date(),
-                isActive: true,
-                firstLogin: false, // Proxy users assumed initialized
-                avatarUrl: m.user_data.avatar_url,
-                createdBy: undefined
-              }
-            }));
-          } catch (err) {
-            console.error('[BarContext] Error loading members as proxy:', err);
-          }
-        } else {
-          // STANDARD MODE
-          try {
-            const members = await AuthService.getBarMembers(targetBarId);
-            mappedMembers = members.map(m => ({
-              id: `${targetBarId}_${m.id}`,
-              userId: m.id,
-              barId: targetBarId,
-              role: m.role as UserRole,
-              assignedBy: '',
-              assignedAt: m.joined_at ? new Date(m.joined_at) : new Date(),
-              isActive: m.member_is_active,
-              user: {
-                id: m.id,
-                username: m.username || '',
-                password: '',
-                name: m.name,
-                phone: m.phone,
-                email: m.email,
-                createdAt: m.created_at ? new Date(m.created_at) : new Date(),
-                isActive: m.is_active || false,
-                firstLogin: m.first_login ?? false,
-                avatarUrl: m.avatar_url || undefined,
-                lastLoginAt: m.last_login_at ? new Date(m.last_login_at) : undefined,
-                createdBy: undefined,
-              }
-            }));
-          } catch (err) {
-            console.error('[BarContext] Error loading members:', err);
-          }
-        }
-        setBarMembers(mappedMembers);
       }
     } catch (error) {
       console.error('[BarContext] Error loading bars:', error);
     } finally {
       setLoading(false);
     }
-  }, [currentSession, actingAs]);
+  }, [currentSession]);
 
-  // Charger les bars au démarrage et quand la session change
-  // 🔧 FIX: Utiliser une référence stable pour éviter les re-fetches lors du bar switching
-  const refreshBarsRef = React.useRef(refreshBars);
-  refreshBarsRef.current = refreshBars;
+  // ✨ NOUVEAU: Fonction pour charger les membres séparément
+  const refreshMembers = useCallback(async (targetBarId: string) => {
+    if (!targetBarId || targetBarId === 'admin_global') return;
 
+    try {
+      let mappedMembers: BarMember[] = [];
+
+      // Priorité à l'actingAs si actif pour ce bar
+      if (actingAs.isActive && actingAs.userId && targetBarId === actingAs.barId) {
+        // PROXY MODE
+        try {
+          const rawMembers = await ProxyAdminService.getBarMembersAsProxy(actingAs.userId, targetBarId);
+          mappedMembers = rawMembers.map((m: any) => ({
+            id: m.id,
+            userId: m.user_id,
+            barId: m.bar_id,
+            role: m.role as UserRole,
+            assignedBy: 'super_admin',
+            assignedAt: new Date(m.assigned_at || Date.now()),
+            isActive: m.is_active,
+            user: {
+              id: m.user_data?.id || m.user_id,
+              username: m.user_data?.email || '',
+              password: '',
+              name: m.user_data?.name || 'Inconnu',
+              phone: m.user_data?.phone,
+              email: m.user_data?.email,
+              createdAt: new Date(),
+              isActive: true,
+              firstLogin: false,
+              avatarUrl: m.user_data?.avatar_url,
+              createdBy: undefined,
+              role: m.role as UserRole, // ✨ FIX: Ajouter le rôle requis
+            }
+          }));
+        } catch (err) {
+          console.error('[BarContext] Error loading members as proxy:', err);
+        }
+      } else {
+        // STANDARD MODE
+        try {
+          // Utilise le RPC étendu qui inclut owner et inactifs
+          const members = await AuthService.getBarMembers(targetBarId);
+          mappedMembers = members.map(m => ({
+            id: `${targetBarId}_${m.id}`,
+            userId: m.id,
+            barId: targetBarId,
+            role: m.role as UserRole,
+            assignedBy: '',
+            assignedAt: m.joined_at ? new Date(m.joined_at) : new Date(),
+            isActive: m.member_is_active,
+            user: {
+              id: m.id,
+              username: m.username || '',
+              password: '',
+              name: m.name,
+              phone: m.phone,
+              email: m.email,
+              createdAt: m.created_at ? new Date(m.created_at) : new Date(),
+              isActive: m.is_active || false,
+              firstLogin: m.first_login ?? false,
+              avatarUrl: m.avatar_url || undefined,
+              lastLoginAt: m.last_login_at ? new Date(m.last_login_at) : undefined,
+              createdBy: undefined,
+              role: m.role as UserRole, // ✨ FIX: Ajouter le rôle requis
+            }
+          }));
+        } catch (err) {
+          console.error('[BarContext] Error loading members:', err);
+        }
+      }
+      setBarMembers(mappedMembers);
+    } catch (error) {
+      console.error('[BarContext] Error in refreshMembers:', error);
+    }
+  }, [actingAs]);
+
+  // Charger les bars au démarrage
   useEffect(() => {
-    refreshBarsRef.current();
-  }, [currentSession?.userId, currentSession?.role, actingAs.isActive, actingAs.userId]);
+    refreshBars();
+  }, [currentSession?.userId, currentSession?.role]);
+
+  // ✨ FIX CRITIQUE: Charger les membres quand le bar change
+  useEffect(() => {
+    const barId = currentBar?.id;
+    if (barId) {
+      refreshMembers(barId);
+    }
+  }, [currentBar?.id, actingAs.isActive, actingAs.userId, actingAs.barId, refreshMembers]);
+
 
   // Helper pour obtenir les bars accessibles
   const getUserBars = useCallback(() => {
@@ -465,7 +471,8 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             isActive: true,
             avatarUrl: m.user_data.avatar_url,
             createdBy: undefined,
-            firstLogin: false
+            firstLogin: false,
+            role: m.role as UserRole // ✨ FIX
           }
         }));
       }
@@ -493,6 +500,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           avatarUrl: m.avatar_url || undefined,
           lastLoginAt: m.last_login_at ? new Date(m.last_login_at) : undefined,
           createdBy: undefined,
+          role: m.role as UserRole // ✨ FIX
         }
       }));
     } catch (error) {

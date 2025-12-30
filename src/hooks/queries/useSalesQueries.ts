@@ -24,7 +24,11 @@ export const useSales = (barId: string | undefined) => {
         barId: barId || undefined,
         enabled: isEnabled,
         staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
-        refetchInterval: 30000, // Fallback 30s (vs 2s avant) - économie 93%
+        refetchInterval: 30000,
+        queryKeysToInvalidate: [
+            salesKeys.list(barId || ''),
+            salesKeys.stats(barId || '')
+        ]
     });
 
     if (isEnabled) {
@@ -34,7 +38,7 @@ export const useSales = (barId: string | undefined) => {
     }
 
     return useProxyQuery(
-        salesKeys.list(barId || ''),
+        salesKeys.list(barId || '') as any,
         // Standard Fetcher
         async (): Promise<Sale[]> => {
             if (!barId) return [];
@@ -78,7 +82,7 @@ const mapSalesData = (dbSales: any[]): Sale[] => {
         validatedAt: s.validated_at ? new Date(s.validated_at) : undefined,
         rejectedBy: undefined,
         rejectedAt: undefined,
-        businessDate: (s as any).business_date ? new Date((s as any).business_date) : undefined,
+        businessDate: (s as any).business_date ? new Date((s as any).business_date) : new Date(),
         customerName: s.customer_name || undefined,
         customerPhone: s.customer_phone || undefined,
         notes: s.notes || undefined,

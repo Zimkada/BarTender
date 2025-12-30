@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, UserPlus, Shield, User as UserIcon, Check, Trash2, ArrowLeft } from 'lucide-react';
+import { Users, UserPlus, Shield, User as UserIcon, Check, Trash2, ArrowLeft, GitBranch } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from "../context/AuthContext";
 import { useBarContext } from '../context/BarContext';
@@ -12,6 +12,8 @@ import { Input } from '../components/ui/Input';
 import { Label } from '../components/ui/Label';
 import { Alert } from '../components/ui/Alert';
 import { Modal } from '../components/ui/Modal';
+import { ServerMappingsManager } from '../components/ServerMappingsManager';
+import { FEATURES } from '../config/features';
 
 /**
  * TeamManagementPage - Page de gestion de l'équipe
@@ -23,14 +25,13 @@ export default function TeamManagementPage() {
   const { hasPermission } = useAuth();
   const { currentBar, barMembers, removeBarMember, refreshBars } = useBarContext();
   const { isMobile } = useViewport();
-  const [showAddUser, setShowAddUser] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<UserRole>('serveur');
-
-  // Form fields
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<UserRole>('serveur');
+  const [showInactive, setShowInactive] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -42,9 +43,14 @@ export default function TeamManagementPage() {
     );
   }
 
-  // Use barMembers directly from context
-  const managers = barMembers.filter(m => m.role === 'gerant');
-  const servers = barMembers.filter(m => m.role === 'serveur');
+  // Filtrer les membres selon le toggle Inactif
+  const displayedMembers = barMembers.filter(member => showInactive || member.isActive);
+
+  // Stats sur TOUS les membres actifs uniquement pour les compteurs
+  const activeMembers = barMembers.filter(m => m.isActive);
+  const managersCount = activeMembers.filter(m => m.role === 'gerant').length;
+  const serversCount = activeMembers.filter(m => m.role === 'serveur').length;
+  const inactiveCount = barMembers.filter(m => !m.isActive).length;
 
   const getRoleIcon = (role: UserRole) => {
     switch (role) {
@@ -196,17 +202,31 @@ export default function TeamManagementPage() {
               </div>
             </div>
 
-            {/* Action button in header */}
-            {(hasPermission('canCreateManagers') || hasPermission('canCreateServers')) && (
-              <Button
-                onClick={() => setShowAddUser(true)}
-                variant="default"
-                className="flex items-center gap-2"
-              >
-                <UserPlus size={18} className="mr-2" />
-                {isMobile ? 'Ajouter' : 'Ajouter un membre'}
-              </Button>
-            )}
+            {/* Action buttons in header */}
+            <div className="flex items-center gap-2">
+              {inactiveCount > 0 && (
+                <Button
+                  onClick={() => setShowInactive(!showInactive)}
+                  variant="ghost"
+                  className={`flex items-center gap-2 text-white hover:bg-white/20 ${showInactive ? 'bg-white/20' : ''}`}
+                  title={showInactive ? "Masquer les inactifs" : "Afficher les inactifs"}
+                >
+                  <Users size={18} className="text-white" />
+                  {isMobile ? (showInactive ? 'Actifs' : 'Tous') : (showInactive ? 'Masquer inactifs' : `Voir inactifs (${inactiveCount})`)}
+                </Button>
+              )}
+
+              {(hasPermission('canCreateManagers') || hasPermission('canCreateServers')) && (
+                <Button
+                  onClick={() => setShowAddUser(true)}
+                  variant="default"
+                  className="flex items-center gap-2"
+                >
+                  <UserPlus size={18} className="mr-2" />
+                  {isMobile ? 'Ajouter' : 'Ajouter un membre'}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -220,7 +240,7 @@ export default function TeamManagementPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600">Gérants</p>
-                <p className="text-2xl font-bold">{managers.length}</p>
+                <p className="text-2xl font-bold">{managersCount}</p>
               </div>
               <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
                 <UserIcon className="w-6 h-6 text-amber-600" />
@@ -232,7 +252,7 @@ export default function TeamManagementPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600">Serveurs</p>
-                <p className="text-2xl font-bold">{servers.length}</p>
+                <p className="text-2xl font-bold">{serversCount}</p>
               </div>
               <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
                 <Users className="w-6 h-6 text-amber-600" />
@@ -244,7 +264,7 @@ export default function TeamManagementPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600">Total équipe</p>
-                <p className="text-2xl font-bold">{barMembers.length}</p>
+                <p className="text-2xl font-bold">{activeMembers.length}</p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                 <Check className="w-6 h-6 text-green-600" />
@@ -260,19 +280,31 @@ export default function TeamManagementPage() {
           </div>
 
           <div className="divide-y divide-gray-100">
-            {barMembers.filter(member => member.isActive).map(member => {
+            {displayedMembers.map(member => {
               const Icon = getRoleIcon(member.role);
               const colorClass = getRoleColor(member.role);
 
               return (
-                <div key={member.id} className="p-4 hover:bg-gray-50 transition-colors">
+                <div key={member.id} className={`p-4 hover:bg-gray-50 transition-colors ${!member.isActive ? 'opacity-70 bg-gray-50/50' : ''}`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center ${colorClass}`}>
                         <Icon size={20} />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-800">{member.user?.name || 'Utilisateur inconnu'}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-gray-800">{member.user?.name || 'Utilisateur inconnu'}</p>
+                          {!member.isActive && (
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gray-200 text-gray-600 rounded uppercase tracking-wider">
+                              Inactif
+                            </span>
+                          )}
+                          {member.role === 'promoteur' && (
+                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-purple-100 text-purple-700 rounded uppercase tracking-wider border border-purple-200">
+                              Propriétaire
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm text-gray-500">
                           {getRoleLabel(member.role)} • @{member.user?.username || 'unknown'}
                         </p>
@@ -286,7 +318,7 @@ export default function TeamManagementPage() {
                         </span>
                       )}
 
-                      {member.role !== 'promoteur' && member.role !== 'super_admin' &&
+                      {member.isActive && member.role !== 'promoteur' && member.role !== 'super_admin' &&
                         ((member.role === 'gerant' && hasPermission('canCreateManagers')) ||
                           (member.role === 'serveur' && hasPermission('canCreateServers'))) && (
                           <Button
@@ -306,6 +338,35 @@ export default function TeamManagementPage() {
             })}
           </div>
         </div>
+
+        {/* ✨ NOUVEAU: Mappings de serveurs (Mode Simplifié) */}
+        {FEATURES.ENABLE_SWITCHING_MODE && (
+          <div className="bg-white rounded-xl shadow-sm border border-amber-100 overflow-hidden">
+            <div className="p-6 border-b border-gray-100 flex items-center gap-2">
+              <GitBranch size={20} className="text-amber-500" />
+              <div>
+                <h3 className="font-semibold text-gray-800">Mappings Serveurs (Mode Simplifié)</h3>
+                <p className="text-xs text-gray-500">Associez des noms de serveurs (ex: "Marie") à des comptes réels pour les statistiques.</p>
+              </div>
+            </div>
+            <div className="p-6">
+              <ServerMappingsManager
+                barId={currentBar.id}
+                barMembers={barMembers
+                  .filter(m => m.isActive)
+                  .map(m => ({
+                    userId: m.userId,
+                    name: m.user?.name || 'Inconnu',
+                    role: m.role
+                  }))
+                }
+                enabled={FEATURES.SHOW_SWITCHING_MODE_UI}
+              />
+            </div>
+          </div>
+        )}
+
+
 
         {/* Add User Modal - Kept as internal modal for the form */}
         <Modal
@@ -364,63 +425,63 @@ export default function TeamManagementPage() {
             </div>
 
             {/* Form Fields - Grid Layout */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div className="col-span-1">
-                                  <Label htmlFor="username" className="text-xs">
-                                    Nom d'utilisateur *
-                                  </Label>
-                                  <Input
-                                    id="username"
-                                    type="text"
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
-                                    placeholder="nom.prenom"
-                                    className="text-sm"
-                                  />
-                                </div>
-            
-                                <div className="col-span-1">
-                                  <Label htmlFor="password" className="text-xs">
-                                    Mot de passe *
-                                  </Label>
-                                  <Input
-                                    id="password"
-                                    type="text"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="Min 8 chars"
-                                    className="text-sm"
-                                  />
-                                </div>
-            
-                                <div className="col-span-1">
-                                  <Label htmlFor="name" className="text-xs">
-                                    Nom complet *
-                                  </Label>
-                                  <Input
-                                    id="name"
-                                    type="text"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    placeholder="Prénom Nom"
-                                    className="text-sm"
-                                  />
-                                </div>
-            
-                                <div className="col-span-1">
-                                  <Label htmlFor="phone" className="text-xs">
-                                    Téléphone *
-                                  </Label>
-                                  <Input
-                                    id="phone"
-                                    type="tel"
-                                    value={phone}
-                                    onChange={(e) => setPhone(e.target.value)}
-                                    placeholder="0197000000"
-                                    className="text-sm"
-                                  />
-                                </div>
-                              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="col-span-1">
+                <Label htmlFor="username" className="text-xs">
+                  Nom d'utilisateur *
+                </Label>
+                <Input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
+                  placeholder="nom.prenom"
+                  className="text-sm"
+                />
+              </div>
+
+              <div className="col-span-1">
+                <Label htmlFor="password" className="text-xs">
+                  Mot de passe *
+                </Label>
+                <Input
+                  id="password"
+                  type="text"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Min 8 chars"
+                  className="text-sm"
+                />
+              </div>
+
+              <div className="col-span-1">
+                <Label htmlFor="name" className="text-xs">
+                  Nom complet *
+                </Label>
+                <Input
+                  id="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Prénom Nom"
+                  className="text-sm"
+                />
+              </div>
+
+              <div className="col-span-1">
+                <Label htmlFor="phone" className="text-xs">
+                  Téléphone *
+                </Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="0197000000"
+                  className="text-sm"
+                />
+              </div>
+            </div>
             {/* Messages */}
             {error && (
               <Alert show={!!error} variant="destructive" className="text-xs">

@@ -145,6 +145,12 @@ export const useSalesMutations = (barId: string) => {
                     barId,
                     data: sale,
                 });
+                // 🚀 FIX: Broadcaster aussi le changement de stock
+                broadcastService.broadcast({
+                    event: 'UPDATE',
+                    table: 'bar_products',
+                    barId,
+                });
             }
 
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
@@ -172,6 +178,12 @@ export const useSalesMutations = (barId: string) => {
                     table: 'sales',
                     barId,
                     data: { id: variables.id, status: 'validated' },
+                });
+                // 🚀 FIX: Broadcaster aussi le changement de stock (décrément effectif)
+                broadcastService.broadcast({
+                    event: 'UPDATE',
+                    table: 'bar_products',
+                    barId,
                 });
             }
 
