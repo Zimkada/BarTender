@@ -1,6 +1,6 @@
 // ApiClient.ts - Client HTTP pour synchronisation avec backend Supabase
 import { SYNC_CONFIG, isSupabaseEnabled } from '../config/sync.config';
-import type { MutationType, SyncOperation } from '../types/sync';
+import type { SyncOperation } from '../types/sync';
 import type {
   Sale,
   Return,
@@ -112,8 +112,25 @@ class ApiClient {
 
   // ===== SALES =====
 
-  private async createSale(sale: Sale, barId: string): Promise<ApiResponse> {
-    return await this.post('/rpc/create_sale', { sale, bar_id: barId });
+  private async createSale(salePayload: any, barId: string): Promise<ApiResponse> {
+    // Le payload stocké dans SyncQueue via useSalesMutations contient déjà la structure attendue :
+    // { bar_id, items, payment_method, sold_by, ... }
+
+    // On mappe vers les paramètres de la RPC create_sale_with_promotions
+    const rpcParams = {
+      p_bar_id: salePayload.bar_id || barId, // Fallback
+      p_items: salePayload.items,
+      p_payment_method: salePayload.payment_method,
+      p_sold_by: salePayload.sold_by,
+      p_server_id: salePayload.server_id || null,
+      p_status: salePayload.status,
+      p_customer_name: salePayload.customer_name || null,
+      p_customer_phone: salePayload.customer_phone || null,
+      p_notes: salePayload.notes || null,
+      p_business_date: salePayload.business_date || null
+    };
+
+    return await this.post('/rpc/create_sale_with_promotions', rpcParams);
   }
 
   // ===== RETURNS =====

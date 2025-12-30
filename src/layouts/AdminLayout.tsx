@@ -3,6 +3,8 @@ import { Link, Outlet, Navigate, useLocation } from 'react-router-dom';
 import { Suspense, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { LoadingFallback } from '../components/LoadingFallback';
+import { LazyLoadErrorBoundary } from '../components/LazyLoadErrorBoundary';
+import { useRoutePreload } from '../hooks/useRoutePreload';
 import {
   LayoutDashboard,
   Building2,
@@ -13,7 +15,8 @@ import {
   LogOut,
   Menu,
   X,
-  ShieldCheck
+  ShieldCheck,
+  Shield
 } from 'lucide-react';
 
 const adminNavItems = [
@@ -23,12 +26,24 @@ const adminNavItems = [
   { path: '/admin/catalog', label: 'Catalogue Global', icon: Package },
   { path: '/admin/audit-logs', label: 'Audit Logs', icon: FileText },
   { path: '/admin/notifications', label: 'Notifications', icon: Bell },
+  { path: '/admin/security', label: 'Sécurité & Monitoring', icon: Shield },
 ];
 
 function AdminLayoutContent() {
   const { isAuthenticated, currentSession, logout } = useAuth();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Précharger toutes les pages admin en arrière-plan dès que l'utilisateur est SuperAdmin
+  const isSuperAdmin = currentSession?.role === 'super_admin';
+  useRoutePreload([
+    () => import('../pages/admin/BarsManagementPage'),
+    () => import('../pages/admin/UsersManagementPage'),
+    () => import('../pages/GlobalCatalogPage'),
+    () => import('../pages/AuditLogsPage'),
+    () => import('../pages/AdminNotificationsPage'),
+    () => import('../pages/SecurityDashboardPage'),
+  ], isSuperAdmin);
 
   const isActiveRoute = (path: string, exact?: boolean) => {
     if (exact) {
@@ -78,9 +93,13 @@ function AdminLayoutContent() {
         >
           {/* Desktop Header + Mobile Sidebar Header */}
           <div className="flex items-center gap-3 p-6 bg-gradient-to-r from-purple-600 to-indigo-600 text-white">
-            <ShieldCheck className="w-8 h-8" />
+            <img
+              src="/icons/icon-48x48.png"
+              alt="BarTender"
+              className="w-8 h-8 flex-shrink-0 rounded"
+            />
             <div>
-              <h1 className="font-bold text-lg">🍺 BarTender Pro Administration</h1>
+              <h1 className="font-bold text-lg">BarTender Pro Administration</h1>
               <p className="text-purple-200 text-sm hidden lg:block">Administration</p>
             </div>
           </div>
@@ -144,9 +163,11 @@ function AdminLayoutContent() {
 
         {/* Main Content */}
         <main className="flex-1 p-4 lg:p-8 min-h-screen">
-          <Suspense fallback={<LoadingFallback />}>
-            <Outlet />
-          </Suspense>
+          <LazyLoadErrorBoundary maxRetries={3}>
+            <Suspense fallback={<LoadingFallback />}>
+              <Outlet />
+            </Suspense>
+          </LazyLoadErrorBoundary>
         </main>
       </div>
     </div>

@@ -23,6 +23,7 @@ import { useBarContext } from '../context/BarContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { BarSelector } from './BarSelector';
 import { SyncStatusBadge } from './SyncStatusBadge'; // ✅ Badge sync unifié (remplace OfflineIndicator, NetworkIndicator, SyncButton)
+import { NetworkBadge } from './NetworkBadge'; // ✅ Badge réseau compact pour le header
 import { useViewport } from '../hooks/useViewport';
 import { ProfileSettings } from './ProfileSettings';
 import { Button } from './ui/Button';
@@ -132,8 +133,13 @@ export function Header({
 
             {/* Logo + Nom bar - CENTER/RIGHT */}
             <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-center">
+              <img
+                src="/icons/icon-48x48.png"
+                alt="BarTender"
+                className="w-5 h-5 flex-shrink-0 rounded"
+              />
               <h1 className="text-sm font-bold text-white truncate">
-                🍺 <AnimatedBarName text={currentSession?.role === 'super_admin' ? 'BarTender Pro' : (currentBar?.name || 'BarTender')} />
+                <AnimatedBarName text={currentSession?.role === 'super_admin' ? 'BarTender Pro' : (currentBar?.name || 'BarTender')} />
               </h1>
             </div>
 
@@ -149,106 +155,88 @@ export function Header({
             </Button>
           </div>
           ) : (
-            // Layout NON-ADMIN: Hamburger (LEFT) + Titre (CENTER) + Actions (RIGHT)
-            <div className="flex items-center justify-between gap-2 mb-2 w-full">
-              {/* Bouton Menu Hamburger - LEFT side */}
-              <Button
-                onClick={onToggleMobileSidebar}
-                variant="ghost"
-                size="icon"
-                className="p-2 bg-gray-900/90 rounded-lg text-white active:scale-95 transition-all shadow-lg border-2 border-white/40 flex-shrink-0"
-                aria-label="Menu"
-              >
-                <Menu size={22} className="stroke-[2.5]" />
-              </Button>
-
-              {/* Logo + Nom bar / Sélecteur de bar - CENTER */}
-              <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-center">
-                {currentSession?.role === 'promoteur' ? (
-                  <BarSelector onCreateNew={onShowCreateBar} />
-                ) : (
-                  <h1 className="text-sm font-bold text-white truncate">
-                    🍺 <AnimatedBarName text={currentBar?.name || 'BarTender'} />
-                  </h1>
-                )}
-              </div>
-
-              {/* Indicateurs + Actions (compacts) - RIGHT side */}
-              <div className="flex items-center gap-1 flex-shrink-0">
-                {/* ✅ Nouveau badge sync unifié */}
-                <SyncStatusBadge compact position="header" />
-                {/* NEW: Add buttons for common modals from header (QuickSale only on mobile) */}
-                {(currentSession?.role !== 'super_admin' || isAdminInImpersonation) && (
-                  <>
-                    <Button
-                      onClick={onShowQuickSale}
-                      variant="ghost"
-                      size="icon"
-                      className="p-1.5 bg-orange-500/90 rounded-lg text-white active:scale-95 transition-transform"
-                      aria-label="Vente Rapide"
-                      title="Vente Rapide"
-                    >
-                      <ShoppingCart size={16} />
-                    </Button>
-                  </>
-                )}
+            // Layout NON-ADMIN Mobile: 3 lignes
+            <>
+              {/* Ligne 1: Hamburger + Badges + Actions */}
+              <div className="flex items-center justify-between gap-2 mb-2 w-full">
+                {/* Bouton Menu Hamburger - LEFT */}
                 <Button
-                  onClick={() => setShowProfileSettings(true)}
+                  onClick={onToggleMobileSidebar}
                   variant="ghost"
                   size="icon"
-                  className="p-1.5 bg-indigo-600/90 rounded-lg text-white active:scale-95 transition-transform"
-                  aria-label="Mon Profil"
+                  className="p-2 bg-gray-900/90 rounded-lg text-white active:scale-95 transition-all shadow-lg border-2 border-white/40 flex-shrink-0"
+                  aria-label="Menu"
                 >
-                  <User size={16} />
+                  <Menu size={22} className="stroke-[2.5]" />
                 </Button>
-                <Button
-                  onClick={logout}
-                  variant="ghost"
-                  size="icon"
-                  className="p-1.5 bg-red-500/80 rounded-lg text-white active:scale-95 transition-transform"
-                  aria-label="Déconnexion"
-                >
-                  <LogOut size={16} />
-                </Button>
-              </div>
-            </div>
-          )}
 
-          {/* Ligne 2: Ventes du jour (info principale) - Masqué pour super admin sauf en impersonation */}
-          {(currentSession?.role !== 'super_admin' || isAdminInImpersonation) && (
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-white/80 text-xs font-medium">Ventes du jour</p>
-                  <p className="text-white text-lg font-bold tracking-tight">
-                    {formatPrice(todayTotal)}
-                  </p>
+                {/* Badges + Actions - RIGHT */}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <SyncStatusBadge compact position="header" />
+                  <NetworkBadge />
+                  <Button
+                    onClick={() => setShowProfileSettings(true)}
+                    variant="ghost"
+                    size="icon"
+                    className="p-1.5 bg-indigo-600/90 rounded-lg text-white active:scale-95 transition-transform"
+                    aria-label="Mon Profil"
+                  >
+                    <User size={16} />
+                  </Button>
+                  <Button
+                    onClick={logout}
+                    variant="ghost"
+                    size="icon"
+                    className="p-1.5 bg-red-500/80 rounded-lg text-white active:scale-95 transition-transform"
+                    aria-label="Déconnexion"
+                  >
+                    <LogOut size={16} />
+                  </Button>
                 </div>
+              </div>
 
-                {/* Badge rôle */}
-                <div className="flex items-center gap-1 bg-white/20 rounded-full px-3 py-1">
+              {/* Ligne 2: Nom du bar + Ventes du jour (même enveloppe) */}
+              <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2 mb-2">
+                <div className="flex items-center justify-between gap-2">
+                  {/* Nom du bar ou sélecteur - LEFT */}
+                  {currentSession?.role === 'promoteur' ? (
+                    <BarSelector onCreateNew={onShowCreateBar} />
+                  ) : (
+                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                      <img
+                        src="/icons/icon-48x48.png"
+                        alt="BarTender"
+                        className="w-5 h-5 flex-shrink-0 rounded"
+                      />
+                      <span className="text-sm font-medium text-white truncate">
+                        <AnimatedBarName text={currentBar?.name || 'BarTender'} />
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Ventes du jour - RIGHT (seulement pour non super admin) */}
+                  {(currentSession?.role !== 'super_admin' || isAdminInImpersonation) && (
+                    <div className="flex flex-col items-end flex-shrink-0">
+                      <p className="text-white/80 text-xs font-medium">Ventes jour</p>
+                      <p className="text-white text-sm font-medium">{formatPrice(todayTotal)}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Ligne 3: Rôle + Nom utilisateur (centré) */}
+              <div className="flex items-center justify-center gap-2 mb-1 w-full">
+                <div className="flex items-center gap-1 bg-white/20 rounded-full px-2 py-0.5">
                   {getRoleIcon()}
                   <span className="text-white text-xs font-medium">{getRoleLabel()}</span>
                 </div>
+                {currentSession?.userName && (
+                  <span className="text-white/90 text-xs font-medium">
+                    {currentSession.userName}
+                  </span>
+                )}
               </div>
-            </div>
-          )}
-
-          {/* Badge rôle pour super admin (standalone) - sauf en impersonation */}
-          {currentSession?.role === 'super_admin' && !isAdminInImpersonation && (
-            <div className="flex items-center justify-center">
-              <div className="flex items-center gap-2 bg-white/20 rounded-full px-4 py-2">
-                {getRoleIcon()}
-                <span className="text-white text-sm font-bold">{getRoleLabel()}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Ligne 3: Nom utilisateur (si espace) */}
-          {currentSession?.userName && (
-            <p className="text-white/90 text-xs mt-1 text-center font-medium">
-              {currentSession.userName}
-            </p>
+            </>
           )}
         </div>
 
@@ -268,7 +256,7 @@ export function Header({
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Gauche: Hamburger + Logo + Indicateurs + Bar selector */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             {/* Bouton Menu Hamburger */}
             <Button
               onClick={onToggleMobileSidebar}
@@ -284,13 +272,23 @@ export function Header({
             {currentSession?.role === 'promoteur' ? (
               <BarSelector onCreateNew={onShowCreateBar} />
             ) : (
-              <h1 className="text-2xl font-bold text-white">
-                🍺 <AnimatedBarName text={currentSession?.role === 'super_admin' ? 'BarTender Pro' : (currentBar?.name || 'BarTender')} />
-              </h1>
+              <div className="flex items-center gap-2">
+                <img
+                  src="/icons/icon-48x48.png"
+                  alt="BarTender"
+                  className="w-6 h-6 md:w-8 md:h-8 flex-shrink-0 rounded"
+                />
+                <h1 className="text-lg md:text-2xl font-bold text-white">
+                  <AnimatedBarName text={currentSession?.role === 'super_admin' ? 'BarTender Pro' : (currentBar?.name || 'BarTender')} />
+                </h1>
+              </div>
             )}
 
             {/* ✅ Nouveau badge sync unifié (remplace OfflineIndicator + NetworkIndicator + SyncButton) */}
             <SyncStatusBadge position="header" />
+
+            {/* ✅ Badge réseau compact (offline/connexion lente) */}
+            <NetworkBadge />
 
             {/* NEW: Desktop buttons for common modals */}
             {currentSession?.role !== 'super_admin' && (
@@ -309,7 +307,7 @@ export function Header({
                   onClick={onShowQuickSale}
                   variant="ghost"
                   size="icon"
-                  className="p-2 bg-orange-500/90 rounded-lg text-white hover:bg-orange-600/90 transition-colors"
+                  className="hidden md:flex p-2 bg-orange-500/90 rounded-lg text-white hover:bg-orange-600/90 transition-colors"
                   aria-label="Vente Rapide"
                   title="Vente Rapide"
                 >
@@ -320,17 +318,17 @@ export function Header({
           </div>
 
           {/* Droite: Stats + User + Déconnexion */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2 md:gap-6">
             {/* Ventes du jour - Masqué pour super admin sauf en impersonation */}
             {(currentSession?.role !== 'super_admin' || isAdminInImpersonation) && (
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-                <p className="text-white/80 text-sm">Ventes du jour</p>
-                <p className="text-white text-2xl font-bold">{formatPrice(todayTotal)}</p>
+              <div className="hidden sm:block bg-white/20 backdrop-blur-sm rounded-lg px-3 md:px-4 py-2">
+                <p className="text-white/80 text-xs md:text-sm">Ventes du jour</p>
+                <p className="text-white text-lg md:text-2xl font-bold">{formatPrice(todayTotal)}</p>
               </div>
             )}
 
             {/* User info */}
-            <div className="text-right">
+            <div className="hidden md:block text-right">
               <p className="text-white font-medium">{currentSession?.userName}</p>
               <p className="text-white/80 text-sm flex items-center justify-end gap-1">
                 {getRoleIcon()}

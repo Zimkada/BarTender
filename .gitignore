@@ -23,9 +23,19 @@ dist-ssr
 *.sln
 *.sw?
 .env
+.env*.local
+
+# Supabase secrets
+supabase/.env
+supabase/functions/.env
+
+# Scripts de configuration avec secrets (si régénérés)
+setup-alerts.ps1
+setup-alerts.sh
+setup-alerts.bat
+configure_postgres_settings.sql
 
 .vercel
-.env*.local
 
 *storybook.log
 storybook-static

@@ -16,6 +16,10 @@ import { ModalProvider } from './context/ModalContext';
 import { NotificationsProvider } from './components/Notifications';
 import { ErrorFallback } from './components/common/ErrorFallback'; // Ajout de l'import ErrorFallback
 
+// PWA Components
+import { PWAInstallPrompt } from './components/PWAInstallPrompt';
+import { PWAUpdatePrompt } from './components/PWAUpdatePrompt';
+
 // Config
 import { queryClient } from './lib/react-query';
 import { router } from './routes';
@@ -37,6 +41,9 @@ createRoot(document.getElementById('root')!).render(
                     <ModalProvider>
                       <ErrorBoundary FallbackComponent={ErrorFallback} onError={(error, info) => console.error("Caught an error:", error, info)}>
                         <RouterProvider router={router} />
+                        {/* PWA Components */}
+                        <PWAInstallPrompt />
+                        <PWAUpdatePrompt />
                       </ErrorBoundary>
                     </ModalProvider>
                   </AppProvider>

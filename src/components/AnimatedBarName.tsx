@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
-const AnimatedBarName: React.FC<{ text: string; className?: string }> = ({ text, className }) => {
+const AnimatedBarName: React.FC<{ text: string; className?: string; truncate?: boolean }> = ({ text, className, truncate = false }) => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -10,6 +10,16 @@ const AnimatedBarName: React.FC<{ text: string; className?: string }> = ({ text,
     return () => clearTimeout(timer);
   }, []);
 
+  // Mode truncate: affiche le texte sans animation pour permettre la troncature CSS
+  if (truncate) {
+    return (
+      <span className={`inline-block truncate ${className || ''}`}>
+        {text}
+      </span>
+    );
+  }
+
+  // Mode normal: animation lettre par lettre
   return (
     <span className={`inline-flex ${className || ''}`}>
       {text.split('').map((char, index) => (

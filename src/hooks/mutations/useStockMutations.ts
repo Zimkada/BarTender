@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useActingAs } from '../../context/ActingAsContext';
 import { useBarContext } from '../../context/BarContext';
 import toast from 'react-hot-toast';
+import { broadcastService } from '../../services/broadcast/BroadcastService';
 
 // Helper: Centralized cache invalidation for stock queries
 const invalidateStockQuery = (
@@ -71,9 +72,20 @@ export const useStockMutations = () => {
             // STANDARD MODE
             return ProductsService.updateBarProduct(id, updates);
         },
-        onSuccess: () => {
+        onSuccess: (data, variables) => {
             const barId = currentBar?.id;
             toast.success('Produit mis à jour');
+
+            // 🚀 PHASE 3-4: Broadcast aux autres onglets
+            if (barId && broadcastService.isSupported()) {
+                broadcastService.broadcast({
+                    event: 'UPDATE',
+                    table: 'bar_products',
+                    barId,
+                    data: { id: variables.id, ...variables.updates },
+                });
+            }
+
             if (barId) {
                 invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
             }
@@ -128,9 +140,20 @@ export const useStockMutations = () => {
                 return ProductsService.decrementStock(productId, Math.abs(delta));
             }
         },
-        onSuccess: () => {
+        onSuccess: (data, variables) => {
             const barId = currentBar?.id;
             toast.success('Stock mis à jour');
+
+            // 🚀 PHASE 3-4: Broadcast aux autres onglets
+            if (barId && broadcastService.isSupported()) {
+                broadcastService.broadcast({
+                    event: 'UPDATE',
+                    table: 'bar_products',
+                    barId,
+                    data: { id: variables.productId, stockDelta: variables.delta },
+                });
+            }
+
             if (barId) {
                 invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
             }
@@ -172,9 +195,27 @@ export const useStockMutations = () => {
 
             return rpcData.supply;
         },
-        onSuccess: () => {
+        onSuccess: (data, variables) => {
             const barId = currentBar?.id;
             toast.success('Approvisionnement enregistré et CUMP mis à jour !');
+
+            // 🚀 PHASE 3-4: Broadcast aux autres onglets
+            if (barId && broadcastService.isSupported()) {
+                broadcastService.broadcast({
+                    event: 'INSERT',
+                    table: 'supplies',
+                    barId,
+                    data: variables,
+                });
+                // Également broadcaster la mise à jour du produit (stock + CUMP)
+                broadcastService.broadcast({
+                    event: 'UPDATE',
+                    table: 'bar_products',
+                    barId,
+                    data: { id: variables.product_id },
+                });
+            }
+
             if (barId) {
                 invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
                 invalidateStockQuery(queryClient, stockKeys.supplies(barId), barId, actingAs);

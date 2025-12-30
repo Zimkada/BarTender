@@ -8,6 +8,7 @@ import { ProxyAdminService } from '../services/supabase/proxy-admin.service';
 import { AuthService } from '../services/supabase/auth.service';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
+import { OfflineStorage } from '../utils/offlineStorage';
 
 type BarMemberRow = Database['public']['Tables']['bar_members']['Row'];
 type BarMemberInsert = Database['public']['Tables']['bar_members']['Insert'];
@@ -72,24 +73,40 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       setLoading(true);
 
+      // 🔄 OFFLINE-FIRST: Charger d'abord depuis le cache
+      const cachedBars = OfflineStorage.getBars();
+      if (cachedBars && cachedBars.length > 0) {
+        console.log('[BarContext] Loading bars from offline cache');
+        setBars(cachedBars);
+        setUserBars(cachedBars);
+      }
+
+      // Puis essayer de récupérer depuis le serveur
       if (currentSession.role === 'super_admin') {
         // Super admin voit tous les bars
         const allBars = await BarsService.getAllBars();
         // BarsService returns BarWithOwner[], compatible with Bar[]
         setBars(allBars);
         setUserBars(allBars);
+        // 💾 Sauvegarder en cache
+        OfflineStorage.saveBars(allBars);
       } else {
         // Les autres utilisateurs voient seulement leurs bars
         if (currentSession.userId === '1') {
           console.warn('[BarContext] Skipping bar fetch for invalid user ID 1');
-          setBars([]);
-          setUserBars([]);
+          // Mais on garde le cache si disponible
+          if (!cachedBars || cachedBars.length === 0) {
+            setBars([]);
+            setUserBars([]);
+          }
           setLoading(false);
           return;
         }
         const userBarsData = await BarsService.getMyBars();
         setBars(userBarsData);
         setUserBars(userBarsData);
+        // 💾 Sauvegarder en cache
+        OfflineStorage.saveBars(userBarsData);
       }
 
       // Charger les membres du bar courant (priorité à actingAs)
@@ -168,9 +185,13 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [currentSession, actingAs]);
 
   // Charger les bars au démarrage et quand la session change
+  // 🔧 FIX: Utiliser une référence stable pour éviter les re-fetches lors du bar switching
+  const refreshBarsRef = React.useRef(refreshBars);
+  refreshBarsRef.current = refreshBars;
+
   useEffect(() => {
-    refreshBars();
-  }, [refreshBars]);
+    refreshBarsRef.current();
+  }, [currentSession?.userId, currentSession?.role, actingAs.isActive, actingAs.userId]);
 
   // Helper pour obtenir les bars accessibles
   const getUserBars = useCallback(() => {
@@ -195,17 +216,8 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     }
 
-    // Prioriser le barId de la session
-    if (currentSession.barId && currentSession.barId !== 'admin_global') {
-      const sessionBar = bars.find(b => b.id === currentSession.barId);
-      if (sessionBar) {
-        setCurrentBar(sessionBar);
-        setCurrentBarId(sessionBar.id);
-        return;
-      }
-    }
-
-    // Si currentBarId est défini manuellement (via switchBar), l'utiliser
+    // 🔧 FIX: Prioriser currentBarId (si défini manuellement via switchBar) AVANT currentSession.barId
+    // Cela permet au switching manuel de fonctionner correctement
     if (currentBarId) {
       const bar = bars.find(b => b.id === currentBarId);
       if (bar) {
@@ -217,10 +229,20 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     }
 
-    // Essayer de restaurer depuis localStorage si le promoteur a plusieurs bars
+    // Puis utiliser le barId de la session (fallback)
+    if (currentSession.barId && currentSession.barId !== 'admin_global') {
+      const sessionBar = bars.find(b => b.id === currentSession.barId);
+      if (sessionBar) {
+        setCurrentBar(sessionBar);
+        setCurrentBarId(sessionBar.id);
+        return;
+      }
+    }
+
+    // 💾 Essayer de restaurer depuis le cache offline si le promoteur a plusieurs bars
     const accessibleBars = getUserBars();
     if (accessibleBars.length > 1) {
-      const savedBarId = localStorage.getItem('selectedBarId');
+      const savedBarId = OfflineStorage.getCurrentBarId();
       if (savedBarId && accessibleBars.some(b => b.id === savedBarId)) {
         const savedBar = bars.find(b => b.id === savedBarId);
         if (savedBar) {
@@ -411,6 +433,9 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     // Mettre à jour le bar local
     setCurrentBarId(barId);
+
+    // 💾 Sauvegarder le bar sélectionné pour offline
+    OfflineStorage.saveCurrentBarId(barId);
 
     // Mettre à jour la session AuthContext
     updateCurrentBar(barId, bar.name);

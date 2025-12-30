@@ -1,6 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Suspense, lazy } from 'react';
 import { motion } from 'framer-motion';
-import * as XLSX from 'xlsx';
 import {
   TrendingUp,
   TrendingDown,
@@ -25,8 +24,11 @@ import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 import { getSaleDate } from '../utils/saleHelpers';
 import { dateToInputValue } from '../utils/dateRangeCalculator';
+import { exportToExcel } from '../utils/exportToExcel';
 
-import AnalyticsCharts from './AnalyticsCharts';
+// Lazy load charts to reduce initial bundle size (saves ~110 KB gzipped)
+const AnalyticsCharts = lazy(() => import('./AnalyticsCharts'));
+
 import { AnalyticsService, DailySalesSummary, ExpensesSummary, SalariesSummary } from '../services/supabase/analytics.service';
 import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
@@ -431,7 +433,9 @@ export function AccountingOverview() {
   };
 
   // Export comptable complet
-  const handleExportAccounting = () => {
+  const handleExportAccounting = async () => {
+    // Lazy load xlsx library only when export is triggered
+    const XLSX = await import('xlsx');
     const workbook = XLSX.utils.book_new();
 
     // Filtrer les données par période pour l'export
@@ -1011,7 +1015,9 @@ export function AccountingOverview() {
           </div>
 
           {/* Charts */}
-          <AnalyticsCharts data={chartData} expensesByCategory={expensesByCategoryData} />
+          <Suspense fallback={<div className="text-center py-8 text-gray-500">Chargement des graphiques...</div>}>
+            <AnalyticsCharts data={chartData} expensesByCategory={expensesByCategoryData} />
+          </Suspense>
         </div>
       )}
 

@@ -27,7 +27,7 @@
     --secondary-foreground: 24 9.8% 10%;
 
     --muted: 40 38% 95%;
-    --muted-foreground: 25 5.3% 44.7%;
+    --muted-foreground: 25 5.3% 35%; /* Darkened from 44.7% pour meilleur contraste */
 
     --accent: 40 38% 95%;
     --accent-foreground: 24 9.8% 10%;
@@ -40,6 +40,17 @@
     --ring: 38 92% 50%;
 
     --radius: 0.5rem;
+  }
+
+  /* 🎨 Amélioration des contrastes pour accessibilité WCAG AA */
+  .text-gray-400 {
+    --tw-text-opacity: 1;
+    color: rgb(107 114 128 / var(--tw-text-opacity)); /* Upgraded from gray-400 to gray-500 */
+  }
+
+  .text-gray-300 {
+    --tw-text-opacity: 1;
+    color: rgb(156 163 175 / var(--tw-text-opacity)); /* Upgraded from gray-300 to gray-400 */
   }
 }
 
