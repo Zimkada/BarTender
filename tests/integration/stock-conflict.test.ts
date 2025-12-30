@@ -38,7 +38,7 @@ describe('Stock Conflict Test - Phase 5 Validation', () => {
       .from('bar_products')
       .insert({
         bar_id: testBarId,
-        name: 'Dernière Bière',
+        local_name: 'Dernière Bière Test',
         price: 500,
         stock: 1, // ⚠️ Stock critique
         alert_threshold: 5,
@@ -70,7 +70,6 @@ describe('Stock Conflict Test - Phase 5 Validation', () => {
         p_items: [
           {
             product_id: testProductId,
-            product_name: 'Dernière Bière',
             quantity: 1,
             unit_price: 500,
             total_price: 500,
