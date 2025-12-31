@@ -19,6 +19,7 @@ import {
   FileText,
   Building2,
   UserCog,
+  User,
   Globe,
   Gift,
 } from 'lucide-react';
@@ -92,6 +93,7 @@ export function MobileSidebar({
     { id: 'teamManagement', label: "Gestion de l'Équipe", icon: <Users size={20} />, roles: ['promoteur', 'gerant'], path: '/team' },
     { id: 'promotions', label: 'Promotions', icon: <Gift size={20} />, roles: ['promoteur', 'gerant'], path: '/promotions' }, // Placeholder path
     { id: 'settings', label: 'Paramètres', icon: <Settings size={20} />, roles: ['promoteur', 'gerant'], path: '/settings' },
+    { id: 'profile', label: 'Mon Profil', icon: <User size={20} />, roles: ['super_admin', 'promoteur', 'gerant', 'serveur'], path: '/profil' },
     { id: 'accounting', label: 'Comptabilité', icon: <DollarSign size={20} />, roles: ['promoteur'], path: '/accounting' }
   ];
 

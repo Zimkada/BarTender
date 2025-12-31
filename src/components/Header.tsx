@@ -29,6 +29,7 @@ import { useViewport } from '../hooks/useViewport';
 import { ProfileSettings } from './ProfileSettings';
 import { Button } from './ui/Button';
 import AnimatedBarName from './AnimatedBarName';
+import { AnimatedCounter } from './AnimatedCounter';
 
 import { Bar } from '../types'; // NEW: Import Bar type
 
@@ -69,7 +70,7 @@ export function Header({
   const { isMobile } = useViewport();
   const navigate = useNavigate(); // NEW: Initialize useNavigate
 
-  const [showProfileSettings, setShowProfileSettings] = useState(false);
+
 
   // Check if super_admin is currently in impersonation mode
   const isAdminInImpersonation = currentSession?.role === 'super_admin' && isActingAs();
@@ -150,7 +151,7 @@ export function Header({
               onClick={onToggleMobileSidebar}
               variant="ghost"
               size="icon"
-              className="p-2 bg-gray-900/90 rounded-lg text-white active:scale-95 transition-all shadow-lg border-2 border-white/40 flex-shrink-0"
+              className="p-2 bg-white rounded-lg text-purple-600 active:scale-95 transition-all shadow-lg border-2 border-white/40 flex-shrink-0"
               aria-label="Menu"
             >
               <Menu size={22} className="stroke-[2.5]" />
@@ -166,7 +167,7 @@ export function Header({
                   onClick={onToggleMobileSidebar}
                   variant="ghost"
                   size="icon"
-                  className="p-2 bg-gray-900/90 rounded-lg text-white active:scale-95 transition-all shadow-lg border-2 border-white/40 flex-shrink-0"
+                  className="p-2 bg-white rounded-lg text-amber-600 active:scale-95 transition-all shadow-lg border-2 border-white/40 flex-shrink-0"
                   aria-label="Menu"
                 >
                   <Menu size={22} className="stroke-[2.5]" />
@@ -177,15 +178,7 @@ export function Header({
                   <SyncStatusBadge compact position="header" />
                   <RefreshButton />
                   <NetworkBadge />
-                  <Button
-                    onClick={() => setShowProfileSettings(true)}
-                    variant="ghost"
-                    size="icon"
-                    className="p-1.5 bg-indigo-600/90 rounded-lg text-white active:scale-95 transition-transform"
-                    aria-label="Mon Profil"
-                  >
-                    <User size={16} />
-                  </Button>
+
                   <Button
                     onClick={logout}
                     variant="ghost"
@@ -219,9 +212,13 @@ export function Header({
 
                   {/* Ventes du jour - RIGHT (seulement pour non super admin) */}
                   {(currentSession?.role !== 'super_admin' || isAdminInImpersonation) && (
-                    <div className="flex flex-col items-end flex-shrink-0">
+                    <div className="flex flex-col items-center flex-shrink-0">
                       <p className="text-white/80 text-xs font-medium">Ventes jour</p>
-                      <p className="text-white text-sm font-medium">{formatPrice(todayTotal)}</p>
+                      <AnimatedCounter
+                        value={todayTotal}
+                        className="text-white text-sm font-medium"
+                        suffix=" FCFA"
+                      />
                     </div>
                   )}
                 </div>
@@ -325,9 +322,13 @@ export function Header({
           <div className="flex items-center gap-2 md:gap-6">
             {/* Ventes du jour - Masqué pour super admin sauf en impersonation */}
             {(currentSession?.role !== 'super_admin' || isAdminInImpersonation) && (
-              <div className="hidden sm:block bg-white/20 backdrop-blur-sm rounded-lg px-3 md:px-4 py-2">
+              <div className="hidden sm:block bg-white/20 backdrop-blur-sm rounded-lg px-3 md:px-4 py-2 flex flex-col items-center">
                 <p className="text-white/80 text-xs md:text-sm">Ventes du jour</p>
-                <p className="text-white text-lg md:text-2xl font-bold">{formatPrice(todayTotal)}</p>
+                <AnimatedCounter
+                  value={todayTotal}
+                  className="text-white text-lg md:text-2xl font-bold"
+                  suffix=" FCFA"
+                />
               </div>
             )}
 
@@ -397,16 +398,7 @@ export function Header({
               </>
             )}
 
-            {/* Mon Profil */}
-            <Button
-              onClick={() => setShowProfileSettings(true)}
-              variant="ghost"
-              size="icon"
-              className="p-2 bg-indigo-600/90 rounded-lg text-white hover:bg-indigo-700/90 transition-colors"
-              title="Mon Profil"
-            >
-              <User size={20} />
-            </Button>
+
 
             {/* Déconnexion */}
             <button
@@ -421,11 +413,6 @@ export function Header({
       </div>
 
 
-      {/* ProfileSettings Modal */}
-      <ProfileSettings
-        isOpen={showProfileSettings}
-        onClose={() => setShowProfileSettings(false)}
-      />
     </header>
   );
 }

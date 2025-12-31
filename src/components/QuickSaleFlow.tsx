@@ -443,11 +443,10 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
 
                       <div className="flex-1 overflow-y-auto p-4 space-y-3">
                         <CartShared
-                          items={cart}
+                          items={calculatedItems}
                           onUpdateQuantity={updateQuantity}
                           onRemoveItem={(id) => updateQuantity(id, 0)}
                           variant="mobile"
-                          barId={currentBar?.id}
                         />
 
                         {currentBar?.settings?.operatingMode === 'simplified' && (
@@ -582,11 +581,10 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                       </div>
                     ) : (
                       <CartShared
-                        items={cart}
+                        items={calculatedItems}
                         onUpdateQuantity={updateQuantity}
                         onRemoveItem={(id) => updateQuantity(id, 0)}
                         variant="desktop"
-                        barId={currentBar?.id}
                       />
                     )}
                   </div>

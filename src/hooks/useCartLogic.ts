@@ -8,7 +8,7 @@ interface UseCartLogicProps {
     barId?: string;
 }
 
-interface CalculatedItem extends CartItem {
+export interface CalculatedItem extends CartItem {
     unit_price: number;
     total_price: number;
     original_unit_price: number;

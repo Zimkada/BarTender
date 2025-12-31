@@ -23,6 +23,7 @@ const PromotionsPage = lazyWithRetry(() => import('../pages/PromotionsPage'));
 const InventoryPage = lazyWithRetry(() => import('../pages/InventoryPage'));
 const AccountingPage = lazyWithRetry(() => import('../pages/AccountingPage'));
 const SettingsPage = lazyWithRetry(() => import('../pages/SettingsPage'));
+const ProfilePage = lazyWithRetry(() => import('../pages/ProfilePage'));
 
 // === Composants avec named exports ===
 const SalesHistoryPage = lazyWithRetry(() => import('../pages/SalesHistoryPage'));
@@ -94,6 +95,7 @@ export const router = createBrowserRouter([
         ],
       },
       { path: 'settings', element: <SettingsPage /> },
+      { path: 'profil', element: <ProfilePage /> },
       { path: 'forecasting', element: <ForecastingPage /> },
       { path: 'returns', element: <ReturnsPage /> },
       { path: 'consignments', element: <ConsignmentPage /> },

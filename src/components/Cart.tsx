@@ -161,11 +161,10 @@ export function Cart({
 
             <div className="flex-1 overflow-y-auto px-4 py-4">
               <CartShared
-                items={items}
+                items={calculatedItems}
                 onUpdateQuantity={onUpdateQuantity}
                 onRemoveItem={onRemoveItem}
                 variant="mobile"
-                barId={currentBar?.id}
               />
               {items.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-center">
@@ -310,11 +309,10 @@ export function Cart({
 
           <div className="flex-1 overflow-y-auto p-4">
             <CartShared
-              items={items}
+              items={calculatedItems}
               onUpdateQuantity={onUpdateQuantity}
               onRemoveItem={onRemoveItem}
               variant="desktop"
-              barId={currentBar?.id}
             />
             {items.length === 0 && (
               <div className="text-center py-8">

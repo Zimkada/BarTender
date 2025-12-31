@@ -79,11 +79,10 @@ export function ServerCart({
 
         <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
           <CartShared
-            items={items}
+            items={calculatedItems}
             onUpdateQuantity={onUpdateQuantity}
             onRemoveItem={onRemoveItem}
             variant="desktop"
-            barId={currentBar?.id}
           />
         </div>
 

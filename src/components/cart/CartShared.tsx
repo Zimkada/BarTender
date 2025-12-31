@@ -1,14 +1,12 @@
 import { Plus, Minus, Trash2, Tag } from 'lucide-react';
-import { CartItem } from '../../types';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
-import { useCartLogic } from '../../hooks/useCartLogic';
+import { CalculatedItem } from '../../hooks/useCartLogic';
 
 interface CartSharedProps {
-    items: CartItem[];
+    items: CalculatedItem[];
     onUpdateQuantity: (productId: string, quantity: number) => void;
     onRemoveItem: (productId: string) => void;
     variant?: 'mobile' | 'desktop';
-    barId?: string;
 }
 
 /**
@@ -21,11 +19,8 @@ export function CartShared({
     onUpdateQuantity,
     onRemoveItem,
     variant = 'mobile',
-    barId
 }: CartSharedProps) {
     const { formatPrice } = useCurrencyFormatter();
-    const { calculateItemPrice } = useCartLogic({ items, barId });
-
     const isMobile = variant === 'mobile';
 
     if (items.length === 0) {
@@ -35,8 +30,6 @@ export function CartShared({
     return (
         <div className={isMobile ? 'space-y-3' : 'space-y-2'}>
             {items.map((item) => {
-                const prices = calculateItemPrice(item);
-
                 return (
                     <div
                         key={item.product.id}
@@ -84,22 +77,22 @@ export function CartShared({
 
                             {/* Prix avec promotion */}
                             <div className="text-right">
-                                {prices.hasPromotion ? (
+                                {item.hasPromotion ? (
                                     <>
                                         <div className="flex items-center gap-1.5 justify-end mb-0.5">
                                             <Tag size={16} className="text-green-600" />
                                             <span className="text-sm text-green-600 font-semibold">PROMO</span>
                                         </div>
                                         <div className="text-base text-gray-400 line-through">
-                                            {formatPrice(prices.original)}
+                                            {formatPrice(item.original_unit_price * item.quantity)}
                                         </div>
                                         <div className="text-green-600 font-bold text-xl font-mono">
-                                            {formatPrice(prices.final)}
+                                            {formatPrice(item.total_price)}
                                         </div>
                                     </>
                                 ) : (
                                     <span className={`text-amber-600 font-bold text-${isMobile ? 'xl' : 'base'} font-mono`}>
-                                        {formatPrice(prices.final)}
+                                        {formatPrice(item.total_price)}
                                     </span>
                                 )}
                             </div>
