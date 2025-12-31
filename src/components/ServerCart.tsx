@@ -1,14 +1,15 @@
-import React, { useMemo } from 'react';
-import { ShoppingCart, Plus, Minus, Trash2, Send, Tag } from 'lucide-react';
+```typescript
+import { useState } from 'react';
+import { ShoppingCart, Send, Tag } from 'lucide-react';
 import { CartItem } from '../types';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
 import { AnimatedCounter } from './AnimatedCounter';
-import { usePromotions } from '../hooks/usePromotions';
 import { useBarContext } from '../context/BarContext';
-import { FEATURES } from '../config/features';
 import { PaymentMethodSelector, PaymentMethod } from './cart/PaymentMethodSelector';
+import { CartShared } from './cart/CartShared';
+import { useCartLogic } from '../hooks/useCartLogic';
 
 interface ServerCartProps {
   items: CartItem[];
@@ -19,39 +20,44 @@ interface ServerCartProps {
   onClear: () => void;
 }
 
+import { useState } from 'react';
+import { ShoppingCart, Send, Tag } from 'lucide-react';
+import { CartItem } from '../types';
+import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
+import { useFeedback } from '../hooks/useFeedback';
+import { EnhancedButton } from './EnhancedButton';
+import { AnimatedCounter } from './AnimatedCounter';
+import { useBarContext } from '../context/BarContext';
+import { PaymentMethodSelector, PaymentMethod } from './cart/PaymentMethodSelector';
+import { CartShared } from './cart/CartShared';
+import { useCartLogic } from '../hooks/useCartLogic';
+import { useAppContext } from '../context/AppContext';
+
+interface ServerCartProps {
+  items: CartItem[];
+  tableNumber: string;
+  onUpdateQuantity: (productId: string, quantity: number) => void;
+  onRemoveItem: (productId: string) => void;
+  onClear: () => void;
+}
+
 export function ServerCart({
   items,
   tableNumber,
   onUpdateQuantity,
   onRemoveItem,
-  onLaunchOrder,
   onClear
 }: ServerCartProps) {
   const { formatPrice } = useCurrencyFormatter();
   const { setLoading, isLoading, showSuccess } = useFeedback();
   const { currentBar } = useBarContext();
-  const { calculatePrice, isEnabled: promotionsEnabled } = usePromotions(currentBar?.id);
-  const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>('cash');
-
-  // ✨ Calculer total avec promotions
-  const { total, totalDiscount } = useMemo(() => {
-    let finalTotal = 0;
-    let discount = 0;
-
-    items.forEach(item => {
-      if (promotionsEnabled && FEATURES.PROMOTIONS_AUTO_APPLY) {
-        const priceInfo = calculatePrice(item.product, item.quantity);
-        finalTotal += priceInfo.finalPrice;
-        discount += priceInfo.discount;
-      } else {
-        finalTotal += item.product.price * item.quantity;
-      }
-    });
-
-    return { total: finalTotal, totalDiscount: discount };
-  }, [items, calculatePrice, promotionsEnabled]);
-
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+  const { addSale } = useAppContext();
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
+  
+  const { total, totalDiscount, totalItems, calculatedItems } = useCartLogic({
+    items,
+    barId: currentBar?.id
+  });
 
   if (items.length === 0) return null;
 
@@ -71,70 +77,14 @@ export function ServerCart({
           )}
         </div>
 
-        {/* Items */}
         <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
-          {items.map((item) => (
-            <div key={item.product.id} className="bg-amber-50 rounded-xl p-3 border border-amber-100">
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  <h4 className="font-medium text-gray-800">{item.product.name}</h4>
-                  <p className="text-sm text-gray-600">{item.product.volume}</p>
-                </div>
-                <button
-                  onClick={() => onRemoveItem(item.product.id)}
-                  className="text-red-400 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
-                    className="w-8 h-8 bg-amber-200 text-amber-700 rounded-full flex items-center justify-center hover:bg-amber-300 transition-colors"
-                  >
-                    <Minus size={16} />
-                  </button>
-                  <span className="text-gray-800 font-medium w-8 text-center">{item.quantity}</span>
-                  <button
-                    onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                    className="w-8 h-8 bg-amber-200 text-amber-700 rounded-full flex items-center justify-center hover:bg-amber-300 transition-colors"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-
-                {/* Prix avec promotion */}
-                {(() => {
-                  if (promotionsEnabled && FEATURES.PROMOTIONS_AUTO_APPLY) {
-                    const priceInfo = calculatePrice(item.product, item.quantity);
-                    if (priceInfo.hasPromotion) {
-                      return (
-                        <div className="text-right">
-                          <div className="flex items-center gap-1 justify-end mb-1">
-                            <Tag size={12} className="text-green-600" />
-                            <span className="text-xs text-green-600 font-medium">PROMO</span>
-                          </div>
-                          <div className="text-xs text-gray-400 line-through">
-                            {formatPrice(priceInfo.originalPrice)}
-                          </div>
-                          <div className="text-green-600 font-semibold">
-                            {formatPrice(priceInfo.finalPrice)}
-                          </div>
-                        </div>
-                      );
-                    }
-                  }
-                  return (
-                    <span className="text-amber-600 font-semibold">
-                      {formatPrice(item.product.price * item.quantity)}
-                    </span>
-                  );
-                })()}
-              </div>
-            </div>
-          ))}
+          <CartShared
+            items={items}
+            onUpdateQuantity={onUpdateQuantity}
+            onRemoveItem={onRemoveItem}
+            variant="desktop"
+            barId={currentBar?.id}
+          />
         </div>
 
         {/* Total */}
@@ -169,7 +119,7 @@ export function ServerCart({
           <EnhancedButton
             onClick={async () => {
               setLoading('launchOrder', true);
-              await onLaunchOrder(paymentMethod);
+              await addSale({ items: calculatedItems, paymentMethod });
               showSuccess('🚀 Commande lancée !');
               setLoading('launchOrder', false);
             }}

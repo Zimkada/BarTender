@@ -1,18 +1,17 @@
-import React, { useState, useMemo } from 'react';
-import { ShoppingCart, Plus, Minus, Trash2, X, Users, Tag } from 'lucide-react';
-import { CartItem } from '../types';
+import { useState } from 'react';
+import { ShoppingCart, X, Users, Tag, Trash2 } from 'lucide-react';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
 import { useViewport } from '../hooks/useViewport';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
-import { useAppContext } from '../context/AppContext'; // NEW
-import { usePromotions } from '../hooks/usePromotions';
+import { useAppContext } from '../context/AppContext';
 import { ServerMappingsService } from '../services/supabase/server-mappings.service';
 import { useServerMappings } from '../hooks/useServerMappings';
-import { FEATURES } from '../config/features';
 import { PaymentMethodSelector, PaymentMethod } from './cart/PaymentMethodSelector';
+import { CartShared } from './cart/CartShared';
+import { useCartLogic } from '../hooks/useCartLogic';
 import { Select, SelectOption } from './ui/Select';
 
 interface CartProps {
@@ -31,14 +30,13 @@ export function Cart({
   const { isMobile } = useViewport();
   const { currentBar } = useBarContext();
   const { currentSession } = useAuth();
-  const { calculatePrice, isEnabled: promotionsEnabled } = usePromotions(currentBar?.id);
 
   // NEW: Get cart data and functions from AppContext
-  const { 
-    cart: items, 
+  const {
+    cart: items,
     updateCartQuantity: onUpdateQuantity, // aliasing to match existing code
     removeFromCart: onRemoveItem,        // aliasing to match existing code
-    addSale, 
+    addSale,
     clearCart: onClear                       // aliasing to match existing code
   } = useAppContext();
 
@@ -55,10 +53,11 @@ export function Cart({
         : assignedTo;
 
       try {
-        serverId = await ServerMappingsService.getUserIdForServerName(
+        const resolvedId = await ServerMappingsService.getUserIdForServerName(
           currentBar.id,
           serverName
         );
+        serverId = resolvedId || undefined;
 
         // 🔴 BUG #1-2 FIX: BLOQUER la création si mapping échoue
         if (!serverId) {
@@ -87,36 +86,18 @@ export function Cart({
     }
 
     await addSale({
-      items,
+      items: calculatedItems,
       paymentMethod,
       assignedTo: assignedTo, // Pass assignedTo, which might be used by addSale logic
       serverId // ✨ NOUVEAU: Passer le server_id résolu
     });
   };
 
-  // ✨ Calculer total avec promotions
-  const { total, totalDiscount, totalOriginal } = useMemo(() => {
-    let finalTotal = 0;
-    let discount = 0;
-    let original = 0;
-
-    items.forEach(item => {
-      if (promotionsEnabled && FEATURES.PROMOTIONS_AUTO_APPLY) {
-        const priceInfo = calculatePrice(item.product, item.quantity);
-        finalTotal += priceInfo.finalPrice;
-        discount += priceInfo.discount;
-        original += priceInfo.originalPrice;
-      } else {
-        const itemTotal = item.product.price * item.quantity;
-        finalTotal += itemTotal;
-        original += itemTotal;
-      }
-    });
-
-    return { total: finalTotal, totalDiscount: discount, totalOriginal: original };
-  }, [items, calculatePrice, promotionsEnabled]);
-
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+  // ✨ Utiliser la logique partagée pour les calculs de prix et promotions
+  const { total, totalDiscount, totalItems, calculatedItems } = useCartLogic({
+    items,
+    barId: currentBar?.id
+  });
 
   const [selectedServer, setSelectedServer] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
@@ -178,90 +159,18 @@ export function Cart({
               </div>
             </div>
 
-            {/* Liste items - scrollable */}
             <div className="flex-1 overflow-y-auto px-4 py-4">
-              {items.length === 0 ? (
+              <CartShared
+                items={items}
+                onUpdateQuantity={onUpdateQuantity}
+                onRemoveItem={onRemoveItem}
+                variant="mobile"
+                barId={currentBar?.id}
+              />
+              {items.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-center">
                   <ShoppingCart size={64} className="text-gray-300 mb-4" />
                   <p className="text-gray-500 text-lg">Votre panier est vide</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {items.map((item) => (
-                    <div
-                      key={item.product.id}
-                      className="bg-amber-50 rounded-2xl p-4 border border-amber-200"
-                    >
-                      {/* Nom + bouton supprimer */}
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-gray-900 text-base">
-                            {item.product.name}
-                          </h3>
-                          <p className="text-sm text-gray-600">{item.product.volume}</p>
-                        </div>
-                        <button
-                          onClick={() => onRemoveItem(item.product.id)}
-                          className="p-2 text-red-500 active:bg-red-100 rounded-lg transition-colors"
-                          aria-label="Supprimer"
-                        >
-                          <Trash2 size={20} />
-                        </button>
-                      </div>
-
-                      {/* Quantité + Prix */}
-                      <div className="flex items-center justify-between">
-                        {/* Contrôles quantité */}
-                        <div className="flex items-center gap-3">
-                          <button
-                            onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
-                            className="w-12 h-12 bg-amber-200 text-amber-700 rounded-xl active:bg-amber-300 transition-colors flex items-center justify-center"
-                            aria-label="Diminuer quantité"
-                          >
-                            <Minus size={20} strokeWidth={3} />
-                          </button>
-                          <span className="text-gray-900 font-bold text-xl min-w-[40px] text-center">
-                            {item.quantity}
-                          </span>
-                          <button
-                            onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                            className="w-12 h-12 bg-amber-200 text-amber-700 rounded-xl active:bg-amber-300 transition-colors flex items-center justify-center"
-                            aria-label="Augmenter quantité"
-                          >
-                            <Plus size={20} strokeWidth={3} />
-                          </button>
-                        </div>
-
-                        {/* Prix total item avec promotion */}
-                        {(() => {
-                          if (promotionsEnabled && FEATURES.PROMOTIONS_AUTO_APPLY) {
-                            const priceInfo = calculatePrice(item.product, item.quantity);
-                            if (priceInfo.appliedPromotion) { // Fixed: check for appliedPromotion object
-                              return (
-                                <div className="text-right">
-                                  <div className="flex items-center gap-2 justify-end">
-                                    <Tag size={14} className="text-green-600" />
-                                    <span className="text-sm text-green-600 font-semibold">PROMO</span>
-                                  </div>
-                                  <div className="text-base text-gray-400 line-through">
-                                    {formatPrice(priceInfo.originalPrice)}
-                                  </div>
-                                  <div className="text-green-600 font-bold text-xl font-mono">
-                                    {formatPrice(priceInfo.finalPrice)}
-                                  </div>
-                                </div>
-                              );
-                            }
-                          }
-                          return (
-                            <span className="text-amber-600 font-bold text-xl font-mono">
-                              {formatPrice(item.product.price * item.quantity)}
-                            </span>
-                          );
-                        })()}
-                      </div>
-                    </div>
-                  ))}
                 </div>
               )}
             </div>
@@ -399,57 +308,18 @@ export function Cart({
             </button>
           </div>
 
-          {/* Items */}
           <div className="flex-1 overflow-y-auto p-4">
-            {items.length === 0 ? (
+            <CartShared
+              items={items}
+              onUpdateQuantity={onUpdateQuantity}
+              onRemoveItem={onRemoveItem}
+              variant="desktop"
+              barId={currentBar?.id}
+            />
+            {items.length === 0 && (
               <div className="text-center py-8">
                 <ShoppingCart size={48} className="text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500">Votre panier est vide</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {items.map((item) => (
-                  <div
-                    key={item.product.id}
-                    className="bg-amber-50 rounded-xl p-3 border border-amber-100"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="font-medium text-gray-800">{item.product.name}</h3>
-                        <p className="text-sm text-gray-600">{item.product.volume}</p>
-                      </div>
-                      <button
-                        onClick={() => onRemoveItem(item.product.id)}
-                        className="text-red-400 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
-                          className="w-8 h-8 bg-amber-200 text-amber-700 rounded-lg hover:bg-amber-300 transition-colors flex items-center justify-center"
-                        >
-                          <Minus size={14} />
-                        </button>
-                        <span className="text-gray-800 font-medium min-w-[32px] text-center">
-                          {item.quantity}
-                        </span>
-                        <button
-                          onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                          className="w-8 h-8 bg-amber-200 text-amber-700 rounded-lg hover:bg-amber-300 transition-colors flex items-center justify-center"
-                        >
-                          <Plus size={14} />
-                        </button>
-                      </div>
-                      <span className="text-amber-600 font-bold font-mono">
-                        {formatPrice(item.product.price * item.quantity)}
-                      </span>
-                    </div>
-                  </div>
-                ))}
               </div>
             )}
           </div>

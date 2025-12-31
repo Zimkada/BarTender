@@ -26,6 +26,8 @@ import { useServerMappings } from '../hooks/useServerMappings';
 import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
 import { PaymentMethodSelector, PaymentMethod } from './cart/PaymentMethodSelector';
 import { useFilteredProducts } from '../hooks/useFilteredProducts';
+import { CartShared } from './cart/CartShared';
+import { useCartLogic } from '../hooks/useCartLogic';
 import { Input } from './ui/Input';
 import { Select, SelectOption } from './ui/Select';
 
@@ -47,6 +49,12 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   const { createSale } = useSalesMutations(currentBar?.id || '');
 
   const [cart, setCart] = useState<CartItem[]>([]);
+  const { total, totalItems, calculatedItems } = useCartLogic({
+    items: cart,
+    barId: currentBar?.id
+  });
+  const itemCount = totalItems;
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [customerInfo, setCustomerInfo] = useState('');
@@ -54,25 +62,13 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   const [selectedServer, setSelectedServer] = useState<string>('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [showCartMobile, setShowCartMobile] = useState(false);
-  const [activePromotions, setActivePromotions] = useState<Promotion[]>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       searchInputRef.current?.focus();
-      loadActivePromotions();
     }
   }, [isOpen]);
-
-  const loadActivePromotions = async () => {
-    if (!currentBar?.id) return;
-    try {
-      const promos = await PromotionsService.getActivePromotions(currentBar.id);
-      setActivePromotions(promos);
-    } catch (error) {
-      console.error('Erreur chargement promotions:', error);
-    }
-  };
 
   const handleCheckout = useCallback(async () => {
     if (cart.length === 0 || !currentSession || !currentBar || createSale.isPending) return;
@@ -84,6 +80,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     }
 
     try {
+      // Stock check can remain
       for (const item of cart) {
         const stockInfo = getProductStockInfo(item.product.id);
         if (!stockInfo || stockInfo.availableStock < item.quantity) {
@@ -93,32 +90,29 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
 
       const isServerRole = currentSession.role === 'serveur';
 
-      const saleItems = cart.map(item => ({
+      // ✨ [CORRECTIF] Plus de calcul manuel. On utilise calculatedItems du hook.
+      const saleItems = calculatedItems.map(item => ({
         product_id: item.product.id,
         product_name: item.product.name,
         quantity: item.quantity,
-        unit_price: item.product.price - ((item.discountAmount || 0) / item.quantity),
-        total_price: (item.product.price * item.quantity) - (item.discountAmount || 0),
-        original_unit_price: item.product.price,
-        discount_amount: item.discountAmount || 0,
-        promotion_id: item.promotionId
+        unit_price: item.unit_price,
+        total_price: item.total_price,
+        original_unit_price: item.original_unit_price,
+        discount_amount: item.discount_amount,
+        promotion_id: item.promotion_id,
       }));
 
-      // ✨ NOUVEAU: Résoudre le nom du serveur vers UUID en mode simplifié
+      // La logique de mapping des serveurs reste inchangée
       let serverId: string | undefined;
       if (isSimplifiedMode && selectedServer) {
-        // Extraire le nom du serveur (format: "Serveur Name" ou "Moi (UserName)")
         const serverName = selectedServer.startsWith('Moi (')
           ? (currentSession?.userName || selectedServer)
           : selectedServer;
-
         try {
           serverId = await ServerMappingsService.getUserIdForServerName(
             currentBar.id,
             serverName
           );
-
-          // 🔴 BUG #1-2 FIX: BLOQUER la création si mapping échoue
           if (!serverId) {
             const errorMessage =
               `⚠️ Erreur Critique:\n\n` +
@@ -127,29 +121,25 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
               `1. Créer un compte pour ce serveur en Gestion Équipe\n` +
               `2. Mapper le compte dans Paramètres > Opérationnel > Correspondance Serveurs\n` +
               `3. Réessayer la vente`;
-
             alert(errorMessage);
-            console.error(`[QuickSaleFlow] Blocking sale creation: No mapping for "${serverName}"`);
-            return; // ← BLOQUER LA CRÉATION
+            return;
           }
         } catch (error) {
           const errorMessage =
             `❌ Impossible d'attribuer la vente:\n\n` +
             `${error instanceof Error ? error.message : 'Erreur réseau lors de la résolution du serveur'}\n\n` +
             `Réessayez ou contactez l'administrateur.`;
-
           alert(errorMessage);
-          console.error('[QuickSaleFlow] Error resolving server ID:', error);
-          return; // ← BLOQUER LA CRÉATION
+          return;
         }
       }
 
       await createSale.mutateAsync({
         bar_id: currentBar.id,
-        items: saleItems,
+        items: saleItems, // On passe les items calculés et formatés
         payment_method: paymentMethod,
         sold_by: currentSession.userId,
-        server_id: serverId, // ✨ NOUVEAU: Passer le server_id résolu
+        server_id: serverId,
         status: isServerRole ? 'pending' : 'validated',
         customer_name: customerInfo || undefined,
         notes: isSimplifiedMode ? `Serveur: ${selectedServer}` : undefined
@@ -167,7 +157,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     } catch (error) {
       alert(error instanceof Error ? error.message : 'Erreur lors de la vente');
     }
-  }, [cart, currentSession, currentBar, createSale, getProductStockInfo, paymentMethod, customerInfo, selectedServer, onClose]);
+  }, [cart, calculatedItems, currentSession, currentBar, createSale, getProductStockInfo, paymentMethod, customerInfo, selectedServer, onClose]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -223,28 +213,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     }))
   ];
 
-  const calculateItemWithPromo = (product: Product, quantity: number): CartItem => {
-    const applicablePromos = activePromotions.filter(p =>
-      p.targetType === 'all' ||
-      (p.targetType === 'product' && p.targetProductIds?.includes(product.id)) ||
-      (p.targetType === 'category' && p.targetCategoryIds?.includes(product.categoryId))
-    );
-
-    const priceInfo = PromotionsService.calculateBestPrice(
-      product,
-      quantity,
-      applicablePromos
-    );
-
-    return {
-      product,
-      quantity,
-      originalPrice: product.price,
-      discountAmount: priceInfo.discount,
-      promotionId: priceInfo.appliedPromotion?.id
-    };
-  };
-
+  // ✨ [SIMPLIFIÉ] La logique de promo est partie dans useCartLogic
   const quickAddToCart = (product: Product, quantity = 1) => {
     const stockInfo = getProductStockInfo(product.id);
     const availableStock = stockInfo?.availableStock ?? 0;
@@ -257,11 +226,11 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
       const newQuantity = Math.min(existingItem.quantity + quantity, availableStock);
       newCart = cart.map(item =>
         item.product.id === product.id
-          ? calculateItemWithPromo(product, newQuantity)
+          ? { ...item, quantity: newQuantity }
           : item
       );
     } else {
-      newCart = [...cart, calculateItemWithPromo(product, quantity)];
+      newCart = [...cart, { product, quantity }];
     }
 
     setCart(newCart);
@@ -271,6 +240,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     }
   };
 
+  // ✨ [SIMPLIFIÉ] La logique de promo est partie dans useCartLogic
   const updateQuantity = (productId: string, newQuantity: number) => {
     const stockInfo = getProductStockInfo(productId);
     const availableStock = stockInfo?.availableStock ?? 0;
@@ -284,17 +254,12 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
       const validQuantity = Math.min(newQuantity, availableStock);
       setCart(cart.map(cartItem =>
         cartItem.product.id === productId
-          ? calculateItemWithPromo(cartItem.product, validQuantity)
+          ? { ...cartItem, quantity: validQuantity }
           : cartItem
       ));
     }
   };
 
-  const total = cart.reduce((sum, item) => {
-    const itemTotal = (item.product.price * item.quantity) - (item.discountAmount || 0);
-    return sum + itemTotal;
-  }, 0);
-  const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   if (!isOpen) return null;
 
@@ -477,50 +442,13 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                       </div>
 
                       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                        {cart.map(item => (
-                          <div key={item.product.id} className="bg-gray-50 rounded-xl p-3 border border-gray-200">
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex-1">
-                                <h4 className="font-semibold text-gray-800 text-base">{item.product.name}</h4>
-                                <p className="text-gray-600 text-sm">{item.product.volume}</p>
-                              </div>
-                              <button
-                                onClick={() => updateQuantity(item.product.id, 0)}
-                                className="text-red-500 p-1"
-                              >
-                                <X size={20} />
-                              </button>
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <button
-                                  onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                                  className="w-10 h-10 bg-amber-200 text-amber-700 rounded-xl flex items-center justify-center"
-                                >
-                                  <Minus size={16} />
-                                </button>
-                                <span className="w-10 text-center text-base font-semibold">{item.quantity}</span>
-                                <button
-                                  onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                                  className="w-10 h-10 bg-amber-200 text-amber-700 rounded-xl flex items-center justify-center"
-                                >
-                                  <Plus size={16} />
-                                </button>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              {item.discountAmount && item.discountAmount > 0 && (
-                                <div className="text-xs text-gray-400 line-through">
-                                  {formatPrice(item.product.price * item.quantity)}
-                                </div>
-                              )}
-                              <div className="text-lg font-bold text-amber-600">
-                                {formatPrice((item.product.price * item.quantity) - (item.discountAmount || 0))}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                        <CartShared
+                          items={cart}
+                          onUpdateQuantity={updateQuantity}
+                          onRemoveItem={(id) => updateQuantity(id, 0)}
+                          variant="mobile"
+                          barId={currentBar?.id}
+                        />
 
                         {currentBar?.settings?.operatingMode === 'simplified' && (
                           <div className="mt-6">
@@ -653,56 +581,13 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                         <p className="text-gray-500 text-sm">Panier vide</p>
                       </div>
                     ) : (
-                      cart.map(item => (
-                        <motion.div
-                          key={item.product.id}
-                          initial={{ opacity: 0, x: 20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: -20 }}
-                          className="bg-white rounded-lg p-3 border border-amber-100"
-                        >
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-800 text-sm">{item.product.name}</h4>
-                              <p className="text-gray-600 text-xs">{item.product.volume}</p>
-                            </div>
-                            <button
-                              onClick={() => updateQuantity(item.product.id, 0)}
-                              className="text-red-400 hover:text-red-600"
-                            >
-                              <X size={16} />
-                            </button>
-                          </div>
-
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                                className="w-6 h-6 bg-amber-200 text-amber-700 rounded-full flex items-center justify-center text-xs hover:bg-amber-300"
-                              >
-                                <Minus size={12} />
-                              </button>
-                              <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
-                              <button
-                                onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                                className="w-6 h-6 bg-amber-200 text-amber-700 rounded-full flex items-center justify-center text-xs hover:bg-amber-300"
-                              >
-                                <Plus size={12} />
-                              </button>
-                            </div>
-                            <div className="text-right">
-                              {item.discountAmount && item.discountAmount > 0 && (
-                                <div className="text-xs text-gray-400 line-through mb-0.5">
-                                  {formatPrice(item.product.price * item.quantity)}
-                                </div>
-                              )}
-                              <span className={`${item.discountAmount ? 'text-green-600' : 'text-amber-600'} font-bold text-sm`}>
-                                {formatPrice((item.product.price * item.quantity) - (item.discountAmount || 0))}
-                              </span>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))
+                      <CartShared
+                        items={cart}
+                        onUpdateQuantity={updateQuantity}
+                        onRemoveItem={(id) => updateQuantity(id, 0)}
+                        variant="desktop"
+                        barId={currentBar?.id}
+                      />
                     )}
                   </div>
 

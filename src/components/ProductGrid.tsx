@@ -1,6 +1,7 @@
 import { ProductCard } from './ProductCard';
 import { EmptyProductsState } from './EmptyProductsState';
 import { Product } from '../types';
+import { useStockManagement } from '../hooks/useStockManagement';
 
 interface ProductGridProps {
   products: Product[];
@@ -14,17 +15,16 @@ export function ProductGrid({
   products,
   onAddToCart,
   isLoading = false,
-  categoryName,
   onAddProduct
 }: ProductGridProps) {
-  // Option C: Condition intelligente - Afficher l'état vide uniquement si pas de produits
-  // Si des produits existent, les afficher immédiatement (pas de spinner pendant le chargement)
+  const { allProductsStockInfo } = useStockManagement();
+
   if (products.length === 0) {
     return (
       <EmptyProductsState
         isLoading={isLoading}
-        categoryName={categoryName}
-        onAddProduct={onAddProduct}
+        onAction={onAddProduct}
+        actionLabel="Ajouter un produit"
       />
     );
   }
@@ -37,6 +37,7 @@ export function ProductGrid({
           key={product.id}
           product={product}
           onAddToCart={onAddToCart}
+          availableStock={allProductsStockInfo[product.id]?.availableStock}
         />
       ))}
     </div>

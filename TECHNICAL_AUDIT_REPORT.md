@@ -60,14 +60,11 @@ Le système est désormais équipé d'un "Bouclier de Production" :
 
 ## 3. Synthèse des Recommandations (Mise à jour)
 
-### ✅ Terminées (Phase 3)
-*   [x] **Optimisation des Index** : Suppression des index redondants et ajout d'index stratégiques.
-*   [x] **Synchronisation Hybride** : Branchement complet du `BroadcastService` et `useSmartSync`.
-*   [x] **Sécurisation des Logs** : Implémentation du Rate Limiting sur les violations RLS.
+*   ✅ **Optimisation du Forecasting** (Phase 4) : Lissage sur 30 jours et intégration du stock disponible terminés.
+*   ✅ **Performance Monitoring** : Impact de `REPLICA IDENTITY FULL` sous contrôle.
 
-### 🔴 Priorité Haute (Prochaine Étape : Phase 4)
-*   **Ajuster le Forecasting** : Modifier la vue `product_sales_stats_mat` pour calculer la moyenne sur la période totale (30 jours) et non seulement sur les jours avec ventes.
-*   **Performance Monitoring** : Suivre l'Egress Supabase suite à l'activation du `REPLICA IDENTITY FULL`.
+### 🔴 Priorité Haute (Suite Phase 4)
+*   **Correction Top Produits** : Aligner le classement des produits sur le Chiffre d'Affaires **Net** (après remises/promotions) plutôt que Brut.
 
 ---
 

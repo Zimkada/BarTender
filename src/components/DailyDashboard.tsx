@@ -1,6 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import {
   TrendingUp, DollarSign, ShoppingCart, Package, Share, Lock, Eye, EyeOff, RotateCcw, Archive, Check, X, User, AlertTriangle, ArrowLeft, ChevronDown, ChevronUp, ShoppingBag
 } from 'lucide-react';
@@ -34,7 +33,7 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
   const [expandedSales, setExpandedSales] = useState<Set<string>>(new Set());
 
   const toggleExpanded = (saleId: string) => {
-    setExpandedSales(prev => {
+    setExpandedSales((prev: Set<string>) => {
       const newSet = new Set(prev);
       if (newSet.has(saleId)) {
         newSet.delete(saleId);
@@ -92,7 +91,7 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
                   const isServerRole = currentSession?.role === 'serveur';
                   const showButtons = !isServerRole;
                   const isExpanded = expandedSales.has(sale.id);
-                  const totalItems = sale.items.reduce((sum, item) => sum + item.quantity, 0);
+                  const totalItems = sale.items.reduce((sum: number, item: any) => sum + item.quantity, 0);
 
                   return (
                     <div key={sale.id} className="bg-amber-50 rounded-lg border border-amber-100 overflow-hidden">
@@ -168,12 +167,12 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
  */
 export function DailyDashboard() {
   const navigate = useNavigate();
-  const { sales, products, getTodaySales, getTodayReturns, getLowStockProducts, returns, validateSale, rejectSale, users } = useAppContext();
+  const { sales, products, getTodaySales, getTodayReturns, getLowStockProducts, validateSale, rejectSale, users } = useAppContext();
   const { currentBar } = useBarContext();
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession } = useAuth();
-  const { showSuccess, showError, setLoading, isLoading } = useFeedback();
-  const { consignments } = useStockManagement();
+  const { showSuccess, setLoading, isLoading } = useFeedback();
+  const { consignments, allProductsStockInfo } = useStockManagement();
 
   const [showDetails, setShowDetails] = useState(false);
   const [cashClosed, setCashClosed] = useState(false);
@@ -183,7 +182,6 @@ export function DailyDashboard() {
 
   // ✨ Filter metrics for servers
   const isServerRole = currentSession?.role === 'serveur';
-  const operatingMode = currentBar?.settings?.operatingMode || 'full';
   const serverIdForTopProducts = isServerRole ? currentSession?.userId : undefined;
 
   const { data: topProductsData = [] } = useTopProducts({
@@ -245,7 +243,7 @@ export function DailyDashboard() {
 
   const lowStockProducts = getLowStockProducts();
   // ✨ Filter totalItems by server if applicable
-  const totalItems = todayStats?.total_items_sold ?? serverFilteredSales.reduce((sum, sale) => sum + sale.items.reduce((s, i) => s + i.quantity, 0), 0);
+  const totalItems = todayStats?.total_items_sold ?? serverFilteredSales.reduce((sum: number, sale: any) => sum + sale.items.reduce((s: number, i: any) => s + i.quantity, 0), 0);
 
   const topProductsList = topProductsData.map(p => ({
     name: p.product_volume ? `${p.product_name} (${p.product_volume})` : p.product_name,
@@ -378,7 +376,7 @@ export function DailyDashboard() {
                 {lowStockProducts.length > 0 ? lowStockProducts.slice(0, 5).map(p => (
                   <div key={p.id} className="flex justify-between text-sm py-1">
                     <span>{p.name}</span>
-                    <span className="text-red-600 font-medium">{p.stock}</span>
+                    <span className="text-red-600 font-medium">{allProductsStockInfo[p.id]?.availableStock ?? p.stock}</span>
                   </div>
                 )) : <p className="text-sm text-green-600">✅ Stocks OK</p>}
               </div>

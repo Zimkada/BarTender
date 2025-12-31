@@ -55,6 +55,7 @@ export function ForecastingSystem() {
 
   const [activeTab, setActiveTab] = useState<ForecastView>('stock');
   const [alerts, setAlerts] = useState<StockAlert[]>([]);
+  const { allProductsStockInfo } = useStockManagement(); // ✨ NEW: Get all stock info
   const [filterStatus, setFilterStatus] = useState<'all' | 'new' | 'read' | 'resolved'>('all');
   const [showOrderSuggestions, setShowOrderSuggestions] = useState(false);
 
@@ -74,31 +75,37 @@ export function ForecastingSystem() {
       const stats = await ForecastingService.getProductSalesStats(currentBar.id);
       setProductStats(stats);
 
-      // Générer les alertes basées sur les données SQL
+      // Générer les alertes basées sur les données SQL + Stock Disponible injecté
       const newAlerts: StockAlert[] = stats
-        .filter(stat => stat.current_stock <= stat.alert_threshold)
+        .map((stat: ProductSalesStats) => {
+          // ✨ Injecter le stock disponible réel (front-end)
+          const availableStock = (allProductsStockInfo as any)[stat.product_id]?.availableStock ?? stat.current_stock;
+
+          return { ...stat, availableStock };
+        })
+        .filter(stat => stat.availableStock <= stat.alert_threshold)
         .map(stat => {
           const severity: StockAlert['severity'] =
-            stat.current_stock === 0 ? 'critical' :
-              stat.current_stock <= stat.alert_threshold / 2 ? 'critical' :
+            stat.availableStock === 0 ? 'critical' :
+              stat.availableStock <= stat.alert_threshold / 2 ? 'critical' :
                 'warning';
 
-          // Calculer suggestion pour l'alerte
-          const suggestion = ForecastingService.calculateOrderSuggestion(stat, coverageDays);
+          // Calculer suggestion pour l'alerte avec le stock disponible injecté
+          const suggestion = ForecastingService.calculateOrderSuggestion(stat, coverageDays, stat.availableStock);
 
           return {
             id: `alert_${stat.product_id}_${new Date().toISOString().split('T')[0]}`,
             productId: stat.product_id,
             productName: stat.product_name,
             productVolume: stat.product_volume,
-            currentStock: stat.current_stock,
+            currentStock: stat.availableStock, // ✨ Utilise Disponible
             threshold: stat.alert_threshold,
             severity,
             createdAt: new Date(),
             status: 'new',
-            // Estimation rupture: stock / moyenne journalière
+            // Estimation rupture: dispo / moyenne journalière
             predictedRunout: stat.daily_average > 0
-              ? new Date(Date.now() + (stat.current_stock / stat.daily_average) * 86400000)
+              ? new Date(Date.now() + (stat.availableStock / stat.daily_average) * 86400000)
               : undefined,
             suggestedOrder: suggestion.suggestedQuantity
           };
@@ -134,11 +141,14 @@ export function ForecastingSystem() {
   // Recalculer les suggestions quand coverageDays change (sans recharger SQL)
   const orderSuggestions = useMemo(() => {
     return productStats
-      .map(stat => ForecastingService.calculateOrderSuggestion(stat, coverageDays))
+      .map((stat: ProductSalesStats) => {
+        const availableStock = (allProductsStockInfo as any)[stat.product_id]?.availableStock ?? stat.current_stock;
+        return ForecastingService.calculateOrderSuggestion(stat, coverageDays, availableStock);
+      })
       .filter(suggestion => suggestion.suggestedQuantity > 0)
       .sort((a, b) => {
         // Trier par urgence puis par coût
-        const urgencyScore = { high: 3, medium: 2, low: 1 };
+        const urgencyScore: Record<string, number> = { high: 3, medium: 2, low: 1 };
         if (urgencyScore[a.urgency] !== urgencyScore[b.urgency]) {
           return urgencyScore[b.urgency] - urgencyScore[a.urgency];
         }

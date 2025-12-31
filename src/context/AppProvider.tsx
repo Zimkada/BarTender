@@ -3,6 +3,7 @@ import { useBarContext } from '../context/BarContext';
 import { useCacheWarming } from '../hooks/useViewMonitoring';
 import { useAuth } from '../context/AuthContext';
 import { useStock } from '../context/StockContext';
+import { useStockManagement } from '../hooks/useStockManagement';
 import { useNotifications } from '../components/Notifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { realtimeService } from '../services/realtime/RealtimeService';
@@ -10,24 +11,22 @@ import { broadcastService } from '../services/broadcast/BroadcastService';
 import {
     Category,
     Product,
-    Supply,
     Sale,
     AppSettings,
     Return,
     User,
     Expense,
-    ExpenseCategoryCustom,
     CartItem,
 } from '../types';
 import { filterByBusinessDateRange, getCurrentBusinessDateString, dateToYYYYMMDD } from '../utils/businessDateHelpers';
 import { BUSINESS_DAY_CLOSE_HOUR } from '../constants/businessDay';
 
 // React Query Hooks
-import { useCategories } from '../hooks/queries/useStockQueries'; 
-import { useSales } from '../hooks/queries/useSalesQueries'; 
+import { useCategories } from '../hooks/queries/useStockQueries';
+import { useSales } from '../hooks/queries/useSalesQueries';
 import { useExpenses, useCustomExpenseCategories } from '../hooks/queries/useExpensesQueries';
 import { useReturns } from '../hooks/queries/useReturnsQueries';
-import { useBarMembers } from '../hooks/queries/useBarMembers'; 
+import { useBarMembers } from '../hooks/queries/useBarMembers';
 
 import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
 import { useExpensesMutations } from '../hooks/mutations/useExpensesMutations';
@@ -44,7 +43,7 @@ const defaultSettings: AppSettings = {
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { currentSession, hasPermission } = useAuth();
-    const { currentBar, loading: barContextLoading } = useBarContext();
+    const { currentBar } = useBarContext();
     const queryClient = useQueryClient();
 
     // Initialize Realtime and Broadcast services
@@ -84,6 +83,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const expensesMutations = useExpensesMutations(barId);
     const returnsMutations = useReturnsMutations(barId);
     const categoryMutations = useCategoryMutations(barId);
+    const { allProductsStockInfo } = useStockManagement();
 
     // Notifications - MUST be declared before use in useEffect
     // Notifications - MUST be declared before use in useEffect
@@ -249,7 +249,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // --- PRODUCTS (Read Only) ---
     const getProductsByCategory = useCallback((categoryId: string) => products.filter(p => p.categoryId === categoryId), [products]);
-    const getLowStockProducts = useCallback(() => products.filter(p => p.stock <= p.alertThreshold), [products]);
+    const getLowStockProducts = useCallback(() => {
+        return products.filter(p => {
+            const stockInfo = allProductsStockInfo[p.id];
+            const stockToCompare = stockInfo ? stockInfo.availableStock : p.stock;
+            return stockToCompare <= p.alertThreshold;
+        });
+    }, [products, allProductsStockInfo]);
     const getProductById = useCallback((id: string) => products.find(p => p.id === id), [products]);
 
     // --- SUPPLIES (Read Only) ---
@@ -272,14 +278,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const isAlreadyFormatted = saleData.items?.[0]?.hasOwnProperty('product_id');
 
         // Mapping CartItem[] (UI) -> SaleItem[] (DB/Service)
+        // ✨ Amélioration: Préserver les prix calculés et détails de promotion
         const formattedItems = isAlreadyFormatted
             ? (saleData.items as any)
             : saleData.items?.map((item: any) => ({
                 product_id: item.product.id,
                 product_name: item.product.name,
                 quantity: item.quantity,
-                unit_price: item.product.price,
-                total_price: item.product.price * item.quantity
+                unit_price: item.unit_price ?? item.product.price,
+                total_price: item.total_price ?? (item.product.price * item.quantity),
+                original_unit_price: item.original_unit_price ?? item.product.price,
+                discount_amount: item.discount_amount ?? 0,
+                promotion_id: item.promotion_id
             })) || [];
 
         const newSaleData = {

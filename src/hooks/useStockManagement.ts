@@ -1,5 +1,5 @@
 // hooks/useStockManagement.ts - Hook unifié (Refactored for React Query)
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { calculateAvailableStock } from '../utils/calculations';
@@ -259,27 +259,46 @@ export const useStockManagement = () => {
 
   // ===== HELPERS / DERIVED STATE =====
 
+  /**
+   * ✅ NEW: Memoized Map of ALL products stock information.
+   * This is the single source of truth for stock alerts and display.
+   * High performance O(N + M) calculation.
+   */
+  const allProductsStockInfo = useMemo(() => {
+    const infoMap: Record<string, ProductStockInfo> = {};
+
+    // 1. Initialize with physical stock
+    products.forEach(p => {
+      infoMap[p.id] = {
+        productId: p.id,
+        physicalStock: p.stock,
+        consignedStock: 0,
+        availableStock: p.stock
+      };
+    });
+
+    // 2. Add consigned stock
+    consignments.forEach(c => {
+      if (c.status === 'active' && infoMap[c.productId]) {
+        infoMap[c.productId].consignedStock += c.quantity;
+        // recalculate available
+        infoMap[c.productId].availableStock = calculateAvailableStock(
+          infoMap[c.productId].physicalStock,
+          infoMap[c.productId].consignedStock
+        );
+      }
+    });
+
+    return infoMap;
+  }, [products, consignments]);
+
   const getConsignedStockByProduct = useCallback((productId: string): number => {
-    return consignments
-      .filter(c => c.productId === productId && c.status === 'active')
-      .reduce((sum, c) => sum + c.quantity, 0);
-  }, [consignments]);
+    return allProductsStockInfo[productId]?.consignedStock ?? 0;
+  }, [allProductsStockInfo]);
 
   const getProductStockInfo = useCallback((productId: string): ProductStockInfo | null => {
-    const product = products.find(p => p.id === productId);
-    if (!product) return null;
-
-    const physicalStock = product.stock;
-    const consignedStock = getConsignedStockByProduct(productId);
-    const availableStock = calculateAvailableStock(physicalStock, consignedStock);
-
-    return {
-      productId,
-      physicalStock,
-      consignedStock,
-      availableStock,
-    };
-  }, [products, getConsignedStockByProduct]);
+    return allProductsStockInfo[productId] || null;
+  }, [allProductsStockInfo]);
 
   const getAverageCostPerUnit = useCallback((productId: string): number => {
     const productSupplies = supplies.filter(s => s.productId === productId);
@@ -313,5 +332,6 @@ export const useStockManagement = () => {
     getConsignedStockByProduct,
     getAverageCostPerUnit,
     getActiveConsignments,
+    allProductsStockInfo, // ✨ New: Exposed for global usage
   };
 };

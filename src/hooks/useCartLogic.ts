@@ -8,17 +8,21 @@ interface UseCartLogicProps {
     barId?: string;
 }
 
+interface CalculatedItem extends CartItem {
+    unit_price: number;
+    total_price: number;
+    original_unit_price: number;
+    discount_amount: number;
+    promotion_id?: string;
+    hasPromotion: boolean;
+}
+
 interface UseCartLogicReturn {
     total: number;
     totalDiscount: number;
     totalOriginal: number;
     totalItems: number;
-    calculateItemPrice: (item: CartItem) => {
-        original: number;
-        final: number;
-        discount: number;
-        hasPromotion: boolean;
-    };
+    calculatedItems: CalculatedItem[];
 }
 
 /**
@@ -29,55 +33,74 @@ interface UseCartLogicReturn {
 export function useCartLogic({ items, barId }: UseCartLogicProps): UseCartLogicReturn {
     const { calculatePrice, isEnabled: promotionsEnabled } = usePromotions(barId);
 
-    // Calculer le prix d'un item avec promotions
-    const calculateItemPrice = (item: CartItem) => {
-        if (promotionsEnabled && FEATURES.PROMOTIONS_AUTO_APPLY) {
-            const priceInfo = calculatePrice(item.product, item.quantity);
+    const {
+        calculatedItems,
+        total,
+        totalDiscount,
+        totalOriginal,
+        totalItems
+    } = useMemo(() => {
+        if (!items) {
             return {
-                original: priceInfo.originalPrice,
-                final: priceInfo.finalPrice,
-                discount: priceInfo.discount,
-                hasPromotion: priceInfo.hasPromotion
+                calculatedItems: [],
+                total: 0,
+                totalDiscount: 0,
+                totalOriginal: 0,
+                totalItems: 0
             };
         }
 
-        const itemTotal = item.product.price * item.quantity;
-        return {
-            original: itemTotal,
-            final: itemTotal,
-            discount: 0,
-            hasPromotion: false
-        };
-    };
+        const newCalculatedItems: CalculatedItem[] = items.map(item => {
+            const { product, quantity } = item;
+            const originalUnitPrice = product.price;
 
-    // Calculer les totaux
-    const { total, totalDiscount, totalOriginal, totalItems } = useMemo(() => {
-        let finalTotal = 0;
-        let discount = 0;
-        let original = 0;
+            if (promotionsEnabled && FEATURES.PROMOTIONS_AUTO_APPLY) {
+                const priceInfo = calculatePrice(product, quantity);
+                const finalUnitPrice = quantity > 0 ? priceInfo.finalPrice / quantity : 0;
+                
+                return {
+                    ...item,
+                    unit_price: finalUnitPrice,
+                    total_price: priceInfo.finalPrice,
+                    original_unit_price: originalUnitPrice,
+                    discount_amount: priceInfo.discount,
+                    promotion_id: priceInfo.appliedPromotion?.id,
+                    hasPromotion: priceInfo.hasPromotion,
+                };
+            }
 
-        items.forEach(item => {
-            const prices = calculateItemPrice(item);
-            finalTotal += prices.final;
-            discount += prices.discount;
-            original += prices.original;
+            // Fallback if promotions are disabled
+            const total_price = originalUnitPrice * quantity;
+            return {
+                ...item,
+                unit_price: originalUnitPrice,
+                total_price: total_price,
+                original_unit_price: originalUnitPrice,
+                discount_amount: 0,
+                promotion_id: undefined,
+                hasPromotion: false,
+            };
         });
 
-        const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+        const finalTotal = newCalculatedItems.reduce((sum, item) => sum + item.total_price, 0);
+        const discount = newCalculatedItems.reduce((sum, item) => sum + item.discount_amount, 0);
+        const original = newCalculatedItems.reduce((sum, item) => sum + (item.original_unit_price * item.quantity), 0);
+        const itemCount = newCalculatedItems.reduce((sum, item) => sum + item.quantity, 0);
 
         return {
+            calculatedItems: newCalculatedItems,
             total: finalTotal,
             totalDiscount: discount,
             totalOriginal: original,
             totalItems: itemCount
         };
-    }, [items, promotionsEnabled]);
+    }, [items, promotionsEnabled, calculatePrice]);
 
     return {
+        calculatedItems,
         total,
         totalDiscount,
         totalOriginal,
         totalItems,
-        calculateItemPrice
     };
 }

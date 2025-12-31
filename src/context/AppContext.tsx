@@ -46,7 +46,7 @@ export interface AppContextType {
   getAverageCostPerUnit: (productId: string) => number;
 
   // Ventes
-  addSale: (saleData: Partial<Sale>) => Promise<Sale | null>;
+  addSale: (saleData: any) => Promise<Sale | null>;
   validateSale: (saleId: string, validatorId: string) => void;
   rejectSale: (saleId: string, rejectorId: string) => void;
   getSalesByDate: (startDate: Date, endDate: Date, includePending?: boolean) => Sale[];

@@ -2,14 +2,14 @@ import { useState, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Package, AlertTriangle, Plus, Edit, Trash2, UploadCloud, TruckIcon, BarChart3 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import { useBarContext } from '../context/BarContext';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { Product } from '../types';
 import { motion } from 'framer-motion';
 import { useFeedback } from '../hooks/useFeedback';
 import { useViewport } from '../hooks/useViewport';
-import { useFeatureFlag } from '../hooks/useFeatureFlag'; // 1. IMPORT DU HOOK
+import { useFeatureFlag } from '../hooks/useFeatureFlag';
+import { useBarContext } from '../context/BarContext';
 
 // Lazy load heavy modals to reduce initial bundle size (~40-50 KB savings)
 const ProductModal = lazy(() => import('../components/ProductModal').then(m => ({ default: m.ProductModal })));
@@ -32,6 +32,7 @@ import { Button } from '../components/ui/Button';
 export default function InventoryPage() {
     const navigate = useNavigate();
     const { categories, getAverageCostPerUnit, addExpense } = useAppContext();
+    const { currentBar } = useBarContext();
     const {
         products,
         addProduct,
@@ -50,7 +51,7 @@ export default function InventoryPage() {
     const { showSuccess } = useFeedback();
 
     // 2. UTILISATION DU HOOK POUR LE FEATURE FLAG
-    const { data: isProductImportEnabled } = useFeatureFlag('product-import');
+    const isProductImportEnabled = useFeatureFlag('product-import').data as boolean;
     // États pour confirmation suppression
     const [productToDelete, setProductToDelete] = useState<Product | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -62,7 +63,8 @@ export default function InventoryPage() {
     const lowStockProducts = useMemo(() =>
         products.filter(p => {
             const stockInfo = getProductStockInfo(p.id);
-            return stockInfo && stockInfo.physicalStock <= p.alertThreshold;
+            const stockToCompare = stockInfo ? stockInfo.availableStock : p.stock;
+            return stockToCompare <= p.alertThreshold;
         }),
         [products, getProductStockInfo]);
 
@@ -81,7 +83,8 @@ export default function InventoryPage() {
             const catProducts = products.filter(p => p.categoryId === cat.id);
             const catAlerts = catProducts.filter(p => {
                 const stockInfo = getProductStockInfo(p.id);
-                return stockInfo && stockInfo.physicalStock <= p.alertThreshold;
+                const stockToCompare = stockInfo ? stockInfo.availableStock : p.stock;
+                return stockToCompare <= p.alertThreshold;
             });
             return {
                 categoryId: cat.id,
@@ -157,53 +160,53 @@ export default function InventoryPage() {
             <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-50">
                 {/* Header fixe */}
                 <div className="sticky top-0 bg-gradient-to-r from-amber-500 to-amber-500 text-white shadow-lg z-10">
-                                    <div className="px-4 py-3">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <div className="flex items-center gap-3">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => navigate(-1)}
-                                                    className="rounded-lg hover:bg-white/20"
-                                                >
-                                                    <ArrowLeft size={20} />
-                                                </Button>
-                                                <h2 className="text-lg font-bold flex items-center gap-2">
-                                                    <Package size={20} />
-                                                    Inventaire
-                                                </h2>
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {/* 3. CONDITION D'AFFICHAGE DU BOUTON MOBILE */}
-                                            {isProductImportEnabled && (
-                                                <Button
-                                                    onClick={() => setShowProductImport(true)}
-                                                    variant="ghost"
-                                                    className="flex-1 min-w-[120px] px-3 py-2 bg-white/20 backdrop-blur rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-white/30 text-white hover:bg-white/30"
-                                                >
-                                                    <UploadCloud size={16} className="mr-2" />
-                                                    Importer
-                                                </Button>
-                                            )}
-                                            <Button
-                                                onClick={() => setShowSupplyModal(true)}
-                                                variant="ghost"
-                                                className="flex-1 min-w-[120px] px-3 py-2 bg-white/20 backdrop-blur rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-white/30 text-white hover:bg-white/30"
-                                            >
-                                                <TruckIcon size={16} className="mr-2" />
-                                                Approvisionner
-                                            </Button>
-                                            <Button
-                                                onClick={handleAddProduct}
-                                                variant="default"
-                                                className="flex-1 min-w-[120px] px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-amber-50"
-                                            >
-                                                <Plus size={16} className="mr-2" />
-                                                Ajouter
-                                            </Button>
-                                        </div>
-                                    </div>
+                    <div className="px-4 py-3">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => navigate(-1)}
+                                    className="rounded-lg hover:bg-white/20"
+                                >
+                                    <ArrowLeft size={20} />
+                                </Button>
+                                <h2 className="text-lg font-bold flex items-center gap-2">
+                                    <Package size={20} />
+                                    Inventaire
+                                </h2>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {/* 3. CONDITION D'AFFICHAGE DU BOUTON MOBILE */}
+                            {isProductImportEnabled && (
+                                <Button
+                                    onClick={() => setShowProductImport(true)}
+                                    variant="ghost"
+                                    className="flex-1 min-w-[120px] px-3 py-2 bg-white/20 backdrop-blur rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-white/30 text-white hover:bg-white/30"
+                                >
+                                    <UploadCloud size={16} className="mr-2" />
+                                    Importer
+                                </Button>
+                            )}
+                            <Button
+                                onClick={() => setShowSupplyModal(true)}
+                                variant="ghost"
+                                className="flex-1 min-w-[120px] px-3 py-2 bg-white/20 backdrop-blur rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-white/30 text-white hover:bg-white/30"
+                            >
+                                <TruckIcon size={16} className="mr-2" />
+                                Approvisionner
+                            </Button>
+                            <Button
+                                onClick={handleAddProduct}
+                                variant="default"
+                                className="flex-1 min-w-[120px] px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-amber-50"
+                            >
+                                <Plus size={16} className="mr-2" />
+                                Ajouter
+                            </Button>
+                        </div>
+                    </div>
                     {/* Recherche et tri */}
                     <div className="px-4 pb-3 space-y-2">
                         <SearchBar
@@ -264,7 +267,7 @@ export default function InventoryPage() {
                                                     {product.name} {product.volume && `(${product.volume})`}
                                                 </span>
                                                 <span className="text-xs font-medium text-orange-600">
-                                                    {stockInfo?.physicalStock ?? 'N/A'}
+                                                    {stockInfo?.availableStock ?? 'N/A'}
                                                 </span>
                                             </div>
                                         );
@@ -298,10 +301,10 @@ export default function InventoryPage() {
                                                     <p className="text-gray-500 text-xs mt-1">{getCategoryName(product.categoryId)}</p>
                                                 </div>
                                                 <div className={`flex-shrink-0 text-right`}>
-                                                    <div className={`px-3 py-1 rounded-full text-sm font-bold ${(stockInfo?.physicalStock ?? 0) <= product.alertThreshold
+                                                    <div className={`px-3 py-1 rounded-full text-sm font-bold ${(stockInfo?.availableStock ?? 0) <= product.alertThreshold
                                                         ? 'bg-red-100 text-red-700'
                                                         : 'bg-amber-100 text-amber-700'
-                                                    }`}>
+                                                        }`}>
                                                         {stockInfo?.physicalStock ?? 'N/A'}
                                                     </div>
                                                     <div className="text-xs text-gray-500 mt-1">
@@ -362,9 +365,9 @@ export default function InventoryPage() {
                         onClose={() => setShowProductModal(false)}
                         onSave={(productData) => {
                             if (editingProduct) {
-                                updateProduct(editingProduct.id, productData);
+                                updateProduct(editingProduct.id, { ...productData, barId: editingProduct.barId });
                             } else {
-                                addProduct(productData);
+                                addProduct({ ...productData, barId: currentBar?.id || '' });
                             }
                             setShowProductModal(false);
                         }}
@@ -580,7 +583,7 @@ export default function InventoryPage() {
                                             ) : '-'}
                                         </td>
                                         <td className="p-4">
-                                            <span className={`font-bold ${(stockInfo?.physicalStock ?? 0) <= product.alertThreshold ? 'text-red-600' : 'text-gray-800'
+                                            <span className={`font-bold ${(stockInfo?.availableStock ?? 0) <= product.alertThreshold ? 'text-red-600' : 'text-gray-800'
                                                 }`}>
                                                 {stockInfo?.physicalStock ?? 'N/A'}
                                             </span>
@@ -623,9 +626,9 @@ export default function InventoryPage() {
                     onClose={() => setShowProductModal(false)}
                     onSave={(productData) => {
                         if (editingProduct) {
-                            updateProduct(editingProduct.id, productData);
+                            updateProduct(editingProduct.id, { ...productData, barId: editingProduct.barId });
                         } else {
-                            addProduct(productData);
+                            addProduct({ ...productData, barId: currentBar?.id || '' });
                         }
                         setShowProductModal(false);
                     }}

@@ -52,45 +52,46 @@ export const ForecastingService = {
      */
     calculateOrderSuggestion(
         stats: ProductSalesStats,
-        coverageDays: number
+        coverageDays: number,
+        overrideCurrentStock?: number // ✨ NEW: Permet d'injecter le stock disponible
     ): OrderSuggestion {
+        const currentStock = overrideCurrentStock !== undefined ? overrideCurrentStock : stats.current_stock;
         let suggestedQuantity = 0;
         let reasoning = '';
         let urgency: 'high' | 'medium' | 'low' = 'low';
 
-        // Cas 1: Produit récent (moins de 30 jours d'existence)
-        if (stats.days_since_creation < 30) {
-            const adjustedDays = Math.max(stats.days_since_creation, 1);
-            const adjustedAverage = stats.total_sold_30d / adjustedDays;
-            const coverageNeeds = adjustedAverage * coverageDays;
+        // Utiliser la moyenne lissée de la DB
+        const dailyAverage = stats.daily_average;
 
-            suggestedQuantity = Math.ceil(coverageNeeds + stats.alert_threshold - stats.current_stock);
-            reasoning = `Produit récent (${Math.floor(stats.days_since_creation)}j). Moyenne ajustée: ${adjustedAverage.toFixed(1)}/jour sur ${stats.days_with_sales}j de ventes`;
-            urgency = stats.current_stock <= stats.alert_threshold ? 'high' : 'medium';
+        // Cas 1: Produit trop récent ou pas assez de recul
+        if (stats.days_since_creation < 2) {
+            suggestedQuantity = Math.max(0, stats.alert_threshold - currentStock);
+            reasoning = `Produit très récent. Reconstitution stock de sécurité uniquement.`;
+            urgency = currentStock <= stats.alert_threshold ? 'medium' : 'low';
         }
         // Cas 2: Rupture de stock prolongée (pas de ventes depuis 7+ jours)
         else if (stats.days_without_sale && stats.days_without_sale > 7) {
-            suggestedQuantity = Math.max(0, stats.alert_threshold - stats.current_stock);
+            suggestedQuantity = Math.max(0, stats.alert_threshold - currentStock);
             reasoning = `⚠️ Rupture depuis ${Math.floor(stats.days_without_sale)}j. Reconstitution stock de sécurité uniquement`;
-            urgency = stats.current_stock === 0 ? 'medium' : 'low';
+            urgency = currentStock === 0 ? 'medium' : 'low';
         }
-        // Cas 3: Calcul standard basé sur moyenne journalière réelle
+        // Cas 3: Calcul standard basé sur moyenne journalière lissée
         else {
-            if (stats.days_with_sales === 0 || stats.daily_average === 0) {
+            if (dailyAverage === 0) {
                 suggestedQuantity = 0;
-                reasoning = 'Aucune vente récente. Pas de suggestion.';
+                reasoning = 'Aucune vente lissée sur 30j. Pas de suggestion.';
                 urgency = 'low';
             } else {
-                const coverageNeeds = stats.daily_average * coverageDays;
-                suggestedQuantity = Math.ceil(coverageNeeds + stats.alert_threshold - stats.current_stock);
-                reasoning = `Basé sur ${stats.days_with_sales}j de ventes réelles. Moyenne: ${stats.daily_average.toFixed(1)}/jour`;
+                const coverageNeeds = dailyAverage * coverageDays;
+                suggestedQuantity = Math.ceil(coverageNeeds + stats.alert_threshold - currentStock);
+                reasoning = `Moyenne lissée: ${dailyAverage.toFixed(2)}/jour. Couverture ${coverageDays}j.`;
 
                 // Déterminer urgence
-                if (stats.current_stock === 0) {
+                if (currentStock === 0) {
                     urgency = 'high';
-                } else if (stats.current_stock <= stats.alert_threshold / 2) {
+                } else if (currentStock <= stats.alert_threshold / 2) {
                     urgency = 'high';
-                } else if (stats.current_stock <= stats.alert_threshold) {
+                } else if (currentStock <= stats.alert_threshold) {
                     urgency = 'medium';
                 } else {
                     urgency = 'low';
@@ -105,7 +106,7 @@ export const ForecastingService = {
             productId: stats.product_id,
             productName: stats.product_name,
             productVolume: stats.product_volume,
-            currentStock: stats.current_stock,
+            currentStock: currentStock, // Utilise le stock injecté
             suggestedQuantity: Math.max(0, suggestedQuantity),
             estimatedCost,
             urgency,

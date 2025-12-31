@@ -7,24 +7,28 @@ import { useFeedback } from '../hooks/useFeedback';
 interface ProductCardProps {
   product: Product;
   onAddToCart: (product: Product) => void;
+  availableStock?: number; // ✨ Optionnel, pour plus de précision (circuit disponible)
 }
 
-export function ProductCard({ product, onAddToCart }: ProductCardProps) {
+export function ProductCard({ product, onAddToCart, availableStock }: ProductCardProps) {
   const { formatPrice } = useCurrencyFormatter();
-  const isLowStock = product.stock <= product.alertThreshold;
+
+  // ✅ Utiliser availableStock si fourni, sinon fallback sur product.stock (étroitement lié au stock physique)
+  const displayStock = availableStock !== undefined ? availableStock : product.stock;
+  const isLowStock = displayStock <= product.alertThreshold;
   const [showFeedback, setShowFeedback] = useState(false);
   const { itemAddedToCart, setLoading, isLoading, showError } = useFeedback();
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    if (product.stock === 0) {
+    if (displayStock === 0) {
       showError('❌ Stock épuisé');
       return;
     }
 
-    if (product.stock <= product.alertThreshold && product.stock > 0) {
-      if (!confirm(`⚠️ Stock critique (${product.stock} restants). Continuer ?`)) {
+    if (displayStock <= product.alertThreshold && displayStock > 0) {
+      if (!confirm(`⚠️ Stock critique (${displayStock} restants). Continuer ?`)) {
         return;
       }
     }
@@ -41,7 +45,7 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
   };
 
   const getStockBadgeColor = () => {
-    if (product.stock === 0) return 'bg-red-500';
+    if (displayStock === 0) return 'bg-red-500';
     if (isLowStock) return 'bg-amber-500';
     return 'bg-green-500';
   };
@@ -53,11 +57,11 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
     >
       {/* Stock Badge */}
       <div className={`absolute top-2 right-2 ${getStockBadgeColor()} text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold z-10 shadow-sm`}>
-        {product.stock}
+        {displayStock}
       </div>
 
       {/* Low Stock Alert */}
-      {isLowStock && product.stock > 0 && (
+      {isLowStock && displayStock > 0 && (
         <div className="absolute top-2 left-2 bg-amber-500 text-white rounded-full p-1 z-10 shadow-sm">
           <AlertTriangle size={12} />
         </div>
@@ -93,10 +97,10 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
 
           <button
             onClick={handleAddToCart}
-            disabled={product.stock === 0 || isLoading('addToCart')}
+            disabled={displayStock === 0 || isLoading('addToCart')}
             className={`
               w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm transition-colors
-              ${product.stock === 0
+              ${displayStock === 0
                 ? 'bg-gray-300 cursor-not-allowed'
                 : showFeedback
                   ? 'bg-green-500'
