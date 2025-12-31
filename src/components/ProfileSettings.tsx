@@ -83,7 +83,7 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
           setLoading(false);
         });
     }
-  }, [isOpen, currentSession]);
+  }, [isOpen, currentSession?.userId]);
 
   // Validation mot de passe
   const validatePassword = (password: string): string | null => {

@@ -240,12 +240,6 @@ export function Header({
           )}
         </div>
 
-
-        {/* ProfileSettings Modal */}
-        <ProfileSettings
-          isOpen={showProfileSettings}
-          onClose={() => setShowProfileSettings(false)}
-        />
       </header>
     );
   }
