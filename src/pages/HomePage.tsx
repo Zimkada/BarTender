@@ -14,7 +14,7 @@ import { useFilteredProducts } from '../hooks/useFilteredProducts';
 import { useCategoryManagement } from '../hooks/useCategoryManagement';
 import { useStockManagement } from '../hooks/useStockManagement';
 
-export function HomePage() {
+export default function HomePage() {
   // 1. Tous les hooks sont appelés inconditionnellement en haut
   const { categories, addToCart } = useAppContext();
   const { currentBar } = useBarContext();

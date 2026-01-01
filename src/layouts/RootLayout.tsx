@@ -23,11 +23,13 @@ import { LazyLoadErrorBoundary } from '../components/LazyLoadErrorBoundary';
 import { Category } from '../types';
 import { ActingAsBar } from '../components/ActingAsBar';
 import { UpdateNotification } from '../components/UpdateNotification';
-import { ProductModal } from '../components/ProductModal';
-import { CategoryModal } from '../components/CategoryModal';
-import { QuickSaleFlow } from '../components/QuickSaleFlow';
-import { SupplyModal } from '../components/SupplyModal';
-import BarStatsModal from '../components/BarStatsModal';
+
+// Lazy load all modals to reduce initial bundle size (~60-80 KB savings)
+const LazyProductModal = lazy(() => import('../components/ProductModal').then(m => ({ default: m.ProductModal })));
+const LazyCategoryModal = lazy(() => import('../components/CategoryModal').then(m => ({ default: m.CategoryModal })));
+const LazyQuickSaleFlow = lazy(() => import('../components/QuickSaleFlow').then(m => ({ default: m.QuickSaleFlow })));
+const LazySupplyModal = lazy(() => import('../components/SupplyModal').then(m => ({ default: m.SupplyModal })));
+const LazyBarStatsModal = lazy(() => import('../components/BarStatsModal')); // default export, no .then() needed
 
 function RootLayoutContent() {
   const { isAuthenticated, currentSession } = useAuth();
@@ -149,7 +151,7 @@ function RootLayoutContent() {
 
       <Suspense fallback={<LoadingFallback />}>
         {modalState.type === 'PRODUCT' && (
-          <ProductModal
+          <LazyProductModal
             isOpen={true}
             onClose={closeModal}
             onSave={(productData) => {
@@ -166,7 +168,7 @@ function RootLayoutContent() {
           />
         )}
         {modalState.type === 'CATEGORY' && (
-          <CategoryModal
+          <LazyCategoryModal
             isOpen={true}
             onClose={closeModal}
             onSave={(categoryData) => {
@@ -182,14 +184,14 @@ function RootLayoutContent() {
           />
         )}
         {modalState.type === 'QUICK_SALE' && (
-          <QuickSaleFlow
+          <LazyQuickSaleFlow
             isOpen={true}
             onClose={closeModal}
           />
         )}
         {/* UserManagement modal removed - migrated to page */}
         {modalState.type === 'SUPPLY' && (
-          <SupplyModal
+          <LazySupplyModal
             isOpen={true}
             onClose={closeModal}
             products={products}
@@ -211,7 +213,7 @@ function RootLayoutContent() {
           />
         )}
         {modalState.type === 'BAR_STATS' && (
-          <BarStatsModal
+          <LazyBarStatsModal
             isOpen={true}
             onClose={closeModal}
             bar={modalState.props.bar}
