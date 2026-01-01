@@ -5,8 +5,10 @@ import { RootLayout } from '../layouts/RootLayout';
 import { AdminLayout } from '../layouts/AdminLayout';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { ErrorPage } from '../pages/ErrorPage';
-import { HomePage } from '../pages/HomePage';
 import { ProtectedRoute } from '../components/ProtectedRoute';
+
+// Lazy load HomePage to reduce initial bundle (affects mobile performance)
+const HomePage = lazyWithRetry(() => import('../pages/HomePage'));
 
 // === Pages (export default) - With automatic retry on chunk load failure ===
 const DashboardPage = lazyWithRetry(() => import('../pages/DashboardPage'));
