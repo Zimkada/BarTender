@@ -28,10 +28,11 @@ async function convertPNGToIcons() {
     const outputPath = path.join(outputDir, `icon-${size}x${size}.png`);
 
     try {
+      // D'abord, recadrer au format carré (au centre), puis redimensionner
       await sharp(inputPNG)
         .resize(size, size, {
-          fit: 'contain',
-          background: { r: 0, g: 0, b: 0, alpha: 0 } // Fond transparent
+          fit: 'cover', // Recadre au format carré en gardant les proportions
+          position: 'center'
         })
         .png()
         .toFile(outputPath);
@@ -64,8 +65,8 @@ async function convertPNGToIcons() {
       .composite([{
         input: await sharp(inputPNG)
           .resize(iconSize, iconSize, {
-            fit: 'contain',
-            background: { r: 0, g: 0, b: 0, alpha: 0 }
+            fit: 'cover', // Recadre au format carré en gardant les proportions
+            position: 'center'
           })
           .png()
           .toBuffer(),
@@ -88,8 +89,8 @@ async function convertPNGToIcons() {
   try {
     await sharp(inputPNG)
       .resize(180, 180, {
-        fit: 'contain',
-        background: { r: 0, g: 0, b: 0, alpha: 0 }
+        fit: 'cover', // Recadre au format carré en gardant les proportions
+        position: 'center'
       })
       .png()
       .toFile(appleIconPath);

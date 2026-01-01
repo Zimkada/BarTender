@@ -29,7 +29,7 @@ const LazyProductModal = lazy(() => import('../components/ProductModal').then(m 
 const LazyCategoryModal = lazy(() => import('../components/CategoryModal').then(m => ({ default: m.CategoryModal })));
 const LazyQuickSaleFlow = lazy(() => import('../components/QuickSaleFlow').then(m => ({ default: m.QuickSaleFlow })));
 const LazySupplyModal = lazy(() => import('../components/SupplyModal').then(m => ({ default: m.SupplyModal })));
-const LazyBarStatsModal = lazy(() => import('../components/BarStatsModal').then(m => ({ default: m.BarStatsModal })));
+const LazyBarStatsModal = lazy(() => import('../components/BarStatsModal')); // default export, no .then() needed
 
 function RootLayoutContent() {
   const { isAuthenticated, currentSession } = useAuth();
