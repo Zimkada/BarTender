@@ -28,16 +28,30 @@ async function convertPNGToIcons() {
     const outputPath = path.join(outputDir, `icon-${size}x${size}.png`);
 
     try {
-      // D'abord, recadrer au format carré (au centre), puis redimensionner
-      await sharp(inputPNG)
-        .resize(size, size, {
-          fit: 'cover', // Recadre au format carré en gardant les proportions
-          position: 'center'
-        })
-        .png()
-        .toFile(outputPath);
+      // Créer un canvas blanc et placer l'icône dessus
+      await sharp({
+        create: {
+          width: size,
+          height: size,
+          channels: 3,
+          background: { r: 255, g: 255, b: 255 } // Fond blanc
+        }
+      })
+      .composite([{
+        input: await sharp(inputPNG)
+          .resize(size, size, {
+            fit: 'cover', // Recadre au format carré en gardant les proportions
+            position: 'center'
+          })
+          .png()
+          .toBuffer(),
+        top: 0,
+        left: 0
+      }])
+      .png()
+      .toFile(outputPath);
 
-      console.log(`✅ Généré: icon-${size}x${size}.png`);
+      console.log(`✅ Généré: icon-${size}x${size}.png (fond blanc)`);
     } catch (error) {
       console.error(`❌ Erreur pour ${size}x${size}:`, error.message);
     }
@@ -87,15 +101,29 @@ async function convertPNGToIcons() {
 
   const appleIconPath = path.join(outputDir, 'apple-touch-icon.png');
   try {
-    await sharp(inputPNG)
-      .resize(180, 180, {
-        fit: 'cover', // Recadre au format carré en gardant les proportions
-        position: 'center'
-      })
-      .png()
-      .toFile(appleIconPath);
+    await sharp({
+      create: {
+        width: 180,
+        height: 180,
+        channels: 3,
+        background: { r: 255, g: 255, b: 255 } // Fond blanc
+      }
+    })
+    .composite([{
+      input: await sharp(inputPNG)
+        .resize(180, 180, {
+          fit: 'cover', // Recadre au format carré en gardant les proportions
+          position: 'center'
+        })
+        .png()
+        .toBuffer(),
+      top: 0,
+      left: 0
+    }])
+    .png()
+    .toFile(appleIconPath);
 
-    console.log('✅ Généré: apple-touch-icon.png');
+    console.log('✅ Généré: apple-touch-icon.png (fond blanc)');
   } catch (error) {
     console.error('❌ Erreur pour apple-touch-icon:', error.message);
   }
@@ -123,7 +151,7 @@ async function convertPNGToIcons() {
   }
 
   console.log('\n🎉 Toutes les icônes ont été générées avec succès!');
-  console.log('📝 Basées sur: icon_app.png (avec fond transparent)');
+  console.log('📝 Basées sur: icon_app.png (avec fond blanc)');
 }
 
 convertPNGToIcons().catch(error => {
