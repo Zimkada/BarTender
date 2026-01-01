@@ -10,6 +10,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getMobileAnimationProps } from '../utils/disableAnimationsOnMobile';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { useStockManagement } from '../hooks/useStockManagement';
@@ -527,9 +528,7 @@ export default function ReturnsPage() {
           {!showCreateReturn ? (
             <motion.div
               key="list"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
+              {...getMobileAnimationProps()}
               className="space-y-4"
             >
               {filteredReturns.length === 0 ? (
@@ -551,11 +550,14 @@ export default function ReturnsPage() {
                       ? users.find(u => u.id === returnItem.server_id)
                       : null;
 
+                    // Disable layoutId animation on mobile to reduce TBT
+                    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
                     return (
                       <motion.div
                         key={returnItem.id}
                         id={`return-${returnItem.id}`}
-                        layoutId={returnItem.id}
+                        layoutId={isMobile ? undefined : returnItem.id}
                         className="bg-white rounded-xl p-4 border border-gray-200 hover:border-amber-300 transition-colors shadow-sm"
                       >
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">

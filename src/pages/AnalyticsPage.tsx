@@ -74,12 +74,6 @@ export default function AnalyticsPage() {
       }
     });
 
-    // Debug: log les données
-    console.log('Analytics - Sales count:', sales.length);
-    console.log('Analytics - Expenses count:', expenses.length);
-    console.log('Analytics - Chart data:', chartData);
-    console.log('Analytics - Expenses by category:', categories);
-
     return categories;
   }, [expenses, sales, chartData]);
 
