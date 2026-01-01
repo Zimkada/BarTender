@@ -7,7 +7,9 @@ import { useBarContext } from '../context/BarContext';
 import { Button } from '../components/ui/Button';
 
 // Lazy load AnalyticsCharts to defer Recharts loading (102 KB gzipped)
-const AnalyticsCharts = lazy(() => import('../components/AnalyticsCharts'));
+const AnalyticsCharts = lazy(() =>
+  import('../components/AnalyticsCharts').then(m => ({ default: m.default }))
+);
 
 /**
  * Page Analytics - Wrapper pour AnalyticsCharts avec données
