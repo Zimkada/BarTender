@@ -38,7 +38,7 @@ const ResetPasswordScreen = lazyWithRetry(() => import('../components/ResetPassw
 // === Admin Components (Default Exports) ===
 const SuperAdminPage = lazyWithRetry(() => import('../pages/SuperAdminPage'));
 const BarsManagementPage = lazyWithRetry(() => import('../pages/admin/BarsManagementPage'));
-const BarStatsModalPage = lazyWithRetry(() => import('../components/BarStatsModal'));
+const BarStatsPage = lazyWithRetry(() => import('../pages/BarStatsPage'));
 const UsersManagementPage = lazyWithRetry(() => import('../pages/admin/UsersManagementPage'));
 const GlobalCatalogPage = lazyWithRetry(() => import('../pages/GlobalCatalogPage'));
 const AuditLogsPage = lazyWithRetry(() => import('../pages/AuditLogsPage'));
@@ -55,7 +55,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <SuperAdminPage /> },
       { path: 'bars', element: <BarsManagementPage /> },
-      { path: 'bars/:barId', element: <BarStatsModalPage /> },
+      { path: 'bars/:barId', element: <BarStatsPage /> },
       { path: 'users', element: <UsersManagementPage /> },
       { path: 'catalog', element: <GlobalCatalogPage /> },
       { path: 'audit-logs', element: <AuditLogsPage /> },
