@@ -42,9 +42,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.warn('[AuthContext] Detected invalid legacy session (ID=1), clearing...');
       setCurrentSession(null);
     }
-  }, [currentSession, setCurrentSession]);
+  }, [currentSession?.userId]);
 
-  // 🔐 Initialiser la session Supabase RLS au démarrage
+  // 🔐 Initialiser la session Supabase RLS au démarrage (une seule fois)
   useEffect(() => {
     AuthService.initializeSession().then(authUser => {
       if (authUser) {
@@ -62,32 +62,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       } else {
         // Si aucune session valide trouvée (ou token expiré), on nettoie
         console.log('[AuthContext] No valid session found during init, clearing state');
-        if (currentSession) {
-          sessionStorage.setItem('session_expired', 'true');
-        }
-        if (currentSession) {
-          // Notification seulement si on avait une session (donc expiration)
-          // Note: need to import useNotifications or use a global toaster if available, or just rely on redirect.
-          // Since useNotifications is likely a hook relative to a provider, and AuthProvider is at top level, 
-          // we might need to be careful. 
-          // Actually, AuthProvider is usually above NotificationProvider? Let's check App.tsx or use a simpler alert/console for now, 
-          // or better: let the user know they are redirected.
-          // The user requested a message.
-        }
+        sessionStorage.setItem('session_expired', 'true');
         setCurrentSession(null);
       }
     }).catch(err => {
       console.error('[AuthContext] Failed to initialize Supabase session:', err);
 
       // 🌐 MODE HORS LIGNE: Garder la session en cache si elle existe
-      if (!navigator.onLine && currentSession) {
+      if (!navigator.onLine) {
         console.log('[AuthContext] 📵 Mode hors ligne détecté - conservation de la session en cache');
         // Ne pas effacer la session existante en mode hors ligne
-      } else if (!currentSession) {
+      } else {
         setCurrentSession(null);
       }
     });
-  }, [setCurrentSession, currentSession]);
+    // ⚠️ S'exécuter une seule fois au montage
+  }, []);
 
   // 🔐 Écouter les changements d'authentification Supabase
   useEffect(() => {
