@@ -1,11 +1,13 @@
 // src/pages/AnalyticsPage.tsx
-import { useMemo } from 'react';
+import { useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, BarChart3 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { Button } from '../components/ui/Button';
-import AnalyticsCharts from '../components/AnalyticsCharts';
+
+// Lazy load AnalyticsCharts to defer Recharts loading (102 KB gzipped)
+const AnalyticsCharts = lazy(() => import('../components/AnalyticsCharts'));
 
 /**
  * Page Analytics - Wrapper pour AnalyticsCharts avec données
@@ -112,10 +114,17 @@ export default function AnalyticsPage() {
 
       {/* Charts */}
       <div className="bg-white rounded-2xl shadow-sm border border-amber-100 p-6">
-        <AnalyticsCharts
-          data={chartData}
-          expensesByCategory={expensesByCategory}
-        />
+        <Suspense fallback={
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+            <span className="ml-3 text-gray-600">Chargement des graphiques...</span>
+          </div>
+        }>
+          <AnalyticsCharts
+            data={chartData}
+            expensesByCategory={expensesByCategory}
+          />
+        </Suspense>
       </div>
     </div>
   );
