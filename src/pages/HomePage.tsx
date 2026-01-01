@@ -107,7 +107,7 @@ export function HomePage() {
       />
 
       {/* Product Grid */}
-      <Card variant="elevated" padding="default" className="border-amber-100">
+      <Card variant="elevated" padding="default" className="border-amber-100 min-h-[600px]">
         <ProductGrid
           products={filteredProducts}
           onAddToCart={handleAddToCart}
