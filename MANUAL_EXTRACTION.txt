@@ -1,0 +1,35 @@
+MANUAL LIGHTHOUSE AUDIT SCORE EXTRACTION
+==========================================
+
+Verified scores extracted from JSON files:
+
+=== HOMEPAGE ===
+OLD (Dec 31):
+  Line 20861: "score": 0.39 (Performance)
+  Line 21229: "score": 0.86 (Accessibility)
+  Line 21341: "score": 1 (Best-Practices)
+  Line 21408: "score": 1 (SEO)
+  PWA: Not present (0)
+
+NEW (Jan 1):
+  Line 6562: "score": 0.52 (Performance)
+  Line 6930: "score": 0.86 (Accessibility)
+  Line 7042: "score": 1 (Best-Practices)
+  Line 7109: "score": 1 (SEO)
+  PWA: Need to check
+
+=== REMAINING PAGES ===
+Need to extract line numbers for:
+- Vente Rapide / Venterapide
+- Dashboard / Tableaudebord
+- Historique
+- Inventaire
+- Previsions
+- Retours
+- Consignations
+- Equipe
+- Promotions
+- Parametres
+- Accounting / Comptabilité
+
+Strategy: Use grep to find line numbers, then read those specific lines
