@@ -4,6 +4,7 @@ import { Product } from '../types';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { IconButton } from './ui/IconButton';
+import { OptimizedImage } from './ui/OptimizedImage';
 
 interface ProductCardProps {
   product: Product;
@@ -71,13 +72,12 @@ export function ProductCard({ product, onAddToCart, availableStock }: ProductCar
       {/* Image */}
       <div className="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden p-2">
         {product.image ? (
-          <img
+          <OptimizedImage
             src={product.image}
             alt={product.name}
             width={200}
             height={200}
             className="w-full h-full object-contain mix-blend-multiply"
-            loading="lazy"
           />
         ) : (
           <Package size={24} className="text-gray-300" />
