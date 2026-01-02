@@ -1,4 +1,5 @@
 import React, { lazy, Suspense } from 'react';
+import { ResponsiveContainer } from './RechartsWrapper';
 
 // Lazy load Recharts components
 const RechartsWrapper = lazy(() => import('./RechartsWrapper'));

@@ -1,6 +1,7 @@
 import { BarChart3 } from 'lucide-react';
 import { lazy, Suspense } from 'react';
 import { Select } from '../ui/Select';
+import { ResponsiveContainer } from '../charts/RechartsWrapper';
 
 // Lazy load Recharts components
 const RechartsWrapper = lazy(() => import('../charts/RechartsWrapper'));

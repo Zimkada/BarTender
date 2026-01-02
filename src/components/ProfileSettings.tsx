@@ -208,11 +208,23 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
             className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-white">
+            <div
+              className={`bg-gradient-to-r ${
+                currentSession?.role === 'super_admin'
+                  ? 'from-indigo-600 to-purple-600'
+                  : 'from-amber-500 to-orange-500'
+              } p-6 text-white`}
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold">Mon Profil</h2>
-                  <p className="text-indigo-100 text-sm mt-1">
+                  <p
+                    className={`${
+                      currentSession?.role === 'super_admin'
+                        ? 'text-indigo-100'
+                        : 'text-amber-100'
+                    } text-sm mt-1`}
+                  >
                     Gérez vos informations personnelles
                   </p>
                 </div>
@@ -227,7 +239,13 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
 
             {loading ? (
               <div className="p-8 flex justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                <div
+                  className={`animate-spin rounded-full h-8 w-8 border-b-2 ${
+                    currentSession?.role === 'super_admin'
+                      ? 'border-indigo-600'
+                      : 'border-amber-500'
+                  }`}
+                ></div>
               </div>
             ) : !currentUser ? (
               <div className="p-8 text-center text-red-600">
@@ -240,20 +258,30 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
                 <div className="flex border-b bg-gray-50">
                   <button
                     onClick={() => setActiveTab('info')}
-                    className={`flex-1 py-3 px-4 font-medium transition-colors ${activeTab === 'info'
-                      ? 'bg-white text-indigo-600 border-b-2 border-indigo-600'
-                      : 'text-gray-600 hover:text-gray-900'
-                      }`}
+                    className={`flex-1 py-3 px-4 font-medium transition-colors ${
+                      activeTab === 'info'
+                        ? `bg-white border-b-2 ${
+                            currentSession?.role === 'super_admin'
+                              ? 'text-indigo-600 border-indigo-600'
+                              : 'text-amber-600 border-amber-600'
+                          }`
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
                   >
                     <User className="w-4 h-4 inline mr-2" />
                     Informations
                   </button>
                   <button
                     onClick={() => setActiveTab('password')}
-                    className={`flex-1 py-3 px-4 font-medium transition-colors ${activeTab === 'password'
-                      ? 'bg-white text-indigo-600 border-b-2 border-indigo-600'
-                      : 'text-gray-600 hover:text-gray-900'
-                      }`}
+                    className={`flex-1 py-3 px-4 font-medium transition-colors ${
+                      activeTab === 'password'
+                        ? `bg-white border-b-2 ${
+                            currentSession?.role === 'super_admin'
+                              ? 'text-indigo-600 border-indigo-600'
+                              : 'text-amber-600 border-amber-600'
+                          }`
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
                   >
                     <Lock className="w-4 h-4 inline mr-2" />
                     Mot de passe
@@ -342,7 +370,11 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
                       {/* Bouton sauvegarder */}
                       <button
                         onClick={handleSaveInfo}
-                        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-shadow flex items-center justify-center gap-2 mt-6"
+                        className={`w-full bg-gradient-to-r ${
+                          currentSession?.role === 'super_admin'
+                            ? 'from-indigo-600 to-purple-600'
+                            : 'from-amber-500 to-orange-500'
+                        } text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-shadow flex items-center justify-center gap-2 mt-6`}
                       >
                         <Save className="w-5 h-5" />
                         Enregistrer les modifications
@@ -441,7 +473,11 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
                       <button
                         onClick={handleChangePassword}
                         disabled={!currentPassword || !newPassword || !confirmPassword}
-                        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-shadow flex items-center justify-center gap-2 mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className={`w-full bg-gradient-to-r ${
+                          currentSession?.role === 'super_admin'
+                            ? 'from-indigo-600 to-purple-600'
+                            : 'from-amber-500 to-orange-500'
+                        } text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-shadow flex items-center justify-center gap-2 mt-6 disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
                         <Lock className="w-5 h-5" />
                         Changer le mot de passe

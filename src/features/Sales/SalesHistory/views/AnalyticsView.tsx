@@ -8,6 +8,7 @@ import { getSaleDate } from '../../../../utils/saleHelpers';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../../../../utils/businessDay';
 import { Select } from '../../../../components/ui/Select';
 import { TopProductsChart } from '../../../../components/analytics/TopProductsChart';
+import { ResponsiveContainer } from '../../../../components/charts/RechartsWrapper';
 import {
   TrendingUp,
   ArrowUp,

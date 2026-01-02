@@ -168,7 +168,7 @@ export function Header({
                   onClick={onToggleMobileSidebar}
                   variant="ghost"
                   size="icon"
-                  className="p-2 bg-white rounded-lg text-amber-600 active:scale-95 transition-all shadow-lg border-2 border-white/40 flex-shrink-0"
+                  className="p-2 bg-amber-200 rounded-lg text-amber-600 active:scale-95 transition-all shadow-lg border-2 border-amber-200/40 flex-shrink-0"
                   aria-label="Menu"
                 >
                   <Menu size={22} className="stroke-[2.5]" />
@@ -257,7 +257,7 @@ export function Header({
               onClick={onToggleMobileSidebar}
               variant="ghost"
               size="icon"
-              className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
+              className="p-2 bg-amber-200/50 rounded-lg text-white hover:bg-amber-200/60 transition-colors"
               aria-label="Menu"
             >
               <Menu size={24} />
