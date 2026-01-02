@@ -1,8 +1,21 @@
-import React, { lazy, Suspense } from 'react';
-import { ResponsiveContainer } from './RechartsWrapper';
-
-// Lazy load Recharts components
-const RechartsWrapper = lazy(() => import('./RechartsWrapper'));
+import React from 'react';
+import {
+  LineChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  Line,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+} from './RechartsWrapper';
 
 interface RefreshLog {
   id: string;
@@ -86,23 +99,21 @@ export function RefreshHistoryChart({ logs, chartType = 'line' }: RefreshHistory
   if (chartType === 'line') {
     return (
       <ResponsiveContainer width="100%" height={300}>
-        <Suspense fallback={<div>Loading Line Chart...</div>}>
-          <RechartsWrapper.LineChart data={durationData}>
-            <RechartsWrapper.CartesianGrid strokeDasharray="3 3" />
-            <RechartsWrapper.XAxis dataKey="time" />
-            <RechartsWrapper.YAxis label={{ value: 'Durée (ms)', angle: -90, position: 'insideLeft' }} />
-            <RechartsWrapper.Tooltip />
-            <RechartsWrapper.Legend />
-            <RechartsWrapper.Line
-              type="monotone"
-              dataKey="duration"
-              stroke="#3b82f6"
-              strokeWidth={2}
-              dot={{ fill: '#3b82f6' }}
-              name="Durée (ms)"
-            />
-          </RechartsWrapper.LineChart>
-        </Suspense>
+        <LineChart data={durationData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="time" />
+          <YAxis label={{ value: 'Durée (ms)', angle: -90, position: 'insideLeft' }} />
+          <Tooltip />
+          <Legend />
+          <Line
+            type="monotone"
+            dataKey="duration"
+            stroke="#3b82f6"
+            strokeWidth={2}
+            dot={{ fill: '#3b82f6' }}
+            name="Durée (ms)"
+          />
+        </LineChart>
       </ResponsiveContainer>
     );
   }
@@ -111,23 +122,21 @@ export function RefreshHistoryChart({ logs, chartType = 'line' }: RefreshHistory
   if (chartType === 'area') {
     return (
       <ResponsiveContainer width="100%" height={300}>
-        <Suspense fallback={<div>Loading Area Chart...</div>}>
-          <RechartsWrapper.AreaChart data={durationData}>
-            <RechartsWrapper.CartesianGrid strokeDasharray="3 3" />
-            <RechartsWrapper.XAxis dataKey="time" />
-            <RechartsWrapper.YAxis label={{ value: 'Durée (ms)', angle: -90, position: 'insideLeft' }} />
-            <RechartsWrapper.Tooltip />
-            <RechartsWrapper.Legend />
-            <RechartsWrapper.Area
-              type="monotone"
-              dataKey="duration"
-              stroke="#3b82f6"
-              fill="#3b82f6"
-              fillOpacity={0.3}
-              name="Durée (ms)"
-            />
-          </RechartsWrapper.AreaChart>
-        </Suspense>
+        <AreaChart data={durationData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="time" />
+          <YAxis label={{ value: 'Durée (ms)', angle: -90, position: 'insideLeft' }} />
+          <Tooltip />
+          <Legend />
+          <Area
+            type="monotone"
+            dataKey="duration"
+            stroke="#3b82f6"
+            fill="#3b82f6"
+            fillOpacity={0.3}
+            name="Durée (ms)"
+          />
+        </AreaChart>
       </ResponsiveContainer>
     );
   }
@@ -136,16 +145,14 @@ export function RefreshHistoryChart({ logs, chartType = 'line' }: RefreshHistory
   if (chartType === 'bar') {
     return (
       <ResponsiveContainer width="100%" height={300}>
-        <Suspense fallback={<div>Loading Bar Chart...</div>}>
-          <RechartsWrapper.BarChart data={avgDurationData}>
-            <RechartsWrapper.CartesianGrid strokeDasharray="3 3" />
-            <RechartsWrapper.XAxis dataKey="view" angle={-45} textAnchor="end" height={80} />
-            <RechartsWrapper.YAxis label={{ value: 'Avg Durée (ms)', angle: -90, position: 'insideLeft' }} />
-            <RechartsWrapper.Tooltip />
-            <RechartsWrapper.Legend />
-            <RechartsWrapper.Bar dataKey="avgDuration" fill="#8b5cf6" name="Durée Moyenne (ms)" />
-          </RechartsWrapper.BarChart>
-        </Suspense>
+        <BarChart data={avgDurationData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="view" angle={-45} textAnchor="end" height={80} />
+          <YAxis label={{ value: 'Avg Durée (ms)', angle: -90, position: 'insideLeft' }} />
+          <Tooltip />
+          <Legend />
+          <Bar dataKey="avgDuration" fill="#8b5cf6" name="Durée Moyenne (ms)" />
+        </BarChart>
       </ResponsiveContainer>
     );
   }
@@ -154,26 +161,24 @@ export function RefreshHistoryChart({ logs, chartType = 'line' }: RefreshHistory
   if (chartType === 'pie') {
     return (
       <ResponsiveContainer width="100%" height={300}>
-        <Suspense fallback={<div>Loading Pie Chart...</div>}>
-          <RechartsWrapper.PieChart>
-            <RechartsWrapper.Pie
-              data={statusData}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-              outerRadius={80}
-              fill="#8884d8"
-              dataKey="value"
-            >
-              {statusData.map((entry, index) => (
-                <RechartsWrapper.Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </RechartsWrapper.Pie>
-            <RechartsWrapper.Tooltip />
-            <RechartsWrapper.Legend />
-          </RechartsWrapper.PieChart>
-        </Suspense>
+        <PieChart>
+          <Pie
+            data={statusData}
+            cx="50%"
+            cy="50%"
+            labelLine={false}
+            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+            outerRadius={80}
+            fill="#8884d8"
+            dataKey="value"
+          >
+            {statusData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.color} />
+            ))}
+          </Pie>
+          <Tooltip />
+          <Legend />
+        </PieChart>
       </ResponsiveContainer>
     );
   }
