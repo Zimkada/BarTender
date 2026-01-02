@@ -57,7 +57,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [queryClient]);
 
     // Cache Warming: Rafraîchir les vues matérialisées au démarrage
-    const { isWarming } = useCacheWarming(true);
+    const { isWarming } = useCacheWarming(!!currentSession);
 
     useEffect(() => {
         if (isWarming) {

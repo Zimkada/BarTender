@@ -1,14 +1,9 @@
 import { BarChart3 } from 'lucide-react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
-} from 'recharts';
+import { lazy, Suspense } from 'react';
 import { Select } from '../ui/Select';
+
+// Lazy load Recharts components
+const RechartsWrapper = lazy(() => import('../charts/RechartsWrapper'));
 
 interface TopProductData {
   displayName: string;
@@ -153,19 +148,21 @@ export function TopProductsChart({
       >
         <div style={needsScroll ? { minWidth: `${minChartWidth}px` } : {}}>
           <ResponsiveContainer width="100%" height={isMobile ? 300 : 250}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" />
-              <XAxis
-                dataKey="displayName"
-                tick={{ fill: '#9ca3af', fontSize: isMobile ? 11 : 10 }}
-                angle={isMobile ? -35 : -45}
-                textAnchor="end"
-                height={isMobile ? 100 : 80}
-              />
-              <YAxis tick={{ fill: '#9ca3af', fontSize: isMobile ? 10 : 12 }} />
-              <Tooltip formatter={(value: any) => formatPrice(Number(value))} />
-              <Bar dataKey={metric} fill="#f97316" radius={[8, 8, 0, 0]} isAnimationActive={false} />
-            </BarChart>
+            <Suspense fallback={<div>Loading Chart...</div>}>
+              <RechartsWrapper.BarChart data={chartData}>
+                <RechartsWrapper.CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" />
+                <RechartsWrapper.XAxis
+                  dataKey="displayName"
+                  tick={{ fill: '#9ca3af', fontSize: isMobile ? 11 : 10 }}
+                  angle={isMobile ? -35 : -45}
+                  textAnchor="end"
+                  height={isMobile ? 100 : 80}
+                />
+                <RechartsWrapper.YAxis tick={{ fill: '#9ca3af', fontSize: isMobile ? 10 : 12 }} />
+                <RechartsWrapper.Tooltip formatter={(value: any) => formatPrice(Number(value))} />
+                <RechartsWrapper.Bar dataKey={metric} fill="#f97316" radius={[8, 8, 0, 0]} isAnimationActive={false} />
+              </RechartsWrapper.BarChart>
+            </Suspense>
           </ResponsiveContainer>
         </div>
       </div>

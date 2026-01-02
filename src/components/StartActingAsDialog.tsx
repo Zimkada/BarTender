@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useActingAs } from '../context/ActingAsContext';
 import { useAuth } from '../context/AuthContext';
-import toast from 'react-hot-toast';
 
 interface User {
   id: string;
@@ -42,7 +41,9 @@ export const StartActingAsDialog: React.FC<StartActingAsDialogProps> = ({
 
   const handleStartActingAs = async () => {
     if (!selectedUserId || !selectedBarId) {
-      toast.error('Please select a user and a bar');
+      import('react-hot-toast').then(({ default: toast }) => {
+        toast.error('Please select a user and a bar');
+      });
       return;
     }
 
@@ -51,21 +52,27 @@ export const StartActingAsDialog: React.FC<StartActingAsDialogProps> = ({
 
       // Verify super_admin status
       if (!currentSession || currentSession.role !== 'super_admin') {
-        toast.error('Only super_admin can perform this action');
+        import('react-hot-toast').then(({ default: toast }) => {
+          toast.error('Only super_admin can perform this action');
+        });
         return;
       }
 
       // Start impersonation session
       startActingAs(selectedUserId, selectedUser!.name, selectedBarId, selectedBar!.name);
 
-      toast.success(`Now acting as ${selectedUser!.name} in ${selectedBar!.name}`);
+      import('react-hot-toast').then(({ default: toast }) => {
+        toast.success(`Now acting as ${selectedUser!.name} in ${selectedBar!.name}`);
+      });
 
       // Close dialog and reset form
       onClose();
       setSelectedUserId('');
       setSelectedBarId('');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to start acting as user');
+      import('react-hot-toast').then(({ default: toast }) => {
+        toast.error(error.message || 'Failed to start acting as user');
+      });
       console.error('[StartActingAsDialog] Error:', error);
     } finally {
       setIsLoading(false);
