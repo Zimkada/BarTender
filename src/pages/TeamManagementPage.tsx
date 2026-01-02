@@ -318,7 +318,7 @@ export default function TeamManagementPage() {
 
                     <div className="flex items-center gap-2">
                       {member.user?.lastLoginAt && (
-                        <span className="text-xs text-gray-400 hidden sm:inline">
+                        <span className="text-xs text-gray-600 hidden sm:inline">
                           Dernière connexion: {new Date(member.user.lastLoginAt).toLocaleDateString()}
                         </span>
                       )}
