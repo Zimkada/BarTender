@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Salary, BarMember } from '../types';
 import { useDataStore } from './useDataStore';
-import { syncQueue } from '../services/SyncQueue';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -33,7 +32,9 @@ export function useSalaries(barId: string) {
 
     // 2. Enqueue pour sync
     if (currentBar && currentSession) {
-      syncQueue.enqueue('ADD_SALARY', newSalary, currentBar.id, currentSession.userId);
+      import('../services/SyncQueue').then(({ syncQueue }) => {
+        syncQueue.enqueue('ADD_SALARY', newSalary, currentBar.id, currentSession.userId);
+      });
     }
 
     return newSalary;

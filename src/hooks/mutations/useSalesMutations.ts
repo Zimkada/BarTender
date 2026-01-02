@@ -4,7 +4,6 @@ import { ProxyAdminService } from '../../services/supabase/proxy-admin.service';
 import { salesKeys } from '../queries/useSalesQueries';
 import { stockKeys } from '../queries/useStockQueries';
 import { statsKeys } from '../queries/useStatsQueries';
-import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { useBarContext } from '../../context/BarContext';
 import { useActingAs } from '../../context/ActingAsContext';
@@ -111,7 +110,9 @@ export const useSalesMutations = (barId: string) => {
                     );
 
                     // Retourner une "Optimistic Sale" pour l'UI
-                    toast.success('Mode Hors-ligne: Vente sauvegardée localement', { icon: '💾' });
+                    import('react-hot-toast').then(({ default: toast }) => {
+                      toast.success('Mode Hors-ligne: Vente sauvegardée localement', { icon: '💾' });
+                    });
 
                     return {
                         id: `temp_${Date.now()}`, // ID temporaire
@@ -134,7 +135,9 @@ export const useSalesMutations = (barId: string) => {
             // Ne pas afficher de toast si c'est une vente optimiste (offline)
             // Le toast est déjà affiché dans le mutationFn
             if (!(sale as any).isOptimistic) {
-                toast.success('Vente enregistrée');
+                import('react-hot-toast').then(({ default: toast }) => {
+                  toast.success('Vente enregistrée');
+                });
             }
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets (sync instant 0ms)
@@ -160,7 +163,9 @@ export const useSalesMutations = (barId: string) => {
         onError: (error: any) => {
             // Ne pas afficher d'erreur si c'est une erreur réseau (offline géré)
             if (!isNetworkError(error)) {
-                toast.error(`Erreur lors de la création de la vente: ${error.message}`);
+                import('react-hot-toast').then(({ default: toast }) => {
+                  toast.error(`Erreur lors de la création de la vente: ${error.message}`);
+                });
             }
         }
     });
@@ -169,7 +174,9 @@ export const useSalesMutations = (barId: string) => {
         mutationFn: ({ id, validatorId }: { id: string; validatorId: string }) =>
             SalesService.validateSale(id, validatorId),
         onSuccess: (data, variables) => {
-            toast.success('Vente validée');
+            import('react-hot-toast').then(({ default: toast }) => {
+              toast.success('Vente validée');
+            });
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets
             if (broadcastService.isSupported()) {
@@ -196,7 +203,9 @@ export const useSalesMutations = (barId: string) => {
         mutationFn: ({ id, rejectorId }: { id: string; rejectorId: string }) =>
             SalesService.rejectSale(id, rejectorId),
         onSuccess: (data, variables) => {
-            toast.success('Vente rejetée (stock restauré)');
+            import('react-hot-toast').then(({ default: toast }) => {
+              toast.success('Vente rejetée (stock restauré)');
+            });
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets
             if (broadcastService.isSupported()) {
@@ -217,7 +226,9 @@ export const useSalesMutations = (barId: string) => {
     const deleteSale = useMutation({
         mutationFn: SalesService.deleteSale,
         onSuccess: (data, saleId) => {
-            toast.success('Vente supprimée');
+            import('react-hot-toast').then(({ default: toast }) => {
+              toast.success('Vente supprimée');
+            });
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets
             if (broadcastService.isSupported()) {

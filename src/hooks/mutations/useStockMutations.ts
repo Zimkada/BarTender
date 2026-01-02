@@ -6,7 +6,6 @@ import { stockKeys } from '../queries/useStockQueries';
 import { useAuth } from '../../context/AuthContext';
 import { useActingAs } from '../../context/ActingAsContext';
 import { useBarContext } from '../../context/BarContext';
-import toast from 'react-hot-toast';
 import { broadcastService } from '../../services/broadcast/BroadcastService';
 
 // Helper: Centralized cache invalidation for stock queries
@@ -49,7 +48,9 @@ export const useStockMutations = () => {
         },
         onSuccess: () => {
             const barId = currentBar?.id;
-            toast.success('Produit créé avec succès');
+            import('react-hot-toast').then(({ default: toast }) => {
+              toast.success('Produit créé avec succès');
+            });
             if (barId) {
                 invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
             }
@@ -74,7 +75,9 @@ export const useStockMutations = () => {
         },
         onSuccess: (data, variables) => {
             const barId = currentBar?.id;
-            toast.success('Produit mis à jour');
+            import('react-hot-toast').then(({ default: toast }) => {
+              toast.success('Produit mis à jour');
+            });
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets
             if (barId && broadcastService.isSupported()) {
@@ -110,7 +113,9 @@ export const useStockMutations = () => {
         },
         onSuccess: (data, id) => {
             const barId = currentBar?.id;
-            toast.success('Produit supprimé');
+            import('react-hot-toast').then(({ default: toast }) => {
+              toast.success('Produit supprimé');
+            });
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets
             if (barId && broadcastService.isSupported()) {
@@ -153,7 +158,9 @@ export const useStockMutations = () => {
         },
         onSuccess: (data, variables) => {
             const barId = currentBar?.id;
-            toast.success('Stock mis à jour');
+            import('react-hot-toast').then(({ default: toast }) => {
+              toast.success('Stock mis à jour');
+            });
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets
             if (barId && broadcastService.isSupported()) {
@@ -170,7 +177,9 @@ export const useStockMutations = () => {
             }
         },
         onError: (err: any) => {
-            toast.error(`Erreur mise à jour stock: ${err.message}`);
+            import('react-hot-toast').then(({ default: toast }) => {
+              toast.error(`Erreur mise à jour stock: ${err.message}`);
+            });
         }
     });
 
@@ -204,7 +213,9 @@ export const useStockMutations = () => {
         },
         onSuccess: (data, variables) => {
             const barId = currentBar?.id;
-            toast.success('Approvisionnement enregistré et CUMP mis à jour !');
+            import('react-hot-toast').then(({ default: toast }) => {
+              toast.success('Approvisionnement enregistré et CUMP mis à jour !');
+            });
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets
             if (barId && broadcastService.isSupported()) {
@@ -229,7 +240,9 @@ export const useStockMutations = () => {
             }
         },
         onError: (err: any) => {
-            toast.error(`Erreur: ${err.message}`);
+            import('react-hot-toast').then(({ default: toast }) => {
+              toast.error(`Erreur: ${err.message}`);
+            });
         }
     });
 
@@ -277,7 +290,9 @@ export const useStockMutations = () => {
         },
         onSuccess: (newConsignment) => {
             const barId = currentBar?.id;
-            toast.success('Consignation créée');
+            import('react-hot-toast').then(({ default: toast }) => {
+              toast.success('Consignation créée');
+            });
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets
             if (barId && broadcastService.isSupported()) {
@@ -302,7 +317,9 @@ export const useStockMutations = () => {
             }
         },
         onError: (err: any) => {
-            toast.error(`Erreur: ${err.message}`);
+            import('react-hot-toast').then(({ default: toast }) => {
+              toast.error(`Erreur: ${err.message}`);
+            });
         }
     });
 
@@ -316,7 +333,9 @@ export const useStockMutations = () => {
         },
         onSuccess: (consignment, variables) => {
             const barId = currentBar?.id;
-            toast.success('Consignation réclamée');
+            import('react-hot-toast').then(({ default: toast }) => {
+              toast.success('Consignation réclamée');
+            });
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets
             if (barId && broadcastService.isSupported()) {
@@ -349,7 +368,9 @@ export const useStockMutations = () => {
         },
         onSuccess: async () => {
             const barId = currentBar?.id;
-            toast.success('Consignation abandonnée (stock réintégré)');
+            import('react-hot-toast').then(({ default: toast }) => {
+              toast.success('Consignation abandonnée (stock réintégré)');
+            });
             if (barId) {
                 invalidateStockQuery(queryClient, stockKeys.consignments(barId), barId, actingAs);
                 invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
@@ -364,13 +385,17 @@ export const useStockMutations = () => {
         },
         onSuccess: async (data) => {
             const barId = currentBar?.id;
-            toast.success(`${data.length} consignation(s) marquée(s) comme expirée(s)`);
+            import('react-hot-toast').then(({ default: toast }) => {
+              toast.success(`${data.length} consignation(s) marquée(s) comme expirée(s)`);
+            });
             if (barId) {
                 await queryClient.refetchQueries({ queryKey: stockKeys.consignments(barId) });
             }
         },
         onError: (err: any) => {
-            toast.error(`Erreur lors de l'expiration: ${err.message}`);
+            import('react-hot-toast').then(({ default: toast }) => {
+              toast.error(`Erreur lors de l'expiration: ${err.message}`);
+            });
         }
     });
 

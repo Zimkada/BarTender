@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ExpensesService } from '../../services/supabase/expenses.service';
 import { expenseKeys } from '../queries/useExpensesQueries';
-import toast from 'react-hot-toast';
 
 export const useExpensesMutations = (barId: string) => {
     const queryClient = useQueryClient();
@@ -21,7 +20,9 @@ export const useExpensesMutations = (barId: string) => {
             return ExpensesService.createExpense(expenseData);
         },
         onSuccess: () => {
-            toast.success('Dépense enregistrée');
+            import('react-hot-toast').then(({ default: toast }) => {
+              toast.success('Dépense enregistrée');
+            });
             queryClient.invalidateQueries({ queryKey: expenseKeys.list(barId) });
         },
     });
@@ -29,7 +30,9 @@ export const useExpensesMutations = (barId: string) => {
     const deleteExpense = useMutation({
         mutationFn: ExpensesService.deleteExpense,
         onSuccess: () => {
-            toast.success('Dépense supprimée');
+            import('react-hot-toast').then(({ default: toast }) => {
+              toast.success('Dépense supprimée');
+            });
             queryClient.invalidateQueries({ queryKey: expenseKeys.list(barId) });
         },
     });
@@ -45,7 +48,9 @@ export const useExpensesMutations = (barId: string) => {
             return ExpensesService.createCustomCategory(categoryData);
         },
         onSuccess: () => {
-            toast.success('Catégorie créée');
+            import('react-hot-toast').then(({ default: toast }) => {
+              toast.success('Catégorie créée');
+            });
             queryClient.invalidateQueries({ queryKey: expenseKeys.categories(barId) });
         },
     });
