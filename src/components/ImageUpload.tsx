@@ -101,7 +101,7 @@ export function ImageUpload({
                     </div>
                 </div>
             ) : (
-                <div className="w-full h-48 bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400">
+                <div className="w-full h-48 bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-600">
                     <ImageIcon size={48} className="mb-2 opacity-50" />
                     <span className="text-sm">Aucune image sélectionnée</span>
                 </div>
@@ -148,7 +148,7 @@ export function ImageUpload({
                     <label
                         htmlFor="image-upload"
                         className={`flex items-center justify-center gap-2 w-full px-4 py-3 border border-gray-300 rounded-xl text-sm font-medium cursor-pointer transition-colors ${uploading
-                                ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                                ? 'bg-gray-50 text-gray-600 cursor-not-allowed'
                                 : 'bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-400'
                             }`}
                     >

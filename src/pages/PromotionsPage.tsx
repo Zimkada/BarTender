@@ -207,7 +207,7 @@ export default function PromotionsPage() {
                                 />
                             </div>
                             <div className="flex items-center gap-2">
-                                <Filter size={20} className="text-gray-400" />
+                                <Filter size={20} className="text-gray-600" />
                                 <Select
                                     options={statusFilterOptions}
                                     value={statusFilter}
@@ -267,7 +267,7 @@ export default function PromotionsPage() {
                                                     onClick={() => handleToggleStatus(promo)}
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg"
+                                                    className="p-1.5 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg"
                                                     title={promo.status === 'active' ? 'Pause' : 'Activer'}
                                                 >
                                                     {promo.status === 'active' ? <Pause size={18} /> : <Play size={18} />}
@@ -276,7 +276,7 @@ export default function PromotionsPage() {
                                                     onClick={() => { setSelectedPromotion(promo); setShowCreateModal(true); }}
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                                                    className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
                                                 >
                                                     <Edit size={18} />
                                                 </Button>
@@ -284,7 +284,7 @@ export default function PromotionsPage() {
                                                     onClick={() => handleDelete(promo.id)}
                                                     variant="ghost"
                                                     size="icon"
-                                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                                    className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg"
                                                 >
                                                     <Trash2 size={18} />
                                                 </Button>

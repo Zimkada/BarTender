@@ -224,7 +224,7 @@ export default function AdminNotificationsPanel({
                       </div>
                       <button
                         onClick={() => onDelete(notification.id)}
-                        className="text-gray-400 hover:text-gray-600 p-1"
+                        className="text-gray-600 hover:text-gray-600 p-1"
                       >
                         <X className="w-4 h-4" />
                       </button>

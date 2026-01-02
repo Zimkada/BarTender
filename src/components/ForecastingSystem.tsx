@@ -738,7 +738,7 @@ function AlertCard({
         )}
         <button
           onClick={onDelete}
-          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+          className="p-1.5 text-gray-600 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
           title="Supprimer"
         >
           <X size={16} />

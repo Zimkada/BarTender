@@ -379,7 +379,7 @@ export default function SalesHistoryPage() {
                                 <div className="flex items-center gap-3">
                                     <TrendingUp size={24} />
                                     <div>
-                                        <h2 className="text-lg font-bold">Historique</h2>
+                                        <h1 className="text-lg font-bold">Historique</h1>
                                         <p className="text-xs text-amber-100">{filteredSales.length} ventes</p>
                                     </div>
                                 </div>
@@ -560,7 +560,7 @@ export default function SalesHistoryPage() {
                                     <TrendingUp size={28} />
                                     <div>
                                         <div className="flex items-center gap-3">
-                                            <h2 className="text-xl font-bold">Historique des ventes</h2>
+                                            <h1 className="text-xl font-bold">Historique des ventes</h1>
                                             <DataFreshnessIndicatorCompact
                                                 viewName="top_products_by_period"
                                                 onRefreshComplete={async () => {
@@ -634,7 +634,7 @@ export default function SalesHistoryPage() {
                                         onChange={(e) => updateCustomRange('start', e.target.value)}
                                         className="p-1.5 bg-transparent text-sm"
                                     />
-                                    <span className="text-gray-400">-</span>
+                                    <span className="text-gray-600">-</span>
                                     <Input
                                         type="date"
                                         value={customRange.end}
@@ -809,7 +809,7 @@ function SaleDetailModal({
             >
                 <div className="flex items-center justify-between p-6 border-b">
                     <h3 className="text-lg font-semibold text-gray-800">Détail vente #{sale.id.slice(-6)}</h3>
-                    <Button onClick={onClose} variant="ghost" size="icon" className="p-2 text-gray-400 hover:text-gray-600">
+                    <Button onClick={onClose} variant="ghost" size="icon" className="p-2 text-gray-600 hover:text-gray-600">
                         <X size={20} />
                     </Button>
                 </div>

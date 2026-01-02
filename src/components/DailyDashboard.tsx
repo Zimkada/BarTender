@@ -137,7 +137,7 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
                                     <span className="font-medium text-gray-700">{item.quantity}x</span>
                                     <span className="text-gray-600">{item.product_name}</span>
                                     {item.product_volume && (
-                                      <span className="text-gray-400 text-xs">({item.product_volume})</span>
+                                      <span className="text-gray-600 text-xs">({item.product_volume})</span>
                                     )}
                                   </div>
                                   <span className="font-semibold text-amber-600">

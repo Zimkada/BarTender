@@ -200,15 +200,15 @@ export default function AdminNotificationsPage() {
                     <div className="flex items-center gap-2">
                       <Icon className="w-5 h-5 text-gray-700 flex-shrink-0" />
                       <div>
-                        <h3 className="font-bold text-gray-900 text-sm">
+                        <h2 className="font-bold text-gray-900 text-sm">
                           {priorityIcons[notification.priority]} {notification.title}
-                        </h3>
+                        </h2>
                         <p className="text-xs text-gray-600">{notification.barName}</p>
                       </div>
                     </div>
                     <button
                       onClick={() => deleteNotification(notification.id)}
-                      className="text-gray-400 hover:text-gray-600 p-1"
+                      className="text-gray-600 hover:text-gray-600 p-1"
                     >
                       <AlertCircle className="w-4 h-4" />
                     </button>

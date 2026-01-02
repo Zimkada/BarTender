@@ -301,7 +301,7 @@ export function Cart({
             </h2>
             <button
               onClick={onToggle}
-              className="text-gray-400 hover:text-gray-600 transition-colors p-2"
+              className="text-gray-600 hover:text-gray-600 transition-colors p-2"
             >
               <X size={24} />
             </button>

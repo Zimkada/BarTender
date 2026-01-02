@@ -161,7 +161,7 @@ export const SyncStatusBadge: React.FC<SyncStatusBadgeProps> = ({
           >
             <div className="space-y-2 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-gray-400">Réseau:</span>
+                <span className="text-gray-600">Réseau:</span>
                 <span className="font-medium">
                   {networkStatus === 'online' && '🟢 En ligne'}
                   {networkStatus === 'offline' && '🔴 Hors ligne'}
@@ -169,18 +169,18 @@ export const SyncStatusBadge: React.FC<SyncStatusBadgeProps> = ({
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-400">En attente:</span>
+                <span className="text-gray-600">En attente:</span>
                 <span className="font-medium">{pendingCount}</span>
               </div>
               {syncingCount > 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-400">En cours:</span>
+                  <span className="text-gray-600">En cours:</span>
                   <span className="font-medium">{syncingCount}</span>
                 </div>
               )}
               {errorCount > 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-400">Erreurs:</span>
+                  <span className="text-gray-600">Erreurs:</span>
                   <span className="font-medium text-red-400">{errorCount}</span>
                 </div>
               )}
@@ -231,7 +231,7 @@ export const SyncStatusBadge: React.FC<SyncStatusBadgeProps> = ({
                 </div>
                 <button
                   onClick={() => setShowErrorsModal(false)}
-                  className="p-2 text-gray-400 hover:text-gray-600 rounded-lg transition-colors"
+                  className="p-2 text-gray-600 hover:text-gray-600 rounded-lg transition-colors"
                 >
                   <X size={24} />
                 </button>

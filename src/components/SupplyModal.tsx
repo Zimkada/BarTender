@@ -84,7 +84,7 @@ export function SupplyModal({ isOpen, onClose, onSave, products }: SupplyModalPr
                 onClick={onClose}
                 whileHover={{ scale: 1.1, rotate: 90 }}
                 whileTap={{ scale: 0.9 }}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-600 hover:text-gray-600 transition-colors"
               >
                 <X size={24} />
               </motion.button>

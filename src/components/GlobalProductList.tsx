@@ -118,7 +118,7 @@ export function GlobalProductList({ products, onEdit, onDelete }: GlobalProductL
                 </div>
 
                 <div className="flex items-center gap-2 w-full sm:w-auto">
-                    <Filter className="text-gray-400" size={18} />
+                    <Filter className="text-gray-600" size={18} />
                     <Select
                         options={categoryOptions}
                         value={selectedCategory}
@@ -203,7 +203,7 @@ export function GlobalProductList({ products, onEdit, onDelete }: GlobalProductL
                                                 onClick={() => onEdit(product)}
                                                 variant="ghost"
                                                 size="icon"
-                                                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                                 title="Modifier"
                                             >
                                                 <Edit2 size={16} />
@@ -212,7 +212,7 @@ export function GlobalProductList({ products, onEdit, onDelete }: GlobalProductL
                                                 onClick={() => onDelete(product)}
                                                 variant="ghost"
                                                 size="icon"
-                                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                                                 title="Supprimer"
                                             >
                                                 <Trash2 size={16} />

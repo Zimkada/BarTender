@@ -65,7 +65,7 @@ export function PWAUpdatePrompt() {
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm mb-1">
                 Mise à jour disponible
               </h3>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+              <p className="text-xs text-gray-600 dark:text-gray-600 mb-3">
                 Une nouvelle version de l'application est prête à être installée
               </p>
               <div className="flex gap-2">
@@ -77,7 +77,7 @@ export function PWAUpdatePrompt() {
                 </button>
                 <button
                   onClick={handleDismiss}
-                  className="text-gray-600 dark:text-gray-400 px-3 py-1.5 rounded-md text-xs font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="text-gray-600 dark:text-gray-600 px-3 py-1.5 rounded-md text-xs font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                 >
                   Plus tard
                 </button>

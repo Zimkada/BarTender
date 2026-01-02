@@ -106,10 +106,10 @@ export default function BarsManagementPanel({ isOpen, onClose, onShowBarStats }:
             <div className="p-3 md:p-6 border-b">
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <div className="flex-1 min-w-0">
-                  <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" placeholder="Rechercher par nom, adresse ou email..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" />{searchQuery && (<button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>)}</div>
+                  <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" /><input type="text" placeholder="Rechercher par nom, adresse ou email..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all" />{searchQuery && (<button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-600"><X className="w-4 h-4" /></button>)}</div>
                 </div>
                 <div className="sm:w-56">
-                  <div className="relative"><Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 z-10" /><Select options={[{ value: 'all', label: 'Tous les statuts' }, { value: 'active', label: '✅ Actifs uniquement' }, { value: 'suspended', label: '🚫 Suspendus uniquement' },]} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'suspended')} className="pl-10" /></div>
+                  <div className="relative"><Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600 z-10" /><Select options={[{ value: 'all', label: 'Tous les statuts' }, { value: 'active', label: '✅ Actifs uniquement' }, { value: 'suspended', label: '🚫 Suspendus uniquement' },]} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'suspended')} className="pl-10" /></div>
                 </div>
               </div>
             </div>

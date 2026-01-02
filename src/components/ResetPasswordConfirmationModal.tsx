@@ -36,7 +36,7 @@ export const ResetPasswordConfirmationModal: React.FC<ResetPasswordConfirmationM
             onClick={(e) => e.stopPropagation()}
             className="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative"
           >
-            <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+            <button onClick={onClose} className="absolute top-4 right-4 text-gray-600 hover:text-gray-600">
               <X className="w-5 h-5" />
             </button>
             <h3 className="text-xl font-semibold text-gray-900 mb-4">Confirmer la réinitialisation du mot de passe</h3>

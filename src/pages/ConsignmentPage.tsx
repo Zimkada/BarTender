@@ -359,7 +359,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
         {sellersWithSales.length > 1 && (
           <div className="mb-3">
             <div className="flex items-center gap-2">
-              <Filter size={16} className="text-gray-400" />
+              <Filter size={16} className="text-gray-600" />
               <Select
                 options={[
                   { value: 'all', label: `Tous les vendeurs (${todaySales.length})` },
@@ -381,7 +381,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
         )}
 
         <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" />
           <input
             type="text"
             value={searchTerm}
@@ -434,7 +434,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
                     {seller ? (
                       <span className="text-xs text-purple-600">👤 {seller.name}</span>
                     ) : serverUserId ? (
-                      <span className="text-xs text-gray-400">👤 ID: {serverUserId.slice(0, 8)}...</span>
+                      <span className="text-xs text-gray-600">👤 ID: {serverUserId.slice(0, 8)}...</span>
                     ) : <span></span>}
                     <span className="text-xs text-gray-500">{new Date(sale.validatedAt || sale.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
@@ -686,7 +686,7 @@ const ActiveConsignmentsTab: React.FC<{ isReadOnly?: boolean }> = ({ isReadOnly 
         </div>
 
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" />
           <input
             type="text"
             value={searchTerm}
@@ -919,9 +919,9 @@ const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim,
           {originalSeller ? (
             <span className="text-xs font-medium text-purple-600">👤 {originalSeller.name}</span>
           ) : consignment.originalSeller || consignment.serverId ? (
-            <span className="text-xs text-gray-400">👤 ID: {(consignment.originalSeller || consignment.serverId)?.slice(0, 8)}...</span>
+            <span className="text-xs text-gray-600">👤 ID: {(consignment.originalSeller || consignment.serverId)?.slice(0, 8)}...</span>
           ) : (
-            <span className="text-xs text-gray-400">N/A</span>
+            <span className="text-xs text-gray-600">N/A</span>
           )}
         </div>
       </div>

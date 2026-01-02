@@ -116,7 +116,7 @@ export function AdminSetPasswordModal({ isOpen, onClose, user, onSuccess }: Admi
             {/* Close button */}
             <button
               onClick={handleClose}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute top-4 right-4 text-gray-600 hover:text-gray-600 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>

@@ -257,7 +257,7 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
               <UploadCloud className="w-6 h-6 text-amber-500" />
               <h2 className="text-xl font-bold text-gray-800">Importer des Produits</h2>
             </div>
-            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg">
+            <button onClick={onClose} className="p-2 text-gray-600 hover:text-gray-600 rounded-lg">
               <X size={24} />
             </button>
           </div>
@@ -296,7 +296,7 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
               }`}
             >
               <input {...getInputProps()} />
-              <UploadCloud className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+              <UploadCloud className="w-12 h-12 mx-auto text-gray-600 mb-4" />
               {isDragActive ? (
                 <p className="text-amber-600 font-semibold">Déposez le fichier ici...</p>
               ) : (

@@ -487,7 +487,7 @@ export default function SecurityDashboardPage() {
                     <tr key={stat.view_name} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <Database className="w-4 h-4 text-gray-400" />
+                          <Database className="w-4 h-4 text-gray-600" />
                           <span className="font-medium text-sm">{stat.view_name}</span>
                           {needsRefresh && (
                             <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold flex items-center gap-1">
@@ -512,7 +512,7 @@ export default function SecurityDashboardPage() {
                       <td className="px-4 py-3 text-center">
                         <span
                           className={`text-sm font-semibold ${
-                            stat.failed_count > 0 ? 'text-red-600' : 'text-gray-400'
+                            stat.failed_count > 0 ? 'text-red-600' : 'text-gray-600'
                           }`}
                         >
                           {stat.failed_count}
@@ -521,7 +521,7 @@ export default function SecurityDashboardPage() {
                       <td className="px-4 py-3 text-center">
                         <span
                           className={`text-sm font-semibold ${
-                            stat.timeout_count > 0 ? 'text-amber-600' : 'text-gray-400'
+                            stat.timeout_count > 0 ? 'text-amber-600' : 'text-gray-600'
                           }`}
                         >
                           {stat.timeout_count}
@@ -575,7 +575,7 @@ export default function SecurityDashboardPage() {
                   {/* Header */}
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <Database className="w-4 h-4 text-gray-400" />
+                      <Database className="w-4 h-4 text-gray-600" />
                       <span className="font-semibold text-sm">{stat.view_name}</span>
                     </div>
                     {needsRefresh && (
@@ -613,7 +613,7 @@ export default function SecurityDashboardPage() {
                       <div className="text-xs text-gray-500 mb-1">Échecs</div>
                       <div
                         className={`text-lg font-bold ${
-                          stat.failed_count > 0 ? 'text-red-600' : 'text-gray-400'
+                          stat.failed_count > 0 ? 'text-red-600' : 'text-gray-600'
                         }`}
                       >
                         {stat.failed_count}
@@ -625,7 +625,7 @@ export default function SecurityDashboardPage() {
                       <div className="text-xs text-gray-500 mb-1">Timeouts</div>
                       <div
                         className={`text-lg font-bold ${
-                          stat.timeout_count > 0 ? 'text-amber-600' : 'text-gray-400'
+                          stat.timeout_count > 0 ? 'text-amber-600' : 'text-gray-600'
                         }`}
                       >
                         {stat.timeout_count}
@@ -793,7 +793,7 @@ export default function SecurityDashboardPage() {
           <div className="text-center py-12">
             <Shield className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg">Aucune donnée de sécurité disponible</p>
-            <p className="text-gray-400 text-sm mt-2">
+            <p className="text-gray-600 text-sm mt-2">
               Les violations RLS et erreurs de refresh apparaîtront ici
             </p>
           </div>

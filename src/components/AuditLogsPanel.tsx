@@ -173,7 +173,7 @@ export default function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps)
                 {/* Search */}
                 <div className="flex-1 min-w-[200px]">
                   <div className="relative">
-                    <Search className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 w-4 md:w-5 h-4 md:h-5 text-gray-400" />
+                    <Search className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 w-4 md:w-5 h-4 md:h-5 text-gray-600" />
                     <input
                       type="text"
                       placeholder="Rechercher..."
@@ -245,7 +245,7 @@ export default function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps)
               {/* Date Range + Export - Ligne 2 */}
               <div className={`${showAdvancedFilters ? 'flex' : 'hidden'} md:flex gap-3 flex-wrap items-center mt-2 md:mt-0`}>
                 <div className="flex items-center gap-2 w-full md:w-auto">
-                  <Calendar className="w-4 md:w-5 h-4 md:h-5 text-gray-400" />
+                  <Calendar className="w-4 md:w-5 h-4 md:h-5 text-gray-600" />
                   <input
                     type="date"
                     value={startDate}
@@ -318,7 +318,7 @@ export default function AuditLogsPanel({ isOpen, onClose }: AuditLogsPanelProps)
                 <AdminPanelSkeleton count={5} type="table" />
               ) : logs.length === 0 ? (
                 <div className="text-center py-12 text-gray-500 p-4">
-                  <Info className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                  <Info className="w-12 h-12 mx-auto mb-3 text-gray-600" />
                   <p className="font-medium">Aucun log trouvé</p>
                   <p className="text-sm">Essayez de modifier les filtres</p>
                 </div>

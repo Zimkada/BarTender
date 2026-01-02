@@ -482,7 +482,7 @@ export default function ReturnsPage() {
                   onChange={(e) => updateCustomRange('start', e.target.value)}
                   className="flex-1 text-sm"
                 />
-                <span className="text-gray-400">-</span>
+                <span className="text-gray-600">-</span>
                 <Input
                   type="date"
                   value={customRange.end}
@@ -503,7 +503,7 @@ export default function ReturnsPage() {
                   className="flex-1 min-w-[200px]"
               />
               <div className="flex items-center gap-2">
-                <Filter size={18} className="text-gray-400" />
+                <Filter size={18} className="text-gray-600" />
                 <Select
                   options={
                       [
@@ -1222,7 +1222,7 @@ function CreateReturnForm({
             </div>
 
             <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600" size={16} />
               <input
                 type="text"
                 placeholder="Rechercher un produit (ex: Guinness)..."

@@ -72,7 +72,7 @@ export function DataFreshnessIndicator({
             flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium
             transition-all duration-200
             ${isRefreshing
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                            ? 'bg-gray-100 text-gray-600 cursor-not-allowed'
                             : 'bg-white hover:bg-gray-50 text-gray-700 hover:text-amber-600 border border-gray-200 hover:border-amber-300'
                         }
           `}

@@ -72,7 +72,7 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
                   onClick={onClose}
                   whileHover={{ scale: 1.1, rotate: 90 }}
                   whileTap={{ scale: 0.9 }}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-600 hover:text-gray-600 transition-colors"
                 >
                   <X size={24} />
                 </motion.button>
@@ -137,7 +137,7 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
                         {sale.items.map((item: SaleItem, index: number) => (
                           <div key={index} className="flex items-center justify-between text-sm ml-4">
                             <div className="flex items-center gap-2">
-                              <ShoppingBag size={14} className="text-gray-400" />
+                              <ShoppingBag size={14} className="text-gray-600" />
                               <span className="font-medium text-gray-700">{item.quantity}x</span>
                               <span>{item.product_name} ({item.product_volume})</span>
                             </div>

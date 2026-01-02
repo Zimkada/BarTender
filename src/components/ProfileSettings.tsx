@@ -365,7 +365,7 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
                             <button
                               type="button"
                               onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                              className="text-gray-400 hover:text-gray-600"
+                              className="text-gray-600 hover:text-gray-600"
                             >
                               {showCurrentPassword ? (
                                 <EyeOff className="w-5 h-5" />
@@ -390,7 +390,7 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
                           <button
                             type="button"
                             onClick={() => setShowNewPassword(!showNewPassword)}
-                            className="text-gray-400 hover:text-gray-600"
+                            className="text-gray-600 hover:text-gray-600"
                           >
                             {showNewPassword ? (
                               <EyeOff className="w-5 h-5" />
@@ -413,7 +413,7 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
                           <button
                             type="button"
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="text-gray-400 hover:text-gray-600"
+                            className="text-gray-600 hover:text-gray-600"
                           >
                             {showConfirmPassword ? (
                               <EyeOff className="w-5 h-5" />

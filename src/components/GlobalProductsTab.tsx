@@ -278,7 +278,7 @@ export function GlobalProductsTab() {
                                 <p className="text-xs text-gray-500 mb-2 truncate">{product.brand} - {product.volume}</p>
 
                                 <div className="mt-auto pt-2 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs gap-1">
-                                    <span className="text-gray-400 text-[10px]">Prix suggéré</span>
+                                    <span className="text-gray-600 text-[10px]">Prix suggéré</span>
                                     <span className="font-semibold text-gray-900">
                                         {product.suggestedPriceMin ? `${product.suggestedPriceMin}` : ''}
                                         {product.suggestedPriceMin && product.suggestedPriceMax ? '-' : ''}
