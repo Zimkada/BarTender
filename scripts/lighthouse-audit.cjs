@@ -12,7 +12,7 @@ const fs = require('fs');
 const path = require('path');
 
 async function runLighthouseAudit() {
-  const url = 'http://localhost:4179'; // Preview server URL
+  const url = 'http://localhost:4179/admin/catalog'; // Preview server URL
   const outputPath = path.join(__dirname, '..', 'lighthouse-report.html');
   const jsonPath = path.join(__dirname, '..', 'lighthouse-report.json');
 
