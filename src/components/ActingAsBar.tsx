@@ -1,6 +1,5 @@
 import React from 'react';
 import { useActingAs } from '../context/ActingAsContext';
-import toast from 'react-hot-toast';
 
 /**
  * ActingAsBar Component
@@ -20,7 +19,9 @@ export const ActingAsBar: React.FC = () => {
 
   const handleStopActing = () => {
     stopActingAs();
-    toast.success(`Stopped acting as ${actingAs.userName}`);
+    import('react-hot-toast').then(({ default: toast }) => {
+      toast.success(`Stopped acting as ${actingAs.userName}`);
+    });
   };
 
   return (
@@ -78,5 +79,4 @@ export const ActingAsBar: React.FC = () => {
     </div>
   );
 };
-
 export default ActingAsBar;
