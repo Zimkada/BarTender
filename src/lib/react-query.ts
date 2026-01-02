@@ -1,7 +1,6 @@
 import { QueryClient, MutationCache, QueryCache } from '@tanstack/react-query';
 import { persistQueryClient } from '@tanstack/query-persist-client-core';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
-import toast from 'react-hot-toast';
 import { CACHE_STRATEGY } from './cache-strategy';
 
 /**
@@ -28,7 +27,9 @@ const onError = (error: any) => {
   // On ne notifie pas les erreurs 401/403 car elles sont souvent gérées par l'auth interceptor
   if (error?.status !== 401 && error?.status !== 403) {
     const message = error?.message || 'Une erreur est survenue lors de la récupération des données';
-    toast.error(message, { id: 'query-error' }); // id unique pour éviter les doublons
+    import('react-hot-toast').then(({ default: toast }) => {
+      toast.error(message, { id: 'query-error' }); // id unique pour éviter les doublons
+    });
   }
 };
 
@@ -64,7 +65,9 @@ export const queryClient = new QueryClient({
     onError: (error: any) => {
       // Notification automatique pour toutes les erreurs de mutation (écriture)
       const message = error?.message || 'Une erreur est survenue lors de l\'opération';
-      toast.error(message);
+      import('react-hot-toast').then(({ default: toast }) => {
+        toast.error(message);
+      });
     },
   }),
   queryCache: new QueryCache({
