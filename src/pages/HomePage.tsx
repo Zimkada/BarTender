@@ -75,7 +75,7 @@ export default function HomePage() {
       <Card variant="elevated" padding="default" className="border-amber-100">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Vente Rapide</h1>
+            <h2 className="text-2xl font-bold text-gray-800">Vente Rapide</h2>
             <p className="text-sm text-gray-500">{currentBar.name}</p>
           </div>
           <div className="flex items-center gap-2 text-amber-600">

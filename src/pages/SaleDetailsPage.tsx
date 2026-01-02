@@ -33,7 +33,7 @@ export default function SaleDetailsPage() {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center">
         <Alert variant="destructive" show={true}>
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">Vente introuvable</h2>
+          <h1 className="text-xl font-semibold text-gray-800 mb-2">Vente introuvable</h1>
           <p className="text-gray-600 mb-4">La vente #{saleId} n'existe pas ou a été supprimée.</p>
           <Button
             onClick={() => navigate('/sales')}

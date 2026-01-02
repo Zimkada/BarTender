@@ -171,10 +171,10 @@ export default function InventoryPage() {
                                 >
                                     <ArrowLeft size={20} />
                                 </Button>
-                                <h2 className="text-lg font-bold flex items-center gap-2">
+                                <h1 className="text-lg font-bold flex items-center gap-2">
                                     <Package size={20} />
                                     Inventaire
-                                </h2>
+                                </h1>
                             </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -414,7 +414,7 @@ export default function InventoryPage() {
                             <div className="flex items-center gap-3">
                                 <Package size={28} />
                                 <div>
-                                    <h1 className="text-xl font-bold">Inventaire</h1>
+                                    <h2 className="text-xl font-bold">Inventaire</h2>
                                     <p className="text-sm text-amber-100">Gestion des produits</p>
                                 </div>
                             </div>
