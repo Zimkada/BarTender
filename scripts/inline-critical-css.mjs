@@ -14,6 +14,12 @@ async function inlineCriticalCss() {
   execSync('vite build', { stdio: 'inherit' });
   console.log('✅ Vite build completed.');
 
+  // Skip critical CSS inlining on Vercel (doesn't have chromium system dependencies)
+  if (process.env.VERCEL === '1') {
+    console.log('⏭️ Skipping critical CSS inlining on Vercel (uses standard CSS loading)');
+    return;
+  }
+
   const buildDir = path.resolve(__dirname, '../dist');
   const htmlFilePath = path.join(buildDir, 'index.html');
 
