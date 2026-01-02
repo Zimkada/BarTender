@@ -11,7 +11,7 @@ import { EditUserModal } from '../../components/EditUserModal';
 import { AdminPanelErrorBoundary } from '../../components/AdminPanelErrorBoundary';
 import { AdminPanelSkeleton } from '../../components/AdminPanelSkeleton';
 import { PromotersCreationForm } from '../../components/PromotersCreationForm';
-import { AddBarModal } from '../../components/AddBarModal';
+const AddBarModal = React.lazy(() => import('../../components/AddBarModal'));
 import { AdminSetPasswordModal } from '../../components/AdminSetPasswordModal';
 import { ResetPasswordConfirmationModal } from '../../components/ResetPasswordConfirmationModal';
 import { useFeedback } from '../../hooks/useFeedback';
@@ -394,19 +394,21 @@ export default function UsersManagementPage() {
 
       {/* Add Bar Modal */}
       {showAddBar && (
-        <AddBarModal
-          isOpen={showAddBar}
-          onClose={() => {
-            setShowAddBar(false);
-            setSelectedPromoter(null);
-          }}
-          promoter={selectedPromoter}
-          onSuccess={() => {
-            loadUsers();
-            setShowAddBar(false);
-            setSelectedPromoter(null);
-          }}
-        />
+        <Suspense fallback={<AdminPanelSkeleton />}>
+          <AddBarModal
+            isOpen={showAddBar}
+            onClose={() => {
+              setShowAddBar(false);
+              setSelectedPromoter(null);
+            }}
+            promoter={selectedPromoter}
+            onSuccess={() => {
+              loadUsers();
+              setShowAddBar(false);
+              setSelectedPromoter(null);
+            }}
+          />
+        </Suspense>
       )}
     </div>
   );

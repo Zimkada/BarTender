@@ -1,27 +1,13 @@
 // src/features/Sales/SalesHistory/views/AnalyticsView.tsx
-import { useState, useMemo } from 'react';
-import {
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer
-} from 'recharts';
-
+import { useState, useMemo, lazy, Suspense } from 'react';
 import { useAppContext } from '../../../../context/AppContext';
 import { useDateRangeFilter } from '../../../../hooks/useDateRangeFilter';
 import { SALES_HISTORY_FILTERS, TIME_RANGE_CONFIGS } from '../../../../config/dateFilters';
 import { dateToYYYYMMDD, filterByBusinessDateRange, getBusinessDate } from '../../../../utils/businessDateHelpers';
-import { getSaleDate } from '../../../../utils/saleHelpers'; // NEW: Added getSaleDate for evolutionChartData
-import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../../../../utils/businessDay'; // NEW: Added for filteredConsignments logic
+import { getSaleDate } from '../../../../utils/saleHelpers';
+import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../../../../utils/businessDay';
 import { Select } from '../../../../components/ui/Select';
-import { TopProductsChart } from '../../../../components/analytics/TopProductsChart'; // Corrected Path
+import { TopProductsChart } from '../../../../components/analytics/TopProductsChart';
 import {
   TrendingUp,
   ArrowUp,
@@ -32,6 +18,9 @@ import {
   Clock
 } from 'lucide-react';
 import { Sale, Category, Product, User, BarMember, Return } from '../../../../types';
+
+// Lazy load Recharts components
+const RechartsWrapper = lazy(() => import('../../../../components/charts/RechartsWrapper'));
 
 // TYPES - Moved from SalesHistory.tsx
 type Stats = {
@@ -459,16 +448,18 @@ export function AnalyticsView({
             </span>
           </h4>
           <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
-            <LineChart data={evolutionChartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" />
-              <XAxis dataKey="label" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-              <YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#fff', border: '1px solid #fdba74', borderRadius: '8px' }}
-                formatter={(value: any) => formatPrice(Number(value))}
-              />
-              <Line type="monotone" dataKey="revenue" stroke="#f97316" strokeWidth={2} dot={{ fill: '#f97316', r: 4 }} isAnimationActive={false} />
-            </LineChart>
+            <Suspense fallback={<div>Loading Line Chart...</div>}>
+              <RechartsWrapper.LineChart data={evolutionChartData}>
+                <RechartsWrapper.CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" />
+                <RechartsWrapper.XAxis dataKey="label" tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                <RechartsWrapper.YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                <RechartsWrapper.Tooltip
+                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #fdba74', borderRadius: '8px' }}
+                  formatter={(value: any) => formatPrice(Number(value))}
+                />
+                <RechartsWrapper.Line type="monotone" dataKey="revenue" stroke="#f97316" strokeWidth={2} dot={{ fill: '#f97316', r: 4 }} isAnimationActive={false} />
+              </RechartsWrapper.LineChart>
+            </Suspense>
           </ResponsiveContainer>
         </div>
 
@@ -476,30 +467,32 @@ export function AnalyticsView({
         <div className="bg-white rounded-xl p-4 border border-amber-100">
           <h4 className="text-sm font-semibold text-gray-800 mb-3">Répartition par catégorie</h4>
           <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
-            <PieChart>
-              <Pie
-                data={categoryData}
-                cx="50%"
-                cy="50%"
-                innerRadius={isMobile ? 40 : 60}
-                outerRadius={isMobile ? 70 : 90}
-                paddingAngle={2}
-                dataKey="value"
-                isAnimationActive={false}
-                label={(entry: any) => `${entry.percentage.toFixed(0)}%`}
-              >
-                {categoryData.map((_entry, index) => (
-                  <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value: any) => formatPrice(Number(value))} />
-              <Legend
-                layout={isMobile ? "horizontal" : "vertical"}
-                align={isMobile ? "center" : "right"}
-                verticalAlign={isMobile ? "bottom" : "middle"}
-                wrapperStyle={{ fontSize: '12px' }}
-              />
-            </PieChart>
+            <Suspense fallback={<div>Loading Pie Chart...</div>}>
+              <RechartsWrapper.PieChart>
+                <RechartsWrapper.Pie
+                  data={categoryData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={isMobile ? 40 : 60}
+                  outerRadius={isMobile ? 70 : 90}
+                  paddingAngle={2}
+                  dataKey="value"
+                  isAnimationActive={false}
+                  label={(entry: any) => `${entry.percentage.toFixed(0)}%`}
+                >
+                  {categoryData.map((_entry, index) => (
+                    <RechartsWrapper.Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                  ))}
+                </RechartsWrapper.Pie>
+                <RechartsWrapper.Tooltip formatter={(value: any) => formatPrice(Number(value))} />
+                <RechartsWrapper.Legend
+                  layout={isMobile ? "horizontal" : "vertical"}
+                  align={isMobile ? "center" : "right"}
+                  verticalAlign={isMobile ? "bottom" : "middle"}
+                  wrapperStyle={{ fontSize: '12px' }}
+                />
+              </RechartsWrapper.PieChart>
+            </Suspense>
           </ResponsiveContainer>
         </div>
       </div>

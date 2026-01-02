@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, UserPlus, Shield, User as UserIcon, Check, Trash2, ArrowLeft, GitBranch } from 'lucide-react';
-import toast from 'react-hot-toast';
 import { useAuth } from "../context/AuthContext";
 import { useBarContext } from '../context/BarContext';
 import { UserRole } from '../types';
@@ -160,13 +159,19 @@ export default function TeamManagementPage() {
         const result = await removeBarMember(memberId);
 
         if (result.success) {
-          toast.success(`✅ ${userName} a été retiré(e) de l'équipe`);
+          import('react-hot-toast').then(({ default: toast }) => {
+            toast.success(`✅ ${userName} a été retiré(e) de l'équipe`);
+          });
         } else {
-          toast.error(`❌ Erreur: ${result.error || 'Impossible de retirer le membre'}`);
+          import('react-hot-toast').then(({ default: toast }) => {
+            toast.error(`❌ Erreur: ${result.error || 'Impossible de retirer le membre'}`);
+          });
           console.error('[TeamManagement] Remove failed:', result.error);
         }
       } catch (error: any) {
-        toast.error('❌ Une erreur est survenue lors du retrait du membre');
+        import('react-hot-toast').then(({ default: toast }) => {
+          toast.error('❌ Une erreur est survenue lors du retrait du membre');
+        });
         console.error('[TeamManagement] Remove error:', error);
       }
     }
