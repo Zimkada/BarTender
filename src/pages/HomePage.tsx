@@ -13,6 +13,7 @@ import { Product } from '../types';
 import { useFilteredProducts } from '../hooks/useFilteredProducts';
 import { useCategoryManagement } from '../hooks/useCategoryManagement';
 import { useStockManagement } from '../hooks/useStockManagement';
+import { ProductGridSkeleton } from '../components/skeletons';
 
 export default function HomePage() {
   // 1. Tous les hooks sont appelés inconditionnellement en haut
@@ -108,15 +109,19 @@ export default function HomePage() {
 
       {/* Product Grid */}
       <Card variant="elevated" padding="default" className="border-amber-100 min-h-[600px]">
-        <ProductGrid
-          products={filteredProducts}
-          onAddToCart={handleAddToCart}
-          categoryName={
-            selectedCategory === 'all'
-              ? undefined
-              : categories.find(c => c.id === selectedCategory)?.name
-          }
-        />
+        {allProducts.length === 0 ? (
+          <ProductGridSkeleton count={12} />
+        ) : (
+          <ProductGrid
+            products={filteredProducts}
+            onAddToCart={handleAddToCart}
+            categoryName={
+              selectedCategory === 'all'
+                ? undefined
+                : categories.find(c => c.id === selectedCategory)?.name
+            }
+          />
+        )}
       </Card>
 
       {/* Category Modal for Add/Edit */}
