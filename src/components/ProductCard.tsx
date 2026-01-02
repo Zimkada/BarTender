@@ -3,6 +3,7 @@ import { Package, Plus, AlertTriangle, Check } from 'lucide-react';
 import { Product } from '../types';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
+import { IconButton } from './ui/IconButton';
 
 interface ProductCardProps {
   product: Product;
@@ -95,9 +96,10 @@ export function ProductCard({ product, onAddToCart, availableStock }: ProductCar
             {formatPrice(product.price)}
           </span>
 
-          <button
+          <IconButton
             onClick={handleAddToCart}
             disabled={displayStock === 0 || isLoading('addToCart')}
+            aria-label={`Ajouter ${product.name} au panier`}
             className={`
               w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm transition-colors
               ${displayStock === 0
@@ -115,7 +117,7 @@ export function ProductCard({ product, onAddToCart, availableStock }: ProductCar
             ) : (
               <Plus size={16} strokeWidth={3} />
             )}
-          </button>
+          </IconButton>
         </div>
       </div>
     </div>

@@ -119,9 +119,9 @@ export function PWAInstallPrompt() {
               <Download className="w-5 h-5" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-sm md:text-base">
+              <span className="font-semibold text-sm md:text-base">
                 Installer BarTender
-              </h3>
+              </span>
               <p className="text-xs md:text-sm text-white/90">
                 Accès rapide depuis votre écran d'accueil
               </p>
@@ -132,7 +132,7 @@ export function PWAInstallPrompt() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleInstallClick}
-              className="bg-white text-amber-600 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-amber-50 transition-colors"
+              className="bg-white text-amber-800 px-4 py-2 rounded-lg font-semibold text-sm hover:bg-amber-50 transition-colors"
             >
               Installer
             </button>

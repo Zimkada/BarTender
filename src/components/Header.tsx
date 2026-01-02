@@ -28,6 +28,7 @@ import { RefreshButton } from './RefreshButton'; // ✅ Bouton rafraîchissement
 import { useViewport } from '../hooks/useViewport';
 import { ProfileSettings } from './ProfileSettings';
 import { Button } from './ui/Button';
+import { IconButton } from './ui/IconButton';
 import AnimatedBarName from './AnimatedBarName';
 import { AnimatedCounter } from './AnimatedCounter';
 
@@ -395,13 +396,13 @@ export function Header({
 
 
             {/* Déconnexion */}
-            <button
+            <IconButton
               onClick={logout}
               className="p-2 bg-red-500/80 rounded-lg text-white hover:bg-red-600/80 transition-colors"
-              title="Déconnexion"
+              aria-label="Déconnexion"
             >
               <LogOut size={20} />
-            </button>
+            </IconButton>
           </div>
         </div>
       </div>

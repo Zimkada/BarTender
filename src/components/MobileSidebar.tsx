@@ -26,6 +26,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useActingAs } from '../context/ActingAsContext';
 import { useNavigate } from 'react-router-dom';
+import { IconButton } from './ui/IconButton';
 
 interface MobileSidebarProps {
   isOpen: boolean;
@@ -148,12 +149,13 @@ export function MobileSidebar({
                   {currentSession?.userName} • {currentSession?.role}
                 </p>
               </div>
-              <button
+              <IconButton
                 onClick={onClose}
                 className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
+                aria-label="Fermer le menu"
               >
                 <X size={24} />
-              </button>
+              </IconButton>
             </div>
 
             {/* Liste des menus */}
