@@ -202,7 +202,6 @@ export function DailyDashboard() {
   }, [currentBar, todayDateStr]);
 
   const todayValidatedSales = getTodaySales();
-  console.log('🔍 DEBUG DailyDashboard - todayValidatedSales:', { count: todayValidatedSales.length, sales: todayValidatedSales.map(s => ({ id: s.id, soldBy: (s as any).soldBy, createdBy: s.createdBy, serverId: s.serverId, items: s.items.length })) });
   const todayReturns = getTodayReturns();
 
   const { netRevenue: todayTotal } = useRevenueStats({ startDate: todayDateStr, endDate: todayDateStr, enabled: true });
