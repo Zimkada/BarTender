@@ -97,16 +97,19 @@ export default function ReturnsPage() {
   const { showSuccess, showError } = useFeedback();
   const { isMobile } = useViewport();
 
-  // ✨ Déterminer si l'utilisateur est en mode read-only (serveur)
-  const isReadOnly = currentSession?.role === 'serveur';
+  // ✨ NUEVO: Detectar modo de operación
+  const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
+
+  // ✨ Déterminer si l'utilisateur peut créer des retours
+  // Mode simplifié: seuls gérants/promoteurs
+  // Mode complet: gérants/promoteurs ET serveurs
+  const isManager = currentSession?.role === 'gerant' || currentSession?.role === 'promoteur';
+  const isReadOnly = isSimplifiedMode && currentSession?.role === 'serveur';
 
   const [showCreateReturn, setShowCreateReturn] = useState(false);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [lastCreatedReturnId, setLastCreatedReturnId] = useState<string | null>(null);
-
-  // ✨ NUEVO: Detectar modo de operación
-  const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
 
   const closeHour = currentBar?.closingHour ?? 6;
 
@@ -255,10 +258,10 @@ export default function ReturnsPage() {
     const finalRestock = reason === 'other' ? (customRestock ?? false) : reasonConfig.autoRestock;
 
     // ✨ MODE SWITCHING FIX: Déduire automatiquement le serveur de la vente
-    // Un retour doit TOUJOURS être assigné au même serveur que la vente d'origine
-    // Utiliser serverId si présent (vente en mode simplifié), sinon createdBy (mode complet)
-    // Cela garantit que les retours fonctionnent même après un switch de mode
-    const serverId = sale.serverId || sale.createdBy;
+    // Un retour doit TOUJOURS être assigné au VENDEUR de la vente (sold_by)
+    // sold_by contient le serveur en mode simplifié, le créateur en mode complet
+    // serverId est un fallback pour compatibilité mode switching
+    const serverId = sale.serverId || sale.soldBy;
 
     addReturn({
       saleId,
@@ -278,7 +281,7 @@ export default function ReturnsPage() {
       notes,
       customRefund: reason === 'other' ? customRefund : undefined,
       customRestock: reason === 'other' ? customRestock : undefined,
-      originalSeller: sale.createdBy,
+      originalSeller: sale.soldBy,
       serverId, // ✨ NUEVO: Passer le server_id résolu
       // ✨ MODE SWITCHING SUPPORT: Store current operating mode
       operatingModeAtCreation: currentBar?.settings?.operatingMode || 'full',
