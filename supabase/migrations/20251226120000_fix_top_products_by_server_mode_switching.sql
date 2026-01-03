@@ -62,8 +62,8 @@ AS $$
       AND DATE(s.created_at - INTERVAL '6 hours') <= p_end_date::DATE
       -- ✨ MODE SWITCHING FIX: Filter by server using OR logic
       -- A server should see sales where they are EITHER the assigned server (simplified mode)
-      -- OR the creator (full mode). This ensures data visibility persists across mode switches.
-      AND (p_server_id IS NULL OR s.server_id = p_server_id OR s.created_by = p_server_id)
+      -- OR the seller (full mode). This ensures data visibility persists across mode switches.
+      AND (p_server_id IS NULL OR s.server_id = p_server_id OR s.sold_by = p_server_id)
     GROUP BY
       (item->>'product_id')::uuid,
       item->>'product_name',

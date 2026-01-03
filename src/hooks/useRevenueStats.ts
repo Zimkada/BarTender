@@ -48,9 +48,9 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
 
         if (isServerRole) {
             // ✨ MODE SWITCHING FIX: A server should see ALL their sales regardless of mode
-            // Check BOTH serverId (simplified mode) AND createdBy (full mode)
+            // Check BOTH serverId (simplified mode) AND soldBy (full mode)
             baseSales = baseSales.filter(s =>
-                s.serverId === currentSession?.userId || s.createdBy === currentSession?.userId
+                s.serverId === currentSession?.userId || s.soldBy === currentSession?.userId
             );
         }
 

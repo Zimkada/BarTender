@@ -46,7 +46,7 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
 
   const salesByServer = useMemo(() => {
     return sales.reduce((acc, sale) => {
-      const serverId = sale.createdBy;
+      const serverId = sale.serverId || sale.soldBy;
       if (!acc[serverId]) acc[serverId] = [];
       acc[serverId].push(sale);
       return acc;
@@ -202,6 +202,7 @@ export function DailyDashboard() {
   }, [currentBar, todayDateStr]);
 
   const todayValidatedSales = getTodaySales();
+  console.log('🔍 DEBUG DailyDashboard - todayValidatedSales:', { count: todayValidatedSales.length, sales: todayValidatedSales.map(s => ({ id: s.id, soldBy: (s as any).soldBy, createdBy: s.createdBy, serverId: s.serverId, items: s.items.length })) });
   const todayReturns = getTodayReturns();
 
   const { netRevenue: todayTotal } = useRevenueStats({ startDate: todayDateStr, endDate: todayDateStr, enabled: true });
@@ -217,9 +218,9 @@ export function DailyDashboard() {
   const serverFilteredSales = useMemo(() => {
     if (!isServerRole) return todayValidatedSales;
     // ✨ MODE SWITCHING FIX: A server should see ALL their sales regardless of mode
-    // Check BOTH serverId (simplified mode) AND createdBy (full mode)
+    // Check BOTH serverId (simplified mode) AND soldBy (full mode)
     return todayValidatedSales.filter(s =>
-      s.serverId === currentSession?.userId || s.createdBy === currentSession?.userId
+      s.serverId === currentSession?.userId || s.soldBy === currentSession?.userId
     );
   }, [todayValidatedSales, isServerRole, currentSession?.userId]);
 
@@ -242,8 +243,8 @@ export function DailyDashboard() {
   }, [activeConsignments, isServerRole, currentSession?.userId]);
 
   const lowStockProducts = getLowStockProducts();
-  // ✨ Filter totalItems by server if applicable
-  const totalItems = todayStats?.total_items_sold ?? serverFilteredSales.reduce((sum: number, sale: any) => sum + sale.items.reduce((s: number, i: any) => s + i.quantity, 0), 0);
+  // ✨ Calculate total items sold today (consistent with serverFilteredSales)
+  const totalItems = serverFilteredSales.reduce((sum: number, sale: any) => sum + sale.items.reduce((s: number, i: any) => s + i.quantity, 0), 0);
 
   const topProductsList = topProductsData.map(p => ({
     name: p.product_volume ? `${p.product_name} (${p.product_volume})` : p.product_name,

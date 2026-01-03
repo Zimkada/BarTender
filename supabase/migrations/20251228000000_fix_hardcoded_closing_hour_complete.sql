@@ -183,7 +183,7 @@ AS $$
       AND s.status = 'validated'
       AND s.business_date >= p_start_date::DATE
       AND s.business_date <= p_end_date::DATE
-      AND (p_server_id IS NULL OR s.server_id = p_server_id OR s.created_by = p_server_id)
+      AND (p_server_id IS NULL OR s.server_id = p_server_id OR s.sold_by = p_server_id)
     GROUP BY
       (item->>'product_id')::uuid
   )

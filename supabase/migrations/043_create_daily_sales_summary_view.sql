@@ -43,8 +43,8 @@ SELECT
   0 AS mobile_revenue,
   0 AS card_revenue,
 
-  -- Serveurs actifs (utilise created_by au lieu de sold_by)
-  COUNT(DISTINCT s.created_by) FILTER (WHERE s.status = 'validated') AS active_servers,
+  -- Serveurs actifs
+  COUNT(DISTINCT s.sold_by) FILTER (WHERE s.status = 'validated') AS active_servers,
 
   -- Timestamps
   MIN(s.created_at) AS first_sale_time,

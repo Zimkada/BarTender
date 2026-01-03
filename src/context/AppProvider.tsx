@@ -340,9 +340,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         if (currentSession?.role === 'serveur') {
             // ✨ MODE SWITCHING FIX: A server should see ALL their sales regardless of mode
-            // Check BOTH serverId (simplified mode) AND createdBy (full mode)
+            // Check BOTH serverId (simplified mode) AND soldBy (full mode)
             return filteredSales.filter(sale =>
-                sale.serverId === currentSession.userId || sale.createdBy === currentSession.userId
+                sale.serverId === currentSession.userId || sale.soldBy === currentSession.userId
             );
         }
         return filteredSales;
@@ -360,10 +360,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         if (currentSession?.role === 'serveur') {
             // ✨ MODE SWITCHING FIX: A server should see ALL their sales regardless of mode
-            // Check BOTH serverId (simplified mode) AND createdBy (full mode)
+            // Check BOTH serverId (simplified mode) AND soldBy (full mode)
             // This ensures data visibility persists across mode switches
             return todaySales.filter(sale =>
-                sale.serverId === currentSession.userId || sale.createdBy === currentSession.userId
+                sale.serverId === currentSession.userId || sale.soldBy === currentSession.userId
             );
         }
         return todaySales;
@@ -393,7 +393,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const getSalesByUser = useCallback((userId: string) => {
         if (!hasPermission('canViewAllSales')) return [];
-        return sales.filter(sale => sale.status === 'validated' && sale.createdBy === userId);
+        return sales.filter(sale => sale.status === 'validated' && sale.soldBy === userId);
     }, [sales, hasPermission]);
 
     const getServerRevenue = useCallback((userId: string, startDate?: Date, endDate?: Date): number => {
@@ -401,9 +401,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const startDateStr = startDate ? dateToYYYYMMDD(startDate) : undefined;
         const endDateStr = endDate ? dateToYYYYMMDD(endDate) : undefined;
 
-        // ✨ MODE SWITCHING FIX: Include sales where server is EITHER creator OR assigned server
+        // ✨ MODE SWITCHING FIX: Include sales where server is EITHER seller OR assigned server
         let baseSales = sales.filter(sale =>
-            sale.status === 'validated' && (sale.createdBy === userId || sale.serverId === userId)
+            sale.status === 'validated' && (sale.soldBy === userId || sale.serverId === userId)
         );
         if (startDateStr && endDateStr) {
             baseSales = filterByBusinessDateRange(baseSales, startDateStr, endDateStr, closeHour);
@@ -423,9 +423,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [sales, returns, currentBar]);
 
     const getServerReturns = useCallback((userId: string): Return[] => {
-        // ✨ MODE SWITCHING FIX: Include sales where server is EITHER creator OR assigned server
+        // ✨ MODE SWITCHING FIX: Include sales where server is EITHER seller OR assigned server
         const serverSaleIds = sales
-            .filter(s => (s.createdBy === userId || s.serverId === userId) && s.status === 'validated')
+            .filter(s => (s.soldBy === userId || s.serverId === userId) && s.status === 'validated')
             .map(s => s.id);
         return returns.filter(r => serverSaleIds.includes(r.saleId));
     }, [sales, returns]);

@@ -59,7 +59,7 @@ SELECT
   0 AS card_revenue,
 
   -- Serveurs actifs
-  COUNT(DISTINCT s.created_by) FILTER (WHERE s.status = 'validated') AS active_servers,
+  COUNT(DISTINCT s.sold_by) FILTER (WHERE s.status = 'validated') AS active_servers,
 
   -- Timestamps
   MIN(s.created_at) AS first_sale_time,

@@ -274,7 +274,8 @@ export interface Sale {
   status: 'pending' | 'validated' | 'rejected';
 
   // Traçabilité des actions
-  createdBy: string;      // ID du serveur qui a initié la vente
+  createdBy: string;      // ID de qui a créé la vente (audit technique)
+  soldBy: string;         // ID du vendeur (source de vérité métier)
   serverId?: string;      // ✨ NOUVEAU: UUID du serveur assigné (mode switching support)
   validatedBy?: string;   // ID du gérant qui a validé et sorti le stock
   rejectedBy?: string;    // ID du gérant qui a rejeté la demande

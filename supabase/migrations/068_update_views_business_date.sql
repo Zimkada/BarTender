@@ -82,9 +82,12 @@ GRANT SELECT ON top_products_by_period TO authenticated;
 -- 2. DAILY SALES SUMMARY
 -- ==============================================================================
 
+-- Drop dependent views first (cascade order matters)
+DROP VIEW IF EXISTS bar_stats_multi_period;
+DROP MATERIALIZED VIEW IF EXISTS bar_stats_multi_period_mat;
+
+-- Then drop the main view
 DROP VIEW IF EXISTS daily_sales_summary;
--- On essaie de supprimer les deux types pour être sûr (l'ordre compte peu avec IF EXISTS mais on commence par la vue standard car l'erreur disait que c'en était une)
-DROP VIEW IF EXISTS daily_sales_summary_mat;
 DROP MATERIALIZED VIEW IF EXISTS daily_sales_summary_mat;
 
 CREATE MATERIALIZED VIEW daily_sales_summary_mat AS
@@ -125,7 +128,7 @@ SELECT
   0 AS card_revenue,
 
   -- Serveurs actifs
-  COUNT(DISTINCT s.created_by) FILTER (WHERE s.status = 'validated') AS active_servers,
+  COUNT(DISTINCT s.sold_by) FILTER (WHERE s.status = 'validated') AS active_servers,
 
   -- Timestamps
   MIN(s.created_at) AS first_sale_time,
@@ -155,6 +158,45 @@ WHERE bar_id IN (
 
 GRANT SELECT ON daily_sales_summary TO authenticated;
 
--- Refresh initial
-REFRESH MATERIALIZED VIEW CONCURRENTLY top_products_by_period_mat;
+-- ==============================================================================
+-- 3. BAR STATS MULTI PERIOD (recreate dependent view)
+-- ==============================================================================
+
+CREATE MATERIALIZED VIEW bar_stats_multi_period_mat AS
+SELECT
+  dss.bar_id,
+  dss.sale_date,
+  dss.sale_week,
+  dss.sale_month,
+  dss.pending_count,
+  dss.validated_count,
+  dss.rejected_count,
+  dss.gross_revenue,
+  dss.gross_subtotal,
+  dss.total_discounts,
+  dss.total_items_sold,
+  dss.avg_basket_value,
+  dss.cash_revenue,
+  dss.mobile_revenue,
+  dss.card_revenue,
+  dss.active_servers,
+  dss.first_sale_time,
+  dss.last_sale_time,
+  NOW() AS updated_at
+FROM daily_sales_summary_mat dss;
+
+CREATE UNIQUE INDEX idx_bar_stats_mat_pk ON bar_stats_multi_period_mat(bar_id, sale_date);
+
+CREATE OR REPLACE VIEW bar_stats_multi_period AS
+SELECT *
+FROM bar_stats_multi_period_mat
+WHERE bar_id IN (
+  SELECT bar_id FROM bar_members WHERE user_id = auth.uid()
+);
+
+GRANT SELECT ON bar_stats_multi_period TO authenticated;
+
+-- Refresh initial (in correct order: dependencies first)
 REFRESH MATERIALIZED VIEW CONCURRENTLY daily_sales_summary_mat;
+REFRESH MATERIALIZED VIEW CONCURRENTLY bar_stats_multi_period_mat;
+REFRESH MATERIALIZED VIEW CONCURRENTLY top_products_by_period_mat;

@@ -137,8 +137,8 @@ export class SalesService {
         .from('sales')
         .update({
           status: 'rejected',
-          validated_by: validatedBy,
-          validated_at: new Date().toISOString(),
+          rejected_by: validatedBy,
+          rejected_at: new Date().toISOString(),
         })
         .eq('id', saleId)
         .select()
@@ -172,7 +172,7 @@ export class SalesService {
         .from('sales')
         .select(`
           *,
-          seller:users!sales_created_by_fkey (name),
+          seller:users!sales_sold_by_fkey (name),
           validator:users!sales_validated_by_fkey (name)
         `)
         .eq('bar_id', barId)
@@ -232,7 +232,7 @@ export class SalesService {
         .from('sales')
         .select(`
           *,
-          seller:users!sales_created_by_fkey (name),
+          seller:users!sales_sold_by_fkey (name),
           validator:users!sales_validated_by_fkey (name)
         `)
         .order('business_date', { ascending: false });
@@ -277,7 +277,7 @@ export class SalesService {
         .from('sales')
         .select(`
           *,
-          seller:users!sales_created_by_fkey (name),
+          seller:users!sales_sold_by_fkey (name),
           validator:users!sales_validated_by_fkey (name)
         `)
         .eq('id', saleId)
@@ -352,11 +352,11 @@ export class SalesService {
 
       // ✨ MODE SWITCHING FIX: Filter by server with client-side OR logic
       // Apply server filter in JavaScript to ensure proper AND/OR precedence
-      // A server should see sales where they are EITHER the assigned server OR the creator
+      // A server should see sales where they are EITHER the assigned server OR the seller
       let validatedSales = allValidatedSales || [];
       if (serverId) {
         validatedSales = validatedSales.filter((sale: any) =>
-          sale.server_id === serverId || sale.created_by === serverId
+          sale.server_id === serverId || sale.sold_by === serverId
         );
 
         // 🔍 DEBUG: Log sales data for mode switching analysis
@@ -431,8 +431,8 @@ export class SalesService {
         .from('sales')
         .select(`
           *,
-          seller:users!sales_created_by_fkey (name),
-          validator:users!sales_validated_by_fkey (name) // Correction fkey
+          seller:users!sales_sold_by_fkey (name),
+          validator:users!sales_validated_by_fkey (name)
         `)
         .eq('bar_id', barId)
         .eq('created_by', userId)
