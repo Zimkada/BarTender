@@ -97,14 +97,9 @@ export default function ReturnsPage() {
   const { showSuccess, showError } = useFeedback();
   const { isMobile } = useViewport();
 
-  // ✨ NUEVO: Detectar modo de operación
-  const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
-
   // ✨ Déterminer si l'utilisateur peut créer des retours
-  // Mode simplifié: seuls gérants/promoteurs
-  // Mode complet: gérants/promoteurs ET serveurs
-  const isManager = currentSession?.role === 'gerant' || currentSession?.role === 'promoteur';
-  const isReadOnly = isSimplifiedMode && currentSession?.role === 'serveur';
+  // Seuls gérants/promoteurs peuvent créer et valider les retours
+  const isReadOnly = currentSession?.role === 'serveur';
 
   const [showCreateReturn, setShowCreateReturn] = useState(false);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
