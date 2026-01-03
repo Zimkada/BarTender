@@ -292,11 +292,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 promotion_id: item.promotion_id
             })) || [];
 
+        const operatingMode = currentBar?.settings?.operatingMode || 'full';
+        // ✨ FIX: En mode simplifié, sold_by = serveur sélectionné, pas le gérant
+        // En mode complet, sold_by = créateur (currentSession.userId)
+        const soldByValue = operatingMode === 'simplified' && saleData.serverId
+            ? saleData.serverId
+            : currentSession.userId;
+
         const newSaleData = {
             bar_id: currentBar.id,
             items: formattedItems,
             payment_method: saleData.paymentMethod || 'cash', // Default to cash if not provided
-            sold_by: currentSession.userId,
+            sold_by: soldByValue,
             customer_name: saleData.customerName,
             customer_phone: saleData.customerPhone,
             notes: saleData.notes,
