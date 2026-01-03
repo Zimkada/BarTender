@@ -76,19 +76,20 @@ const mapSalesData = (dbSales: any[]): Sale[] => {
         currency: 'XOF',
         paymentMethod: s.payment_method as 'cash' | 'mobile_money' | 'card' | 'credit',
         status: (s.status as 'pending' | 'validated' | 'rejected') || 'pending',
-        createdBy: s.sold_by,
+        createdBy: s.created_by || undefined,  // ✨ FIX: Audit trail - qui a cliqué créer
+        soldBy: s.sold_by || undefined,        // ✨ FIX: Attribution métier - qui reçoit le crédit
         createdAt: new Date(s.created_at!),
         validatedBy: s.validated_by || undefined,
         validatedAt: s.validated_at ? new Date(s.validated_at) : undefined,
-        rejectedBy: undefined,
-        rejectedAt: undefined,
+        rejectedBy: s.rejected_by || undefined,
+        rejectedAt: s.rejected_at ? new Date(s.rejected_at) : undefined,
         businessDate: (s as any).business_date ? new Date((s as any).business_date) : new Date(),
         customerName: s.customer_name || undefined,
         customerPhone: s.customer_phone || undefined,
         notes: s.notes || undefined,
         // ✨ Use server_id for filtering (migration should have populated all values)
         // - Full mode: server_id = sold_by (same person)
-        // - Simplified mode: server_id = assigned server, sold_by = gérant
-        serverId: s.server_id ?? undefined, // No fallback to sold_by
+        // - Simplified mode: server_id = assigned server, sold_by = serveur
+        serverId: s.server_id ?? undefined,
     }));
 };

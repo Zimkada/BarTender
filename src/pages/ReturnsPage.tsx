@@ -188,9 +188,9 @@ export default function ReturnsPage() {
       if (saleBusinessDate !== currentBusinessDate) return false;
 
       // ✨ MODE SWITCHING FIX: Servers should only see returns for their own sales
-      // Check BOTH serverId (simplified mode) AND createdBy (full mode)
+      // Check BOTH serverId (simplified mode) AND soldBy (full mode)
       if (isServerRole && currentSession?.userId) {
-        return sale.serverId === currentSession.userId || sale.createdBy === currentSession.userId;
+        return sale.serverId === currentSession.userId || sale.soldBy === currentSession.userId;
       }
 
       return true;

@@ -336,7 +336,7 @@ export class SalesService {
       // Ventes validées (Filtre sur business_date)
       let validatedQuery = supabase
         .from('sales')
-        .select('id, total, server_id, created_by, business_date, status')
+        .select('id, total, server_id, sold_by, created_by, business_date, status')
         .eq('bar_id', barId)
         .eq('status', 'validated');
 

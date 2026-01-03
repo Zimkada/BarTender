@@ -226,7 +226,15 @@ export function DailyDashboard() {
 
   const pendingSales = useMemo(() => {
     const isManager = currentSession?.role === 'gerant' || currentSession?.role === 'promoteur';
-    return sales.filter(s => s.status === 'pending' && (isManager || s.createdBy === currentSession?.userId));
+    // ✨ MODE SWITCHING FIX: Servers should see pending sales they created or were assigned
+    // Check BOTH serverId (simplified mode) AND soldBy (full mode)
+    return sales.filter(s =>
+      s.status === 'pending' && (
+        isManager ||
+        s.soldBy === currentSession?.userId ||
+        s.serverId === currentSession?.userId
+      )
+    );
   }, [sales, currentSession]);
 
   // Define activeConsignments BEFORE using it in serverFilteredConsignments

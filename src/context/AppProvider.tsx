@@ -397,6 +397,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     soldBy: s.soldBy,
                     matchesServerId: s.serverId === currentSession.userId,
                     matchesSoldBy: s.soldBy === currentSession.userId
+                })),
+                // 🔍 LOG ÉTENDU: Montrer TOUTES les ventes avant filtrage
+                allSalesBefore: todaySales.map(s => ({
+                    id: s.id,
+                    total: s.total,
+                    serverId: s.serverId,
+                    soldBy: s.soldBy,
+                    createdBy: s.createdBy,
+                    status: s.status,
+                    matchesServerId: s.serverId === currentSession.userId,
+                    matchesSoldBy: s.soldBy === currentSession.userId,
+                    willPass: (s.serverId === currentSession.userId || s.soldBy === currentSession.userId)
                 }))
             });
 

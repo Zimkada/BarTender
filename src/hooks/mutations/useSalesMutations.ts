@@ -272,6 +272,7 @@ const mapSaleRowToSale = (savedSaleRow: any): Sale => {
         currency: 'XOF',
         status: savedSaleRow.status as 'pending' | 'validated' | 'rejected',
         createdBy: savedSaleRow.created_by || savedSaleRow.sold_by, // Fallback
+        soldBy: savedSaleRow.sold_by || undefined,  // ✨ CRUCIAL: Include soldBy from DB (attribution métier)
         serverId: savedSaleRow.server_id || undefined,  // ✨ NOUVEAU: Include serverId from DB
         validatedBy: savedSaleRow.validated_by || undefined,
         rejectedBy: savedSaleRow.rejected_by || undefined,
