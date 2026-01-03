@@ -163,7 +163,12 @@ export function TopProductsChart({
                 height={isMobile ? 100 : 80}
               />
               <YAxis tick={{ fill: '#9ca3af', fontSize: isMobile ? 10 : 12 }} />
-              <Tooltip formatter={(value: any) => formatPrice(Number(value))} />
+              <Tooltip formatter={(value: any) => {
+                if (metric === 'units') {
+                  return Number(value).toString();
+                }
+                return formatPrice(Number(value));
+              }} />
               <Bar dataKey={metric} fill="#f97316" radius={[8, 8, 0, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
