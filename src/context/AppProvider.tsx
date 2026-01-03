@@ -358,13 +358,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         const todaySales = filterByBusinessDateRange(salesToFilter, todayStr, todayStr, closeHour);
 
+        // 🔍 DEBUG: Log before server filtering
+        console.log('[AppProvider.getTodaySales] Avant filtrage serveur:', {
+            role: currentSession?.role,
+            userId: currentSession?.userId,
+            todayStr,
+            allSalesCount: sales.length,
+            validatedSalesCount: salesToFilter.length,
+            todaySalesCount: todaySales.length,
+            todaySales: todaySales.map(s => ({
+                id: s.id,
+                total: s.total,
+                status: s.status,
+                businessDate: s.businessDate,
+                createdBy: s.createdBy,
+                soldBy: s.soldBy,
+                serverId: s.serverId
+            }))
+        });
+
         if (currentSession?.role === 'serveur') {
             // ✨ MODE SWITCHING FIX: A server should see ALL their sales regardless of mode
             // Check BOTH serverId (simplified mode) AND soldBy (full mode)
             // This ensures data visibility persists across mode switches
-            return todaySales.filter(sale =>
+            const filtered = todaySales.filter(sale =>
                 sale.serverId === currentSession.userId || sale.soldBy === currentSession.userId
             );
+
+            // 🔍 DEBUG: Log after server filtering
+            console.log('[AppProvider.getTodaySales] Après filtrage serveur:', {
+                beforeCount: todaySales.length,
+                afterCount: filtered.length,
+                userId: currentSession.userId,
+                filtered: filtered.map(s => ({
+                    id: s.id,
+                    total: s.total,
+                    serverId: s.serverId,
+                    soldBy: s.soldBy,
+                    matchesServerId: s.serverId === currentSession.userId,
+                    matchesSoldBy: s.soldBy === currentSession.userId
+                }))
+            });
+
+            return filtered;
         }
         return todaySales;
     }, [sales, currentSession, currentBar]);

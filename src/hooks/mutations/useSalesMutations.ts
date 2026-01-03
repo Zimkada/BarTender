@@ -59,11 +59,19 @@ export const useSalesMutations = (barId: string) => {
             }));
 
             // 2. Construire le Payload complet (Compatible Supabase RPC)
+            // ✨ MODE SWITCHING FIX: sold_by doit être le serveur, pas le gérant/promoteur
+            // En mode simplifié: sold_by = serverId (qui a reçu le crédit)
+            // En mode complet: sold_by = currentSession.userId (qui a créé)
+            const operatingMode = currentBar?.settings?.operatingMode || 'full';
+            const soldByValue = operatingMode === 'simplified' && saleData.serverId
+                ? saleData.serverId
+                : (currentSession?.userId || '');
+
             const salePayload = {
                 bar_id: barId,
                 items: itemsFormatted,
                 payment_method: saleData.paymentMethod || 'cash',
-                sold_by: isActingAs() && actingAs.userId ? actingAs.userId : (currentSession?.userId || ''),
+                sold_by: soldByValue,
                 server_id: saleData.serverId || null,
                 status: saleData.status || 'pending', // Pending par défaut si offline
                 customer_name: saleData.customerName,

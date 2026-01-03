@@ -206,6 +206,24 @@ export function DailyDashboard() {
 
   const { netRevenue: todayTotal } = useRevenueStats({ startDate: todayDateStr, endDate: todayDateStr, enabled: true });
 
+  // 🔍 DEBUG: Log raw data from getTodaySales
+  console.log('[DailyDashboard] Debug filtrage:', {
+    isServerRole,
+    currentUserId: currentSession?.userId,
+    todayDateStr,
+    allSalesCount: sales.length,
+    todayValidatedSalesCount: todayValidatedSales.length,
+    todayValidatedSales: todayValidatedSales.map(s => ({
+      id: s.id,
+      total: s.total,
+      status: s.status,
+      business_date: s.businessDate,
+      created_by: s.createdBy,
+      sold_by: s.soldBy,
+      server_id: s.serverId
+    }))
+  });
+
   const pendingSales = useMemo(() => {
     const isManager = currentSession?.role === 'gerant' || currentSession?.role === 'promoteur';
     return sales.filter(s => s.status === 'pending' && (isManager || s.createdBy === currentSession?.userId));
@@ -218,9 +236,26 @@ export function DailyDashboard() {
     if (!isServerRole) return todayValidatedSales;
     // ✨ MODE SWITCHING FIX: A server should see ALL their sales regardless of mode
     // Check BOTH serverId (simplified mode) AND soldBy (full mode)
-    return todayValidatedSales.filter(s =>
+    const filtered = todayValidatedSales.filter(s =>
       s.serverId === currentSession?.userId || s.soldBy === currentSession?.userId
     );
+
+    // 🔍 DEBUG: Log filtering result
+    console.log('[DailyDashboard] serverFilteredSales:', {
+      beforeFilterCount: todayValidatedSales.length,
+      afterFilterCount: filtered.length,
+      currentUserId: currentSession?.userId,
+      filtered: filtered.map(s => ({
+        id: s.id,
+        total: s.total,
+        server_id: s.serverId,
+        sold_by: s.soldBy,
+        matches_serverId: s.serverId === currentSession?.userId,
+        matches_soldBy: s.soldBy === currentSession?.userId
+      }))
+    });
+
+    return filtered;
   }, [todayValidatedSales, isServerRole, currentSession?.userId]);
 
   const serverFilteredReturns = useMemo(() => {
