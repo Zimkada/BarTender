@@ -104,8 +104,8 @@ export function PromotionsAnalytics() {
                 </div>
 
                 {/* KPI Cards Skeleton */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {[1, 2, 3, 4].map((i) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    {[1, 2, 3, 4, 5].map((i) => (
                         <div key={i} className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm">
                             <div className="flex justify-between items-start mb-2">
                                 <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
@@ -219,7 +219,7 @@ export function PromotionsAnalytics() {
             )}
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 {/* CA Généré */}
                 <div className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm">
                     <div className="flex justify-between items-start mb-2">
@@ -258,6 +258,18 @@ export function PromotionsAnalytics() {
                     </div>
                     <p className="text-sm text-gray-500">Réductions offertes</p>
                     <h4 className="text-2xl font-bold text-gray-800">{formatPrice(stats?.totalDiscount || 0)}</h4>
+                </div>
+
+                {/* Profit Réalisé */}
+                <div className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm">
+                    <div className="flex justify-between items-start mb-2">
+                        <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
+                            <TrendingUp size={20} />
+                        </div>
+                        <span className="text-xs text-gray-400">Net</span>
+                    </div>
+                    <p className="text-sm text-gray-500">Profit Réalisé</p>
+                    <h4 className="text-2xl font-bold text-gray-800">{formatPrice((stats?.totalRevenue || 0) - (stats?.totalDiscount || 0))}</h4>
                 </div>
 
                 {/* ROI */}
