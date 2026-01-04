@@ -449,6 +449,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                           onUpdateQuantity={updateQuantity}
                           onRemoveItem={(id) => updateQuantity(id, 0)}
                           variant="mobile"
+                          showTotalReductions={true}
                         />
 
                         {currentBar?.settings?.operatingMode === 'simplified' && (
@@ -587,6 +588,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                         onUpdateQuantity={updateQuantity}
                         onRemoveItem={(id) => updateQuantity(id, 0)}
                         variant="desktop"
+                        showTotalReductions={true}
                       />
                     )}
                   </div>

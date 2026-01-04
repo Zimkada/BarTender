@@ -112,6 +112,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // --- CART STATE & LOGIC ---
     const [cart, setCart] = useState<CartItem[]>([]);
 
+    // 🧹 Fix: Vider le panier quand on change de bar pour éviter les mélanges
+    useEffect(() => {
+        setCart([]);
+    }, [currentBar?.id]);
+
     const addToCart = useCallback((product: Product) => {
         // Check if server in simplified mode - prevent adding to cart
         const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';

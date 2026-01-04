@@ -165,6 +165,7 @@ export function Cart({
                 onUpdateQuantity={onUpdateQuantity}
                 onRemoveItem={onRemoveItem}
                 variant="mobile"
+                showTotalReductions={true}
               />
               {items.length === 0 && (
                 <div className="flex flex-col items-center justify-center h-full text-center">
@@ -313,6 +314,7 @@ export function Cart({
               onUpdateQuantity={onUpdateQuantity}
               onRemoveItem={onRemoveItem}
               variant="desktop"
+              showTotalReductions={true}
             />
             {items.length === 0 && (
               <div className="text-center py-8">

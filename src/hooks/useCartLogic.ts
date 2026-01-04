@@ -14,6 +14,8 @@ export interface CalculatedItem extends CartItem {
     original_unit_price: number;
     discount_amount: number;
     promotion_id?: string;
+    promotion_type?: 'bundle' | 'fixed_discount' | 'percentage' | 'special_price';
+    promotion_name?: string;
     hasPromotion: boolean;
 }
 
@@ -57,7 +59,7 @@ export function useCartLogic({ items, barId }: UseCartLogicProps): UseCartLogicR
             if (promotionsEnabled && FEATURES.PROMOTIONS_AUTO_APPLY) {
                 const priceInfo = calculatePrice(product, quantity);
                 const finalUnitPrice = quantity > 0 ? priceInfo.finalPrice / quantity : 0;
-                
+
                 return {
                     ...item,
                     unit_price: finalUnitPrice,
@@ -65,6 +67,8 @@ export function useCartLogic({ items, barId }: UseCartLogicProps): UseCartLogicR
                     original_unit_price: originalUnitPrice,
                     discount_amount: priceInfo.discount,
                     promotion_id: priceInfo.appliedPromotion?.id,
+                    promotion_type: priceInfo.appliedPromotion?.type,
+                    promotion_name: priceInfo.appliedPromotion?.name,
                     hasPromotion: priceInfo.hasPromotion,
                 };
             }
@@ -78,6 +82,8 @@ export function useCartLogic({ items, barId }: UseCartLogicProps): UseCartLogicR
                 original_unit_price: originalUnitPrice,
                 discount_amount: 0,
                 promotion_id: undefined,
+                promotion_type: undefined,
+                promotion_name: undefined,
                 hasPromotion: false,
             };
         });

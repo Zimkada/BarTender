@@ -19,6 +19,7 @@ import {
     ArrowLeft
 } from 'lucide-react';
 import { useBarContext } from '../context/BarContext';
+import { useViewport } from '../hooks/useViewport';
 import { PromotionsService } from '../services/supabase/promotions.service';
 import { Promotion, PromotionStatus, PromotionType } from '../types';
 import { useNotifications } from '../components/Notifications';
@@ -30,6 +31,7 @@ import { PromotionsAnalytics } from '../components/promotions/PromotionsAnalytic
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select, SelectOption } from '../components/ui/Select';
+import { DropdownMenu } from '../components/ui/DropdownMenu';
 
 /**
  * PromotionsPage - Page de gestion des promotions
@@ -39,6 +41,7 @@ import { Select, SelectOption } from '../components/ui/Select';
 export default function PromotionsPage() {
     const navigate = useNavigate();
     const { currentBar } = useBarContext();
+    const { isMobile } = useViewport();
     const { showNotification } = useNotifications();
     const [promotions, setPromotions] = useState<Promotion[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -195,9 +198,9 @@ export default function PromotionsPage() {
             ) : (
                 <>
                     {/* Toolbar */}
-                    <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-4 mb-6 flex flex-wrap gap-4 justify-between items-center">
-                        <div className="flex gap-4 flex-1">
-                            <div className="flex-1 max-w-md">
+                    <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-4 mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+                        <div className="flex flex-col sm:flex-row gap-4 flex-1 w-full">
+                            <div className="flex-1">
                                 <Input
                                     type="text"
                                     placeholder="Rechercher une promotion..."
@@ -206,7 +209,7 @@ export default function PromotionsPage() {
                                     leftIcon={<Search size={20} />}
                                 />
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
                                 <Filter size={20} className="text-gray-600" />
                                 <Select
                                     options={statusFilterOptions}
@@ -219,6 +222,7 @@ export default function PromotionsPage() {
                             variant="primary"
                             onClick={() => { setSelectedPromotion(null); setShowCreateModal(true); }}
                             icon={<Plus size={20} />}
+                            className="w-full sm:w-auto"
                         >
                             Nouvelle Promotion
                         </EnhancedButton>
@@ -245,7 +249,7 @@ export default function PromotionsPage() {
                             </EnhancedButton>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 px-4 sm:px-0">
                             {filteredPromotions.map((promo) => (
                                 <motion.div
                                     key={promo.id}
@@ -262,33 +266,57 @@ export default function PromotionsPage() {
                                                         promo.status === 'paused' ? 'En pause' :
                                                             promo.status === 'expired' ? 'Expirée' : 'Brouillon'}
                                             </div>
-                                            <div className="flex gap-1">
-                                                <Button
-                                                    onClick={() => handleToggleStatus(promo)}
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="p-1.5 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg"
-                                                    title={promo.status === 'active' ? 'Pause' : 'Activer'}
-                                                >
-                                                    {promo.status === 'active' ? <Pause size={18} /> : <Play size={18} />}
-                                                </Button>
-                                                <Button
-                                                    onClick={() => { setSelectedPromotion(promo); setShowCreateModal(true); }}
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
-                                                >
-                                                    <Edit size={18} />
-                                                </Button>
-                                                <Button
-                                                    onClick={() => handleDelete(promo.id)}
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </Button>
-                                            </div>
+                                            {/* Actions - Desktop buttons or mobile dropdown */}
+                                            {!isMobile ? (
+                                                <div className="flex gap-1">
+                                                    <Button
+                                                        onClick={() => handleToggleStatus(promo)}
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="p-1.5 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg"
+                                                        title={promo.status === 'active' ? 'Pause' : 'Activer'}
+                                                    >
+                                                        {promo.status === 'active' ? <Pause size={18} /> : <Play size={18} />}
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => { setSelectedPromotion(promo); setShowCreateModal(true); }}
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                                                    >
+                                                        <Edit size={18} />
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => handleDelete(promo.id)}
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <DropdownMenu
+                                                    items={[
+                                                        {
+                                                            label: promo.status === 'active' ? 'Pause' : 'Activer',
+                                                            icon: promo.status === 'active' ? <Pause size={16} /> : <Play size={16} />,
+                                                            onClick: () => handleToggleStatus(promo),
+                                                        },
+                                                        {
+                                                            label: 'Éditer',
+                                                            icon: <Edit size={16} />,
+                                                            onClick: () => { setSelectedPromotion(promo); setShowCreateModal(true); },
+                                                        },
+                                                        {
+                                                            label: 'Supprimer',
+                                                            icon: <Trash2 size={16} />,
+                                                            variant: 'danger',
+                                                            onClick: () => handleDelete(promo.id),
+                                                        },
+                                                    ]}
+                                                />
+                                            )}
                                         </div>
 
                                         <h2 className="text-lg font-bold text-gray-800 mb-2">{promo.name}</h2>

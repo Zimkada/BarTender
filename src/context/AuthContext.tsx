@@ -16,7 +16,7 @@ interface AuthContextType {
   logout: () => void;
   hasPermission: (permission: keyof RolePermissions) => boolean;
   refreshSession: () => Promise<void>;
-  updateCurrentBar: (barId: string, barName: string) => void; // NEW: Update current bar in session
+  updateCurrentBar: (barId: string, barName: string, role?: UserRole) => void; // UPDATED: Support role update
   // createUser: (userData: Omit<User, 'id' | 'createdAt' | 'createdBy'>, role: UserRole) => Promise<User | null>; // Moved out of AuthContext
   // updateUser: (userId: string, updates: Partial<User>) => Promise<void>; // Moved out of AuthContext
   changePassword: (newPassword: string) => Promise<void>;
@@ -482,17 +482,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   // Mettre à jour le bar actuel dans la session
-  const updateCurrentBar = useCallback((barId: string, barName: string) => {
+  const updateCurrentBar = useCallback((barId: string, barName: string, role?: UserRole) => {
     if (!currentSession) {
       console.warn('[AuthContext] Cannot update bar - no session');
       return;
     }
 
-    console.log('[AuthContext] Updating current bar to:', barId, barName);
+    console.log('[AuthContext] Updating current bar to:', barId, barName, role ? `with role ${role}` : '(keep role)');
+
+    // Recalculer les permissions si le rôle change
+    const newPermissions = role ? getPermissionsByRole(role) : currentSession.permissions;
+    const newRole = role || currentSession.role;
+
     setCurrentSession({
       ...currentSession,
       barId,
-      barName
+      barName,
+      role: newRole,
+      permissions: newPermissions
     });
 
     // Sauvegarder dans localStorage pour persistance
@@ -503,15 +510,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       severity: 'info',
       userId: currentSession.userId,
       userName: currentSession.userName,
-      userRole: currentSession.role,
+      userRole: newRole,
       barId: barId,
       barName: barName,
-      description: `Changement de bar actif vers ${barName}`,
+      description: `Changement de bar actif vers ${barName} (Rôle: ${newRole})`,
       metadata: {
         previousBarId: currentSession.barId,
         previousBarName: currentSession.barName,
+        previousRole: currentSession.role,
         newBarId: barId,
-        newBarName: barName
+        newBarName: barName,
+        newRole: newRole
       },
       relatedEntityId: barId,
       relatedEntityType: 'bar',

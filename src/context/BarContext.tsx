@@ -24,7 +24,7 @@ interface BarContextType {
   // Gestion des bars
   createBar: (bar: Omit<Bar, 'id' | 'createdAt' | 'ownerId'> & { ownerId?: string }) => Promise<Bar | null>;
   updateBar: (barId: string, updates: Partial<Bar>) => Promise<void>;
-  switchBar: (barId: string) => void;
+  switchBar: (barId: string) => Promise<void>;
 
   // Membres du bar
   barMembers: BarMember[];
@@ -424,11 +424,9 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     );
   }, [currentSession, barMembers, isOwner, actingAs]);
 
-  const switchBar = useCallback((barId: string) => {
-    if (!canAccessBar(barId)) {
-      console.warn('[BarContext] Access denied to bar:', barId);
-      return;
-    }
+  const switchBar = useCallback(async (barId: string) => {
+    // Note: canAccessBar checks local barMembers which might be scoped to current bar.
+    // We trust isOwner first, then fallback to fetching.
 
     // Trouver le bar dans la liste pour obtenir son nom
     const bar = bars.find(b => b.id === barId);
@@ -437,15 +435,53 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return;
     }
 
+    if (!currentSession) return;
+
+    // Déterminer le nouveau rôle
+    let newRole: UserRole = currentSession.role;
+
+    // 1. Si Super Admin global, on garde Super Admin
+    if (currentSession.role === 'super_admin' && !actingAs.isActive) {
+      newRole = 'super_admin';
+    }
+    // 2. Si Owner du bar cible -> Promoteur
+    else if (bar.ownerId === currentSession.userId) {
+      newRole = 'promoteur';
+    }
+    // 3. Sinon, il faut chercher le rôle dans la table bar_members
+    else {
+      try {
+        const { data: member, error } = await supabase
+          .from('bar_members')
+          .select('role')
+          .eq('bar_id', barId)
+          .eq('user_id', currentSession.userId)
+          .eq('is_active', true)
+          .single();
+
+        if (member && member.role) {
+          newRole = member.role as UserRole;
+        } else {
+          console.warn('[BarContext] Could not find member role for bar:', barId, error);
+          if (!actingAs.isActive) {
+            console.error('[BarContext] Access Denied: No membership found for this bar');
+            return; // Block access
+          }
+        }
+      } catch (err) {
+        console.error('[BarContext] Error fetching role during switch:', err);
+      }
+    }
+
     // Mettre à jour le bar local
     setCurrentBarId(barId);
 
     // 💾 Sauvegarder le bar sélectionné pour offline
     OfflineStorage.saveCurrentBarId(barId);
 
-    // Mettre à jour la session AuthContext
-    updateCurrentBar(barId, bar.name);
-  }, [canAccessBar, bars, updateCurrentBar]);
+    // Mettre à jour la session AuthContext avec le NOUVEAU RÔLE
+    updateCurrentBar(barId, bar.name, newRole);
+  }, [bars, updateCurrentBar, currentSession, actingAs]);
 
   // Gestion des membres
   const getBarMembers = useCallback(async (barId: string): Promise<(BarMember & { user: User })[]> => {
