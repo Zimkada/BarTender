@@ -230,7 +230,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                 {/* Type Selection */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">Type de promotion</label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {[
                             { id: 'reduction_produit', label: 'Réduction par unité', icon: <DollarSign size={18} /> },
                             { id: 'majoration_produit', label: 'Majoration par unité', icon: <DollarSign size={18} /> },
