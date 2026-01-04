@@ -46,7 +46,8 @@ const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users
 
   const salesByServer = useMemo(() => {
     return sales.reduce((acc, sale) => {
-      const serverId = sale.serverId || sale.soldBy;
+      // Source of truth: soldBy is the business attribution
+      const serverId = sale.soldBy;
       if (!acc[serverId]) acc[serverId] = [];
       acc[serverId].push(sale);
       return acc;
@@ -242,10 +243,9 @@ export function DailyDashboard() {
 
   const serverFilteredSales = useMemo(() => {
     if (!isServerRole) return todayValidatedSales;
-    // ✨ MODE SWITCHING FIX: A server should see ALL their sales regardless of mode
-    // Check BOTH serverId (simplified mode) AND soldBy (full mode)
+    // Source of truth: soldBy is the business attribution
     const filtered = todayValidatedSales.filter(s =>
-      s.serverId === currentSession?.userId || s.soldBy === currentSession?.userId
+      s.soldBy === currentSession?.userId
     );
 
     // 🔍 DEBUG: Log filtering result
@@ -268,19 +268,17 @@ export function DailyDashboard() {
 
   const serverFilteredReturns = useMemo(() => {
     if (!isServerRole) return todayReturns;
-    // ✨ MODE SWITCHING FIX: A server should see ALL their returns regardless of mode
-    // Check BOTH serverId (simplified mode) AND returnedBy (full mode)
+    // Source of truth: returnedBy is who created the return, serverId is the server
     return todayReturns.filter(r =>
-      r.serverId === currentSession?.userId || r.returnedBy === currentSession?.userId
+      r.returnedBy === currentSession?.userId || r.serverId === currentSession?.userId
     );
   }, [todayReturns, isServerRole, currentSession?.userId]);
 
   const serverFilteredConsignments = useMemo(() => {
     if (!isServerRole) return activeConsignments;
-    // ✨ MODE SWITCHING FIX: A server should see ALL their consignments regardless of mode
-    // Check BOTH serverId (simplified mode) AND originalSeller (full mode)
+    // Source of truth: originalSeller is the business attribution for consignments
     return activeConsignments.filter(c =>
-      c.serverId === currentSession?.userId || c.originalSeller === currentSession?.userId
+      c.originalSeller === currentSession?.userId
     );
   }, [activeConsignments, isServerRole, currentSession?.userId]);
 

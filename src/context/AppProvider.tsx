@@ -347,9 +347,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         if (currentSession?.role === 'serveur') {
             // ✨ MODE SWITCHING FIX: A server should see ALL their sales regardless of mode
-            // Check BOTH serverId (simplified mode) AND soldBy (full mode)
+            // Source of truth: soldBy is the business attribution
             return filteredSales.filter(sale =>
-                sale.serverId === currentSession.userId || sale.soldBy === currentSession.userId
+                sale.soldBy === currentSession.userId
             );
         }
         return filteredSales;
@@ -385,11 +385,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
 
         if (currentSession?.role === 'serveur') {
-            // ✨ MODE SWITCHING FIX: A server should see ALL their sales regardless of mode
-            // Check BOTH serverId (simplified mode) AND soldBy (full mode)
-            // This ensures data visibility persists across mode switches
+            // Source of truth: soldBy is the business attribution
             const filtered = todaySales.filter(sale =>
-                sale.serverId === currentSession.userId || sale.soldBy === currentSession.userId
+                sale.soldBy === currentSession.userId
             );
 
             // 🔍 DEBUG: Log after server filtering
@@ -413,9 +411,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     soldBy: s.soldBy,
                     createdBy: s.createdBy,
                     status: s.status,
-                    matchesServerId: s.serverId === currentSession.userId,
-                    matchesSoldBy: s.soldBy === currentSession.userId,
-                    willPass: (s.serverId === currentSession.userId || s.soldBy === currentSession.userId)
+                    matchesSoldBy: s.soldBy === currentSession.userId
                 }))
             });
 
@@ -456,9 +452,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const startDateStr = startDate ? dateToYYYYMMDD(startDate) : undefined;
         const endDateStr = endDate ? dateToYYYYMMDD(endDate) : undefined;
 
-        // ✨ MODE SWITCHING FIX: Include sales where server is EITHER seller OR assigned server
+        // Source of truth: soldBy is the business attribution
         let baseSales = sales.filter(sale =>
-            sale.status === 'validated' && (sale.soldBy === userId || sale.serverId === userId)
+            sale.status === 'validated' && sale.soldBy === userId
         );
         if (startDateStr && endDateStr) {
             baseSales = filterByBusinessDateRange(baseSales, startDateStr, endDateStr, closeHour);
@@ -478,9 +474,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [sales, returns, currentBar]);
 
     const getServerReturns = useCallback((userId: string): Return[] => {
-        // ✨ MODE SWITCHING FIX: Include sales where server is EITHER seller OR assigned server
+        // Source of truth: soldBy is the business attribution
         const serverSaleIds = sales
-            .filter(s => (s.soldBy === userId || s.serverId === userId) && s.status === 'validated')
+            .filter(s => s.soldBy === userId && s.status === 'validated')
             .map(s => s.id);
         return returns.filter(r => serverSaleIds.includes(r.saleId));
     }, [sales, returns]);
@@ -490,15 +486,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const addReturn = useCallback((returnData: Omit<Return, 'id' | 'barId'>) => {
         if (!hasPermission('canManageInventory') || !currentBar || !currentSession) return;
 
-        // ✨ MODE SWITCHING FIX: Always deduce server_id from the sale itself, mode-agnostic
-        // Use serverId if present (simplified mode sale), otherwise createdBy (full mode sale)
-        // This ensures the return is assigned to the correct server regardless of CURRENT mode
+        // Source of truth: soldBy is the business attribution
         const associatedSale = sales.find(s => s.id === returnData.saleId);
         let deducedServerId: string | undefined;
 
         if (associatedSale) {
-            // Mode-agnostic: Check both fields, prioritize the one that exists
-            deducedServerId = associatedSale.serverId || associatedSale.createdBy;
+            // Use soldBy as the source of truth for server attribution
+            deducedServerId = associatedSale.soldBy;
         }
 
         returnsMutations.createReturn.mutate({
@@ -531,9 +525,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (currentSession?.role === 'serveur') {
             // ✨ MODE SWITCHING FIX: A server should see ALL their returns regardless of mode
             // Check BOTH serverId (simplified mode) AND returnedBy (full mode)
-            // This ensures data visibility persists across mode switches
+            // Source of truth: returnedBy is who created the return, serverId is the server
             return todayReturnsList.filter(r =>
-                r.serverId === currentSession.userId || r.returnedBy === currentSession.userId
+                r.returnedBy === currentSession.userId || r.serverId === currentSession.userId
             );
         }
         return todayReturnsList;

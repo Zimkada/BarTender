@@ -35,11 +35,8 @@ export function useSalesFilters({ sales, consignments, returns = [], currentSess
         // A. Filtrage initial basé sur le rôle et le mode opérationnel
         const baseSales = sales.filter(sale => {
             if (isServer) {
-                // ✨ MODE SWITCHING FIX: A server should see ALL their sales regardless of mode
-                // Check BOTH serverId (simplified mode) AND soldBy (full mode)
-                // This ensures data visibility persists across mode switches
-                // ✅ REVENUE FIX: Only count validated sales for revenue calculations
-                return sale.status === 'validated' && (sale.serverId === currentSession.userId || sale.soldBy === currentSession.userId);
+                // Source of truth: soldBy is the business attribution
+                return sale.status === 'validated' && sale.soldBy === currentSession.userId;
             } else {
                 // Gérant/Promoteur/Admin: voir uniquement les ventes validées
                 return sale.status === 'validated';

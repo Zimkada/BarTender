@@ -185,10 +185,9 @@ export default function ReturnsPage() {
       const saleBusinessDate = getBusinessDate(sale, closeHour);
       if (saleBusinessDate !== currentBusinessDate) return false;
 
-      // ✨ MODE SWITCHING FIX: Servers should only see returns for their own sales
-      // Check BOTH serverId (simplified mode) AND soldBy (full mode)
+      // Source of truth: soldBy is the business attribution
       if (isServerRole && currentSession?.userId) {
-        return sale.serverId === currentSession.userId || sale.soldBy === currentSession.userId;
+        return sale.soldBy === currentSession.userId;
       }
 
       return true;
@@ -254,9 +253,8 @@ export default function ReturnsPage() {
 
     // ✨ MODE SWITCHING FIX: Déduire automatiquement le serveur de la vente
     // Un retour doit TOUJOURS être assigné au VENDEUR de la vente (sold_by)
-    // sold_by contient le serveur en mode simplifié, le créateur en mode complet
-    // serverId est un fallback pour compatibilité mode switching
-    const serverId = sale.serverId || sale.soldBy;
+    // Source of truth: soldBy is the business attribution
+    const serverId = sale.soldBy;
 
     addReturn({
       saleId,
@@ -1072,9 +1070,9 @@ function CreateReturnForm({
 
     if (filterSeller !== 'all') {
       // ✨ MODE SWITCHING FIX: Filter using mode-agnostic server detection
-      // Use serverId if present (simplified mode sale), otherwise createdBy (full mode sale)
+      // Source of truth: soldBy is the business attribution
       filtered = filtered.filter(sale => {
-        const serverUserId = sale.serverId || sale.createdBy;
+        const serverUserId = sale.soldBy;
         return serverUserId === filterSeller;
       });
     }
@@ -1097,10 +1095,10 @@ function CreateReturnForm({
   const sellersWithSales = useMemo(() => {
     if (!Array.isArray(returnableSales) || !Array.isArray(users)) return [];
     // ✨ MODE SWITCHING FIX: Get servers using mode-agnostic detection
-    // Use serverId if present (simplified mode sale), otherwise createdBy (full mode sale)
+    // Source of truth: soldBy is the business attribution
     const serverIds = new Set(
       returnableSales
-        .map(sale => sale.serverId || sale.createdBy)
+        .map(sale => sale.soldBy)
         .filter(Boolean)
     );
     return users.filter(user => serverIds.has(user.id));
@@ -1243,9 +1241,8 @@ function CreateReturnForm({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
                 {filteredSales.map(sale => {
                   const returnCheck = canReturnSale(sale);
-                  // ✨ MODE SWITCHING FIX: Show server using mode-agnostic detection
-                  // Use serverId if present (simplified mode sale), otherwise createdBy (full mode sale)
-                  const serverUserId = sale.serverId || sale.createdBy;
+                  // Source of truth: soldBy is the business attribution
+                  const serverUserId = sale.soldBy;
                   const serverUser = serverUserId ? users.find(u => u.id === serverUserId) : undefined;
                   const productPreview = sale.items.slice(0, 2).map(i => `${i.quantity}x ${i.product_name}`).join(', ');
                   const moreCount = sale.items.length - 2;

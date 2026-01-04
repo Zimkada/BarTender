@@ -174,10 +174,9 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
     let filtered = todaySales;
 
     if (filterSeller !== 'all') {
-      // ✨ MODE SWITCHING FIX: Filter using mode-agnostic server detection
-      // Use serverId if present (simplified mode sale), otherwise createdBy (full mode sale)
+      // Source of truth: soldBy is the business attribution
       filtered = filtered.filter(sale => {
-        const serverUserId = sale.serverId || sale.createdBy;
+        const serverUserId = sale.soldBy;
         return serverUserId === filterSeller;
       });
     }
@@ -198,7 +197,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
     // ✨ MODE SWITCHING FIX: Extract server IDs using mode-agnostic detection
     // Use serverId if present (simplified mode sale), otherwise createdBy (full mode sale)
     const sellerIds = new Set(
-      todaySales.map(sale => sale.serverId || sale.createdBy).filter(Boolean)
+      todaySales.map(sale => sale.soldBy).filter(Boolean)
     );
     return users.filter(user => sellerIds.has(user.id));
   }, [todaySales, users, currentBar, session]);
@@ -277,7 +276,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
     // ✨ MODE SWITCHING FIX: Always deduce server_id from the sale itself
     // Use serverId if present (simplified mode sale), otherwise createdBy (full mode sale)
     // This ensures consignment is assigned to the correct server regardless of CURRENT mode
-    const serverId = selectedSale.serverId || selectedSale.createdBy;
+    const serverId = selectedSale.soldBy;
 
     try {
       const consignment = await stockManager.createConsignment({
@@ -404,7 +403,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
           ) : (
             filteredSales.map(sale => {
               // ✨ MODE SWITCHING FIX: Get seller using mode-agnostic detection
-              const serverUserId = sale.serverId || sale.createdBy;
+              const serverUserId = sale.soldBy;
               const seller = serverUserId ? users.find(u => u.id === serverUserId) : null;
               const productPreview = sale.items.slice(0, 2).map(i => `${i.quantity}x ${i.product_name}`).join(', ');
               const moreCount = sale.items.length - 2;

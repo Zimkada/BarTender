@@ -352,11 +352,11 @@ export class SalesService {
 
       // ✨ MODE SWITCHING FIX: Filter by server with client-side OR logic
       // Apply server filter in JavaScript to ensure proper AND/OR precedence
-      // A server should see sales where they are EITHER the assigned server OR the seller
+      // Source of truth: sold_by is the business attribution
       let validatedSales = allValidatedSales || [];
       if (serverId) {
         validatedSales = validatedSales.filter((sale: any) =>
-          sale.server_id === serverId || sale.sold_by === serverId
+          sale.sold_by === serverId
         );
 
         // 🔍 DEBUG: Log sales data for mode switching analysis
@@ -397,11 +397,11 @@ export class SalesService {
         .eq('bar_id', barId)
         .eq('status', 'pending');
 
-      // ✨ MODE SWITCHING FIX: Filter by server with client-side OR logic
+      // Source of truth: sold_by/created_by depending on the operation
       let pendingCount = allPendingSales?.length || 0;
       if (serverId && allPendingSales) {
         const filteredPending = allPendingSales.filter((sale: any) =>
-          sale.server_id === serverId || sale.created_by === serverId
+          sale.created_by === serverId
         );
         pendingCount = filteredPending.length;
       }

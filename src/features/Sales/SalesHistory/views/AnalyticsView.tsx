@@ -291,10 +291,10 @@ export function AnalyticsView({
     // 1. Ajouter les ventes (déjà filtrées par période)
     // ✨ BUG #9 FIX: Utiliser serverId (UUID) pour identifier le serveur assigné
     // - serverId est présent dans les deux modes (full et simplified)
-    // - Fallback à createdBy si serverId n'est pas disponible
+    // Source of truth: soldBy is the business attribution
     performanceSales.forEach(sale => {
-      // Utiliser serverId comme identifiant principal
-      const serverId = sale.serverId || sale.createdBy;
+      // Utiliser soldBy comme identifiant principal
+      const serverId = sale.soldBy;
 
       // Trouver l'utilisateur correspondant
       const user = safeUsers.find(u => u.id === serverId);
@@ -353,8 +353,8 @@ export function AnalyticsView({
         return; // Vente hors période, ignorer
       }
 
-      // Utiliser serverId comme identifiant principal
-      const serverId = originalSale.serverId || originalSale.createdBy;
+      // Source of truth: soldBy is the business attribution
+      const serverId = originalSale.soldBy;
 
       if (userStats[serverId]) {
         userStats[serverId].revenue -= ret.refundAmount;

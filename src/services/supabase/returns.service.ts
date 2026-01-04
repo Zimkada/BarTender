@@ -64,11 +64,11 @@ export class ReturnsService {
 
             // ✨ MODE SWITCHING FIX: Filter by server with client-side OR logic
             // Apply server filter in JavaScript to ensure proper AND/OR precedence
-            // A server should see returns where they are EITHER the assigned server OR the one who processed it
+            // Source of truth: returned_by is who created the return, server_id is the server
             let data = allReturns || [];
             if (serverId && allReturns) {
                 data = allReturns.filter((returnItem: any) =>
-                    returnItem.server_id === serverId || returnItem.returned_by === serverId
+                    returnItem.returned_by === serverId || returnItem.server_id === serverId
                 );
 
                 // 🔍 DEBUG: Log returns data for mode switching analysis

@@ -47,10 +47,9 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         let baseSales = sales.filter(s => s.status === 'validated');
 
         if (isServerRole) {
-            // ✨ MODE SWITCHING FIX: A server should see ALL their sales regardless of mode
-            // Check BOTH serverId (simplified mode) AND soldBy (full mode)
+            // Source of truth: soldBy is the business attribution
             baseSales = baseSales.filter(s =>
-                s.serverId === currentSession?.userId || s.soldBy === currentSession?.userId
+                s.soldBy === currentSession?.userId
             );
         }
 
@@ -68,10 +67,9 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         // ✨ Filter returns by server if applicable
         let baseReturns = returns.filter(r => r.isRefunded && (r.status === 'approved' || r.status === 'restocked'));
         if (isServerRole) {
-            // ✨ MODE SWITCHING FIX: A server should see ALL their returns regardless of mode
-            // Check BOTH serverId (simplified mode) AND returnedBy (full mode)
+            // Source of truth: returnedBy is who created the return, serverId is the server
             baseReturns = baseReturns.filter(r =>
-                r.serverId === currentSession?.userId || r.returnedBy === currentSession?.userId
+                r.returnedBy === currentSession?.userId || r.serverId === currentSession?.userId
             );
         }
 

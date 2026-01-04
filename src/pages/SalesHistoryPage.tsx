@@ -120,8 +120,8 @@ export default function SalesHistoryPage() {
 
         // 1. Ajouter toutes les ventes
         filteredSales.forEach(sale => {
-            // ✨ MODE SWITCHING FIX: Use serverId (assigned server) if present, otherwise createdBy
-            const serverUserId = sale.serverId || sale.createdBy;
+            // Source of truth: soldBy is the business attribution
+            const serverUserId = sale.soldBy;
             const user = safeUsers.find(u => u.id === serverUserId);
             const member = safeBarMembers.find(m => m.userId === user?.id);
             const vendeur = user?.name || 'Inconnu';
@@ -178,8 +178,8 @@ export default function SalesHistoryPage() {
                 return;
             }
 
-            // ✨ MODE SWITCHING FIX: Use server_id if present, otherwise returnedBy
-            const serverUserId = ret.server_id || ret.returnedBy;
+            // Source of truth: server_id is the business attribution for returns
+            const serverUserId = ret.server_id;
             const user = safeUsers.find(u => u.id === serverUserId);
             const member = safeBarMembers.find(m => m.userId === user?.id);
             const utilisateur = user?.name || 'Inconnu';
@@ -230,8 +230,8 @@ export default function SalesHistoryPage() {
 
             const originalSale = sales.find(s => s.id === consignment.saleId);
             if (originalSale) {
-                // Use serverId if present (simplified mode - assigned server), otherwise createdBy (full mode)
-                const serverUserId = originalSale.serverId || originalSale.createdBy;
+                // Source of truth: soldBy is the business attribution
+                const serverUserId = originalSale.soldBy;
                 const user = safeUsers.find(u => u.id === serverUserId);
                 const member = safeBarMembers.find(m => m.userId === user?.id);
                 utilisateur = user?.name || 'Inconnu';

@@ -68,8 +68,8 @@ export function SaleCard({
     }[sale.status] || { label: 'Inconnu', color: 'bg-gray-100 text-gray-700 border-gray-200' };
 
     // Infos utilisateurs
-    // ✨ MODE SWITCHING FIX: Use serverId (assigned server) if present, otherwise createdBy
-    const serverUserId = sale.serverId || sale.createdBy;
+    // Source of truth: soldBy is the business attribution
+    const serverUserId = sale.soldBy;
     const seller = users?.find(u => u.id === serverUserId);
     const validator = sale.validatedBy ? users?.find(u => u.id === sale.validatedBy) : null;
 
