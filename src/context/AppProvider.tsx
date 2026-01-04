@@ -61,7 +61,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     useEffect(() => {
         if (isWarming) {
-            console.log('[AppProvider] Cache warming in progress...');
+            // Cache warming in progress
         }
     }, [isWarming]);
 
@@ -168,7 +168,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const initializeBarData = useCallback(() => {
         // Plus nécessaire avec React Query qui fetch automatiquement
-        console.log('initializeBarData called - handled by React Query');
     }, []);
 
     // --- CATEGORIES ---
@@ -365,24 +364,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         const todaySales = filterByBusinessDateRange(salesToFilter, todayStr, todayStr, closeHour);
 
-        // 🔍 DEBUG: Log before server filtering
-        console.log('[AppProvider.getTodaySales] Avant filtrage serveur:', {
-            role: currentSession?.role,
-            userId: currentSession?.userId,
-            todayStr,
-            allSalesCount: sales.length,
-            validatedSalesCount: salesToFilter.length,
-            todaySalesCount: todaySales.length,
-            todaySales: todaySales.map(s => ({
-                id: s.id,
-                total: s.total,
-                status: s.status,
-                businessDate: s.businessDate,
-                createdBy: s.createdBy,
-                soldBy: s.soldBy,
-                serverId: s.serverId
-            }))
-        });
 
         if (currentSession?.role === 'serveur') {
             // Source of truth: soldBy is the business attribution
@@ -390,30 +371,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 sale.soldBy === currentSession.userId
             );
 
-            // 🔍 DEBUG: Log after server filtering
-            console.log('[AppProvider.getTodaySales] Après filtrage serveur:', {
-                beforeCount: todaySales.length,
-                afterCount: filtered.length,
-                userId: currentSession.userId,
-                filtered: filtered.map(s => ({
-                    id: s.id,
-                    total: s.total,
-                    serverId: s.serverId,
-                    soldBy: s.soldBy,
-                    matchesServerId: s.serverId === currentSession.userId,
-                    matchesSoldBy: s.soldBy === currentSession.userId
-                })),
-                // 🔍 LOG ÉTENDU: Montrer TOUTES les ventes avant filtrage
-                allSalesBefore: todaySales.map(s => ({
-                    id: s.id,
-                    total: s.total,
-                    serverId: s.serverId,
-                    soldBy: s.soldBy,
-                    createdBy: s.createdBy,
-                    status: s.status,
-                    matchesSoldBy: s.soldBy === currentSession.userId
-                }))
-            });
 
             return filtered;
         }
@@ -558,7 +515,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // --- SETTINGS ---
     const updateSettings = useCallback((updates: Partial<AppSettings>) => {
         // TODO: Implement settings mutation
-        console.log('updateSettings', updates);
     }, []);
 
     const value: AppContextType = {

@@ -71,23 +71,6 @@ export class ReturnsService {
                     returnItem.returned_by === serverId || returnItem.server_id === serverId
                 );
 
-                // 🔍 DEBUG: Log returns data for mode switching analysis
-                console.log('[ReturnsService.getReturns] Query results:', {
-                    barId,
-                    serverId,
-                    startDate,
-                    endDate,
-                    totalBeforeFilter: allReturns.length,
-                    totalAfterFilter: data.length,
-                    returnsDetails: data.map((r: any) => ({
-                        id: r.id,
-                        server_id: r.server_id,
-                        returned_by: r.returned_by,
-                        refund_amount: r.refund_amount,
-                        is_refunded: r.is_refunded,
-                        status: r.status
-                    }))
-                });
             }
 
             return data;

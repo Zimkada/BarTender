@@ -359,36 +359,12 @@ export class SalesService {
           sale.sold_by === serverId
         );
 
-        // 🔍 DEBUG: Log sales data for mode switching analysis
-        console.log('[SalesService.getSalesStats] Query results:', {
-          barId,
-          serverId,
-          startDate,
-          endDate,
-          totalBeforeFilter: allValidatedSales?.length || 0,
-          totalAfterFilter: validatedSales.length,
-          salesDetails: validatedSales.map((s: any) => ({
-            id: s.id,
-            total: s.total,
-            server_id: s.server_id,
-            created_by: s.created_by,
-            business_date: s.business_date
-          }))
-        });
       }
 
       const totalRevenue = validatedSales.reduce((sum: number, sale: any) => sum + (sale.total || 0), 0);
       const totalSales = validatedSales.length;
       const averageSale = totalSales > 0 ? totalRevenue / totalSales : 0;
 
-      // 🔍 DEBUG: Log calculated totals
-      if (serverId) {
-        console.log('[SalesService.getSalesStats] Calculated totals:', {
-          totalSales,
-          totalRevenue,
-          averageSale
-        });
-      }
 
       // Ventes en attente (Toujours temps réel, pas de filtre date nécessaire généralement, ou created_at)
       const { data: allPendingSales } = await supabase
