@@ -261,6 +261,11 @@ export interface SaleItem {
   quantity: number;
   unit_price: number;
   total_price: number;
+  original_unit_price?: number;
+  discount_amount?: number;
+  promotion_id?: string;
+  promotion_type?: PromotionType;
+  promotion_name?: string;
 }
 
 export interface Sale {
@@ -700,10 +705,18 @@ export interface AuditLog {
  * Type de promotion
  */
 export type PromotionType =
-  | 'bundle'          // Lot : X unités à prix fixe (ex: 3 bières à 1000 FCFA)
-  | 'fixed_discount'  // Réduction montant fixe (ex: -50 FCFA)
-  | 'percentage'      // Réduction pourcentage (ex: -10%)
-  | 'special_price';  // Prix spécial avec horaires optionnels (ex: Happy Hour)
+  // Types français (nouveaux)
+  | 'lot'                // Lot : X unités à prix fixe (ex: 3 bières à 1000 FCFA)
+  | 'reduction_vente'    // Réduction fixe sur la vente totale (ex: -50 FCFA)
+  | 'pourcentage'        // Réduction pourcentage (ex: -10%)
+  | 'prix_special'       // Prix spécial avec horaires optionnels (ex: Happy Hour)
+  | 'reduction_produit'  // Réduction par unité × quantité (ex: -20 FCFA/unité)
+  | 'majoration_produit' // Majoration par unité × quantité (ex: +30 FCFA/unité)
+  // Types anglais (anciens, rétro-compatibilité)
+  | 'bundle'
+  | 'fixed_discount'
+  | 'percentage'
+  | 'special_price';
 
 /**
  * Statut d'une promotion

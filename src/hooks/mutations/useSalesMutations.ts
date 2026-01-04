@@ -55,6 +55,7 @@ export const useSalesMutations = (barId: string) => {
                 original_unit_price: item.original_unit_price || item.originalUnitPrice,
                 discount_amount: item.discount_amount || item.discountAmount,
                 promotion_id: item.promotion_id || item.promotionId,
+                promotion_type: item.promotion_type || item.promotionType,
                 promotion_name: item.promotion_name || item.promotionName
             }));
 

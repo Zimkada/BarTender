@@ -55,7 +55,7 @@ export function usePromotions(barId: string | undefined) {
                 finalPrice: normalPrice,
                 originalPrice: normalPrice,
                 discount: 0,
-                promotion: undefined,
+                appliedPromotion: undefined,
                 hasPromotion: false
             };
         }
@@ -88,7 +88,7 @@ export function usePromotions(barId: string | undefined) {
                 finalPrice: result.finalPrice,
                 originalPrice: result.originalPrice,
                 discount: result.discount,
-                promotion: result.appliedPromotion,
+                appliedPromotion: result.appliedPromotion,
                 hasPromotion: !!result.appliedPromotion
             };
         } catch (err) {
@@ -100,7 +100,7 @@ export function usePromotions(barId: string | undefined) {
                 finalPrice: normalPrice,
                 originalPrice: normalPrice,
                 discount: 0,
-                promotion: undefined,
+                appliedPromotion: undefined,
                 hasPromotion: false
             };
         }

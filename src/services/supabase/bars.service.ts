@@ -110,8 +110,8 @@ export class BarsService {
       if (error || !data) {
         // Fallback or return null
         if (error.code === '42P01') { // undefined_table
-            console.warn('View admin_bars_list not found, falling back to legacy.');
-            return this.getBarByIdLegacy(barId);
+          console.warn('View admin_bars_list not found, falling back to legacy.');
+          return this.getBarByIdLegacy(barId);
         }
         return null;
       }
@@ -125,8 +125,8 @@ export class BarsService {
         member_count: data.member_count || 0,
       };
     } catch (error: any) {
-       console.warn('Fallback legacy getBarById due to error:', error);
-       return this.getBarByIdLegacy(barId);
+      console.warn('Fallback legacy getBarById due to error:', error);
+      return this.getBarByIdLegacy(barId);
     }
   }
 
@@ -135,36 +135,36 @@ export class BarsService {
    */
   private static async getBarByIdLegacy(barId: string): Promise<BarWithOwner | null> {
     try {
-        const { data, error } = await supabase
-            .from('bars')
-            .select('*')
-            .eq('id', barId)
-            .eq('is_active', true)
-            .single();
+      const { data, error } = await supabase
+        .from('bars')
+        .select('*')
+        .eq('id', barId)
+        .eq('is_active', true)
+        .single();
 
-        if (error || !data) return null;
+      if (error || !data) return null;
 
-        const { data: owner } = await supabase
-            .from('users')
-            .select('name, phone')
-            .eq('id', data.owner_id || '')
-            .single();
+      const { data: owner } = await supabase
+        .from('users')
+        .select('name, phone')
+        .eq('id', data.owner_id || '')
+        .single();
 
-        const { count } = await supabase
-            .from('bar_members')
-            .select('*', { count: 'exact', head: true })
-            .eq('bar_id', barId)
-            .eq('is_active', true);
+      const { count } = await supabase
+        .from('bar_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('bar_id', barId)
+        .eq('is_active', true);
 
-        const bar = this.mapToBar(data);
-        return {
-            ...bar,
-            owner_name: owner?.name || '',
-            owner_phone: owner?.phone || '',
-            member_count: count || 0
-        };
+      const bar = this.mapToBar(data);
+      return {
+        ...bar,
+        owner_name: owner?.name || '',
+        owner_phone: owner?.phone || '',
+        member_count: count || 0
+      };
     } catch (e: any) {
-        throw new Error(handleSupabaseError(e));
+      throw new Error(handleSupabaseError(e));
     }
   }
 
@@ -182,8 +182,8 @@ export class BarsService {
 
       if (error) {
         if (error.code === '42P01') { // undefined_table
-             console.warn('View admin_bars_list not found, falling back to legacy.');
-             return this.getAllBarsLegacy();
+          console.warn('View admin_bars_list not found, falling back to legacy.');
+          return this.getAllBarsLegacy();
         }
         throw new Error('Erreur lors de la récupération des bars');
       }
@@ -204,38 +204,38 @@ export class BarsService {
    * Fallback Legacy: Récupérer tous les bars
    */
   private static async getAllBarsLegacy(): Promise<BarWithOwner[]> {
-      const { data, error } = await supabase
-        .from('bars')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('bars')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
 
-      if (error) throw new Error('Erreur lors de la récupération des bars (legacy)');
+    if (error) throw new Error('Erreur lors de la récupération des bars (legacy)');
 
-      const barsWithOwner: BarWithOwner[] = await Promise.all(
-        (data || []).map(async (row) => {
-          const { data: owner } = await supabase
-            .from('users')
-            .select('name, phone')
-            .eq('id', row.owner_id || '')
-            .single();
+    const barsWithOwner: BarWithOwner[] = await Promise.all(
+      (data || []).map(async (row) => {
+        const { data: owner } = await supabase
+          .from('users')
+          .select('name, phone')
+          .eq('id', row.owner_id || '')
+          .single();
 
-          const { count } = await supabase
-            .from('bar_members')
-            .select('*', { count: 'exact', head: true })
-            .eq('bar_id', row.id)
-            .eq('is_active', true);
+        const { count } = await supabase
+          .from('bar_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('bar_id', row.id)
+          .eq('is_active', true);
 
-          const bar = this.mapToBar(row);
-          return {
-            ...bar,
-            owner_name: owner?.name || '',
-            owner_phone: owner?.phone || '',
-            member_count: count || 0,
-          };
-        })
-      );
-      return barsWithOwner;
+        const bar = this.mapToBar(row);
+        return {
+          ...bar,
+          owner_name: owner?.name || '',
+          owner_phone: owner?.phone || '',
+          member_count: count || 0,
+        };
+      })
+    );
+    return barsWithOwner;
   }
 
   /**
@@ -400,8 +400,8 @@ export class BarsService {
       if (error) {
         // Fallback si RPC introuvable
         if (error.code === '42883') { // undefined_function
-             console.warn('RPC get_bar_admin_stats not found, falling back to legacy.');
-             return this.getBarStatsLegacy(barId);
+          console.warn('RPC get_bar_admin_stats not found, falling back to legacy.');
+          return this.getBarStatsLegacy(barId);
         }
         console.error('[BarsService] RPC stats error:', error);
         throw error;
@@ -429,37 +429,99 @@ export class BarsService {
    * Fallback Legacy: Stats bar (lent)
    */
   private static async getBarStatsLegacy(barId: string) {
-      const { count: productCount } = await supabase
-        .from('bar_products')
-        .select('*', { count: 'exact', head: true })
-        .eq('bar_id', barId)
-        .eq('is_active', true);
+    const { count: productCount } = await supabase
+      .from('bar_products')
+      .select('*', { count: 'exact', head: true })
+      .eq('bar_id', barId)
+      .eq('is_active', true);
 
-      const { count: salesCount } = await supabase
-        .from('sales')
-        .select('*', { count: 'exact', head: true })
-        .eq('bar_id', barId)
-        .eq('status', 'validated');
+    const { count: salesCount } = await supabase
+      .from('sales')
+      .select('*', { count: 'exact', head: true })
+      .eq('bar_id', barId)
+      .eq('status', 'validated');
 
-      const { data: salesData } = await supabase
-        .from('sales')
-        .select('total')
-        .eq('bar_id', barId)
-        .eq('status', 'validated');
+    const { data: salesData } = await supabase
+      .from('sales')
+      .select('total')
+      .eq('bar_id', barId)
+      .eq('status', 'validated');
 
-      const totalRevenue = (salesData || []).reduce((sum, sale) => sum + (sale.total || 0), 0);
+    const totalRevenue = (salesData || []).reduce((sum, sale) => sum + (sale.total || 0), 0);
 
-      const { count: pendingCount } = await supabase
-        .from('sales')
-        .select('*', { count: 'exact', head: true })
-        .eq('bar_id', barId)
-        .eq('status', 'pending');
+    const { count: pendingCount } = await supabase
+      .from('sales')
+      .select('*', { count: 'exact', head: true })
+      .eq('bar_id', barId)
+      .eq('status', 'pending');
 
-      return {
-        totalProducts: productCount || 0,
-        totalSales: salesCount || 0,
-        totalRevenue,
-        pendingSales: pendingCount || 0,
-      };
+    return {
+      totalProducts: productCount || 0,
+      totalSales: salesCount || 0,
+      totalRevenue,
+      pendingSales: pendingCount || 0,
+    };
+  }
+  /**
+   * Récupérer les candidats (employés de mes autres bars) pour ajout rapide
+   */
+  static async getStaffCandidates(barId: string): Promise<Array<{
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    role: string;
+    sourceBarName: string;
+  }>> {
+    try {
+      const { data, error } = await supabase
+        .rpc('get_my_staff_candidates', { p_bar_id: barId });
+
+      if (error) throw error;
+
+      return (data || []).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        email: c.email,
+        phone: c.phone || '',
+        role: c.role,
+        sourceBarName: c.source_bar_name
+      }));
+    } catch (error: any) {
+      console.error('Error fetching staff candidates:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Ajouter un membre existant au bar (par ID ou Email)
+   */
+  static async addMemberExisting(
+    barId: string,
+    identifier: { userId?: string; email?: string },
+    role: 'gerant' | 'serveur'
+  ): Promise<{ success: boolean; message?: string; error?: string }> {
+    try {
+      const { data, error } = await supabase
+        .rpc('add_bar_member_existing', {
+          p_bar_id: barId,
+          p_user_id: identifier.userId || null,
+          p_email: identifier.email || null,
+          p_role: role
+        });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data && !data.success) {
+        return { success: false, error: data.error || 'Erreur inconnue' };
+      }
+
+      return { success: true, message: data?.message };
+    } catch (error: any) {
+      console.error('Error adding existing member:', error);
+      return { success: false, error: error.message || 'Erreur lors de l\'ajout' };
+    }
   }
 }

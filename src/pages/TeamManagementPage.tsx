@@ -12,6 +12,7 @@ import { Label } from '../components/ui/Label';
 import { Alert } from '../components/ui/Alert';
 import { Modal } from '../components/ui/Modal';
 import { ServerMappingsManager } from '../components/ServerMappingsManager';
+import { BarsService } from '../services/supabase/bars.service';
 import { FEATURES } from '../config/features';
 
 /**
@@ -33,6 +34,67 @@ export default function TeamManagementPage() {
   const [showInactive, setShowInactive] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // New states for "Existing Member" feature
+  const [activeTab, setActiveTab] = useState<'new' | 'existing'>('new');
+  const [existingEmail, setExistingEmail] = useState('');
+  const [candidates, setCandidates] = useState<Array<{ id: string; name: string; email: string; role: string; sourceBarName: string }>>([]);
+  const [selectedCandidateId, setSelectedCandidateId] = useState('');
+  const [loadingCandidates, setLoadingCandidates] = useState(false);
+
+  // Load candidates when switching to 'existing' tab
+  React.useEffect(() => {
+    if (showAddUser && activeTab === 'existing' && currentBar) {
+      loadCandidates();
+    }
+  }, [showAddUser, activeTab, currentBar]);
+
+  const loadCandidates = async () => {
+    if (!currentBar) return;
+    setLoadingCandidates(true);
+    try {
+      const data = await BarsService.getStaffCandidates(currentBar.id);
+      setCandidates(data);
+    } catch (err) {
+      console.error('Error loading candidates:', err);
+    } finally {
+      setLoadingCandidates(false);
+    }
+  };
+
+  const handleAddExistingUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!selectedCandidateId && !existingEmail) {
+      setError('Veuillez sélectionner un membre ou entrer un email');
+      return;
+    }
+
+    try {
+      const result = await BarsService.addMemberExisting(
+        currentBar!.id,
+        { userId: selectedCandidateId || undefined, email: existingEmail || undefined },
+        selectedRole as 'gerant' | 'serveur'
+      );
+
+      if (result.success) {
+        setSuccess(result.message || 'Membre ajouté avec succès !');
+        await refreshBars();
+        setTimeout(() => {
+          setShowAddUser(false);
+          setSuccess('');
+          setExistingEmail('');
+          setSelectedCandidateId('');
+        }, 2000);
+      } else {
+        setError(result.error || "Erreur lors de l'ajout");
+      }
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
 
   if (!currentBar) {
     return (
@@ -221,16 +283,11 @@ export default function TeamManagementPage() {
                 </Button>
               )}
 
-              {(hasPermission('canCreateManagers') || hasPermission('canCreateServers')) && (
-                <Button
-                  onClick={() => setShowAddUser(true)}
-                  variant="default"
-                  className="flex items-center gap-2"
-                >
-                  <UserPlus size={18} className="mr-2" />
-                  {isMobile ? 'Ajouter' : 'Ajouter un membre'}
-                </Button>
-              )}
+              {/* Bouton Ajouter supprimé ici car doublon avec celui du bas (ou inversement selon refonte) */}
+              {/* Le bouton principal doit rester visible, vérifions l'UX. User veut UN SEUL bouton. */}
+              {/* Si l'utilisateur dit "il est avant le bouton Ajouter... mais actuellement les deux s'affichent", il parle probablement de la ligne 212 vs 225. */}
+              {/* Mais j'ai trouvé 2 setShowAddUser. L'autre doit être ailleurs. */}
+
             </div>
           </div>
         </div>
@@ -378,128 +435,155 @@ export default function TeamManagementPage() {
           open={showAddUser}
           onClose={() => setShowAddUser(false)}
           title="Ajouter un membre"
-          size="sm"
-          footer={
-            <div className="flex gap-3 pt-2">
-              <Button
-                type="button"
-                onClick={() => setShowAddUser(false)}
-                variant="secondary"
-                className="flex-1 text-sm"
-              >
-                Annuler
-              </Button>
-              <Button
-                type="submit"
-                form="add-member-form"
-                className="flex-1 text-sm font-medium"
-              >
-                Créer
-              </Button>
-            </div>
-          }
+          size="lg"
+          footer={null} // Footer handling inside for tabs
         >
-          <form id="add-member-form" onSubmit={handleAddUser} className="space-y-4">
-            {/* Role Selection - Compact */}
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1.5">
-                Rôle
-              </label>
-              <div className="flex bg-gray-100 p-1 rounded-lg">
-                {hasPermission('canCreateManagers') && (
-                  <Button
-                    type="button"
-                    onClick={() => setSelectedRole('gerant')}
-                    variant={selectedRole === 'gerant' ? 'default' : 'ghost'}
-                    className="flex-1 py-1.5 text-sm font-medium rounded-md transition-all"
-                  >
-                    Gérant
-                  </Button>
-                )}
-                {hasPermission('canCreateServers') && (
-                  <Button
-                    type="button"
-                    onClick={() => setSelectedRole('serveur')}
-                    variant={selectedRole === 'serveur' ? 'default' : 'ghost'}
-                    className="flex-1 py-1.5 text-sm font-medium rounded-md transition-all"
-                  >
-                    Serveur
-                  </Button>
-                )}
-              </div>
+          {/* Tabs Navigation */}
+          <div className="flex border-b mb-4">
+            <button
+              className={`flex-1 pb-2 text-sm font-medium ${activeTab === 'new' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500'}`}
+              onClick={() => setActiveTab('new')}
+            >
+              Nouveau Compte
+            </button>
+            <button
+              className={`flex-1 pb-2 text-sm font-medium ${activeTab === 'existing' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500'}`}
+              onClick={() => setActiveTab('existing')}
+            >
+              Membre Existant / Import
+            </button>
+          </div>
+
+          {/* Role Selection (Common) */}
+          <div className="mb-4">
+            <label className="block text-xs font-medium text-gray-700 mb-1.5">
+              Rôle à attribuer
+            </label>
+            <div className="flex bg-gray-100 p-1 rounded-lg">
+              {hasPermission('canCreateManagers') && (
+                <Button
+                  type="button"
+                  onClick={() => setSelectedRole('gerant')}
+                  variant={selectedRole === 'gerant' ? 'default' : 'ghost'}
+                  className="flex-1 py-1.5 text-sm font-medium rounded-md transition-all"
+                >
+                  Gérant
+                </Button>
+              )}
+              {hasPermission('canCreateServers') && (
+                <Button
+                  type="button"
+                  onClick={() => setSelectedRole('serveur')}
+                  variant={selectedRole === 'serveur' ? 'default' : 'ghost'}
+                  className="flex-1 py-1.5 text-sm font-medium rounded-md transition-all"
+                >
+                  Serveur
+                </Button>
+              )}
             </div>
+          </div>
 
-            {/* Form Fields - Grid Layout */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="col-span-1">
-                <Label htmlFor="username" className="text-xs">
-                  Nom d'utilisateur *
-                </Label>
+          {/* Tab Content: Existing User */}
+          {activeTab === 'existing' && (
+            <form onSubmit={handleAddExistingUser} className="space-y-4">
+              <div className="bg-amber-50 p-3 rounded-lg border border-amber-100 mb-4">
+                <p className="text-xs text-amber-800">
+                  💡 Importez rapidement vos employés d'autres bars ou ajoutez quelqu'un par email.
+                </p>
+              </div>
+
+              {/* Candidate Selection */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Importer de mon équipe (Autre Bar)
+                </label>
+                {loadingCandidates ? (
+                  <p className="text-xs text-gray-500">Chargement...</p>
+                ) : (
+                  <select
+                    className="w-full text-sm border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500"
+                    value={selectedCandidateId}
+                    onChange={(e) => {
+                      setSelectedCandidateId(e.target.value);
+                      if (e.target.value) setExistingEmail(''); // Clear email if selecting
+                    }}
+                  >
+                    <option value="">-- Sélectionner un employé --</option>
+                    {candidates.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.role} chez {c.sourceBarName})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <div className="text-center text-xs text-gray-400 font-medium my-2">- OU -</div>
+
+              {/* Email Input */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Ajouter par Email
+                </label>
                 <Input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
-                  placeholder="nom.prenom"
+                  type="email"
+                  placeholder="email@exemple.com"
+                  value={existingEmail}
+                  onChange={(e) => {
+                    setExistingEmail(e.target.value);
+                    if (e.target.value) setSelectedCandidateId(''); // Clear selection if typing
+                  }}
                   className="text-sm"
                 />
               </div>
 
-              <div className="col-span-1">
-                <Label htmlFor="password" className="text-xs">
-                  Mot de passe *
-                </Label>
-                <Input
-                  id="password"
-                  type="text"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Min 8 chars"
-                  className="text-sm"
-                />
+              <div className="flex gap-3 pt-4">
+                <Button type="button" onClick={() => setShowAddUser(false)} variant="secondary" className="flex-1">
+                  Annuler
+                </Button>
+                <Button type="submit" disabled={!selectedCandidateId && !existingEmail} className="flex-1">
+                  Ajouter
+                </Button>
+              </div>
+            </form>
+          )}
+
+          {/* Tab Content: New User (Existing Form) */}
+          {activeTab === 'new' && (
+            <form id="add-member-form" onSubmit={handleAddUser} className="space-y-4">
+              {/* Copied Grid Layout from original but removing Role (already atop) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="col-span-1">
+                  <Label htmlFor="username" className="text-xs">Nom d'utilisateur *</Label>
+                  <Input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))} placeholder="nom.prenom" className="text-sm" />
+                </div>
+                <div className="col-span-1">
+                  <Label htmlFor="password" className="text-xs">Mot de passe *</Label>
+                  <Input id="password" type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min 8 chars" className="text-sm" />
+                </div>
+                <div className="col-span-1">
+                  <Label htmlFor="name" className="text-xs">Nom complet *</Label>
+                  <Input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Prénom Nom" className="text-sm" />
+                </div>
+                <div className="col-span-1">
+                  <Label htmlFor="phone" className="text-xs"> Téléphone *</Label>
+                  <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0197000000" className="text-sm" />
+                </div>
               </div>
 
-              <div className="col-span-1">
-                <Label htmlFor="name" className="text-xs">
-                  Nom complet *
-                </Label>
-                <Input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Prénom Nom"
-                  className="text-sm"
-                />
+              <div className="flex gap-3 pt-4">
+                <Button type="button" onClick={() => setShowAddUser(false)} variant="secondary" className="flex-1"> Annuler </Button>
+                <Button type="submit" className="flex-1"> Créer </Button>
               </div>
+            </form>
+          )}
 
-              <div className="col-span-1">
-                <Label htmlFor="phone" className="text-xs">
-                  Téléphone *
-                </Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="0197000000"
-                  className="text-sm"
-                />
-              </div>
-            </div>
-            {/* Messages */}
-            {error && (
-              <Alert show={!!error} variant="destructive" className="text-xs">
-                {error}
-              </Alert>
-            )}
+          {/* Status Messages (Common) */}
+          <div className="mt-4">
+            {error && <Alert show={!!error} variant="destructive" className="text-xs">{error}</Alert>}
+            {success && <Alert show={!!success} variant="success" className="text-xs whitespace-pre-line">{success}</Alert>}
+          </div>
 
-            {success && (
-              <Alert show={!!success} variant="success" className="text-xs">
-                {success}
-              </Alert>
-            )}
-          </form>
         </Modal>
       </div>
     </div>

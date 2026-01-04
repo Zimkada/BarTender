@@ -36,7 +36,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
     // Form State
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [type, setType] = useState<PromotionType>('percentage');
+    const [type, setType] = useState<PromotionType>('pourcentage');
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
     const [endDate, setEndDate] = useState('');
 
@@ -78,7 +78,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
     const resetForm = () => {
         setName('');
         setDescription('');
-        setType('percentage');
+        setType('pourcentage');
         setStartDate(new Date().toISOString().split('T')[0]);
         setEndDate('');
         setDiscountPercentage(10);
@@ -130,10 +130,12 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
             };
 
             // Add type-specific fields
-            if (type === 'percentage') promotionData.discountPercentage = discountPercentage;
-            if (type === 'fixed_discount') promotionData.discountAmount = discountAmount;
-            if (type === 'special_price') promotionData.specialPrice = specialPrice;
-            if (type === 'bundle') {
+            if (type === 'pourcentage' || type === 'percentage') promotionData.discountPercentage = discountPercentage;
+            if (type === 'reduction_vente' || type === 'fixed_discount' || type === 'reduction_produit' || type === 'majoration_produit') {
+                promotionData.discountAmount = discountAmount;
+            }
+            if (type === 'prix_special' || type === 'special_price') promotionData.specialPrice = specialPrice;
+            if (type === 'lot' || type === 'bundle') {
                 promotionData.bundleQuantity = bundleQuantity;
                 promotionData.bundlePrice = bundlePrice;
             }
@@ -228,12 +230,14 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                 {/* Type Selection */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-3">Type de promotion</label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                         {[
-                            { id: 'percentage', label: 'Pourcentage', icon: <Percent size={18} /> },
-                            { id: 'fixed_discount', label: 'Réduction fixe', icon: <DollarSign size={18} /> },
-                            { id: 'special_price', label: 'Prix spécial', icon: <Tag size={18} /> },
-                            { id: 'bundle', label: 'Offre groupée', icon: <Gift size={18} /> },
+                            { id: 'reduction_produit', label: 'Réduction par unité', icon: <DollarSign size={18} /> },
+                            { id: 'majoration_produit', label: 'Majoration par unité', icon: <DollarSign size={18} /> },
+                            { id: 'reduction_vente', label: 'Réduction sur vente', icon: <DollarSign size={18} /> },
+                            { id: 'lot', label: 'Offre groupée', icon: <Gift size={18} /> },
+                            { id: 'pourcentage', label: 'Pourcentage', icon: <Percent size={18} /> },
+                            { id: 'prix_special', label: 'Prix spécial', icon: <Tag size={18} /> },
                         ].map((t) => (
                             <Button
                                 key={t.id}
@@ -254,7 +258,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
     
                 {/* Dynamic Value Fields */}
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                    {type === 'percentage' && (
+                    {(type === 'pourcentage' || type === 'percentage') && (
                         <div>
                             <Label htmlFor="discountPercentage">Pourcentage de réduction (%)</Label>
                             <Input
@@ -267,9 +271,9 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                             />
                         </div>
                     )}
-                    {type === 'fixed_discount' && (
+                    {(type === 'reduction_vente' || type === 'fixed_discount') && (
                         <div>
-                            <Label htmlFor="discountAmount">Montant de la réduction (FCFA)</Label>
+                            <Label htmlFor="discountAmount">Montant de la réduction sur la vente (FCFA)</Label>
                             <Input
                                 id="discountAmount"
                                 type="number"
@@ -279,7 +283,37 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                             />
                         </div>
                     )}
-                    {type === 'special_price' && (
+                    {type === 'reduction_produit' && (
+                        <div>
+                            <Label htmlFor="discountAmount">Réduction par unité (FCFA)</Label>
+                            <Input
+                                id="discountAmount"
+                                type="number"
+                                min="0"
+                                value={discountAmount}
+                                onChange={(e) => setDiscountAmount(Number(e.target.value))}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                Cette réduction sera multipliée par la quantité achetée
+                            </p>
+                        </div>
+                    )}
+                    {type === 'majoration_produit' && (
+                        <div>
+                            <Label htmlFor="discountAmount">Majoration par unité (FCFA)</Label>
+                            <Input
+                                id="discountAmount"
+                                type="number"
+                                min="0"
+                                value={discountAmount}
+                                onChange={(e) => setDiscountAmount(Number(e.target.value))}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                Cette majoration sera multipliée par la quantité achetée
+                            </p>
+                        </div>
+                    )}
+                    {(type === 'prix_special' || type === 'special_price') && (
                         <div>
                             <Label htmlFor="specialPrice">Nouveau prix unitaire (FCFA)</Label>
                             <Input
@@ -291,7 +325,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                             />
                         </div>
                     )}
-                    {type === 'bundle' && (
+                    {(type === 'lot' || type === 'bundle') && (
                         <div className="flex gap-4">
                             <div className="flex-1">
                                 <Label htmlFor="bundleQuantity">Quantité (ex: 3)</Label>
@@ -318,7 +352,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                 </div>
     
                 {/* Dates */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <Label htmlFor="startDate">Date de début</Label>
                         <Input
@@ -378,7 +412,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
     
                                     {targetType === 'category' && (
                                         <div className="border border-gray-200 rounded-xl p-3 bg-gray-50 max-h-48 overflow-y-auto">
-                                            <div className="grid grid-cols-2 gap-2">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                                 {categories.map(cat => (
                                                     <div key={cat.id} className="flex items-center gap-2 p-2 hover:bg-white rounded-lg transition-colors cursor-pointer">
                                                         <Checkbox

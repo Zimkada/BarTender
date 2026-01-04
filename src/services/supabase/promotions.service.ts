@@ -186,7 +186,8 @@ export const PromotionsService = {
             let calculatedPrice = originalPrice;
 
             switch (promo.type) {
-                case 'bundle':
+                // ===== Types français (nouveaux) =====
+                case 'lot':
                     // Exemple: 3 bières à 1000 FCFA au lieu de 1050 FCFA (3 × 350)
                     // Appliqué seulement si la quantité atteint le seuil du bundle
                     const bundleQty = promo.bundleQuantity || 0;
@@ -199,7 +200,7 @@ export const PromotionsService = {
                     }
                     break;
 
-                case 'special_price':
+                case 'prix_special':
                     // Exemple: Bière à 300 FCFA au lieu de 350 FCFA
                     const specialPrice = promo.specialPrice || 0;
                     if (specialPrice > 0) {
@@ -207,7 +208,7 @@ export const PromotionsService = {
                     }
                     break;
 
-                case 'fixed_discount':
+                case 'reduction_vente':
                     // Exemple: -50 FCFA sur le total (pas × quantité)
                     // Prix: 350 FCFA × 3 = 1050 FCFA → 1050 - 50 = 1000 FCFA
                     const discountAmount = promo.discountAmount || 0;
@@ -216,11 +217,63 @@ export const PromotionsService = {
                     }
                     break;
 
-                case 'percentage':
+                case 'pourcentage':
                     // Exemple: -10% sur le total
                     const discountPercentage = promo.discountPercentage || 0;
                     if (discountPercentage > 0 && discountPercentage <= 100) {
                         calculatedPrice = originalPrice * (1 - discountPercentage / 100);
+                    }
+                    break;
+
+                case 'reduction_produit':
+                    // Nouveau: Réduction par unité × quantité
+                    // Exemple: -20 FCFA par unité → 3 × 20 = -60 FCFA total
+                    // Prix: 350 FCFA × 3 = 1050 FCFA → 1050 - 60 = 990 FCFA
+                    const discountPerUnit = promo.discountAmount || 0;
+                    if (discountPerUnit > 0) {
+                        calculatedPrice = Math.max(0, originalPrice - (discountPerUnit * quantity));
+                    }
+                    break;
+
+                case 'majoration_produit':
+                    // Nouveau: Majoration par unité × quantité (prix augmente)
+                    // Exemple: +30 FCFA par unité → 3 × 30 = +90 FCFA total
+                    // Prix: 350 FCFA × 3 = 1050 FCFA → 1050 + 90 = 1140 FCFA
+                    const surchargePerUnit = promo.discountAmount || 0;
+                    if (surchargePerUnit > 0) {
+                        calculatedPrice = originalPrice + (surchargePerUnit * quantity);
+                    }
+                    break;
+
+                // ===== Types anglais (anciens, rétro-compatibilité) =====
+                case 'bundle':
+                    const bundleQty2 = promo.bundleQuantity || 0;
+                    const bundlePrice2 = promo.bundlePrice || 0;
+                    if (bundleQty2 > 0 && bundlePrice2 > 0 && quantity >= bundleQty2) {
+                        const bundles = Math.floor(quantity / bundleQty2);
+                        const remaining = quantity % bundleQty2;
+                        calculatedPrice = bundles * bundlePrice2 + remaining * product.price;
+                    }
+                    break;
+
+                case 'special_price':
+                    const specialPrice2 = promo.specialPrice || 0;
+                    if (specialPrice2 > 0) {
+                        calculatedPrice = specialPrice2 * quantity;
+                    }
+                    break;
+
+                case 'fixed_discount':
+                    const discountAmount2 = promo.discountAmount || 0;
+                    if (discountAmount2 > 0) {
+                        calculatedPrice = Math.max(0, originalPrice - discountAmount2);
+                    }
+                    break;
+
+                case 'percentage':
+                    const discountPercentage2 = promo.discountPercentage || 0;
+                    if (discountPercentage2 > 0 && discountPercentage2 <= 100) {
+                        calculatedPrice = originalPrice * (1 - discountPercentage2 / 100);
                     }
                     break;
             }

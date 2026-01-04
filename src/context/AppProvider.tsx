@@ -293,7 +293,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 total_price: item.total_price ?? (item.product.price * item.quantity),
                 original_unit_price: item.original_unit_price ?? item.product.price,
                 discount_amount: item.discount_amount ?? 0,
-                promotion_id: item.promotion_id
+                promotion_id: item.promotion_id,
+                promotion_type: item.promotion_type,
+                promotion_name: item.promotion_name
             })) || [];
 
         const operatingMode = currentBar?.settings?.operatingMode || 'full';

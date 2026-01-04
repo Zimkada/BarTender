@@ -116,18 +116,30 @@ export default function PromotionsPage() {
 
     const getTypeIcon = (type: PromotionType) => {
         switch (type) {
+            case 'pourcentage':
             case 'percentage': return <Percent size={18} />;
-            case 'fixed_discount': return <DollarSign size={18} />;
+            case 'reduction_vente':
+            case 'fixed_discount':
+            case 'reduction_produit':
+            case 'majoration_produit': return <DollarSign size={18} />;
+            case 'lot':
             case 'bundle': return <Gift size={18} />;
+            case 'prix_special':
             case 'special_price': return <Tag size={18} />;
         }
     };
 
     const getTypeLabel = (type: PromotionType) => {
         switch (type) {
+            case 'pourcentage':
             case 'percentage': return 'Pourcentage';
-            case 'fixed_discount': return 'Réduction fixe';
+            case 'reduction_vente':
+            case 'fixed_discount': return 'Réduction sur vente';
+            case 'reduction_produit': return 'Réduction par unité';
+            case 'majoration_produit': return 'Majoration par unité';
+            case 'lot':
             case 'bundle': return 'Offre groupée';
+            case 'prix_special':
             case 'special_price': return 'Prix spécial';
         }
     };
@@ -330,10 +342,12 @@ export default function PromotionsPage() {
                                                 <div>
                                                     <div className="font-medium text-gray-900">{getTypeLabel(promo.type)}</div>
                                                     <div className="text-xs text-gray-500">
-                                                        {promo.type === 'percentage' && `-${promo.discountPercentage}%`}
-                                                        {promo.type === 'fixed_discount' && `-${promo.discountAmount} FCFA`}
-                                                        {promo.type === 'special_price' && `${promo.specialPrice} FCFA`}
-                                                        {promo.type === 'bundle' && `${promo.bundleQuantity} pour ${promo.bundlePrice} FCFA`}
+                                                        {(promo.type === 'pourcentage' || promo.type === 'percentage') && `-${promo.discountPercentage}%`}
+                                                        {(promo.type === 'reduction_vente' || promo.type === 'fixed_discount') && `-${promo.discountAmount} FCFA sur vente`}
+                                                        {promo.type === 'reduction_produit' && `-${promo.discountAmount} FCFA/unité`}
+                                                        {promo.type === 'majoration_produit' && `+${promo.discountAmount} FCFA/unité`}
+                                                        {(promo.type === 'prix_special' || promo.type === 'special_price') && `${promo.specialPrice} FCFA`}
+                                                        {(promo.type === 'lot' || promo.type === 'bundle') && `${promo.bundleQuantity} pour ${promo.bundlePrice} FCFA`}
                                                     </div>
                                                 </div>
                                             </div>
