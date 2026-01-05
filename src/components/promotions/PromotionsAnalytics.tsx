@@ -260,7 +260,7 @@ export function PromotionsAnalytics() {
                     <h4 className="text-2xl font-bold text-gray-800">{formatPrice(stats?.totalDiscount || 0)}</h4>
                 </div>
 
-                {/* Profit Réalisé (Net profit après COGS) */}
+                {/* Profit Réalisé (Net profit après coûts des produits) */}
                 <div className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm">
                     <div className="flex justify-between items-start mb-2">
                         <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
@@ -273,7 +273,7 @@ export function PromotionsAnalytics() {
                     <p className="text-xs text-gray-400 mt-1">Marge: {stats?.marginPercentage || 0}%</p>
                 </div>
 
-                {/* ROI (basé sur COGS) */}
+                {/* ROI (basé sur coûts des produits) */}
                 <div className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm">
                     <div className="flex justify-between items-start mb-2">
                         <div className="p-2 bg-purple-50 rounded-lg text-purple-600">
@@ -285,7 +285,7 @@ export function PromotionsAnalytics() {
                     </div>
                     <p className="text-sm text-gray-500">Retour sur Invest.</p>
                     <h4 className="text-2xl font-bold text-gray-800">{stats?.roi || 0}%</h4>
-                    <p className="text-xs text-gray-400 mt-1">Basé sur coûts: {formatPrice(stats?.totalCostOfGoods || 0)}</p>
+                    <p className="text-xs text-gray-400 mt-1">Coût des produits: {formatPrice(stats?.totalCostOfGoods || 0)}</p>
                 </div>
             </div>
 
@@ -305,7 +305,7 @@ export function PromotionsAnalytics() {
                                         <th className="p-4 font-medium">Promotion</th>
                                         <th className="p-4 font-medium">Utilisations</th>
                                         <th className="p-4 font-medium">CA Généré</th>
-                                        <th className="p-4 font-medium">Coût COGS</th>
+                                        <th className="p-4 font-medium">Coût des produits</th>
                                         <th className="p-4 font-medium">Profit Net</th>
                                         <th className="p-4 font-medium">Marge %</th>
                                     </tr>
@@ -344,7 +344,7 @@ export function PromotionsAnalytics() {
                                             <span className="font-semibold text-green-600">{formatPrice(promo.revenue)}</span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-gray-600">Coût COGS:</span>
+                                            <span className="text-gray-600">Coût des produits:</span>
                                             <span className="font-semibold text-orange-600">{formatPrice(promo.costOfGoods || 0)}</span>
                                         </div>
                                         <div className="flex justify-between">
