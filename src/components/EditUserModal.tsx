@@ -111,7 +111,7 @@ export function EditUserModal({ isOpen, onClose, user, onSuccess }: EditUserModa
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                placeholder="Ex: Jean Dupont"
+                                placeholder="Ex: Koffi KOUASSI"
                                 required
                             />
                         </div>
@@ -141,7 +141,7 @@ export function EditUserModal({ isOpen, onClose, user, onSuccess }: EditUserModa
                                 value={formData.email}
                                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                placeholder="Ex: jean@example.com"
+                                placeholder="Ex: koffi@example.com"
                             />
                         </div>
 
