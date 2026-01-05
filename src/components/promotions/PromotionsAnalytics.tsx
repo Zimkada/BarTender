@@ -35,7 +35,7 @@ export function PromotionsAnalytics() {
         isCustom,
         comparison
     } = useDateRangeFilter({
-        defaultRange: 'last_30days',
+        defaultRange: 'today',
         enableComparison: true  // Pour calculer croissance
     });
 
@@ -260,19 +260,20 @@ export function PromotionsAnalytics() {
                     <h4 className="text-2xl font-bold text-gray-800">{formatPrice(stats?.totalDiscount || 0)}</h4>
                 </div>
 
-                {/* Profit Réalisé */}
+                {/* Profit Réalisé (Net profit après COGS) */}
                 <div className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm">
                     <div className="flex justify-between items-start mb-2">
                         <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
                             <TrendingUp size={20} />
                         </div>
-                        <span className="text-xs text-gray-400">Net</span>
+                        <span className="text-xs text-gray-400">Marge</span>
                     </div>
                     <p className="text-sm text-gray-500">Profit Réalisé</p>
-                    <h4 className="text-2xl font-bold text-gray-800">{formatPrice((stats?.totalRevenue || 0) - (stats?.totalDiscount || 0))}</h4>
+                    <h4 className="text-2xl font-bold text-gray-800">{formatPrice(stats?.netProfit || 0)}</h4>
+                    <p className="text-xs text-gray-400 mt-1">Marge: {stats?.marginPercentage || 0}%</p>
                 </div>
 
-                {/* ROI */}
+                {/* ROI (basé sur COGS) */}
                 <div className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm">
                     <div className="flex justify-between items-start mb-2">
                         <div className="p-2 bg-purple-50 rounded-lg text-purple-600">
@@ -284,6 +285,7 @@ export function PromotionsAnalytics() {
                     </div>
                     <p className="text-sm text-gray-500">Retour sur Invest.</p>
                     <h4 className="text-2xl font-bold text-gray-800">{stats?.roi || 0}%</h4>
+                    <p className="text-xs text-gray-400 mt-1">Basé sur coûts: {formatPrice(stats?.totalCostOfGoods || 0)}</p>
                 </div>
             </div>
 
@@ -303,8 +305,9 @@ export function PromotionsAnalytics() {
                                         <th className="p-4 font-medium">Promotion</th>
                                         <th className="p-4 font-medium">Utilisations</th>
                                         <th className="p-4 font-medium">CA Généré</th>
-                                        <th className="p-4 font-medium">Coût (Réductions)</th>
-                                        <th className="p-4 font-medium">Performance</th>
+                                        <th className="p-4 font-medium">Coût COGS</th>
+                                        <th className="p-4 font-medium">Profit Net</th>
+                                        <th className="p-4 font-medium">Marge %</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
@@ -313,14 +316,12 @@ export function PromotionsAnalytics() {
                                             <td className="p-4 font-medium text-gray-800">{promo.name}</td>
                                             <td className="p-4 text-gray-600">{promo.uses}</td>
                                             <td className="p-4 text-green-600 font-medium">{formatPrice(promo.revenue)}</td>
-                                            <td className="p-4 text-red-500">{formatPrice(promo.discount)}</td>
+                                            <td className="p-4 text-orange-600">{formatPrice(promo.costOfGoods || 0)}</td>
+                                            <td className="p-4 text-emerald-600 font-medium">{formatPrice(promo.netProfit || 0)}</td>
                                             <td className="p-4">
-                                                <div className="w-full bg-gray-100 rounded-full h-2 max-w-[100px]">
-                                                    <div
-                                                        className="bg-amber-500 h-2 rounded-full"
-                                                        style={{ width: `${Math.min(100, (promo.revenue / (stats.totalRevenue || 1)) * 100)}%` }}
-                                                    ></div>
-                                                </div>
+                                                <span className={`font-medium ${(promo.marginPercentage || 0) >= 30 ? 'text-green-600' : (promo.marginPercentage || 0) >= 15 ? 'text-amber-600' : 'text-red-600'}`}>
+                                                    {promo.marginPercentage || 0}%
+                                                </span>
                                             </td>
                                         </tr>
                                     ))}
@@ -343,17 +344,18 @@ export function PromotionsAnalytics() {
                                             <span className="font-semibold text-green-600">{formatPrice(promo.revenue)}</span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-gray-600">Coût (Réductions):</span>
-                                            <span className="font-semibold text-red-500">{formatPrice(promo.discount)}</span>
+                                            <span className="text-gray-600">Coût COGS:</span>
+                                            <span className="font-semibold text-orange-600">{formatPrice(promo.costOfGoods || 0)}</span>
                                         </div>
-                                        <div className="mt-3 pt-3 border-t border-gray-200">
-                                            <span className="text-gray-600 text-xs">Performance</span>
-                                            <div className="w-full bg-gray-100 rounded-full h-2 mt-2">
-                                                <div
-                                                    className="bg-amber-500 h-2 rounded-full"
-                                                    style={{ width: `${Math.min(100, (promo.revenue / (stats.totalRevenue || 1)) * 100)}%` }}
-                                                ></div>
-                                            </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Profit Net:</span>
+                                            <span className="font-semibold text-emerald-600">{formatPrice(promo.netProfit || 0)}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Marge:</span>
+                                            <span className={`font-semibold ${(promo.marginPercentage || 0) >= 30 ? 'text-green-600' : (promo.marginPercentage || 0) >= 15 ? 'text-amber-600' : 'text-red-600'}`}>
+                                                {promo.marginPercentage || 0}%
+                                            </span>
                                         </div>
                                     </div>
                                 </div>

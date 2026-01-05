@@ -499,10 +499,13 @@ export const PromotionsService = {
         totalRevenue: number;
         totalDiscount: number;
         totalApplications: number;
+        totalCostOfGoods: number;
+        netProfit: number;
+        marginPercentage: number;
         roi: number;
     }> {
         try {
-            const { data, error } = await (supabase.rpc as any)('get_bar_global_promotion_stats', {
+            const { data, error } = await (supabase.rpc as any)('get_bar_global_promotion_stats_with_profit', {
                 p_bar_id: barId,
                 p_start_date: startDate?.toISOString() || null,
                 p_end_date: endDate?.toISOString() || null
@@ -512,23 +515,31 @@ export const PromotionsService = {
 
             const totalRevenue = Number(data?.total_revenue || 0);
             const totalDiscount = Number(data?.total_discount || 0);
-
-            // Calcul ROI: (Gain - Coût) / Coût * 100
-            // Ici Gain = CA généré, Coût = Réduction offerte (manque à gagner)
-            // C'est une approximation, le vrai ROI dépendrait de la marge
-            const roi = totalDiscount > 0
-                ? Math.round(((totalRevenue - totalDiscount) / totalDiscount) * 100)
-                : 0;
+            const totalCostOfGoods = Number(data?.total_cost_of_goods || 0);
+            const netProfit = Number(data?.net_profit || 0);
+            const marginPercentage = Number(data?.margin_percentage || 0);
+            const roi = Number(data?.roi_percentage || 0);
 
             return {
                 totalRevenue,
                 totalDiscount,
                 totalApplications: Number(data?.total_applications || 0),
+                totalCostOfGoods,
+                netProfit,
+                marginPercentage,
                 roi
             };
         } catch (error) {
             console.error('Erreur stats globales:', error);
-            return { totalRevenue: 0, totalDiscount: 0, totalApplications: 0, roi: 0 };
+            return {
+                totalRevenue: 0,
+                totalDiscount: 0,
+                totalApplications: 0,
+                totalCostOfGoods: 0,
+                netProfit: 0,
+                marginPercentage: 0,
+                roi: 0
+            };
         }
     },
 
@@ -546,7 +557,7 @@ export const PromotionsService = {
         endDate?: Date
     ): Promise<any[]> {
         try {
-            const { data, error } = await (supabase.rpc as any)('get_bar_promotion_stats', {
+            const { data, error } = await (supabase.rpc as any)('get_bar_promotion_stats_with_profit', {
                 p_bar_id: barId,
                 p_start_date: startDate?.toISOString() || null,
                 p_end_date: endDate?.toISOString() || null
@@ -559,7 +570,11 @@ export const PromotionsService = {
                 name: stat.promotion_name,
                 uses: Number(stat.total_applications),
                 revenue: Number(stat.total_revenue),
-                discount: Number(stat.total_discount)
+                discount: Number(stat.total_discount),
+                costOfGoods: Number(stat.total_cost_of_goods),
+                netProfit: Number(stat.net_profit),
+                marginPercentage: Number(stat.margin_percentage),
+                roi: Number(stat.roi_percentage)
             }));
         } catch (error) {
             console.error('Erreur performance promotions:', error);

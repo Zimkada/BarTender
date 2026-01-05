@@ -200,15 +200,6 @@ export function Cart({
                 />
 
                 {/* Total */}
-                {totalDiscount > 0 && (
-                  <div className="flex justify-between items-center mb-2 text-green-600 text-sm">
-                    <span className="flex items-center gap-1">
-                      <Tag size={14} />
-                      Économie:
-                    </span>
-                    <span className="font-semibold">-{formatPrice(totalDiscount)}</span>
-                  </div>
-                )}
                 <div className="flex justify-between items-center mb-4">
                   <span className="text-gray-900 text-lg font-semibold">Total:</span>
                   <span className="text-amber-600 font-bold text-2xl font-mono">
