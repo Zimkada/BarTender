@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -71,6 +71,13 @@ export type Database = {
             foreignKeyName: "accounting_transactions_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_transactions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -86,6 +93,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_transactions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_transactions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
           {
@@ -145,6 +166,13 @@ export type Database = {
             foreignKeyName: "admin_notifications_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_notifications_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -160,6 +188,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_notifications_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_notifications_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
         ]
@@ -206,6 +248,13 @@ export type Database = {
             foreignKeyName: "ai_conversations_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_conversations_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -221,6 +270,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_conversations_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_conversations_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
         ]
@@ -270,6 +333,13 @@ export type Database = {
             foreignKeyName: "ai_insights_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_insights_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -287,7 +357,48 @@ export type Database = {
             referencedRelation: "bars"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ai_insights_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_insights_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      alert_email_log: {
+        Row: {
+          alerts_sent: number | null
+          created_at: string
+          error_message: string | null
+          id: string
+          status: string
+          triggered_at: string
+        }
+        Insert: {
+          alerts_sent?: number | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          status: string
+          triggered_at?: string
+        }
+        Update: {
+          alerts_sent?: number | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          status?: string
+          triggered_at?: string
+        }
+        Relationships: []
       }
       app_feedback: {
         Row: {
@@ -325,6 +436,13 @@ export type Database = {
             foreignKeyName: "app_feedback_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_feedback_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -340,6 +458,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_feedback_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "app_feedback_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
         ]
@@ -358,7 +490,7 @@ export type Database = {
           severity: string
           timestamp: string
           user_agent: string | null
-          user_id: string
+          user_id: string | null
           user_name: string
           user_role: string
         }
@@ -375,7 +507,7 @@ export type Database = {
           severity: string
           timestamp?: string
           user_agent?: string | null
-          user_id: string
+          user_id?: string | null
           user_name: string
           user_role: string
         }
@@ -392,11 +524,18 @@ export type Database = {
           severity?: string
           timestamp?: string
           user_agent?: string | null
-          user_id?: string
+          user_id?: string | null
           user_name?: string
           user_role?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "audit_logs_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "audit_logs_bar_id_fkey"
             columns: ["bar_id"]
@@ -419,10 +558,91 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "audit_logs_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "audit_logs_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bar_activity: {
+        Row: {
+          bar_id: string
+          last_sale_at: string | null
+          sales_last_5min: number | null
+          sales_last_hour: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          bar_id: string
+          last_sale_at?: string | null
+          sales_last_5min?: number | null
+          sales_last_hour?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          bar_id?: string
+          last_sale_at?: string | null
+          sales_last_5min?: number | null
+          sales_last_hour?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bar_activity_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: true
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_activity_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: true
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "bar_activity_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: true
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "bar_activity_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: true
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_activity_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: true
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_activity_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: true
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
         ]
@@ -478,6 +698,13 @@ export type Database = {
             foreignKeyName: "bar_categories_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_categories_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -493,6 +720,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_categories_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_categories_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
           {
@@ -555,6 +796,13 @@ export type Database = {
             foreignKeyName: "bar_events_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_events_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -570,6 +818,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_events_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_events_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
         ]
@@ -613,6 +875,13 @@ export type Database = {
             foreignKeyName: "bar_members_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_members_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -628,6 +897,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_members_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_members_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
           {
@@ -706,6 +989,13 @@ export type Database = {
             foreignKeyName: "bar_products_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_products_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -721,6 +1011,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_products_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_products_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
           {
@@ -827,6 +1131,13 @@ export type Database = {
             foreignKeyName: "capital_contributions_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capital_contributions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -842,6 +1153,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capital_contributions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capital_contributions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
           {
@@ -866,6 +1191,7 @@ export type Database = {
           expires_at: string
           id: string
           notes: string | null
+          operating_mode_at_creation: string | null
           original_seller: string | null
           product_id: string
           product_name: string
@@ -888,6 +1214,7 @@ export type Database = {
           expires_at: string
           id?: string
           notes?: string | null
+          operating_mode_at_creation?: string | null
           original_seller?: string | null
           product_id: string
           product_name: string
@@ -910,6 +1237,7 @@ export type Database = {
           expires_at?: string
           id?: string
           notes?: string | null
+          operating_mode_at_creation?: string | null
           original_seller?: string | null
           product_id?: string
           product_name?: string
@@ -921,6 +1249,13 @@ export type Database = {
           total_amount?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "consignments_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "consignments_bar_id_fkey"
             columns: ["bar_id"]
@@ -940,6 +1275,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignments_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignments_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
           {
@@ -1026,6 +1375,13 @@ export type Database = {
             foreignKeyName: "expense_categories_custom_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_categories_custom_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -1041,6 +1397,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_categories_custom_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expense_categories_custom_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
           {
@@ -1100,6 +1470,13 @@ export type Database = {
             foreignKeyName: "expenses_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -1115,6 +1492,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
           {
@@ -1355,6 +1746,13 @@ export type Database = {
             foreignKeyName: "initial_balances_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "initial_balances_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -1370,6 +1768,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "initial_balances_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "initial_balances_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
           {
@@ -1420,15 +1832,68 @@ export type Database = {
         }
         Relationships: []
       }
+      migration_server_id_log: {
+        Row: {
+          bar_id: string
+          created_at: string | null
+          extracted_name: string | null
+          fallback_reason: string | null
+          fallback_used: boolean | null
+          id: string
+          mapping_found: boolean | null
+          notes: string | null
+          sale_id: string
+          server_id_after: string | null
+          server_id_before: string | null
+        }
+        Insert: {
+          bar_id: string
+          created_at?: string | null
+          extracted_name?: string | null
+          fallback_reason?: string | null
+          fallback_used?: boolean | null
+          id?: string
+          mapping_found?: boolean | null
+          notes?: string | null
+          sale_id: string
+          server_id_after?: string | null
+          server_id_before?: string | null
+        }
+        Update: {
+          bar_id?: string
+          created_at?: string | null
+          extracted_name?: string | null
+          fallback_reason?: string | null
+          fallback_used?: boolean | null
+          id?: string
+          mapping_found?: boolean | null
+          notes?: string | null
+          sale_id?: string
+          server_id_after?: string | null
+          server_id_before?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "migration_server_id_log_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       promotion_applications: {
         Row: {
           applied_at: string | null
           applied_by: string
           bar_id: string
+          business_date: string | null
           discount_amount: number
           discounted_price: number
           id: string
           original_price: number
+          product_cost_total: number | null
+          product_cost_unit: number | null
           product_id: string
           promotion_id: string
           quantity_sold: number
@@ -1438,10 +1903,13 @@ export type Database = {
           applied_at?: string | null
           applied_by: string
           bar_id: string
+          business_date?: string | null
           discount_amount: number
           discounted_price: number
           id?: string
           original_price: number
+          product_cost_total?: number | null
+          product_cost_unit?: number | null
           product_id: string
           promotion_id: string
           quantity_sold: number
@@ -1451,16 +1919,26 @@ export type Database = {
           applied_at?: string | null
           applied_by?: string
           bar_id?: string
+          business_date?: string | null
           discount_amount?: number
           discounted_price?: number
           id?: string
           original_price?: number
+          product_cost_total?: number | null
+          product_cost_unit?: number | null
           product_id?: string
           promotion_id?: string
           quantity_sold?: number
           sale_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "promotion_applications_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "promotion_applications_bar_id_fkey"
             columns: ["bar_id"]
@@ -1480,6 +1958,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_applications_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_applications_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
           {
@@ -1591,6 +2083,13 @@ export type Database = {
             foreignKeyName: "promotions_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -1608,7 +2107,60 @@ export type Database = {
             referencedRelation: "bars"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "promotions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotions_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      refresh_failure_alerts: {
+        Row: {
+          alert_sent_at: string | null
+          consecutive_failures: number
+          created_at: string
+          error_messages: string[] | null
+          first_failure_at: string
+          id: string
+          last_failure_at: string
+          resolved_at: string | null
+          status: string
+          view_name: string
+        }
+        Insert: {
+          alert_sent_at?: string | null
+          consecutive_failures: number
+          created_at?: string
+          error_messages?: string[] | null
+          first_failure_at: string
+          id?: string
+          last_failure_at: string
+          resolved_at?: string | null
+          status: string
+          view_name: string
+        }
+        Update: {
+          alert_sent_at?: string | null
+          consecutive_failures?: number
+          created_at?: string
+          error_messages?: string[] | null
+          first_failure_at?: string
+          id?: string
+          last_failure_at?: string
+          resolved_at?: string | null
+          status?: string
+          view_name?: string
+        }
+        Relationships: []
       }
       returns: {
         Row: {
@@ -1621,6 +2173,7 @@ export type Database = {
           is_refunded: boolean
           manual_restock_required: boolean
           notes: string | null
+          operating_mode_at_creation: string | null
           original_seller: string | null
           product_id: string
           product_name: string
@@ -1646,6 +2199,7 @@ export type Database = {
           is_refunded?: boolean
           manual_restock_required?: boolean
           notes?: string | null
+          operating_mode_at_creation?: string | null
           original_seller?: string | null
           product_id: string
           product_name: string
@@ -1671,6 +2225,7 @@ export type Database = {
           is_refunded?: boolean
           manual_restock_required?: boolean
           notes?: string | null
+          operating_mode_at_creation?: string | null
           original_seller?: string | null
           product_id?: string
           product_name?: string
@@ -1691,6 +2246,13 @@ export type Database = {
             foreignKeyName: "returns_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -1706,6 +2268,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
           {
@@ -1752,6 +2328,45 @@ export type Database = {
           },
         ]
       }
+      rls_violations_log: {
+        Row: {
+          attempted_bar_id: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          ip_address: string | null
+          operation: string
+          table_name: string
+          user_agent: string | null
+          user_bar_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          attempted_bar_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: string | null
+          operation: string
+          table_name: string
+          user_agent?: string | null
+          user_bar_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          attempted_bar_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          ip_address?: string | null
+          operation?: string
+          table_name?: string
+          user_agent?: string | null
+          user_bar_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       salaries: {
         Row: {
           amount: number
@@ -1788,6 +2403,13 @@ export type Database = {
             foreignKeyName: "salaries_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salaries_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -1803,6 +2425,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salaries_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salaries_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
           {
@@ -1869,6 +2505,7 @@ export type Database = {
           id: string
           items: Json
           notes: string | null
+          operating_mode_at_creation: string | null
           payment_method: string
           rejected_by: string | null
           server_id: string | null
@@ -1892,6 +2529,7 @@ export type Database = {
           id?: string
           items: Json
           notes?: string | null
+          operating_mode_at_creation?: string | null
           payment_method: string
           rejected_by?: string | null
           server_id?: string | null
@@ -1915,6 +2553,7 @@ export type Database = {
           id?: string
           items?: Json
           notes?: string | null
+          operating_mode_at_creation?: string | null
           payment_method?: string
           rejected_by?: string | null
           server_id?: string | null
@@ -1927,6 +2566,13 @@ export type Database = {
           validated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sales_bar_id_fkey"
             columns: ["bar_id"]
@@ -1949,6 +2595,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sales_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -1963,8 +2623,92 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sales_sold_by_fkey"
+            columns: ["sold_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "sales_validated_by_fkey"
             columns: ["validated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      server_name_mappings: {
+        Row: {
+          bar_id: string
+          created_at: string | null
+          id: string
+          server_name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bar_id: string
+          created_at?: string | null
+          id?: string
+          server_name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bar_id?: string
+          created_at?: string | null
+          id?: string
+          server_name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "server_name_mappings_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "server_name_mappings_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "server_name_mappings_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "server_name_mappings_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "server_name_mappings_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "server_name_mappings_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "server_name_mappings_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
@@ -2019,6 +2763,13 @@ export type Database = {
             foreignKeyName: "supplies_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplies_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -2034,6 +2785,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplies_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplies_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
           {
@@ -2103,6 +2868,66 @@ export type Database = {
       }
     }
     Views: {
+      active_refresh_alerts: {
+        Row: {
+          alert_sent_at: string | null
+          avg_duration_ms: number | null
+          consecutive_failures: number | null
+          created_at: string | null
+          error_messages: string[] | null
+          failed_count: number | null
+          first_failure_at: string | null
+          id: string | null
+          incident_duration_seconds: number | null
+          last_failure_at: string | null
+          resolved_at: string | null
+          status: string | null
+          success_count: number | null
+          timeout_count: number | null
+          total_refreshes: number | null
+          view_name: string | null
+        }
+        Relationships: []
+      }
+      admin_bars_list: {
+        Row: {
+          address: string | null
+          closing_hour: number | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          member_count: number | null
+          name: string | null
+          owner_id: string | null
+          owner_name: string | null
+          owner_phone: string | null
+          phone: string | null
+          settings: Json | null
+        }
+        Relationships: []
+      }
+      admin_security_dashboard: {
+        Row: {
+          hour: string | null
+          operation: string | null
+          table_name: string | null
+          unique_users: number | null
+          user_ids: string[] | null
+          violation_count: number | null
+        }
+        Relationships: []
+      }
+      alert_email_stats: {
+        Row: {
+          avg_alerts_per_email: number | null
+          failed_count: number | null
+          last_email_sent_at: string | null
+          success_count: number | null
+          total_alerts_sent: number | null
+          total_emails_triggered: number | null
+        }
+        Relationships: []
+      }
       bar_ancillary_stats: {
         Row: {
           bar_id: string | null
@@ -2121,18 +2946,34 @@ export type Database = {
       }
       bar_stats_multi_period: {
         Row: {
+          active_servers: number | null
+          avg_basket_value: number | null
           bar_id: string | null
-          revenue_30d: number | null
-          revenue_7d: number | null
-          revenue_today: number | null
-          revenue_yesterday: number | null
-          sales_30d: number | null
-          sales_7d: number | null
-          sales_today: number | null
-          sales_yesterday: number | null
+          card_revenue: number | null
+          cash_revenue: number | null
+          first_sale_time: string | null
+          gross_revenue: number | null
+          gross_subtotal: number | null
+          last_sale_time: string | null
+          mobile_revenue: number | null
+          pending_count: number | null
+          rejected_count: number | null
+          sale_date: string | null
+          sale_month: string | null
+          sale_week: string | null
+          total_discounts: number | null
+          total_items_sold: number | null
           updated_at: string | null
+          validated_count: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sales_bar_id_fkey"
             columns: ["bar_id"]
@@ -2154,22 +2995,52 @@ export type Database = {
             referencedRelation: "bars"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       bar_stats_multi_period_mat: {
         Row: {
+          active_servers: number | null
+          avg_basket_value: number | null
           bar_id: string | null
-          revenue_30d: number | null
-          revenue_7d: number | null
-          revenue_today: number | null
-          revenue_yesterday: number | null
-          sales_30d: number | null
-          sales_7d: number | null
-          sales_today: number | null
-          sales_yesterday: number | null
+          card_revenue: number | null
+          cash_revenue: number | null
+          first_sale_time: string | null
+          gross_revenue: number | null
+          gross_subtotal: number | null
+          last_sale_time: string | null
+          mobile_revenue: number | null
+          pending_count: number | null
+          rejected_count: number | null
+          sale_date: string | null
+          sale_month: string | null
+          sale_week: string | null
+          total_discounts: number | null
+          total_items_sold: number | null
           updated_at: string | null
+          validated_count: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sales_bar_id_fkey"
             columns: ["bar_id"]
@@ -2189,6 +3060,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
         ]
@@ -2208,6 +3093,13 @@ export type Database = {
             foreignKeyName: "sales_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -2225,7 +3117,55 @@ export type Database = {
             referencedRelation: "bars"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      bars_with_stats: {
+        Row: {
+          address: string | null
+          closing_hour: number | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          member_count: number | null
+          name: string | null
+          owner_id: string | null
+          owner_name: string | null
+          owner_phone: string | null
+          phone: string | null
+          settings: Json | null
+        }
+        Relationships: []
+      }
+      bars_with_stats_view: {
+        Row: {
+          address: string | null
+          closing_hour: number | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          member_count: number | null
+          name: string | null
+          owner_id: string | null
+          owner_name: string | null
+          owner_phone: string | null
+          phone: string | null
+          settings: Json | null
+        }
+        Relationships: []
       }
       daily_sales_summary: {
         Row: {
@@ -2254,6 +3194,13 @@ export type Database = {
             foreignKeyName: "sales_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -2269,6 +3216,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
         ]
@@ -2300,6 +3261,13 @@ export type Database = {
             foreignKeyName: "sales_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -2315,6 +3283,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
         ]
@@ -2380,6 +3362,62 @@ export type Database = {
         }
         Relationships: []
       }
+      global_promotion_stats_with_profit: {
+        Row: {
+          bar_id: string | null
+          margin_percentage: number | null
+          net_profit: number | null
+          roi_percentage: number | null
+          total_applications: number | null
+          total_cost_of_goods: number | null
+          total_discount: number | null
+          total_revenue: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_applications_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_applications_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "promotion_applications_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "promotion_applications_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_applications_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_applications_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       materialized_view_metrics: {
         Row: {
           avg_duration_ms: number | null
@@ -2390,6 +3428,20 @@ export type Database = {
           min_duration_ms: number | null
           minutes_since_last_refresh: number | null
           successful_refreshes: number | null
+          view_name: string | null
+        }
+        Relationships: []
+      }
+      materialized_view_refresh_stats: {
+        Row: {
+          avg_duration_ms: number | null
+          failed_count: number | null
+          last_refresh_at: string | null
+          max_duration_ms: number | null
+          min_duration_ms: number | null
+          success_count: number | null
+          timeout_count: number | null
+          total_refreshes: number | null
           view_name: string | null
         }
         Relationships: []
@@ -2419,6 +3471,13 @@ export type Database = {
             foreignKeyName: "bar_products_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_products_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -2434,6 +3493,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_products_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_products_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
         ]
@@ -2463,6 +3536,13 @@ export type Database = {
             foreignKeyName: "bar_products_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_products_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -2478,6 +3558,85 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_products_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_products_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      promotion_stats_with_profit: {
+        Row: {
+          bar_id: string | null
+          margin_percentage: number | null
+          net_profit: number | null
+          promotion_id: string | null
+          promotion_name: string | null
+          roi_percentage: number | null
+          total_applications: number | null
+          total_cost_of_goods: number | null
+          total_discount: number | null
+          total_revenue: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "promotion_applications_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_applications_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "promotion_applications_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bar_ancillary_stats_mat"
+            referencedColumns: ["bar_id"]
+          },
+          {
+            foreignKeyName: "promotion_applications_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_applications_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_applications_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "promotion_applications_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "promotions"
             referencedColumns: ["id"]
           },
         ]
@@ -2503,6 +3662,13 @@ export type Database = {
             foreignKeyName: "salaries_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salaries_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -2518,6 +3684,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salaries_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salaries_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
         ]
@@ -2543,6 +3723,13 @@ export type Database = {
             foreignKeyName: "salaries_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salaries_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -2558,6 +3745,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salaries_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salaries_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
         ]
@@ -2586,6 +3787,13 @@ export type Database = {
             foreignKeyName: "sales_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -2601,6 +3809,20 @@ export type Database = {
             columns: ["bar_id"]
             isOneToOne: false
             referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
             referencedColumns: ["id"]
           },
         ]
@@ -2629,6 +3851,13 @@ export type Database = {
             foreignKeyName: "sales_bar_id_fkey"
             columns: ["bar_id"]
             isOneToOne: false
+            referencedRelation: "admin_bars_list"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
             referencedRelation: "bar_ancillary_stats"
             referencedColumns: ["bar_id"]
           },
@@ -2646,6 +3875,20 @@ export type Database = {
             referencedRelation: "bars"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars_with_stats_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -2658,9 +3901,22 @@ export type Database = {
         Args: { p_acting_as_user_id: string; p_action: string }
         Returns: boolean
       }
+      acknowledge_refresh_alert: {
+        Args: { p_alert_id: string }
+        Returns: boolean
+      }
+      add_bar_member_existing: {
+        Args: {
+          p_bar_id: string
+          p_email?: string
+          p_role?: string
+          p_user_id?: string
+        }
+        Returns: Json
+      }
       admin_as_create_sale: {
         Args: {
-          p_acting_user_id: string
+          p_acting_as_user_id: string
           p_bar_id: string
           p_business_date?: string
           p_customer_name?: string
@@ -2668,36 +3924,17 @@ export type Database = {
           p_items: Json
           p_notes?: string
           p_payment_method: string
+          p_server_id?: string
           p_status?: string
         }
         Returns: {
-          applied_promotions: Json | null
           bar_id: string
-          business_date: string
-          created_at: string | null
-          created_by: string | null
-          customer_name: string | null
-          customer_phone: string | null
-          discount_total: number | null
+          created_at: string
           id: string
           items: Json
-          notes: string | null
-          payment_method: string
-          rejected_by: string | null
-          sold_by: string
-          status: string | null
-          subtotal: number
+          status: string
           total: number
-          updated_at: string | null
-          validated_at: string | null
-          validated_by: string | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "sales"
-          isOneToOne: true
-          isSetofReturn: false
-        }
+        }[]
       }
       admin_as_create_supply: {
         Args: {
@@ -2742,9 +3979,35 @@ export type Database = {
         }[]
       }
       admin_as_get_bar_sales: {
-        Args: { p_acting_as_user_id: string; p_bar_id: string }
+        Args: {
+          p_acting_as_user_id: string
+          p_bar_id: string
+          p_limit?: number
+          p_offset?: number
+        }
         Returns: Json
       }
+      admin_as_get_bar_sales_cursor:
+        | {
+            Args: {
+              p_acting_as_user_id: string
+              p_bar_id: string
+              p_cursor_date?: string
+              p_cursor_id?: string
+              p_limit?: number
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_acting_as_user_id: string
+              p_bar_id: string
+              p_cursor_date?: string
+              p_cursor_id?: string
+              p_limit?: number
+            }
+            Returns: Json
+          }
       admin_as_get_sales_stats: {
         Args: {
           p_acting_as_user_id: string
@@ -2902,7 +4165,26 @@ export type Database = {
         Args: { target_bar_id: string }
         Returns: boolean
       }
+      check_recent_rls_violations: {
+        Args: never
+        Returns: {
+          last_violation: string
+          tables_affected: string[]
+          user_email: string
+          user_id: string
+          violation_count: number
+        }[]
+      }
+      cleanup_bar_activity: {
+        Args: never
+        Returns: {
+          bars_updated: number
+          execution_time_ms: number
+        }[]
+      }
+      cleanup_old_refresh_alerts: { Args: never; Returns: number }
       cleanup_old_refresh_logs: { Args: never; Returns: number }
+      cleanup_old_rls_violations: { Args: never; Returns: number }
       complete_first_login: { Args: { p_user_id: string }; Returns: boolean }
       compute_bar_product_display_name: {
         Args: {
@@ -2911,6 +4193,13 @@ export type Database = {
           p_local_name: string
         }
         Returns: string
+      }
+      create_or_update_failure_alerts: {
+        Args: never
+        Returns: {
+          alerts_created: number
+          alerts_updated: number
+        }[]
       }
       create_sale_with_promotions: {
         Args: {
@@ -2921,6 +4210,7 @@ export type Database = {
           p_items: Json
           p_notes?: string
           p_payment_method: string
+          p_server_id?: string
           p_sold_by: string
           p_status?: string
         }
@@ -2936,8 +4226,10 @@ export type Database = {
           id: string
           items: Json
           notes: string | null
+          operating_mode_at_creation: string | null
           payment_method: string
           rejected_by: string | null
+          server_id: string | null
           sold_by: string
           status: string | null
           subtotal: number
@@ -2952,6 +4244,18 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      create_supply_and_update_product: {
+        Args: {
+          p_bar_id: string
+          p_created_by: string
+          p_lot_price: number
+          p_lot_size: number
+          p_product_id: string
+          p_quantity: number
+          p_supplier: string
+        }
+        Returns: Json
       }
       create_user_profile: {
         Args: {
@@ -2988,11 +4292,43 @@ export type Database = {
         Args: { p_product_id: string; p_quantity: number }
         Returns: undefined
       }
+      detect_consecutive_refresh_failures: {
+        Args: never
+        Returns: {
+          consecutive_failures: number
+          error_messages: string[]
+          first_failure: string
+          last_failure: string
+          view_name: string
+        }[]
+      }
+      extract_server_name_safe: { Args: { p_notes: string }; Returns: string }
       force_refresh_view: { Args: { p_view_name: string }; Returns: string }
+      get_bar_admin_stats: {
+        Args: { p_bar_id: string }
+        Returns: {
+          pending_sales: number
+          total_products: number
+          total_revenue: number
+          total_sales: number
+        }[]
+      }
       get_bar_global_promotion_stats: {
         Args: { p_bar_id: string; p_end_date?: string; p_start_date?: string }
         Returns: {
           total_applications: number
+          total_discount: number
+          total_revenue: number
+        }[]
+      }
+      get_bar_global_promotion_stats_with_profit: {
+        Args: { p_bar_id: string; p_end_date?: string; p_start_date?: string }
+        Returns: {
+          margin_percentage: number
+          net_profit: number
+          roi_percentage: number
+          total_applications: number
+          total_cost_of_goods: number
           total_discount: number
           total_revenue: number
         }[]
@@ -3004,38 +4340,72 @@ export type Database = {
           assigned_at: string
           assigned_by: string
           bar_id: string
+          created_at: string
+          first_login: boolean
           id: string
           is_active: boolean
+          joined_at: string
+          last_login_at: string
+          member_is_active: boolean
           role: string
           user_email: string
           user_id: string
           user_name: string
           user_phone: string
+          username: string
         }[]
       }
-      get_bar_products: {
-        Args: { p_bar_id: string; p_impersonating_user_id?: string }
-        Returns: {
-          alert_threshold: number
-          bar_id: string
-          category_name: string
-          created_at: string
-          display_name: string
-          global_product_id: string
-          global_product_name: string
-          id: string
-          is_active: boolean
-          is_custom_product: boolean
-          local_category_id: string
-          local_image: string
-          local_name: string
-          official_image: string
-          price: number
-          stock: number
-          updated_at: string
-          volume: string
-        }[]
-      }
+      get_bar_products:
+        | {
+            Args: { p_bar_id: string; p_impersonating_user_id?: string }
+            Returns: {
+              alert_threshold: number
+              bar_id: string
+              category_name: string
+              created_at: string
+              display_name: string
+              global_product_id: string
+              global_product_name: string
+              id: string
+              is_active: boolean
+              is_custom_product: boolean
+              local_category_id: string
+              local_image: string
+              local_name: string
+              official_image: string
+              price: number
+              stock: number
+              updated_at: string
+              volume: string
+            }[]
+          }
+        | {
+            Args: {
+              p_bar_id: string
+              p_impersonating_user_id?: string
+              p_limit?: number
+              p_offset?: number
+            }
+            Returns: {
+              alert_threshold: number
+              bar_id: string
+              category_name: string
+              created_at: string
+              display_name: string
+              global_product_id: string
+              global_product_name: string
+              id: string
+              is_active: boolean
+              is_custom_product: boolean
+              local_category_id: string
+              local_image: string
+              local_name: string
+              price: number
+              stock: number
+              updated_at: string
+              volume: string
+            }[]
+          }
       get_bar_promotion_stats: {
         Args: { p_bar_id: string; p_end_date?: string; p_start_date?: string }
         Returns: {
@@ -3046,7 +4416,88 @@ export type Database = {
           total_revenue: number
         }[]
       }
-      get_current_business_date: { Args: never; Returns: string }
+      get_bar_promotion_stats_with_profit: {
+        Args: { p_bar_id: string; p_end_date?: string; p_start_date?: string }
+        Returns: {
+          margin_percentage: number
+          net_profit: number
+          promotion_id: string
+          promotion_name: string
+          roi_percentage: number
+          total_applications: number
+          total_cost_of_goods: number
+          total_discount: number
+          total_revenue: number
+        }[]
+      }
+      get_bar_sales_cursor:
+        | {
+            Args: {
+              p_bar_id: string
+              p_cursor_date?: string
+              p_cursor_id?: string
+              p_limit?: number
+            }
+            Returns: {
+              bar_id: string
+              business_date: string
+              created_at: string
+              created_by: string
+              cursor_date: string
+              cursor_id: string
+              id: string
+              items: Json
+              payment_method: string
+              seller_name: string
+              sold_by: string
+              status: string
+              total: number
+              updated_at: string
+              validated_by: string
+              validator_name: string
+            }[]
+          }
+        | {
+            Args: {
+              p_bar_id: string
+              p_cursor_date?: string
+              p_cursor_id?: string
+              p_limit?: number
+            }
+            Returns: {
+              bar_id: string
+              business_date: string
+              created_at: string
+              created_by: string
+              cursor_date: string
+              cursor_id: string
+              id: string
+              items: Json
+              payment_method: string
+              seller_name: string
+              sold_by: string
+              status: string
+              total: number
+              updated_at: string
+              validated_by: string
+              validator_name: string
+            }[]
+          }
+      get_consignments_paginated: {
+        Args: { p_bar_id: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          bar_id: string
+          created_at: string
+          display_name: string
+          id: string
+          product_id: string
+          quantity: number
+          status: string
+          supplier_name: string
+          updated_at: string
+        }[]
+      }
+      get_current_business_date: { Args: { p_bar_id: string }; Returns: string }
       get_dashboard_stats: {
         Args: { p_cache_buster?: string; p_period?: string }
         Returns: {
@@ -3070,6 +4521,17 @@ export type Database = {
           owner_id: string
           phone: string
           settings: Json
+        }[]
+      }
+      get_my_staff_candidates: {
+        Args: { p_bar_id: string }
+        Returns: {
+          email: string
+          id: string
+          name: string
+          phone: string
+          role: string
+          source_bar_name: string
         }[]
       }
       get_paginated_audit_logs: {
@@ -3137,6 +4599,66 @@ export type Database = {
           users: Json
         }[]
       }
+      get_supplies_paginated: {
+        Args: { p_bar_id: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          bar_id: string
+          created_at: string
+          created_by: string
+          display_name: string
+          id: string
+          lot_price: number
+          lot_size: number
+          product_id: string
+          quantity: number
+          supplier: string
+          unit_cost: number
+          updated_at: string
+        }[]
+      }
+      get_top_products_aggregated: {
+        Args: {
+          p_bar_id: string
+          p_end_date: string
+          p_limit?: number
+          p_sort_by?: string
+          p_start_date: string
+        }
+        Returns: {
+          avg_unit_price: number
+          product_id: string
+          product_name: string
+          product_volume: string
+          profit: number
+          total_quantity: number
+          total_quantity_returned: number
+          total_refunded: number
+          total_revenue: number
+          transaction_count: number
+          updated_at: string
+        }[]
+      }
+      get_top_products_by_server: {
+        Args: {
+          p_bar_id: string
+          p_end_date: string
+          p_limit?: number
+          p_server_id?: string
+          p_sort_by?: string
+          p_start_date: string
+        }
+        Returns: {
+          avg_unit_price: number
+          product_id: string
+          product_name: string
+          product_volume: string
+          total_quantity: number
+          total_quantity_returned: number
+          total_refunded: number
+          total_revenue: number
+          transaction_count: number
+        }[]
+      }
       get_unique_bars: {
         Args: never
         Returns: {
@@ -3195,6 +4717,15 @@ export type Database = {
       is_promoteur_or_admin: { Args: never; Returns: boolean }
       is_super_admin: { Args: never; Returns: boolean }
       is_user_super_admin: { Args: { p_user_id: string }; Returns: boolean }
+      log_rls_violation: {
+        Args: {
+          p_attempted_bar_id: string
+          p_error_message?: string
+          p_operation: string
+          p_table_name: string
+        }
+        Returns: undefined
+      }
       log_user_login: { Args: never; Returns: undefined }
       refresh_all_materialized_views: {
         Args: { p_triggered_by?: string }
@@ -3205,6 +4736,15 @@ export type Database = {
         }[]
       }
       refresh_bar_stats_multi_period: { Args: never; Returns: undefined }
+      refresh_bars_with_stats: {
+        Args: never
+        Returns: {
+          duration_ms: number
+          error_message: string
+          success: boolean
+        }[]
+      }
+      refresh_daily_sales_summary: { Args: never; Returns: undefined }
       refresh_expenses_summary: { Args: never; Returns: undefined }
       refresh_materialized_view_with_logging: {
         Args: { p_triggered_by?: string; p_view_name: string }
@@ -3213,6 +4753,18 @@ export type Database = {
       refresh_product_sales_stats: { Args: never; Returns: undefined }
       refresh_salaries_summary: { Args: never; Returns: undefined }
       refresh_top_products_by_period: { Args: never; Returns: undefined }
+      safe_refresh_materialized_view: {
+        Args: {
+          p_concurrently?: boolean
+          p_timeout_seconds?: number
+          p_view_name: string
+        }
+        Returns: {
+          duration_ms: number
+          error_message: string
+          success: boolean
+        }[]
+      }
       setup_promoter_bar: {
         Args: {
           p_address?: string
@@ -3232,6 +4784,17 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      test_alert_email_system: {
+        Args: never
+        Returns: {
+          alert_id: string
+          alert_sent_at: string
+          consecutive_failures: number
+          should_send: boolean
+          view_name: string
+        }[]
+      }
+      trigger_alert_email_edge_function: { Args: never; Returns: undefined }
       validate_and_get_impersonate_data: {
         Args: {
           p_bar_id: string
@@ -3268,6 +4831,12 @@ export type Database = {
         | "fixed_discount"
         | "percentage"
         | "special_price"
+        | "reduction_vente"
+        | "pourcentage"
+        | "prix_special"
+        | "lot"
+        | "reduction_produit"
+        | "majoration_produit"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3409,6 +4978,12 @@ export const Constants = {
         "fixed_discount",
         "percentage",
         "special_price",
+        "reduction_vente",
+        "pourcentage",
+        "prix_special",
+        "lot",
+        "reduction_produit",
+        "majoration_produit",
       ],
     },
   },
