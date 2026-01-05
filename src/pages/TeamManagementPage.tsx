@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, UserPlus, Shield, User as UserIcon, Check, Trash2, ArrowLeft, GitBranch } from 'lucide-react';
+import { Users, UserPlus, Shield, User as UserIcon, Check, Trash2, ArrowLeft, GitBranch, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from "../context/AuthContext";
 import { useBarContext } from '../context/BarContext';
 import { UserRole } from '../types';
@@ -41,6 +41,7 @@ export default function TeamManagementPage() {
   const [candidates, setCandidates] = useState<Array<{ id: string; name: string; email: string; role: string; sourceBarName: string }>>([]);
   const [selectedCandidateId, setSelectedCandidateId] = useState('');
   const [loadingCandidates, setLoadingCandidates] = useState(false);
+  const [showMappings, setShowMappings] = useState(false);
 
   // Load candidates when switching to 'existing' tab
   React.useEffect(() => {
@@ -73,9 +74,15 @@ export default function TeamManagementPage() {
     }
 
     try {
+      // Auto-append domain if username is provided instead of email
+      let emailToUse = existingEmail;
+      if (emailToUse && !emailToUse.includes('@')) {
+        emailToUse = `${emailToUse}@bartender.app`;
+      }
+
       const result = await BarsService.addMemberExisting(
         currentBar!.id,
-        { userId: selectedCandidateId || undefined, email: existingEmail || undefined },
+        { userId: selectedCandidateId || undefined, email: emailToUse || undefined },
         selectedRole as 'gerant' | 'serveur'
       );
 
@@ -283,10 +290,21 @@ export default function TeamManagementPage() {
                 </Button>
               )}
 
-              {/* Bouton Ajouter supprimé ici car doublon avec celui du bas (ou inversement selon refonte) */}
-              {/* Le bouton principal doit rester visible, vérifions l'UX. User veut UN SEUL bouton. */}
-              {/* Si l'utilisateur dit "il est avant le bouton Ajouter... mais actuellement les deux s'affichent", il parle probablement de la ligne 212 vs 225. */}
-              {/* Mais j'ai trouvé 2 setShowAddUser. L'autre doit être ailleurs. */}
+              {(hasPermission('canCreateManagers') || hasPermission('canCreateServers')) && (
+                <Button
+                  onClick={() => setShowAddUser(true)}
+                  variant="default"
+                  size={isMobile ? 'icon' : 'default'}
+                  className="flex items-center gap-2"
+                  title="Ajouter un membre"
+                >
+                  {isMobile ? (
+                    <UserPlus size={18} />
+                  ) : (
+                    'Ajouter un membre'
+                  )}
+                </Button>
+              )}
 
             </div>
           </div>
@@ -404,27 +422,36 @@ export default function TeamManagementPage() {
         {/* ✨ NOUVEAU: Mappings de serveurs (Mode Simplifié) */}
         {FEATURES.ENABLE_SWITCHING_MODE && (
           <div className="bg-white rounded-xl shadow-sm border border-amber-100 overflow-hidden">
-            <div className="p-6 border-b border-gray-100 flex items-center gap-2">
-              <GitBranch size={20} className="text-amber-500" />
-              <div>
-                <h3 className="font-semibold text-gray-800">Mappings Serveurs (Mode Simplifié)</h3>
-                <p className="text-xs text-gray-500">Associez des noms de serveurs (ex: "Marie") à des comptes réels pour les statistiques.</p>
+            <button
+              onClick={() => setShowMappings(!showMappings)}
+              className="w-full p-6 border-b border-gray-100 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <GitBranch size={20} className="text-amber-500" />
+                <div className="text-left">
+                  <h3 className="font-semibold text-gray-800">Mappings Serveurs (Mode Simplifié)</h3>
+                  <p className="text-xs text-gray-500">Associez des noms de serveurs (ex: "Afi") à des comptes réels.</p>
+                </div>
               </div>
-            </div>
-            <div className="p-6">
-              <ServerMappingsManager
-                barId={currentBar.id}
-                barMembers={barMembers
-                  .filter(m => m.isActive)
-                  .map(m => ({
-                    userId: m.userId,
-                    name: m.user?.name || 'Inconnu',
-                    role: m.role
-                  }))
-                }
-                enabled={FEATURES.SHOW_SWITCHING_MODE_UI}
-              />
-            </div>
+              {showMappings ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
+            </button>
+
+            {showMappings && (
+              <div className="p-6">
+                <ServerMappingsManager
+                  barId={currentBar.id}
+                  barMembers={barMembers
+                    .filter(m => m.isActive)
+                    .map(m => ({
+                      userId: m.userId,
+                      name: m.user?.name || 'Inconnu',
+                      role: m.role
+                    }))
+                  }
+                  enabled={FEATURES.SHOW_SWITCHING_MODE_UI}
+                />
+              </div>
+            )}
           </div>
         )}
 
@@ -520,21 +547,24 @@ export default function TeamManagementPage() {
 
               <div className="text-center text-xs text-gray-400 font-medium my-2">- OU -</div>
 
-              {/* Email Input */}
+              {/* Email/Username Input */}
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Ajouter par Email
+                  Ajouter par Email ou Nom d'utilisateur
                 </label>
                 <Input
-                  type="email"
-                  placeholder="email@exemple.com"
+                  type="text"
+                  placeholder="email@exemple.com ou nom.utilisateur"
                   value={existingEmail}
                   onChange={(e) => {
-                    setExistingEmail(e.target.value);
-                    if (e.target.value) setSelectedCandidateId(''); // Clear selection if typing
+                    setExistingEmail(e.target.value.trim()); // Trim spaces
+                    if (e.target.value) setSelectedCandidateId('');
                   }}
                   className="text-sm"
                 />
+                <p className="text-[10px] text-gray-500 mt-1">
+                  💡 Si vous entrez un nom d'utilisateur (ex: "toto"), nous chercherons "toto@bartender.app".
+                </p>
               </div>
 
               <div className="flex gap-3 pt-4">
