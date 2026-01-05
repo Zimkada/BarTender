@@ -25,29 +25,28 @@ BEGIN
   v_user_id := auth.uid();
   
   -- Check permission: Must be owner (Promoteur) or Super Admin
-  SELECT role INTO v_user_role FROM bar_members WHERE user_id = v_user_id AND bar_id = p_bar_id;
+  SELECT bm.role INTO v_user_role FROM bar_members bm WHERE bm.user_id = v_user_id AND bm.bar_id = p_bar_id;
   
-  -- Allow if Super Admin (via acting_as usually handled by RLS, but here we check effectively)
-  -- Or if owner of the bar
-  IF EXISTS (SELECT 1 FROM bars WHERE id = p_bar_id AND owner_id = v_user_id) OR
-     EXISTS (SELECT 1 FROM users WHERE id = v_user_id AND role = 'super_admin') THEN
+  -- Allow if Super Admin OR if owner of the bar
+  IF EXISTS (SELECT 1 FROM bars b WHERE b.id = p_bar_id AND b.owner_id = v_user_id) OR
+     v_user_role = 'super_admin' THEN
      -- Authorized
   ELSE
-     -- If generic manager trying to pull? Usually only owners operate multi-bar.
-     -- Let's restrict to Owners/Promoters for now as per requirement.
+     -- Let's restrict to Owners/Promoters/Admins
+     -- If we reach here, user might be a manager trying to see candidates (not allowed for now)
   END IF;
 
   RETURN QUERY
   WITH my_other_bars AS (
-    SELECT id as bar_id, name as bar_name
-    FROM bars
-    WHERE owner_id = v_user_id  -- Bars owned by me
-    AND id != p_bar_id          -- Ensuring we look at OTHER bars
+    SELECT b.id as bar_id, b.name as bar_name
+    FROM bars b
+    WHERE b.owner_id = v_user_id  -- Bars owned by me
+    AND b.id != p_bar_id          -- Ensuring we look at OTHER bars
   ),
   candidates AS (
     SELECT 
       bm.user_id,
-      bm.role,
+      bm.role as cand_role,
       mob.bar_name
     FROM bar_members bm
     JOIN my_other_bars mob ON bm.bar_id = mob.bar_id
@@ -57,19 +56,19 @@ BEGIN
   ),
   -- Filter out those who are ALREADY in the target bar
   existing_in_target AS (
-    SELECT user_id FROM bar_members WHERE bar_id = p_bar_id AND is_active = true
+    SELECT bm_ex.user_id FROM bar_members bm_ex WHERE bm_ex.bar_id = p_bar_id AND bm_ex.is_active = true
   )
   SELECT DISTINCT ON (u.id)
     u.id,
     u.name,
     u.email,
     u.phone,
-    c.role,
+    c.cand_role,
     c.bar_name
   FROM candidates c
   JOIN users u ON c.user_id = u.id
   WHERE u.id NOT IN (SELECT user_id FROM existing_in_target)
-  ORDER BY u.id, c.role; -- DISTINCT ON requires ORDER BY matching
+  ORDER BY u.id, c.cand_role; -- DISTINCT ON requires ORDER BY matching
 END;
 $$;
 
@@ -127,14 +126,14 @@ BEGIN
   IF EXISTS (SELECT 1 FROM bar_members WHERE bar_id = p_bar_id AND user_id = v_target_user_id) THEN
      -- If inactive, reactivate
      UPDATE bar_members 
-     SET is_active = true, role = p_role::user_role, assigned_at = NOW() -- Cast p_role to user_role enum
+     SET is_active = true, role = p_role, assigned_at = NOW()
      WHERE bar_id = p_bar_id AND user_id = v_target_user_id;
      
      RETURN jsonb_build_object('success', true, 'message', 'Membre réactivé avec succès.');
   ELSE
      -- Insert new
      INSERT INTO bar_members (bar_id, user_id, role, assigned_by, is_active)
-     VALUES (p_bar_id, v_target_user_id, p_role::user_role, v_req_user_id, true); -- Cast p_role to user_role enum
+     VALUES (p_bar_id, v_target_user_id, p_role, v_req_user_id, true);
      
      RETURN jsonb_build_object('success', true, 'message', 'Membre ajouté avec succès.');
   END IF;
