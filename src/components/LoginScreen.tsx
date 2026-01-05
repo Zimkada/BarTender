@@ -288,7 +288,7 @@ function LoginScreen() {
               className="w-20 h-20"
             />
           </div>
-          <h1 className="text-3xl font-bold text-gray-800">BarTender Pro</h1>
+          <h1 className="text-3xl font-bold text-amber-700">BarTender Pro</h1>
           <p className="text-gray-600 mt-2">Connectez-vous à votre espace</p>
         </div>
 
