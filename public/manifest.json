@@ -12,6 +12,18 @@
 
   "icons": [
     {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
       "src": "/icon-72x72.png",
       "sizes": "72x72",
       "type": "image/png",
