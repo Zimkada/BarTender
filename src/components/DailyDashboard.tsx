@@ -276,9 +276,10 @@ export function DailyDashboard() {
 
   const serverFilteredConsignments = useMemo(() => {
     if (!isServerRole) return activeConsignments;
-    // Source of truth: originalSeller is the business attribution for consignments
+    // ✨ MODE SWITCHING FIX: Filter by server using mode-agnostic detection
+    // A server should see consignments on their sales (serverId) or that they created (originalSeller)
     return activeConsignments.filter(c =>
-      c.originalSeller === currentSession?.userId
+      c.serverId === currentSession?.userId || c.originalSeller === currentSession?.userId
     );
   }, [activeConsignments, isServerRole, currentSession?.userId]);
 
@@ -300,13 +301,45 @@ export function DailyDashboard() {
   };
 
   const exportToWhatsApp = () => {
-    let msg = `*Rapport - ${new Date().toLocaleDateString('fr-FR')}*\n\n`;
-    msg += `Total: *${formatPrice(todayTotal)}*\nVentes: ${todayValidatedSales.length}\nArticles: ${totalItems}\n`;
+    const barName = currentBar?.name || 'Mon Bar';
+    const dateStr = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+    // Helper function to replace accented characters with their ASCII equivalents
+    const replaceAccents = (str) => {
+      return str
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/œ/g, "oe")
+        .replace(/Œ/g, "OE")
+        .replace(/æ/g, "ae")
+        .replace(/Æ/g, "AE");
+    };
+
+    let msg = `*RAPPORT JOURNALIER - ${barName.toUpperCase()}*\n`;
+    msg += `_${dateStr}_\n\n`;
+
+    msg += `---------------------------\n`;
+    msg += `*RESUME FINANCIER*\n`;
+    msg += `- Total (Net) : *${formatPrice(todayTotal)}*\n`;
+    msg += `- Commandes : ${serverFilteredSales.length}\n`;
+    msg += `- Articles vendus : ${totalItems}\n\n`;
+
+    msg += `*OPERATIONS*\n`;
+    msg += `- Retours traites : ${serverFilteredReturns.length}\n`;
+    msg += `- Consignations actives : ${serverFilteredConsignments.length}\n`;
+
     if (topProductsList.length) {
-      msg += `\n*Top produits:*\n`;
-      topProductsList.slice(0, 3).forEach((p, i) => msg += `${i + 1}. ${p.name}: ${p.qty}\n`);
+      msg += `\n*TOP PRODUITS*\n`;
+      topProductsList.slice(0, 3).forEach((p, i) => {
+        msg += `${i + 1}. ${p.name} : *${p.qty}*\n`;
+      });
     }
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+
+    msg += `---------------------------\n`;
+    msg += `_Genere via BarTender_`;
+
+    const asciiMsg = replaceAccents(msg); // Apply the conversion
+    window.open(`https://wa.me/?text=${encodeURIComponent(asciiMsg)}`, '_blank');
     showSuccess('📱 Rapport exporté');
   };
 
@@ -431,14 +464,16 @@ export function DailyDashboard() {
         <EnhancedButton onClick={exportToWhatsApp} className="flex items-center gap-2 px-6 py-3 bg-green-500 text-white rounded-xl">
           <Share size={18} /> WhatsApp
         </EnhancedButton>
-        {!cashClosed ? (
-          <EnhancedButton onClick={closeCash} loading={isLoading('closeCash')} className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-xl">
-            <Lock size={18} /> Fermer caisse
-          </EnhancedButton>
-        ) : (
-          <div className="flex items-center gap-2 px-6 py-3 bg-gray-400 text-white rounded-xl">
-            <Lock size={18} /> Caisse fermée
-          </div>
+        {!isServerRole && (
+          !cashClosed ? (
+            <EnhancedButton onClick={closeCash} loading={isLoading('closeCash')} className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-xl">
+              <Lock size={18} /> Fermer caisse
+            </EnhancedButton>
+          ) : (
+            <div className="flex items-center gap-2 px-6 py-3 bg-gray-400 text-white rounded-xl">
+              <Lock size={18} /> Caisse fermée
+            </div>
+          )
         )}
       </div>
     </div>
