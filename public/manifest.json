@@ -54,38 +54,38 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-144x144.png",
-      "sizes": "144x144",
+      "src": "/icons/icon-144x143.png",
+      "sizes": "144x143",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-152x152.png",
-      "sizes": "152x152",
+      "src": "/icons/icon-152x151.png",
+      "sizes": "152x151",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-180x180.png",
-      "sizes": "180x180",
+      "src": "/icons/icon-180x179.png",
+      "sizes": "180x179",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-192x192.png",
-      "sizes": "192x192",
+      "src": "/icons/icon-192x191.png",
+      "sizes": "192x191",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-384x384.png",
-      "sizes": "384x384",
+      "src": "/icons/icon-384x383.png",
+      "sizes": "384x383",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-512x512.png",
-      "sizes": "512x512",
+      "src": "/icons/icon-512x510.png",
+      "sizes": "512x510",
       "type": "image/png",
       "purpose": "any maskable"
     }

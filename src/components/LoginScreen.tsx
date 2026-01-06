@@ -283,7 +283,7 @@ function LoginScreen() {
         <div className="text-center mb-8">
           <div className="mx-auto w-20 h-20 mb-4 flex items-center justify-center">
             <img
-              src="/icons/icon-180x180.png"
+              src="/icons/icon-180x179.png"
               alt="BarTender Pro"
               className="w-20 h-20"
             />
