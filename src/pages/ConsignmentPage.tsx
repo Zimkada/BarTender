@@ -365,7 +365,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
                   ...sellersWithSales.map(seller => {
                     // ✨ MODE SWITCHING FIX: Count using mode-agnostic server detection
                     const count = todaySales.filter(s => {
-                      const serverUserId = s.serverId || s.createdBy;
+                      const serverUserId = s.soldBy;
                       return serverUserId === seller.id;
                     }).length;
                     return { value: seller.id, label: `${seller.name} (${count})` };
@@ -789,8 +789,8 @@ const HistoryTab: React.FC = () => {
             let originalSeller: UserType | undefined = undefined;
             const originalSale = sales.find(s => s.id === consignment.saleId);
             if (originalSale) {
-              // Use serverId if present (simplified mode - assigned server), otherwise createdBy (full mode)
-              const serverUserId = originalSale.serverId || originalSale.createdBy;
+              // Use soldBy as the single source of truth for attribution
+              const serverUserId = originalSale.soldBy;
               originalSeller = users.find(u => u.id === serverUserId);
             }
 
@@ -868,8 +868,8 @@ const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim,
   let originalSeller: UserType | undefined = undefined;
   const originalSale = sales.find(s => s.id === consignment.saleId);
   if (originalSale) {
-    // Use serverId if present (simplified mode - assigned server), otherwise createdBy (full mode)
-    const serverUserId = originalSale.serverId || originalSale.createdBy;
+    // Use soldBy as the single source of truth for attribution
+    const serverUserId = originalSale.soldBy;
     originalSeller = users.find(u => u.id === serverUserId);
   }
 
@@ -880,9 +880,8 @@ const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim,
   const isExpiringSoon = hoursLeft > 0 && hoursLeft <= 24;
 
   return (
-    <div className={`bg-white border-2 rounded-lg p-4 hover:shadow-lg transition-shadow ${
-      isExpired ? 'border-red-300 bg-red-50' : 'border-amber-200'
-    }`}>
+    <div className={`bg-white border-2 rounded-lg p-4 hover:shadow-lg transition-shadow ${isExpired ? 'border-red-300 bg-red-50' : 'border-amber-200'
+      }`}>
       <div className="flex items-start justify-between mb-3">
         <div>
           <h4 className="font-semibold text-gray-900">{consignment.customerName}</h4>
@@ -893,13 +892,12 @@ const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim,
             </p>
           )}
         </div>
-        <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-          isExpired
+        <div className={`px-3 py-1 rounded-full text-xs font-medium ${isExpired
             ? 'bg-red-100 text-red-700'
             : isExpiringSoon
               ? 'bg-amber-100 text-amber-700'
               : 'bg-amber-100 text-amber-700'
-        }`}>
+          }`}>
           {isExpired ? '⏰ Expirée' : hoursLeft > 48 ? `${Math.floor(hoursLeft / 24)}j` : `${hoursLeft}h`}
         </div>
       </div>
