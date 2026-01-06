@@ -67,9 +67,10 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         // ✨ Filter returns by server if applicable
         let baseReturns = returns.filter(r => r.isRefunded && (r.status === 'approved' || r.status === 'restocked'));
         if (isServerRole) {
-            // Source of truth: returnedBy is who created the return, serverId is the server
+            // Source of truth: serverId is the server who made the original sale
+            // Servers see returns on their sales regardless of who created the return
             baseReturns = baseReturns.filter(r =>
-                r.returnedBy === currentSession?.userId || r.serverId === currentSession?.userId
+                r.serverId === currentSession?.userId
             );
         }
 
