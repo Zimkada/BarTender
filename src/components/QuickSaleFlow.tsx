@@ -138,10 +138,9 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
         bar_id: currentBar.id,
         items: saleItems, // On passe les items calculés et formatés
         payment_method: paymentMethod,
-        // ✨ FIX: En mode simplifié, sold_by = serveur sélectionné, pas le gérant
-        // En mode complet, sold_by = créateur (currentSession.userId)
-        sold_by: isSimplifiedMode && serverId ? serverId : currentSession.userId,
-        server_id: serverId,
+        // ✨ FIX: Ne pas passer sold_by, laisser useSalesMutations le calculer à partir de serverId
+        // Cela évite une double computation qui cause des bugs d'attribution
+        serverId: serverId,
         status: isServerRole ? 'pending' : 'validated',
         customer_name: customerInfo || undefined,
         notes: isSimplifiedMode ? `Serveur: ${selectedServer}` : undefined
