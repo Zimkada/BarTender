@@ -1,6 +1,6 @@
 {
   "name": "BarTender Pro - Gestion de Bar",
-  "short_name": "BarTender",
+  "short_name": "BarTender Pro",
   "description": "Application de gestion pour bars et restaurants - Optimisée pour l'Afrique de l'Ouest",
   "start_url": "/",
   "display": "standalone",
