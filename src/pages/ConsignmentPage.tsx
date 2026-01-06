@@ -875,11 +875,14 @@ const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim,
 
   const expiresAt = new Date(consignment.expiresAt);
   const now = new Date();
-  const hoursLeft = Math.max(0, Math.floor((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60)));
-  const isExpiringSoon = hoursLeft <= 24;
+  const hoursLeft = Math.floor((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60));
+  const isExpired = hoursLeft < 0;
+  const isExpiringSoon = hoursLeft > 0 && hoursLeft <= 24;
 
   return (
-    <div className="bg-white border-2 border-amber-200 rounded-lg p-4 hover:shadow-lg transition-shadow">
+    <div className={`bg-white border-2 rounded-lg p-4 hover:shadow-lg transition-shadow ${
+      isExpired ? 'border-red-300 bg-red-50' : 'border-amber-200'
+    }`}>
       <div className="flex items-start justify-between mb-3">
         <div>
           <h4 className="font-semibold text-gray-900">{consignment.customerName}</h4>
@@ -890,9 +893,14 @@ const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim,
             </p>
           )}
         </div>
-        <div className={`px-3 py-1 rounded-full text-xs font-medium ${isExpiringSoon ? 'bg-amber-100 text-amber-700' : 'bg-amber-100 text-amber-700'
-          }`}>
-          {hoursLeft > 48 ? `${Math.floor(hoursLeft / 24)}j` : `${hoursLeft}h`}
+        <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+          isExpired
+            ? 'bg-red-100 text-red-700'
+            : isExpiringSoon
+              ? 'bg-amber-100 text-amber-700'
+              : 'bg-amber-100 text-amber-700'
+        }`}>
+          {isExpired ? '⏰ Expirée' : hoursLeft > 48 ? `${Math.floor(hoursLeft / 24)}j` : `${hoursLeft}h`}
         </div>
       </div>
 
