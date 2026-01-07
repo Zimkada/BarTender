@@ -137,6 +137,7 @@ export const useStockManagement = () => {
       expirationDays: data.expirationDays || 7,
       originalSeller: data.originalSeller,
       serverId: data.serverId, // ✨ NUEVO: UUID del servidor asignado (BUG #10)
+      businessDate: data.businessDate,
     };
 
     // ✅ BUG #1 FIX: Retourner une promesse qui se résout quand la mutation est terminée

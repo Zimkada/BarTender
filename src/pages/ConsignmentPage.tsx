@@ -293,6 +293,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
         expirationDays: expirationDays,
         originalSeller: selectedSale.createdBy,
         serverId, // ✨ NUEVO: Passer le server_id résolu
+        businessDate: selectedSale.businessDate,
       });
 
       if (consignment) {
@@ -893,10 +894,10 @@ const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim,
           )}
         </div>
         <div className={`px-3 py-1 rounded-full text-xs font-medium ${isExpired
-            ? 'bg-red-100 text-red-700'
-            : isExpiringSoon
-              ? 'bg-amber-100 text-amber-700'
-              : 'bg-amber-100 text-amber-700'
+          ? 'bg-red-100 text-red-700'
+          : isExpiringSoon
+            ? 'bg-amber-100 text-amber-700'
+            : 'bg-amber-100 text-amber-700'
           }`}>
           {isExpired ? '⏰ Expirée' : hoursLeft > 48 ? `${Math.floor(hoursLeft / 24)}j` : `${hoursLeft}h`}
         </div>
