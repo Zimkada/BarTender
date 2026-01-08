@@ -1,8 +1,15 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
+import { useAuth } from '@/context/AuthContext';
+import { useBar } from '@/context/BarContext';
 import { LoadingButton } from '@/components/ui/LoadingButton';
+import { OnboardingService } from '@/services/supabase/onboarding.service';
 
 export const ReviewStep: React.FC = () => {
+  const navigate = useNavigate();
+  const { currentSession } = useAuth();
+  const { currentBar } = useBar();
   const { stepData, completeOnboarding } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string>('');
@@ -24,22 +31,61 @@ export const ReviewStep: React.FC = () => {
     setLoading(true);
 
     try {
-      // In real implementation, would call API to:
-      // 1. Create bar in Supabase
-      // 2. Create products & stock
-      // 3. Add managers & staff
-      // 4. Set is_setup_complete = true
+      if (!currentSession?.user?.id) {
+        throw new Error('User not authenticated');
+      }
 
-      // For now, just mark as complete
+      if (!currentBar?.id) {
+        throw new Error('Bar not found');
+      }
+
+      const userId = currentSession.user.id;
+      const barId = currentBar.id;
+
+      // Step 1: Add managers
+      if (managers?.managerIds && managers.managerIds.length > 0) {
+        for (const managerId of managers.managerIds) {
+          await OnboardingService.assignManager(managerId, barId, userId);
+        }
+      }
+
+      // Step 2: Create servers (if full mode & has servers)
+      if (barDetails?.operatingMode === 'full' && staff?.serverNames?.length > 0) {
+        await OnboardingService.createServers(barId, staff.serverNames, userId);
+      }
+
+      // Step 3: Add products
+      if (products?.productIds && products.productIds.length > 0) {
+        const productsWithPrices = products.productIds.map((id: string) => ({
+          productId: id,
+          localPrice: 0, // Would be set in product selector modal
+        }));
+        await OnboardingService.addProductsToBar(barId, productsWithPrices, userId);
+      }
+
+      // Step 4: Initialize stock
+      if (stock?.stocks) {
+        await OnboardingService.initializeStock(barId, stock.stocks, userId);
+      }
+
+      // Step 5: Update operating mode if needed
+      if (barDetails?.operatingMode) {
+        await OnboardingService.updateBarMode(barId, barDetails.operatingMode, userId);
+      }
+
+      // Step 6: Launch bar (mark as setup complete)
+      await OnboardingService.launchBar(barId, userId);
+
+      // Mark as complete in context
       completeOnboarding();
 
-      // Redirect to dashboard after small delay
+      // Redirect to dashboard
       setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 1000);
-    } catch (error) {
+        navigate('/dashboard', { replace: true });
+      }, 500);
+    } catch (error: any) {
       console.error('Error launching bar:', error);
-      setErrors('Failed to launch bar. Please try again.');
+      setErrors(error.message || 'Failed to launch bar. Please try again.');
     } finally {
       setLoading(false);
     }
