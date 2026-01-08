@@ -66,7 +66,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [isWarming]);
 
     const barId = currentBar?.id || '';
-    const operatingMode = currentBar?.settings?.operatingMode || 'full';
+    const { isSimplifiedMode } = useBarContext();
 
 
     // React Query: Fetch data
@@ -119,7 +119,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const addToCart = useCallback((product: Product) => {
         // Check if server in simplified mode - prevent adding to cart
-        const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
         const isServerRole = currentSession?.role === 'serveur';
 
         if (isSimplifiedMode && isServerRole) {
@@ -143,7 +142,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             }
             return [...currentCart, { product, quantity: 1 }];
         });
-    }, [currentBar?.settings?.operatingMode, currentSession?.role]);
+    }, [isSimplifiedMode, currentSession?.role]);
 
     const updateCartQuantity = useCallback((productId: string, quantity: number) => {
         setCart(currentCart => {
@@ -298,10 +297,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 promotion_name: item.promotion_name
             })) || [];
 
-        const operatingMode = currentBar?.settings?.operatingMode || 'full';
+        // Mapping CartItem[] (UI) -> SaleItem[] (DB/Service)
         // ✨ FIX: En mode simplifié, sold_by = serveur sélectionné, pas le gérant
         // En mode complet, sold_by = créateur (currentSession.userId)
-        const soldByValue = operatingMode === 'simplified' && saleData.serverId
+        const soldByValue = isSimplifiedMode && saleData.serverId
             ? saleData.serverId
             : currentSession.userId;
 
@@ -465,7 +464,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             returnedBy: currentSession.userId,
             server_id: deducedServerId || undefined
         });
-    }, [hasPermission, currentBar, currentSession, returnsMutations, sales, operatingMode]);
+    }, [hasPermission, currentBar, currentSession, returnsMutations, sales]);
 
     const updateReturn = useCallback((returnId: string, updates: Partial<Return>) => {
         if (!hasPermission('canManageInventory')) return;

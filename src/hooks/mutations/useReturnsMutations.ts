@@ -33,13 +33,14 @@ export const useReturnsMutations = (barId: string) => {
                 custom_restock: data.customRestock || null,
                 original_seller: data.originalSeller || null,
                 // ✨ MODE SWITCHING SUPPORT: Store operating mode at creation
-                operating_mode_at_creation: data.operatingModeAtCreation || 'full',
+                operating_mode_at_creation: data.operatingModeAtCreation || 'simplified',
+                business_date: data.businessDate,
             };
             return ReturnsService.createReturn(returnData);
         },
         onSuccess: (newReturn) => {
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.success('Retour enregistré');
+                toast.success('Retour enregistré');
             });
             queryClient.invalidateQueries({ queryKey: returnKeys.list(barId) });
             // Invalider aussi le CA si le retour est remboursé
@@ -51,7 +52,7 @@ export const useReturnsMutations = (barId: string) => {
             const errorMessage = error?.message || 'Erreur lors de la création du retour';
             console.error('createReturn error:', error);
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.error(errorMessage);
+                toast.error(errorMessage);
             });
         },
     });
@@ -61,7 +62,7 @@ export const useReturnsMutations = (barId: string) => {
             ReturnsService.updateReturn(id, updates),
         onSuccess: (updatedReturn) => {
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.success('Retour mis à jour');
+                toast.success('Retour mis à jour');
             });
             queryClient.invalidateQueries({ queryKey: returnKeys.list(barId) });
             // Invalider stats/CA si le statut change ou si c'est un remboursement
@@ -74,7 +75,7 @@ export const useReturnsMutations = (barId: string) => {
             const errorMessage = error?.message || 'Erreur lors de la mise à jour du retour';
             console.error('updateReturn error:', error);
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.error(errorMessage);
+                toast.error(errorMessage);
             });
         },
     });
@@ -83,7 +84,7 @@ export const useReturnsMutations = (barId: string) => {
         mutationFn: ReturnsService.deleteReturn,
         onSuccess: () => {
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.success('Retour supprimé');
+                toast.success('Retour supprimé');
             });
             queryClient.invalidateQueries({ queryKey: returnKeys.list(barId) });
             // Invalider aussi les stats au cas où le retour était remboursé
@@ -93,7 +94,7 @@ export const useReturnsMutations = (barId: string) => {
             const errorMessage = error?.message || 'Erreur lors de la suppression du retour';
             console.error('deleteReturn error:', error);
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.error(errorMessage);
+                toast.error(errorMessage);
             });
         },
     });

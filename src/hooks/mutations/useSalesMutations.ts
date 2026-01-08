@@ -11,15 +11,21 @@ import { calculateBusinessDate, dateToYYYYMMDD } from '../../utils/businessDateH
 import { BUSINESS_DAY_CLOSE_HOUR } from '../../config/constants';
 import type { Sale } from '../../types';
 import { broadcastService } from '../../services/broadcast/BroadcastService';
+import { Database } from '../../lib/database.types';
+import { PaymentMethod } from '../../components/cart/PaymentMethodSelector';
+import { SaleItem } from '../../types';
+
+type OptimisticSale = Sale & { isOptimistic: true };
+type SaleRow = Database['public']['Tables']['sales']['Row'];
 
 export const useSalesMutations = (barId: string) => {
     const queryClient = useQueryClient();
     const { currentSession } = useAuth();
-    const { currentBar } = useBarContext();
+    const { currentBar, isSimplifiedMode } = useBarContext();
     const { isActingAs, actingAs } = useActingAs();
 
     // 🔄 Helper pour détecter si c'est une erreur réseau (offline)
-    const isNetworkError = (error: any): boolean => {
+    const isNetworkError = (error: unknown): boolean => {
         return (
             !navigator.onLine ||
             error.message === 'Failed to fetch' ||
@@ -35,8 +41,8 @@ export const useSalesMutations = (barId: string) => {
      * Tente la création online. Si fail -> Queue offline + Retourne un succès simulé.
      */
 
-    const createSale = useMutation({
-        mutationFn: async (saleData: Omit<Sale, 'id' | 'createdAt' | 'businessDate'>) => {
+    const createSale = useMutation<Sale, unknown, Partial<Sale> & { items: SaleItem[] }, unknown>({
+        mutationFn: async (saleData: Partial<Sale> & { items: SaleItem[] }) => {
             // Import dymanique pour éviter cycle (si nécessaire)
             const { syncQueue } = await import('../../services/SyncQueue');
 
@@ -46,7 +52,7 @@ export const useSalesMutations = (barId: string) => {
             const formattedBusinessDate = dateToYYYYMMDD(businessDate);
 
             // Formatage des items commun
-            const itemsFormatted = saleData.items.map((item: any) => ({
+            const itemsFormatted = saleData.items.map((item: SaleItem) => ({
                 product_id: item.product_id || item.productId,
                 product_name: item.product_name || item.productName,
                 quantity: item.quantity,
@@ -63,12 +69,11 @@ export const useSalesMutations = (barId: string) => {
             // ✨ MODE SWITCHING FIX: sold_by doit être le serveur, pas le gérant/promoteur
             // En mode simplifié: sold_by = serverId (qui a reçu le crédit)
             // En mode complet: sold_by = currentSession.userId (qui a créé)
-            const operatingMode = currentBar?.settings?.operatingMode || 'full';
-            const soldByValue = operatingMode === 'simplified' && saleData.serverId
+            const soldByValue = isSimplifiedMode && saleData.serverId
                 ? saleData.serverId
                 : (currentSession?.userId || '');
 
-            const salePayload = {
+            const salePayload: Database['public']['Tables']['sales']['Insert'] = {
                 bar_id: barId,
                 items: itemsFormatted,
                 payment_method: saleData.paymentMethod || 'cash',
@@ -99,13 +104,13 @@ export const useSalesMutations = (barId: string) => {
                         barId,
                         salePayload
                     );
-                } else {
-                    savedSaleRow = await SalesService.createSale(salePayload as any);
+                } else { // safe because salePayload matches SaleInsert
+                    savedSaleRow = await SalesService.createSale(salePayload);
                 }
 
                 return mapSaleRowToSale(savedSaleRow);
 
-            } catch (error: any) {
+            } catch (error: unknown) {
                 // 4. Fallback OFFLINE
                 if (isNetworkError(error)) {
                     console.log('🌐 Mode Offline détecté, mise en queue...', error);
@@ -120,7 +125,7 @@ export const useSalesMutations = (barId: string) => {
 
                     // Retourner une "Optimistic Sale" pour l'UI
                     import('react-hot-toast').then(({ default: toast }) => {
-                      toast.success('Mode Hors-ligne: Vente sauvegardée localement', { icon: '💾' });
+                        toast.success('Mode Hors-ligne: Vente sauvegardée localement', { icon: '💾' });
                     });
 
                     return {
@@ -129,7 +134,7 @@ export const useSalesMutations = (barId: string) => {
                         createdAt: new Date(),
                         businessDate: businessDate,
                         status: 'pending', // Sera validée après sync
-                        total: saleData.items.reduce((sum, item: any) => sum + (item.total_price || item.totalPrice || 0), 0),
+                        total: saleData.items.reduce((sum, item: SaleItem) => sum + (item.total_price || item.totalPrice || 0), 0),
                         currency: 'XOF',
                         createdBy: salePayload.sold_by,
                         isOptimistic: true // UI flag
@@ -143,14 +148,14 @@ export const useSalesMutations = (barId: string) => {
         onSuccess: (sale) => {
             // Ne pas afficher de toast si c'est une vente optimiste (offline)
             // Le toast est déjà affiché dans le mutationFn
-            if (!(sale as any).isOptimistic) {
+            if (!('isOptimistic' in sale && sale.isOptimistic)) {
                 import('react-hot-toast').then(({ default: toast }) => {
-                  toast.success('Vente enregistrée');
+                    toast.success('Vente enregistrée');
                 });
             }
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets (sync instant 0ms)
-            if (broadcastService.isSupported() && !(sale as any).isOptimistic) {
+            if (broadcastService.isSupported() && !('isOptimistic' in sale && sale.isOptimistic)) {
                 broadcastService.broadcast({
                     event: 'INSERT',
                     table: 'sales',
@@ -169,11 +174,11 @@ export const useSalesMutations = (barId: string) => {
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
         },
-        onError: (error: any) => {
+        onError: (error: unknown) => {
             // Ne pas afficher d'erreur si c'est une erreur réseau (offline géré)
             if (!isNetworkError(error)) {
                 import('react-hot-toast').then(({ default: toast }) => {
-                  toast.error(`Erreur lors de la création de la vente: ${error.message}`);
+                    toast.error(`Erreur lors de la création de la vente: ${error.message}`);
                 });
             }
         }
@@ -182,9 +187,9 @@ export const useSalesMutations = (barId: string) => {
     const validateSale = useMutation({
         mutationFn: ({ id, validatorId }: { id: string; validatorId: string }) =>
             SalesService.validateSale(id, validatorId),
-        onSuccess: (data, variables) => {
+        onSuccess: (_data, variables) => {
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.success('Vente validée');
+                toast.success('Vente validée');
             });
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets
@@ -211,9 +216,9 @@ export const useSalesMutations = (barId: string) => {
     const rejectSale = useMutation({
         mutationFn: ({ id, rejectorId }: { id: string; rejectorId: string }) =>
             SalesService.rejectSale(id, rejectorId),
-        onSuccess: (data, variables) => {
+        onSuccess: (_data, variables) => {
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.success('Vente rejetée (stock restauré)');
+                toast.success('Vente rejetée (stock restauré)');
             });
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets
@@ -234,9 +239,9 @@ export const useSalesMutations = (barId: string) => {
 
     const deleteSale = useMutation({
         mutationFn: SalesService.deleteSale,
-        onSuccess: (data, saleId) => {
+        onSuccess: (_data, saleId) => {
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.success('Vente supprimée');
+                toast.success('Vente supprimée');
             });
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets
@@ -264,11 +269,11 @@ export const useSalesMutations = (barId: string) => {
 };
 
 // Helper pour éviter la duplication du mapping
-const mapSaleRowToSale = (savedSaleRow: any): Sale => {
+const mapSaleRowToSale = (savedSaleRow: SaleRow): Sale => {
     return {
         id: savedSaleRow.id,
         barId: savedSaleRow.bar_id,
-        items: savedSaleRow.items as any[],
+        items: savedSaleRow.items as SaleItem[],
         total: savedSaleRow.total,
         currency: 'XOF',
         status: savedSaleRow.status as 'pending' | 'validated' | 'rejected',
@@ -281,7 +286,7 @@ const mapSaleRowToSale = (savedSaleRow: any): Sale => {
         validatedAt: savedSaleRow.validated_at ? new Date(savedSaleRow.validated_at) : undefined,
         rejectedAt: savedSaleRow.status === 'rejected' && savedSaleRow.updated_at ? new Date(savedSaleRow.updated_at) : undefined,
         businessDate: savedSaleRow.business_date ? new Date(savedSaleRow.business_date) : new Date(),
-        paymentMethod: savedSaleRow.payment_method as any,
+        paymentMethod: savedSaleRow.payment_method as PaymentMethod, // Assuming PaymentMethod is defined
         customerName: savedSaleRow.customer_name || undefined,
         customerPhone: savedSaleRow.customer_phone || undefined,
         notes: savedSaleRow.notes || undefined

@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Package,
-  X,
   Search,
   Clock,
   CheckCircle,
@@ -26,16 +25,12 @@ import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from '../components/EnhancedButton';
 import type { User as UserType } from '../types';
 import { Sale, SaleItem, Consignment } from '../types';
-import { getSaleDate } from '../utils/saleHelpers';
 import { useViewport } from '../hooks/useViewport';
-import { Button } from '../components/ui/Button';
 import { PageHeader } from '../components/common/PageHeader';
 import { Textarea } from '../components/ui/Textarea';
 import { Label } from '../components/ui/Label';
 import { Alert } from '../components/ui/Alert';
 import { Select } from '../components/ui/Select';
-import { ServerMappingsService } from '../services/supabase/server-mappings.service';
-import { FEATURES } from '../config/features';
 
 type TabType = 'create' | 'active' | 'history';
 
@@ -140,10 +135,10 @@ interface CreateConsignmentTabProps {
 }
 
 const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateBack, onCreationSuccess }) => {
-  const { getTodaySales } = useAppContext();
+  const { showSuccess, showError } = useFeedback();
+  const { getTodaySales, getReturnsBySale } = useAppContext();
   const stockManager = useStockManagement();
   const { formatPrice } = useCurrencyFormatter();
-  const { showSuccess, showError } = useFeedback();
   const { currentBar, barMembers } = useBarContext();
   const { currentSession: session } = useAuth();
 
@@ -159,9 +154,6 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
   const [filterSeller, setFilterSeller] = useState<string>('all');
   const [isInfoExpanded, setIsInfoExpanded] = useState(false);
   const [expirationDays, setExpirationDays] = useState(currentBar?.settings?.consignmentExpirationDays ?? 7);
-
-  // Detecter le mode de opération
-  const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
 
   useEffect(() => {
     setExpirationDays(currentBar?.settings?.consignmentExpirationDays ?? 7);
@@ -226,19 +218,6 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
     const productId = item.product_id;
     return productId === selectedProductId;
   });
-
-  const getAlreadyReturned = (saleId: string, productId: string): number => {
-    // Note: Assuming getReturnsBySale is available via context or we need to import it.
-    // The original code used useAppContext().getReturnsBySale.
-    // I need to destructor it from useAppContext() above if I want to use it cleanly or just use it here.
-    // To be cleaner, I'll assume useAppContext returns it.
-    // Wait, createConsignmentTab props didn't have it but it used the hook inside.
-    // Let's check `useAppContext` usage at top of component.
-    return 0; // Placeholder fix: getReturnsBySale needs to be destructured from context.
-  };
-
-  // Re-adding the missing destructuring
-  const { getReturnsBySale } = useAppContext();
 
   const getAlreadyReturnedFixed = (saleId: string, productId: string): number => {
     return getReturnsBySale(saleId)
@@ -600,7 +579,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
 const ActiveConsignmentsTab: React.FC<{ isReadOnly?: boolean }> = ({ isReadOnly = false }) => {
   const stockManager = useStockManagement();
   const { sales } = useAppContext();
-  const { currentBar, barMembers } = useBarContext();
+  const { barMembers } = useBarContext();
   const { currentSession } = useAuth();
   const { showSuccess, showError } = useFeedback();
   const [searchTerm, setSearchTerm] = useState('');
@@ -725,7 +704,7 @@ const ActiveConsignmentsTab: React.FC<{ isReadOnly?: boolean }> = ({ isReadOnly 
 const HistoryTab: React.FC = () => {
   const stockManager = useStockManagement();
   const { sales } = useAppContext();
-  const { currentBar, barMembers } = useBarContext();
+  const { barMembers } = useBarContext();
   const { currentSession } = useAuth();
   const { formatPrice } = useCurrencyFormatter();
   const [filterStatus, setFilterStatus] = useState<'all' | 'claimed' | 'expired' | 'forfeited'>('all');

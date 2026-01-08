@@ -28,7 +28,7 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
 
     const currentBarId = currentBar?.id || '';
     const isServerRole = currentSession?.role === 'serveur';
-    const operatingMode = currentBar?.settings?.operatingMode || 'full';
+    const { operatingMode } = useBarContext();
 
     // Dates par défaut = Aujourd'hui (Commercial)
     const todayStr = getCurrentBusinessDateString(currentBar?.closingHour);

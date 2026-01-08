@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getMobileAnimationProps } from '../utils/disableAnimationsOnMobile';
-import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { useBarContext } from '../context/BarContext';
@@ -19,20 +18,17 @@ import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from '../components/EnhancedButton';
-import { Sale, SaleItem, Return, ReturnReason, ReturnReasonConfig } from '../types';
+import { User, Sale, SaleItem, Return, ReturnReason, ReturnReasonConfig } from '../types';
 import { getBusinessDate, getCurrentBusinessDateString } from '../utils/businessDateHelpers';
-import { getSaleDate } from '../utils/saleHelpers';
 import { useViewport } from '../hooks/useViewport';
 import { Button } from '../components/ui/Button';
 import { PageHeader } from '../components/common/PageHeader';
 import { Textarea } from '../components/ui/Textarea';
 import { Label } from '../components/ui/Label';
 import { Input } from '../components/ui/Input';
-import { Select, SelectOption } from '../components/ui/Select';
-import { ServerMappingsService } from '../services/supabase/server-mappings.service';
-import { FEATURES } from '../config/features';
-import { useSalesFilters } from '../features/Sales/SalesHistory/hooks/useSalesFilters';
+import { Select } from '../components/ui/Select';
 import { SALES_HISTORY_FILTERS, TIME_RANGE_CONFIGS } from '../config/dateFilters';
+import { useSalesFilters } from '../features/Sales/SalesHistory/hooks/useSalesFilters';
 
 const returnReasons: Record<ReturnReason, ReturnReasonConfig> = {
   defective: {
@@ -78,7 +74,6 @@ const returnReasons: Record<ReturnReason, ReturnReasonConfig> = {
 };
 
 export default function ReturnsPage() {
-  const navigate = useNavigate();
   const {
     sales,
     returns,
@@ -91,7 +86,7 @@ export default function ReturnsPage() {
     consignments
   } = useStockManagement();
   const { currentBar, barMembers } = useBarContext();
-  const users = Array.isArray(barMembers) ? barMembers.map((m: any) => m.user).filter(Boolean) : [];
+  const users = Array.isArray(barMembers) ? barMembers.map(m => m.user).filter(Boolean) as User[] : [];
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession } = useAuth();
   const { showSuccess, showError } = useFeedback();
@@ -107,20 +102,17 @@ export default function ReturnsPage() {
   const [lastCreatedReturnId, setLastCreatedReturnId] = useState<string | null>(null);
 
   const closeHour = currentBar?.closingHour ?? 6;
-  const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
+  const { operatingMode } = useBarContext();
 
   // ✨ NEW: Use shared filtering hook for period + server filtering
   const {
     timeRange,
     setTimeRange,
-    startDate,
-    endDate,
     customRange,
     updateCustomRange,
     isCustom,
     searchTerm,
     setSearchTerm,
-    filteredSales,
     filteredReturns: filteredReturnsByFilters
   } = useSalesFilters({
     sales,
@@ -205,7 +197,7 @@ export default function ReturnsPage() {
     customRestock?: boolean
   ) => {
     const sale = sales.find(s => s.id === saleId);
-    const item = sale?.items.find((i: any) => {
+    const item = sale?.items.find((i: SaleItem) => {
       const id = i.product?.id || i.product_id;
       return id === productId;
     });
@@ -216,9 +208,9 @@ export default function ReturnsPage() {
     }
 
     // Extract product info with fallbacks
-    const productName = (item as any).product?.name || (item as any).product_name || 'Produit';
-    const productVolume = (item as any).product?.volume || (item as any).product_volume || '';
-    const productPrice = (item as any).product?.price || (item as any).unit_price || 0;
+    const productName = item.product?.name || item.product_name || 'Produit';
+    const productVolume = item.product?.volume || item.product_volume || '';
+    const productPrice = item.product?.price || item.unit_price || 0;
 
     const returnCheck = canReturnSale(sale);
     if (!returnCheck.allowed) {
@@ -279,7 +271,7 @@ export default function ReturnsPage() {
       businessDate: sale.businessDate,
       serverId, // ✨ NUEVO: Passer le server_id résolu
       // ✨ MODE SWITCHING SUPPORT: Store current operating mode
-      operatingModeAtCreation: currentBar?.settings?.operatingMode || 'full',
+      operatingModeAtCreation: operatingMode,
     });
 
     const refundMsg = finalRefund
@@ -695,8 +687,6 @@ export default function ReturnsPage() {
                   canReturnSale={canReturnSale}
                   closeHour={closeHour}
                   consignments={consignments}
-                  isSimplifiedMode={isSimplifiedMode}
-                  currentBar={currentBar}
                 />
               </div>
             )}
@@ -884,8 +874,6 @@ export default function ReturnsPage() {
                   canReturnSale={canReturnSale}
                   closeHour={closeHour}
                   consignments={consignments}
-                  isSimplifiedMode={isSimplifiedMode}
-                  currentBar={currentBar}
                 />
               </motion.div>
             )}
@@ -1012,9 +1000,7 @@ function CreateReturnForm({
   onSelectSale,
   canReturnSale,
   closeHour,
-  consignments,
-  isSimplifiedMode,
-  currentBar
+  consignments
 }: {
   returnableSales: Sale[];
   returnReasons: Record<ReturnReason, ReturnReasonConfig>;
@@ -1025,15 +1011,13 @@ function CreateReturnForm({
   canReturnSale: (sale: Sale) => { allowed: boolean; reason: string };
   closeHour: number;
   consignments: any[];
-  isSimplifiedMode: boolean;
-  currentBar: any;
 }) {
   const { getReturnsBySale } = useAppContext();
   const { barMembers } = useBarContext();
   const { formatPrice } = useCurrencyFormatter();
   const { showError } = useFeedback();
 
-  const users = barMembers.map(m => m.user).filter(Boolean);
+  const users: User[] = barMembers.map(m => m.user).filter((u): u is User => u !== undefined);
   const [selectedProduct, setSelectedProduct] = useState<SaleItem | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [reason, setReason] = useState<ReturnReason>('defective');
@@ -1042,8 +1026,6 @@ function CreateReturnForm({
   const [filterSeller, setFilterSeller] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isInfoExpanded, setIsInfoExpanded] = useState(false);
-
-  const reasonConfig = returnReasons[reason];
 
   const getAlreadyReturned = (productId: string): number => {
     if (!selectedSale) return 0;

@@ -1,0 +1,147 @@
+import React, { useState } from 'react';
+import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
+import { LoadingButton } from '@/components/ui/LoadingButton';
+
+interface AddManagersFormData {
+  managerIds: string[];
+}
+
+export const AddManagersStep: React.FC = () => {
+  const { stepData, updateStepData, completeStep, nextStep } = useOnboarding();
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<string>('');
+
+  // Initialize form with saved data
+  const savedData = stepData[OnboardingStep.OWNER_ADD_MANAGERS] as AddManagersFormData | undefined;
+  const [formData, setFormData] = useState<AddManagersFormData>({
+    managerIds: savedData?.managerIds || [],
+  });
+
+  const handleAddManager = () => {
+    // This would open a modal to search/invite users
+    // For now, we'll show a placeholder
+    alert('Manager search/invite modal would appear here');
+  };
+
+  const handleRemoveManager = (managerId: string) => {
+    setFormData((prev) => ({
+      managerIds: prev.managerIds.filter((id) => id !== managerId),
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    setLoading(true);
+    try {
+      // Save form data to context
+      updateStepData(OnboardingStep.OWNER_ADD_MANAGERS, formData);
+      completeStep(OnboardingStep.OWNER_ADD_MANAGERS, formData);
+
+      // Move to next step
+      nextStep();
+    } catch (error) {
+      console.error('Error saving managers:', error);
+      setErrors('Failed to save managers');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="w-full max-w-2xl mx-auto px-4">
+      <div className="bg-white rounded-lg shadow-md p-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Add Team Members</h1>
+          <p className="mt-2 text-gray-600">
+            Managers help you run the bar. You can always add more later.
+          </p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Manager Count */}
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm font-medium text-blue-900">
+              Current managers: <strong>{formData.managerIds.length}</strong>
+            </p>
+            {formData.managerIds.length === 0 && (
+              <p className="mt-2 text-sm text-orange-700">
+                ⚠️ Recommended: Add at least 1 manager (optional)
+              </p>
+            )}
+          </div>
+
+          {/* Manager List */}
+          {formData.managerIds.length > 0 && (
+            <div className="space-y-2">
+              {formData.managerIds.map((managerId) => (
+                <div
+                  key={managerId}
+                  className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg"
+                >
+                  <span className="text-sm text-gray-900">Manager: {managerId}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveManager(managerId)}
+                    className="text-red-600 hover:text-red-700 text-sm font-medium"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add Manager Button */}
+          <button
+            type="button"
+            onClick={handleAddManager}
+            className="w-full px-4 py-3 border border-dashed border-blue-300 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition font-medium"
+          >
+            + Add Manager
+          </button>
+
+          {/* Info Box */}
+          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <h3 className="text-sm font-medium text-gray-900 mb-2">Manager responsibilities:</h3>
+            <ul className="text-sm text-gray-700 space-y-1">
+              <li>✓ Create sales</li>
+              <li>✓ Manage inventory</li>
+              <li>✓ View analytics</li>
+              <li>✗ Cannot manage team</li>
+              <li>✗ Cannot change settings</li>
+            </ul>
+          </div>
+
+          {/* Error Message */}
+          {errors && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700">{errors}</p>
+            </div>
+          )}
+
+          {/* Buttons */}
+          <div className="flex gap-3 pt-6 border-t">
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+            >
+              Back
+            </button>
+            <LoadingButton
+              type="submit"
+              isLoading={loading}
+              loadingText="Saving..."
+              className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              Next Step
+            </LoadingButton>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};

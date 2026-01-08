@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useCallback, ReactNode, useState, useEffect } from 'react';
+import React, { createContext, useContext, useCallback, ReactNode, useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useActingAs } from '../context/ActingAsContext';
 import { Bar, BarMember, User, UserRole } from '../types';
@@ -24,6 +24,9 @@ interface BarContextType {
   // Gestion des bars
   createBar: (bar: Omit<Bar, 'id' | 'createdAt' | 'ownerId'> & { ownerId?: string }) => Promise<Bar | null>;
   updateBar: (barId: string, updates: Partial<Bar>) => Promise<void>;
+  assignedRole: UserRole | null;
+  operatingMode: 'full' | 'simplified';
+  isSimplifiedMode: boolean;
   switchBar: (barId: string) => Promise<void>;
 
   // Membres du bar
@@ -60,6 +63,16 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // État dérivé
   const [currentBar, setCurrentBar] = useState<Bar | null>(null);
   const [userBars, setUserBars] = useState<Bar[]>([]);
+  const [assignedRole, setAssignedRole] = useState<UserRole | null>(null);
+
+  // ✨ Centralized Operating Mode Logic
+  const operatingMode = useMemo(() => {
+    return currentBar?.settings?.operatingMode || 'simplified';
+  }, [currentBar]);
+
+  const isSimplifiedMode = useMemo(() => {
+    return operatingMode === 'simplified';
+  }, [operatingMode]);
 
   // Fonction pour charger les bars depuis Supabase
   const refreshBars = useCallback(async () => {
@@ -723,6 +736,9 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     loading,
     createBar,
     updateBar,
+    assignedRole,
+    operatingMode,
+    isSimplifiedMode,
     switchBar,
     barMembers,
     getBarMembers,

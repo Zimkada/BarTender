@@ -2,13 +2,11 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Search,
   ShoppingCart,
-  Plus,
-  Minus,
-  X,
   Zap,
   Users,
   CreditCard,
   Check,
+  X,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
@@ -17,10 +15,9 @@ import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { EnhancedButton } from './EnhancedButton';
-import { Product, CartItem, Promotion } from '../types';
+import { Product, CartItem } from '../types';
 import { useViewport } from '../hooks/useViewport';
 import { ProductGrid } from './ProductGrid';
-import { PromotionsService } from '../services/supabase/promotions.service';
 import { ServerMappingsService } from '../services/supabase/server-mappings.service';
 import { useServerMappings } from '../hooks/useServerMappings';
 import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
@@ -37,12 +34,12 @@ interface QuickSaleFlowProps {
 }
 
 export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
-  const { categories, settings } = useAppContext();
+  const { categories } = useAppContext();
   const {
     products,
     getProductStockInfo
   } = useStockManagement();
-  const { currentBar } = useBarContext();
+  const { currentBar, isSimplifiedMode } = useBarContext();
   const { currentSession } = useAuth();
   const { formatPrice } = useCurrencyFormatter();
   const { isMobile } = useViewport();
@@ -73,7 +70,6 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   const handleCheckout = useCallback(async () => {
     if (cart.length === 0 || !currentSession || !currentBar || createSale.isPending) return;
 
-    const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
     if (isSimplifiedMode && !selectedServer) {
       alert('Veuillez sélectionner le serveur qui a effectué la vente');
       return;
@@ -109,10 +105,10 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
           ? (currentSession?.userName || selectedServer)
           : selectedServer;
         try {
-          serverId = await ServerMappingsService.getUserIdForServerName(
+          serverId = (await ServerMappingsService.getUserIdForServerName(
             currentBar.id,
             serverName
-          );
+          )) || undefined;
           if (!serverId) {
             const errorMessage =
               `⚠️ Erreur Critique:\n\n` +
@@ -135,14 +131,14 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
       }
 
       await createSale.mutateAsync({
-        bar_id: currentBar.id,
+        barId: currentBar.id,
         items: saleItems, // On passe les items calculés et formatés
-        payment_method: paymentMethod,
+        paymentMethod: paymentMethod,
         // ✨ FIX: Ne pas passer sold_by, laisser useSalesMutations le calculer à partir de serverId
         // Cela évite une double computation qui cause des bugs d'attribution
         serverId: serverId,
         status: isServerRole ? 'pending' : 'validated',
-        customer_name: customerInfo || undefined,
+        customerName: customerInfo || undefined,
         notes: isSimplifiedMode ? `Serveur: ${selectedServer}` : undefined
       });
 
@@ -201,7 +197,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   });
 
   // 3. Fetch server mappings from database instead of settings
-  const enableServerTracking = currentBar?.settings?.operatingMode === 'simplified';
+  const enableServerTracking = isSimplifiedMode;
   const { serverNames } = useServerMappings(enableServerTracking ? currentBar?.id : undefined);
 
   // Préparer les options pour le select serveur
@@ -215,7 +211,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   ];
 
   // ✨ [SIMPLIFIÉ] La logique de promo est partie dans useCartLogic
-  const quickAddToCart = (product: Product, quantity = 1) => {
+  const quickAddToCart = useCallback((product: Product, quantity = 1) => {
     const stockInfo = getProductStockInfo(product.id);
     const availableStock = stockInfo?.availableStock ?? 0;
     if (availableStock < quantity) return;
@@ -239,7 +235,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     if (!isMobile) {
       searchInputRef.current?.focus();
     }
-  };
+  }, [getProductStockInfo, cart, setCart, setSearchTerm, isMobile, searchInputRef, isSimplifiedMode]);
 
   // ✨ [SIMPLIFIÉ] La logique de promo est partie dans useCartLogic
   const updateQuantity = (productId: string, newQuantity: number) => {
@@ -265,7 +261,6 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   if (!isOpen) return null;
 
   // Restreindre l'accès aux serveurs en mode simplifié
-  const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
   const isServerRole = currentSession?.role === 'serveur';
 
   if (isSimplifiedMode && isServerRole) {
@@ -451,7 +446,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                           showTotalReductions={true}
                         />
 
-                        {currentBar?.settings?.operatingMode === 'simplified' && (
+                        {isSimplifiedMode && (
                           <div className="mt-6">
                             <Select
                               label="Serveur"
@@ -594,7 +589,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
 
                   <div className="flex-shrink-0 p-4 border-t border-amber-200 space-y-3 bg-gradient-to-br from-amber-50 to-amber-50">
 
-                    {currentBar?.settings?.operatingMode === 'simplified' && (
+                    {isSimplifiedMode && (
                       <Select
                         label="Serveur"
                         options={serverOptions}

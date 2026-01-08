@@ -1,6 +1,5 @@
 import { useQuery, UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
 import { useActingAs } from '../../context/ActingAsContext';
-import { useAuth } from '../../context/AuthContext';
 
 /**
  * useProxyQuery
@@ -14,14 +13,13 @@ import { useAuth } from '../../context/AuthContext';
  * @param proxyFetcher Function to fetch data via proxy RPC. Receives (userId, barId) as arguments.
  * @param options React Query options
  */
-export function useProxyQuery<TData = any, TError = unknown>(
-    queryKey: any[],
+export function useProxyQuery<TData, TError = unknown>(
+    queryKey: readonly unknown[],
     standardFetcher: () => Promise<TData>,
     proxyFetcher: (userId: string, barId: string) => Promise<TData>,
     options?: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'>
 ): UseQueryResult<TData, TError> {
     const { actingAs } = useActingAs();
-    const { currentSession } = useAuth();
 
     // Construct a unique query key that includes the acting state
     // This ensures cache separation between "My Data" and "Impersonated Data"

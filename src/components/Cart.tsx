@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShoppingCart, X, Users, Tag, Trash2 } from 'lucide-react';
+import { ShoppingCart, X, Users, Trash2 } from 'lucide-react';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
@@ -28,7 +28,7 @@ export function Cart({
   const { formatPrice } = useCurrencyFormatter();
   const { setLoading, isLoading, showSuccess, cartCleared } = useFeedback();
   const { isMobile } = useViewport();
-  const { currentBar } = useBarContext();
+  const { currentBar, isSimplifiedMode } = useBarContext();
   const { currentSession } = useAuth();
 
   // NEW: Get cart data and functions from AppContext
@@ -73,8 +73,7 @@ export function Cart({
           console.error(`[Cart] Blocking sale creation: No mapping for "${serverName}"`);
           return; // ← BLOQUER LA CRÉATION
         }
-      } catch (error) {
-        const errorMessage =
+      } catch (error: unknown) {
           `❌ Impossible d'attribuer la vente:\n\n` +
           `${error instanceof Error ? error.message : 'Erreur réseau lors de la résolution du serveur'}\n\n` +
           `Réessayez ou contactez l'administrateur.`;
@@ -94,14 +93,13 @@ export function Cart({
   };
 
   // ✨ Utiliser la logique partagée pour les calculs de prix et promotions
-  const { total, totalDiscount, totalItems, calculatedItems } = useCartLogic({
+  const { total, totalItems, calculatedItems } = useCartLogic({
     items,
     barId: currentBar?.id
   });
 
   const [selectedServer, setSelectedServer] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
-  const isSimplifiedMode = currentBar?.settings?.operatingMode === 'simplified';
   const isServerRole = currentSession?.role === 'serveur';
 
   // Fetch server mappings from database instead of settings

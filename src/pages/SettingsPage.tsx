@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Settings as SettingsIcon, DollarSign, Clock, Users, Building2, Mail, Phone, MapPin, ShieldCheck, CheckCircle, AlertCircle, GitBranch } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, DollarSign, Clock, Building2, Mail, Phone, MapPin, ShieldCheck, CheckCircle, AlertCircle, GitBranch } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useNotifications } from '../components/Notifications';
+import { Factor } from '@supabase/supabase-js'; // Import Factor type
 import { useSettings } from '../hooks/useSettings';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
@@ -54,10 +55,10 @@ export default function SettingsPage() {
                         setMfaError(error.message);
                         return;
                     }
-                    const totpFactor = data.all.find((f: any) => f.factor_type === 'totp' && f.status === 'verified');
+                    const totpFactor = data.all.find((f: Factor) => f.factor_type === 'totp' && f.status === 'verified');
                     setIsMfaEnabled(!!totpFactor);
                     if (totpFactor) setMfaFactorId(totpFactor.id);
-                } catch (err: any) {
+                } catch (err: unknown) {
                     if (err.message?.includes('Auth session missing')) {
                         setMfaError("Session expirée. Veuillez vous reconnecter.");
                     } else {
@@ -117,7 +118,7 @@ export default function SettingsPage() {
     const [tempCloseHour, setTempCloseHour] = useState(currentBar?.closingHour ?? 6);
     const [tempConsignmentExpirationDays, setTempConsignmentExpirationDays] = useState(currentBar?.settings?.consignmentExpirationDays ?? 7);
     const [tempSupplyFrequency, setTempSupplyFrequency] = useState(currentBar?.settings?.supplyFrequency ?? 7);
-    const [tempOperatingMode, setTempOperatingMode] = useState<'full' | 'simplified'>(currentBar?.settings?.operatingMode ?? 'full');
+    const [tempOperatingMode, setTempOperatingMode] = useState<'full' | 'simplified'>(currentBar?.settings?.operatingMode ?? 'simplified');
 
     // Tabs configuration
     const tabs = [
@@ -139,7 +140,7 @@ export default function SettingsPage() {
             setMfaFactorId(data.id);
             setMfaStep('verify');
             showNotification('success', 'Scannez le QR code et entrez le code de vérification.');
-        } catch (error: any) {
+        } catch (error: unknown) {
             setMfaError(error.message);
             showNotification('error', `Erreur d'inscription 2FA: ${error.message}`);
         } finally {
@@ -163,7 +164,7 @@ export default function SettingsPage() {
             setMfaSecret(null);
             setVerifyCode('');
             showNotification('success', 'Authentification à deux facteurs activée avec succès !');
-        } catch (error: any) {
+        } catch (error: unknown) {
             setMfaError(error.message);
             showNotification('error', `Erreur de vérification 2FA: ${error.message}`);
         } finally {
@@ -185,7 +186,7 @@ export default function SettingsPage() {
             setMfaStep('idle');
             setMfaFactorId(null);
             showNotification('success', 'Authentification à deux facteurs désactivée.');
-        } catch (error: any) {
+        } catch (error: unknown) {
             setMfaError(error.message);
             showNotification('error', `Erreur de désactivation 2FA: ${error.message}`);
         } finally {
@@ -252,12 +253,12 @@ export default function SettingsPage() {
                         {tabs.map(tab => (
                             <Button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id as any)}
+                                onClick={() => setActiveTab(tab.id)}
                                 variant={activeTab === tab.id ? 'default' : 'ghost'}
                                 className={`flex-1 py-3 px-4 font-medium text-sm transition-colors whitespace-nowrap ${activeTab === tab.id
                                     ? 'bg-white text-amber-600 border-b-2 border-amber-600 shadow-sm'
                                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                                }`}
+                                    }`}
                             >
                                 <tab.icon className="w-4 h-4 inline mr-2" />
                                 {tab.label}

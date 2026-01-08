@@ -92,7 +92,6 @@ export default function SalesHistoryPage() {
 
     // ✨ Filter metrics for servers
     const isServerRole = currentSession?.role === 'serveur';
-    const operatingMode = currentBar?.settings?.operatingMode || 'full';
     const serverIdForAnalytics = isServerRole ? currentSession?.userId : undefined;
 
     // HOOK: Statistiques & Top Produits
@@ -398,38 +397,38 @@ export default function SalesHistoryPage() {
                         {/* Filtres compacts en haut (stats retirées, disponibles dans Analytics) */}
                         < div className="flex-shrink-0 bg-amber-50 p-3" >
                             {/* Sélecteur format export mobile */}
-                                                        <div className="flex gap-1 mb-3" >
-                                                            <Button
-                                                                onClick={() => setExportFormat('excel')}
-                                                                variant={exportFormat === 'excel' ? 'default' : 'secondary'}
-                                                                className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg"
-                                                            >
-                                                                📊 Excel
-                                                            </Button>
-                                                            <Button
-                                                                onClick={() => setExportFormat('csv')}
-                                                                variant={exportFormat === 'csv' ? 'default' : 'secondary'}
-                                                                className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg"
-                                                            >
-                                                                📄 CSV
-                                                            </Button>
-                                                        </div >
+                            <div className="flex gap-1 mb-3" >
+                                <Button
+                                    onClick={() => setExportFormat('excel')}
+                                    variant={exportFormat === 'excel' ? 'default' : 'secondary'}
+                                    className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg"
+                                >
+                                    📊 Excel
+                                </Button>
+                                <Button
+                                    onClick={() => setExportFormat('csv')}
+                                    variant={exportFormat === 'csv' ? 'default' : 'secondary'}
+                                    className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg"
+                                >
+                                    📄 CSV
+                                </Button>
+                            </div >
 
                             {/* Filtres période horizontaux */}
-                                                        <div className="flex gap-2 overflow-x-auto pb-2 mb-3" >
-                                                            {
-                                                                SALES_HISTORY_FILTERS.map(filter => (
-                                                                    <Button
-                                                                        key={filter}
-                                                                        onClick={() => setTimeRange(filter)}
-                                                                        variant={timeRange === filter ? 'default' : 'secondary'}
-                                                                        className="px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium"
-                                                                    >
-                                                                        {TIME_RANGE_CONFIGS[filter].label}
-                                                                    </Button>
-                                                                ))
-                                                            }
-                                                        </div >
+                            <div className="flex gap-2 overflow-x-auto pb-2 mb-3" >
+                                {
+                                    SALES_HISTORY_FILTERS.map(filter => (
+                                        <Button
+                                            key={filter}
+                                            onClick={() => setTimeRange(filter)}
+                                            variant={timeRange === filter ? 'default' : 'secondary'}
+                                            className="px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium"
+                                        >
+                                            {TIME_RANGE_CONFIGS[filter].label}
+                                        </Button>
+                                    ))
+                                }
+                            </div >
 
                             {/* Date range personnalisée */}
                             {
@@ -467,26 +466,26 @@ export default function SalesHistoryPage() {
                             </div>
 
                             {/* Mode d'affichage */}
-                                                        <div className="flex gap-2 overflow-x-auto pb-2">
-                                                            {[
-                                                                { value: 'list', icon: Users, label: 'Liste' },
-                                                                { value: 'cards', icon: Eye, label: 'Détails' },
-                                                                { value: 'analytics', icon: TrendingUp, label: 'Analytics' }
-                                                            ].map(mode => {
-                                                                const Icon = mode.icon;
-                                                                return (
-                                                                    <Button
-                                                                        key={mode.value}
-                                                                        onClick={() => setViewMode(mode.value as ViewMode)}
-                                                                        variant={viewMode === mode.value ? 'default' : 'secondary'}
-                                                                        className="px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium flex items-center gap-1"
-                                                                    >
-                                                                        <Icon size={14} className="mr-1" />
-                                                                        {mode.label}
-                                                                    </Button>
-                                                                );
-                                                            })}
-                                                        </div >
+                            <div className="flex gap-2 overflow-x-auto pb-2">
+                                {[
+                                    { value: 'list', icon: Users, label: 'Liste' },
+                                    { value: 'cards', icon: Eye, label: 'Détails' },
+                                    { value: 'analytics', icon: TrendingUp, label: 'Analytics' }
+                                ].map(mode => {
+                                    const Icon = mode.icon;
+                                    return (
+                                        <Button
+                                            key={mode.value}
+                                            onClick={() => setViewMode(mode.value as ViewMode)}
+                                            variant={viewMode === mode.value ? 'default' : 'secondary'}
+                                            className="px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium flex items-center gap-1"
+                                        >
+                                            <Icon size={14} className="mr-1" />
+                                            {mode.label}
+                                        </Button>
+                                    );
+                                })}
+                            </div >
                         </div >
 
                         {/* Contenu scrollable */}
@@ -578,22 +577,20 @@ export default function SalesHistoryPage() {
                                     <Button
                                         onClick={() => setExportFormat('excel')}
                                         variant="ghost"
-                                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                                            exportFormat === 'excel'
-                                                ? 'bg-white text-amber-900'
-                                                : 'text-white hover:bg-white/10'
-                                        }`}
+                                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${exportFormat === 'excel'
+                                            ? 'bg-white text-amber-900'
+                                            : 'text-white hover:bg-white/10'
+                                            }`}
                                     >
                                         Excel
                                     </Button>
                                     <Button
                                         onClick={() => setExportFormat('csv')}
                                         variant="ghost"
-                                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                                            exportFormat === 'csv'
-                                                ? 'bg-white text-amber-900'
-                                                : 'text-white hover:bg-white/10'
-                                        }`}
+                                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${exportFormat === 'csv'
+                                            ? 'bg-white text-amber-900'
+                                            : 'text-white hover:bg-white/10'
+                                            }`}
                                     >
                                         CSV
                                     </Button>

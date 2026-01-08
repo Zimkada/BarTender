@@ -1,9 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useDateRangeFilter } from '../../../../hooks/useDateRangeFilter';
 import { dateToYYYYMMDD, filterByBusinessDateRange } from '../../../../utils/businessDateHelpers';
-import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../../../../utils/businessDay';
-import { getSaleDate } from '../../../../utils/saleHelpers';
-import { useBarContext } from '../../../../context/BarContext';
 import type { Sale, SaleItem, Consignment, Return } from '../../../../types';
 
 interface UseSalesFiltersProps {
@@ -16,7 +13,6 @@ interface UseSalesFiltersProps {
 
 export function useSalesFilters({ sales, consignments, returns = [], currentSession, closeHour }: UseSalesFiltersProps) {
     const [searchTerm, setSearchTerm] = useState('');
-    const { currentBar } = useBarContext();
 
     // 1. Hook de filtrage temporel
     const dateFilter = useDateRangeFilter({
@@ -25,12 +21,11 @@ export function useSalesFilters({ sales, consignments, returns = [], currentSess
         closeHour
     });
 
-    const { startDate, endDate, timeRange, customRange } = dateFilter;
+    const { startDate, endDate } = dateFilter;
 
     // 2. Filtrage des ventes
     const filteredSales = useMemo(() => {
         const isServer = currentSession?.role === 'serveur';
-        const operatingMode = currentBar?.settings?.operatingMode || 'full';
 
         // A. Filtrage initial basé sur le rôle et le mode opérationnel
         const baseSales = sales.filter(sale => {
@@ -66,12 +61,11 @@ export function useSalesFilters({ sales, consignments, returns = [], currentSess
             const dateB = new Date(b.validatedAt || b.createdAt);
             return dateB.getTime() - dateA.getTime();
         });
-    }, [sales, startDate, endDate, searchTerm, currentSession, closeHour, currentBar?.settings?.operatingMode]);
+    }, [sales, startDate, endDate, searchTerm, currentSession, closeHour]);
 
     // 3. Filtrage des consignations
     const filteredConsignments = useMemo(() => {
         const isServer = currentSession?.role === 'serveur';
-        const operatingMode = currentBar?.settings?.operatingMode || 'full';
 
         // A. Filtrage initial basé sur le rôle et le mode opérationnel
         const baseConsignments = consignments.filter(consignment => {
@@ -91,12 +85,11 @@ export function useSalesFilters({ sales, consignments, returns = [], currentSess
 
         // C. Tri final
         return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    }, [consignments, startDate, endDate, currentSession, closeHour, currentBar?.settings?.operatingMode]);
+    }, [consignments, startDate, endDate, currentSession, closeHour]);
 
     // 4. Filtrage des retours
     const filteredReturns = useMemo(() => {
         const isServer = currentSession?.role === 'serveur';
-        const operatingMode = currentBar?.settings?.operatingMode || 'full';
 
         // A. Filtrage initial basé sur le rôle et le mode opérationnel
         const baseReturns = returns.filter(returnItem => {
@@ -116,7 +109,7 @@ export function useSalesFilters({ sales, consignments, returns = [], currentSess
 
         // C. Tri final
         return filtered.sort((a, b) => new Date(b.returnedAt).getTime() - new Date(a.returnedAt).getTime());
-    }, [returns, startDate, endDate, currentSession, closeHour, currentBar?.settings?.operatingMode]);
+    }, [returns, startDate, endDate, currentSession, closeHour]);
 
     return {
         ...dateFilter,

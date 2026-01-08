@@ -18,7 +18,7 @@ export const BAR_TEMPLATE: Omit<Bar, 'id' | 'createdAt' | 'ownerId'> = {
     currencySymbol: ' FCFA',
     timezone: 'Africa/Porto-Novo',
     language: 'fr',
-    operatingMode: 'full', // Mode complet (avec comptes serveurs)
+    operatingMode: 'simplified', // Mode simplifié par défaut
     consignmentExpirationDays: 7, // Consignations expirent après 7 jours
   },
 };
