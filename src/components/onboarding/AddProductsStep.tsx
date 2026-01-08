@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
+import { useAuth } from '@/context/AuthContext';
+import { useBar } from '@/context/BarContext';
 import { LoadingButton } from '@/components/ui/LoadingButton';
+import { OnboardingService } from '@/services/supabase/onboarding.service';
 
 interface AddProductsFormData {
   productIds: string[];
 }
 
 export const AddProductsStep: React.FC = () => {
+  const { currentSession } = useAuth();
+  const { currentBar } = useBar();
   const { stepData, updateStepData, completeStep, nextStep } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string>('');
@@ -18,9 +23,9 @@ export const AddProductsStep: React.FC = () => {
   });
 
   const handleOpenProductSelector = () => {
-    // This would open a modal to select products from global catalog
+    // TODO: Implement product selector modal
     // For now, show placeholder
-    alert('Product selector modal would appear here (global catalog)');
+    alert('Product selector modal would appear here\n\nImplementation TODO:\n- Browse global products\n- Filter by category\n- Set local prices\n- Select multiple');
   };
 
   const handleRemoveProduct = (productId: string) => {
@@ -31,6 +36,7 @@ export const AddProductsStep: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors('');
 
     // HARD BLOCKER: At least 1 product required
     if (formData.productIds.length === 0) {
@@ -40,12 +46,34 @@ export const AddProductsStep: React.FC = () => {
 
     setLoading(true);
     try {
+      if (!currentSession?.user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      if (!currentBar?.id) {
+        throw new Error('Bar not found');
+      }
+
+      const userId = currentSession.user.id;
+      const barId = currentBar.id;
+
+      // Add products to bar via API
+      const productsWithPrices = formData.productIds.map((id) => ({
+        productId: id,
+        localPrice: 0, // Would be set in product selector modal
+      }));
+
+      await OnboardingService.addProductsToBar(barId, productsWithPrices, userId);
+
+      // Save form data to context
       updateStepData(OnboardingStep.OWNER_ADD_PRODUCTS, formData);
       completeStep(OnboardingStep.OWNER_ADD_PRODUCTS, formData);
+
+      // Move to next step
       nextStep();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving products:', error);
-      setErrors('Failed to save products');
+      setErrors(error.message || 'Failed to save products');
     } finally {
       setLoading(false);
     }

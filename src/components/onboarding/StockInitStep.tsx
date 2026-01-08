@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
+import { useAuth } from '@/context/AuthContext';
+import { useBar } from '@/context/BarContext';
 import { LoadingButton } from '@/components/ui/LoadingButton';
+import { OnboardingService } from '@/services/supabase/onboarding.service';
 
 interface StockInitFormData {
   stocks: Record<string, number>;
 }
 
 export const StockInitStep: React.FC = () => {
+  const { currentSession } = useAuth();
+  const { currentBar } = useBar();
   const { stepData, updateStepData, completeStep, nextStep } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string>('');
@@ -34,6 +39,7 @@ export const StockInitStep: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors('');
 
     // Validate: all products have stock entry (can be 0)
     const hasAllStocks = productIds.every((id) => formData.stocks[id] !== undefined);
@@ -44,12 +50,29 @@ export const StockInitStep: React.FC = () => {
 
     setLoading(true);
     try {
+      if (!currentSession?.user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      if (!currentBar?.id) {
+        throw new Error('Bar not found');
+      }
+
+      const userId = currentSession.user.id;
+      const barId = currentBar.id;
+
+      // Initialize stock via API
+      await OnboardingService.initializeStock(barId, formData.stocks, userId);
+
+      // Save form data to context
       updateStepData(OnboardingStep.OWNER_STOCK_INIT, formData);
       completeStep(OnboardingStep.OWNER_STOCK_INIT, formData);
+
+      // Move to next step
       nextStep();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving stock:', error);
-      setErrors('Failed to save stock');
+      setErrors(error.message || 'Failed to save stock');
     } finally {
       setLoading(false);
     }
