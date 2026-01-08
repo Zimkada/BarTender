@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
 import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
+import { useAuth } from '@/context/AuthContext';
+import { useBar } from '@/context/BarContext';
 import { LoadingButton } from '@/components/ui/LoadingButton';
+import { OnboardingService } from '@/services/supabase/onboarding.service';
 
 interface AddManagersFormData {
   managerIds: string[];
 }
 
 export const AddManagersStep: React.FC = () => {
+  const { currentSession } = useAuth();
+  const { currentBar } = useBar();
   const { stepData, updateStepData, completeStep, nextStep } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string>('');
+  const [validationError, setValidationError] = useState<string>('');
 
   // Initialize form with saved data
   const savedData = stepData[OnboardingStep.OWNER_ADD_MANAGERS] as AddManagersFormData | undefined;
@@ -18,9 +24,9 @@ export const AddManagersStep: React.FC = () => {
   });
 
   const handleAddManager = () => {
-    // This would open a modal to search/invite users
-    // For now, we'll show a placeholder
-    alert('Manager search/invite modal would appear here');
+    // TODO: Implement manager search/invite modal
+    // For now, show placeholder - would integrate with user search & email invite
+    alert('Manager search/invite modal would appear here\n\nImplementation TODO:\n- Search existing users\n- Send email invites\n- Track pending invitations');
   };
 
   const handleRemoveManager = (managerId: string) => {
@@ -31,18 +37,45 @@ export const AddManagersStep: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationError('');
+    setErrors('');
 
     setLoading(true);
     try {
+      if (!currentSession?.user?.id) {
+        throw new Error('User not authenticated');
+      }
+
+      if (!currentBar?.id) {
+        throw new Error('Bar not found');
+      }
+
+      const userId = currentSession.user.id;
+      const barId = currentBar.id;
+
+      // Assign each manager via API (will be called again in ReviewStep, but also saved here)
+      if (formData.managerIds && formData.managerIds.length > 0) {
+        for (const managerId of formData.managerIds) {
+          // Verify manager exists before assigning
+          // (In real impl, would check if user exists)
+          try {
+            await OnboardingService.assignManager(managerId, barId, userId);
+          } catch (error: any) {
+            console.warn(`Failed to assign manager ${managerId}:`, error);
+            // Continue with next manager - don't fail the whole step
+          }
+        }
+      }
+
       // Save form data to context
       updateStepData(OnboardingStep.OWNER_ADD_MANAGERS, formData);
       completeStep(OnboardingStep.OWNER_ADD_MANAGERS, formData);
 
       // Move to next step
       nextStep();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving managers:', error);
-      setErrors('Failed to save managers');
+      setErrors(error.message || 'Failed to save managers');
     } finally {
       setLoading(false);
     }
