@@ -9,6 +9,7 @@ import { ErrorBoundary } from 'react-error-boundary'; // Ajout de l'import Error
 import { AuthProvider } from './context/AuthContext';
 import { ActingAsProvider } from './context/ActingAsContext';
 import { BarProvider } from './context/BarContext';
+import { OnboardingProvider } from './context/OnboardingContext';
 import { StockProvider } from './context/StockContext';
 import { StockBridgeProvider } from './context/StockBridgeProvider';
 import { AppProvider } from './context/AppProvider';
@@ -35,7 +36,8 @@ createRoot(document.getElementById('root')!).render(
         <AuthProvider>
           <ActingAsProvider>
             <BarProvider>
-              <StockProvider>
+              <OnboardingProvider>
+                <StockProvider>
                 <StockBridgeProvider>
                   <AppProvider>
                     <ModalProvider>
@@ -49,6 +51,7 @@ createRoot(document.getElementById('root')!).render(
                   </AppProvider>
                 </StockBridgeProvider>
               </StockProvider>
+              </OnboardingProvider>
             </BarProvider>
           </ActingAsProvider>
         </AuthProvider>

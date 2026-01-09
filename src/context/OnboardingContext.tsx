@@ -52,7 +52,10 @@ export interface StepData {
     serverNames: string[];
   };
   [OnboardingStep.OWNER_ADD_PRODUCTS]?: {
-    productIds: string[];
+    products: Array<{
+      productId: string;
+      localPrice: number;
+    }>;
   };
   [OnboardingStep.OWNER_STOCK_INIT]?: {
     stocks: Record<string, number>;

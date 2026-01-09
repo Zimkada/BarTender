@@ -4,6 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useBar } from '@/context/BarContext';
 import { LoadingButton } from '@/components/ui/LoadingButton';
 import { OnboardingService } from '@/services/supabase/onboarding.service';
+import { ManagerSearchModal } from './modals/ManagerSearchModal';
 
 interface AddManagersFormData {
   managerIds: string[];
@@ -16,6 +17,7 @@ export const AddManagersStep: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string>('');
   const [validationError, setValidationError] = useState<string>('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Initialize form with saved data
   const savedData = stepData[OnboardingStep.OWNER_ADD_MANAGERS] as AddManagersFormData | undefined;
@@ -24,9 +26,13 @@ export const AddManagersStep: React.FC = () => {
   });
 
   const handleAddManager = () => {
-    // TODO: Implement manager search/invite modal
-    // For now, show placeholder - would integrate with user search & email invite
-    alert('Manager search/invite modal would appear here\n\nImplementation TODO:\n- Search existing users\n- Send email invites\n- Track pending invitations');
+    setIsModalOpen(true);
+  };
+
+  const handleModalConfirm = (managerIds: string[]) => {
+    const newManagerIds = Array.from(new Set([...formData.managerIds, ...managerIds]));
+    setFormData({ managerIds: newManagerIds });
+    setIsModalOpen(false);
   };
 
   const handleRemoveManager = (managerId: string) => {
@@ -175,6 +181,14 @@ export const AddManagersStep: React.FC = () => {
           </div>
         </form>
       </div>
+
+      {/* Manager Search Modal */}
+      <ManagerSearchModal
+        isOpen={isModalOpen}
+        onConfirm={handleModalConfirm}
+        onCancel={() => setIsModalOpen(false)}
+        selectedIds={formData.managerIds}
+      />
     </div>
   );
 };

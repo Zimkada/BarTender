@@ -3,6 +3,10 @@ import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
 import { useAuth } from '@/context/AuthContext';
 import { useBar } from '@/context/BarContext';
 
+// Welcome & Role detection
+import { WelcomeStep } from './WelcomeStep';
+import { RoleDetectedStep } from './RoleDetectedStep';
+
 // Owner components
 import { BarDetailsStep } from './BarDetailsStep';
 import { AddManagersStep } from './AddManagersStep';
@@ -47,6 +51,12 @@ export const OnboardingFlow: React.FC = () => {
   // Render appropriate component based on current step
   const renderStep = () => {
     switch (currentStep) {
+      // Welcome & Role detection
+      case OnboardingStep.WELCOME:
+        return <WelcomeStep />;
+      case OnboardingStep.ROLE_DETECTED:
+        return <RoleDetectedStep />;
+
       // Owner/Promoter path
       case OnboardingStep.OWNER_BAR_DETAILS:
         return <BarDetailsStep />;

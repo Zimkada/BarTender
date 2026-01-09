@@ -10,7 +10,7 @@ export const ReviewStep: React.FC = () => {
   const navigate = useNavigate();
   const { currentSession } = useAuth();
   const { currentBar } = useBar();
-  const { stepData, completeOnboarding } = useOnboarding();
+  const { stepData, completeOnboarding, goToStep } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string>('');
 
@@ -23,7 +23,7 @@ export const ReviewStep: React.FC = () => {
 
   const managerCount = managers?.managerIds?.length || 0;
   const staffCount = staff?.serverNames?.length || 0;
-  const productCount = products?.productIds?.length || 0;
+  const productCount = products?.products?.length || 0;
   const totalStock = Object.values(stock?.stocks || {}).reduce((sum: number, qty: any) => sum + (qty || 0), 0);
 
   const handleLaunch = async (e: React.FormEvent) => {
@@ -55,12 +55,8 @@ export const ReviewStep: React.FC = () => {
       }
 
       // Step 3: Add products
-      if (products?.productIds && products.productIds.length > 0) {
-        const productsWithPrices = products.productIds.map((id: string) => ({
-          productId: id,
-          localPrice: 0, // Would be set in product selector modal
-        }));
-        await OnboardingService.addProductsToBar(barId, productsWithPrices, userId);
+      if (products?.products && products.products.length > 0) {
+        await OnboardingService.addProductsToBar(barId, products.products, userId);
       }
 
       // Step 4: Initialize stock
@@ -92,8 +88,7 @@ export const ReviewStep: React.FC = () => {
   };
 
   const handleEditStep = (step: OnboardingStep) => {
-    // Would navigate back to specific step
-    console.log('Edit step:', step);
+    goToStep(step);
   };
 
   return (

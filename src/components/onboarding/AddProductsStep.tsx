@@ -4,10 +4,18 @@ import { useAuth } from '@/context/AuthContext';
 import { useBar } from '@/context/BarContext';
 import { LoadingButton } from '@/components/ui/LoadingButton';
 import { OnboardingService } from '@/services/supabase/onboarding.service';
+import { ProductSelectorModal } from './modals/ProductSelectorModal';
+
+interface ProductWithPrice {
+  productId: string;
+  localPrice: number;
+}
 
 interface AddProductsFormData {
-  productIds: string[];
+  products: ProductWithPrice[];
 }
+
+type SelectedProduct = ProductWithPrice;
 
 export const AddProductsStep: React.FC = () => {
   const { currentSession } = useAuth();
@@ -15,22 +23,31 @@ export const AddProductsStep: React.FC = () => {
   const { stepData, updateStepData, completeStep, nextStep } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string>('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Initialize form with saved data
   const savedData = stepData[OnboardingStep.OWNER_ADD_PRODUCTS] as AddProductsFormData | undefined;
   const [formData, setFormData] = useState<AddProductsFormData>({
-    productIds: savedData?.productIds || [],
+    products: savedData?.products || [],
   });
 
   const handleOpenProductSelector = () => {
-    // TODO: Implement product selector modal
-    // For now, show placeholder
-    alert('Product selector modal would appear here\n\nImplementation TODO:\n- Browse global products\n- Filter by category\n- Set local prices\n- Select multiple');
+    setIsModalOpen(true);
+  };
+
+  const handleModalConfirm = (products: SelectedProduct[]) => {
+    // Merge with existing products (avoid duplicates)
+    const existingIds = new Set(formData.products.map((p) => p.productId));
+    const newProducts = products.filter((p) => !existingIds.has(p.productId));
+    setFormData({
+      products: [...formData.products, ...newProducts],
+    });
+    setIsModalOpen(false);
   };
 
   const handleRemoveProduct = (productId: string) => {
     setFormData((prev) => ({
-      productIds: prev.productIds.filter((id) => id !== productId),
+      products: prev.products.filter((p) => p.productId !== productId),
     }));
   };
 
@@ -39,7 +56,7 @@ export const AddProductsStep: React.FC = () => {
     setErrors('');
 
     // HARD BLOCKER: At least 1 product required
-    if (formData.productIds.length === 0) {
+    if (formData.products.length === 0) {
       setErrors('❌ At least 1 product required. You cannot create sales without products.');
       return;
     }
@@ -57,13 +74,8 @@ export const AddProductsStep: React.FC = () => {
       const userId = currentSession.user.id;
       const barId = currentBar.id;
 
-      // Add products to bar via API
-      const productsWithPrices = formData.productIds.map((id) => ({
-        productId: id,
-        localPrice: 0, // Would be set in product selector modal
-      }));
-
-      await OnboardingService.addProductsToBar(barId, productsWithPrices, userId);
+      // Add products to bar via API (products already have prices from modal)
+      await OnboardingService.addProductsToBar(barId, formData.products, userId);
 
       // Save form data to context
       updateStepData(OnboardingStep.OWNER_ADD_PRODUCTS, formData);
@@ -94,18 +106,18 @@ export const AddProductsStep: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Product Count */}
           <div className={`p-4 border rounded-lg ${
-            formData.productIds.length === 0
+            formData.products.length === 0
               ? 'bg-red-50 border-red-200'
               : 'bg-green-50 border-green-200'
           }`}>
             <p className={`text-sm font-medium ${
-              formData.productIds.length === 0
+              formData.products.length === 0
                 ? 'text-red-900'
                 : 'text-green-900'
             }`}>
-              Products added: <strong>{formData.productIds.length}</strong>
+              Products added: <strong>{formData.products.length}</strong>
             </p>
-            {formData.productIds.length === 0 && (
+            {formData.products.length === 0 && (
               <p className="mt-1 text-sm text-red-700">
                 ⚠️ <strong>REQUIRED:</strong> Add at least 1 product
               </p>
@@ -113,17 +125,20 @@ export const AddProductsStep: React.FC = () => {
           </div>
 
           {/* Product List */}
-          {formData.productIds.length > 0 && (
+          {formData.products.length > 0 && (
             <div className="space-y-2">
-              {formData.productIds.map((productId) => (
+              {formData.products.map((product) => (
                 <div
-                  key={productId}
+                  key={product.productId}
                   className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg"
                 >
-                  <span className="text-sm text-gray-900">Product: {productId}</span>
+                  <div>
+                    <span className="text-sm text-gray-900 block">ID: {product.productId}</span>
+                    <span className="text-xs text-gray-600">Price: {product.localPrice.toFixed(2)}€</span>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => handleRemoveProduct(productId)}
+                    onClick={() => handleRemoveProduct(product.productId)}
                     className="text-red-600 hover:text-red-700 text-sm font-medium"
                   >
                     Remove
@@ -173,13 +188,21 @@ export const AddProductsStep: React.FC = () => {
               isLoading={loading}
               loadingText="Saving..."
               className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-              disabled={formData.productIds.length === 0}
+              disabled={formData.products.length === 0}
             >
               Next Step
             </LoadingButton>
           </div>
         </form>
       </div>
+
+      {/* Product Selector Modal */}
+      <ProductSelectorModal
+        isOpen={isModalOpen}
+        onConfirm={handleModalConfirm}
+        onCancel={() => setIsModalOpen(false)}
+        selectedProducts={formData.products}
+      />
     </div>
   );
 };
