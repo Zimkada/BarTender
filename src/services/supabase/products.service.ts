@@ -282,7 +282,7 @@ export class ProductsService {
         .rpc('get_bar_products', {
           p_bar_id: barId,
           p_impersonating_user_id: impersonatingUserId || null,
-          p_limit: options?.limit || 50,
+          p_limit: options?.limit || 500,
           p_offset: options?.offset || 0,
         });
 
