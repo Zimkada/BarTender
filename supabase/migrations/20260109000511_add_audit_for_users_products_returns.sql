@@ -29,10 +29,10 @@ CREATE TABLE IF NOT EXISTS user_audit_log (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_user_audit_user ON user_audit_log(user_id);
-CREATE INDEX idx_user_audit_action ON user_audit_log(action);
-CREATE INDEX idx_user_audit_created ON user_audit_log(created_at DESC);
-CREATE INDEX idx_user_audit_modified_by ON user_audit_log(modified_by);
+CREATE INDEX IF NOT EXISTS idx_user_audit_user ON user_audit_log(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_audit_action ON user_audit_log(action);
+CREATE INDEX IF NOT EXISTS idx_user_audit_created ON user_audit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_user_audit_modified_by ON user_audit_log(modified_by);
 
 COMMENT ON TABLE user_audit_log IS 'Audit trail for user account changes - creation, modification, deactivation';
 
@@ -59,10 +59,10 @@ CREATE TABLE IF NOT EXISTS bar_product_audit_log (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_bar_product_audit_bar ON bar_product_audit_log(bar_id);
-CREATE INDEX idx_bar_product_audit_product ON bar_product_audit_log(product_id);
-CREATE INDEX idx_bar_product_audit_action ON bar_product_audit_log(action);
-CREATE INDEX idx_bar_product_audit_created ON bar_product_audit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_bar_product_audit_bar ON bar_product_audit_log(bar_id);
+CREATE INDEX IF NOT EXISTS idx_bar_product_audit_product ON bar_product_audit_log(product_id);
+CREATE INDEX IF NOT EXISTS idx_bar_product_audit_action ON bar_product_audit_log(action);
+CREATE INDEX IF NOT EXISTS idx_bar_product_audit_created ON bar_product_audit_log(created_at DESC);
 
 COMMENT ON TABLE bar_product_audit_log IS 'Audit trail for bar-specific product changes (price, stock, visibility)';
 
@@ -88,10 +88,10 @@ CREATE TABLE IF NOT EXISTS return_audit_log (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_return_audit_return ON return_audit_log(return_id);
-CREATE INDEX idx_return_audit_sale ON return_audit_log(sale_id);
-CREATE INDEX idx_return_audit_bar ON return_audit_log(bar_id);
-CREATE INDEX idx_return_audit_created ON return_audit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_return_audit_return ON return_audit_log(return_id);
+CREATE INDEX IF NOT EXISTS idx_return_audit_sale ON return_audit_log(sale_id);
+CREATE INDEX IF NOT EXISTS idx_return_audit_bar ON return_audit_log(bar_id);
+CREATE INDEX IF NOT EXISTS idx_return_audit_created ON return_audit_log(created_at DESC);
 
 COMMENT ON TABLE return_audit_log IS 'Audit trail for returns/refunds - when created and cancelled';
 
@@ -128,14 +128,12 @@ BEGIN
       'email', OLD.email,
       'name', OLD.name,
       'is_active', OLD.is_active,
-      'role', OLD.role,
       'created_at', OLD.created_at
     ) END,
     CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE jsonb_build_object(
       'email', NEW.email,
       'name', NEW.name,
       'is_active', NEW.is_active,
-      'role', NEW.role,
       'created_at', NEW.created_at
     ) END,
     auth.uid()
@@ -273,29 +271,62 @@ ALTER TABLE bar_product_audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE return_audit_log ENABLE ROW LEVEL SECURITY;
 
 -- Only super_admins can view these audit logs
-CREATE POLICY "Super admins can view user audit logs"
-ON user_audit_log FOR SELECT
-USING (is_super_admin());
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'user_audit_log' AND policyname = 'Super admins can view user audit logs'
+  ) THEN
+    CREATE POLICY "Super admins can view user audit logs"
+    ON user_audit_log FOR SELECT
+    USING (is_super_admin());
+  END IF;
 
-CREATE POLICY "System can create user audit logs"
-ON user_audit_log FOR INSERT
-WITH CHECK (true);
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'user_audit_log' AND policyname = 'System can create user audit logs'
+  ) THEN
+    CREATE POLICY "System can create user audit logs"
+    ON user_audit_log FOR INSERT
+    WITH CHECK (true);
+  END IF;
 
-CREATE POLICY "Super admins can view bar product audit logs"
-ON bar_product_audit_log FOR SELECT
-USING (is_super_admin());
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'bar_product_audit_log' AND policyname = 'Super admins can view bar product audit logs'
+  ) THEN
+    CREATE POLICY "Super admins can view bar product audit logs"
+    ON bar_product_audit_log FOR SELECT
+    USING (is_super_admin());
+  END IF;
 
-CREATE POLICY "System can create bar product audit logs"
-ON bar_product_audit_log FOR INSERT
-WITH CHECK (true);
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'bar_product_audit_log' AND policyname = 'System can create bar product audit logs'
+  ) THEN
+    CREATE POLICY "System can create bar product audit logs"
+    ON bar_product_audit_log FOR INSERT
+    WITH CHECK (true);
+  END IF;
 
-CREATE POLICY "Super admins can view return audit logs"
-ON return_audit_log FOR SELECT
-USING (is_super_admin());
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'return_audit_log' AND policyname = 'Super admins can view return audit logs'
+  ) THEN
+    CREATE POLICY "Super admins can view return audit logs"
+    ON return_audit_log FOR SELECT
+    USING (is_super_admin());
+  END IF;
 
-CREATE POLICY "System can create return audit logs"
-ON return_audit_log FOR INSERT
-WITH CHECK (true);
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'return_audit_log' AND policyname = 'System can create return audit logs'
+  ) THEN
+    CREATE POLICY "System can create return audit logs"
+    ON return_audit_log FOR INSERT
+    WITH CHECK (true);
+  END IF;
+END $$;
 
 -- =====================================================
 -- 8. GRANT PERMISSIONS

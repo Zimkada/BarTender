@@ -1,10 +1,10 @@
 # 📚 HISTORIQUE COMPLET DES MIGRATIONS - BarTender Pro
 
-**Version** : 1.2
+**Version** : 1.3
 **Date** : 9 janvier 2026
-**Nombre de migrations** : ~175 (001 à 20260109000512)
+**Nombre de migrations** : ~177 (001 à 20260109000516)
 **Périodes couvertes** : 19 nov 2025 - 9 jan 2026
-**Statut** : Production-ready avec hardening sécurité complet + Audit logs complet + Console errors fixed
+**Statut** : Production-ready avec hardening sécurité + Audit logs + RLS bypass fixes + Console errors fixed
 
 ---
 
@@ -56,14 +56,16 @@
 ├─ PHASE 11: MONITORING & ALERTS (20251227-29) [27-29 déc] 🚨 Observability
 ├─ PHASE 12: PROMOTIONS AVANCÉES (20260102-06) [2-6 jan]   💰 ROI
 ├─ PHASE 13: SECURITY HARDENING (20260106-07) [6-7 jan]   🔐 Defense
-└─ PHASE 14: AUDIT LOGS COMPLET (20260109000503-512) [9 jan] 📋 Visibility + RLS
-   ├─ 503: Fix is_super_admin() function (SECURITY DEFINER)
-   ├─ 505: Fix materialized_view_metrics RLS
-   ├─ 506: Fix get_paginated_catalog_logs RPC
-   ├─ 507: Fix get_paginated_audit_logs RPC
-   ├─ 510: Diagnostic is_super_admin() (testing)
-   ├─ 511: Add audit for users, products, returns ✨
-   └─ 512: Disable SALE_CREATED logging (too verbose)
+└─ PHASE 14: AUDIT LOGS & RLS FIXES (20260109000503-516) [9 jan] 📋 Visibility + RLS bypass fixes
+   ├─ 503: Fix is_super_admin() function (SECURITY DEFINER) ✅
+   ├─ 505: Fix materialized_view_metrics RLS ✅
+   ├─ 506: Fix get_paginated_catalog_logs RPC ✅
+   ├─ 507: Fix get_paginated_audit_logs RPC ✅
+   ├─ 510: Diagnostic is_super_admin() (testing) ✅
+   ├─ 511: Add audit for users, products, returns ✨✅
+   ├─ 512: Disable SALE_CREATED logging (too verbose) ✅
+   ├─ 515: Restore metric views grants 🔧
+   └─ 516: Fix product_sales_stats RLS bypass (SECURITY DEFINER helper) 🔐
 ```
 
 ### Métriques de Santé Projet
@@ -943,7 +945,79 @@ WHERE bar_id IN (SELECT bar_id FROM bar_members WHERE user_id = auth.uid());
 
 ---
 
-### PHASE 14 : STANDARDISATION CONVENTIONS & CLEANUP
+### PHASE 14 : AUDIT LOGS COMPLETS & PRODUCTION DEBUG
+**Période** : 9 janvier 2026 | **Migrations** : 20260109000503-517
+**Thème** : Audit trail complet + Fixes console errors (Prévisions, login)
+**Impact** : 🔐 Production-ready avec visibility + sécurité renforcée
+
+#### 🔧 503 - Fix is_super_admin() Function
+[20260109000503_fix_is_super_admin.sql](supabase/migrations/20260109000503_fix_is_super_admin.sql)
+
+**Problème** : Audit logs invisibles - `is_super_admin()` cherchait rôle dans bar_members
+- Super_admin existe que dans "system bar" UUID spéciale
+- Utilisateurs normaux n'avaient pas accès aux audit_logs
+
+**Solution** : Changer `is_super_admin()` pour lire `auth.users.is_super_admin` column directement avec SECURITY DEFINER
+
+**Impact** : ✅ Audit logs maintenant visibles aux admins
+
+#### 🔧 511 - Add Audit for Users, Products, Returns
+[20260109000511_add_audit_for_users_products_returns.sql](supabase/migrations/20260109000511_add_audit_for_users_products_returns.sql)
+
+**Ajouts** :
+- `user_audit_log` : Trace CREATE, UPDATE, DELETE, DEACTIVATE, REACTIVATE d'utilisateurs
+- `bar_product_audit_log` : Trace CREATE, UPDATE, DELETE des produits par bar
+- `return_audit_log` : Trace CREATE, CANCEL des retours/remboursements
+
+**Triggers** : Chaque table enregistre old_values, new_values, modified_by user_id, created_at
+
+**Complexité** : Idempotency → migrations 511 exécutée 2x nécessite `IF NOT EXISTS` sur indexes/policies
+
+**Impact** : 📊 Audit trail complet pour compliance GDPR/fraud detection
+
+#### 🔧 512 - Disable SALE_CREATED Logging
+[20260109000512_disable_sale_audit_logging.sql](supabase/migrations/20260109000512_disable_sale_audit_logging.sql)
+
+**Décision** : Désactiver trigger `SALE_CREATED` sur table sales
+- Raison : Audit log explosion avec scale (100 bars × 50 ventes/jour = 5000 logs/jour)
+- Sales déjà tracées : created_by, created_at dans table sales
+- Bénéfice : Audit logs reste maintenable/searchable
+
+**Impact** : ✅ Audit log optimisé pour production
+
+#### 🔐 515 - Restore Metric Views Grants
+[20260109000515_restore_metric_views_grants.sql](supabase/migrations/20260109000515_restore_metric_views_grants.sql)
+
+**Découverte** : Migration 20260107 (security_invoker conversion) avait supprimé GRANT SELECT
+- 7 vues devenues inaccessibles (403 Forbidden)
+- Vues affectées : product_sales_stats, bar_stats_multi_period, daily_sales_summary, etc.
+
+**Solution** : Re-appliquer `GRANT SELECT ON <view> TO authenticated` pour toutes les vues
+
+**Verdict** : ⚠️ Partiellement insuffisant - ne fixe pas RLS subquery blocking
+
+#### 🔐 516 - Fix product_sales_stats RLS Bypass
+[20260109000516_fix_product_sales_stats_rls_bypass.sql](supabase/migrations/20260109000516_fix_product_sales_stats_rls_bypass.sql)
+
+**ROOT CAUSE DÉCOUVERT** : Vues avec `security_invoker = true` + subquery à bar_members
+- RLS policies sur bar_members bloquaient la subquery
+- Résultat : WHERE filters retournaient 0 lignes même si data existe
+
+**Solution** : Créer `get_user_bars()` fonction avec SECURITY DEFINER
+```sql
+CREATE FUNCTION get_user_bars() RETURNS TABLE(bar_id UUID)
+SECURITY DEFINER AS $$
+  SELECT bar_id FROM bar_members
+  WHERE user_id = auth.uid() AND is_active = true;
+$$
+```
+
+**Puis** : Recreate toutes 7 vues pour utiliser `WHERE bar_id IN (SELECT bar_id FROM get_user_bars())`
+
+**Impact** : ✅ Prévisions menu NOW WORKING (user confirmed)
+
+
+### PHASE 14 ALT : STANDARDISATION CONVENTIONS & CLEANUP (Commit 7f0482e)
 **Période** : 7 janvier 2026 | **Migrations** : 056a, 057a renommés
 **Thème** : Git history propre, conventions futures
 **Impact** : 📋 Infrastructure de développement stabilisée
