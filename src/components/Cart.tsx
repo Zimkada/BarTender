@@ -74,9 +74,10 @@ export function Cart({
           return; // ← BLOQUER LA CRÉATION
         }
       } catch (error: unknown) {
-          `❌ Impossible d'attribuer la vente:\n\n` +
-          `${error instanceof Error ? error.message : 'Erreur réseau lors de la résolution du serveur'}\n\n` +
-          `Réessayez ou contactez l'administrateur.`;
+          const errorMessage =
+            `❌ Impossible d'attribuer la vente:\n\n` +
+            `${error instanceof Error ? error.message : 'Erreur réseau lors de la résolution du serveur'}\n\n` +
+            `Réessayez ou contactez l'administrateur.`;
 
         alert(errorMessage);
         console.error('[Cart] Error resolving server ID:', error);

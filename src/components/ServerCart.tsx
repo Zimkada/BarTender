@@ -1,25 +1,3 @@
-```typescript
-import { useState } from 'react';
-import { ShoppingCart, Send, Tag } from 'lucide-react';
-import { CartItem } from '../types';
-import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
-import { useFeedback } from '../hooks/useFeedback';
-import { EnhancedButton } from './EnhancedButton';
-import { AnimatedCounter } from './AnimatedCounter';
-import { useBarContext } from '../context/BarContext';
-import { PaymentMethodSelector, PaymentMethod } from './cart/PaymentMethodSelector';
-import { CartShared } from './cart/CartShared';
-import { useCartLogic } from '../hooks/useCartLogic';
-
-interface ServerCartProps {
-  items: CartItem[];
-  tableNumber: string;
-  onUpdateQuantity: (productId: string, quantity: number) => void;
-  onRemoveItem: (productId: string) => void;
-  onLaunchOrder: (paymentMethod?: PaymentMethod) => void;
-  onClear: () => void;
-}
-
 import { useState } from 'react';
 import { ShoppingCart, Send, Tag } from 'lucide-react';
 import { CartItem } from '../types';

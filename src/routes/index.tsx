@@ -35,6 +35,9 @@ const LoginScreen = lazyWithRetry(() => import('../components/LoginScreen'));
 const ForgotPasswordScreen = lazyWithRetry(() => import('../components/ForgotPasswordScreen'));
 const ResetPasswordScreen = lazyWithRetry(() => import('../components/ResetPasswordScreen'));
 
+// === Onboarding (Default Export) - TODO: Uncomment when OnboardingContext is fully implemented ===
+// const OnboardingPage = lazyWithRetry(() => import('../pages/OnboardingPage'));
+
 // === Admin Components (Default Exports) ===
 const SuperAdminPage = lazyWithRetry(() => import('../pages/SuperAdminPage'));
 const BarsManagementPage = lazyWithRetry(() => import('../pages/admin/BarsManagementPage'));
@@ -103,6 +106,7 @@ export const router = createBrowserRouter([
       { path: 'consignments', element: <ConsignmentPage /> },
       { path: 'team', element: <TeamPage /> },
       { path: 'promotions', element: <PromotionsPage /> },
+      // { path: 'onboarding', element: <OnboardingPage /> }, // TODO: Uncomment when ready
     ],
   },
   

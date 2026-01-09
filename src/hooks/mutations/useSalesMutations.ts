@@ -26,13 +26,19 @@ export const useSalesMutations = (barId: string) => {
 
     // 🔄 Helper pour détecter si c'est une erreur réseau (offline)
     const isNetworkError = (error: unknown): boolean => {
+        // Type guard: vérifier que c'est un Error object avant d'accéder à .message
+        if (!(error instanceof Error)) {
+            return !navigator.onLine; // Fallback: assume network error si offline
+        }
+
+        // Maintenant safe d'accéder à .message
         return (
             !navigator.onLine ||
             error.message === 'Failed to fetch' ||
             error.message.includes('NetworkError') ||
             error.message.includes('connection') ||
             error.message.includes('Internet') ||
-            error.code === 'PGRST000' // PostgREST connection error
+            (error as any).code === 'PGRST000' // PostgREST connection error
         );
     };
 
