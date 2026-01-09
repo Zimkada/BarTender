@@ -1615,7 +1615,7 @@ Chercher rapidement les migrations par sujet :
 
 | Aspect | Status | Evidence |
 |--------|--------|----------|
-| **Migrations** | ✅ 165 tracked | MIGRATIONS_HISTORY.md complet |
+| **Migrations** | ✅ 166 tracked | MIGRATIONS_HISTORY.md complet |
 | **Git history** | ✅ Propre | Doublons résolus (commit 66abf44) |
 | **Conventions** | ✅ Standardisées | MIGRATION_CONVENTIONS.md (commit 7f0482e) |
 | **Template** | ✅ Créé | MIGRATION_TEMPLATE.sql (commit 7f0482e) |
@@ -1632,7 +1632,36 @@ Chercher rapidement les migrations par sujet :
 
 ---
 
-**Document complet** : 📚 ~1,700 lignes | 15 phases | 165 migrations | 6 semaines
-**Généré** : 7 janvier 2026 | **Actualisé** : 7 janvier 2026
+## 🆕 PHASE 14 : CORRECTIONS ET AMÉLIORATIONS (Janvier 2026)
+
+### 20260109 - Correction validated_by en mode simplifié
+[20260109_add_validated_by_param.sql](supabase/migrations/20260109_add_validated_by_param.sql)
+
+**Problème identifié** :
+En mode simplifié, lorsque le gérant crée une vente et l'attribue à un serveur, la colonne `validated_by` était renseignée avec l'ID du serveur assigné (`sold_by`) au lieu de l'ID du gérant connecté qui effectue la validation.
+
+**Solution** :
+- Ajout du paramètre `p_validated_by UUID DEFAULT NULL` à la fonction RPC `create_sale_with_promotions`
+- Logique corrigée : `CASE WHEN p_status = 'validated' THEN COALESCE(p_validated_by, p_sold_by) ELSE NULL END`
+- Rétrocompatibilité garantie : Si `p_validated_by` non fourni, fallback sur `p_sold_by` (comportement actuel)
+
+**Impact** :
+- ✅ **Traçabilité améliorée** : Distinction claire entre qui a validé (gérant) et qui a effectué la vente (serveur)
+- ✅ **Cohérence logique** : Le validateur est bien celui qui a le pouvoir de validation
+- ✅ **Pas de breaking change** : Paramètre optionnel avec fallback
+
+**Frontend** :
+- Interface `CreateSaleData` : Ajout de `validated_by?: string`
+- Service `SalesService.createSale()` : Passage de `p_validated_by` au RPC
+- Hook `useSalesMutations` : Calcul automatique de `validatedByValue` en mode simplifié
+
+**Comportement** :
+- **Mode simplifié** : `validated_by` = ID du gérant connecté, `sold_by` = ID du serveur assigné
+- **Mode complet** : `validated_by` = NULL (renseigné lors de la validation manuelle), `sold_by` = ID du serveur créateur
+
+---
+
+**Document complet** : 📚 ~1,700 lignes | 14 phases | 166 migrations | 6 semaines
+**Généré** : 7 janvier 2026 | **Actualisé** : 9 janvier 2026
 **Statut** : Production-ready ✅ | **Sécurité** : Hardened ✅ | **Infrastructure** : Standardisée ✅
 

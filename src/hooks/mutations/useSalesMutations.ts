@@ -79,12 +79,19 @@ export const useSalesMutations = (barId: string) => {
                 ? saleData.serverId
                 : (currentSession?.userId || '');
 
+            // ✨ CORRECTION VALIDATED_BY: En mode simplifié, le gérant qui crée est le validateur
+            // En mode complet, validated_by sera NULL (sera renseigné lors de la validation manuelle)
+            const validatedByValue = isSimplifiedMode && saleData.status === 'validated'
+                ? (currentSession?.userId || null)
+                : null;
+
             const salePayload: Database['public']['Tables']['sales']['Insert'] = {
                 bar_id: barId,
                 items: itemsFormatted,
                 payment_method: saleData.paymentMethod || 'cash',
                 sold_by: soldByValue,
                 server_id: saleData.serverId || null,
+                validated_by: validatedByValue, // ✨ NOUVEAU: Gérant connecté en mode simplifié
                 status: saleData.status || 'pending', // Pending par défaut si offline
                 customer_name: saleData.customerName,
                 customer_phone: saleData.customerPhone,

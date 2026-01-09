@@ -25,6 +25,7 @@ export interface CreateSaleData {
   payment_method: 'cash' | 'mobile_money' | 'card' | 'credit';
   sold_by: string;
   server_id?: string; // ✨ NOUVEAU: UUID du serveur assigné (mode switching support)
+  validated_by?: string; // ✨ NOUVEAU: UUID du validateur (gérant en mode simplifié)
   customer_name?: string;
   customer_phone?: string;
   notes?: string;
@@ -60,6 +61,7 @@ export class SalesService {
           p_sold_by: data.sold_by,
           p_server_id: data.server_id || null, // ✨ NOUVEAU: Mode switching support
           p_status: status,
+          p_validated_by: data.validated_by || null, // ✨ NOUVEAU: Gérant qui valide en mode simplifié
           p_customer_name: data.customer_name || null,
           p_customer_phone: data.customer_phone || null,
           p_notes: data.notes || null,
