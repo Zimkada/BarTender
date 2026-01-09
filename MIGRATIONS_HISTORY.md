@@ -1,10 +1,10 @@
 # 📚 HISTORIQUE COMPLET DES MIGRATIONS - BarTender Pro
 
-**Version** : 1.0
-**Date** : 7 janvier 2026
-**Nombre de migrations** : ~165 (001 à 20260107)
-**Périodes couvertes** : 19 nov 2025 - 7 jan 2026
-**Statut** : Production-ready avec hardening sécurité complet
+**Version** : 1.2
+**Date** : 9 janvier 2026
+**Nombre de migrations** : ~175 (001 à 20260109000512)
+**Périodes couvertes** : 19 nov 2025 - 9 jan 2026
+**Statut** : Production-ready avec hardening sécurité complet + Audit logs complet + Console errors fixed
 
 ---
 
@@ -40,7 +40,7 @@
 
 ## 👀 VUE D'ENSEMBLE EXÉCUTIVE
 
-### Timeline Visuelle (13 Phases)
+### Timeline Visuelle (14 Phases)
 
 ```
 ├─ PHASE 1: FONDATIONS (001-009)              [19-20 nov]  ⚡ Auth
@@ -55,7 +55,15 @@
 ├─ PHASE 10: MODE SERVEUR (20251224-26)      [24-26 déc]  🖥️ Simplified UX
 ├─ PHASE 11: MONITORING & ALERTS (20251227-29) [27-29 déc] 🚨 Observability
 ├─ PHASE 12: PROMOTIONS AVANCÉES (20260102-06) [2-6 jan]   💰 ROI
-└─ PHASE 13: SECURITY HARDENING (20260106-07) [6-7 jan]   🔐 Defense
+├─ PHASE 13: SECURITY HARDENING (20260106-07) [6-7 jan]   🔐 Defense
+└─ PHASE 14: AUDIT LOGS COMPLET (20260109000503-512) [9 jan] 📋 Visibility + RLS
+   ├─ 503: Fix is_super_admin() function (SECURITY DEFINER)
+   ├─ 505: Fix materialized_view_metrics RLS
+   ├─ 506: Fix get_paginated_catalog_logs RPC
+   ├─ 507: Fix get_paginated_audit_logs RPC
+   ├─ 510: Diagnostic is_super_admin() (testing)
+   ├─ 511: Add audit for users, products, returns ✨
+   └─ 512: Disable SALE_CREATED logging (too verbose)
 ```
 
 ### Métriques de Santé Projet
@@ -1661,7 +1669,138 @@ En mode simplifié, lorsque le gérant crée une vente et l'attribue à un serve
 
 ---
 
-**Document complet** : 📚 ~1,700 lignes | 14 phases | 166 migrations | 6 semaines
+### 20260109 - Nettoyage Doublons Produits et Augmentation LIMIT RPC
+**Période** : 9 janvier 2026 | **Migrations** : 4 migrations + 1 code change
+**Thème** : Data cleanup, product deduplication, RPC optimization
+**Impact** : 🔧 Performance + Data quality
+
+#### Contexte Problème
+
+**Issue identifiée** :
+- Bar client voyait seulement ~50 produits alors qu'en avait 85 actifs
+- Cause root : RPC `get_bar_products()` limité à 50 par défaut
+- Symptôme : Utilisateurs pensaient produits "disparus", les récraient → 17 doublons
+- Produits menace identifiés : Guinness et Hagbè (cas client réel)
+
+#### 20260109000000 - Rapport Doublons (Diagnostic)
+[20260109000000_rapport_doublons.sql](supabase/migrations/20260109000000_rapport_doublons.sql)
+
+**Contenu** : SELECT queries de diagnostic (NON-DESTRUCTIF)
+- Requête 1 : Doublons avec détails (stock, date création, type produit)
+- Requête 2 : Statistiques globales (17 doublons identifiés)
+- Requête 3 : Liste complète produits actifs pour référence
+
+**Résultat** : 85 produits actifs, 17 noms en doublon, 68 uniques finales attendues
+
+#### 20260109000100 - Backup Produits (Sauvegarde)
+[20260109000100_backup_produits.sql](supabase/migrations/20260109000100_backup_produits.sql)
+
+**Contenu** :
+- Table `bar_products_backup_20260109` : Copie complète des produits avant nettoyage
+- Métadonnées : backup_created_at, backup_reason
+- Rollback possible si problème
+
+**Protection** : ✅ Backup permanent (pas TEMP) pour récupération d'urgence
+
+#### 20260109000200 - Table Décisions (RETIRÉE)
+[20260109000200_table_decisions_manuelles.sql](supabase/migrations/20260109000200_table_decisions_manuelles.sql)
+
+⚠️ **Créée mais non utilisée** : Utilisateur a décidé règle simple suffisait (garder le plus récent)
+- Table créée pour historique
+- Non intégrée dans migration nettoyage (utilisé CTE automatique)
+
+#### 🔴 20260109000300 - Nettoyage Doublons & Contraintes
+[20260109000300_nettoyage_doublons_contraintes.sql](supabase/migrations/20260109000300_nettoyage_doublons_contraintes.sql)
+
+**Décision métier** : Garder le PLUS RÉCENT par nom, désactiver anciens doublons
+
+**Étapes** :
+1. **Vérifications pré-migration** :
+   - Backup existe (sinon exception)
+   - Compte produits actifs avant
+
+2. **Désactivation doublons** :
+   - CTE : `ROW_NUMBER() OVER (PARTITION BY bar_id, local_name ORDER BY created_at DESC)`
+   - Conserve rn=1 (création la plus récente)
+   - Désactive rn>1 (anciens doublons)
+   - Résultat : 17 produits désactivés
+
+3. **Ajout Index UNIQUE** :
+   ```sql
+   CREATE UNIQUE INDEX idx_unique_active_global_product
+   ON bar_products(bar_id, global_product_id)
+   WHERE is_active = true AND global_product_id IS NOT NULL;
+   ```
+   - **Important** : Seulement sur produits GLOBAUX (pas custom)
+   - Custom peut avoir même nom (ex: "Coca perso barmaid1" ≠ "Coca perso barmaid2")
+   - Prévient futurs doublons globaux
+
+4. **Audit logging complet** :
+   - `PRODUCT_CLEANUP` : Chaque doublon désactivé
+   - `PRODUCT_ARCHIVE` : Anciens produits inactifs archivés
+   - Métadata : product_id, local_name, action
+
+5. **Vérifications post-migration** :
+   - 0 doublons restants
+   - 68 produits actifs finaux
+   - Index créé
+
+**Correction clé** : PostgreSQL < 15 n'accepte pas WHERE en CONSTRAINT → utilisé INDEX UNIQUE (compatible)
+
+#### 20260109000400 - Augmentation LIMIT RPC
+[20260109000400_augmenter_limite_rpc.sql](supabase/migrations/20260109000400_augmenter_limite_rpc.sql)
+
+**Contenu** :
+- Mise à jour RPC `get_bar_products()`
+- LIMIT : 50 → 500
+- Ajout paramètre `p_fetch_all BOOLEAN` pour charger TOUS produits si besoin futur
+
+**Fonctions DROP** : Suppression toutes les signatures existantes
+```sql
+DROP FUNCTION IF EXISTS public.get_bar_products(UUID);
+DROP FUNCTION IF EXISTS public.get_bar_products(UUID, UUID);
+DROP FUNCTION IF EXISTS public.get_bar_products(UUID, UUID, INT);
+DROP FUNCTION IF EXISTS public.get_bar_products(UUID, UUID, INT, INT);
+DROP FUNCTION IF EXISTS public.get_bar_products(UUID, UUID, INT, INT, BOOLEAN);
+```
+
+**Correction clé** : Erreur "function name is not unique" → nécessitait DROP tous les overloads
+
+#### ProductsService Update (Frontend)
+[src/services/supabase/products.service.ts:285](src/services/supabase/products.service.ts#L285)
+
+**Changement** :
+```typescript
+// AVANT
+p_limit: options?.limit || 50,
+
+// APRÈS
+p_limit: options?.limit || 500,
+```
+
+**Impact** : `useProducts()` hook charge automatiquement jusqu'à 500 produits
+
+#### Résultats
+
+| Métrique | Avant | Après | Impact |
+|----------|-------|-------|--------|
+| **Produits visibles** | 50 | 500 (68 réels) | ✅ Client voit tous |
+| **Doublons** | 17 actifs | 0 actifs | ✅ Data clean |
+| **Backup** | Aucun | 85 snapshots | ✅ Récupération possible |
+| **Protection** | Aucune | Index UNIQUE | ✅ Futurs doublons prévenus |
+
+#### Leçons Apprises
+
+1. **Diagnostic avant action** : Migration 000 (rapport) → migration 300 (nettoyage)
+2. **Backup systématique** : Donnée métier = récupération critique
+3. **Contraintes DB** : Index UNIQUE prévient bug produit côté
+4. **PostgreSQL compatibility** : WHERE en UNIQUE constraint ≠ INDEX UNIQUE (< 15)
+
+**État fin PHASE 15** : 🧹✅ Data cleanup + product display fixed + future duplicate prevention
+
+---
+
+**Document complet** : 📚 ~1,750 lignes | 15 phases | 169 migrations | 6+ semaines
 **Généré** : 7 janvier 2026 | **Actualisé** : 9 janvier 2026
-**Statut** : Production-ready ✅ | **Sécurité** : Hardened ✅ | **Infrastructure** : Standardisée ✅
+**Statut** : Production-ready ✅ | **Sécurité** : Hardened ✅ | **Infrastructure** : Standardisée ✅ | **Data Quality** : Cleaned ✅
 
