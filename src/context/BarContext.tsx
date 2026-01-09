@@ -52,6 +52,9 @@ export const useBarContext = () => {
   return context;
 };
 
+// Alias for compatibility
+export const useBar = useBarContext;
+
 export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { currentSession, hasPermission, updateCurrentBar } = useAuth();
   const { actingAs } = useActingAs();

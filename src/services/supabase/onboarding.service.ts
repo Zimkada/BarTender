@@ -1,6 +1,6 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
-import { AuditLogger } from '../AuditLogger';
+import { auditLogger } from '../AuditLogger';
 
 type BarUpdate = Database['public']['Tables']['bars']['Update'];
 
