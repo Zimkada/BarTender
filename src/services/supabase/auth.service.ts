@@ -488,23 +488,9 @@ export class AuthService {
    */
   static async getAllBarMembers(): Promise<Array<BarMember & { user: AppUser }>> {
     try {
+      // Use RPC to bypass RLS - superadmin needs to see all members across all bars
       const { data: membersData, error } = await supabase
-        .from('bar_members')
-        .select(`
-  *,
-  user: users!fk_bar_members_user(
-    id,
-    username,
-    name,
-    phone,
-    email,
-    avatar_url,
-    is_active,
-    first_login,
-    created_at,
-    last_login_at
-  )
-      `);
+        .rpc('get_all_bar_members');
 
       if (error) {
         throw new Error(error.message);
