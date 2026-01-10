@@ -78,37 +78,21 @@ BEGIN
 END;
 $$;
 
--- Also fix get_unique_bars() if it exists
-DO $$
-BEGIN
-    -- Check if function exists
-    IF EXISTS (
-        SELECT 1 FROM pg_proc
-        WHERE proname = 'get_unique_bars'
-        AND pg_catalog.pg_get_function_result(oid) LIKE '%bars%'
-    ) THEN
-        -- Function exists, create or replace it
-        EXECUTE '
-        CREATE OR REPLACE FUNCTION get_unique_bars()
-        RETURNS TABLE (id UUID, name TEXT, is_active BOOLEAN)
-        LANGUAGE sql
-        AS $sql$
-            SELECT
-                b.id,
-                b.name,
-                b.is_active
-            FROM bars b
-            WHERE
-                LOWER(b.name) NOT LIKE ''%système%'' AND
-                LOWER(b.name) NOT LIKE ''%system%''
-            ORDER BY b.name;
-        $sql$;
-        ';
-        RAISE NOTICE 'Updated get_unique_bars() to exclude système bar';
-    ELSE
-        RAISE NOTICE 'get_unique_bars() does not exist, skipping';
-    END IF;
-END $$;
+-- Also fix get_unique_bars() - create or replace directly
+CREATE OR REPLACE FUNCTION get_unique_bars()
+RETURNS TABLE (id UUID, name TEXT, is_active BOOLEAN)
+LANGUAGE sql
+AS $$
+    SELECT
+        b.id,
+        b.name,
+        b.is_active
+    FROM bars b
+    WHERE
+        LOWER(b.name) NOT LIKE '%système%' AND
+        LOWER(b.name) NOT LIKE '%system%'
+    ORDER BY b.name;
+$$;
 
 DO $$
 BEGIN
@@ -119,7 +103,7 @@ BEGIN
 
   ✅ Updated get_paginated_bars() to exclude système bar
   ✅ Updated get_unique_bars() to exclude système bar
-  ✅ Filters by name pattern: NOT LIKE ''%système%'' and NOT LIKE ''%system%''
+  ✅ Filters by name pattern: NOT LIKE %système% and NOT LIKE %system%
 
   What Was Wrong:
   • RPC returned ALL bars including système/system bar
