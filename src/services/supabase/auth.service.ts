@@ -507,17 +507,17 @@ export class AuthService {
         assignedAt: new Date(m.joined_at),
         isActive: m.is_active,
         user: {
-          id: m.user.id,
-          username: m.user.username,
+          id: m.user_id_inner,
+          username: m.username,
           password: '', // Pas exposé
-          name: m.user.name,
-          phone: m.user.phone,
-          email: m.user.email,
-          createdAt: new Date(m.user.created_at),
-          isActive: m.user.is_active,
-          firstLogin: m.user.first_login,
-          avatarUrl: m.user.avatar_url || undefined,
-          lastLoginAt: m.user.last_login_at ? new Date(m.user.last_login_at) : undefined,
+          name: m.name,
+          phone: m.phone,
+          email: m.email,
+          createdAt: new Date(m.created_at),
+          isActive: m.user_is_active,
+          firstLogin: m.first_login,
+          avatarUrl: m.avatar_url || undefined,
+          lastLoginAt: m.last_login_at ? new Date(m.last_login_at) : undefined,
           createdBy: undefined,
         }
       }));
