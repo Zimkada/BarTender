@@ -81,7 +81,7 @@ export default function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalPro
     };
 
     loadAllStats();
-  }, [isOpen, bar?.id, showError]);
+  }, [isOpen, bar?.id]);
 
   const stats = useMemo(() => {
     if (!combinedStats) return null;
