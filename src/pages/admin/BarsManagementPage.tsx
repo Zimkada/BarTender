@@ -15,7 +15,7 @@ import { AdminPanelErrorBoundary } from '../../components/AdminPanelErrorBoundar
 import { AdminPanelSkeleton } from '../../components/AdminPanelSkeleton';
 
 export default function BarsManagementPage() {
-  const { impersonate } = useAuth();
+  const { currentSession } = useAuth();
 
   const [bars, setBars] = useState<Bar[]>([]);
   const [allBarMembers, setAllBarMembers] = useState<(BarMember & { user: User })[]>([]);
@@ -190,7 +190,6 @@ export default function BarsManagementPage() {
                     bar={bar}
                     members={members}
                     onToggleStatus={toggleBarStatus}
-                    onImpersonate={impersonate}
                     onClose={() => { }}
                   />
                 );

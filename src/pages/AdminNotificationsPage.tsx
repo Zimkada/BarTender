@@ -52,7 +52,7 @@ const priorityIcons: Record<NotificationPriority, string> = {
 };
 
 export default function AdminNotificationsPage() {
-  const { impersonate } = useAuth();
+  const { currentSession } = useAuth();
   const [filter, setFilter] = useState<'all' | 'high' | 'medium' | 'info'>('all');
 
   const {
@@ -73,17 +73,9 @@ export default function AdminNotificationsPage() {
   const handleAction = (notification: AdminNotification, actionId: string) => {
     switch (actionId) {
       case 'impersonate':
-        // Trouver promoteur du bar pour impersonate
-        const membersData = localStorage.getItem('barMembers');
-        if (membersData) {
-          const allMembers = JSON.parse(membersData);
-          const promoteurMember = allMembers.find((m: any) =>
-            m.barId === notification.barId && m.role === 'promoteur'
-          );
-          if (promoteurMember) {
-            impersonate(promoteurMember.userId, notification.barId, 'promoteur');
-          }
-        }
+        // Impersonate feature has been removed for security reasons
+        // Super admins should use normal authentication instead
+        alert(`⚠️ Impersonate feature has been removed. Please log in directly as the promoter.`);
         break;
 
       case 'view_stats':
@@ -91,7 +83,7 @@ export default function AdminNotificationsPage() {
         break;
 
       case 'fix_stock':
-        handleAction(notification, 'impersonate');
+        alert(`⚠️ Please log in as the bar promoter to fix stock issues.`);
         break;
 
       case 'contact_promoter':
