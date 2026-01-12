@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Ban, CheckCircle } from 'lucide-react';
 import { Bar } from '../types';
-import { BarReportButton } from './admin/BarReportButton';
+import { BarReportExcelButton } from './admin/BarReportExcelButton';
 
 interface BarActionButtonsProps {
     bar: Bar;
@@ -44,7 +44,7 @@ export const BarActionButtons = React.memo<BarActionButtonsProps>(
                         </>
                     )}
                 </button>
-                <BarReportButton bar={bar} />
+                <BarReportExcelButton bar={bar} />
             </div>
         );
     }
