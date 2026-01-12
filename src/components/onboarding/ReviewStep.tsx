@@ -43,36 +43,38 @@ export const ReviewStep: React.FC = () => {
       const barId = currentBar.id;
 
       /**
-       * PHASE 1 FIX: Removed duplicate assignments
+       * PHASE 1 + PHASE 2 FIX: Atomic onboarding completion
        *
-       * All data was already assigned in their respective steps:
-       * - Managers: Added in AddManagersStep.handleSubmit()
-       * - Staff: Created in SetupStaffStep.handleSubmit()
-       * - Products: Added in AddProductsStep.handleSubmit()
-       * - Stock: Initialized in StockInitStep.handleSubmit()
-       * - Mode: Set in BarDetailsStep.handleSubmit()
+       * PHASE 1 (Already Done): Removed duplicate assignments
+       * - All data already assigned in their respective steps:
+       *   * Managers: Added in AddManagersStep.handleSubmit()
+       *   * Staff: Created in SetupStaffStep.handleSubmit()
+       *   * Products: Added in AddProductsStep.handleSubmit()
+       *   * Stock: Initialized in StockInitStep.handleSubmit()
+       *   * Mode: Set in BarDetailsStep.handleSubmit()
        *
-       * ReviewStep now only:
-       * 1. Verifies bar is ready (all requirements met)
-       * 2. Updates bar mode (in case user edited it)
-       * 3. Launches the bar (marks setup_complete = true)
+       * PHASE 2 (NEW): Single atomic RPC transaction
+       * - Uses complete_bar_onboarding() RPC for atomic transaction
+       * - All verification + mode update + launch in one DB call
+       * - Prevents partial failures and improves performance
+       * - Maintains exact same business logic as Phase 1
        *
-       * This prevents duplicate entries and clarifies responsibility
+       * Benefits:
+       * - Single DB roundtrip vs 3 separate calls (better performance)
+       * - Atomic: All succeed or all fail (no partial setup)
+       * - Easier debugging: Single log entry for entire completion
        */
 
-      // VERIFICATION: Ensure bar is ready before launch
-      const progress = await OnboardingService.verifyBarReady(barId);
-      if (!progress.isReady) {
-        throw new Error(`Bar setup incomplete:\n${progress.errors.join('\n')}`);
-      }
+      // ATOMIC COMPLETION: All verification, mode update, and launch in one RPC call
+      const result = await OnboardingService.completeBarOnboardingAtomic(
+        barId,
+        userId,
+        barDetails?.operatingMode
+      );
 
-      // UPDATE MODE: Apply operating mode (user may have edited bar details)
-      if (barDetails?.operatingMode) {
-        await OnboardingService.updateBarMode(barId, barDetails.operatingMode, userId);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to complete onboarding');
       }
-
-      // LAUNCH: Mark bar as setup complete - this is the only state change on launch
-      await OnboardingService.launchBar(barId, userId);
 
       // Mark as complete in context
       completeOnboarding();

@@ -369,4 +369,57 @@ export class OnboardingService {
       throw new Error(handleSupabaseError(error));
     }
   }
+
+  /**
+   * Complete bar onboarding atomically using RPC
+   *
+   * PHASE 2 IMPLEMENTATION: Atomic transaction for production safety
+   * Replaces multiple sequential API calls with single RPC call
+   * Prevents partial failures and improves performance
+   *
+   * Called from ReviewStep.tsx as alternative to multiple sequential calls
+   */
+  static async completeBarOnboardingAtomic(
+    barId: string,
+    ownerId: string,
+    operatingMode?: 'full' | 'simplifié'
+  ): Promise<{ success: boolean; completedAt?: string; error?: string }> {
+    try {
+      const { data, error } = await supabase.rpc(
+        'complete_bar_onboarding',
+        {
+          p_bar_id: barId,
+          p_owner_id: ownerId,
+          p_operating_mode: operatingMode || 'simplifié',
+        }
+      );
+
+      if (error) {
+        throw new Error(`RPC failed: ${error.message}`);
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Unknown error in RPC');
+      }
+
+      // Log completion (RPC handles this via triggers, but double-logging for safety)
+      await auditLogger.log('ONBOARDING_COMPLETED_VIA_RPC', {
+        bar_id: barId,
+        user_id: ownerId,
+        description: 'Owner completed onboarding using atomic RPC',
+        operating_mode: operatingMode,
+      });
+
+      return {
+        success: true,
+        completedAt: data.completed_at,
+      };
+    } catch (error: any) {
+      console.error('Atomic onboarding failed:', error);
+      return {
+        success: false,
+        error: handleSupabaseError(error),
+      };
+    }
+  }
 }
