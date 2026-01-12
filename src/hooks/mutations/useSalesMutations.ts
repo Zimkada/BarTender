@@ -1,12 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { SalesService } from '../../services/supabase/sales.service';
-import { ProxyAdminService } from '../../services/supabase/proxy-admin.service';
 import { salesKeys } from '../queries/useSalesQueries';
 import { stockKeys } from '../queries/useStockQueries';
 import { statsKeys } from '../queries/useStatsQueries';
 import { useAuth } from '../../context/AuthContext';
 import { useBarContext } from '../../context/BarContext';
-import { useActingAs } from '../../context/ActingAsContext';
 import { calculateBusinessDate, dateToYYYYMMDD } from '../../utils/businessDateHelpers';
 import { BUSINESS_DAY_CLOSE_HOUR } from '../../config/constants';
 import type { Sale } from '../../types';
@@ -22,7 +20,6 @@ export const useSalesMutations = (barId: string) => {
     const queryClient = useQueryClient();
     const { currentSession } = useAuth();
     const { currentBar, isSimplifiedMode } = useBarContext();
-    const { isActingAs, actingAs } = useActingAs();
 
     // 🔄 Helper pour détecter si c'est une erreur réseau (offline)
     const isNetworkError = (error: unknown): boolean => {
@@ -108,19 +105,7 @@ export const useSalesMutations = (barId: string) => {
                 // Vérif primitive d'abord
                 if (!navigator.onLine) throw new Error('Offline');
 
-                let savedSaleRow;
-
-                // Branchement Proxy vs Standard
-                if (isActingAs() && actingAs.userId) {
-                    savedSaleRow = await ProxyAdminService.createSaleAsProxy(
-                        actingAs.userId,
-                        barId,
-                        salePayload
-                    );
-                } else { // safe because salePayload matches SaleInsert
-                    savedSaleRow = await SalesService.createSale(salePayload);
-                }
-
+                const savedSaleRow = await SalesService.createSale(salePayload);
                 return mapSaleRowToSale(savedSaleRow);
 
             } catch (error: unknown) {

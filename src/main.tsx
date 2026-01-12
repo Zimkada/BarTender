@@ -7,7 +7,6 @@ import { ErrorBoundary } from 'react-error-boundary'; // Ajout de l'import Error
 
 // Contexts
 import { AuthProvider } from './context/AuthContext';
-import { ActingAsProvider } from './context/ActingAsContext';
 import { BarProvider } from './context/BarContext';
 import { OnboardingProvider } from './context/OnboardingContext';
 import { StockProvider } from './context/StockContext';
@@ -34,26 +33,24 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <NotificationsProvider>
         <AuthProvider>
-          <ActingAsProvider>
-            <BarProvider>
-              <OnboardingProvider>
-                <StockProvider>
-                <StockBridgeProvider>
-                  <AppProvider>
-                    <ModalProvider>
-                      <ErrorBoundary FallbackComponent={ErrorFallback} onError={(error, info) => console.error("Caught an error:", error, info)}>
-                        <RouterProvider router={router} />
-                        {/* PWA Components */}
-                        <PWAInstallPrompt />
-                        <PWAUpdatePrompt />
-                      </ErrorBoundary>
-                    </ModalProvider>
-                  </AppProvider>
-                </StockBridgeProvider>
-              </StockProvider>
-              </OnboardingProvider>
-            </BarProvider>
-          </ActingAsProvider>
+          <BarProvider>
+            <OnboardingProvider>
+              <StockProvider>
+              <StockBridgeProvider>
+                <AppProvider>
+                  <ModalProvider>
+                    <ErrorBoundary FallbackComponent={ErrorFallback} onError={(error, info) => console.error("Caught an error:", error, info)}>
+                      <RouterProvider router={router} />
+                      {/* PWA Components */}
+                      <PWAInstallPrompt />
+                      <PWAUpdatePrompt />
+                    </ErrorBoundary>
+                  </ModalProvider>
+                </AppProvider>
+              </StockBridgeProvider>
+            </StockProvider>
+            </OnboardingProvider>
+          </BarProvider>
         </AuthProvider>
       </NotificationsProvider>
       {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-right" />}

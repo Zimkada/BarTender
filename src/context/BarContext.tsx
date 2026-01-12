@@ -193,16 +193,6 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return;
     }
 
-    // Si on est en impersonation (super_admin acting as), prioriser le bar d'impersonation
-    if (actingAs.isActive && actingAs.barId) {
-      const impersonationBar = bars.find(b => b.id === actingAs.barId);
-      if (impersonationBar) {
-        setCurrentBar(impersonationBar);
-        setCurrentBarId(impersonationBar.id);
-        return;
-      }
-    }
-
     // 🔧 FIX: Prioriser currentBarId (si défini manuellement via switchBar) AVANT currentSession.barId
     // Cela permet au switching manuel de fonctionner correctement
     if (currentBarId) {
@@ -248,7 +238,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setCurrentBar(null);
       setCurrentBarId(null);
     }
-  }, [currentBarId, bars, currentSession, getUserBars]);
+  }, [currentBarId, bars, currentSession, getUserBars, refreshMembers]);
 
   // Gestion des bars
   const createBar = useCallback(async (barData: Omit<Bar, 'id' | 'createdAt' | 'ownerId'> & { ownerId?: string }) => {
@@ -350,14 +340,12 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Helpers
   const isOwner = useCallback((barId: string) => {
-    if (actingAs.isActive) return true; // SuperAdmin acting as is effectively owner
     if (!currentSession) return false;
     const bar = bars.find(b => b.id === barId);
     return bar?.ownerId === currentSession.userId;
-  }, [bars, currentSession, actingAs]);
+  }, [bars, currentSession]);
 
   const canAccessBar = useCallback((barId: string) => {
-    if (actingAs.isActive) return true; // SuperAdmin sees all
     if (!currentSession) return false;
 
     // Le promoteur accède à tous ses bars
@@ -369,7 +357,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         m.barId === barId &&
         m.isActive
     );
-  }, [currentSession, barMembers, isOwner, actingAs]);
+  }, [currentSession, barMembers, isOwner]);
 
   const switchBar = useCallback(async (barId: string) => {
     // Note: canAccessBar checks local barMembers which might be scoped to current bar.
@@ -388,7 +376,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     let newRole: UserRole = currentSession.role;
 
     // 1. Si Super Admin global, on garde Super Admin
-    if (currentSession.role === 'super_admin' && !actingAs.isActive) {
+    if (currentSession.role === 'super_admin') {
       newRole = 'super_admin';
     }
     // 2. Si Owner du bar cible -> Promoteur
@@ -410,10 +398,8 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           newRole = member.role as UserRole;
         } else {
           console.warn('[BarContext] Could not find member role for bar:', barId, error);
-          if (!actingAs.isActive) {
-            console.error('[BarContext] Access Denied: No membership found for this bar');
-            return; // Block access
-          }
+          console.error('[BarContext] Access Denied: No membership found for this bar');
+          return; // Block access
         }
       } catch (err) {
         console.error('[BarContext] Error fetching role during switch:', err);
@@ -428,38 +414,11 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     // Mettre à jour la session AuthContext avec le NOUVEAU RÔLE
     updateCurrentBar(barId, bar.name, newRole);
-  }, [bars, updateCurrentBar, currentSession, actingAs]);
+  }, [bars, updateCurrentBar, currentSession]);
 
   // Gestion des membres
   const getBarMembers = useCallback(async (barId: string): Promise<(BarMember & { user: User })[]> => {
     try {
-      if (actingAs.isActive && actingAs.userId && actingAs.barId === barId) {
-        const rawMembers = await ProxyAdminService.getBarMembersAsProxy(actingAs.userId, barId);
-        return rawMembers.map((m: any) => ({
-          id: m.id,
-          userId: m.user_id,
-          barId: m.bar_id,
-          role: m.role as UserRole,
-          assignedBy: 'super_admin',
-          assignedAt: new Date(),
-          isActive: m.is_active || false,
-          user: {
-            id: m.user_data.id,
-            username: m.user_data.email || '',
-            password: '',
-            name: m.user_data.name,
-            phone: m.user_data.phone,
-            email: m.user_data.email,
-            createdAt: new Date(),
-            isActive: true,
-            avatarUrl: m.user_data.avatar_url,
-            createdBy: undefined,
-            firstLogin: false,
-            role: m.role as UserRole // ✨ FIX
-          }
-        }));
-      }
-
       const members = await AuthService.getBarMembers(barId);
 
       return members.map(m => ({
@@ -490,27 +449,9 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.error('[BarContext] Error loading bar members:', error);
       return [];
     }
-  }, [currentSession, actingAs]);
+  }, [currentSession]);
 
   const addBarMember = useCallback(async (userId: string, role: UserRole): Promise<BarMember | null> => {
-    if (actingAs.isActive && actingAs.userId && currentBar) {
-      await ProxyAdminService.manageTeamMemberAsProxy(
-        actingAs.userId,
-        currentBar.id,
-        userId,
-        'ADD',
-        role
-      );
-      // Refresh needed
-      // We return a specialized object or simple success
-      // Since UI might expect return value to update state immediately...
-      // We'll perform a full refresh.
-      // Or mock return:
-      return {
-        id: 'temp', userId, barId: currentBar.id, role, assignedBy: actingAs.userId, assignedAt: new Date(), isActive: true
-      };
-    }
-
     if (!currentSession || !currentBar) return null;
 
     // Vérifier les permissions
@@ -557,30 +498,9 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.error('[BarContext] Error adding member:', error);
       return null;
     }
-  }, [currentSession, currentBar, hasPermission, actingAs]);
+  }, [currentSession, currentBar, hasPermission]);
 
   const removeBarMember = useCallback(async (memberId: string): Promise<{ success: boolean; error?: string }> => {
-    // Handling Proxy
-    if (actingAs.isActive && actingAs.userId && currentBar) {
-      const member = barMembers.find(m => m.id === memberId);
-      if (member) {
-        try {
-          await ProxyAdminService.manageTeamMemberAsProxy(
-            actingAs.userId,
-            currentBar.id,
-            member.userId,
-            'REMOVE'
-          );
-          setBarMembers(prev => prev.filter(m => m.id !== memberId));
-          return { success: true };
-        } catch (error: any) {
-          console.error('[BarContext] Error removing member (proxy):', error);
-          return { success: false, error: error.message || 'Failed to remove member' };
-        }
-      }
-      return { success: false, error: 'Member not found' };
-    }
-
     if (!currentSession) return { success: false, error: 'No session' };
 
     try {
@@ -624,23 +544,9 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.error('[BarContext] Error removing member:', error);
       return { success: false, error: error.message || 'Unknown error occurred' };
     }
-  }, [currentSession, hasPermission, barMembers, actingAs, currentBar]);
+  }, [currentSession, hasPermission, barMembers, currentBar]);
 
   const updateBarMember = useCallback(async (memberId: string, updates: Partial<BarMember>) => {
-    if (actingAs.isActive && actingAs.userId && currentBar) {
-      const member = barMembers.find(m => m.id === memberId);
-      if (member && updates.role) {
-        await ProxyAdminService.manageTeamMemberAsProxy(
-          actingAs.userId,
-          currentBar.id,
-          member.userId,
-          'UPDATE_ROLE',
-          updates.role
-        );
-      }
-      return;
-    }
-
     if (!currentSession) return;
 
     try {
@@ -661,7 +567,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } catch (error) {
       console.error('[BarContext] Error updating member:', error);
     }
-  }, [currentSession, actingAs, barMembers, currentBar]);
+  }, [currentSession, barMembers, currentBar]);
 
   const value: BarContextType = {
     bars,

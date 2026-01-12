@@ -1,8 +1,6 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { AnalyticsService, TopProduct } from '../../../../services/supabase/analytics.service';
-import { ProxyAdminService } from '../../../../services/supabase/proxy-admin.service';
-import { useActingAs } from '../../../../context/ActingAsContext';
 import type { Sale, Return, Bar } from '../../../../types';
 
 interface UseSalesStatsProps {
@@ -24,9 +22,6 @@ export function useSalesStats({
     currentBar,
     serverId
 }: UseSalesStatsProps) {
-    // --- CONTEXTE ---
-    const { actingAs } = useActingAs();
-
     // --- ÉTATS ---
     const [topProductsLimit, setTopProductsLimit] = useState<number>(5);
     const [topProductMetric, setTopProductMetric] = useState<'units' | 'revenue' | 'profit'>('units');
@@ -41,46 +36,14 @@ export function useSalesStats({
         const loadTopProducts = async () => {
             setIsLoadingTopProducts(true);
             try {
-                let products;
-
-                // LOGIQUE HYBRIDE: Proxy vs Standard
-                if (actingAs.isActive && actingAs.userId && actingAs.barId === currentBar.id) {
-                    // MODE PROXY
-                    const proxyData = await ProxyAdminService.getTopProductsAsProxy(
-                        actingAs.userId,
-                        currentBar.id,
-                        startDate,
-                        endDate,
-                        topProductsLimit
-                    );
-
-                    // Mapper le résultat RPC
-                    products = proxyData.map((p: any) => ({
-                        product_id: 'proxy', // Placeholder
-                        product_name: p.product_name,
-                        product_volume: p.product_volume,
-                        total_quantity: p.total_quantity,
-                        total_revenue: p.total_revenue,
-                        avg_unit_price: p.avg_unit_price,
-                        bar_id: currentBar.id,
-                        sale_date: '',
-                        sale_week: '',
-                        sale_month: '',
-                        transaction_count: 0,
-                        profit: p.profit
-                    }));
-
-                } else {
-                    // MODE STANDARD (with optional server filtering)
-                    products = await AnalyticsService.getTopProducts(
-                        currentBar.id,
-                        startDate,
-                        endDate,
-                        topProductsLimit,
-                        'quantity', // Default sort by quantity
-                        serverId // Optional: filter by server_id for server accounts
-                    );
-                }
+                const products = await AnalyticsService.getTopProducts(
+                    currentBar.id,
+                    startDate,
+                    endDate,
+                    topProductsLimit,
+                    'quantity', // Default sort by quantity
+                    serverId // Optional: filter by server_id for server accounts
+                );
 
                 setSqlTopProducts(products || []);
             } catch (error) {
@@ -97,9 +60,6 @@ export function useSalesStats({
         startDate.toISOString(), // ✨ STABILISATION: Utiliser ISO string
         endDate.toISOString(),   // ✨ STABILISATION: Utiliser ISO string
         topProductsLimit,
-        actingAs.isActive,
-        actingAs.userId,
-        actingAs.barId,
         serverId
     ]);
 

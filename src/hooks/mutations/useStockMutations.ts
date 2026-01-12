@@ -1,10 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProductsService } from '../../services/supabase/products.service';
 import { StockService } from '../../services/supabase/stock.service';
-import { ProxyAdminService } from '../../services/supabase/proxy-admin.service';
 import { stockKeys } from '../queries/useStockQueries';
 import { useAuth } from '../../context/AuthContext';
-import { useActingAs } from '../../context/ActingAsContext';
 import { useBarContext } from '../../context/BarContext';
 import { broadcastService } from '../../services/broadcast/BroadcastService';
 
@@ -12,21 +10,19 @@ import { broadcastService } from '../../services/broadcast/BroadcastService';
 const invalidateStockQuery = (
     queryClient: ReturnType<typeof useQueryClient>,
     queryKey: readonly any[],
-    barId: string,
-    actingAs: { isActive: boolean; userId: string | null }
+    barId: string
 ) => {
-    const proxySuffix = actingAs.isActive ? `proxy:${actingAs.userId}` : 'standard';
     queryClient.invalidateQueries({
-        queryKey: [...queryKey, proxySuffix] as any[],
+        queryKey: queryKey as any[],
         exact: true
     });
 };
 
-export const useStockMutations = () => {
+export const useStockMutations = (barId?: string) => {
     const queryClient = useQueryClient();
     const { currentSession } = useAuth();
-    const { actingAs } = useActingAs();
     const { currentBar } = useBarContext();
+    const resolvedBarId = barId || currentBar?.id;
 
     // --- PRODUCTS ---
 
@@ -34,16 +30,6 @@ export const useStockMutations = () => {
         mutationFn: async (productData: any) => {
             const barId = currentBar?.id;
             if (!barId) throw new Error("No bar selected");
-            // PROXY MODE
-            if (actingAs.isActive && actingAs.userId) {
-                return ProxyAdminService.manageProductAsProxy(
-                    actingAs.userId,
-                    barId,
-                    productData,
-                    'CREATE'
-                );
-            }
-            // STANDARD MODE
             return ProductsService.createBarProduct(productData);
         },
         onSuccess: () => {
@@ -52,7 +38,7 @@ export const useStockMutations = () => {
               toast.success('Produit créé avec succès');
             });
             if (barId) {
-                invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
+                invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
             }
         },
     });
@@ -61,16 +47,6 @@ export const useStockMutations = () => {
         mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
             const barId = currentBar?.id;
             if (!barId) throw new Error("No bar selected");
-            // PROXY MODE
-            if (actingAs.isActive && actingAs.userId) {
-                return ProxyAdminService.manageProductAsProxy(
-                    actingAs.userId,
-                    barId,
-                    { id, ...updates },
-                    'UPDATE'
-                );
-            }
-            // STANDARD MODE
             return ProductsService.updateBarProduct(id, updates);
         },
         onSuccess: (data, variables) => {
@@ -90,7 +66,7 @@ export const useStockMutations = () => {
             }
 
             if (barId) {
-                invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
+                invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
             }
         },
     });
@@ -99,16 +75,6 @@ export const useStockMutations = () => {
         mutationFn: async (id: string) => {
             const barId = currentBar?.id;
             if (!barId) throw new Error("No bar selected");
-            // PROXY MODE
-            if (actingAs.isActive && actingAs.userId) {
-                return ProxyAdminService.manageProductAsProxy(
-                    actingAs.userId,
-                    barId,
-                    { id },
-                    'DELETE'
-                );
-            }
-            // STANDARD MODE
             return ProductsService.deactivateProduct(id);
         },
         onSuccess: (data, id) => {
@@ -128,7 +94,7 @@ export const useStockMutations = () => {
             }
 
             if (barId) {
-                invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
+                invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
             }
         },
     });
@@ -138,18 +104,7 @@ export const useStockMutations = () => {
         mutationFn: async ({ productId, delta, reason }: { productId: string; delta: number; reason: string }) => {
             const barId = currentBar?.id;
             if (!barId) throw new Error("No bar selected");
-            // PROXY MODE
-            if (actingAs.isActive && actingAs.userId) {
-                return ProxyAdminService.updateStockAsProxy(
-                    actingAs.userId,
-                    barId,
-                    productId,
-                    delta,
-                    reason
-                );
-            }
 
-            // STANDARD MODE
             if (delta > 0) {
                 return ProductsService.incrementStock(productId, delta);
             } else {
@@ -173,7 +128,7 @@ export const useStockMutations = () => {
             }
 
             if (barId) {
-                invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
+                invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
             }
         },
         onError: (err: any) => {
@@ -235,8 +190,8 @@ export const useStockMutations = () => {
             }
 
             if (barId) {
-                invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
-                invalidateStockQuery(queryClient, stockKeys.supplies(barId), barId, actingAs);
+                invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
+                invalidateStockQuery(queryClient, stockKeys.supplies(barId), barId);
             }
         },
         onError: (err: any) => {
@@ -312,8 +267,8 @@ export const useStockMutations = () => {
             }
 
             if (barId) {
-                invalidateStockQuery(queryClient, stockKeys.consignments(barId), barId, actingAs);
-                invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
+                invalidateStockQuery(queryClient, stockKeys.consignments(barId), barId);
+                invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
             }
         },
         onError: (err: any) => {
@@ -355,8 +310,8 @@ export const useStockMutations = () => {
             }
 
             if (barId) {
-                invalidateStockQuery(queryClient, stockKeys.consignments(barId), barId, actingAs);
-                invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
+                invalidateStockQuery(queryClient, stockKeys.consignments(barId), barId);
+                invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
             }
         },
     });
@@ -372,8 +327,8 @@ export const useStockMutations = () => {
               toast.success('Consignation abandonnée (stock réintégré)');
             });
             if (barId) {
-                invalidateStockQuery(queryClient, stockKeys.consignments(barId), barId, actingAs);
-                invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
+                invalidateStockQuery(queryClient, stockKeys.consignments(barId), barId);
+                invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
             }
         },
     });
@@ -424,7 +379,7 @@ export const useStockMutations = () => {
             }
 
             if (barId) {
-                invalidateStockQuery(queryClient, stockKeys.products(barId), barId, actingAs);
+                invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
             }
         },
     });
