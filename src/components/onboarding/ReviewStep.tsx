@@ -42,34 +42,36 @@ export const ReviewStep: React.FC = () => {
       const userId = currentSession.user.id;
       const barId = currentBar.id;
 
-      // Step 1: Add managers
-      if (managers?.managerIds && managers.managerIds.length > 0) {
-        for (const managerId of managers.managerIds) {
-          await OnboardingService.assignManager(managerId, barId, userId);
-        }
+      /**
+       * PHASE 1 FIX: Removed duplicate assignments
+       *
+       * All data was already assigned in their respective steps:
+       * - Managers: Added in AddManagersStep.handleSubmit()
+       * - Staff: Created in SetupStaffStep.handleSubmit()
+       * - Products: Added in AddProductsStep.handleSubmit()
+       * - Stock: Initialized in StockInitStep.handleSubmit()
+       * - Mode: Set in BarDetailsStep.handleSubmit()
+       *
+       * ReviewStep now only:
+       * 1. Verifies bar is ready (all requirements met)
+       * 2. Updates bar mode (in case user edited it)
+       * 3. Launches the bar (marks setup_complete = true)
+       *
+       * This prevents duplicate entries and clarifies responsibility
+       */
+
+      // VERIFICATION: Ensure bar is ready before launch
+      const progress = await OnboardingService.verifyBarReady(barId);
+      if (!progress.isReady) {
+        throw new Error(`Bar setup incomplete:\n${progress.errors.join('\n')}`);
       }
 
-      // Step 2: Create servers (if full mode & has servers)
-      if (barDetails?.operatingMode === 'full' && staff?.serverNames?.length > 0) {
-        await OnboardingService.createServers(barId, staff.serverNames, userId);
-      }
-
-      // Step 3: Add products
-      if (products?.products && products.products.length > 0) {
-        await OnboardingService.addProductsToBar(barId, products.products, userId);
-      }
-
-      // Step 4: Initialize stock
-      if (stock?.stocks) {
-        await OnboardingService.initializeStock(barId, stock.stocks, userId);
-      }
-
-      // Step 5: Update operating mode if needed
+      // UPDATE MODE: Apply operating mode (user may have edited bar details)
       if (barDetails?.operatingMode) {
         await OnboardingService.updateBarMode(barId, barDetails.operatingMode, userId);
       }
 
-      // Step 6: Launch bar (mark as setup complete)
+      // LAUNCH: Mark bar as setup complete - this is the only state change on launch
       await OnboardingService.launchBar(barId, userId);
 
       // Mark as complete in context

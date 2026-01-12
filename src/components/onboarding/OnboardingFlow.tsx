@@ -26,9 +26,13 @@ import { BartenderIntroStep } from './BartenderIntroStep';
 import { BartenderDemoStep } from './BartenderDemoStep';
 import { BartenderTestSaleStep } from './BartenderTestSaleStep';
 
+// Progress indicator
+import { OnboardingProgressBar } from './OnboardingProgressBar';
+
 /**
  * Main Onboarding Flow Orchestrator
  * Renders the appropriate step component based on current step and role
+ * Includes sticky progress bar to show user progression
  */
 export const OnboardingFlow: React.FC = () => {
   const { currentStep, userRole, userId, barId, initializeOnboarding } = useOnboarding();
@@ -102,8 +106,14 @@ export const OnboardingFlow: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-12">
-      {renderStep()}
+    <div className="min-h-screen bg-gray-100">
+      {/* Progress indicator - sticky at top */}
+      <OnboardingProgressBar />
+
+      {/* Step content */}
+      <div className="py-12">
+        {renderStep()}
+      </div>
     </div>
   );
 };
