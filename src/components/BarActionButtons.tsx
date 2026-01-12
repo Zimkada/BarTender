@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Ban, CheckCircle } from 'lucide-react';
 import { Bar } from '../types';
+import { BarReportButton } from './admin/BarReportButton';
 
 interface BarActionButtonsProps {
     bar: Bar;
@@ -22,7 +23,7 @@ export const BarActionButtons = React.memo<BarActionButtonsProps>(
         };
 
         return (
-            <div className="grid grid-cols-1 gap-2">
+            <div className="grid grid-cols-2 gap-2">
                 <button
                     onClick={handleToggleStatus}
                     disabled={loading}
@@ -43,6 +44,7 @@ export const BarActionButtons = React.memo<BarActionButtonsProps>(
                         </>
                     )}
                 </button>
+                <BarReportButton bar={bar} />
             </div>
         );
     }
