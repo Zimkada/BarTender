@@ -78,10 +78,21 @@ export default function BarsManagementPage() {
     if (confirm(`Voulez-vous vraiment ${action} ce bar ?`)) {
       try {
         await BarService.updateBar(barId, { is_active: !currentStatus });
-        loadBars();
+
+        // Mettre à jour le state local immédiatement pour un feedback instantané
+        setBars(prevBars =>
+          prevBars.map(bar =>
+            bar.id === barId ? { ...bar, isActive: !currentStatus } : bar
+          )
+        );
+
+        // Recharger les données pour être sûr d'avoir la version serveur
+        await loadBars();
       } catch (error) {
         console.error(`Erreur lors de la mise à jour du bar ${barId}:`, error);
         alert(`Impossible de mettre à jour le bar.`);
+        // En cas d'erreur, recharger pour restaurer l'état correct
+        await loadBars();
       }
     }
   };
