@@ -1,4 +1,5 @@
 
+import { useQuery } from '@tanstack/react-query';
 import { SalesService } from '../../services/supabase/sales.service';
 import type { Sale, SaleItem } from '../../types';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
@@ -10,9 +11,6 @@ export const salesKeys = {
     detail: (id: string) => [...salesKeys.all, 'detail', id] as const,
     stats: (barId: string) => [...salesKeys.all, 'stats', barId] as const,
 };
-
-import { useProxyQuery } from './useProxyQuery';
-import { ProxyAdminService } from '../../services/supabase/proxy-admin.service';
 
 export const useSales = (barId: string | undefined) => {
     const isEnabled = !!barId;
@@ -37,31 +35,20 @@ export const useSales = (barId: string | undefined) => {
         console.log('[useSales] Query DISABLED - barId is empty:', { barId, isEnabled });
     }
 
-    return useProxyQuery(
-        salesKeys.list(barId || '') as any,
-        // Standard Fetcher
-        async (): Promise<Sale[]> => {
+    return useQuery({
+        queryKey: salesKeys.list(barId || '') as any,
+        queryFn: async (): Promise<Sale[]> => {
             if (!barId) return [];
             console.log('[useSales] Fetching sales for barId:', barId);
             const dbSales = await SalesService.getBarSales(barId);
             console.log('[useSales] Fetched', dbSales.length, 'sales');
             return mapSalesData(dbSales);
         },
-        // Proxy Fetcher
-        async (userId, _barId): Promise<Sale[]> => {
-            if (!barId) return [];
-            console.log('[useSales] Fetching sales via proxy for barId:', barId, 'userId:', userId);
-            const dbSales = await ProxyAdminService.getBarSalesAsProxy(userId, barId);
-            console.log('[useSales] Fetched', dbSales.length, 'sales via proxy');
-            return mapSalesData(dbSales);
-        },
-        {
-            enabled: isEnabled,
-            staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
-            gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
-            refetchInterval: smartSync.isSynced ? false : 30000, // 🚀 Hybride: Realtime ou polling 30s
-        }
-    );
+        enabled: isEnabled,
+        staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
+        gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
+        refetchInterval: smartSync.isSynced ? false : 30000, // 🚀 Hybride: Realtime ou polling 30s
+    });
 };
 
 // Helper to map DB sales to frontend type

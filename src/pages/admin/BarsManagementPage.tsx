@@ -13,7 +13,6 @@ import { BarService } from '../../services/supabase/bar.service';
 import { BarCard } from '../../components/BarCard';
 import { AdminPanelErrorBoundary } from '../../components/AdminPanelErrorBoundary';
 import { AdminPanelSkeleton } from '../../components/AdminPanelSkeleton';
-import BarStatsModal from '../../components/BarStatsModal';
 
 export default function BarsManagementPage() {
   const { impersonate } = useAuth();
@@ -29,9 +28,6 @@ export default function BarsManagementPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
   const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
   const [error, setError] = useState<string | null>(null);
-
-  // Stats Modal State
-  const [selectedBarStats, setSelectedBarStats] = useState<Bar | null>(null);
 
   const totalPages = Math.ceil(totalCount / limit);
 
@@ -195,7 +191,6 @@ export default function BarsManagementPage() {
                     members={members}
                     onToggleStatus={toggleBarStatus}
                     onImpersonate={impersonate}
-                    onShowStats={setSelectedBarStats}
                     onClose={() => { }}
                   />
                 );
@@ -228,14 +223,6 @@ export default function BarsManagementPage() {
           </div>
         </div>
 
-        {/* Stats Modal */}
-        {selectedBarStats && (
-          <BarStatsModal
-            isOpen={!!selectedBarStats}
-            onClose={() => setSelectedBarStats(null)}
-            bar={selectedBarStats}
-          />
-        )}
       </AdminPanelErrorBoundary>
     </div>
   );

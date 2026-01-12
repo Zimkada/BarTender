@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
@@ -6,8 +7,6 @@ import { SalesService } from '../services/supabase/sales.service';
 import { ReturnsService } from '../services/supabase/returns.service';
 import { getCurrentBusinessDateString, filterByBusinessDateRange } from '../utils/businessDateHelpers';
 import { statsKeys } from './queries/useStatsQueries';
-import { useProxyQuery } from './queries/useProxyQuery';
-import { ProxyAdminService } from '../services/supabase/proxy-admin.service';
 import { CACHE_STRATEGY } from '../lib/cache-strategy';
 
 interface RevenueStats {
@@ -88,11 +87,10 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         return { netRevenue, grossRevenue, refundsTotal, saleCount };
     }, [sales, returns, startDate, endDate, currentBar?.closingHour, isServerRole, operatingMode, currentSession?.userId]);
 
-    // Use Proxy Query to handle impersonation automatically
-    const { data: stats, isLoading, error } = useProxyQuery(
-        statsKeys.summary(currentBarId, startDate, endDate),
-        // 1. Standard Fetcher (Normal User) - Requires 2 calls (Sales + Returns)
-        async () => {
+    // Standard query for fetching revenue stats
+    const { data: stats, isLoading, error } = useQuery({
+        queryKey: statsKeys.summary(currentBarId, startDate, endDate),
+        queryFn: async () => {
             // ✨ Pass serverId if server role to filter their stats
             const serverId = isServerRole ? currentSession?.userId : undefined;
             const stats = await SalesService.getSalesStats(currentBarId, startDate, endDate, serverId);
@@ -113,18 +111,11 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
                 saleCount: stats.totalSales
             };
         },
-        // 2. Proxy Fetcher (Impersonation) - Uses optimized single RPC
-        async (userId: string, barId: string) => {
-            return ProxyAdminService.getSalesStatsAsProxy(userId, barId, startDate, endDate);
-        },
-        // Options
-        {
-            enabled: enabled && !!currentBarId,
-            placeholderData: calculateLocalStats,
-            staleTime: CACHE_STRATEGY.dailyStats.staleTime,
-            gcTime: CACHE_STRATEGY.dailyStats.gcTime,
-        }
-    );
+        enabled: enabled && !!currentBarId,
+        placeholderData: calculateLocalStats,
+        staleTime: CACHE_STRATEGY.dailyStats.staleTime,
+        gcTime: CACHE_STRATEGY.dailyStats.gcTime,
+    });
 
     return {
         netRevenue: stats?.netRevenue ?? 0,

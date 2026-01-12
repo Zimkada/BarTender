@@ -1,9 +1,8 @@
+import { useQuery } from '@tanstack/react-query';
 import { ProductsService } from '../../services/supabase/products.service';
 import { CategoriesService } from '../../services/supabase/categories.service';
 import { StockService } from '../../services/supabase/stock.service';
 import { useApiQuerySimple } from './useApiQuery';
-import { useProxyQuery } from './useProxyQuery';
-import { ProxyAdminService } from '../../services/supabase/proxy-admin.service';
 import type { Product, Supply, Consignment, Category } from '../../types';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 import { useSmartSync } from '../useSmartSync';
@@ -29,27 +28,19 @@ export const useProducts = (barId: string | undefined) => {
         queryKeysToInvalidate: [stockKeys.products(barId || '')] // 🚀 FIX: Invalidate specific stock keys
     });
 
-    // Utiliser useProxyQuery pour supporter l'impersonnation Super Admin
-    return useProxyQuery(
-        stockKeys.products(barId || '') as any,
-        // 1. Fetcher Standard
-        async () => {
+    // Standard query for fetching products
+    return useQuery({
+        queryKey: stockKeys.products(barId || '') as any,
+        queryFn: async () => {
             if (!barId) return [];
             const dbProducts = await ProductsService.getBarProducts(barId);
             return mapProducts(dbProducts);
         },
-        // 2. Fetcher Proxy (Super Admin As User)
-        async (userId, barIdArg) => {
-            const dbProducts = await ProxyAdminService.getBarProductsAsProxy(userId, barIdArg);
-            return mapProducts(dbProducts);
-        },
-        {
-            enabled: !!barId,
-            staleTime: CACHE_STRATEGY.products.staleTime,
-            gcTime: CACHE_STRATEGY.products.gcTime,
-            refetchInterval: smartSync.isSynced ? false : 30000, // 🚀 Hybride: Realtime si connecté, sinon polling 30s
-        }
-    );
+        enabled: !!barId,
+        staleTime: CACHE_STRATEGY.products.staleTime,
+        gcTime: CACHE_STRATEGY.products.gcTime,
+        refetchInterval: smartSync.isSynced ? false : 30000, // 🚀 Hybride: Realtime si connecté, sinon polling 30s
+    });
 };
 
 // Helper pour mapper les produits

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useDebounce } from 'use-debounce';
 import {
   Users, Search, Filter, ChevronLeft, ChevronRight, UserPlus, Key, Building2
@@ -163,7 +163,7 @@ export default function UsersManagementPage() {
             </div>
           </div>
         </div>
-    
+
 
         {/* Error Alert */}
         {error && (
@@ -192,133 +192,132 @@ export default function UsersManagementPage() {
             </div>
           ) : (
             <table className="w-full min-w-max divide-y divide-gray-200">
-                <thead className="bg-white">
-                  <tr>
-                    <th scope="col" className="px-1 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Nom
-                    </th>
-                    <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
-                      Rôle(s)
-                    </th>
-                    <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap hidden md:table-cell">
-                      Bar(s)
-                    </th>
-                    <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                      Statut
-                    </th>
-                    <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                      Date d'inscription
-                    </th>
-                    <th scope="col" className="relative px-1 sm:px-4 md:px-6 py-3 w-auto md:w-28 whitespace-nowrap">
-                      <span className="sr-only">Actions</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {users.map(user => (
-                    <tr key={user.id}>
-                      <td className="px-1 sm:px-4 md:px-6 py-4">
-                        <div className="flex flex-col gap-1">
-                          <div className="text-sm font-medium text-gray-900">
-                            {user.name}
-                          </div>
-                          <div className="text-xs text-gray-500 md:hidden">
-                            {(user as any).bars && (user as any).bars.length > 0
-                              ? (user as any).bars.map((bar: { name: string }, idx: number) => (
-                                  <span key={bar.name}>
-                                    {bar.name}{idx < (user as any).bars.length - 1 ? ', ' : ''}
-                                  </span>
-                                ))
-                              : 'Aucun bar'}
-                          </div>
-                          <div className="text-sm text-gray-500 hidden md:inline">({user.email})</div>
+              <thead className="bg-white">
+                <tr>
+                  <th scope="col" className="px-1 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Nom
+                  </th>
+                  <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                    Rôle(s)
+                  </th>
+                  <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap hidden md:table-cell">
+                    Bar(s)
+                  </th>
+                  <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                    Statut
+                  </th>
+                  <th scope="col" className="px-2 sm:px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                    Date d'inscription
+                  </th>
+                  <th scope="col" className="relative px-1 sm:px-4 md:px-6 py-3 w-auto md:w-28 whitespace-nowrap">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {users.map(user => (
+                  <tr key={user.id}>
+                    <td className="px-1 sm:px-4 md:px-6 py-4">
+                      <div className="flex flex-col gap-1">
+                        <div className="text-sm font-medium text-gray-900">
+                          {user.name}
                         </div>
-                      </td>
-                      <td className="px-2 sm:px-4 md:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
-                        <div className="flex flex-wrap gap-1">
-                          {user.roles.map(role => (
-                            <span
-                              key={role}
-                              className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800"
-                            >
-                              {role}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-2 sm:px-4 md:px-6 py-4 whitespace-nowrap hidden md:table-cell">
-                        <div className="flex flex-wrap gap-1">
-                          {(user as any).bars && (user as any).bars.length > 0 ? (
-                            (user as any).bars.map((bar: { id: string; name: string }) => (
-                              <span
-                                key={bar.id}
-                                className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800"
-                              >
-                                {bar.name}
+                        <div className="text-xs text-gray-500 md:hidden">
+                          {(user as any).bars && (user as any).bars.length > 0
+                            ? (user as any).bars.map((bar: { name: string }, idx: number) => (
+                              <span key={bar.name}>
+                                {bar.name}{idx < (user as any).bars.length - 1 ? ', ' : ''}
                               </span>
                             ))
-                          ) : (
-                            <span className="text-xs text-gray-500">Aucun bar</span>
-                          )}
+                            : 'Aucun bar'}
                         </div>
-                      </td>
-                      <td className="px-2 sm:px-4 md:px-6 py-4 whitespace-nowrap hidden md:table-cell">
-                        <span
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                          }`}
-                        >
-                          {user.isActive ? 'Actif' : 'Suspendu'}
-                        </span>
-                      </td>
-                      <td className="px-2 sm:px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
-                        {new Date(user.createdAt).toLocaleDateString('fr-FR')}
-                      </td>
-                      <td className="px-1 sm:px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium w-auto md:w-40">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => setEditingUser(user)}
-                            className="text-indigo-600 hover:text-indigo-900 font-medium"
+                        <div className="text-sm text-gray-500 hidden md:inline">({user.email})</div>
+                      </div>
+                    </td>
+                    <td className="px-2 sm:px-4 md:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
+                      <div className="flex flex-wrap gap-1">
+                        {user.roles.map(role => (
+                          <span
+                            key={role}
+                            className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800"
                           >
-                            Modifier
+                            {role}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-2 sm:px-4 md:px-6 py-4 whitespace-nowrap hidden md:table-cell">
+                      <div className="flex flex-wrap gap-1">
+                        {(user as any).bars && (user as any).bars.length > 0 ? (
+                          (user as any).bars.map((bar: { id: string; name: string }) => (
+                            <span
+                              key={bar.id}
+                              className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800"
+                            >
+                              {bar.name}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-gray-500">Aucun bar</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-2 sm:px-4 md:px-6 py-4 whitespace-nowrap hidden md:table-cell">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}
+                      >
+                        {user.isActive ? 'Actif' : 'Suspendu'}
+                      </span>
+                    </td>
+                    <td className="px-2 sm:px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
+                      {new Date(user.createdAt).toLocaleDateString('fr-FR')}
+                    </td>
+                    <td className="px-1 sm:px-4 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium w-auto md:w-40">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => setEditingUser(user)}
+                          className="text-indigo-600 hover:text-indigo-900 font-medium"
+                        >
+                          Modifier
+                        </button>
+                        {/* Ajouter Bar - uniquement pour les promoteurs */}
+                        {user.roles.includes('promoteur') && (
+                          <button
+                            onClick={() => handleAddBar(user)}
+                            className="text-teal-600 hover:text-teal-900 font-medium p-1 rounded-md"
+                            title="Ajouter un bar"
+                          >
+                            <Building2 className="w-4 h-4" />
                           </button>
-                          {/* Ajouter Bar - uniquement pour les promoteurs */}
-                          {user.roles.includes('promoteur') && (
-                            <button
-                              onClick={() => handleAddBar(user)}
-                              className="text-teal-600 hover:text-teal-900 font-medium p-1 rounded-md"
-                              title="Ajouter un bar"
-                            >
-                              <Building2 className="w-4 h-4" />
-                            </button>
-                          )}
-                          {/* Password action button - different behavior based on email type */}
-                          {isFictionalEmail(user.email) ? (
-                            <button
-                              onClick={() => setSettingPasswordForUser(user)}
-                              className="text-purple-600 hover:text-purple-900 font-medium p-1 rounded-md"
-                              title="Définir le mot de passe"
-                            >
-                              <Key className="w-4 h-4" />
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => setResetingPasswordForUser(user)}
-                              className="text-amber-600 hover:text-amber-900 font-medium p-1 rounded-md"
-                              title="Envoyer email de réinitialisation"
-                            >
-                              <Key className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        )}
+                        {/* Password action button - different behavior based on email type */}
+                        {isFictionalEmail(user.email) ? (
+                          <button
+                            onClick={() => setSettingPasswordForUser(user)}
+                            className="text-purple-600 hover:text-purple-900 font-medium p-1 rounded-md"
+                            title="Définir le mot de passe"
+                          >
+                            <Key className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setResetingPasswordForUser(user)}
+                            className="text-amber-600 hover:text-amber-900 font-medium p-1 rounded-md"
+                            title="Envoyer email de réinitialisation"
+                          >
+                            <Key className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
-    
+
 
         {/* Pagination */}
         <div className="px-2 py-3 sm:p-4 border-t flex-shrink-0 bg-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 rounded-b-2xl">

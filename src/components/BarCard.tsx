@@ -6,12 +6,11 @@ interface BarCardProps {
     bar: Bar;
     members: (BarMember & { user: User })[];
     onToggleStatus: (barId: string, currentStatus: boolean) => Promise<void>;
-    onShowStats: (bar: Bar) => void;
     onClose?: () => void;
 }
 
 export const BarCard = React.memo<BarCardProps>(
-    ({ bar, members, onToggleStatus, onShowStats, onClose }) => {
+    ({ bar, members, onToggleStatus, onClose }) => {
         const owner =
             members.find(m => m.userId === bar.ownerId)?.user ||
             members.find(m => m.role === 'promoteur')?.user;
@@ -55,9 +54,7 @@ export const BarCard = React.memo<BarCardProps>(
                 {/* Actions */}
                 <BarActionButtons
                     bar={bar}
-                    members={members}
                     onToggleStatus={onToggleStatus}
-                    onShowStats={onShowStats}
                     onClose={onClose}
                 />
             </div>

@@ -78,8 +78,10 @@ BEGIN
 END;
 $$;
 
--- Also fix get_unique_bars() - create or replace directly
-CREATE OR REPLACE FUNCTION get_unique_bars()
+-- Also fix get_unique_bars() - drop and recreate with correct signature
+DROP FUNCTION IF EXISTS get_unique_bars();
+
+CREATE FUNCTION get_unique_bars()
 RETURNS TABLE (id UUID, name TEXT, is_active BOOLEAN)
 LANGUAGE sql
 AS $$
@@ -96,31 +98,11 @@ $$;
 
 DO $$
 BEGIN
-  RAISE NOTICE '
-  ╔════════════════════════════════════════════════════════════╗
-  ║  FIXED: Exclude système bar from admin management          ║
-  ╚════════════════════════════════════════════════════════════╝
-
-  ✅ Updated get_paginated_bars() to exclude système bar
-  ✅ Updated get_unique_bars() to exclude système bar
-  ✅ Filters by name pattern: NOT LIKE %système% and NOT LIKE %system%
-
-  What Was Wrong:
-  • RPC returned ALL bars including système/system bar
-  • Superadmin saw only système bar in "Gestion des bars"
-  • No filtering logic in the query
-
-  What Is Fixed:
-  • WHERE clause now excludes bars with name containing "système" or "system"
-  • Both get_paginated_bars and get_unique_bars updated
-  • Superadmin will now see all real bars except système
-
-  Impact:
-  ✓ Superadmin can see all bars in "Gestion des bars"
-  ✓ ActingAs feature works with real bars
-  ✓ Système bar hidden from management interface
-  ✓ Audit logs still track all changes
-  ';
+  RAISE NOTICE 'FIXED: Exclude système bar from admin management';
+  RAISE NOTICE 'Updated get_paginated_bars() to exclude système bar';
+  RAISE NOTICE 'Updated get_unique_bars() to exclude système bar';
+  RAISE NOTICE 'Filters by name pattern: NOT LIKE système and NOT LIKE system';
+  RAISE NOTICE 'Superadmin can now see all bars in Gestion des bars';
 END $$;
 
 COMMIT;

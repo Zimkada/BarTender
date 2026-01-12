@@ -3,7 +3,6 @@ import { Suspense, lazy, useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { useAppContext } from '../context/AppContext';
-import { useActingAs } from '../context/ActingAsContext';
 import { ModalProvider, useModal } from '../context/ModalContext';
 import { useStockMutations } from '../hooks/mutations/useStockMutations';
 import { useQueryClient } from '@tanstack/react-query';
@@ -21,7 +20,6 @@ import { LoadingFallback } from '../components/LoadingFallback';
 import { LazyLoadErrorBoundary } from '../components/LazyLoadErrorBoundary';
 // import { UserManagement } from '../components/UserManagement'; // Removed
 import { Category } from '../types';
-import { ActingAsBar } from '../components/ActingAsBar';
 import { UpdateNotification } from '../components/UpdateNotification';
 
 // Lazy load all modals to reduce initial bundle size (~60-80 KB savings)
@@ -29,14 +27,12 @@ const LazyProductModal = lazy(() => import('../components/ProductModal').then(m 
 const LazyCategoryModal = lazy(() => import('../components/CategoryModal').then(m => ({ default: m.CategoryModal })));
 const LazyQuickSaleFlow = lazy(() => import('../components/QuickSaleFlow').then(m => ({ default: m.QuickSaleFlow })));
 const LazySupplyModal = lazy(() => import('../components/SupplyModal').then(m => ({ default: m.SupplyModal })));
-const LazyBarStatsModal = lazy(() => import('../components/BarStatsModal')); // default export, no .then() needed
 
 function RootLayoutContent() {
   const { isAuthenticated, currentSession } = useAuth();
   const { currentBar } = useBarContext();
   const { categories, products, addProduct, addCategory, updateCategory, linkCategory, showNotification } = useAppContext();
   const { addSupply } = useStockMutations(currentBar?.id || '');
-  const { isActingAs } = useActingAs();
   const queryClient = useQueryClient();
 
   const { modalState, openModal, closeModal } = useModal();
@@ -109,22 +105,20 @@ function RootLayoutContent() {
     return <Navigate to="/auth/login" replace />;
   }
 
-  // Allow super_admin to access this layout if they're currently acting as another user
-  if (currentSession?.role === 'super_admin' && !isActingAs()) {
+  // Redirect super_admin to admin panel
+  if (currentSession?.role === 'super_admin') {
     return <Navigate to="/admin" replace />;
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-50 pb-16 md:pb-0">
       <UpdateNotification />
-      <ActingAsBar />
       <Header
         onShowQuickSale={() => openModal('QUICK_SALE')}
         onShowProductModal={() => openModal('PRODUCT')}
         onShowCategoryModal={() => openModal('CATEGORY')}
         // onShowUserManagement removed
         onShowSupplyModal={() => openModal('SUPPLY')}
-        onShowBarStatsModal={(bar) => openModal('BAR_STATS', { bar })}
         onToggleMobileSidebar={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)} // NEW
       />
       <main className="container mx-auto px-3 md:px-4 py-4 md:py-6">
@@ -210,13 +204,6 @@ function RootLayoutContent() {
                 created_by: currentSession.userId,
               });
             }}
-          />
-        )}
-        {modalState.type === 'BAR_STATS' && (
-          <LazyBarStatsModal
-            isOpen={true}
-            onClose={closeModal}
-            bar={modalState.props.bar}
           />
         )}
       </Suspense>

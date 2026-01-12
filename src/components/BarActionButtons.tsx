@@ -1,22 +1,16 @@
 import React, { useState } from 'react';
-import { Ban, CheckCircle, UserCog, BarChart3 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Ban, CheckCircle } from 'lucide-react';
 import { Bar } from '../types';
-import { useActingAs } from '../context/ActingAsContext';
 
 interface BarActionButtonsProps {
     bar: Bar;
-    members: Array<{ role: string; userId: string; user: { id: string; name: string } }>;
     onToggleStatus: (barId: string, currentStatus: boolean) => Promise<void>;
-    onShowStats: (bar: Bar) => void;
     onClose?: () => void;
 }
 
 export const BarActionButtons = React.memo<BarActionButtonsProps>(
-    ({ bar, members, onToggleStatus, onShowStats, onClose }) => {
+    ({ bar, onToggleStatus, onClose }) => {
         const [loading, setLoading] = useState(false);
-        const navigate = useNavigate();
-        const { startActingAs } = useActingAs();
 
         const handleToggleStatus = async () => {
             setLoading(true);
@@ -27,29 +21,8 @@ export const BarActionButtons = React.memo<BarActionButtonsProps>(
             }
         };
 
-        const handleAccessAsPromoteur = async () => {
-            // Find promoteur member in this bar
-            const promoteur = members.find(m => m.role === 'promoteur');
-            if (promoteur && promoteur.user) {
-                setLoading(true);
-                try {
-                    await startActingAs(
-                        promoteur.userId,
-                        promoteur.user.name,
-                        bar.id,
-                        bar.name
-                    );
-                    // Navigate to dashboard as the promoteur
-                    navigate('/dashboard');
-                    onClose?.();
-                } finally {
-                    setLoading(false);
-                }
-            }
-        };
-
         return (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 gap-2">
                 <button
                     onClick={handleToggleStatus}
                     disabled={loading}
@@ -69,23 +42,6 @@ export const BarActionButtons = React.memo<BarActionButtonsProps>(
                             Activer
                         </>
                     )}
-                </button>
-                <button
-                    onClick={handleAccessAsPromoteur}
-                    disabled={loading || !members.find(m => m.role === 'promoteur')}
-                    className="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg font-semibold text-xs hover:bg-blue-200 flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    title="Accéder à l'interface du bar en tant que promoteur"
-                >
-                    <UserCog className="w-3.5 h-3.5" />
-                    Accès Promoteur
-                </button>
-                <button
-                    onClick={() => onShowStats(bar)}
-                    disabled={loading}
-                    className="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg font-semibold text-xs hover:bg-purple-200 flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                    <BarChart3 className="w-3.5 h-3.5" />
-                    Stats Détaillées
                 </button>
             </div>
         );

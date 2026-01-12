@@ -18,7 +18,6 @@ import {
 import { motion } from 'framer-motion';
 import { useRevenueStats } from '../hooks/useRevenueStats';
 import { useAuth } from "../context/AuthContext";
-import { useActingAs } from '../context/ActingAsContext';
 import { useBarContext } from '../context/BarContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { BarSelector } from './BarSelector';
@@ -41,7 +40,6 @@ interface HeaderProps {
   onShowCategoryModal: () => void;
   // onShowUserManagement removed
   onShowSupplyModal: () => void;
-  onShowBarStatsModal: (bar: Bar) => void; // MODIFIED: now takes a bar object
 
   // Other persistent callbacks
   onToggleMobileSidebar?: () => void;
@@ -58,7 +56,6 @@ export function Header({
   onShowCategoryModal,
   // onShowUserManagement removed
   onShowSupplyModal,
-  onShowBarStatsModal,
   onToggleMobileSidebar = () => { },
   onShowCreateBar,
   // onSwitchToServer, // REMOVED
@@ -66,20 +63,9 @@ export function Header({
 }: HeaderProps) {
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession, logout } = useAuth();
-  const { isActingAs, stopActingAs } = useActingAs();
   const { currentBar } = useBarContext();
   const { isMobile } = useViewport();
   const navigate = useNavigate(); // NEW: Initialize useNavigate
-
-
-
-  // Check if super_admin is currently in impersonation mode
-  const isAdminInImpersonation = currentSession?.role === 'super_admin' && isActingAs();
-
-  const handleReturnToAdmin = () => {
-    stopActingAs();
-    navigate('/admin');
-  };
 
   // ✨ HYBRID DRY REVENUE
   const { netRevenue: todayTotal } = useRevenueStats();
@@ -212,7 +198,7 @@ export function Header({
                   )}
 
                   {/* Ventes du jour - RIGHT (seulement pour non super admin) */}
-                  {(currentSession?.role !== 'super_admin' || isAdminInImpersonation) && (
+                  {currentSession?.role !== 'super_admin' && (
                     <div className="flex flex-col items-center flex-shrink-0">
                       <p className="text-white/80 text-xs font-medium">Ventes jour</p>
                       <AnimatedCounter
@@ -315,8 +301,8 @@ export function Header({
 
           {/* Droite: Stats + User + Déconnexion */}
           <div className="flex items-center gap-2 md:gap-6">
-            {/* Ventes du jour - Masqué pour super admin sauf en impersonation */}
-            {(currentSession?.role !== 'super_admin' || isAdminInImpersonation) && (
+            {/* Ventes du jour - Masqué pour super admin */}
+            {currentSession?.role !== 'super_admin' && (
               <div className="hidden sm:block bg-white/20 backdrop-blur-sm rounded-lg px-3 md:px-4 py-2 flex flex-col items-center">
                 <p className="text-white/80 text-xs md:text-sm">Ventes du jour</p>
                 <AnimatedCounter
@@ -336,8 +322,8 @@ export function Header({
               </p>
             </div>
 
-            {/* Admin Actions (super_admin uniquement - sauf en impersonation) */}
-            {currentSession?.role === 'super_admin' && !isAdminInImpersonation && (
+            {/* Admin Actions (super_admin uniquement) */}
+            {currentSession?.role === 'super_admin' && (
               <>
                 <Button
                   onClick={() => navigate('/admin/catalog')}

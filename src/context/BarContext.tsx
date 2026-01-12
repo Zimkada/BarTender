@@ -1,10 +1,8 @@
 import React, { createContext, useContext, useCallback, ReactNode, useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useActingAs } from '../context/ActingAsContext';
 import { Bar, BarMember, User, UserRole } from '../types';
 import { auditLogger } from '../services/AuditLogger';
 import { BarsService } from '../services/supabase/bars.service';
-import { ProxyAdminService } from '../services/supabase/proxy-admin.service';
 import { AuthService } from '../services/supabase/auth.service';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
@@ -57,7 +55,6 @@ export const useBar = useBarContext;
 
 export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { currentSession, hasPermission, updateCurrentBar } = useAuth();
-  const { actingAs } = useActingAs();
   const [bars, setBars] = useState<Bar[]>([]);
   const [barMembers, setBarMembers] = useState<BarMember[]>([]);
   const [currentBarId, setCurrentBarId] = useState<string | null>(null);
@@ -131,75 +128,43 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       let mappedMembers: BarMember[] = [];
 
-      // Priorité à l'actingAs si actif pour ce bar
-      if (actingAs.isActive && actingAs.userId && targetBarId === actingAs.barId) {
-        // PROXY MODE
-        try {
-          const rawMembers = await ProxyAdminService.getBarMembersAsProxy(actingAs.userId, targetBarId);
-          mappedMembers = rawMembers.map((m: any) => ({
+      // Standard mode: Load members from AuthService
+      try {
+        // Utilise le RPC étendu qui inclut owner et inactifs
+        const members = await AuthService.getBarMembers(targetBarId);
+        mappedMembers = members.map(m => ({
+          id: `${targetBarId}_${m.id}`,
+          userId: m.id,
+          barId: targetBarId,
+          role: m.role as UserRole,
+          assignedBy: '',
+          assignedAt: m.joined_at ? new Date(m.joined_at) : new Date(),
+          isActive: m.member_is_active,
+          user: {
             id: m.id,
-            userId: m.user_id,
-            barId: m.bar_id,
-            role: m.role as UserRole,
-            assignedBy: 'super_admin',
-            assignedAt: new Date(m.assigned_at || Date.now()),
-            isActive: m.is_active,
-            user: {
-              id: m.user_data?.id || m.user_id,
-              username: m.user_data?.email || '',
-              password: '',
-              name: m.user_data?.name || 'Inconnu',
-              phone: m.user_data?.phone,
-              email: m.user_data?.email,
-              createdAt: new Date(),
-              isActive: true,
-              firstLogin: false,
-              avatarUrl: m.user_data?.avatar_url,
-              createdBy: undefined,
-              role: m.role as UserRole, // ✨ FIX: Ajouter le rôle requis
-            }
-          }));
-        } catch (err) {
-          console.error('[BarContext] Error loading members as proxy:', err);
-        }
-      } else {
-        // STANDARD MODE
-        try {
-          // Utilise le RPC étendu qui inclut owner et inactifs
-          const members = await AuthService.getBarMembers(targetBarId);
-          mappedMembers = members.map(m => ({
-            id: `${targetBarId}_${m.id}`,
-            userId: m.id,
-            barId: targetBarId,
-            role: m.role as UserRole,
-            assignedBy: '',
-            assignedAt: m.joined_at ? new Date(m.joined_at) : new Date(),
-            isActive: m.member_is_active,
-            user: {
-              id: m.id,
-              username: m.username || '',
-              password: '',
-              name: m.name,
-              phone: m.phone,
-              email: m.email,
-              createdAt: m.created_at ? new Date(m.created_at) : new Date(),
-              isActive: m.is_active || false,
-              firstLogin: m.first_login ?? false,
-              avatarUrl: m.avatar_url || undefined,
-              lastLoginAt: m.last_login_at ? new Date(m.last_login_at) : undefined,
-              createdBy: undefined,
-              role: m.role as UserRole, // ✨ FIX: Ajouter le rôle requis
-            }
-          }));
-        } catch (err) {
-          console.error('[BarContext] Error loading members:', err);
-        }
+            username: m.username || '',
+            password: '',
+            name: m.name,
+            phone: m.phone,
+            email: m.email,
+            createdAt: m.created_at ? new Date(m.created_at) : new Date(),
+            isActive: m.is_active || false,
+            firstLogin: m.first_login ?? false,
+            avatarUrl: m.avatar_url || undefined,
+            lastLoginAt: m.last_login_at ? new Date(m.last_login_at) : undefined,
+            createdBy: undefined,
+            role: m.role as UserRole, // ✨ FIX: Ajouter le rôle requis
+          }
+        }));
+      } catch (err) {
+        console.error('[BarContext] Error loading members:', err);
       }
+
       setBarMembers(mappedMembers);
     } catch (error) {
       console.error('[BarContext] Error in refreshMembers:', error);
     }
-  }, [actingAs]);
+  }, []);
 
   // Charger les bars au démarrage
   useEffect(() => {
@@ -212,7 +177,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (barId) {
       refreshMembers(barId);
     }
-  }, [currentBar?.id, actingAs.isActive, actingAs.userId, actingAs.barId, refreshMembers]);
+  }, [currentBar?.id, refreshMembers]);
 
 
   // Helper pour obtenir les bars accessibles
@@ -283,7 +248,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setCurrentBar(null);
       setCurrentBarId(null);
     }
-  }, [currentBarId, bars, currentSession, getUserBars, actingAs]);
+  }, [currentBarId, bars, currentSession, getUserBars]);
 
   // Gestion des bars
   const createBar = useCallback(async (barData: Omit<Bar, 'id' | 'createdAt' | 'ownerId'> & { ownerId?: string }) => {
@@ -335,78 +300,44 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [currentSession, hasPermission, refreshBars]);
 
   /* ------------------------------------------------------------------
-   * UPDATE BAR (Proxy Aware)
+   * UPDATE BAR
    * ------------------------------------------------------------------ */
   const updateBar = useCallback(async (barId: string, updates: Partial<Bar>) => {
-    // 1. Permission check (Proxy or Standard)
-    if (actingAs.isActive && actingAs.userId) {
-      // Allow
-    } else {
-      if (!currentSession || !hasPermission('canManageBarInfo')) return;
-    }
+    // Permission check
+    if (!currentSession || !hasPermission('canManageBarInfo')) return;
 
     try {
-      if (actingAs.isActive && actingAs.userId) {
-        // --- PROXY MODE ---
-        // Currently only support settings update via Proxy
-        // If we need to update name/address, we need to extend RPC.
-        if (updates.settings || updates.closingHour) {
-          // Merge closingHour into settings if needed or handle separately? 
-          // BarTender stores closingHour as column, but settings as jsonb.
-          // My RPC admin_as_update_bar_settings updates "settings" column.
-          // It does NOT update "closing_hour" column.
-          // WARNING: "closing_hour" and "is_active" are separate columns.
+      const oldBar = bars.find(b => b.id === barId);
 
-          // Simplification: We assume "Acting As" mainly targets operational settings (consignment, etc).
-          // If user changes closing hour, it won't persist via `admin_as_update_bar_settings` unless I update RFC.
-          // **CRITICAL DECISION**: I should update the RPC or warn user.
-          // Since I cannot change RPC easily now (migration done), I will try to use `admin_as_update_bar_settings` 
-          // AND if I can, I'll pass Closing Hour inside settings just in case, or ignore it.
-          // Actually, I should have included Closing Hour in RPC. 
-          // BUT, standard `updateBar` updates `closing_hour` column.
+      // Mapper les updates au format Supabase
+      const supabaseUpdates: any = {};
+      if (updates.name) supabaseUpdates.name = updates.name;
+      if (updates.address) supabaseUpdates.address = updates.address;
+      if (updates.phone) supabaseUpdates.phone = updates.phone;
+      if (updates.settings) supabaseUpdates.settings = updates.settings;
+      if (updates.isActive !== undefined) supabaseUpdates.is_active = updates.isActive;
+      if (updates.closingHour !== undefined) supabaseUpdates.closing_hour = updates.closingHour;
 
-          // Workaround: I will use `admin_as_update_bar_settings` for settings. 
-          // Closing Hour change will be IGNORED for now in Proxy Mode (LIMITATION).
-          // Or I update standard `settings` object.
+      await BarsService.updateBar(barId, supabaseUpdates);
 
-          if (updates.settings) {
-            await ProxyAdminService.updateBarSettingsAsProxy(actingAs.userId, barId, updates.settings);
-          }
-        }
-      } else {
-        // --- STANDARD MODE ---
-        const oldBar = bars.find(b => b.id === barId);
-
-        // Mapper les updates au format Supabase
-        const supabaseUpdates: any = {};
-        if (updates.name) supabaseUpdates.name = updates.name;
-        if (updates.address) supabaseUpdates.address = updates.address;
-        if (updates.phone) supabaseUpdates.phone = updates.phone;
-        if (updates.settings) supabaseUpdates.settings = updates.settings;
-        if (updates.isActive !== undefined) supabaseUpdates.is_active = updates.isActive;
-        if (updates.closingHour !== undefined) supabaseUpdates.closing_hour = updates.closingHour;
-
-        await BarsService.updateBar(barId, supabaseUpdates);
-
-        // Log mise à jour bar
-        if (oldBar) {
-          auditLogger.log({
-            event: 'BAR_UPDATED',
-            severity: 'info',
-            userId: currentSession!.userId,
-            userName: currentSession!.userName,
-            userRole: currentSession!.role,
-            barId: barId,
-            barName: oldBar.name,
-            description: `Mise à jour bar: ${oldBar.name}`,
-            metadata: {
-              updates: updates,
-              oldValues: { name: oldBar.name, address: oldBar.address, phone: oldBar.phone },
-            },
-            relatedEntityId: barId,
-            relatedEntityType: 'bar',
-          });
-        }
+      // Log mise à jour bar
+      if (oldBar) {
+        auditLogger.log({
+          event: 'BAR_UPDATED',
+          severity: 'info',
+          userId: currentSession!.userId,
+          userName: currentSession!.userName,
+          userRole: currentSession!.role,
+          barId: barId,
+          barName: oldBar.name,
+          description: `Mise à jour bar: ${oldBar.name}`,
+          metadata: {
+            updates: updates,
+            oldValues: { name: oldBar.name, address: oldBar.address, phone: oldBar.phone },
+          },
+          relatedEntityId: barId,
+          relatedEntityType: 'bar',
+        });
       }
 
       // Rafraîchir la liste
@@ -415,7 +346,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } catch (error) {
       console.error('[BarContext] Error updating bar:', error);
     }
-  }, [currentSession, hasPermission, bars, refreshBars, actingAs]);
+  }, [currentSession, hasPermission, bars, refreshBars]);
 
   // Helpers
   const isOwner = useCallback((barId: string) => {

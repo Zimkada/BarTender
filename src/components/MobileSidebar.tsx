@@ -24,7 +24,6 @@ import {
   Gift,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useActingAs } from '../context/ActingAsContext';
 import { useNavigate } from 'react-router-dom';
 import { IconButton } from './ui/IconButton';
 
@@ -51,26 +50,13 @@ export function MobileSidebar({
   onShowQuickSale,
 }: MobileSidebarProps) {
   const { currentSession, logout } = useAuth();
-  const { isActingAs, stopActingAs } = useActingAs();
   const navigate = useNavigate();
-
-  // Determine the role to use for menu filtering
-  // If super_admin is in impersonation mode, show promoteur menus instead
-  const displayRole = currentSession?.role === 'super_admin' && isActingAs()
-    ? 'promoteur'
-    : currentSession?.role;
 
   const handleLogout = () => {
     if (confirm('Voulez-vous vraiment vous déconnecter ?')) {
       logout();
       onClose();
     }
-  };
-
-  const handleReturnToAdmin = () => {
-    stopActingAs();
-    navigate('/admin');
-    onClose();
   };
 
   const menuItems: MenuItem[] = [
@@ -98,9 +84,9 @@ export function MobileSidebar({
     { id: 'accounting', label: 'Comptabilité', icon: <DollarSign size={20} />, roles: ['promoteur'], path: '/accounting' }
   ];
 
-  // Filtrer les menus selon le rôle (ou displayRole si en impersonation)
+  // Filtrer les menus selon le rôle
   const visibleMenus = menuItems.filter(item =>
-    currentSession && item.roles.includes(displayRole as any)
+    currentSession && item.roles.includes(currentSession.role as any)
   );
 
   return (
@@ -190,19 +176,6 @@ export function MobileSidebar({
 
             {/* Footer - Actions */}
             <div className="p-4 border-t border-amber-200 space-y-2">
-              {/* Bouton retour à l'admin - visible seulement si en impersonation */}
-              {currentSession?.role === 'super_admin' && isActingAs() && (
-                <motion.button
-                  onClick={handleReturnToAdmin}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors shadow-md"
-                >
-                  <ShieldCheck size={20} />
-                  <span>Retour à l'Admin</span>
-                </motion.button>
-              )}
-
               {/* Bouton déconnexion */}
               <motion.button
                 onClick={handleLogout}

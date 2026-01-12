@@ -5,6 +5,7 @@ import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { EmptyProductsState } from './EmptyProductsState';
 import { Input } from './ui/Input';
 import { Select, SelectOption } from './ui/Select';
+import { Button } from './ui/Button';
 
 interface GlobalProductListProps {
     products: GlobalProduct[];
