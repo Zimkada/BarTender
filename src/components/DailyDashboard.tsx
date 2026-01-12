@@ -19,6 +19,8 @@ import { AnalyticsService, DailySalesSummary } from '../services/supabase/analyt
 import { useTopProducts } from '../hooks/queries/useTopProductsQuery';
 import { getCurrentBusinessDateString } from '../utils/businessDateHelpers';
 import { Button } from './ui/Button';
+import { useTeamPerformance } from '../hooks/useTeamPerformance';
+import { TeamPerformanceTable } from './analytics/TeamPerformanceTable';
 
 // Sous-composant pour les ventes en attente
 const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users }: {
@@ -178,6 +180,7 @@ export function DailyDashboard() {
   const [showDetails, setShowDetails] = useState(false);
   const [cashClosed, setCashClosed] = useState(false);
   const [todayStats, setTodayStats] = useState<DailySalesSummary | null>(null);
+  const [userFilter, setUserFilter] = useState<'all' | 'servers' | 'management'>('all');
 
   const todayDateStr = useMemo(() => getCurrentBusinessDateString(), []);
 
@@ -425,6 +428,26 @@ export function DailyDashboard() {
           <div className="flex items-center justify-between mb-2"><Archive className="w-8 h-8 text-indigo-600" /><span className="text-indigo-600 text-sm">Consignations</span></div>
           <div className="text-2xl font-bold text-gray-800">{serverFilteredConsignments.length}</div>
         </div>
+      </div>
+
+      {/* Performance Équipe (Journée en cours) */}
+      <div className="mb-6">
+        <TeamPerformanceTable
+          data={useTeamPerformance({
+            sales: isServerRole ? serverFilteredSales : todayValidatedSales,
+            returns: todayReturns, // TODO: Filter returns for server too if needed, but low risk for daily
+            users: users,
+            barMembers: [], // fallback to user role
+            startDate: undefined,
+            endDate: undefined
+          })}
+          totalRevenue={isServerRole ? (todayStats?.salesTotal || 0) : todayTotal}
+          filter={userFilter}
+          onFilterChange={setUserFilter}
+          title={isServerRole ? "Ma Performance (Journée)" : "Performance Équipe (Journée)"}
+          subtitle="Net (Ventes - Remboursés)"
+          compact={true}
+        />
       </div>
 
       {/* Details Toggle */}

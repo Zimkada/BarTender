@@ -1,48 +1,45 @@
 -- =====================================================
--- FIX: is_super_admin() to check public.users.role instead of auth.users.is_super_admin
+-- FIX: is_super_admin() to check bar_members.role instead of auth.users.is_super_admin
 -- =====================================================
 -- Date: 2026-01-12
--- Problem: auth.users.is_super_admin column doesn't exist in most Supabase instances
--- Solution: Check public.users.role = 'super_admin' instead
+-- Problem: auth.users.is_super_admin doesn't exist, users table has no role column
+-- Solution: Check bar_members.role = 'super_admin' instead
 
 BEGIN;
 
 -- =====================================================
--- 1. DROP OLD FUNCTION
+-- 1. CREATE OR REPLACE is_super_admin() FUNCTION
 -- =====================================================
-
-DROP FUNCTION IF EXISTS is_super_admin();
-
--- =====================================================
--- 2. CREATE NEW is_super_admin() FUNCTION
--- =====================================================
+-- Note: Using CREATE OR REPLACE instead of DROP to avoid breaking dependent policies
 
 CREATE OR REPLACE FUNCTION is_super_admin() RETURNS BOOLEAN
 SECURITY DEFINER
 SET search_path = public
 AS $$
   SELECT COALESCE(
-    (SELECT u.role = 'super_admin'
-     FROM users u
-     WHERE u.id = auth.uid()),
+    (SELECT bm.role = 'super_admin'
+     FROM bar_members bm
+     WHERE bm.user_id = auth.uid()
+       AND bm.is_active = true
+     LIMIT 1),
     false
   );
 $$ LANGUAGE SQL STABLE;
 
 COMMENT ON FUNCTION is_super_admin IS
-'Check if current user has role = super_admin in public.users table.
+'Check if current user has role = super_admin in bar_members table.
 SECURITY DEFINER allows reliable role checking.
 Used by RLS policies and admin RPCs.';
 
 -- =====================================================
--- 3. GRANT PERMISSIONS
+-- 2. GRANT PERMISSIONS
 -- =====================================================
 
 GRANT EXECUTE ON FUNCTION is_super_admin() TO authenticated;
 GRANT EXECUTE ON FUNCTION is_super_admin() TO anon;
 
 -- =====================================================
--- 4. VERIFICATION
+-- 3. VERIFICATION
 -- =====================================================
 
 DO $$
@@ -57,18 +54,20 @@ BEGIN
     ╚════════════════════════════════════════════════════════════╝
     ';
 
-    -- Count super_admins in users table
+    -- Count super_admins in bar_members table
     SELECT COUNT(*) INTO v_super_admin_count
-    FROM users
-    WHERE role = 'super_admin';
+    FROM bar_members
+    WHERE role = 'super_admin' AND is_active = true;
 
-    RAISE NOTICE '✅ Super_admins in users table: %', v_super_admin_count;
+    RAISE NOTICE '✅ Super_admins in bar_members table: %', v_super_admin_count;
 
     -- Check current user's role
     IF auth.uid() IS NOT NULL THEN
         SELECT role INTO v_current_user_role
-        FROM users
-        WHERE id = auth.uid();
+        FROM bar_members
+        WHERE user_id = auth.uid()
+          AND is_active = true
+        LIMIT 1;
 
         RAISE NOTICE 'Current user role: %', COALESCE(v_current_user_role, 'NULL');
 

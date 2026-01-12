@@ -50,6 +50,7 @@ BEGIN
     AND DATE(created_at) = CURRENT_DATE;
 
   -- Récupérer les top 10 produits du jour
+  -- Note: items est un champ JSONB dans la table sales
   SELECT jsonb_agg(
     jsonb_build_object(
       'product_name', bp.local_name,
@@ -61,19 +62,19 @@ BEGIN
   INTO v_top_products
   FROM (
     SELECT
-      si.bar_product_id,
-      SUM(si.quantity)::INT as total_qty,
-      SUM(si.unit_price * si.quantity)::DECIMAL as total_rev
-    FROM sales s
-    JOIN sale_items si ON s.id = si.sale_id
+      (item->>'productId')::UUID as product_id,
+      SUM((item->>'quantity')::INT) as total_qty,
+      SUM((item->>'price')::NUMERIC * (item->>'quantity')::INT) as total_rev
+    FROM sales s,
+    jsonb_array_elements(s.items) as item
     WHERE s.bar_id = p_bar_id
       AND s.status = 'validated'
       AND DATE(s.created_at) = CURRENT_DATE
-    GROUP BY si.bar_product_id
+    GROUP BY (item->>'productId')::UUID
     ORDER BY total_rev DESC
     LIMIT 10
   ) sq
-  JOIN bar_products bp ON sq.bar_product_id = bp.id;
+  JOIN bar_products bp ON sq.product_id = bp.id;
 
   -- Compter les membres actifs
   SELECT COUNT(*)::INT INTO v_members_count

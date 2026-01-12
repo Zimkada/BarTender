@@ -1,5 +1,6 @@
 // src/features/Sales/SalesHistory/views/AnalyticsView.tsx
 import { useState, useMemo } from 'react';
+import { useAuth } from '../../../../context/AuthContext';
 import { useAppContext } from '../../../../context/AppContext';
 import { useDateRangeFilter } from '../../../../hooks/useDateRangeFilter';
 import { SALES_HISTORY_FILTERS, TIME_RANGE_CONFIGS } from '../../../../config/dateFilters';
@@ -8,6 +9,8 @@ import { getSaleDate } from '../../../../utils/saleHelpers';
 import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../../../../utils/businessDay';
 import { Select } from '../../../../components/ui/Select';
 import { TopProductsChart } from '../../../../components/analytics/TopProductsChart';
+import { useTeamPerformance } from '../../../../hooks/useTeamPerformance';
+import { TeamPerformanceChart } from '../../../../components/analytics/TeamPerformanceChart';
 import {
   LineChart,
   CartesianGrid,
@@ -32,7 +35,7 @@ import {
 } from 'lucide-react';
 import { Sale, Category, Product, User, BarMember, Return } from '../../../../types';
 
-// TYPES - Moved from SalesHistory.tsx
+// TYPES
 type Stats = {
   totalRevenue: number;
   totalItems: number;
@@ -45,8 +48,7 @@ type Stats = {
   };
 };
 
-
-// Couleurs thème orange/ambre - Moved from SalesHistory.tsx
+// Couleurs thème orange/ambre
 const CHART_COLORS = ['#f97316', '#fb923c', '#fdba74', '#fed7aa', '#ffedd5', '#ea580c', '#c2410c'];
 
 interface AnalyticsViewProps {
@@ -94,16 +96,15 @@ export function AnalyticsView({
   isLoadingTopProducts,
   viewMode
 }: AnalyticsViewProps) {
-  console.log('AnalyticsView - viewMode:', viewMode);
-  console.log('AnalyticsView - topProductsData (stats.topProducts):', stats.topProducts);
-  console.log('AnalyticsView - topProductsData (byUnits):', stats.topProducts.byUnits); // Correction ici, topProductsData est directement dans stats
-  console.log('AnalyticsView - topProductMetric:', topProductMetric);
-  console.log('AnalyticsView - topProductsLimit:', topProductsLimit);
+  const { currentSession } = useAuth();
+  const isServerRole = currentSession?.role === 'serveur';
+
   // Protection: s'assurer que tous les tableaux sont définis
   const safeUsers = users || [];
   const safeBarMembers = barMembers || [];
 
   const { sales: allSales } = useAppContext();
+
 
   // Calculer période précédente pour comparaison
   const { previousPeriodSales } = useMemo(() => {
@@ -281,98 +282,15 @@ export function AnalyticsView({
   // Performance par utilisateur
   const [userFilter, setUserFilter] = useState<'all' | 'servers' | 'management'>('all');
 
-  const userPerformance = useMemo(() => {
-    const userStats: Record<string, { name: string; role: string; revenue: number; sales: number; items: number }> = {};
-
-    // Les ventes sont déjà filtrées par période via useDateRangeFilter
-    // On n'a plus besoin de refiltrer, juste d'utiliser 'sales' directement
-    const performanceSales = sales;
-
-    // 1. Ajouter les ventes (déjà filtrées par période)
-    // ✨ BUG #9 FIX: Utiliser serverId (UUID) pour identifier le serveur assigné
-    // - serverId est présent dans les deux modes (full et simplified)
-    // Source of truth: soldBy is the business attribution
-    performanceSales.forEach(sale => {
-      // Utiliser soldBy comme identifiant principal
-      const serverId = sale.soldBy;
-
-      // Trouver l'utilisateur correspondant
-      const user = safeUsers.find(u => u.id === serverId);
-
-      // Chercher d'abord dans barMembers, sinon utiliser le rôle de l'utilisateur
-      const member = safeBarMembers.find(m => m.userId === serverId);
-      const role = member?.role || (user?.role) || 'serveur';
-
-      // ✨ FIX: Ne plus ignorer si l'utilisateur n'est pas trouvé
-      // Cela permet d'inclure les ventes des anciens membres supprimés ou du promoteur non listé
-      const userId = serverId;
-      const userName = user?.name || sale.assignedTo || 'Ancien membre';
-
-      if (!userStats[userId]) {
-        userStats[userId] = {
-          name: userName,
-          role,
-          revenue: 0,
-          sales: 0,
-          items: 0
-        };
-      }
-
-      userStats[userId].revenue += sale.total;
-      userStats[userId].sales += 1;
-      userStats[userId].items += sale.items.reduce((sum, item) => sum + item.quantity, 0);
-    });
-
-
-    // 2. Déduire les retours remboursés de la période filtrée
-    // 🔒 SERVEURS : Seulement retours de LEURS ventes (même logique que getTodayTotal)
-    const performanceSaleIds = new Set(performanceSales.map(s => s.id));
-
-    // Filtrer les retours par business_date (même logique que les ventes)
-    const startDateStr = dateToYYYYMMDD(startDate);
-    const endDateStr = dateToYYYYMMDD(endDate);
-
-    const filteredReturns = returns.filter(r => {
-      if (r.status !== 'approved' && r.status !== 'restocked') return false;
-      if (!r.isRefunded) return false;
-      // 🔒 IMPORTANT: Seulement retours des ventes affichées
-      if (!performanceSaleIds.has(r.saleId)) return false;
-
-      // Filtrer par business_date du retour
-      const returnBusinessDate = getBusinessDate(r, closeHour);
-      return returnBusinessDate >= startDateStr && returnBusinessDate <= endDateStr;
-    });
-
-    // Déduire les retours du revenue de chaque vendeur
-    // ✨ BUG #9 FIX: Utiliser serverId pour identifier le serveur assigné
-    filteredReturns.forEach(ret => {
-      // Trouver la vente originale pour identifier le vendeur
-      // ✅ IMPORTANT: Chercher dans performanceSales (même période)
-      const originalSale = performanceSales.find(s => s.id === ret.saleId);
-      if (!originalSale) {
-        return; // Vente hors période, ignorer
-      }
-
-      // Source of truth: soldBy is the business attribution
-      const serverId = originalSale.soldBy;
-
-      if (userStats[serverId]) {
-        userStats[serverId].revenue -= ret.refundAmount;
-      } else {
-        console.warn('❌ Server ID non trouvé dans userStats:', serverId);
-      }
-    });
-
-    const allUsers = Object.values(userStats);
-
-    if (userFilter === 'servers') {
-      return allUsers.filter(u => u.role === 'serveur');
-    } else if (userFilter === 'management') {
-      return allUsers.filter(u => u.role === 'gerant' || u.role === 'promoteur');
-    }
-
-    return allUsers;
-  }, [sales, returns, safeUsers, safeBarMembers, userFilter, closeHour, startDate, endDate]);
+  const userPerformance = useTeamPerformance({
+    sales,
+    returns,
+    users: safeUsers,
+    barMembers: safeBarMembers,
+    startDate,
+    endDate,
+    closeHour
+  });
 
 
 
@@ -561,62 +479,11 @@ export function AnalyticsView({
         </div>
       )}
 
-      {/* Performance équipe */}
-      <div className="bg-white rounded-xl p-4 border border-amber-100">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h4 className="text-sm font-semibold text-gray-800">Performance Équipe</h4>
-            <p className="text-xs text-gray-500">Par serveur assigné (serverId)</p>
-          </div>
-          <Select
-            options={[
-              { value: 'all', label: 'Tous' },
-              { value: 'servers', label: 'Serveurs' },
-              { value: 'management', label: 'Management' },
-            ]}
-            value={userFilter}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setUserFilter(e.target.value as any)}
-            size="sm"
-            className="w-40"
-          />
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-amber-100">
-                <th className="text-left text-xs font-medium text-gray-600 pb-2 px-1">Nom</th>
-                <th className="text-right text-xs font-medium text-gray-600 pb-2 px-2">CA</th>
-                <th className="text-right text-xs font-medium text-gray-600 pb-2 px-2">Ventes</th>
-                <th className="text-right text-xs font-medium text-gray-600 pb-2 px-1">% CA</th>
-              </tr>
-            </thead>
-            <tbody>
-              {userPerformance.sort((a, b) => b.revenue - a.revenue).map((user, index) => {
-                const badge = getRoleBadge(user.role);
-                return (
-                  <tr key={index} className="border-b border-amber-50">
-                    <td className="py-2 px-1">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${badge.color}`}>
-                          {badge.icon}
-                        </span>
-                        <span className="text-sm font-medium text-gray-800">{user.name}</span>
-                      </div>
-                    </td>
-                    <td className="text-right text-sm font-semibold text-amber-600 py-2 px-2">
-                      {formatPrice(user.revenue)}
-                    </td>
-                    <td className="text-right text-sm text-gray-600 py-2 px-2">{user.sales}</td>
-                    <td className="text-right text-sm font-medium text-gray-700 py-2 px-1">
-                      {((user.revenue / stats.totalRevenue) * 100).toFixed(1)}%
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Performance équipe - Graphique */}
+      <TeamPerformanceChart
+        data={userPerformance}
+        formatPrice={formatPrice}
+      />
 
       {/* Top produits - Composant dédié */}
       <TopProductsChart
