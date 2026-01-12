@@ -1,13 +1,8 @@
 // src/features/Sales/SalesHistory/views/AnalyticsView.tsx
-import { useState, useMemo } from 'react';
-import { useAuth } from '../../../../context/AuthContext';
+import { useMemo } from 'react';
 import { useAppContext } from '../../../../context/AppContext';
-import { useDateRangeFilter } from '../../../../hooks/useDateRangeFilter';
-import { SALES_HISTORY_FILTERS, TIME_RANGE_CONFIGS } from '../../../../config/dateFilters';
-import { dateToYYYYMMDD, filterByBusinessDateRange, getBusinessDate } from '../../../../utils/businessDateHelpers';
+import { dateToYYYYMMDD, filterByBusinessDateRange } from '../../../../utils/businessDateHelpers';
 import { getSaleDate } from '../../../../utils/saleHelpers';
-import { getBusinessDay, getCurrentBusinessDay, isSameDay } from '../../../../utils/businessDay';
-import { Select } from '../../../../components/ui/Select';
 import { TopProductsChart } from '../../../../components/analytics/TopProductsChart';
 import { useTeamPerformance } from '../../../../hooks/useTeamPerformance';
 import { TeamPerformanceChart } from '../../../../components/analytics/TeamPerformanceChart';
@@ -25,7 +20,6 @@ import {
   ResponsiveContainer,
 } from '../../../../components/charts/RechartsWrapper';
 import {
-  TrendingUp,
   ArrowUp,
   ArrowDown,
   Minus,
@@ -96,8 +90,7 @@ export function AnalyticsView({
   isLoadingTopProducts,
   viewMode
 }: AnalyticsViewProps) {
-  const { currentSession } = useAuth();
-  const isServerRole = currentSession?.role === 'serveur';
+
 
   // Protection: s'assurer que tous les tableaux sont définis
   const safeUsers = users || [];
@@ -280,7 +273,6 @@ export function AnalyticsView({
   }, [sales, categories, _products, returns]);
 
   // Performance par utilisateur
-  const [userFilter, setUserFilter] = useState<'all' | 'servers' | 'management'>('all');
 
   const userPerformance = useTeamPerformance({
     sales,
@@ -300,11 +292,7 @@ export function AnalyticsView({
     return <Minus className="w-4 h-4 text-gray-400" />;
   };
 
-  const getRoleBadge = (role: string) => {
-    if (role === 'promoteur') return { icon: '🏆', color: 'bg-yellow-100 text-yellow-800', label: 'Promoteur' };
-    if (role === 'gerant') return { icon: '👔', color: 'bg-purple-100 text-purple-800', label: 'Gérant' };
-    return { icon: '👨‍💼', color: 'bg-blue-100 text-blue-800', label: 'Serveur' };
-  };
+
 
   // Message si pas de données
   if (sales.length === 0) {
