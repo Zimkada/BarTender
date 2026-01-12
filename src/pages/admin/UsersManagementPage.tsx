@@ -11,7 +11,7 @@ import { EditUserModal } from '../../components/EditUserModal';
 import { AdminPanelErrorBoundary } from '../../components/AdminPanelErrorBoundary';
 import { AdminPanelSkeleton } from '../../components/AdminPanelSkeleton';
 import { PromotersCreationForm } from '../../components/PromotersCreationForm';
-const AddBarModal = React.lazy(() => import('../../components/AddBarModal'));
+const AddBarModal = React.lazy(() => import('../../components/AddBarModal').then(module => ({ default: module.AddBarModal })));
 import { AdminSetPasswordModal } from '../../components/AdminSetPasswordModal';
 import { ResetPasswordConfirmationModal } from '../../components/ResetPasswordConfirmationModal';
 import { useFeedback } from '../../hooks/useFeedback';

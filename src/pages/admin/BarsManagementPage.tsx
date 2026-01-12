@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from 'use-debounce';
 import {
-  Building2, Search, Filter, ChevronLeft, ChevronRight
+  Building2, Search, Filter, ChevronLeft, ChevronRight, History
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Bar, BarMember, User } from '../../types';
@@ -13,6 +13,7 @@ import { BarService } from '../../services/supabase/bar.service';
 import { BarCard } from '../../components/BarCard';
 import { AdminPanelErrorBoundary } from '../../components/AdminPanelErrorBoundary';
 import { AdminPanelSkeleton } from '../../components/AdminPanelSkeleton';
+import { BarAuditLogsModal } from '../../components/admin/BarAuditLogsViewer';
 
 export default function BarsManagementPage() {
   const { currentSession } = useAuth();
@@ -28,6 +29,7 @@ export default function BarsManagementPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
   const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
   const [error, setError] = useState<string | null>(null);
+  const [showAuditLogs, setShowAuditLogs] = useState(false);
 
   const totalPages = Math.ceil(totalCount / limit);
 
@@ -89,12 +91,21 @@ export default function BarsManagementPage() {
       <AdminPanelErrorBoundary fallbackTitle="Erreur dans la gestion des bars">
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-4 md:p-6 text-white rounded-t-2xl">
-          <div className="flex items-center gap-3">
-            <Building2 className="w-8 h-8" />
-            <div>
-              <h1 className="text-xl md:text-2xl font-bold">Gestion des Bars</h1>
-              <p className="text-purple-100 text-sm">Gérer tous les bars de BarTender Pro</p>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Building2 className="w-8 h-8" />
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold">Gestion des Bars</h1>
+                <p className="text-purple-100 text-sm">Gérer tous les bars de BarTender Pro</p>
+              </div>
             </div>
+            <button
+              onClick={() => setShowAuditLogs(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-sm font-medium"
+            >
+              <History className="w-4 h-4" />
+              <span className="hidden sm:inline">Historique d'audit</span>
+            </button>
           </div>
         </div>
 
@@ -221,6 +232,13 @@ export default function BarsManagementPage() {
             </button>
           </div>
         </div>
+
+        {/* Audit Logs Modal */}
+        {showAuditLogs && (
+          <BarAuditLogsModal
+            onClose={() => setShowAuditLogs(false)}
+          />
+        )}
 
       </AdminPanelErrorBoundary>
     </div>

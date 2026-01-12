@@ -14,7 +14,8 @@
       "Bash(npm install:*)",
       "Bash(git checkout:*)",
       "Bash(git log:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(npx supabase db push:*)"
     ],
     "deny": [],
     "ask": []
