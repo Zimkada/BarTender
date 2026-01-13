@@ -1,10 +1,10 @@
 // Language: French (Français)
 import React, { useState } from 'react';
-import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
-import { LoadingButton } from '@/components/ui/LoadingButton';
+import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
+import { LoadingButton } from '../ui/LoadingButton';
 
 export const ClosingHourStep: React.FC = () => {
-  const { stepData, completeStep, nextStep } = useOnboarding();
+  const { stepData, completeStep, nextStep, previousStep } = useOnboarding();
   const [loading, setLoading] = useState(false);
 
   // Get closing hour from bar details (already set, just confirm)
@@ -88,7 +88,7 @@ export const ClosingHourStep: React.FC = () => {
           <div className="flex gap-3 pt-6 border-t">
             <button
               type="button"
-              onClick={() => window.history.back()}
+              onClick={previousStep}
               className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
               Retour

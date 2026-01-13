@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
+import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
 
 /**
  * OnboardingProgressBar
@@ -21,6 +21,7 @@ export const OnboardingProgressBar: React.FC = () => {
   const stepSequence = useMemo(() => {
     switch (userRole) {
       case 'promoteur':
+      case 'owner':
         return [
           OnboardingStep.WELCOME,
           OnboardingStep.ROLE_DETECTED,
@@ -32,7 +33,9 @@ export const OnboardingProgressBar: React.FC = () => {
           OnboardingStep.OWNER_CLOSING_HOUR,
           OnboardingStep.OWNER_REVIEW,
         ];
+      case 'gerant':
       case 'gérant':
+      case 'manager':
         return [
           OnboardingStep.WELCOME,
           OnboardingStep.ROLE_DETECTED,
@@ -41,6 +44,7 @@ export const OnboardingProgressBar: React.FC = () => {
           OnboardingStep.MANAGER_TOUR,
         ];
       case 'serveur':
+      case 'bartender':
         return [
           OnboardingStep.WELCOME,
           OnboardingStep.ROLE_DETECTED,
@@ -64,26 +68,42 @@ export const OnboardingProgressBar: React.FC = () => {
 
   const stepNumber = currentIndex + 1;
   const totalSteps = stepSequence.length;
-  const progress = (stepNumber / totalSteps) * 100;
+  // Defensive: avoid NaN or Infinity
+  const progress = totalSteps > 0 ? (stepNumber / totalSteps) * 100 : 0;
+  const safeProgress = Math.min(Math.max(0, Number(progress) || 0), 100);
 
   return (
-    <div className="sticky top-0 z-40 bg-white border-b border-gray-200 shadow-sm">
-      <div className="max-w-2xl mx-auto px-4 py-3">
-        {/* Animated progress bar */}
-        <div className="h-2 bg-gray-200 rounded-full overflow-hidden mb-2">
+    <div className="w-full bg-white border-b border-gray-200 py-3 md:py-4 px-3 md:px-6 sticky top-0 z-50">
+      <div className="max-w-4xl mx-auto">
+        {/* Progress Header */}
+        <div className="flex justify-between items-center mb-2 md:mb-3">
+          <div className="flex items-center gap-2">
+            <h3 className="font-bold text-gray-900 text-sm md:text-base">Configuration en cours</h3>
+            <span className="hidden sm:inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-full">
+              {String(userRole).charAt(0).toUpperCase() + String(userRole).slice(1)}
+            </span>
+          </div>
+          <div className="text-right">
+            <p className="text-xs md:text-sm font-medium text-gray-600">
+              Étape <span className="font-bold text-blue-600">{Number(stepNumber) || 0}</span> sur{' '}
+              <span className="font-bold">{Number(totalSteps) || 0}</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Progress Bar Container */}
+        <div className="relative h-2 md:h-2.5 bg-gray-100 rounded-full overflow-hidden border border-gray-200">
           <div
-            className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500 ease-out"
-            style={{ width: `${progress}%` }}
+            className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500 ease-out shadow-sm"
+            style={{ width: `${safeProgress}%` }}
           />
         </div>
 
-        {/* Step counter + percentage */}
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-700 font-medium">
-            Step <span className="font-bold text-blue-600">{stepNumber}</span> of{' '}
-            <span className="font-bold">{totalSteps}</span>
-          </span>
-          <span className="text-gray-500">{Math.round(progress)}% complete</span>
+        {/* Labels info */}
+        <div className="flex justify-between mt-1 md:mt-2">
+          <span className="text-[10px] md:text-xs text-gray-500">Bienvenue</span>
+          <span className="text-[10px] md:text-xs font-bold text-blue-600">{Math.round(safeProgress)}% terminé</span>
+          <span className="text-[10px] md:text-xs text-gray-500">Prêt !</span>
         </div>
       </div>
     </div>

@@ -1,10 +1,10 @@
 // Language: French (Français)
 import React, { useState } from 'react';
-import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
-import { useAuth } from '@/context/AuthContext';
-import { useBar } from '@/context/BarContext';
-import { LoadingButton } from '@/components/ui/LoadingButton';
-import { OnboardingService } from '@/services/supabase/onboarding.service';
+import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
+import { useAuth } from '../../context/AuthContext';
+import { useBar } from '../../context/BarContext';
+import { LoadingButton } from '../ui/LoadingButton';
+import { OnboardingService } from '../../services/supabase/onboarding.service';
 
 interface StockInitFormData {
   stocks: Record<string, number>;
@@ -13,7 +13,7 @@ interface StockInitFormData {
 export const StockInitStep: React.FC = () => {
   const { currentSession } = useAuth();
   const { currentBar } = useBar();
-  const { stepData, updateStepData, completeStep, nextStep } = useOnboarding();
+  const { stepData, updateStepData, completeStep, nextStep, previousStep } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string>('');
 
@@ -24,7 +24,7 @@ export const StockInitStep: React.FC = () => {
   // Initialize form with saved data or defaults
   const savedData = stepData[OnboardingStep.OWNER_STOCK_INIT] as StockInitFormData | undefined;
   const [formData, setFormData] = useState<StockInitFormData>({
-    stocks: savedData?.stocks || productIds.reduce((acc, id) => ({ ...acc, [id]: 0 }), {}),
+    stocks: savedData?.stocks || productIds.reduce((acc: Record<string, number>, id: string) => ({ ...acc, [id]: 0 }), {}),
   });
 
   const handleStockChange = (productId: string, value: string) => {
@@ -43,7 +43,7 @@ export const StockInitStep: React.FC = () => {
     setErrors('');
 
     // Validate: all products have stock entry (can be 0)
-    const hasAllStocks = productIds.every((id) => formData.stocks[id] !== undefined);
+    const hasAllStocks = productIds.every((id: string) => formData.stocks[id] !== undefined);
     if (!hasAllStocks) {
       setErrors('Tous les produits doivent avoir une valeur de stock');
       return;
@@ -51,7 +51,7 @@ export const StockInitStep: React.FC = () => {
 
     setLoading(true);
     try {
-      if (!currentSession?.user?.id) {
+      if (!currentSession?.userId) {
         throw new Error('Utilisateur non authentifié');
       }
 
@@ -59,7 +59,7 @@ export const StockInitStep: React.FC = () => {
         throw new Error('Bar non trouvé');
       }
 
-      const userId = currentSession.user.id;
+      const userId = currentSession.userId;
       const barId = currentBar.id;
 
       // Initialize stock via API
@@ -108,7 +108,7 @@ export const StockInitStep: React.FC = () => {
           {/* Stock Inputs */}
           <div className="space-y-4">
             {productIds.length > 0 ? (
-              productIds.map((productId) => (
+              productIds.map((productId: string) => (
                 <div key={productId} className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
                   <div className="flex items-end gap-4">
                     <div className="flex-1">
@@ -160,7 +160,7 @@ export const StockInitStep: React.FC = () => {
           <div className="flex gap-3 pt-6 border-t">
             <button
               type="button"
-              onClick={() => window.history.back()}
+              onClick={previousStep}
               className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
               Retour

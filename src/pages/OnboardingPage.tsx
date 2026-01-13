@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
-import { useBar } from '@/context/BarContext';
-import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow';
+import { useAuth } from '../context/AuthContext';
+import { useBar } from '../context/BarContext';
+import { OnboardingFlow } from '../components/onboarding/OnboardingFlow';
 
 /**
  * Onboarding Page
@@ -12,25 +12,27 @@ import { OnboardingFlow } from '@/components/onboarding/OnboardingFlow';
  */
 export const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
-  const { currentSession, isLoading: authLoading } = useAuth();
-  const { currentBar, isLoading: barLoading } = useBar();
+  const { currentSession } = useAuth();
+  const { currentBar, loading: barLoading } = useBar();
 
   // Redirect to login if not authenticated
   useEffect(() => {
-    if (!authLoading && !currentSession) {
+    if (!currentSession) {
       navigate('/login', { replace: true });
     }
-  }, [authLoading, currentSession, navigate]);
+  }, [currentSession, navigate]);
 
   // Redirect to dashboard if bar already setup complete
   useEffect(() => {
-    if (!barLoading && currentBar?.is_setup_complete) {
+    // Check setup status from settings if not on top level
+    const isSetupComplete = (currentBar as any)?.is_setup_complete;
+    if (!barLoading && isSetupComplete) {
       navigate('/dashboard', { replace: true });
     }
-  }, [barLoading, currentBar?.is_setup_complete, navigate]);
+  }, [barLoading, currentBar, navigate]);
 
   // Loading state
-  if (authLoading || barLoading) {
+  if (barLoading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
@@ -66,7 +68,7 @@ export const OnboardingPage: React.FC = () => {
   }
 
   // Bar already setup complete - shouldn't reach here due to redirect above
-  if (currentBar.is_setup_complete) {
+  if ((currentBar as any).is_setup_complete) {
     return null; // Will redirect to dashboard
   }
 

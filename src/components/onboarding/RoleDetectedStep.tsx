@@ -1,5 +1,5 @@
 import React from 'react';
-import { useOnboarding } from '@/context/OnboardingContext';
+import { useOnboarding } from '../../context/OnboardingContext';
 
 /**
  * RoleDetectedStep
@@ -12,42 +12,42 @@ export const RoleDetectedStep: React.FC = () => {
   const getRoleInfo = () => {
     switch (userRole) {
       case 'promoteur':
+      case 'owner':
         return {
           icon: '👑',
-          title: 'Promoteur',
-          description: 'Vous avez le contrôle total sur votre bar',
+          title: 'Promoteur / Propriétaire',
+          description: 'Vous avez un contrôle total sur le bar, les gérants, les produits et les rapports financiers.',
           responsibilities: [
-            '✅ Créer et gérer votre bar',
-            '✅ Ajouter des gérants et du personnel',
-            '✅ Gérer les produits et l\'inventaire',
-            '✅ Afficher les ventes et analyses',
-            '✅ Mettre à jour les paramètres du bar',
+            'Configurer les détails du bar',
+            'Ajouter des gérants et serveurs',
+            'Créer votre catalogue de produits',
+            'Initialiser votre stock',
           ],
         };
+      case 'gerant':
       case 'gérant':
+      case 'manager':
         return {
-          icon: '👨‍💼',
+          icon: '👔',
           title: 'Gérant',
-          description: 'Vous gérez les opérations quotidiennes',
+          description: 'Vous gérez les opérations quotidiennes, validez les ventes et supervisez l\'équipe.',
           responsibilities: [
-            '✅ Créer des ventes et transactions',
-            '✅ Gérer l\'inventaire',
-            '✅ Afficher les analyses et rapports',
-            '❌ Ne peut pas gérer l\'équipe',
-            '❌ Ne peut pas modifier les paramètres',
+            'Gérer le personnel et les serveurs',
+            'Valider les ventes et les retours',
+            'Superviser les niveaux de stock',
+            'Consulter les rapports de vente',
           ],
         };
       case 'serveur':
+      case 'bartender':
         return {
-          icon: '🍺',
-          title: 'Serveur',
-          description: 'Vous traitez les commandes des clients',
+          icon: '🍹',
+          title: 'Serveur / Barman',
+          description: 'Vous enregistrez les ventes et servez les clients.',
           responsibilities: [
-            '✅ Créer des ventes',
-            '✅ Traiter les paiements',
-            '✅ Afficher l\'inventaire basique',
-            '❌ Ne peut pas gérer l\'équipe',
-            '❌ Ne peut pas afficher les analyses',
+            'Prendre les commandes des clients',
+            'Enregistrer les ventes sur l\'application',
+            'Gérer les retours si nécessaire',
           ],
         };
       default:
@@ -87,7 +87,7 @@ export const RoleDetectedStep: React.FC = () => {
         {/* Info Box */}
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-8">
           <p className="text-sm text-blue-900">
-            <strong>Note :</strong> Votre rôle a été assigné par le propriétaire du bar. Si vous pensez que c\'est incorrect, veuillez le contacter.
+            <strong>Note :</strong> Votre rôle a été assigné par le propriétaire du bar. Si vous pensez que c'est incorrect, veuillez le contacter.
           </p>
         </div>
 

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
-import { LoadingButton } from '@/components/ui/LoadingButton';
+import { useNavigate } from 'react-router-dom';
+import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
+import { LoadingButton } from '../ui/LoadingButton';
 
 export const ManagerTourStep: React.FC = () => {
+  const navigate = useNavigate();
   const { completeStep, completeOnboarding } = useOnboarding();
   const [loading, setLoading] = useState(false);
-  const [tourSkipped, setTourSkipped] = useState(false);
 
   const handleStartTour = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +22,7 @@ export const ManagerTourStep: React.FC = () => {
       // Simulate tour completion after 2s
       setTimeout(() => {
         completeOnboarding();
-        window.location.href = '/dashboard';
+        navigate('/dashboard', { replace: true });
       }, 2000);
     } catch (error) {
       console.error('Error starting tour:', error);
@@ -39,7 +40,7 @@ export const ManagerTourStep: React.FC = () => {
         timestamp: new Date().toISOString(),
       });
       completeOnboarding();
-      window.location.href = '/dashboard';
+      navigate('/dashboard', { replace: true });
     } catch (error) {
       console.error('Error skipping tour:', error);
     } finally {

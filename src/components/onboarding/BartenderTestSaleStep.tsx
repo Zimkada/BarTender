@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
-import { LoadingButton } from '@/components/ui/LoadingButton';
+import { useNavigate } from 'react-router-dom';
+import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
+import { LoadingButton } from '../ui/LoadingButton';
 
 export const BartenderTestSaleStep: React.FC = () => {
+  const navigate = useNavigate();
   const { completeStep, completeOnboarding } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [createdTestSale, setCreatedTestSale] = useState(false);
@@ -23,7 +25,7 @@ export const BartenderTestSaleStep: React.FC = () => {
       // Simulate success
       setTimeout(() => {
         completeOnboarding();
-        window.location.href = '/dashboard';
+        navigate('/dashboard', { replace: true });
       }, 1500);
     } catch (error) {
       console.error('Error creating test sale:', error);
@@ -42,7 +44,7 @@ export const BartenderTestSaleStep: React.FC = () => {
       });
 
       completeOnboarding();
-      window.location.href = '/dashboard';
+      navigate('/dashboard', { replace: true });
     } catch (error) {
       console.error('Error skipping test sale:', error);
     } finally {

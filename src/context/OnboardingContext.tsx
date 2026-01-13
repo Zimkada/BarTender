@@ -32,7 +32,7 @@ export enum OnboardingStep {
   COMPLETE = 'complete',
 }
 
-export type UserRole = 'promoteur' | 'gérant' | 'serveur';
+export type UserRole = 'promoteur' | 'gerant' | 'serveur' | 'owner' | 'manager' | 'bartender' | 'gérant';
 
 /**
  * Step data stored in localStorage for persistence
@@ -77,8 +77,8 @@ export interface OnboardingState {
   userId: string | null;
   stepData: StepData;
   isComplete: boolean;
-  startedAt: Date | null;
-  lastUpdatedAt: Date | null;
+  startedAt: string | null;
+  lastUpdatedAt: string | null;
 }
 
 /**
@@ -120,9 +120,11 @@ const STORAGE_KEY = 'onboarding_progress';
  * Get step sequence based on role
  */
 function getStepSequence(role: UserRole | null): OnboardingStep[] {
+  let sequence: OnboardingStep[] = [];
   switch (role) {
     case 'promoteur':
-      return [
+    case 'owner':
+      sequence = [
         OnboardingStep.WELCOME,
         OnboardingStep.ROLE_DETECTED,
         OnboardingStep.OWNER_BAR_DETAILS,
@@ -132,32 +134,41 @@ function getStepSequence(role: UserRole | null): OnboardingStep[] {
         OnboardingStep.OWNER_STOCK_INIT,
         OnboardingStep.OWNER_CLOSING_HOUR,
         OnboardingStep.OWNER_REVIEW,
-        OnboardingStep.COMPLETE,
       ];
+      break;
 
+    case 'gerant':
     case 'gérant':
-      return [
+    case 'manager':
+      sequence = [
         OnboardingStep.WELCOME,
         OnboardingStep.ROLE_DETECTED,
         OnboardingStep.MANAGER_ROLE_CONFIRM,
         OnboardingStep.MANAGER_CHECK_STAFF,
         OnboardingStep.MANAGER_TOUR,
-        OnboardingStep.COMPLETE,
       ];
+      break;
 
     case 'serveur':
-      return [
+    case 'bartender':
+      sequence = [
         OnboardingStep.WELCOME,
         OnboardingStep.ROLE_DETECTED,
         OnboardingStep.BARTENDER_INTRO,
         OnboardingStep.BARTENDER_DEMO,
         OnboardingStep.BARTENDER_TEST_SALE,
-        OnboardingStep.COMPLETE,
       ];
+      break;
 
     default:
-      return [OnboardingStep.WELCOME, OnboardingStep.ROLE_DETECTED];
+      sequence = [OnboardingStep.WELCOME, OnboardingStep.ROLE_DETECTED];
+      break;
   }
+  // Ensure COMPLETE is always the last step if a sequence is defined
+  if (sequence.length > 0 && sequence[sequence.length - 1] !== OnboardingStep.COMPLETE) {
+    sequence.push(OnboardingStep.COMPLETE);
+  }
+  return sequence;
 }
 
 /**
@@ -191,10 +202,19 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
+
+        // Defensive: ensure critical fields are primitives
+        const safeRole = (parsed.userRole ? String(parsed.userRole) : null) as UserRole | null;
+        const safeUserId = parsed.userId ? String(parsed.userId) : null;
+        const safeBarId = parsed.barId ? String(parsed.barId) : null;
+
         setState({
           ...parsed,
-          startedAt: parsed.startedAt ? new Date(parsed.startedAt) : null,
-          lastUpdatedAt: parsed.lastUpdatedAt ? new Date(parsed.lastUpdatedAt) : null,
+          userRole: safeRole,
+          userId: safeUserId,
+          barId: safeBarId,
+          startedAt: typeof parsed.startedAt === 'string' ? parsed.startedAt : null,
+          lastUpdatedAt: typeof parsed.lastUpdatedAt === 'string' ? parsed.lastUpdatedAt : null,
         });
       } catch (error) {
         console.error('Failed to parse onboarding state from storage', error);
@@ -211,21 +231,26 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     setState((prev) => ({
       ...prev,
       ...updates,
-      lastUpdatedAt: new Date(),
+      lastUpdatedAt: new Date().toISOString(),
     }));
   };
 
   const initializeOnboarding = (userId: string, barId: string, role: UserRole) => {
+    // Force conversion to string to avoid "Cannot convert object to primitive value" errors
+    const safeUserId = userId ? String(userId) : '';
+    const safeBarId = barId ? String(barId) : '';
+    const safeRole = (role ? String(role) : 'serveur') as UserRole;
+
     updateState({
       isActive: true,
-      userId,
-      barId,
-      userRole: role,
+      userId: safeUserId,
+      barId: safeBarId,
+      userRole: safeRole,
       currentStep: OnboardingStep.WELCOME,
       completedSteps: [],
       stepData: {},
       isComplete: false,
-      startedAt: new Date(),
+      startedAt: new Date().toISOString(),
     });
   };
 
@@ -246,7 +271,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     updateState({ currentStep: prev });
   };
 
-  const skipStep = (step: OnboardingStep) => {
+  const skipStep = () => {
     // Mark as skipped but move forward
     nextStep();
   };
@@ -264,9 +289,9 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
       completedSteps: newCompletedSteps,
       stepData: data
         ? {
-            ...state.stepData,
-            [step]: data,
-          }
+          ...state.stepData,
+          [step]: data,
+        }
         : state.stepData,
     });
   };

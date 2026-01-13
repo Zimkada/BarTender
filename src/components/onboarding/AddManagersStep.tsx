@@ -1,10 +1,10 @@
 // Language: French (Français)
 import React, { useState } from 'react';
-import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
-import { useAuth } from '@/context/AuthContext';
-import { useBar } from '@/context/BarContext';
-import { LoadingButton } from '@/components/ui/LoadingButton';
-import { OnboardingService } from '@/services/supabase/onboarding.service';
+import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
+import { useAuth } from '../../context/AuthContext';
+import { useBar } from '../../context/BarContext';
+import { LoadingButton } from '../ui/LoadingButton';
+import { OnboardingService } from '../../services/supabase/onboarding.service';
 import { ManagerSearchModal } from './modals/ManagerSearchModal';
 
 interface AddManagersFormData {
@@ -14,10 +14,9 @@ interface AddManagersFormData {
 export const AddManagersStep: React.FC = () => {
   const { currentSession } = useAuth();
   const { currentBar } = useBar();
-  const { stepData, updateStepData, completeStep, nextStep } = useOnboarding();
+  const { stepData, updateStepData, completeStep, nextStep, previousStep } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string>('');
-  const [validationError, setValidationError] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Initialize form with saved data
@@ -44,12 +43,11 @@ export const AddManagersStep: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setValidationError('');
     setErrors('');
 
     setLoading(true);
     try {
-      if (!currentSession?.user?.id) {
+      if (!currentSession?.userId) {
         throw new Error('Utilisateur non authentifié');
       }
 
@@ -57,7 +55,7 @@ export const AddManagersStep: React.FC = () => {
         throw new Error('Bar non trouvé');
       }
 
-      const userId = currentSession.user.id;
+      const userId = currentSession.userId;
       const barId = currentBar.id;
 
       // Assign each manager via API (will be called again in ReviewStep, but also saved here)
@@ -166,7 +164,7 @@ export const AddManagersStep: React.FC = () => {
           <div className="flex gap-3 pt-6 border-t">
             <button
               type="button"
-              onClick={() => window.history.back()}
+              onClick={previousStep}
               className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
               Retour

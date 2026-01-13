@@ -85,7 +85,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
       }
     },
-    [activeTour, userId, currentSession?.role]
+    [activeTour?.id, userId, currentSession?.role]
   );
 
   /**
@@ -106,7 +106,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         });
       }
     }
-  }, [activeTour, currentStepIndex, userId]);
+  }, [activeTour?.id, activeTour?.steps?.length, currentStepIndex, userId]);
 
   /**
    * Navigate to previous step
@@ -154,7 +154,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } finally {
       setIsLoading(false);
     }
-  }, [activeTour, userId, currentSession?.role]);
+  }, [activeTour?.id, activeTour?.steps?.length, userId, currentSession?.role]);
 
   /**
    * Skip tour
@@ -181,7 +181,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (err: any) {
       console.error('Failed to skip guide:', err);
     }
-  }, [activeTour, userId, currentStepIndex]);
+  }, [activeTour?.id, userId, currentStepIndex]);
 
   /**
    * Rate tour (1-5 stars)
@@ -210,7 +210,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         console.error('Failed to rate guide:', err);
       }
     },
-    [activeTour, userId]
+    [activeTour?.id, userId]
   );
 
   /**
@@ -229,7 +229,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const getCurrentStep = useCallback((): GuideStep | null => {
     if (!activeTour) return null;
     return activeTour.steps[currentStepIndex] ?? null;
-  }, [activeTour, currentStepIndex]);
+  }, [activeTour?.steps, currentStepIndex]);
 
   /**
    * Get progress percentage
@@ -237,7 +237,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const getProgressPercentage = useCallback((): number => {
     if (!activeTour) return 0;
     return ((currentStepIndex + 1) / activeTour.steps.length) * 100;
-  }, [activeTour, currentStepIndex]);
+  }, [activeTour?.steps?.length, currentStepIndex]);
 
   /**
    * Check if guide was completed

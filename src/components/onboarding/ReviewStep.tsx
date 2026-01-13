@@ -1,17 +1,17 @@
 // Language: French (Français)
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
-import { useAuth } from '@/context/AuthContext';
-import { useBar } from '@/context/BarContext';
-import { LoadingButton } from '@/components/ui/LoadingButton';
-import { OnboardingService } from '@/services/supabase/onboarding.service';
+import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
+import { useAuth } from '../../context/AuthContext';
+import { useBar } from '../../context/BarContext';
+import { LoadingButton } from '../ui/LoadingButton';
+import { OnboardingService } from '../../services/supabase/onboarding.service';
 
 export const ReviewStep: React.FC = () => {
   const navigate = useNavigate();
   const { currentSession } = useAuth();
   const { currentBar } = useBar();
-  const { stepData, completeOnboarding, goToStep } = useOnboarding();
+  const { stepData, completeOnboarding, goToStep, previousStep } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string>('');
 
@@ -32,7 +32,7 @@ export const ReviewStep: React.FC = () => {
     setLoading(true);
 
     try {
-      if (!currentSession?.user?.id) {
+      if (!currentSession?.userId) {
         throw new Error('Utilisateur non authentifié');
       }
 
@@ -40,7 +40,7 @@ export const ReviewStep: React.FC = () => {
         throw new Error('Bar non trouvé');
       }
 
-      const userId = currentSession.user.id;
+      const userId = currentSession.userId;
       const barId = currentBar.id;
 
       /**
@@ -238,7 +238,7 @@ export const ReviewStep: React.FC = () => {
           <div className="flex gap-3 pt-6 border-t">
             <button
               type="button"
-              onClick={() => window.history.back()}
+              onClick={previousStep}
               className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
               Retour

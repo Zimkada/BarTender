@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
-import { LoadingButton } from '@/components/ui/LoadingButton';
+import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
+import { LoadingButton } from '../ui/LoadingButton';
 
 export const BartenderDemoStep: React.FC = () => {
   const { completeStep, nextStep } = useOnboarding();

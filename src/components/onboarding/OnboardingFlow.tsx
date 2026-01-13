@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
-import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
-import { useAuth } from '@/context/AuthContext';
-import { useBar } from '@/context/BarContext';
+import { useNavigate } from 'react-router-dom';
+import { useOnboarding, OnboardingStep, UserRole } from '../../context/OnboardingContext';
+import { useAuth } from '../../context/AuthContext';
+import { useBar } from '../../context/BarContext';
 
 // Welcome & Role detection
 import { WelcomeStep } from './WelcomeStep';
@@ -35,22 +36,32 @@ import { OnboardingProgressBar } from './OnboardingProgressBar';
  * Includes sticky progress bar to show user progression
  */
 export const OnboardingFlow: React.FC = () => {
-  const { currentStep, userRole, userId, barId, initializeOnboarding } = useOnboarding();
+  const navigate = useNavigate();
+  const {
+    currentStep,
+    initializeOnboarding,
+    userId,
+  } = useOnboarding();
   const { currentSession } = useAuth();
-  const { currentBar } = useBar();
+  const { currentBar, barMembers } = useBar();
 
   // Initialize onboarding on first mount if not already initialized
   useEffect(() => {
-    if (!userId && currentSession?.user?.id && currentBar?.id) {
-      // Determine user role from bar_members
-      const userBarMember = currentBar?.members?.find(
-        (m) => m.user_id === currentSession.user.id
-      );
-      const role = (userBarMember?.role || 'serveur') as any;
+    if (!userId && currentSession?.userId && currentBar?.id) {
+      if (currentSession && currentBar && barMembers) {
+        const userBarMember = barMembers.find(
+          (m: any) => String(m.userId) === String(currentSession.userId)
+        );
 
-      initializeOnboarding(currentSession.user.id, currentBar.id, role);
+        const role = String(userBarMember?.role || 'serveur') as UserRole;
+        initializeOnboarding(
+          String(currentSession.userId),
+          String(currentBar.id),
+          role
+        );
+      }
     }
-  }, [currentSession, currentBar, userId, initializeOnboarding]);
+  }, [currentSession?.userId, currentBar?.id, barMembers, initializeOnboarding]);
 
   // Render appropriate component based on current step
   const renderStep = () => {
@@ -94,6 +105,22 @@ export const OnboardingFlow: React.FC = () => {
         return <BartenderTestSaleStep />;
 
       // Default
+      case OnboardingStep.COMPLETE:
+        return (
+          <div className="w-full max-w-2xl mx-auto px-4">
+            <div className="bg-white rounded-lg shadow-md p-8 text-center">
+              <div className="text-5xl mb-4">🎉</div>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Configuration terminée !</h1>
+              <p className="text-gray-600 mb-6">Votre bar est prêt à être utilisé.</p>
+              <button
+                onClick={() => navigate('/dashboard', { replace: true })}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Aller au Dashboard
+              </button>
+            </div>
+          </div>
+        );
       default:
         return (
           <div className="w-full max-w-2xl mx-auto px-4">

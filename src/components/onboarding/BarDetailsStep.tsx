@@ -1,7 +1,7 @@
 // Language: French (Français)
 import React, { useState } from 'react';
-import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
-import { LoadingButton } from '@/components/ui/LoadingButton';
+import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
+import { LoadingButton } from '../ui/LoadingButton';
 
 interface BarDetailsFormData {
   barName: string;
@@ -12,7 +12,7 @@ interface BarDetailsFormData {
 }
 
 export const BarDetailsStep: React.FC = () => {
-  const { stepData, updateStepData, completeStep, nextStep } = useOnboarding();
+  const { stepData, updateStepData, completeStep, nextStep, previousStep } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -118,11 +118,10 @@ export const BarDetailsStep: React.FC = () => {
               value={formData.barName}
               onChange={handleChange}
               placeholder="ex : Chez Ali"
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:outline-none ${
-                errors.barName
-                  ? 'border-red-500 focus:ring-red-200'
-                  : 'border-gray-300 focus:ring-blue-200'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:outline-none ${errors.barName
+                ? 'border-red-500 focus:ring-red-200'
+                : 'border-gray-300 focus:ring-blue-200'
+                }`}
             />
             {errors.barName && (
               <p className="mt-1 text-sm text-red-600">{errors.barName}</p>
@@ -141,11 +140,10 @@ export const BarDetailsStep: React.FC = () => {
               value={formData.location}
               onChange={handleChange}
               placeholder="ex : Cotonou, Bénin"
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:outline-none ${
-                errors.location
-                  ? 'border-red-500 focus:ring-red-200'
-                  : 'border-gray-300 focus:ring-blue-200'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:outline-none ${errors.location
+                ? 'border-red-500 focus:ring-red-200'
+                : 'border-gray-300 focus:ring-blue-200'
+                }`}
             />
             {errors.location && (
               <p className="mt-1 text-sm text-red-600">{errors.location}</p>
@@ -164,11 +162,10 @@ export const BarDetailsStep: React.FC = () => {
               value={formData.contact}
               onChange={handleChange}
               placeholder="votre@email.com"
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:outline-none ${
-                errors.contact
-                  ? 'border-red-500 focus:ring-red-200'
-                  : 'border-gray-300 focus:ring-blue-200'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:outline-none ${errors.contact
+                ? 'border-red-500 focus:ring-red-200'
+                : 'border-gray-300 focus:ring-blue-200'
+                }`}
             />
             {errors.contact && (
               <p className="mt-1 text-sm text-red-600">{errors.contact}</p>
@@ -185,11 +182,10 @@ export const BarDetailsStep: React.FC = () => {
               name="closingHour"
               value={formData.closingHour}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:outline-none ${
-                errors.closingHour
-                  ? 'border-red-500 focus:ring-red-200'
-                  : 'border-gray-300 focus:ring-blue-200'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:outline-none ${errors.closingHour
+                ? 'border-red-500 focus:ring-red-200'
+                : 'border-gray-300 focus:ring-blue-200'
+                }`}
             >
               {Array.from({ length: 24 }, (_, i) => (
                 <option key={i} value={i}>
@@ -236,7 +232,7 @@ export const BarDetailsStep: React.FC = () => {
           <div className="flex gap-3 pt-6 border-t">
             <button
               type="button"
-              onClick={() => window.history.back()}
+              onClick={() => previousStep()}
               className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
               Retour

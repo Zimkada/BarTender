@@ -1,10 +1,10 @@
 // Language: French (Français)
 import React, { useState } from 'react';
-import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
-import { useAuth } from '@/context/AuthContext';
-import { useBar } from '@/context/BarContext';
-import { LoadingButton } from '@/components/ui/LoadingButton';
-import { OnboardingService } from '@/services/supabase/onboarding.service';
+import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
+import { useAuth } from '../../context/AuthContext';
+import { useBar } from '../../context/BarContext';
+import { LoadingButton } from '../ui/LoadingButton';
+import { OnboardingService } from '../../services/supabase/onboarding.service';
 import { ProductSelectorModal } from './modals/ProductSelectorModal';
 
 interface ProductWithPrice {
@@ -21,7 +21,7 @@ type SelectedProduct = ProductWithPrice;
 export const AddProductsStep: React.FC = () => {
   const { currentSession } = useAuth();
   const { currentBar } = useBar();
-  const { stepData, updateStepData, completeStep, nextStep } = useOnboarding();
+  const { stepData, updateStepData, completeStep, nextStep, previousStep } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -64,7 +64,7 @@ export const AddProductsStep: React.FC = () => {
 
     setLoading(true);
     try {
-      if (!currentSession?.user?.id) {
+      if (!currentSession?.userId) {
         throw new Error('Utilisateur non authentifié');
       }
 
@@ -72,7 +72,7 @@ export const AddProductsStep: React.FC = () => {
         throw new Error('Bar non trouvé');
       }
 
-      const userId = currentSession.user.id;
+      const userId = currentSession.userId;
       const barId = currentBar.id;
 
       // Add products to bar via API (products already have prices from modal)
@@ -107,12 +107,12 @@ export const AddProductsStep: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Product Count */}
           <div className={`p-4 border rounded-lg ${formData.products.length === 0
-              ? 'bg-red-50 border-red-200'
-              : 'bg-green-50 border-green-200'
+            ? 'bg-red-50 border-red-200'
+            : 'bg-green-50 border-green-200'
             }`}>
             <p className={`text-sm font-medium ${formData.products.length === 0
-                ? 'text-red-900'
-                : 'text-green-900'
+              ? 'text-red-900'
+              : 'text-green-900'
               }`}>
               Produits ajoutés : <strong>{formData.products.length}</strong>
             </p>
@@ -177,7 +177,7 @@ export const AddProductsStep: React.FC = () => {
           <div className="flex gap-3 pt-6 border-t">
             <button
               type="button"
-              onClick={() => window.history.back()}
+              onClick={previousStep}
               className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
               Retour
