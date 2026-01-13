@@ -35,8 +35,8 @@ const LoginScreen = lazyWithRetry(() => import('../components/LoginScreen'));
 const ForgotPasswordScreen = lazyWithRetry(() => import('../components/ForgotPasswordScreen'));
 const ResetPasswordScreen = lazyWithRetry(() => import('../components/ResetPasswordScreen'));
 
-// === Onboarding (Default Export) ===
-const OnboardingPage = lazyWithRetry(() => import('../pages/OnboardingPage'));
+// === Onboarding (Named Export) ===
+const OnboardingPage = lazyWithRetry(() => import('../pages/OnboardingPage').then(m => ({ default: m.OnboardingPage })));
 
 // === Admin Components (Default Exports) ===
 const SuperAdminPage = lazyWithRetry(() => import('../pages/SuperAdminPage'));
