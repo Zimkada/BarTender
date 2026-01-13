@@ -52,17 +52,24 @@ export function lazyWithRetry<T extends ComponentType<any>>(
 
               console.log(
                 `[lazyWithRetry] Chunk load failed, retrying ${retryCount}/${maxRetries} in ${delay}ms...`,
-                error.message
+                error instanceof Error ? error.message : JSON.stringify(error)
               );
 
               setTimeout(() => {
                 attemptImport();
               }, delay);
             } else {
-              console.error(
-                `[lazyWithRetry] Failed to load chunk after ${maxRetries} retries`,
-                error
-              );
+              // Safely log error to avoid "Cannot convert object to primitive value"
+              try {
+                console.error(
+                  `[lazyWithRetry] Failed to load chunk after ${maxRetries} retries`,
+                  error instanceof Error ? error.message : JSON.stringify(error)
+                );
+              } catch {
+                console.error(
+                  `[lazyWithRetry] Failed to load chunk after ${maxRetries} retries`
+                );
+              }
               reject(error);
             }
           });
