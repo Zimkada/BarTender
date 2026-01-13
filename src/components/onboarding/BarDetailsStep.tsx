@@ -237,6 +237,18 @@ export const BarDetailsStep: React.FC = () => {
             >
               Retour
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                // Save current form data even if incomplete and skip validation
+                updateStepData(OnboardingStep.OWNER_BAR_DETAILS, formData);
+                completeStep(OnboardingStep.OWNER_BAR_DETAILS, formData);
+                nextStep();
+              }}
+              className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+            >
+              Compléter Plus Tard
+            </button>
             <LoadingButton
               type="submit"
               isLoading={loading}

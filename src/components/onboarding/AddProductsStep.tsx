@@ -56,9 +56,9 @@ export const AddProductsStep: React.FC = () => {
     e.preventDefault();
     setErrors('');
 
-    // HARD BLOCKER: At least 1 product required
+    // Validate: At least 1 product required if submitting
     if (formData.products.length === 0) {
-      setErrors('❌ Au moins 1 produit requis. Vous ne pouvez pas créer de ventes sans produits.');
+      setErrors('❌ Veuillez ajouter au moins 1 produit pour continuer, ou cliquez sur "Compléter Plus Tard".');
       return;
     }
 
@@ -99,7 +99,7 @@ export const AddProductsStep: React.FC = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Ajouter des Produits au Catalogue</h1>
           <p className="mt-2 text-gray-600">
-            Sélectionnez les produits du catalogue global et fixez les prix locaux.
+            Sélectionnez les produits du catalogue global et fixez les prix locaux. (optionnel)
           </p>
         </div>
 
@@ -107,18 +107,18 @@ export const AddProductsStep: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Product Count */}
           <div className={`p-4 border rounded-lg ${formData.products.length === 0
-            ? 'bg-red-50 border-red-200'
+            ? 'bg-amber-50 border-amber-200'
             : 'bg-green-50 border-green-200'
             }`}>
             <p className={`text-sm font-medium ${formData.products.length === 0
-              ? 'text-red-900'
+              ? 'text-amber-900'
               : 'text-green-900'
               }`}>
               Produits ajoutés : <strong>{formData.products.length}</strong>
             </p>
             {formData.products.length === 0 && (
-              <p className="mt-1 text-sm text-red-700">
-                ⚠️ <strong>REQUIS :</strong> Ajouter au moins 1 produit
+              <p className="mt-1 text-sm text-amber-700">
+                💡 Vous pouvez ajouter des produits maintenant ou plus tard
               </p>
             )}
           </div>
@@ -181,6 +181,18 @@ export const AddProductsStep: React.FC = () => {
               className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
               Retour
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                // Allow skip without adding products
+                updateStepData(OnboardingStep.OWNER_ADD_PRODUCTS, formData);
+                completeStep(OnboardingStep.OWNER_ADD_PRODUCTS, formData);
+                nextStep();
+              }}
+              className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+            >
+              Compléter Plus Tard
             </button>
             <LoadingButton
               type="submit"

@@ -88,7 +88,7 @@ export const StockInitStep: React.FC = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Stock Initial</h1>
           <p className="mt-2 text-gray-600">
-            Définissez l'inventaire initial pour chaque produit (en FCFA à CUMP - Coût Unitaire Moyen Pondéré)
+            Définissez l'inventaire initial pour chaque produit. (optionnel)
           </p>
         </div>
 
@@ -164,6 +164,18 @@ export const StockInitStep: React.FC = () => {
               className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
               Retour
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                // Allow skip without initializing stock
+                updateStepData(OnboardingStep.OWNER_STOCK_INIT, formData);
+                completeStep(OnboardingStep.OWNER_STOCK_INIT, formData);
+                nextStep();
+              }}
+              className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+            >
+              Compléter Plus Tard
             </button>
             <LoadingButton
               type="submit"
