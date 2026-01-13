@@ -53,7 +53,18 @@ export const OnboardingFlow: React.FC = () => {
           (m: any) => String(m.userId) === String(currentSession.userId)
         );
 
-        const role = String(userBarMember?.role || 'serveur') as UserRole;
+        // Determine role: use bar member role if found, prioritize owner role if user is bar owner
+        let role: UserRole = 'serveur'; // default
+
+        if (userBarMember?.role) {
+          role = String(userBarMember.role) as UserRole;
+        }
+
+        // If user is the bar owner, ensure they have promoteur/owner role
+        if (String(currentBar.ownerId) === String(currentSession.userId)) {
+          role = 'promoteur';
+        }
+
         initializeOnboarding(
           String(currentSession.userId),
           String(currentBar.id),
@@ -61,7 +72,7 @@ export const OnboardingFlow: React.FC = () => {
         );
       }
     }
-  }, [currentSession?.userId, currentBar?.id, barMembers, initializeOnboarding]);
+  }, [currentSession?.userId, currentBar?.id, currentBar?.ownerId, barMembers, initializeOnboarding]);
 
   // Render appropriate component based on current step
   const renderStep = () => {
