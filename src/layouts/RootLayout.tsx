@@ -16,6 +16,7 @@ import { Header } from '../components/Header';
 import { MobileNavigation } from '../components/MobileNavigation';
 import { MobileSidebar } from '../components/MobileSidebar'; // NEW
 import { Cart } from '../components/Cart';
+import { GuideButton } from '../components/guide/GuideButton'; // Phase 1.5
 import { LoadingFallback } from '../components/LoadingFallback';
 import { LazyLoadErrorBoundary } from '../components/LazyLoadErrorBoundary';
 // import { UserManagement } from '../components/UserManagement'; // Removed
@@ -135,6 +136,8 @@ function RootLayoutContent() {
         isOpen={isCartOpen}
         onToggle={() => setIsCartOpen(!isCartOpen)}
       />
+
+      <GuideButton /> {/* Phase 1.5: Floating guide button */}
 
       <MobileSidebar
         isOpen={isMobileSidebarOpen}
