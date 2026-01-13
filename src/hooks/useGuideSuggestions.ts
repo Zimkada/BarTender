@@ -28,6 +28,7 @@ export interface GuideSuggestion {
   description?: string;
   isNew: boolean; // Not completed yet
   estimatedDuration: number;
+  guide?: GuideTour; // Full guide object for startTour
 }
 
 /**
@@ -50,6 +51,7 @@ export const useGuideSuggestions = (): GuideSuggestion[] => {
       description: guide.description,
       isNew: !hasCompletedGuide(guide.id),
       estimatedDuration: guide.estimatedDuration,
+      guide: guide, // Include full guide object
     }));
   }, [userRole, hasCompletedGuide]);
 };

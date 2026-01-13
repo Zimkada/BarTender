@@ -10,13 +10,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGuide } from '@/context/GuideContext';
 import { useGuideSuggestions } from '@/hooks/useGuideSuggestions';
 import { Button } from '@/components/ui/Button';
+import { GuideTour } from '@/types/guide';
 
 /**
  * Popover for guide suggestions
  */
 const GuideSuggestionsPopover: React.FC<{
-  suggestions: Array<{ id: string; title: string; emoji?: string; isNew: boolean }>;
-  onSelectGuide: (guideId: string) => void;
+  suggestions: Array<{ id: string; title: string; emoji?: string; isNew: boolean; guide?: GuideTour }>;
+  onSelectGuide: (guideId: string, guide?: GuideTour) => void;
   isOpen: boolean;
 }> = ({ suggestions, onSelectGuide, isOpen }) => {
   return (
@@ -42,7 +43,7 @@ const GuideSuggestionsPopover: React.FC<{
                 {suggestions.map(guide => (
                   <motion.button
                     key={guide.id}
-                    onClick={() => onSelectGuide(guide.id)}
+                    onClick={() => onSelectGuide(guide.id, guide.guide)}
                     className="w-full text-left px-3 py-2 rounded-lg hover:bg-blue-50 transition group"
                     whileHover={{ x: 4 }}
                   >
@@ -91,8 +92,8 @@ export const GuideButton: React.FC = () => {
   const { startTour } = useGuide();
   const suggestions = useGuideSuggestions();
 
-  const handleSelectGuide = (guideId: string) => {
-    startTour(guideId);
+  const handleSelectGuide = (guideId: string, guide?: GuideTour) => {
+    startTour(guideId, guide);
     setIsPopoverOpen(false);
   };
 

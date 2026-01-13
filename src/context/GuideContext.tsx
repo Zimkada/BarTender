@@ -63,10 +63,14 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
    * Start a guide tour
    */
   const startTour = useCallback(
-    async (tourId: string) => {
+    async (tourId: string, tour?: GuideTour) => {
       if (!activeTour || activeTour.id !== tourId) {
-        // In production, would load from guides registry
-        // For now, we'll set it up in components
+        // Set active tour object
+        if (tour) {
+          setActiveTour(tour);
+        }
+
+        // Show tour UI
         setIsVisible(true);
         setCurrentStepIndex(0);
         setError(null);
