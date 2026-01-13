@@ -9,6 +9,7 @@ import { ErrorBoundary } from 'react-error-boundary'; // Ajout de l'import Error
 import { AuthProvider } from './context/AuthContext';
 import { BarProvider } from './context/BarContext';
 import { OnboardingProvider } from './context/OnboardingContext';
+import { GuideProvider } from './context/GuideContext';
 import { StockProvider } from './context/StockContext';
 import { StockBridgeProvider } from './context/StockBridgeProvider';
 import { AppProvider } from './context/AppProvider';
@@ -35,20 +36,22 @@ createRoot(document.getElementById('root')!).render(
         <AuthProvider>
           <BarProvider>
             <OnboardingProvider>
-              <StockProvider>
-              <StockBridgeProvider>
-                <AppProvider>
-                  <ModalProvider>
-                    <ErrorBoundary FallbackComponent={ErrorFallback} onError={(error, info) => console.error("Caught an error:", error, info)}>
-                      <RouterProvider router={router} />
-                      {/* PWA Components */}
-                      <PWAInstallPrompt />
-                      <PWAUpdatePrompt />
-                    </ErrorBoundary>
-                  </ModalProvider>
-                </AppProvider>
-              </StockBridgeProvider>
-            </StockProvider>
+              <GuideProvider>
+                <StockProvider>
+                <StockBridgeProvider>
+                  <AppProvider>
+                    <ModalProvider>
+                      <ErrorBoundary FallbackComponent={ErrorFallback} onError={(error, info) => console.error("Caught an error:", error, info)}>
+                        <RouterProvider router={router} />
+                        {/* PWA Components */}
+                        <PWAInstallPrompt />
+                        <PWAUpdatePrompt />
+                      </ErrorBoundary>
+                    </ModalProvider>
+                  </AppProvider>
+                </StockBridgeProvider>
+              </StockProvider>
+              </GuideProvider>
             </OnboardingProvider>
           </BarProvider>
         </AuthProvider>
