@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useBar } from '../context/BarContext';
+import { useOnboarding } from '../context/OnboardingContext';
 import { OnboardingFlow } from '../components/onboarding/OnboardingFlow';
 
 /**
@@ -14,6 +15,7 @@ export const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
   const { currentSession } = useAuth();
   const { currentBar, loading: barLoading } = useBar();
+  const { isComplete: onboardingComplete } = useOnboarding();
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -22,14 +24,14 @@ export const OnboardingPage: React.FC = () => {
     }
   }, [currentSession, navigate]);
 
-  // Redirect to dashboard if bar already setup complete
+  // Redirect to dashboard if bar already setup complete (from database or context)
   useEffect(() => {
-    // Check setup status from settings if not on top level
-    const isSetupComplete = (currentBar as any)?.is_setup_complete;
+    // Check setup status from database OR from onboarding context completion
+    const isSetupComplete = (currentBar as any)?.is_setup_complete || onboardingComplete;
     if (!barLoading && isSetupComplete) {
       navigate('/dashboard', { replace: true });
     }
-  }, [barLoading, currentBar, navigate]);
+  }, [barLoading, currentBar, onboardingComplete, navigate]);
 
   // Loading state
   if (barLoading) {

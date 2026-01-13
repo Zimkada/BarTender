@@ -8,20 +8,23 @@ import React, { useState, useEffect } from 'react';
 import { AlertCircle, ChevronRight, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useBar } from '@/context/BarContext';
+import { useOnboarding } from '@/context/OnboardingContext';
 
 export const OnboardingBanner: React.FC = () => {
   const navigate = useNavigate();
   const { currentBar } = useBar();
+  const { isComplete: onboardingComplete } = useOnboarding();
   const [isDismissed, setIsDismissed] = useState(false);
   const [deferredUntil, setDeferredUntil] = useState<number | null>(null);
 
   // Show banner if:
-  // 1. Bar exists and is not setup complete
+  // 1. Bar exists and is not setup complete (database OR context)
   // 2. Not dismissed by user
   // 3. Deferral period not active
   const shouldShow =
     currentBar &&
     !currentBar.is_setup_complete &&
+    !onboardingComplete &&
     !isDismissed &&
     (!deferredUntil || Date.now() >= deferredUntil);
 

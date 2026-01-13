@@ -12,7 +12,7 @@ interface BarDetailsFormData {
 }
 
 export const BarDetailsStep: React.FC = () => {
-  const { stepData, updateStepData, completeStep, nextStep, previousStep } = useOnboarding();
+  const { stepData, updateStepData, completeStep, nextStep, previousStep, completeOnboarding } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -240,10 +240,10 @@ export const BarDetailsStep: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                // Save current form data even if incomplete and skip validation
+                // Save current form data and skip to dashboard
                 updateStepData(OnboardingStep.OWNER_BAR_DETAILS, formData);
                 completeStep(OnboardingStep.OWNER_BAR_DETAILS, formData);
-                nextStep();
+                completeOnboarding();
               }}
               className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >

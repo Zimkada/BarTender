@@ -13,7 +13,7 @@ interface StockInitFormData {
 export const StockInitStep: React.FC = () => {
   const { currentSession } = useAuth();
   const { currentBar } = useBar();
-  const { stepData, updateStepData, completeStep, nextStep, previousStep } = useOnboarding();
+  const { stepData, updateStepData, completeStep, nextStep, previousStep, completeOnboarding } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string>('');
 
@@ -168,10 +168,10 @@ export const StockInitStep: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                // Allow skip without initializing stock
+                // Skip to dashboard
                 updateStepData(OnboardingStep.OWNER_STOCK_INIT, formData);
                 completeStep(OnboardingStep.OWNER_STOCK_INIT, formData);
-                nextStep();
+                completeOnboarding();
               }}
               className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
