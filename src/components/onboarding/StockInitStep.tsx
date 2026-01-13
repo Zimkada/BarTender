@@ -1,3 +1,4 @@
+// Language: French (Français)
 import React, { useState } from 'react';
 import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
 import { useAuth } from '@/context/AuthContext';
@@ -44,18 +45,18 @@ export const StockInitStep: React.FC = () => {
     // Validate: all products have stock entry (can be 0)
     const hasAllStocks = productIds.every((id) => formData.stocks[id] !== undefined);
     if (!hasAllStocks) {
-      setErrors('All products must have a stock value');
+      setErrors('Tous les produits doivent avoir une valeur de stock');
       return;
     }
 
     setLoading(true);
     try {
       if (!currentSession?.user?.id) {
-        throw new Error('User not authenticated');
+        throw new Error('Utilisateur non authentifié');
       }
 
       if (!currentBar?.id) {
-        throw new Error('Bar not found');
+        throw new Error('Bar non trouvé');
       }
 
       const userId = currentSession.user.id;
@@ -71,8 +72,8 @@ export const StockInitStep: React.FC = () => {
       // Move to next step
       nextStep();
     } catch (error: any) {
-      console.error('Error saving stock:', error);
-      setErrors(error.message || 'Failed to save stock');
+      console.error('Erreur lors de l\'enregistrement du stock:', error);
+      setErrors(error.message || 'Impossible d\'enregistrer le stock');
     } finally {
       setLoading(false);
     }
@@ -85,9 +86,9 @@ export const StockInitStep: React.FC = () => {
       <div className="bg-white rounded-lg shadow-md p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Initial Stock</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Stock Initial</h1>
           <p className="mt-2 text-gray-600">
-            Set initial inventory for each product (in FCFA at CUMP - Coût Unitaire Moyen Pondéré)
+            Définissez l'inventaire initial pour chaque produit (en FCFA à CUMP - Coût Unitaire Moyen Pondéré)
           </p>
         </div>
 
@@ -95,12 +96,12 @@ export const StockInitStep: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Info Box */}
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 className="text-sm font-medium text-blue-900 mb-2">About initial stock:</h3>
+            <h3 className="text-sm font-medium text-blue-900 mb-2">À propos du stock initial :</h3>
             <ul className="text-sm text-blue-800 space-y-1">
-              <li>💡 Set stock for each product you added</li>
-              <li>💡 Stock can be 0 if you have no inventory yet</li>
-              <li>💡 You can adjust later when you restock</li>
-              <li>📊 Total units: <strong>{totalValue}</strong></li>
+              <li>💡 Définir le stock pour chaque produit que vous avez ajouté</li>
+              <li>💡 Le stock peut être 0 si vous n'avez pas encore d'inventaire</li>
+              <li>💡 Vous pouvez ajuster plus tard quand vous réapprovisionnerez</li>
+              <li>📊 Total d'unités : <strong>{totalValue}</strong></li>
             </ul>
           </div>
 
@@ -115,7 +116,7 @@ export const StockInitStep: React.FC = () => {
                         htmlFor={`stock-${productId}`}
                         className="block text-sm font-medium text-gray-700 mb-1"
                       >
-                        {productId}
+                        Produit : {productId}
                       </label>
                       <input
                         id={`stock-${productId}`}
@@ -128,23 +129,23 @@ export const StockInitStep: React.FC = () => {
                       />
                     </div>
                     <div className="text-sm text-gray-600 pb-2">
-                      <span className="font-medium">{formData.stocks[productId] || 0}</span> units
+                      <span className="font-medium">{formData.stocks[productId] || 0}</span> unités
                     </div>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-gray-600">No products added yet. Go back and add products first.</p>
+              <p className="text-gray-600">Aucun produit ajouté pour le moment. Retournez et ajoutez d'abord des produits.</p>
             )}
           </div>
 
           {/* Example */}
           <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <h3 className="text-sm font-medium text-gray-900 mb-2">Example:</h3>
+            <h3 className="text-sm font-medium text-gray-900 mb-2">Exemple :</h3>
             <div className="text-sm text-gray-700 space-y-1">
-              <p>Heineken: 24 units (your initial shipment)</p>
-              <p>Snacks: 15 units (opened box)</p>
-              <p>Vodka: 2 bottles (1 opened, 1 full)</p>
+              <p>Heineken : 24 unités (votre envoi initial)</p>
+              <p>Snacks : 15 unités (boîte ouverte)</p>
+              <p>Vodka : 2 bouteilles (1 ouverte, 1 pleine)</p>
             </div>
           </div>
 
@@ -162,15 +163,15 @@ export const StockInitStep: React.FC = () => {
               onClick={() => window.history.back()}
               className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
-              Back
+              Retour
             </button>
             <LoadingButton
               type="submit"
               isLoading={loading}
-              loadingText="Saving..."
+              loadingText="Enregistrement..."
               className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
             >
-              Next Step
+              Étape Suivante
             </LoadingButton>
           </div>
         </form>

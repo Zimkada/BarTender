@@ -1,3 +1,4 @@
+// Language: French (Français)
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
@@ -32,11 +33,11 @@ export const ReviewStep: React.FC = () => {
 
     try {
       if (!currentSession?.user?.id) {
-        throw new Error('User not authenticated');
+        throw new Error('Utilisateur non authentifié');
       }
 
       if (!currentBar?.id) {
-        throw new Error('Bar not found');
+        throw new Error('Bar non trouvé');
       }
 
       const userId = currentSession.user.id;
@@ -73,7 +74,7 @@ export const ReviewStep: React.FC = () => {
       );
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to complete onboarding');
+        throw new Error(result.error || 'Impossible de compléter l\'intégration');
       }
 
       // Mark as complete in context
@@ -84,8 +85,8 @@ export const ReviewStep: React.FC = () => {
         navigate('/dashboard', { replace: true });
       }, 500);
     } catch (error: any) {
-      console.error('Error launching bar:', error);
-      setErrors(error.message || 'Failed to launch bar. Please try again.');
+      console.error('Erreur lors du lancement du bar:', error);
+      setErrors(error.message || 'Impossible de lancer le bar. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }
@@ -100,9 +101,9 @@ export const ReviewStep: React.FC = () => {
       <div className="bg-white rounded-lg shadow-md p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Ready to Launch?</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Prêt à Lancer ?</h1>
           <p className="mt-2 text-gray-600">
-            Review your setup and launch your bar
+            Vérifiez votre configuration et lancez votre bar
           </p>
         </div>
 
@@ -113,7 +114,7 @@ export const ReviewStep: React.FC = () => {
             <div className="space-y-3">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-sm font-medium text-gray-600">Bar Name</p>
+                  <p className="text-sm font-medium text-gray-600">Nom du Bar</p>
                   <p className="text-lg font-semibold text-gray-900">{barDetails?.barName || 'N/A'}</p>
                 </div>
                 <span className="text-2xl">✓</span>
@@ -123,7 +124,7 @@ export const ReviewStep: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs font-medium text-gray-600">Location</p>
+                  <p className="text-xs font-medium text-gray-600">Localisation</p>
                   <p className="text-sm text-gray-900">{barDetails?.location || 'N/A'}</p>
                 </div>
                 <div>
@@ -131,12 +132,12 @@ export const ReviewStep: React.FC = () => {
                   <p className="text-sm text-gray-900 capitalize">{barDetails?.operatingMode || 'N/A'}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-medium text-gray-600">Closing Hour</p>
-                  <p className="text-sm text-gray-900">{barDetails?.closingHour}:00 AM</p>
+                  <p className="text-xs font-medium text-gray-600">Heure de Fermeture</p>
+                  <p className="text-sm text-gray-900">{barDetails?.closingHour}:00 du matin</p>
                 </div>
                 <div>
                   <p className="text-xs font-medium text-gray-600">Contact</p>
-                  <p className="text-sm text-gray-900">{barDetails?.contact || 'Not provided'}</p>
+                  <p className="text-sm text-gray-900">{barDetails?.contact || 'Non fourni'}</p>
                 </div>
               </div>
             </div>
@@ -147,8 +148,8 @@ export const ReviewStep: React.FC = () => {
             {/* Managers */}
             <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
               <div>
-                <p className="text-sm font-medium text-gray-900">Managers</p>
-                <p className="text-xs text-gray-600">{managerCount} account(s)</p>
+                <p className="text-sm font-medium text-gray-900">Gérants</p>
+                <p className="text-xs text-gray-600">{managerCount} compte(s)</p>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-green-600">✓</span>
@@ -157,7 +158,7 @@ export const ReviewStep: React.FC = () => {
                   onClick={() => handleEditStep(OnboardingStep.OWNER_ADD_MANAGERS)}
                   className="text-xs text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  Edit
+                  Modifier
                 </button>
               </div>
             </div>
@@ -165,9 +166,9 @@ export const ReviewStep: React.FC = () => {
             {/* Staff */}
             <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
               <div>
-                <p className="text-sm font-medium text-gray-900">Staff</p>
+                <p className="text-sm font-medium text-gray-900">Personnel</p>
                 <p className="text-xs text-gray-600">
-                  {staffCount > 0 ? `${staffCount} server(s)` : 'Dynamic (simplifié mode)'}
+                  {staffCount > 0 ? `${staffCount} serveur(s)` : 'Dynamique (mode simplifié)'}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -177,7 +178,7 @@ export const ReviewStep: React.FC = () => {
                   onClick={() => handleEditStep(OnboardingStep.OWNER_SETUP_STAFF)}
                   className="text-xs text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  Edit
+                  Modifier
                 </button>
               </div>
             </div>
@@ -185,8 +186,8 @@ export const ReviewStep: React.FC = () => {
             {/* Products */}
             <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
               <div>
-                <p className="text-sm font-medium text-gray-900">Products</p>
-                <p className="text-xs text-gray-600">{productCount} product(s)</p>
+                <p className="text-sm font-medium text-gray-900">Produits</p>
+                <p className="text-xs text-gray-600">{productCount} produit(s)</p>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-green-600">✓</span>
@@ -195,7 +196,7 @@ export const ReviewStep: React.FC = () => {
                   onClick={() => handleEditStep(OnboardingStep.OWNER_ADD_PRODUCTS)}
                   className="text-xs text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  Edit
+                  Modifier
                 </button>
               </div>
             </div>
@@ -203,8 +204,8 @@ export const ReviewStep: React.FC = () => {
             {/* Stock */}
             <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
               <div>
-                <p className="text-sm font-medium text-gray-900">Initial Stock</p>
-                <p className="text-xs text-gray-600">{totalStock} unit(s) total</p>
+                <p className="text-sm font-medium text-gray-900">Stock Initial</p>
+                <p className="text-xs text-gray-600">{totalStock} unité(s) au total</p>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-green-600">✓</span>
@@ -213,7 +214,7 @@ export const ReviewStep: React.FC = () => {
                   onClick={() => handleEditStep(OnboardingStep.OWNER_STOCK_INIT)}
                   className="text-xs text-blue-600 hover:text-blue-700 font-medium"
                 >
-                  Edit
+                  Modifier
                 </button>
               </div>
             </div>
@@ -222,7 +223,7 @@ export const ReviewStep: React.FC = () => {
           {/* Launch Button */}
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-900">
-              ✨ Once you launch, your bar is ready for sales! Managers can start creating transactions.
+              ✨ Une fois lancé, votre bar est prêt pour les ventes ! Les gérants peuvent commencer à créer des transactions.
             </p>
           </div>
 
@@ -240,15 +241,15 @@ export const ReviewStep: React.FC = () => {
               onClick={() => window.history.back()}
               className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
-              Back
+              Retour
             </button>
             <LoadingButton
               type="submit"
               isLoading={loading}
-              loadingText="Launching..."
+              loadingText="Lancement..."
               className="ml-auto px-8 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold text-lg"
             >
-              🚀 Launch Bar
+              🚀 Lancer le Bar
             </LoadingButton>
           </div>
         </form>

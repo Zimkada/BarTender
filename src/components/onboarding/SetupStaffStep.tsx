@@ -1,3 +1,4 @@
+// Language: French (Français)
 import React, { useState } from 'react';
 import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
 import { LoadingButton } from '@/components/ui/LoadingButton';
@@ -24,12 +25,12 @@ export const SetupStaffStep: React.FC = () => {
 
   const handleAddServer = () => {
     if (!newServerName.trim()) {
-      setErrors('Server name required');
+      setErrors('Nom du serveur requis');
       return;
     }
 
     if (newServerName.length > 50) {
-      setErrors('Server name too long');
+      setErrors('Nom du serveur trop long');
       return;
     }
 
@@ -55,8 +56,8 @@ export const SetupStaffStep: React.FC = () => {
       completeStep(OnboardingStep.OWNER_SETUP_STAFF, formData);
       nextStep();
     } catch (error) {
-      console.error('Error saving staff:', error);
-      setErrors('Failed to save staff');
+      console.error('Erreur lors de l\'enregistrement du personnel:', error);
+      setErrors('Impossible d\'enregistrer le personnel');
     } finally {
       setLoading(false);
     }
@@ -67,10 +68,10 @@ export const SetupStaffStep: React.FC = () => {
     return (
       <div className="w-full max-w-2xl mx-auto px-4">
         <div className="bg-white rounded-lg shadow-md p-8">
-          <h1 className="text-3xl font-bold text-gray-900">Set Up Staff</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Configurer le Personnel</h1>
           <p className="mt-4 text-gray-600">
-            ℹ️ You're using <strong>Simplifié Mode</strong>, so staff are added dynamically
-            by managers. Skip this step.
+            ℹ️ Vous utilisez le <strong>Mode Simplifié</strong>, donc le personnel est ajouté dynamiquement
+            par les gérants. Passer cette étape.
           </p>
           <div className="flex gap-3 mt-8 pt-6 border-t">
             <button
@@ -78,12 +79,12 @@ export const SetupStaffStep: React.FC = () => {
               onClick={() => window.history.back()}
               className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
-              Back
+              Retour
             </button>
             <LoadingButton
               type="button"
               isLoading={loading}
-              loadingText="Continuing..."
+              loadingText="Continuation..."
               onClick={async () => {
                 setLoading(true);
                 try {
@@ -95,7 +96,7 @@ export const SetupStaffStep: React.FC = () => {
               }}
               className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
             >
-              Continue
+              Continuer
             </LoadingButton>
           </div>
         </div>
@@ -108,9 +109,9 @@ export const SetupStaffStep: React.FC = () => {
       <div className="bg-white rounded-lg shadow-md p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Set Up Staff</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Configurer le Personnel</h1>
           <p className="mt-2 text-gray-600">
-            Create server accounts for your bartenders (Full Mode)
+            Créer des comptes serveur pour vos baristas (Mode Complet)
           </p>
         </div>
 
@@ -119,7 +120,7 @@ export const SetupStaffStep: React.FC = () => {
           {/* Server Count */}
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm font-medium text-blue-900">
-              Servers added: <strong>{formData.serverNames.length}</strong>
+              Serveurs ajoutés : <strong>{formData.serverNames.length}</strong>
             </p>
           </div>
 
@@ -137,7 +138,7 @@ export const SetupStaffStep: React.FC = () => {
                     onClick={() => handleRemoveServer(index)}
                     className="text-red-600 hover:text-red-700 text-sm font-medium"
                   >
-                    Remove
+                    Supprimer
                   </button>
                 </div>
               ))}
@@ -147,7 +148,7 @@ export const SetupStaffStep: React.FC = () => {
           {/* Add Server Input */}
           <div className="space-y-2">
             <label htmlFor="serverName" className="block text-sm font-medium text-gray-700">
-              Server Name
+              Nom du Serveur
             </label>
             <div className="flex gap-2">
               <input
@@ -164,7 +165,7 @@ export const SetupStaffStep: React.FC = () => {
                     handleAddServer();
                   }
                 }}
-                placeholder="e.g., Ahmed, Youssouf"
+                placeholder="ex : Ahmed, Youssouf"
                 className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:outline-none"
               />
               <button
@@ -172,7 +173,7 @@ export const SetupStaffStep: React.FC = () => {
                 onClick={handleAddServer}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
               >
-                Add
+                Ajouter
               </button>
             </div>
           </div>
@@ -186,12 +187,12 @@ export const SetupStaffStep: React.FC = () => {
 
           {/* Info Box */}
           <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <h3 className="text-sm font-medium text-gray-900 mb-2">Why add servers now?</h3>
+            <h3 className="text-sm font-medium text-gray-900 mb-2">Pourquoi ajouter des serveurs maintenant ?</h3>
             <ul className="text-sm text-gray-700 space-y-1">
-              <li>✓ Each server has their own account</li>
-              <li>✓ Track who created each sale</li>
-              <li>✓ Personal performance metrics</li>
-              <li>💡 You can add more servers later</li>
+              <li>✓ Chaque serveur a son propre compte</li>
+              <li>✓ Suivre qui a créé chaque vente</li>
+              <li>✓ Métriques de performance personnelles</li>
+              <li>💡 Vous pouvez ajouter plus de serveurs plus tard</li>
             </ul>
           </div>
 
@@ -202,15 +203,15 @@ export const SetupStaffStep: React.FC = () => {
               onClick={() => window.history.back()}
               className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
-              Back
+              Retour
             </button>
             <LoadingButton
               type="submit"
               isLoading={loading}
-              loadingText="Saving..."
+              loadingText="Enregistrement..."
               className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
             >
-              Next Step
+              Étape Suivante
             </LoadingButton>
           </div>
         </form>

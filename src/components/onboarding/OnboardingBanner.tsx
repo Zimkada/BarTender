@@ -66,37 +66,38 @@ export const OnboardingBanner: React.FC = () => {
 
   return (
     <div className="fixed top-16 left-0 right-0 z-40">
-      <div className="mx-auto max-w-7xl px-3 md:px-4 py-3">
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500 rounded-lg shadow-md p-4 flex items-start gap-4">
+      <div className="mx-auto max-w-7xl px-3 md:px-4 py-2 md:py-3">
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-amber-500 rounded-lg shadow-md p-3 md:p-4 flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4">
           {/* Icon */}
-          <AlertCircle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-1" />
+          <AlertCircle className="w-5 h-5 md:w-6 md:h-6 text-amber-600 flex-shrink-0 md:mt-1 mt-0.5" />
 
           {/* Content */}
-          <div className="flex-1">
-            <h3 className="font-semibold text-amber-900">
-              🎯 Complete Setup for {currentBar?.name}
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-amber-900 text-sm md:text-base">
+              🎯 Finalisez la configuration de {currentBar?.name}
             </h3>
-            <p className="text-sm text-amber-800 mt-1">
-              Let's set up your bar in just a few minutes. Add products, staff, and configure your preferences.
+            <p className="text-xs md:text-sm text-amber-800 mt-1">
+              Configurez votre bar en quelques minutes. Ajoutez les produits, le personnel et vos préférences.
             </p>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-2 md:gap-3 flex-shrink-0 w-full md:w-auto">
             <button
               onClick={handleDeferSetup}
-              className="flex items-center gap-1 px-3 py-2 text-sm bg-white text-amber-900 rounded hover:bg-amber-50 transition-colors border border-amber-200 font-medium"
-              title="Remind me in 24 hours"
+              className="flex items-center justify-center md:justify-start gap-1 px-2 md:px-3 py-2 text-xs md:text-sm bg-white text-amber-900 rounded hover:bg-amber-50 transition-colors border border-amber-200 font-medium flex-1 md:flex-none"
+              title="Me rappeler dans 24 heures"
             >
-              <Clock className="w-4 h-4" />
-              <span>Later</span>
+              <Clock className="w-3.5 h-3.5 md:w-4 md:h-4 flex-shrink-0" />
+              <span className="hidden md:inline">Plus tard</span>
+              <span className="md:hidden">Plus tard</span>
             </button>
             <button
               onClick={handleStartNow}
-              className="flex items-center gap-1 px-4 py-2 text-sm bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors font-medium"
+              className="flex items-center justify-center md:justify-start gap-1 px-3 md:px-4 py-2 text-xs md:text-sm bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors font-medium flex-1 md:flex-none"
             >
-              <span>Start</span>
-              <ChevronRight className="w-4 h-4" />
+              <span>Commencer</span>
+              <ChevronRight className="w-3.5 h-3.5 md:w-4 md:h-4 flex-shrink-0" />
             </button>
           </div>
         </div>

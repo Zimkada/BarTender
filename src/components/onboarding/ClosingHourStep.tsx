@@ -1,3 +1,4 @@
+// Language: French (Français)
 import React, { useState } from 'react';
 import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
 import { LoadingButton } from '@/components/ui/LoadingButton';
@@ -18,7 +19,7 @@ export const ClosingHourStep: React.FC = () => {
       completeStep(OnboardingStep.OWNER_CLOSING_HOUR, { closingHour });
       nextStep();
     } catch (error) {
-      console.error('Error confirming closing hour:', error);
+      console.error('Erreur lors de la confirmation de l\'heure de fermeture:', error);
     } finally {
       setLoading(false);
     }
@@ -29,9 +30,9 @@ export const ClosingHourStep: React.FC = () => {
       <div className="bg-white rounded-lg shadow-md p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Confirm Closing Hour</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Confirmer l'Heure de Fermeture</h1>
           <p className="mt-2 text-gray-600">
-            This defines your business day. Sales before this hour count as previous day.
+            Cela définit votre jour ouvrable. Les ventes avant cette heure comptent comme le jour précédent.
           </p>
         </div>
 
@@ -39,47 +40,47 @@ export const ClosingHourStep: React.FC = () => {
         <form onSubmit={handleConfirm} className="space-y-6">
           <div className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
             <h2 className="text-2xl font-bold text-blue-900 mb-2">
-              Closing Hour: {closingHour}:00 AM
+              Heure de Fermeture : {closingHour}:00 du matin
             </h2>
             <p className="text-blue-800">
-              Your business day closes at {closingHour}:00 and starts the next day
+              Votre jour ouvrable se termine à {closingHour}:00 et commence le jour suivant
             </p>
           </div>
 
           {/* Scenario Examples */}
           <div className="space-y-4">
-            <h3 className="font-medium text-gray-900">Example scenarios:</h3>
+            <h3 className="font-medium text-gray-900">Scénarios d'exemple :</h3>
 
             <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-              <p className="font-medium text-gray-900 mb-1">Scenario 1: Sale at 05:00 AM (5 AM)</p>
+              <p className="font-medium text-gray-900 mb-1">Scénario 1 : Vente à 05:00 du matin (5h du matin)</p>
               <p className="text-sm text-gray-700">
-                Closing hour = 6 AM → Sale is counted as <strong>yesterday</strong>
+                Heure de fermeture = 6h du matin → La vente est comptée comme <strong>hier</strong>
               </p>
             </div>
 
             <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-              <p className="font-medium text-gray-900 mb-1">Scenario 2: Sale at 08:00 PM (8 PM)</p>
+              <p className="font-medium text-gray-900 mb-1">Scénario 2 : Vente à 20:00 (8h du soir)</p>
               <p className="text-sm text-gray-700">
-                Closing hour = 6 AM → Sale is counted as <strong>today</strong>
+                Heure de fermeture = 6h du matin → La vente est comptée comme <strong>aujourd'hui</strong>
               </p>
             </div>
 
             <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-              <p className="font-medium text-gray-900 mb-1">Scenario 3: Sale at 02:00 AM (2 AM)</p>
+              <p className="font-medium text-gray-900 mb-1">Scénario 3 : Vente à 02:00 du matin (2h du matin)</p>
               <p className="text-sm text-gray-700">
-                Closing hour = 6 AM → Sale is counted as <strong>yesterday</strong>
+                Heure de fermeture = 6h du matin → La vente est comptée comme <strong>hier</strong>
               </p>
             </div>
           </div>
 
           {/* Info Box */}
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <h3 className="text-sm font-medium text-amber-900 mb-2">Why this matters:</h3>
+            <h3 className="text-sm font-medium text-amber-900 mb-2">Pourquoi c'est important :</h3>
             <ul className="text-sm text-amber-800 space-y-1">
-              <li>✓ Accounting: reports match your financial calendar</li>
-              <li>✓ Daily reconciliation: correct date for cash counts</li>
-              <li>✓ Analytics: sales grouped by correct business day</li>
-              <li>💡 You set this in Step 1, just confirming here</li>
+              <li>✓ Comptabilité : les rapports correspondent à votre calendrier financier</li>
+              <li>✓ Rapprochement quotidien : date correcte pour les comptages de caisse</li>
+              <li>✓ Analyse : ventes groupées par jour ouvrable correct</li>
+              <li>💡 Vous avez défini cela à l'étape 1, juste confirmation ici</li>
             </ul>
           </div>
 
@@ -90,15 +91,15 @@ export const ClosingHourStep: React.FC = () => {
               onClick={() => window.history.back()}
               className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
-              Back
+              Retour
             </button>
             <LoadingButton
               type="submit"
               isLoading={loading}
-              loadingText="Confirming..."
+              loadingText="Confirmation..."
               className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
             >
-              Confirm & Continue
+              Confirmer et Continuer
             </LoadingButton>
           </div>
         </form>

@@ -1,3 +1,4 @@
+// Language: French (Français)
 import React, { useState } from 'react';
 import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
 import { LoadingButton } from '@/components/ui/LoadingButton';
@@ -31,55 +32,55 @@ export const ManagerRoleConfirmStep: React.FC = () => {
       <div className="bg-white rounded-lg shadow-md p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Welcome, Manager!</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Bienvenue, Gérant !</h1>
           <p className="mt-2 text-gray-600">
-            You've been added to <strong>{barName}</strong>
+            Vous avez été ajouté au bar <strong>{barName}</strong>
           </p>
         </div>
 
         {/* Role Overview */}
         <form onSubmit={handleConfirm} className="space-y-6">
           <div className="p-6 bg-blue-50 border border-blue-200 rounded-lg">
-            <h2 className="text-lg font-semibold text-blue-900 mb-4">Your Role: Manager</h2>
+            <h2 className="text-lg font-semibold text-blue-900 mb-4">Votre Rôle : Gérant</h2>
 
             <div className="space-y-3">
               <div className="flex items-start gap-3">
                 <span className="text-green-600 text-lg">✓</span>
                 <div>
-                  <p className="font-medium text-gray-900">Create Sales</p>
-                  <p className="text-sm text-gray-700">Register transactions, apply promotions</p>
+                  <p className="font-medium text-gray-900">Créer des Ventes</p>
+                  <p className="text-sm text-gray-700">Enregistrer les transactions, appliquer les promotions</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
                 <span className="text-green-600 text-lg">✓</span>
                 <div>
-                  <p className="font-medium text-gray-900">Manage Inventory</p>
-                  <p className="text-sm text-gray-700">Track stock, set alerts, record supplies</p>
+                  <p className="font-medium text-gray-900">Gérer l'Inventaire</p>
+                  <p className="text-sm text-gray-700">Suivre le stock, définir des alertes, enregistrer les approvisionnements</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
                 <span className="text-green-600 text-lg">✓</span>
                 <div>
-                  <p className="font-medium text-gray-900">View Analytics</p>
-                  <p className="text-sm text-gray-700">Daily sales, top products, team performance</p>
+                  <p className="font-medium text-gray-900">Voir les Analytiques</p>
+                  <p className="text-sm text-gray-700">Ventes quotidiennes, top produits, performance de l'équipe</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
                 <span className="text-gray-400 text-lg">✗</span>
                 <div>
-                  <p className="font-medium text-gray-900">Manage Team</p>
-                  <p className="text-sm text-gray-700">Only owner can add/remove team members</p>
+                  <p className="font-medium text-gray-900">Gérer l'Équipe</p>
+                  <p className="text-sm text-gray-700">Seul le propriétaire peut ajouter/supprimer des membres</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
                 <span className="text-gray-400 text-lg">✗</span>
                 <div>
-                  <p className="font-medium text-gray-900">Change Settings</p>
-                  <p className="text-sm text-gray-700">Owner controls bar configuration</p>
+                  <p className="font-medium text-gray-900">Modifier les Paramètres</p>
+                  <p className="text-sm text-gray-700">Le propriétaire contrôle la configuration du bar</p>
                 </div>
               </div>
             </div>
@@ -87,19 +88,19 @@ export const ManagerRoleConfirmStep: React.FC = () => {
 
           {/* Next Steps */}
           <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <h3 className="font-medium text-gray-900 mb-3">What's next:</h3>
+            <h3 className="font-medium text-gray-900 mb-3">Prochaines étapes :</h3>
             <ol className="text-sm text-gray-700 space-y-2">
               <li className="flex gap-2">
                 <span className="font-semibold text-gray-900 w-6">1.</span>
-                <span>Quick tour of the dashboard</span>
+                <span>Tour rapide du tableau de bord</span>
               </li>
               <li className="flex gap-2">
                 <span className="font-semibold text-gray-900 w-6">2.</span>
-                <span>Learn to create your first sale</span>
+                <span>Apprendre à créer votre première vente</span>
               </li>
               <li className="flex gap-2">
                 <span className="font-semibold text-gray-900 w-6">3.</span>
-                <span>Start working!</span>
+                <span>Commencer à travailler !</span>
               </li>
             </ol>
           </div>
@@ -107,7 +108,7 @@ export const ManagerRoleConfirmStep: React.FC = () => {
           {/* Info */}
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
             <p className="text-sm text-amber-900">
-              💡 <strong>Tip:</strong> Need help anytime? Click the <strong>?</strong> button in the bottom-right corner.
+              💡 <strong>Conseil :</strong> Besoin d'aide à tout moment ? Cliquez sur le bouton <strong>?</strong> en bas à droite.
             </p>
           </div>
 
@@ -118,15 +119,15 @@ export const ManagerRoleConfirmStep: React.FC = () => {
               onClick={() => window.history.back()}
               className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
-              Back
+              Retour
             </button>
             <LoadingButton
               type="submit"
               isLoading={loading}
-              loadingText="Continuing..."
+              loadingText="Continuation..."
               className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
             >
-              I Understand
+              J'ai compris
             </LoadingButton>
           </div>
         </form>

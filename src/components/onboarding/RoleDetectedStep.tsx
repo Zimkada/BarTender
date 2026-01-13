@@ -4,6 +4,7 @@ import { useOnboarding } from '@/context/OnboardingContext';
 /**
  * RoleDetectedStep
  * Displays the detected user role and its responsibilities
+ * Language: French (Français)
  */
 export const RoleDetectedStep: React.FC = () => {
   const { userRole, nextStep } = useOnboarding();
@@ -13,47 +14,47 @@ export const RoleDetectedStep: React.FC = () => {
       case 'promoteur':
         return {
           icon: '👑',
-          title: 'Bar Owner',
-          description: 'You have full control over your bar',
+          title: 'Promoteur',
+          description: 'Vous avez le contrôle total sur votre bar',
           responsibilities: [
-            '✅ Create and manage your bar',
-            '✅ Add managers and staff',
-            '✅ Manage products and inventory',
-            '✅ View sales and analytics',
-            '✅ Update bar settings',
+            '✅ Créer et gérer votre bar',
+            '✅ Ajouter des gérants et du personnel',
+            '✅ Gérer les produits et l\'inventaire',
+            '✅ Afficher les ventes et analyses',
+            '✅ Mettre à jour les paramètres du bar',
           ],
         };
       case 'gérant':
         return {
           icon: '👨‍💼',
-          title: 'Manager',
-          description: 'You manage day-to-day operations',
+          title: 'Gérant',
+          description: 'Vous gérez les opérations quotidiennes',
           responsibilities: [
-            '✅ Create sales and transactions',
-            '✅ Manage inventory',
-            '✅ View analytics and reports',
-            '❌ Cannot manage team',
-            '❌ Cannot change bar settings',
+            '✅ Créer des ventes et transactions',
+            '✅ Gérer l\'inventaire',
+            '✅ Afficher les analyses et rapports',
+            '❌ Ne peut pas gérer l\'équipe',
+            '❌ Ne peut pas modifier les paramètres',
           ],
         };
       case 'serveur':
         return {
           icon: '🍺',
-          title: 'Bartender/Server',
-          description: 'You process customer orders',
+          title: 'Serveur',
+          description: 'Vous traitez les commandes des clients',
           responsibilities: [
-            '✅ Create sales',
-            '✅ Process payments',
-            '✅ View basic inventory',
-            '❌ Cannot manage team',
-            '❌ Cannot view analytics',
+            '✅ Créer des ventes',
+            '✅ Traiter les paiements',
+            '✅ Afficher l\'inventaire basique',
+            '❌ Ne peut pas gérer l\'équipe',
+            '❌ Ne peut pas afficher les analyses',
           ],
         };
       default:
         return {
           icon: '❓',
-          title: 'Unknown Role',
-          description: 'Your role is not recognized',
+          title: 'Rôle inconnu',
+          description: 'Votre rôle n\'est pas reconnu',
           responsibilities: [],
         };
     }
@@ -67,13 +68,13 @@ export const RoleDetectedStep: React.FC = () => {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="text-6xl mb-4">{roleInfo.icon}</div>
-          <h1 className="text-3xl font-bold text-gray-900">You're set up as a {roleInfo.title}</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Vous êtes configuré en tant que {roleInfo.title}</h1>
           <p className="mt-2 text-gray-600 text-lg">{roleInfo.description}</p>
         </div>
 
         {/* Responsibilities */}
         <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Your Permissions:</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Vos permissions :</h2>
           <div className="space-y-2">
             {roleInfo.responsibilities.map((responsibility, index) => (
               <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
@@ -86,7 +87,7 @@ export const RoleDetectedStep: React.FC = () => {
         {/* Info Box */}
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-8">
           <p className="text-sm text-blue-900">
-            <strong>Note:</strong> Your role was assigned by your bar owner. If you think this is incorrect, please contact them.
+            <strong>Note :</strong> Votre rôle a été assigné par le propriétaire du bar. Si vous pensez que c\'est incorrect, veuillez le contacter.
           </p>
         </div>
 
@@ -96,7 +97,7 @@ export const RoleDetectedStep: React.FC = () => {
             onClick={nextStep}
             className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
           >
-            Continue
+            Continuer
           </button>
         </div>
       </div>

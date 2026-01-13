@@ -52,9 +52,9 @@ export const ManagerTourStep: React.FC = () => {
       <div className="bg-white rounded-lg shadow-md p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Quick Tour (Optional)</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Tour Rapide (Optionnel)</h1>
           <p className="mt-2 text-gray-600">
-            Learn the basics of creating sales and managing inventory
+            Apprenez les bases de la création de ventes et de la gestion de l'inventaire
           </p>
         </div>
 
@@ -65,15 +65,15 @@ export const ManagerTourStep: React.FC = () => {
             <div className="flex items-start gap-4">
               <span className="text-3xl">👋</span>
               <div>
-                <h2 className="text-lg font-semibold text-blue-900">2-Minute Walkthrough</h2>
+                <h2 className="text-lg font-semibold text-blue-900">Présentation de 2 Minutes</h2>
                 <p className="mt-2 text-blue-800">
-                  We'll show you:
+                  Nous vous montrerons :
                 </p>
                 <ul className="mt-2 text-sm text-blue-800 space-y-1">
-                  <li>✓ Dashboard overview (KPIs, date filters)</li>
-                  <li>✓ How to create your first sale</li>
-                  <li>✓ Managing inventory & stock</li>
-                  <li>✓ Viewing team performance</li>
+                  <li>✓ Aperçu du tableau de bord (KPIs, filtres de date)</li>
+                  <li>✓ Comment créer votre première vente</li>
+                  <li>✓ Gérer l'inventaire et le stock</li>
+                  <li>✓ Voir la performance de l'équipe</li>
                 </ul>
               </div>
             </div>
@@ -81,20 +81,20 @@ export const ManagerTourStep: React.FC = () => {
 
           {/* Why Tour */}
           <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <h3 className="font-medium text-gray-900 mb-2">Why take the tour?</h3>
+            <h3 className="font-medium text-gray-900 mb-2">Pourquoi faire le tour ?</h3>
             <ul className="text-sm text-gray-700 space-y-1">
-              <li>💡 Faster than figuring it out yourself</li>
-              <li>💡 Learn best practices from day 1</li>
-              <li>💡 Can always restart tour later</li>
+              <li>💡 Plus rapide que de chercher soi-même</li>
+              <li>💡 Apprenez les meilleures pratiques dès le premier jour</li>
+              <li>💡 Vous pouvez toujours recommencer le tour plus tard</li>
             </ul>
           </div>
 
           {/* Tour Demo Preview */}
           <div className="p-4 bg-gray-100 border border-gray-300 rounded-lg text-center">
             <p className="text-gray-600 text-sm">
-              [Interactive tour preview would appear here during actual tour]
+              [L'aperçu de la visite interactive apparaîtrait ici pendant la visite réelle]
             </p>
-            <p className="text-gray-500 text-xs mt-2">Tour uses guided highlights + step-by-step explanations</p>
+            <p className="text-gray-500 text-xs mt-2">La visite utilise des mises en surbrillance guidées + des explications étape par étape</p>
           </div>
 
           {/* Buttons */}
@@ -102,24 +102,24 @@ export const ManagerTourStep: React.FC = () => {
             <LoadingButton
               type="submit"
               isLoading={loading}
-              loadingText="Starting tour..."
+              loadingText="Démarrage du tour..."
               className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
             >
-              Start 2-Min Tour
+              Démarrer le Tour de 2 Min
             </LoadingButton>
 
             <LoadingButton
               type="button"
               isLoading={loading}
-              loadingText="Skipping..."
+              loadingText="Passage..."
               onClick={handleSkipTour}
               className="w-full px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
-              Skip for Now
+              Passer pour le Moment
             </LoadingButton>
 
             <p className="text-xs text-gray-500 text-center">
-              💡 You can restart the tour anytime from the dashboard
+              💡 Vous pouvez recommencer le tour à tout moment depuis le tableau de bord
             </p>
           </div>
         </form>

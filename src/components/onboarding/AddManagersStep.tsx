@@ -1,3 +1,4 @@
+// Language: French (Français)
 import React, { useState } from 'react';
 import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
 import { useAuth } from '@/context/AuthContext';
@@ -49,11 +50,11 @@ export const AddManagersStep: React.FC = () => {
     setLoading(true);
     try {
       if (!currentSession?.user?.id) {
-        throw new Error('User not authenticated');
+        throw new Error('Utilisateur non authentifié');
       }
 
       if (!currentBar?.id) {
-        throw new Error('Bar not found');
+        throw new Error('Bar non trouvé');
       }
 
       const userId = currentSession.user.id;
@@ -67,7 +68,7 @@ export const AddManagersStep: React.FC = () => {
           try {
             await OnboardingService.assignManager(managerId, barId, userId);
           } catch (error: any) {
-            console.warn(`Failed to assign manager ${managerId}:`, error);
+            console.warn(`Impossible d'assigner le gérant ${managerId}:`, error);
             // Continue with next manager - don't fail the whole step
           }
         }
@@ -80,8 +81,8 @@ export const AddManagersStep: React.FC = () => {
       // Move to next step
       nextStep();
     } catch (error: any) {
-      console.error('Error saving managers:', error);
-      setErrors(error.message || 'Failed to save managers');
+      console.error('Erreur lors de l\'enregistrement des gérants:', error);
+      setErrors(error.message || 'Impossible d\'enregistrer les gérants');
     } finally {
       setLoading(false);
     }
@@ -92,9 +93,9 @@ export const AddManagersStep: React.FC = () => {
       <div className="bg-white rounded-lg shadow-md p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Add Team Members</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Ajouter des Membres d'Équipe</h1>
           <p className="mt-2 text-gray-600">
-            Managers help you run the bar. You can always add more later.
+            Les gérants vous aident à gérer le bar. Vous pouvez toujours en ajouter plus tard.
           </p>
         </div>
 
@@ -103,11 +104,11 @@ export const AddManagersStep: React.FC = () => {
           {/* Manager Count */}
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm font-medium text-blue-900">
-              Current managers: <strong>{formData.managerIds.length}</strong>
+              Gérants actuels : <strong>{formData.managerIds.length}</strong>
             </p>
             {formData.managerIds.length === 0 && (
               <p className="mt-2 text-sm text-orange-700">
-                ⚠️ Recommended: Add at least 1 manager (optional)
+                ⚠️ Recommandé : Ajouter au moins 1 gérant (optionnel)
               </p>
             )}
           </div>
@@ -120,13 +121,13 @@ export const AddManagersStep: React.FC = () => {
                   key={managerId}
                   className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg"
                 >
-                  <span className="text-sm text-gray-900">Manager: {managerId}</span>
+                  <span className="text-sm text-gray-900">Gérant : {managerId}</span>
                   <button
                     type="button"
                     onClick={() => handleRemoveManager(managerId)}
                     className="text-red-600 hover:text-red-700 text-sm font-medium"
                   >
-                    Remove
+                    Supprimer
                   </button>
                 </div>
               ))}
@@ -139,18 +140,18 @@ export const AddManagersStep: React.FC = () => {
             onClick={handleAddManager}
             className="w-full px-4 py-3 border border-dashed border-blue-300 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition font-medium"
           >
-            + Add Manager
+            + Ajouter un Gérant
           </button>
 
           {/* Info Box */}
           <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <h3 className="text-sm font-medium text-gray-900 mb-2">Manager responsibilities:</h3>
+            <h3 className="text-sm font-medium text-gray-900 mb-2">Responsabilités du gérant :</h3>
             <ul className="text-sm text-gray-700 space-y-1">
-              <li>✓ Create sales</li>
-              <li>✓ Manage inventory</li>
-              <li>✓ View analytics</li>
-              <li>✗ Cannot manage team</li>
-              <li>✗ Cannot change settings</li>
+              <li>✓ Créer des ventes</li>
+              <li>✓ Gérer l'inventaire</li>
+              <li>✓ Afficher les statistiques</li>
+              <li>✗ Impossible de gérer l'équipe</li>
+              <li>✗ Impossible de modifier les paramètres</li>
             </ul>
           </div>
 
@@ -168,15 +169,15 @@ export const AddManagersStep: React.FC = () => {
               onClick={() => window.history.back()}
               className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
-              Back
+              Retour
             </button>
             <LoadingButton
               type="submit"
               isLoading={loading}
-              loadingText="Saving..."
+              loadingText="Enregistrement..."
               className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
             >
-              Next Step
+              Étape Suivante
             </LoadingButton>
           </div>
         </form>

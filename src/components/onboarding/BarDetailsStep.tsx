@@ -1,3 +1,4 @@
+// Language: French (Français)
 import React, { useState } from 'react';
 import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
 import { LoadingButton } from '@/components/ui/LoadingButton';
@@ -29,22 +30,22 @@ export const BarDetailsStep: React.FC = () => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.barName.trim() || formData.barName.length < 3) {
-      newErrors.barName = 'Bar name required (min 3 chars)';
+      newErrors.barName = 'Nom du bar requis (min 3 caractères)';
     }
     if (formData.barName.length > 50) {
-      newErrors.barName = 'Bar name too long (max 50 chars)';
+      newErrors.barName = 'Nom du bar trop long (max 50 caractères)';
     }
 
     if (!formData.location.trim()) {
-      newErrors.location = 'Location required';
+      newErrors.location = 'Localisation requise';
     }
 
     if (formData.closingHour < 0 || formData.closingHour > 23) {
-      newErrors.closingHour = 'Closing hour must be 0-23';
+      newErrors.closingHour = 'L\'heure de fermeture doit être entre 0 et 23';
     }
 
     if (formData.contact && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contact)) {
-      newErrors.contact = 'Invalid email format';
+      newErrors.contact = 'Format d\'email invalide';
     }
 
     setErrors(newErrors);
@@ -67,8 +68,8 @@ export const BarDetailsStep: React.FC = () => {
       // Move to next step
       nextStep();
     } catch (error) {
-      console.error('Error saving bar details:', error);
-      setErrors({ submit: 'Failed to save bar details' });
+      console.error('Erreur lors de l\'enregistrement des détails du bar:', error);
+      setErrors({ submit: 'Impossible d\'enregistrer les détails du bar' });
     } finally {
       setLoading(false);
     }
@@ -97,9 +98,9 @@ export const BarDetailsStep: React.FC = () => {
       <div className="bg-white rounded-lg shadow-md p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Let's set up your bar</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Configurons votre bar</h1>
           <p className="mt-2 text-gray-600">
-            Start with your basic bar information. You can edit this later.
+            Commencez par les informations de base de votre bar. Vous pourrez modifier cela plus tard.
           </p>
         </div>
 
@@ -108,7 +109,7 @@ export const BarDetailsStep: React.FC = () => {
           {/* Bar Name */}
           <div>
             <label htmlFor="barName" className="block text-sm font-medium text-gray-700 mb-1">
-              Bar Name *
+              Nom du Bar *
             </label>
             <input
               id="barName"
@@ -116,7 +117,7 @@ export const BarDetailsStep: React.FC = () => {
               type="text"
               value={formData.barName}
               onChange={handleChange}
-              placeholder="e.g., Chez Ali"
+              placeholder="ex : Chez Ali"
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:outline-none ${
                 errors.barName
                   ? 'border-red-500 focus:ring-red-200'
@@ -131,7 +132,7 @@ export const BarDetailsStep: React.FC = () => {
           {/* Location */}
           <div>
             <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-              Location *
+              Localisation *
             </label>
             <input
               id="location"
@@ -139,7 +140,7 @@ export const BarDetailsStep: React.FC = () => {
               type="text"
               value={formData.location}
               onChange={handleChange}
-              placeholder="e.g., Cotonou, Benin"
+              placeholder="ex : Cotonou, Bénin"
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:outline-none ${
                 errors.location
                   ? 'border-red-500 focus:ring-red-200'
@@ -154,7 +155,7 @@ export const BarDetailsStep: React.FC = () => {
           {/* Contact Email */}
           <div>
             <label htmlFor="contact" className="block text-sm font-medium text-gray-700 mb-1">
-              Contact Email (optional)
+              Email de Contact (optionnel)
             </label>
             <input
               id="contact"
@@ -162,7 +163,7 @@ export const BarDetailsStep: React.FC = () => {
               type="email"
               value={formData.contact}
               onChange={handleChange}
-              placeholder="your@email.com"
+              placeholder="votre@email.com"
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:outline-none ${
                 errors.contact
                   ? 'border-red-500 focus:ring-red-200'
@@ -177,7 +178,7 @@ export const BarDetailsStep: React.FC = () => {
           {/* Closing Hour */}
           <div>
             <label htmlFor="closingHour" className="block text-sm font-medium text-gray-700 mb-1">
-              Closing Hour (Business Day Start) *
+              Heure de Fermeture (Début du Jour Ouvrable) *
             </label>
             <select
               id="closingHour"
@@ -192,12 +193,12 @@ export const BarDetailsStep: React.FC = () => {
             >
               {Array.from({ length: 24 }, (_, i) => (
                 <option key={i} value={i}>
-                  {i}:00 (closes at {i}:00 AM)
+                  {i}:00 (fermeture à {i}:00 du matin)
                 </option>
               ))}
             </select>
             <p className="mt-2 text-sm text-gray-500">
-              ℹ️ Sales before your closing hour are counted as yesterday's date
+              ℹ️ Les ventes avant votre heure de fermeture sont comptées comme date d'hier
             </p>
             {errors.closingHour && (
               <p className="mt-1 text-sm text-red-600">{errors.closingHour}</p>
@@ -207,7 +208,7 @@ export const BarDetailsStep: React.FC = () => {
           {/* Operating Mode */}
           <div>
             <label htmlFor="operatingMode" className="block text-sm font-medium text-gray-700 mb-1">
-              Operating Mode *
+              Mode de Fonctionnement *
             </label>
             <select
               id="operatingMode"
@@ -216,11 +217,11 @@ export const BarDetailsStep: React.FC = () => {
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:outline-none"
             >
-              <option value="simplifié">Simplifié (no user accounts, names only)</option>
-              <option value="full">Full (user accounts for each server)</option>
+              <option value="simplifié">Simplifié (pas de comptes utilisateur, noms seulement)</option>
+              <option value="full">Complet (comptes utilisateur pour chaque serveur)</option>
             </select>
             <p className="mt-2 text-sm text-gray-500">
-              💡 You can change this later if needed
+              💡 Vous pouvez modifier cela plus tard si nécessaire
             </p>
           </div>
 
@@ -238,15 +239,15 @@ export const BarDetailsStep: React.FC = () => {
               onClick={() => window.history.back()}
               className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
-              Back
+              Retour
             </button>
             <LoadingButton
               type="submit"
               isLoading={loading}
-              loadingText="Saving..."
+              loadingText="Enregistrement..."
               className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
             >
-              Next Step
+              Étape Suivante
             </LoadingButton>
           </div>
         </form>

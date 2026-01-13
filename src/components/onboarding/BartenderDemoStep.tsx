@@ -45,9 +45,9 @@ export const BartenderDemoStep: React.FC = () => {
       <div className="bg-white rounded-lg shadow-md p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Learn to Create a Sale</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Apprendre à Créer une Vente</h1>
           <p className="mt-2 text-gray-600">
-            Quick 1-minute walkthrough (optional)
+            Présentation rapide de 1 minute (optionnel)
           </p>
         </div>
 
@@ -60,10 +60,10 @@ export const BartenderDemoStep: React.FC = () => {
                 <span className="text-4xl">▶️</span>
               </div>
               <h2 className="text-lg font-semibold text-purple-900 mb-2">
-                Create Your First Sale in 3 Clicks
+                Créez votre première vente en 3 clics
               </h2>
               <p className="text-purple-800 text-sm">
-                See exactly how to register a transaction
+                Voyez exactement comment enregistrer une transaction
               </p>
             </div>
           </div>
@@ -74,8 +74,8 @@ export const BartenderDemoStep: React.FC = () => {
               <div className="flex gap-3">
                 <span className="text-xl font-bold text-blue-900 w-8">1.</span>
                 <div>
-                  <p className="font-medium text-blue-900">Select Products</p>
-                  <p className="text-sm text-blue-800">Choose what you sold (Heineken, snacks, etc.)</p>
+                  <p className="font-medium text-blue-900">Sélectionner les Produits</p>
+                  <p className="text-sm text-blue-800">Choisissez ce que vous avez vendu (Heineken, snacks, etc.)</p>
                 </div>
               </div>
             </div>
@@ -84,8 +84,8 @@ export const BartenderDemoStep: React.FC = () => {
               <div className="flex gap-3">
                 <span className="text-xl font-bold text-green-900 w-8">2.</span>
                 <div>
-                  <p className="font-medium text-green-900">Confirm Quantity</p>
-                  <p className="text-sm text-green-800">Set how many units + total price</p>
+                  <p className="font-medium text-green-900">Confirmer la Quantité</p>
+                  <p className="text-sm text-green-800">Définissez le nombre d'unités + le prix total</p>
                 </div>
               </div>
             </div>
@@ -94,8 +94,8 @@ export const BartenderDemoStep: React.FC = () => {
               <div className="flex gap-3">
                 <span className="text-xl font-bold text-amber-900 w-8">3.</span>
                 <div>
-                  <p className="font-medium text-amber-900">Choose Payment</p>
-                  <p className="text-sm text-amber-800">Cash, card, or other method</p>
+                  <p className="font-medium text-amber-900">Choisir le Paiement</p>
+                  <p className="text-sm text-amber-800">Espèces, carte ou autre mode de paiement</p>
                 </div>
               </div>
             </div>
@@ -103,38 +103,38 @@ export const BartenderDemoStep: React.FC = () => {
 
           {/* Example Sale */}
           <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <h3 className="font-medium text-gray-900 mb-3">Example: Typical Sale</h3>
+            <h3 className="font-medium text-gray-900 mb-3">Exemple : Vente typique</h3>
             <div className="space-y-2 text-sm text-gray-700">
               <div className="flex justify-between">
-                <span>Product:</span>
+                <span>Produit :</span>
                 <strong>Heineken</strong>
               </div>
               <div className="flex justify-between">
-                <span>Quantity:</span>
-                <strong>1 bottle</strong>
+                <span>Quantité :</span>
+                <strong>1 bouteille</strong>
               </div>
               <div className="flex justify-between">
-                <span>Unit Price:</span>
+                <span>Prix unitaire :</span>
                 <strong>300 FCFA</strong>
               </div>
               <div className="border-t pt-2 mt-2 flex justify-between font-semibold">
-                <span>Total:</span>
+                <span>Total :</span>
                 <strong>300 FCFA</strong>
               </div>
               <div className="flex justify-between">
-                <span>Payment:</span>
-                <strong>Cash</strong>
+                <span>Paiement :</span>
+                <strong>Espèces</strong>
               </div>
             </div>
           </div>
 
           {/* Why Learn */}
           <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-            <h3 className="font-medium text-indigo-900 mb-2">Why watch the demo?</h3>
+            <h3 className="font-medium text-indigo-900 mb-2">Pourquoi regarder la démo ?</h3>
             <ul className="text-sm text-indigo-800 space-y-1">
-              <li>✓ See the actual interface</li>
-              <li>✓ Faster than figuring it out yourself</li>
-              <li>✓ Can rewatch anytime from dashboard</li>
+              <li>✓ Voir l'interface réelle</li>
+              <li>✓ Plus rapide que de chercher soi-même</li>
+              <li>✓ Peut être revue à tout moment depuis le tableau de bord</li>
             </ul>
           </div>
 
@@ -143,20 +143,20 @@ export const BartenderDemoStep: React.FC = () => {
             <LoadingButton
               type="submit"
               isLoading={loading}
-              loadingText="Loading demo..."
+              loadingText="Chargement de la démo..."
               className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold"
             >
-              ▶️ Watch Demo (1 min)
+              ▶️ Voir la Démo (1 min)
             </LoadingButton>
 
             <LoadingButton
               type="button"
               isLoading={loading}
-              loadingText="Continuing..."
+              loadingText="Continuation..."
               onClick={handleSkipDemo}
               className="w-full px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
-              Skip Demo
+              Passer la Démo
             </LoadingButton>
           </div>
         </form>

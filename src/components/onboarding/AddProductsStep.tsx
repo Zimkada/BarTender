@@ -1,3 +1,4 @@
+// Language: French (Français)
 import React, { useState } from 'react';
 import { useOnboarding, OnboardingStep } from '@/context/OnboardingContext';
 import { useAuth } from '@/context/AuthContext';
@@ -57,18 +58,18 @@ export const AddProductsStep: React.FC = () => {
 
     // HARD BLOCKER: At least 1 product required
     if (formData.products.length === 0) {
-      setErrors('❌ At least 1 product required. You cannot create sales without products.');
+      setErrors('❌ Au moins 1 produit requis. Vous ne pouvez pas créer de ventes sans produits.');
       return;
     }
 
     setLoading(true);
     try {
       if (!currentSession?.user?.id) {
-        throw new Error('User not authenticated');
+        throw new Error('Utilisateur non authentifié');
       }
 
       if (!currentBar?.id) {
-        throw new Error('Bar not found');
+        throw new Error('Bar non trouvé');
       }
 
       const userId = currentSession.user.id;
@@ -84,8 +85,8 @@ export const AddProductsStep: React.FC = () => {
       // Move to next step
       nextStep();
     } catch (error: any) {
-      console.error('Error saving products:', error);
-      setErrors(error.message || 'Failed to save products');
+      console.error('Erreur lors de l\'enregistrement des produits:', error);
+      setErrors(error.message || 'Impossible d\'enregistrer les produits');
     } finally {
       setLoading(false);
     }
@@ -96,30 +97,28 @@ export const AddProductsStep: React.FC = () => {
       <div className="bg-white rounded-lg shadow-md p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Add Products to Catalog</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Ajouter des Produits au Catalogue</h1>
           <p className="mt-2 text-gray-600">
-            Select products from the global catalog and set local prices.
+            Sélectionnez les produits du catalogue global et fixez les prix locaux.
           </p>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Product Count */}
-          <div className={`p-4 border rounded-lg ${
-            formData.products.length === 0
+          <div className={`p-4 border rounded-lg ${formData.products.length === 0
               ? 'bg-red-50 border-red-200'
               : 'bg-green-50 border-green-200'
-          }`}>
-            <p className={`text-sm font-medium ${
-              formData.products.length === 0
+            }`}>
+            <p className={`text-sm font-medium ${formData.products.length === 0
                 ? 'text-red-900'
                 : 'text-green-900'
-            }`}>
-              Products added: <strong>{formData.products.length}</strong>
+              }`}>
+              Produits ajoutés : <strong>{formData.products.length}</strong>
             </p>
             {formData.products.length === 0 && (
               <p className="mt-1 text-sm text-red-700">
-                ⚠️ <strong>REQUIRED:</strong> Add at least 1 product
+                ⚠️ <strong>REQUIS :</strong> Ajouter au moins 1 produit
               </p>
             )}
           </div>
@@ -133,15 +132,15 @@ export const AddProductsStep: React.FC = () => {
                   className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg"
                 >
                   <div>
-                    <span className="text-sm text-gray-900 block">ID: {product.productId}</span>
-                    <span className="text-xs text-gray-600">Price: {product.localPrice.toFixed(2)}€</span>
+                    <span className="text-sm text-gray-900 block">ID : {product.productId}</span>
+                    <span className="text-xs text-gray-600">Prix : {product.localPrice.toFixed(2)} FCFA</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => handleRemoveProduct(product.productId)}
                     className="text-red-600 hover:text-red-700 text-sm font-medium"
                   >
-                    Remove
+                    Supprimer
                   </button>
                 </div>
               ))}
@@ -154,16 +153,16 @@ export const AddProductsStep: React.FC = () => {
             onClick={handleOpenProductSelector}
             className="w-full px-4 py-3 border border-dashed border-blue-300 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition font-medium"
           >
-            + Browse & Add Products
+            + Parcourir et Ajouter des Produits
           </button>
 
           {/* Info Box */}
           <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <h3 className="text-sm font-medium text-gray-900 mb-2">What happens next:</h3>
+            <h3 className="text-sm font-medium text-gray-900 mb-2">Ce qui se passe ensuite :</h3>
             <ul className="text-sm text-gray-700 space-y-1">
-              <li>✓ For each product, you'll set local price</li>
-              <li>✓ Then initialize stock (how many units you have)</li>
-              <li>✓ Minimum recommendation: 5+ products</li>
+              <li>✓ Pour chaque produit, vous fixerez le prix local</li>
+              <li>✓ Ensuite, initialisez le stock (combien d'unités vous avez)</li>
+              <li>✓ Recommandation minimale : 5+ produits</li>
             </ul>
           </div>
 
@@ -181,16 +180,16 @@ export const AddProductsStep: React.FC = () => {
               onClick={() => window.history.back()}
               className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
-              Back
+              Retour
             </button>
             <LoadingButton
               type="submit"
               isLoading={loading}
-              loadingText="Saving..."
+              loadingText="Enregistrement..."
               className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
               disabled={formData.products.length === 0}
             >
-              Next Step
+              Étape Suivante
             </LoadingButton>
           </div>
         </form>
