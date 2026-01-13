@@ -4,13 +4,10 @@ import { supabase } from '@/lib/supabase';
 interface Product {
   id: string;
   name: string;
-  category_id: string;
-  global_price: number;
-}
-
-interface Category {
-  id: string;
-  name: string;
+  category: string;
+  suggested_price_max: number | null;
+  volume: string;
+  volume_ml: number | null;
 }
 
 interface SelectedProduct {
@@ -32,8 +29,8 @@ export const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
   selectedProducts = [],
 }) => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selected, setSelected] = useState<Map<string, number>>(
@@ -55,7 +52,7 @@ export const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
 
     // Filter by category
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter((p) => p.category_id === selectedCategory);
+      filtered = filtered.filter((p) => p.category === selectedCategory);
     }
 
     // Filter by search term
@@ -71,40 +68,39 @@ export const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
     setLoading(true);
     setError('');
     try {
-      // Fetch categories
-      const { data: categoriesData, error: catError } = await supabase
-        .from('global_categories')
-        .select('id, name')
-        .order('name', { ascending: true });
-
-      if (catError) throw new Error(catError.message);
-
       // Fetch products
       const { data: productsData, error: prodError } = await supabase
         .from('global_products')
-        .select('id, name, category_id, global_price')
+        .select('id, name, category, suggested_price_max, volume, volume_ml')
+        .eq('is_active', true)
         .order('name', { ascending: true });
 
       if (prodError) throw new Error(prodError.message);
 
-      setCategories(categoriesData || []);
+      // Extract unique categories from products
+      const uniqueCategories = Array.from(
+        new Set((productsData || []).map((p) => p.category))
+      ).sort();
+
       setProducts(productsData || []);
       setFilteredProducts(productsData || []);
+      setCategories(uniqueCategories);
     } catch (err: any) {
       console.error('Error fetching data:', err);
-      setError(err.message || 'Failed to load products');
+      setError(err.message || 'Échec du chargement des produits');
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleSelect = (productId: string, globalPrice: number) => {
+  const toggleSelect = (productId: string, suggestedPrice: number | null) => {
     setSelected((prev) => {
       const newMap = new Map(prev);
       if (newMap.has(productId)) {
         newMap.delete(productId);
       } else {
-        newMap.set(productId, globalPrice); // Default to global price
+        // Default to suggested price if available, otherwise 0
+        newMap.set(productId, suggestedPrice || 0);
       }
       return newMap;
     });
@@ -135,24 +131,24 @@ export const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
-          <h2 className="text-lg font-semibold text-gray-900">Add Products to Catalog</h2>
-          <p className="text-sm text-gray-600 mt-1">Select products and set local prices</p>
+          <h2 className="text-lg font-semibold text-gray-900">Ajouter des produits au catalogue</h2>
+          <p className="text-sm text-gray-600 mt-1">Sélectionnez les produits et définissez les prix locaux</p>
         </div>
 
         {/* Filters */}
         <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0 space-y-3">
           {/* Category Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Catégorie</label>
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">All Products</option>
+              <option value="all">Tous les produits</option>
               {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
+                <option key={cat} value={cat}>
+                  {cat}
                 </option>
               ))}
             </select>
@@ -160,10 +156,10 @@ export const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
 
           {/* Search */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Rechercher</label>
             <input
               type="text"
-              placeholder="Search by product name..."
+              placeholder="Rechercher par nom de produit..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -186,7 +182,7 @@ export const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
               <div className="inline-block">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
-              <p className="mt-2 text-sm text-gray-600">Loading products...</p>
+              <p className="mt-2 text-sm text-gray-600">Chargement des produits...</p>
             </div>
           )}
 
@@ -195,7 +191,7 @@ export const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
             <div className="px-6 py-4 grid grid-cols-1 gap-3">
               {filteredProducts.map((product) => {
                 const isSelected = selected.has(product.id);
-                const localPrice = selected.get(product.id) || product.global_price;
+                const localPrice = selected.get(product.id) || product.suggested_price_max || 0;
 
                 return (
                   <div
@@ -211,7 +207,7 @@ export const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        onChange={() => toggleSelect(product.id, product.global_price)}
+                        onChange={() => toggleSelect(product.id, product.suggested_price_max)}
                         className="h-4 w-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 mt-1"
                       />
 
@@ -219,14 +215,14 @@ export const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-900">{product.name}</p>
                         <p className="text-xs text-gray-600 mt-1">
-                          Global price: {product.global_price.toFixed(2)}€
+                          {product.volume}{product.suggested_price_max ? ` • ${product.suggested_price_max.toFixed(2)} FCFA` : ''}
                         </p>
                       </div>
 
                       {/* Price Input (only visible when selected) */}
                       {isSelected && (
                         <div className="flex items-center gap-2">
-                          <label className="text-xs font-medium text-gray-700">Local price:</label>
+                          <label className="text-xs font-medium text-gray-700">Prix local:</label>
                           <input
                             type="number"
                             step="0.01"
@@ -235,7 +231,7 @@ export const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
                             onChange={(e) => updatePrice(product.id, parseFloat(e.target.value) || 0)}
                             className="w-20 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
-                          <span className="text-sm font-medium text-gray-700">€</span>
+                          <span className="text-sm font-medium text-gray-700">FCFA</span>
                         </div>
                       )}
                     </div>
@@ -250,8 +246,8 @@ export const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
             <div className="px-6 py-8 text-center">
               <p className="text-sm text-gray-600">
                 {products.length === 0
-                  ? 'No products available'
-                  : 'No products match your filters'}
+                  ? 'Aucun produit disponible'
+                  : 'Aucun produit ne correspond à votre filtre'}
               </p>
             </div>
           )}
@@ -263,14 +259,14 @@ export const ProductSelectorModal: React.FC<ProductSelectorModalProps> = ({
             onClick={onCancel}
             className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition font-medium"
           >
-            Cancel
+            Annuler
           </button>
           <button
             onClick={handleConfirm}
             disabled={selected.size === 0}
             className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Add ({selected.size}) Products
+            Ajouter ({selected.size}) produits
           </button>
         </div>
       </div>
