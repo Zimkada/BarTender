@@ -3,6 +3,14 @@ import { FallbackProps } from 'react-error-boundary';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
 export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
+  // Safely extract error message
+  const errorMessage =
+    error instanceof Error
+      ? error.message
+      : typeof error === 'string'
+      ? error
+      : JSON.stringify(error);
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-red-50 to-orange-100 text-red-800 p-4 text-center">
       <AlertTriangle size={64} className="mb-4 text-red-500" />
@@ -12,7 +20,7 @@ export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
       </p>
       {/* Afficher le message d'erreur pour le débogage (peut être caché en production) */}
       <pre className="bg-red-100 p-4 rounded-lg overflow-auto max-w-lg mb-4 text-sm text-left">
-        {error.message}
+        {errorMessage}
       </pre>
       <button
         onClick={resetErrorBoundary}

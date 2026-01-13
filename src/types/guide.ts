@@ -129,12 +129,12 @@ export interface GuideContextType {
   suggestedTours: GuideTour[];
 
   // Actions
-  startTour: (tourId: string) => void;
+  startTour: (tourId: string, tour?: GuideTour) => Promise<void>;
   nextStep: () => void;
   prevStep: () => void;
-  completeTour: () => void;
-  skipTour: () => void;
-  rateTour: (rating: 1 | 2 | 3 | 4 | 5) => void;
+  completeTour: () => Promise<void>;
+  skipTour: () => Promise<void>;
+  rateTour: (rating: 1 | 2 | 3 | 4 | 5) => Promise<void>;
   closeTour: () => void;
 
   // Utilities

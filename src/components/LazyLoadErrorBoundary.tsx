@@ -183,7 +183,11 @@ export class LazyLoadErrorBoundary extends Component<Props, State> {
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                 <p className="text-xs text-red-700 font-mono break-all">
-                  {error.message}
+                  {error instanceof Error
+                    ? error.message
+                    : typeof error === 'string'
+                    ? error
+                    : JSON.stringify(error)}
                 </p>
               </div>
             )}
