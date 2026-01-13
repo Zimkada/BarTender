@@ -17,6 +17,7 @@ import { MobileNavigation } from '../components/MobileNavigation';
 import { MobileSidebar } from '../components/MobileSidebar'; // NEW
 import { Cart } from '../components/Cart';
 import { GuideButton } from '../components/guide/GuideButton'; // Phase 1.5
+import { OnboardingBanner } from '../components/onboarding/OnboardingBanner'; // UX Improvement 1
 import { LoadingFallback } from '../components/LoadingFallback';
 import { LazyLoadErrorBoundary } from '../components/LazyLoadErrorBoundary';
 // import { UserManagement } from '../components/UserManagement'; // Removed
@@ -114,6 +115,7 @@ function RootLayoutContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-50 pb-16 md:pb-0">
       <UpdateNotification />
+      <OnboardingBanner /> {/* UX Improvement 1: Show setup banner */}
       <Header
         onShowQuickSale={() => openModal('QUICK_SALE')}
         onShowProductModal={() => openModal('PRODUCT')}

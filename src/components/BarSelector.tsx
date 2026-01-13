@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building2, ChevronDown, Plus } from 'lucide-react';
+import { Building2, ChevronDown, Plus, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from "../context/AuthContext";
@@ -88,10 +88,18 @@ export function BarSelector({ onCreateNew }: BarSelectorProps) {
                 <div className={`w-2 h-2 rounded-full flex-shrink-0 ${currentBar?.id === bar.id ? 'bg-amber-500' : 'bg-gray-300'
                   }`} />
                 <div className="flex-1 min-w-0">
-                  <p className={`font-medium truncate ${currentBar?.id === bar.id ? 'text-amber-600' : 'text-gray-800'
-                    }`}>
-                    {bar.name}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className={`font-medium truncate ${currentBar?.id === bar.id ? 'text-amber-600' : 'text-gray-800'
+                      }`}>
+                      {bar.name}
+                    </p>
+                    {/* Setup status indicator */}
+                    {bar.is_setup_complete ? (
+                      <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" title="Setup completed" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 animate-pulse" title="Setup needed" />
+                    )}
+                  </div>
                   {bar.address && (
                     <p className="text-sm text-gray-500 truncate">{bar.address}</p>
                   )}
