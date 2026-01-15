@@ -32,6 +32,10 @@ import { SalesListView } from '../features/Sales/SalesHistory/views/SalesListVie
 import { SalesCardsView, SaleCard } from '../features/Sales/SalesHistory/views/SalesCardsView';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { useAutoGuide } from '../hooks/useGuideTrigger';
+import { useOnboarding } from '../context/OnboardingContext';
+import { useGuide } from '../context/GuideContext';
+import { GuideTourModal } from '../components/guide/GuideTourModal';
 
 type ViewMode = 'list' | 'cards' | 'analytics';
 
@@ -49,6 +53,23 @@ export default function SalesHistoryPage() {
     const { isMobile } = useViewport();
     const { showSuccess } = useFeedback();
     const { consignments } = useStockManagement();
+    const { isComplete: onboardingComplete } = useOnboarding();
+    const { hasCompletedGuide } = useGuide();
+
+    // Auto-trigger stats guide for bartenders
+    useAutoGuide(
+        'bartender-stats',
+        onboardingComplete && currentSession?.role === 'serveur' && !hasCompletedGuide('bartender-stats'),
+        { delay: 2000 }
+    );
+
+    // Auto-trigger history/analytics guide for owners
+    useAutoGuide(
+        'analytics-overview',
+        onboardingComplete && currentSession?.role === 'promoteur' && !hasCompletedGuide('analytics-overview'),
+        { delay: 2500 }
+    );
+
     // Enable real-time sales updates
     useRealtimeSales({ barId: currentBar?.id || '' });
 
@@ -395,7 +416,7 @@ export default function SalesHistoryPage() {
                         </div>
 
                         {/* Filtres compacts en haut (stats retirées, disponibles dans Analytics) */}
-                        < div className="flex-shrink-0 bg-amber-50 p-3" >
+                        <div className="flex-shrink-0 bg-amber-50 p-3" data-guide="sales-filters">
                             {/* Sélecteur format export mobile */}
                             <div className="flex gap-1 mb-3" >
                                 <Button
@@ -606,7 +627,7 @@ export default function SalesHistoryPage() {
                             </div>
                         </div>
                         {/* Barre de filtres Desktop */}
-                        <div className="flex-shrink-0 bg-white border-b border-amber-200 p-4 flex items-center gap-4 flex-wrap">
+                        <div className="flex-shrink-0 bg-white border-b border-amber-200 p-4 flex items-center gap-4 flex-wrap" data-guide="sales-filters">
 
                             {/* Filtres de date */}
                             <div className="flex bg-gray-100 rounded-lg p-1">
@@ -777,6 +798,7 @@ export default function SalesHistoryPage() {
                 />
             )}
 
+            <GuideTourModal />
         </div>
     );
 }

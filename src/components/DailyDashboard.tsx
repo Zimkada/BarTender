@@ -232,14 +232,24 @@ export function DailyDashboard() {
     const isManager = currentSession?.role === 'gerant' || currentSession?.role === 'promoteur';
     // ✨ MODE SWITCHING FIX: Servers should see pending sales they created or were assigned
     // Check BOTH serverId (simplified mode) AND soldBy (full mode)
-    return sales.filter(s =>
-      s.status === 'pending' && (
-        isManager ||
-        s.soldBy === currentSession?.userId ||
-        s.serverId === currentSession?.userId
-      )
-    );
-  }, [sales, currentSession]);
+    // 🔒 EXPIRATION FALLBACK: Only show pending sales from current business day
+    return sales.filter(s => {
+      // Convert businessDate (Date object) to YYYY-MM-DD string for comparison
+      const saleDateStr = s.businessDate instanceof Date
+        ? s.businessDate.toISOString().split('T')[0]
+        : String(s.businessDate).split('T')[0];
+
+      return (
+        s.status === 'pending' &&
+        saleDateStr === todayDateStr && // Filter expired sales (frontend fallback)
+        (
+          isManager ||
+          s.soldBy === currentSession?.userId ||
+          s.serverId === currentSession?.userId
+        )
+      );
+    });
+  }, [sales, currentSession, todayDateStr]);
 
   // Define activeConsignments BEFORE using it in serverFilteredConsignments
   const activeConsignments = consignments.filter(c => c.status === 'active');
@@ -308,7 +318,7 @@ export function DailyDashboard() {
     const dateStr = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
     // Helper function to replace accented characters with their ASCII equivalents
-    const replaceAccents = (str) => {
+    const replaceAccents = (str: string) => {
       return str
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
@@ -361,7 +371,7 @@ export function DailyDashboard() {
   return (
     <div className="max-w-5xl mx-auto">
       {/* Header */}
-      <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden" data-guide="main-nav">
         <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
           <div className="flex items-center gap-4">
             <Button onClick={() => navigate(-1)} className="p-2 hover:bg-white/20 rounded-lg" variant="ghost" size="icon">
@@ -394,14 +404,14 @@ export function DailyDashboard() {
 
       {/* Pending Sales */}
       {pendingSales.length > 0 && (
-        <div className="mb-6">
+        <div className="mb-6" data-guide="pending-sales">
           <PendingSalesSection sales={pendingSales} onValidate={handleValidateSale} onReject={handleRejectSale} onValidateAll={handleValidateAll} users={users} />
         </div>
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
-        <div className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-xl p-4 border border-green-200">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6" data-guide="revenue-stats">
+        <div className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-xl p-4 border border-green-200" data-guide="revenue-widget">
           <div className="flex items-center justify-between mb-2"><DollarSign className="w-8 h-8 text-green-600" /><span className="text-green-600 text-sm">Total</span></div>
           <AnimatedCounter value={todayTotal} className="text-2xl font-bold text-gray-800" />
           <p className="text-xs text-gray-600">{formatPrice(todayTotal)}</p>
@@ -431,7 +441,7 @@ export function DailyDashboard() {
       </div>
 
       {/* Performance Équipe (Journée en cours) */}
-      <div className="mb-6">
+      <div className="mb-6" data-guide="team-performance">
         <TeamPerformanceTable
           data={useTeamPerformance({
             sales: isServerRole ? serverFilteredSales : todayValidatedSales,
@@ -441,7 +451,7 @@ export function DailyDashboard() {
             startDate: undefined,
             endDate: undefined
           })}
-          totalRevenue={isServerRole ? (todayStats?.salesTotal || 0) : todayTotal}
+          totalRevenue={isServerRole ? (todayStats?.net_revenue || 0) : todayTotal}
           filter={userFilter}
           onFilterChange={setUserFilter}
           title={isServerRole ? "Ma Performance (Journée)" : "Performance Équipe (Journée)"}

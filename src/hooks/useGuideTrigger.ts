@@ -5,20 +5,43 @@
  */
 
 import { useEffect } from 'react';
-import { useGuide } from '@/context/GuideContext';
-import { DASHBOARD_OVERVIEW_GUIDE } from '@/data/guides/owner-guides';
-import { GuideTour } from '@/types/guide';
+import { useGuide } from '../context/GuideContext';
+import {
+  DASHBOARD_OVERVIEW_GUIDE,
+  MANAGE_INVENTORY_GUIDE,
+  MANAGE_RETURNS_GUIDE,
+  MANAGE_CONSIGNMENTS_GUIDE,
+  HISTORIQUE_GUIDE,
+  MANAGE_TEAM_GUIDE,
+  MANAGE_SETTINGS_GUIDE,
+  MANAGE_PROMOTIONS_GUIDE
+} from '../data/guides/owner-guides';
+import { MANAGER_DASHBOARD_GUIDE, MANAGER_INVENTORY_GUIDE } from '../data/guides/manager-guides';
+import { BARTENDER_FIRST_SALE_GUIDE, BARTENDER_STATS_GUIDE } from '../data/guides/bartender-guides';
+import { GuideTour, GuideTrigger } from '../types/guide';
 
 /**
  * Map of all available guides
  * Add guides here as they're created
  */
 const GUIDES_REGISTRY: Record<string, GuideTour> = {
+  // Owner Guides
   'dashboard-overview': DASHBOARD_OVERVIEW_GUIDE,
-  // Phase 2+ guides will be added here
-  // 'manage-inventory': MANAGE_INVENTORY_GUIDE,
-  // 'analytics-overview': ANALYTICS_OVERVIEW_GUIDE,
-  // etc.
+  'manage-inventory': MANAGE_INVENTORY_GUIDE,
+  'manage-returns': MANAGE_RETURNS_GUIDE,
+  'manage-consignments': MANAGE_CONSIGNMENTS_GUIDE,
+  'analytics-overview': HISTORIQUE_GUIDE,
+  'manage-team': MANAGE_TEAM_GUIDE,
+  'manage-settings': MANAGE_SETTINGS_GUIDE,
+  'manage-promotions': MANAGE_PROMOTIONS_GUIDE,
+
+  // Manager Guides
+  'manager-dashboard': MANAGER_DASHBOARD_GUIDE,
+  'manager-inventory': MANAGER_INVENTORY_GUIDE,
+
+  // Bartender Guides
+  'create-first-sale': BARTENDER_FIRST_SALE_GUIDE,
+  'bartender-stats': BARTENDER_STATS_GUIDE,
 };
 
 export const useGuideTrigger = (guideId: string) => {
@@ -35,7 +58,7 @@ export const useGuideTrigger = (guideId: string) => {
     }
 
     // Don't trigger if already completed (if showOnce = true)
-    const shouldShow = guide.triggers.some(t => !t.showOnce || !hasCompletedGuide(guideId));
+    const shouldShow = guide.triggers.some((t: GuideTrigger) => !t.showOnce || !hasCompletedGuide(guideId));
 
     if (shouldShow) {
       startTour(guideId);

@@ -6,6 +6,9 @@ import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { Button } from '../components/ui/Button';
 import AnalyticsCharts from '../components/AnalyticsCharts';
+import { useAutoGuide } from '../hooks/useGuideTrigger';
+import { useOnboarding } from '../context/OnboardingContext';
+import { useGuide } from '../context/GuideContext';
 
 /**
  * Page Analytics - Wrapper pour AnalyticsCharts avec données
@@ -15,12 +18,21 @@ export default function AnalyticsPage() {
   const navigate = useNavigate();
   const { sales, expenses } = useAppContext();
   const { currentBar } = useBarContext();
+  const { isComplete } = useOnboarding();
+  const { hasCompletedGuide } = useGuide();
+
+  // Trigger analytics guide after onboarding (first visit only)
+  useAutoGuide(
+    'analytics-overview',
+    isComplete && !hasCompletedGuide('analytics-overview'),
+    { delay: 1500 }
+  );
 
   // Générer les données pour les graphiques (12 derniers mois)
   const chartData = useMemo(() => {
     const months: { [key: string]: { revenue: number; costs: number } } = {};
     const now = new Date();
-    
+
     // Initialiser les 12 derniers mois
     for (let i = 11; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -88,7 +100,7 @@ export default function AnalyticsPage() {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden" data-guide="analytics-header">
         <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
           <div className="flex items-center gap-4">
             <Button
@@ -111,7 +123,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Charts */}
-      <div className="bg-white rounded-2xl shadow-sm border border-amber-100 p-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-amber-100 p-6" data-guide="analytics-charts">
         <AnalyticsCharts
           data={chartData}
           expensesByCategory={expensesByCategory}

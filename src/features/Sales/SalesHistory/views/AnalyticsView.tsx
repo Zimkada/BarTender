@@ -87,8 +87,7 @@ export function AnalyticsView({
   setTopProductMetric,
   topProductsLimit,
   setTopProductsLimit,
-  isLoadingTopProducts,
-  viewMode
+  isLoadingTopProducts
 }: AnalyticsViewProps) {
 
 
@@ -354,7 +353,7 @@ export function AnalyticsView({
       </div>
 
       {/* Graphiques principaux */}
-      <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-4`}>
+      <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-4`} data-guide="analytics-charts">
         {/* Évolution CA - granularité adaptative */}
         <div className="bg-white rounded-xl p-4 border border-amber-100">
           <h4 className="text-sm font-semibold text-gray-800 mb-3">
@@ -411,7 +410,7 @@ export function AnalyticsView({
 
       {/* Section Consignations */}
       {consignmentStats.total > 0 && (
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200">
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200" data-guide="analytics-consignments">
           <div className="flex items-center gap-2 mb-3">
             <Archive className="w-5 h-5 text-amber-600" />
             <h4 className="text-sm font-semibold text-gray-800">Consignations</h4>
@@ -468,22 +467,26 @@ export function AnalyticsView({
       )}
 
       {/* Performance équipe - Graphique */}
-      <TeamPerformanceChart
-        data={userPerformance}
-        formatPrice={formatPrice}
-      />
+      <div data-guide="analytics-team">
+        <TeamPerformanceChart
+          data={userPerformance}
+          formatPrice={formatPrice}
+        />
+      </div>
 
       {/* Top produits - Composant dédié */}
-      <TopProductsChart
-        data={stats.topProducts}
-        metric={topProductMetric}
-        onMetricChange={setTopProductMetric}
-        limit={topProductsLimit}
-        onLimitChange={setTopProductsLimit}
-        isLoading={isLoadingTopProducts}
-        isMobile={isMobile}
-        formatPrice={formatPrice}
-      />
+      <div data-guide="analytics-top-products">
+        <TopProductsChart
+          data={stats.topProducts}
+          metric={topProductMetric}
+          onMetricChange={setTopProductMetric}
+          limit={topProductsLimit}
+          onLimitChange={setTopProductsLimit}
+          isLoading={isLoadingTopProducts}
+          isMobile={isMobile}
+          formatPrice={formatPrice}
+        />
+      </div>
     </div>
   );
 }

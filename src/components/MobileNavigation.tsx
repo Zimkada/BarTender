@@ -102,6 +102,7 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
             onClick={item.path ? () => navigate(item.path!) : item.onClick}
             className="flex-1 flex flex-col items-center justify-center gap-1 h-full active:bg-amber-50 transition-colors"
             aria-label={item.label}
+            {...(index === 0 ? { 'data-guide': 'quick-sale-btn' } : {})}
           >
             <span className={item.color}>
               {item.icon}

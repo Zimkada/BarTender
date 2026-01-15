@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import {
     BarChart3,
     TrendingUp,
-    TrendingDown,
     DollarSign,
     ShoppingBag,
     ArrowUpRight,
@@ -190,8 +189,8 @@ export function PromotionsAnalytics() {
                             key={filter}
                             onClick={() => setTimeRange(filter)}
                             className={`px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${timeRange === filter
-                                    ? 'bg-amber-500 text-white shadow-md'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                ? 'bg-amber-500 text-white shadow-md'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                 }`}
                         >
                             {TIME_RANGE_CONFIGS[filter].label}
@@ -219,7 +218,7 @@ export function PromotionsAnalytics() {
             )}
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4" data-guide="promo-kpis">
                 {/* CA Généré */}
                 <div className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm">
                     <div className="flex justify-between items-start mb-2">
@@ -290,7 +289,7 @@ export function PromotionsAnalytics() {
             </div>
 
             {/* Top Promotions - Table (Desktop) or Cards (Mobile) */}
-            <div className="bg-white rounded-xl border border-amber-100 shadow-sm">
+            <div className="bg-white rounded-xl border border-amber-100 shadow-sm" data-guide="promo-performance">
                 <div className="p-4 border-b border-gray-100">
                     <h4 className="font-bold text-gray-800">Top Promotions</h4>
                 </div>

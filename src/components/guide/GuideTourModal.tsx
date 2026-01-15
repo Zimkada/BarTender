@@ -73,6 +73,20 @@ export const GuideTourModal: React.FC = () => {
   const isFirstStep = currentStepIndex === 0;
   const isLastStep = currentStepIndex === activeTour.steps.length - 1;
 
+  /**
+   * Helper to render text with bold support (**)
+   */
+  const renderFormattedText = (text: string) => {
+    if (!text) return null;
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} className="font-bold text-gray-900">{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  };
+
   return (
     <AnimatePresence>
       {isVisible && (
@@ -126,10 +140,10 @@ export const GuideTourModal: React.FC = () => {
               <div className="px-6 pt-4 flex-shrink-0">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-gray-700 font-medium">
-                    Step <span className="text-blue-600 font-bold">{currentStepIndex + 1}</span> of{' '}
+                    Étape <span className="text-blue-600 font-bold">{currentStepIndex + 1}</span> sur{' '}
                     <span className="font-bold">{activeTour.steps.length}</span>
                   </span>
-                  <span className="text-xs text-gray-500">{Math.round(progress)}% complete</span>
+                  <span className="text-xs text-gray-500">{Math.round(progress)}% complété</span>
                 </div>
                 <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
                   <motion.div
@@ -156,7 +170,7 @@ export const GuideTourModal: React.FC = () => {
 
                 {/* Step description */}
                 <p className="text-base text-gray-700 leading-relaxed max-w-lg">
-                  {currentStep.description}
+                  {renderFormattedText(currentStep.description)}
                 </p>
 
                 {/* Media */}
@@ -182,12 +196,12 @@ export const GuideTourModal: React.FC = () => {
                 {/* Pro tips */}
                 {currentStep.tips && currentStep.tips.length > 0 && (
                   <div className="mt-4 p-4 bg-amber-50 border-l-4 border-amber-500 rounded">
-                    <p className="text-sm font-semibold text-amber-900 mb-2">💡 Pro Tips</p>
+                    <p className="text-sm font-semibold text-amber-900 mb-2">💡 Astuces Professionnelles</p>
                     <ul className="text-sm text-amber-800 space-y-1">
                       {currentStep.tips.map((tip, idx) => (
                         <li key={idx} className="flex items-start gap-2">
                           <span className="text-amber-600 mt-0.5">✓</span>
-                          <span>{tip}</span>
+                          <span>{renderFormattedText(tip)}</span>
                         </li>
                       ))}
                     </ul>
@@ -203,7 +217,7 @@ export const GuideTourModal: React.FC = () => {
                 {isLastStep && (
                   <div className="mt-6 pt-4 border-t border-gray-200">
                     <p className="text-sm text-gray-700 font-medium mb-3">
-                      Was this guide helpful?
+                      Ce guide vous a-t-il été utile ?
                     </p>
                     <div className="flex gap-2 justify-center">
                       {[1, 2, 3, 4, 5].map(rating => (
@@ -227,7 +241,7 @@ export const GuideTourModal: React.FC = () => {
               <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex gap-3 flex-shrink-0">
                 {!isFirstStep && (
                   <Button variant="outline" onClick={prevStep} disabled={isLoading}>
-                    ← Back
+                    ← Retour
                   </Button>
                 )}
 
@@ -237,7 +251,7 @@ export const GuideTourModal: React.FC = () => {
                   disabled={isLoading}
                   className="ml-auto"
                 >
-                  Skip
+                  Fermer
                 </Button>
 
                 <Button
@@ -246,7 +260,7 @@ export const GuideTourModal: React.FC = () => {
                   className="gap-2"
                 >
                   {isLoading && <Spinner className="h-4 w-4" />}
-                  {isLastStep ? 'Finish' : 'Next →'}
+                  {isLastStep ? 'Terminer' : 'Suivant →'}
                 </Button>
               </div>
             </motion.div>

@@ -93,11 +93,9 @@ export function BarSelector({ onCreateNew }: BarSelectorProps) {
                       }`}>
                       {bar.name}
                     </p>
-                    {/* Setup status indicator */}
-                    {bar.is_setup_complete ? (
+                    {/* Setup status indicator - only show when complete */}
+                    {bar.is_setup_complete && (
                       <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" title="Setup completed" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 animate-pulse" title="Setup needed" />
                     )}
                   </div>
                   {bar.address && (

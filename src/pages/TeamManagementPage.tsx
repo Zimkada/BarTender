@@ -14,6 +14,9 @@ import { Modal } from '../components/ui/Modal';
 import { ServerMappingsManager } from '../components/ServerMappingsManager';
 import { BarsService } from '../services/supabase/bars.service';
 import { FEATURES } from '../config/features';
+import { useAutoGuide } from '../hooks/useGuideTrigger';
+import { useOnboarding } from '../context/OnboardingContext';
+import { useGuide } from '../context/GuideContext';
 
 /**
  * TeamManagementPage - Page de gestion de l'équipe
@@ -24,7 +27,16 @@ export default function TeamManagementPage() {
   const navigate = useNavigate();
   const { hasPermission } = useAuth();
   const { currentBar, barMembers, removeBarMember, refreshBars } = useBarContext();
+  const { isComplete } = useOnboarding();
+  const { hasCompletedGuide } = useGuide();
   const { isMobile } = useViewport();
+
+  // Trigger team guide after onboarding (first visit only)
+  useAutoGuide(
+    'manage-team',
+    isComplete && !hasCompletedGuide('manage-team'),
+    { delay: 1500 }
+  );
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -249,7 +261,7 @@ export default function TeamManagementPage() {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden" data-guide="team-header">
         <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -297,6 +309,7 @@ export default function TeamManagementPage() {
                   size={isMobile ? 'icon' : 'default'}
                   className="flex items-center gap-2"
                   title="Ajouter un membre"
+                  data-guide="team-add-btn"
                 >
                   {isMobile ? (
                     <UserPlus size={18} />
@@ -315,7 +328,7 @@ export default function TeamManagementPage() {
       <div className="space-y-6">
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4" data-guide="team-stats">
           <div className="bg-white p-6 rounded-xl shadow-sm border border-amber-100">
             <div className="flex items-center justify-between">
               <div>
@@ -354,7 +367,7 @@ export default function TeamManagementPage() {
         </div>
 
         {/* Members List */}
-        <div className="bg-white rounded-xl shadow-sm border border-amber-100 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-amber-100 overflow-hidden" data-guide="team-list">
           <div className="p-6 border-b border-gray-100">
             <h3 className="font-semibold text-gray-800">Membres de l'équipe</h3>
           </div>
@@ -421,7 +434,7 @@ export default function TeamManagementPage() {
 
         {/* ✨ NOUVEAU: Mappings de serveurs (Mode Simplifié) */}
         {FEATURES.ENABLE_SWITCHING_MODE && (
-          <div className="bg-white rounded-xl shadow-sm border border-amber-100 overflow-hidden">
+          <div className="bg-white rounded-xl shadow-sm border border-amber-100 overflow-hidden" data-guide="team-mappings">
             <button
               onClick={() => setShowMappings(!showMappings)}
               className="w-full p-6 border-b border-gray-100 flex items-center justify-between hover:bg-gray-50 transition-colors"

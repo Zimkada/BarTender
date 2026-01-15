@@ -32,8 +32,8 @@ const GuideSuggestionsPopover: React.FC<{
         >
           {/* Header */}
           <div className="px-4 py-3 border-b border-gray-200">
-            <h3 className="font-semibold text-gray-900">Help & Guides</h3>
-            <p className="text-xs text-gray-600 mt-1">Learn how to use features</p>
+            <h3 className="font-semibold text-gray-900">Aide & Guides</h3>
+            <p className="text-xs text-gray-600 mt-1">Apprenez à utiliser les fonctionnalités</p>
           </div>
 
           {/* Guide list */}
@@ -53,11 +53,6 @@ const GuideSuggestionsPopover: React.FC<{
                         <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600">
                           {guide.title}
                         </p>
-                        {guide.isNew && (
-                          <span className="text-xs text-blue-600 font-semibold">
-                            NEW
-                          </span>
-                        )}
                       </div>
                     </div>
                   </motion.button>
@@ -66,7 +61,7 @@ const GuideSuggestionsPopover: React.FC<{
             ) : (
               <div className="px-4 py-6 text-center">
                 <p className="text-sm text-gray-600">
-                  No guides available yet
+                  Aucun guide disponible pour le moment
                 </p>
               </div>
             )}
@@ -75,7 +70,7 @@ const GuideSuggestionsPopover: React.FC<{
           {/* Footer */}
           <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
             <p className="text-xs text-gray-600">
-              💡 Guides appear on relevant pages automatically
+              💡 Les guides apparaissent automatiquement sur les pages pertinentes
             </p>
           </div>
         </motion.div>
@@ -92,13 +87,19 @@ export const GuideButton: React.FC = () => {
   const { startTour } = useGuide();
   const suggestions = useGuideSuggestions();
 
+  // Debug: log suggestions
+  React.useEffect(() => {
+    console.log('[GuideButton] suggestions:', suggestions);
+  }, [suggestions]);
+
   const handleSelectGuide = (guideId: string, guide?: GuideTour) => {
+    console.log('[GuideButton.handleSelectGuide] guideId:', guideId, 'guide:', guide);
     startTour(guideId, guide);
     setIsPopoverOpen(false);
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-40 safe-area-inset-bottom">
+    <div className="fixed bottom-24 right-6 z-40 safe-area-inset-bottom">
       {/* Popover */}
       <div className="relative">
         <GuideSuggestionsPopover

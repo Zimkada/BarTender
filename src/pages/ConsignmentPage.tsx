@@ -20,6 +20,9 @@ import { useAppContext } from '../context/AppContext';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
+import { useGuide } from '../context/GuideContext';
+import { useOnboarding } from '../context/OnboardingContext';
+import { useAutoGuide } from '@/hooks/useGuideTrigger';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from '../components/EnhancedButton';
@@ -35,6 +38,16 @@ import { Select } from '../components/ui/Select';
 type TabType = 'create' | 'active' | 'history';
 
 export default function ConsignmentPage() {
+  const { isComplete } = useOnboarding();
+  const { hasCompletedGuide } = useGuide();
+
+  // Trigger consignments guide after onboarding (first visit only)
+  useAutoGuide(
+    'manage-consignments',
+    isComplete && !hasCompletedGuide('manage-consignments'),
+    { delay: 1500 }
+  );
+
   const [activeTab, setActiveTab] = useState<TabType>('active');
   const navigate = useNavigate();
   const { isMobile } = useViewport();
@@ -83,7 +96,7 @@ export default function ConsignmentPage() {
         <div className="p-6 min-h-[60vh]">
           <AnimatePresence mode="wait">
             {activeTab === 'create' && (
-              <motion.div key="create" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <motion.div key="create" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} data-guide="consignments-create-tab">
                 <CreateConsignmentTab
                   onNavigateBack={() => navigate(-1)}
                   onCreationSuccess={() => setActiveTab('active')}
@@ -91,12 +104,12 @@ export default function ConsignmentPage() {
               </motion.div>
             )}
             {activeTab === 'active' && (
-              <motion.div key="active" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <motion.div key="active" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} data-guide="consignments-active-tab">
                 <ActiveConsignmentsTab isReadOnly={isReadOnly} />
               </motion.div>
             )}
             {activeTab === 'history' && (
-              <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} data-guide="consignments-history-tab">
                 <HistoryTab />
               </motion.div>
             )}
@@ -918,7 +931,7 @@ const ConsignmentCard: React.FC<ConsignmentCardProps> = ({ consignment, onClaim,
       )}
 
       {!isReadOnly && (
-        <div className="flex gap-2">
+        <div className="flex gap-2" data-guide="consignments-recover-btn">
           <button
             onClick={onClaim}
             className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"

@@ -15,6 +15,9 @@ import { useAppContext } from '../context/AppContext';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
+import { useGuide } from '../context/GuideContext';
+import { useOnboarding } from '../context/OnboardingContext';
+import { useAutoGuide } from '@/hooks/useGuideTrigger';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from '../components/EnhancedButton';
@@ -97,6 +100,16 @@ export default function ReturnsPage() {
   const isReadOnly = currentSession?.role === 'serveur';
 
   const [showCreateReturn, setShowCreateReturn] = useState(false);
+  const { isComplete } = useOnboarding();
+  const { hasCompletedGuide } = useGuide();
+
+  // Trigger returns guide after onboarding (first visit only)
+  useAutoGuide(
+    'manage-returns',
+    isComplete && !hasCompletedGuide('manage-returns'),
+    { delay: 1500 }
+  );
+
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [lastCreatedReturnId, setLastCreatedReturnId] = useState<string | null>(null);
@@ -396,7 +409,7 @@ export default function ReturnsPage() {
         hideSubtitleOnMobile
         actions={
           // Desktop : Icône seule pour "Nouveau retour"
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" data-guide="returns-create-btn">
             {!showCreateReturn && !isReadOnly && (
               <Button
                 onClick={() => setShowCreateReturn(true)}
@@ -448,7 +461,7 @@ export default function ReturnsPage() {
 
       {/* Filters Area (Only visible in list mode) */}
       {!showCreateReturn && (
-        <div className="space-y-4 pt-4 border-t border-gray-100">
+        <div className="space-y-4 pt-4 border-t border-gray-100" data-guide="returns-search">
           {/* Period Filters */}
           <div className="flex bg-gray-100 rounded-lg p-1 flex-wrap gap-1">
             {SALES_HISTORY_FILTERS.map(filter => (
@@ -616,7 +629,7 @@ export default function ReturnsPage() {
                               )}
                             </div>
 
-                            <div className="flex items-center gap-2 self-end sm:self-auto">
+                            <div className="flex items-center gap-2 self-end sm:self-auto" data-guide="returns-status">
                               {!isReadOnly && returnItem.status === 'pending' && (
                                 <>
                                   <EnhancedButton
@@ -798,7 +811,7 @@ export default function ReturnsPage() {
                               )}
                             </div>
 
-                            <div className="flex items-center gap-2 self-end sm:self-auto">
+                            <div className="flex items-center gap-2 self-end sm:self-auto" data-guide="returns-status">
                               {!isReadOnly && returnItem.status === 'pending' && (
                                 <>
                                   <EnhancedButton
@@ -1337,7 +1350,7 @@ function CreateReturnForm({
                       />
                       <p className="text-xs text-gray-500 mt-1">Max: {availableQty}</p>
                     </div>
-                    <div>
+                    <div data-guide="returns-reasons">
                       <Label htmlFor="returnReason">Raison</Label>
                       <Select
                         id="returnReason"

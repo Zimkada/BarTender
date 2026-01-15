@@ -8,6 +8,8 @@ import { useMemo } from 'react';
 import { useGuide } from '@/context/GuideContext';
 import { useAuth } from '@/context/AuthContext';
 import { OWNER_GUIDES } from '@/data/guides/owner-guides';
+import { MANAGER_GUIDES } from '@/data/guides/manager-guides';
+import { BARTENDER_GUIDES } from '@/data/guides/bartender-guides';
 import { GuideTour } from '@/types/guide';
 
 /**
@@ -16,9 +18,8 @@ import { GuideTour } from '@/types/guide';
  */
 const GUIDES_BY_ROLE: Record<string, GuideTour[]> = {
   promoteur: OWNER_GUIDES,
-  // Phase 2+:
-  // gérant: MANAGER_GUIDES,
-  // serveur: BARTENDER_GUIDES,
+  gerant: MANAGER_GUIDES,
+  serveur: BARTENDER_GUIDES,
 };
 
 export interface GuideSuggestion {
@@ -26,9 +27,9 @@ export interface GuideSuggestion {
   title: string;
   emoji?: string;
   description?: string;
-  isNew: boolean; // Not completed yet
+  isNew: boolean; // Non complété encore
   estimatedDuration: number;
-  guide?: GuideTour; // Full guide object for startTour
+  guide?: GuideTour; // Objet guide complet pour startTour
 }
 
 /**

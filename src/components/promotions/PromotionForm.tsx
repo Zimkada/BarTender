@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { X, Save, Calendar, Tag, Percent, DollarSign, Gift, Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Save, Calendar, Tag, Percent, DollarSign, Gift, Search } from 'lucide-react';
 import { useBarContext } from '../../context/BarContext';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { useStockManagement } from '../../hooks/useStockManagement';
 import { PromotionsService } from '../../services/supabase/promotions.service';
-import { Promotion, PromotionType, Product } from '../../types';
+import { Promotion, PromotionType } from '../../types';
 import { useNotifications } from '../Notifications';
 import { EnhancedButton } from '../EnhancedButton';
 import { Input } from '../ui/Input';
@@ -16,7 +15,6 @@ import { Textarea } from '../ui/Textarea';
 import { Checkbox } from '../ui/Checkbox';
 import { RadioGroup, RadioGroupItem } from '../ui/Radio';
 import { Button } from '../ui/Button';
-import { Alert } from '../ui/Alert';
 
 interface PromotionFormProps {
     isOpen: boolean;
@@ -174,33 +172,33 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
         p.name.toLowerCase().includes(productSearch.toLowerCase())
     );
 
-      if (!isOpen) return null;
-    
-      return (
+    if (!isOpen) return null;
+
+    return (
         <Modal
-          open={isOpen}
-          onClose={onClose}
-          title={initialData ? 'Modifier la promotion' : 'Nouvelle promotion'}
-          size="xl"
-          footer={
-            <div className="p-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50">
-                <EnhancedButton
-                    variant="secondary"
-                    onClick={onClose}
-                    disabled={isSubmitting}
-                >
-                    Annuler
-                </EnhancedButton>
-                <EnhancedButton
-                    variant="primary"
-                    onClick={handleSubmit}
-                    loading={isSubmitting}
-                    icon={<Save size={20} />}
-                >
-                    Enregistrer
-                </EnhancedButton>
-            </div>
-          }
+            open={isOpen}
+            onClose={onClose}
+            title={initialData ? 'Modifier la promotion' : 'Nouvelle promotion'}
+            size="xl"
+            footer={
+                <div className="p-4 border-t border-gray-100 flex justify-end gap-3 bg-gray-50">
+                    <EnhancedButton
+                        variant="secondary"
+                        onClick={onClose}
+                        disabled={isSubmitting}
+                    >
+                        Annuler
+                    </EnhancedButton>
+                    <EnhancedButton
+                        variant="primary"
+                        onClick={handleSubmit}
+                        loading={isSubmitting}
+                        icon={<Save size={20} />}
+                    >
+                        Enregistrer
+                    </EnhancedButton>
+                </div>
+            }
         >
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
                 {/* Basic Info */}
@@ -216,19 +214,19 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                             required
                         />
                     </div>
-                                    <div>
-                                        <Label htmlFor="description">Description (optionnelle)</Label>
-                                        <Textarea
-                                            id="description"
-                                            value={description}
-                                            onChange={(e) => setDescription(e.target.value)}
-                                            placeholder="Détails de l'offre..."
-                                            rows={2}
-                                        />
-                                    </div>                </div>
-    
+                    <div>
+                        <Label htmlFor="description">Description (optionnelle)</Label>
+                        <Textarea
+                            id="description"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="Détails de l'offre..."
+                            rows={2}
+                        />
+                    </div>                </div>
+
                 {/* Type Selection */}
-                <div>
+                <div data-guide="promo-types">
                     <label className="block text-sm font-medium text-gray-700 mb-3">Type de promotion</label>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                         {[
@@ -255,7 +253,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                         ))}
                     </div>
                 </div>
-    
+
                 {/* Dynamic Value Fields */}
                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
                     {(type === 'pourcentage' || type === 'percentage') && (
@@ -350,7 +348,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                         </div>
                     )}
                 </div>
-    
+
                 {/* Dates */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -376,58 +374,58 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                         />
                     </div>
                 </div>
-    
+
                 {/* Targeting */}
-                <div>
+                <div data-guide="promo-targeting">
                     <label className="block text-sm font-medium text-gray-700 mb-3">Ciblage</label>
-                                    <div className="flex gap-4 mb-4">
-                                        <RadioGroup
-                                            name="targetType"
-                                            value={targetType}
-                                            onValueChange={(value: 'all' | 'category' | 'product') => setTargetType(value)}
-                                            className="flex gap-4"
-                                        >
-                                            {[{
-                                                id: 'all',
-                                                label: 'Tout le menu'
-                                            },
-                                            {
-                                                id: 'category',
-                                                label: 'Par catégorie'
-                                            },
-                                            {
-                                                id: 'product',
-                                                label: 'Par produit'
-                                            },
-                                            ].map((t) => (
-                                                <div key={t.id} className="flex items-center space-x-2 cursor-pointer">
-                                                    <RadioGroupItem value={t.id} id={`targetType-${t.id}`} />
-                                                    <Label htmlFor={`targetType-${t.id}`} className="text-sm cursor-pointer">
-                                                        {t.label}
-                                                    </Label>
-                                                </div>
-                                            ))}
-                                        </RadioGroup>
+                    <div className="flex gap-4 mb-4">
+                        <RadioGroup
+                            name="targetType"
+                            value={targetType}
+                            onValueChange={(value: 'all' | 'category' | 'product') => setTargetType(value)}
+                            className="flex gap-4"
+                        >
+                            {[{
+                                id: 'all',
+                                label: 'Tout le menu'
+                            },
+                            {
+                                id: 'category',
+                                label: 'Par catégorie'
+                            },
+                            {
+                                id: 'product',
+                                label: 'Par produit'
+                            },
+                            ].map((t) => (
+                                <div key={t.id} className="flex items-center space-x-2 cursor-pointer">
+                                    <RadioGroupItem value={t.id} id={`targetType-${t.id}`} />
+                                    <Label htmlFor={`targetType-${t.id}`} className="text-sm cursor-pointer">
+                                        {t.label}
+                                    </Label>
+                                </div>
+                            ))}
+                        </RadioGroup>
+                    </div>
+
+                    {targetType === 'category' && (
+                        <div className="border border-gray-200 rounded-xl p-3 bg-gray-50 max-h-48 overflow-y-auto">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {categories.map(cat => (
+                                    <div key={cat.id} className="flex items-center gap-2 p-2 hover:bg-white rounded-lg transition-colors cursor-pointer">
+                                        <Checkbox
+                                            id={`category-${cat.id}`}
+                                            checked={selectedCategoryIds.includes(cat.id)}
+                                            onCheckedChange={() => toggleCategory(cat.id)}
+                                        />
+                                        <Label htmlFor={`category-${cat.id}`} className="text-sm cursor-pointer">
+                                            {cat.name}
+                                        </Label>
                                     </div>
-    
-                                    {targetType === 'category' && (
-                                        <div className="border border-gray-200 rounded-xl p-3 bg-gray-50 max-h-48 overflow-y-auto">
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                {categories.map(cat => (
-                                                    <div key={cat.id} className="flex items-center gap-2 p-2 hover:bg-white rounded-lg transition-colors cursor-pointer">
-                                                        <Checkbox
-                                                            id={`category-${cat.id}`}
-                                                            checked={selectedCategoryIds.includes(cat.id)}
-                                                            onCheckedChange={() => toggleCategory(cat.id)}
-                                                        />
-                                                        <Label htmlFor={`category-${cat.id}`} className="text-sm cursor-pointer">
-                                                            {cat.name}
-                                                        </Label>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}    
+                                ))}
+                            </div>
+                        </div>
+                    )}
                     {targetType === 'product' && (
                         <div className="border border-gray-200 rounded-xl p-3 bg-gray-50">
                             <div className="mb-2">
@@ -439,25 +437,25 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                                     leftIcon={<Search size={16} />}
                                 />
                             </div>
-                                                    <div className="max-h-48 overflow-y-auto space-y-1">
-                                                        {filteredProducts.map(product => (
-                                                            <div key={product.id} className="flex items-center gap-2 p-2 hover:bg-white rounded-lg transition-colors cursor-pointer">
-                                                                <Checkbox
-                                                                    id={`product-${product.id}`}
-                                                                    checked={selectedProductIds.includes(product.id)}
-                                                                    onCheckedChange={() => toggleProduct(product.id)}
-                                                                />
-                                                                <Label htmlFor={`product-${product.id}`} className="flex-1 cursor-pointer">
-                                                                    <div className="text-sm font-medium">{product.name}</div>
-                                                                    <div className="text-xs text-gray-500">{product.volume}</div>
-                                                                </Label>
-                                                            </div>
-                                                        ))}
-                                                    </div>                        </div>
+                            <div className="max-h-48 overflow-y-auto space-y-1">
+                                {filteredProducts.map(product => (
+                                    <div key={product.id} className="flex items-center gap-2 p-2 hover:bg-white rounded-lg transition-colors cursor-pointer">
+                                        <Checkbox
+                                            id={`product-${product.id}`}
+                                            checked={selectedProductIds.includes(product.id)}
+                                            onCheckedChange={() => toggleProduct(product.id)}
+                                        />
+                                        <Label htmlFor={`product-${product.id}`} className="flex-1 cursor-pointer">
+                                            <div className="text-sm font-medium">{product.name}</div>
+                                            <div className="text-xs text-gray-500">{product.volume}</div>
+                                        </Label>
+                                    </div>
+                                ))}
+                            </div>                        </div>
                     )}
                 </div>
             </form>
         </Modal>
-      );
-    }
-    
+    );
+}
+

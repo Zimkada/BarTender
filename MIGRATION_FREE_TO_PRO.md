@@ -139,6 +139,8 @@ SELECT cron.schedule(
 );
 ```
 
+**Note** : L'expiration des ventes en attente est gérée côté frontend (voir [PENDING_SALES_EXPIRATION.md](PENDING_SALES_EXPIRATION.md)) pour s'adapter automatiquement au `closingHour` de chaque bar.
+
 **Vérifier que les jobs sont actifs** :
 ```sql
 SELECT

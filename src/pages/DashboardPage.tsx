@@ -1,10 +1,8 @@
-// src/pages/DashboardPage.tsx
-import { useEffect } from 'react';
 import { DailyDashboard } from '../components/DailyDashboard';
-import { useAutoGuide } from '@/hooks/useGuideTrigger';
-import { useOnboarding } from '@/context/OnboardingContext';
-import { useGuide } from '@/context/GuideContext';
-import { GuideTourModal } from '@/components/guide/GuideTourModal';
+import { useAutoGuide } from '../hooks/useGuideTrigger';
+import { useOnboarding } from '../context/OnboardingContext';
+import { useGuide } from '../context/GuideContext';
+import { useAuth } from '../context/AuthContext';
 
 /**
  * Page Dashboard - Wrapper pour le composant DailyDashboard
@@ -14,18 +12,21 @@ import { GuideTourModal } from '@/components/guide/GuideTourModal';
 export default function DashboardPage() {
   const { isComplete: onboardingComplete } = useOnboarding();
   const { hasCompletedGuide } = useGuide();
+  const { currentSession } = useAuth();
+
+  const role = currentSession?.role;
+
+  // Choose the right guide base on role
+  let tourId = 'dashboard-overview';
+  if (role === 'gerant') tourId = 'manager-dashboard';
+  if (role === 'serveur') tourId = 'create-first-sale';
 
   // Trigger dashboard guide after onboarding (first visit only)
   useAutoGuide(
-    'dashboard-overview',
-    onboardingComplete && !hasCompletedGuide('dashboard-overview'),
+    tourId,
+    onboardingComplete && !hasCompletedGuide(tourId),
     { delay: 2000 }
   );
 
-  return (
-    <>
-      <DailyDashboard />
-      <GuideTourModal />
-    </>
-  );
+  return <DailyDashboard />;
 }

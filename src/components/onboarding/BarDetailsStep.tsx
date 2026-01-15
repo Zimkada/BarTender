@@ -1,6 +1,7 @@
 // Language: French (Français)
 import React, { useState } from 'react';
 import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
+import { useBar } from '../../context/BarContext';
 import { LoadingButton } from '../ui/LoadingButton';
 
 interface BarDetailsFormData {
@@ -13,37 +14,38 @@ interface BarDetailsFormData {
 
 export const BarDetailsStep: React.FC = () => {
   const { stepData, updateStepData, completeStep, nextStep, previousStep, completeOnboarding } = useOnboarding();
+  const { currentBar } = useBar();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Initialize form with saved data if exists
+  // Initialize form: priority is saved data > currentBar data > defaults
   const savedData = stepData[OnboardingStep.OWNER_BAR_DETAILS] as BarDetailsFormData | undefined;
   const [formData, setFormData] = useState<BarDetailsFormData>({
-    barName: savedData?.barName || '',
-    location: savedData?.location || '',
-    closingHour: savedData?.closingHour || 6,
-    operatingMode: savedData?.operatingMode || 'simplifié',
-    contact: savedData?.contact || '',
+    barName: savedData?.barName || currentBar?.name || '',
+    location: savedData?.location || currentBar?.location || '',
+    closingHour: savedData?.closingHour || currentBar?.closing_hour || 6,
+    operatingMode: savedData?.operatingMode || (currentBar?.operating_mode as 'full' | 'simplifié') || 'simplifié',
+    contact: savedData?.contact || currentBar?.contact_email || '',
   });
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.barName.trim() || formData.barName.length < 3) {
-      newErrors.barName = 'Nom du bar requis (min 3 caractères)';
+    // Nom du bar: requis seulement si modifié (vide ET pas de valeur existante)
+    if (formData.barName.trim().length > 0 && formData.barName.length < 3) {
+      newErrors.barName = 'Nom du bar doit avoir au moins 3 caractères';
     }
     if (formData.barName.length > 50) {
       newErrors.barName = 'Nom du bar trop long (max 50 caractères)';
     }
 
-    if (!formData.location.trim()) {
-      newErrors.location = 'Localisation requise';
-    }
-
+    // Localisation: optionnel maintenant
+    // Heure de fermeture: toujours requis
     if (formData.closingHour < 0 || formData.closingHour > 23) {
       newErrors.closingHour = 'L\'heure de fermeture doit être entre 0 et 23';
     }
 
+    // Email: optionnel, validation seulement si renseigné
     if (formData.contact && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.contact)) {
       newErrors.contact = 'Format d\'email invalide';
     }
@@ -100,7 +102,7 @@ export const BarDetailsStep: React.FC = () => {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Configurons votre bar</h1>
           <p className="mt-2 text-gray-600">
-            Commencez par les informations de base de votre bar. Vous pourrez modifier cela plus tard.
+            Vérifiez et ajustez les informations de votre bar. Les champs sont pré-remplis avec vos données existantes.
           </p>
         </div>
 
@@ -109,7 +111,7 @@ export const BarDetailsStep: React.FC = () => {
           {/* Bar Name */}
           <div>
             <label htmlFor="barName" className="block text-sm font-medium text-gray-700 mb-1">
-              Nom du Bar *
+              Nom du Bar (optionnel - modifier si nécessaire)
             </label>
             <input
               id="barName"
@@ -123,6 +125,9 @@ export const BarDetailsStep: React.FC = () => {
                 : 'border-gray-300 focus:ring-blue-200'
                 }`}
             />
+            {!errors.barName && formData.barName && (
+              <p className="mt-1 text-xs text-gray-500">✓ Valeur actuelle: {formData.barName}</p>
+            )}
             {errors.barName && (
               <p className="mt-1 text-sm text-red-600">{errors.barName}</p>
             )}
@@ -131,7 +136,7 @@ export const BarDetailsStep: React.FC = () => {
           {/* Location */}
           <div>
             <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-              Localisation *
+              Localisation (optionnel - modifier si nécessaire)
             </label>
             <input
               id="location"
@@ -145,6 +150,9 @@ export const BarDetailsStep: React.FC = () => {
                 : 'border-gray-300 focus:ring-blue-200'
                 }`}
             />
+            {!errors.location && formData.location && (
+              <p className="mt-1 text-xs text-gray-500">✓ Valeur actuelle: {formData.location}</p>
+            )}
             {errors.location && (
               <p className="mt-1 text-sm text-red-600">{errors.location}</p>
             )}
@@ -167,6 +175,9 @@ export const BarDetailsStep: React.FC = () => {
                 : 'border-gray-300 focus:ring-blue-200'
                 }`}
             />
+            {!errors.contact && formData.contact && (
+              <p className="mt-1 text-xs text-gray-500">✓ Valeur actuelle: {formData.contact}</p>
+            )}
             {errors.contact && (
               <p className="mt-1 text-sm text-red-600">{errors.contact}</p>
             )}

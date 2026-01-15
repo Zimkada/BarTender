@@ -13,6 +13,9 @@ import { Alert } from '../components/ui/Alert';
 import { RadioGroup, RadioGroupItem } from '../components/ui/Radio';
 import { ServerMappingsManager } from '../components/ServerMappingsManager';
 import { FEATURES } from '../config/features';
+import { useAutoGuide } from '../hooks/useGuideTrigger';
+import { useOnboarding } from '../context/OnboardingContext';
+import { useGuide } from '../context/GuideContext';
 
 const currencyOptions = [
     { code: 'FCFA', symbol: 'FCFA', name: 'Franc CFA' },
@@ -31,7 +34,16 @@ export default function SettingsPage() {
     const { settings, updateSettings } = useSettings();
     const { currentBar, updateBar } = useBarContext();
     const { currentSession } = useAuth();
+    const { isComplete } = useOnboarding();
+    const { hasCompletedGuide } = useGuide();
     const { showNotification } = useNotifications();
+
+    // Trigger settings guide after onboarding (first visit only)
+    useAutoGuide(
+        'manage-settings',
+        isComplete && !hasCompletedGuide('manage-settings'),
+        { delay: 1500 }
+    );
 
     const [activeTab, setActiveTab] = useState<'bar' | 'operational' | 'general' | 'security'>('bar');
 
@@ -226,7 +238,7 @@ export default function SettingsPage() {
     return (
         <div className="max-w-2xl mx-auto">
             {/* Header */}
-            <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden" data-guide="settings-header">
                 <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
                     <div className="flex items-center gap-4">
                         <Button
@@ -248,7 +260,7 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Tabs */}
-                <div className="px-6 py-3 border-b border-gray-200">
+                <div className="px-6 py-3 border-b border-gray-200" data-guide="settings-tabs">
                     <div className="flex gap-2 overflow-x-auto scrollbar-hide">
                         {tabs.map(tab => (
                             <Button
@@ -269,7 +281,7 @@ export default function SettingsPage() {
             </div>
 
             {/* Content */}
-            <div className="bg-white rounded-2xl shadow-sm border border-amber-100 p-6 space-y-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-amber-100 p-6 space-y-6" data-guide="settings-content">
                 {/* Onglet Sécurité */}
                 {activeTab === 'security' && (
                     <div className="space-y-6">

@@ -64,28 +64,32 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
    */
   const startTour = useCallback(
     async (tourId: string, tour?: GuideTour) => {
-      if (!activeTour || activeTour.id !== tourId) {
-        // Set active tour object
-        if (tour) {
-          setActiveTour(tour);
-        }
+      console.log('[GuideContext.startTour] tourId:', tourId, 'tour:', tour);
 
-        // Show tour UI
-        setIsVisible(true);
-        setCurrentStepIndex(0);
-        setError(null);
+      // Set active tour object
+      if (tour) {
+        console.log('[GuideContext.startTour] Setting activeTour:', tour.title);
+        setActiveTour(tour);
+      } else {
+        console.warn('[GuideContext.startTour] No tour object provided!');
+      }
 
-        // Log analytics
-        if (userId) {
-          await auditLogger.log('GUIDE_STARTED', {
-            tour_id: tourId,
-            user_role: currentSession?.role,
-            timestamp: new Date().toISOString(),
-          });
-        }
+      // Show tour UI
+      setIsVisible(true);
+      setCurrentStepIndex(0);
+      setError(null);
+      console.log('[GuideContext.startTour] UI visible, currentStepIndex = 0');
+
+      // Log analytics
+      if (userId) {
+        await auditLogger.log('GUIDE_STARTED', {
+          tour_id: tourId,
+          user_role: currentSession?.role,
+          timestamp: new Date().toISOString(),
+        });
       }
     },
-    [activeTour?.id, userId, currentSession?.role]
+    [userId, currentSession?.role]
   );
 
   /**
@@ -121,31 +125,39 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
    * Complete tour (save progress + rate)
    */
   const completeTour = useCallback(async () => {
-    if (!activeTour || !userId) return;
+    console.log('[GuideContext.completeTour] activeTour:', activeTour?.id, 'userId:', userId);
+
+    if (!activeTour) {
+      console.warn('[GuideContext.completeTour] No active tour');
+      return;
+    }
 
     try {
       setIsLoading(true);
 
-      // Save completion to Supabase
-      const { error: dbError } = await supabase.from('guide_progress').upsert({
-        user_id: userId,
-        tour_id: activeTour.id,
-        completed_at: new Date().toISOString(),
-        current_step_index: activeTour.steps.length - 1,
-      });
+      // Save completion to Supabase (only if user is authenticated)
+      if (userId) {
+        const { error: dbError } = await supabase.from('guide_progress').upsert({
+          user_id: userId,
+          tour_id: activeTour.id,
+          completed_at: new Date().toISOString(),
+          current_step_index: activeTour.steps.length - 1,
+        });
 
-      if (dbError) throw dbError;
+        if (dbError) throw dbError;
 
-      // Update local cache
-      setCompletedGuides(prev => new Set([...prev, activeTour.id]));
+        // Update local cache
+        setCompletedGuides(prev => new Set([...prev, activeTour.id]));
 
-      // Log completion
-      await auditLogger.log('GUIDE_COMPLETED', {
-        tour_id: activeTour.id,
-        user_role: currentSession?.role,
-        steps_count: activeTour.steps.length,
-      });
+        // Log completion
+        await auditLogger.log('GUIDE_COMPLETED', {
+          tour_id: activeTour.id,
+          user_role: currentSession?.role,
+          steps_count: activeTour.steps.length,
+        });
+      }
 
+      console.log('[GuideContext.completeTour] Closing tour');
       // Close modal
       closeTour();
     } catch (err: any) {
@@ -160,23 +172,31 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
    * Skip tour
    */
   const skipTour = useCallback(async () => {
-    if (!activeTour || !userId) return;
+    console.log('[GuideContext.skipTour] activeTour:', activeTour?.id, 'userId:', userId);
+
+    if (!activeTour) {
+      console.warn('[GuideContext.skipTour] No active tour');
+      return;
+    }
 
     try {
-      // Save skip to Supabase
-      await supabase.from('guide_progress').upsert({
-        user_id: userId,
-        tour_id: activeTour.id,
-        skipped_at: new Date().toISOString(),
-        current_step_index: currentStepIndex,
-      });
+      // Save skip to Supabase (only if user is authenticated)
+      if (userId) {
+        await supabase.from('guide_progress').upsert({
+          user_id: userId,
+          tour_id: activeTour.id,
+          skipped_at: new Date().toISOString(),
+          current_step_index: currentStepIndex,
+        });
 
-      // Log skip
-      await auditLogger.log('GUIDE_SKIPPED', {
-        tour_id: activeTour.id,
-        step_index: currentStepIndex,
-      });
+        // Log skip
+        await auditLogger.log('GUIDE_SKIPPED', {
+          tour_id: activeTour.id,
+          step_index: currentStepIndex,
+        });
+      }
 
+      console.log('[GuideContext.skipTour] Closing tour');
       closeTour();
     } catch (err: any) {
       console.error('Failed to skip guide:', err);

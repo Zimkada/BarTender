@@ -3,7 +3,7 @@
  * Modern, type-safe guide infrastructure for post-onboarding
  */
 
-export type UserRole = 'super_admin' | 'promoteur' | 'gérant' | 'serveur';
+export type UserRole = 'super_admin' | 'promoteur' | 'gerant' | 'serveur';
 
 export type GuideDifficulty = 'beginner' | 'intermediate' | 'advanced';
 

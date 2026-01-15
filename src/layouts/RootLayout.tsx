@@ -17,6 +17,7 @@ import { MobileNavigation } from '../components/MobileNavigation';
 import { MobileSidebar } from '../components/MobileSidebar'; // NEW
 import { Cart } from '../components/Cart';
 import { GuideButton } from '../components/guide/GuideButton'; // Phase 1.5
+import { GuideTourModal } from '../components/guide/GuideTourModal'; // Phase 1.5
 import { OnboardingBanner } from '../components/onboarding/OnboardingBanner'; // UX Improvement 1
 import { LoadingFallback } from '../components/LoadingFallback';
 import { LazyLoadErrorBoundary } from '../components/LazyLoadErrorBoundary';
@@ -140,6 +141,7 @@ function RootLayoutContent() {
       />
 
       <GuideButton /> {/* Phase 1.5: Floating guide button */}
+      <GuideTourModal /> {/* Phase 1.5: Guide modal visible everywhere */}
 
       <MobileSidebar
         isOpen={isMobileSidebarOpen}

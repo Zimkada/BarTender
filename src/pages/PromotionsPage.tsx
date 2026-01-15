@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -32,6 +32,9 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select, SelectOption } from '../components/ui/Select';
 import { DropdownMenu } from '../components/ui/DropdownMenu';
+import { useAutoGuide } from '../hooks/useGuideTrigger';
+import { useOnboarding } from '../context/OnboardingContext';
+import { useGuide } from '../context/GuideContext';
 
 /**
  * PromotionsPage - Page de gestion des promotions
@@ -43,6 +46,8 @@ export default function PromotionsPage() {
     const { currentBar } = useBarContext();
     const { isMobile } = useViewport();
     const { showNotification } = useNotifications();
+    const { isComplete } = useOnboarding();
+    const { hasCompletedGuide } = useGuide();
     const [promotions, setPromotions] = useState<Promotion[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -50,6 +55,13 @@ export default function PromotionsPage() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
     const [view, setView] = useState<'list' | 'analytics'>('list');
+
+    // Trigger promotions guide after onboarding (first visit only)
+    useAutoGuide(
+        'manage-promotions',
+        isComplete && !hasCompletedGuide('manage-promotions'),
+        { delay: 1500 }
+    );
 
     // Options pour le filtre de statut
     const statusFilterOptions: SelectOption[] = [
@@ -183,7 +195,7 @@ export default function PromotionsPage() {
                         </div>
 
                         {/* View Switcher - Responsive */}
-                        <div className="flex bg-amber-700/30 p-1 rounded-lg w-full sm:w-auto">
+                        <div className="flex bg-amber-700/30 p-1 rounded-lg w-full sm:w-auto" data-guide="promotions-analytics">
                             <Button
                                 onClick={() => setView('list')}
                                 variant={view === 'list' ? 'default' : 'ghost'}
@@ -211,7 +223,7 @@ export default function PromotionsPage() {
                 <>
                     {/* Toolbar */}
                     <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-4 mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-                        <div className="flex flex-col sm:flex-row gap-4 flex-1 w-full">
+                        <div className="flex flex-col sm:flex-row gap-4 flex-1 w-full" data-guide="promotions-search">
                             <div className="flex-1">
                                 <Input
                                     type="text"
@@ -235,6 +247,7 @@ export default function PromotionsPage() {
                             onClick={() => { setSelectedPromotion(null); setShowCreateModal(true); }}
                             icon={<Plus size={20} />}
                             className="w-full sm:w-auto"
+                            data-guide="promotions-create-btn"
                         >
                             Nouvelle Promotion
                         </EnhancedButton>
@@ -268,10 +281,11 @@ export default function PromotionsPage() {
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col"
+                                    data-guide="promotions-list"
                                 >
                                     <div className="p-5 flex-1">
                                         <div className="flex justify-between items-start mb-4">
-                                            <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 ${getStatusColor(promo.status)}`}>
+                                            <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 ${getStatusColor(promo.status)}`} data-guide="promotions-status">
                                                 <span className={`w-1.5 h-1.5 rounded-full ${promo.status === 'active' ? 'bg-green-500' : 'bg-current'}`}></span>
                                                 {promo.status === 'active' ? 'Active' :
                                                     promo.status === 'scheduled' ? 'Programmée' :
