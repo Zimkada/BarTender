@@ -23,6 +23,10 @@ import { CategoryStatsList } from '../components/common/CategoryStatsList';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
 import { EmptyState } from '../components/common/EmptyState';
 import { Button } from '../components/ui/Button';
+import { useAutoGuide } from '../hooks/useGuideTrigger';
+import { useOnboarding } from '../context/OnboardingContext';
+import { useGuide } from '../context/GuideContext';
+import { useAuth } from '../context/AuthContext';
 
 /**
  * InventoryPage - Page de gestion des produits
@@ -41,6 +45,20 @@ export default function InventoryPage() {
         getProductStockInfo,
         processSupply,
     } = useStockManagement();
+
+    const { isComplete: onboardingComplete } = useOnboarding();
+    const { hasCompletedGuide } = useGuide();
+    const { currentSession } = useAuth();
+
+    // Activation du guide auto pour l'inventaire (Propriétaire et Gérant)
+    const canSeeInventoryGuide = currentSession?.role === 'promoteur' || currentSession?.role === 'gerant';
+    const inventoryGuideId = currentSession?.role === 'gerant' ? 'manager-inventory' : 'manage-inventory';
+
+    useAutoGuide(
+        inventoryGuideId,
+        onboardingComplete && canSeeInventoryGuide && !hasCompletedGuide(inventoryGuideId),
+        { delay: 2000 }
+    );
 
     const { formatPrice } = useCurrencyFormatter();
     const { isMobile } = useViewport();
@@ -308,7 +326,7 @@ export default function InventoryPage() {
                                                         {stockInfo?.physicalStock ?? 'N/A'}
                                                     </div>
                                                     <div className="text-xs text-gray-500 mt-1">
-                                                        Dispo: {stockInfo?.availableStock ?? 'N/A'}
+                                                        Vendable: {stockInfo?.availableStock ?? 'N/A'}
                                                     </div>
                                                 </div>
                                             </div>
@@ -419,13 +437,14 @@ export default function InventoryPage() {
                                 </div>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2" data-guide="inventory-add-btn">
                             {/* 4. CONDITION D'AFFICHAGE DU BOUTON DESKTOP */}
                             {isProductImportEnabled && (
                                 <Button
                                     onClick={() => setShowProductImport(true)}
                                     variant="ghost"
                                     className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors flex items-center gap-2 text-white"
+                                    data-guide="inventory-import-btn"
                                 >
                                     <UploadCloud size={18} className="mr-2" />
                                     <span className="text-sm font-medium">Importer</span>
@@ -435,6 +454,7 @@ export default function InventoryPage() {
                                 onClick={() => setShowSupplyModal(true)}
                                 variant="ghost"
                                 className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors flex items-center gap-2 text-white"
+                                data-guide="inventory-supply-btn"
                             >
                                 <TruckIcon size={18} className="mr-2" />
                                 <span className="text-sm font-medium">Approvisionnement</span>
@@ -453,11 +473,13 @@ export default function InventoryPage() {
 
                 {/* Recherche et tri */}
                 <div className="p-4 border-b border-amber-100 space-y-3">
-                    <SearchBar
-                        value={searchTerm}
-                        onChange={setSearchTerm}
-                        placeholder="Rechercher un produit..."
-                    />
+                    <div data-guide="inventory-search">
+                        <SearchBar
+                            value={searchTerm}
+                            onChange={setSearchTerm}
+                            placeholder="Rechercher un produit..."
+                        />
+                    </div>
                     <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-600 font-medium">Trier par :</span>
                         <div className="flex gap-2">
@@ -483,43 +505,47 @@ export default function InventoryPage() {
 
             {/* Stats et alertes */}
             <div className="space-y-4 mb-6">
-                <CollapsibleSection
-                    title="Nombre de produits par catégorie"
-                    icon={<BarChart3 size={18} className="text-amber-600" />}
-                    badge={`${sortedProducts.length}/${products.length} produits`}
-                    defaultOpen={false}
-                >
-                    <CategoryStatsList stats={categoryStats} showAlerts={false} />
-                </CollapsibleSection>
+                <div data-guide="inventory-categories">
+                    <CollapsibleSection
+                        title="Nombre de produits par catégorie"
+                        icon={<BarChart3 size={18} className="text-amber-600" />}
+                        badge={`${sortedProducts.length}/${products.length} produits`}
+                        defaultOpen={false}
+                    >
+                        <CategoryStatsList stats={categoryStats} showAlerts={false} />
+                    </CollapsibleSection>
+                </div>
 
                 {lowStockProducts.length === 0 ? (
                     <div className="bg-green-50 border border-green-200 rounded-xl p-4">
                         <p className="text-green-700 text-sm font-medium">✅ Tous les stocks sont OK</p>
                     </div>
                 ) : (
-                    <CollapsibleSection
-                        title="Alertes Stock"
-                        icon={<AlertTriangle size={18} className="text-orange-600" />}
-                        badge={lowStockProducts.length}
-                        defaultOpen={alertsDefaultOpen}
-                        className="border-orange-200"
-                    >
-                        <div className="space-y-2">
-                            {lowStockProducts.map(product => {
-                                const stockInfo = getProductStockInfo(product.id);
-                                return (
-                                    <div key={product.id} className="flex items-center justify-between p-2 bg-orange-50 rounded-lg">
-                                        <span className="text-sm text-gray-700">
-                                            {product.name} {product.volume && `(${product.volume})`}
-                                        </span>
-                                        <span className="text-sm font-medium text-orange-600">
-                                            {stockInfo?.physicalStock ?? 'N/A'} restant{(stockInfo?.physicalStock ?? 0) > 1 ? 's' : ''}
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </CollapsibleSection>
+                    <div data-guide="inventory-alerts">
+                        <CollapsibleSection
+                            title="Alertes Stock"
+                            icon={<AlertTriangle size={18} className="text-orange-600" />}
+                            badge={lowStockProducts.length}
+                            defaultOpen={alertsDefaultOpen}
+                            className="border-orange-200"
+                        >
+                            <div className="space-y-2">
+                                {lowStockProducts.map(product => {
+                                    const stockInfo = getProductStockInfo(product.id);
+                                    return (
+                                        <div key={product.id} className="flex items-center justify-between p-2 bg-orange-50 rounded-lg">
+                                            <span className="text-sm text-gray-700">
+                                                {product.name} {product.volume && `(${product.volume})`}
+                                            </span>
+                                            <span className="text-sm font-medium text-orange-600">
+                                                {stockInfo?.physicalStock ?? 'N/A'} restant{(stockInfo?.physicalStock ?? 0) > 1 ? 's' : ''}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </CollapsibleSection>
+                    </div>
                 )}
             </div>
 
@@ -541,7 +567,7 @@ export default function InventoryPage() {
                     }
                 />
             ) : (
-                <div className="bg-white rounded-xl border border-amber-100 overflow-hidden">
+                <div className="bg-white rounded-xl border border-amber-100 overflow-hidden" data-guide="inventory-table">
                     <table className="w-full text-left">
                         <thead>
                             <tr className="border-b border-amber-100 bg-amber-50">
@@ -588,11 +614,11 @@ export default function InventoryPage() {
                                                 {stockInfo?.physicalStock ?? 'N/A'}
                                             </span>
                                             <div className="text-xs text-gray-500">
-                                                Dispo: {stockInfo?.availableStock ?? 'N/A'}
+                                                Vendable: {stockInfo?.availableStock ?? 'N/A'}
                                             </div>
                                         </td>
                                         <td className="p-4">
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2" data-guide="inventory-edit-btn">
                                                 <Button
                                                     onClick={() => handleEditProduct(product)}
                                                     variant="ghost"
