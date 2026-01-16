@@ -24,7 +24,7 @@ const GuideSuggestionsPopover: React.FC<{
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="absolute bottom-16 right-0 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-40"
+          className="absolute bottom-16 right-0 w-72 md:w-80 max-h-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 md:max-h-96"
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -99,7 +99,7 @@ export const GuideButton: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-24 right-6 z-40 safe-area-inset-bottom">
+    <div className="fixed bottom-20 right-6 z-50 md:bottom-24 safe-area-inset-bottom">
       {/* Popover */}
       <div className="relative">
         <GuideSuggestionsPopover
