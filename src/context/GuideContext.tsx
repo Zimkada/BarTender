@@ -95,7 +95,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         });
       }
     },
-    [userId, currentSession?.role]
+    [userId, currentSession?.user?.email, currentSession?.role]
   );
 
   /**
@@ -123,7 +123,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         });
       }
     }
-  }, [activeTour?.id, activeTour?.steps?.length, currentStepIndex, userId]);
+  }, [activeTour?.id, activeTour?.steps?.length, currentStepIndex, userId, currentSession?.user?.email, currentSession?.role]);
 
   /**
    * Navigate to previous step
@@ -186,7 +186,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } finally {
       setIsLoading(false);
     }
-  }, [activeTour?.id, activeTour?.steps?.length, userId, currentSession?.role]);
+  }, [activeTour?.id, activeTour?.steps?.length, userId, currentSession?.user?.email, currentSession?.role]);
 
   /**
    * Skip tour
@@ -228,7 +228,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch (err: any) {
       console.error('Failed to skip guide:', err);
     }
-  }, [activeTour?.id, userId, currentStepIndex]);
+  }, [activeTour?.id, userId, currentStepIndex, currentSession?.user?.email, currentSession?.role]);
 
   /**
    * Rate tour (1-5 stars)
@@ -264,7 +264,7 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         console.error('Failed to rate guide:', err);
       }
     },
-    [activeTour?.id, userId]
+    [activeTour?.id, userId, currentSession?.user?.email, currentSession?.role]
   );
 
   /**
