@@ -198,7 +198,7 @@ export function EnrichCatalogModal({
         <div>
           <h3 className="font-semibold mb-3">📦 Produit Source</h3>
           <Card className="p-4 bg-blue-50 border-blue-200">
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-600">Nom local:</span>
                 <p className="font-medium">{sourceProduct.localName}</p>
@@ -259,7 +259,7 @@ export function EnrichCatalogModal({
             </div>
 
             {/* Catégorie & Volume */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Catégorie globale *</Label>
                 <select
@@ -292,7 +292,7 @@ export function EnrichCatalogModal({
             </div>
 
             {/* Marque & Fabricant */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Marque</Label>
                 <Input
@@ -341,7 +341,7 @@ export function EnrichCatalogModal({
             {/* Prix suggéré */}
             <div>
               <Label>Fourchette de prix suggéré</Label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Input
                   type="number"
                   value={priceMin}

@@ -21,37 +21,39 @@ export default function GlobalCatalogPage() {
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex items-center gap-1 mt-6">
+          {/* Tabs - Responsive with overflow scroll on mobile */}
+          <div className="flex items-center gap-1 mt-6 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setActiveTab('categories')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-medium transition-colors ${activeTab === 'categories'
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-t-lg font-medium transition-colors whitespace-nowrap text-sm sm:text-base ${activeTab === 'categories'
                 ? 'bg-white text-violet-600'
                 : 'bg-violet-700/50 text-violet-100 hover:bg-violet-700/70'
                 }`}
             >
-              <Layers className="w-4 h-4" />
-              Catégories
+              <Layers className="w-4 h-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Catégories</span>
+              <span className="sm:hidden">Catég.</span>
             </button>
             <button
               onClick={() => setActiveTab('products')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-medium transition-colors ${activeTab === 'products'
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-t-lg font-medium transition-colors whitespace-nowrap text-sm sm:text-base ${activeTab === 'products'
                 ? 'bg-white text-violet-600'
                 : 'bg-violet-700/50 text-violet-100 hover:bg-violet-700/70'
                 }`}
             >
-              <Package className="w-4 h-4" />
+              <Package className="w-4 h-4 flex-shrink-0" />
               Produits
             </button>
             <button
               onClick={() => setActiveTab('local-enrichment')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-t-lg font-medium transition-colors ${activeTab === 'local-enrichment'
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 rounded-t-lg font-medium transition-colors whitespace-nowrap text-sm sm:text-base ${activeTab === 'local-enrichment'
                 ? 'bg-white text-violet-600'
                 : 'bg-violet-700/50 text-violet-100 hover:bg-violet-700/70'
                 }`}
             >
-              <Download className="w-4 h-4" />
-              Enrichissement Local
+              <Download className="w-4 h-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Enrichissement</span>
+              <span className="sm:hidden">Enrichir</span>
             </button>
           </div>
         </div>
