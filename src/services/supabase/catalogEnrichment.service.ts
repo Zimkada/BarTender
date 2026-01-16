@@ -136,13 +136,17 @@ export class CatalogEnrichmentService {
     volume?: string
   ): Promise<SimilarGlobalProduct[]> {
     try {
+      console.log('🔍 findSimilarGlobalProducts called. Name:', name, 'Volume:', volume);
       const { data, error } = await supabase
         .from('global_products')
         .select('id, name, brand, volume, category, official_image, is_active')
         .eq('is_active', true)
         .limit(50); // Récupère 50 pour filtrer côté client
 
+      console.log('📍 Query result. Error:', error, 'Data count:', data?.length);
+
       if (error) {
+        console.error('🔴 Supabase error:', error);
         throw new Error('Erreur lors de la détection de doublons');
       }
 
@@ -179,8 +183,10 @@ export class CatalogEnrichmentService {
         }))
         .slice(0, 10);
 
+      console.log('✅ Similar products found:', similar.length);
       return similar;
     } catch (error: any) {
+      console.error('🔴 findSimilarGlobalProducts error:', error);
       throw new Error(handleSupabaseError(error));
     }
   }

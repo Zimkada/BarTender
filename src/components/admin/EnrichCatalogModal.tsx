@@ -106,13 +106,16 @@ export function EnrichCatalogModal({
   }, [name, isOpen]);
 
   async function detectSimilarProducts() {
+    console.log('🔍 detectSimilarProducts started. Name:', name, 'Volume:', volume);
     try {
       setStatus('checking');
+      console.log('📍 Status set to checking');
       const similar = await CatalogEnrichmentService.findSimilarGlobalProducts(
         name,
         volume
       );
 
+      console.log('📍 Similar products found:', similar.length);
       setSimilarProducts(similar);
       setFoundDuplicate(similar.length > 0);
 
@@ -123,8 +126,9 @@ export function EnrichCatalogModal({
         });
       }
     } catch (error) {
-      console.error('Erreur détection doublons:', error);
+      console.error('🔴 Erreur détection doublons:', error);
     } finally {
+      console.log('📍 Status set back to idle');
       setStatus('idle');
     }
   }
