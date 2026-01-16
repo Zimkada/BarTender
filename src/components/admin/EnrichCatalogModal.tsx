@@ -434,7 +434,7 @@ export function EnrichCatalogModal({
               console.log('🔵 Button clicked. Status:', status, 'Name:', name, 'Disabled:', status === 'checking' || !name.trim());
               handleEnrich();
             }}
-            loading={status === 'processing' || status === 'checking'}
+            isLoading={status === 'processing' || status === 'checking'}
             disabled={status === 'checking' || !name.trim()}
             variant="primary"
           >
