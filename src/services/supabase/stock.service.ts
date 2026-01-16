@@ -147,4 +147,43 @@ export class StockService {
             throw new Error(handleSupabaseError(error));
         }
     }
+
+    // =====================================================
+    // BATCH OPERATIONS FOR ONBOARDING
+    // =====================================================
+
+    /**
+     * Upsert batch d'approvisionnements pour un bar
+     * Utilisé par onboarding pour initialiser le stock de multiple produits
+     * Support du onConflict pour éviter les doublons (bar_id, product_id, supplied_at)
+     */
+    static async batchUpsertSupplies(
+        barId: string,
+        supplies: Array<{ productId: string; quantity: number; suppliedBy: string }>
+    ): Promise<Supply[]> {
+        try {
+            const suppliesRecords = supplies.map(s => ({
+                bar_id: barId,
+                product_id: s.productId,
+                quantity: s.quantity,
+                unit_cost: 0,
+                total_cost: 0,
+                notes: 'Initial stock setup',
+                supplied_by: s.suppliedBy,
+            }));
+
+            const { data, error } = await supabase
+                .from('supplies')
+                .upsert(suppliesRecords as SupplyInsert[], { onConflict: 'bar_id,product_id,supplied_at' })
+                .select();
+
+            if (error || !data) {
+                throw new Error('Erreur lors de l\'initialisation du stock');
+            }
+
+            return data;
+        } catch (error: any) {
+            throw new Error(handleSupabaseError(error));
+        }
+    }
 }

@@ -641,6 +641,7 @@ export type AuditLogEvent =
   | 'BAR_SUSPENDED'
   | 'BAR_ACTIVATED'
   | 'BAR_DELETED'
+  | 'MEMBER_ADDED'
   // User Management
   | 'USER_CREATED'
   | 'USER_UPDATED'

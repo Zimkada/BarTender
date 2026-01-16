@@ -19,7 +19,7 @@ export const StockInitStep: React.FC = () => {
 
   // Get products from previous step
   const productsData = stepData[OnboardingStep.OWNER_ADD_PRODUCTS] as any;
-  const productIds = productsData?.productIds || [];
+  const productIds = productsData?.products?.map((p: any) => p.productId) || [];
 
   // Initialize form with saved data or defaults
   const savedData = stepData[OnboardingStep.OWNER_STOCK_INIT] as StockInitFormData | undefined;
@@ -165,18 +165,28 @@ export const StockInitStep: React.FC = () => {
             >
               Retour
             </button>
-            <button
+            <LoadingButton
               type="button"
-              onClick={() => {
-                // Skip to dashboard
-                updateStepData(OnboardingStep.OWNER_STOCK_INIT, formData);
-                completeStep(OnboardingStep.OWNER_STOCK_INIT, formData);
-                completeOnboarding();
+              isLoading={loading}
+              onClick={async () => {
+                setLoading(true);
+                try {
+                  if (Object.keys(formData.stocks).length > 0 && currentBar?.id && currentSession?.userId) {
+                    await OnboardingService.initializeStock(currentBar.id, formData.stocks, currentSession.userId);
+                  }
+                  updateStepData(OnboardingStep.OWNER_STOCK_INIT, formData);
+                  completeStep(OnboardingStep.OWNER_STOCK_INIT, formData);
+                  completeOnboarding();
+                } catch (error: any) {
+                  setErrors('Erreur lors de la sauvegarde : ' + error.message);
+                } finally {
+                  setLoading(false);
+                }
               }}
               className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
               Compléter Plus Tard
-            </button>
+            </LoadingButton>
             <LoadingButton
               type="submit"
               isLoading={loading}

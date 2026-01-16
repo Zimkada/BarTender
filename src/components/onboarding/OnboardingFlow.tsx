@@ -14,7 +14,6 @@ import { AddManagersStep } from './AddManagersStep';
 import { SetupStaffStep } from './SetupStaffStep';
 import { AddProductsStep } from './AddProductsStep';
 import { StockInitStep } from './StockInitStep';
-import { ClosingHourStep } from './ClosingHourStep';
 import { ReviewStep } from './ReviewStep';
 
 // Manager components
@@ -94,8 +93,6 @@ export const OnboardingFlow: React.FC = () => {
         return <AddProductsStep />;
       case OnboardingStep.OWNER_STOCK_INIT:
         return <StockInitStep />;
-      case OnboardingStep.OWNER_CLOSING_HOUR:
-        return <ClosingHourStep />;
       case OnboardingStep.OWNER_REVIEW:
         return <ReviewStep />;
 

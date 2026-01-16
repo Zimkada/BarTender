@@ -10,7 +10,7 @@ import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
  * - Sticky positioning so always visible
  *
  * Handles all 3 role-specific flows:
- * - Owner: 9 steps (Welcome → Role → Bar Details → ... → Review)
+ * - Owner: 8 steps (Welcome → Role → Bar Details → ... → Review)
  * - Manager: 5 steps (Welcome → Role → Confirm → Check Staff → Tour)
  * - Bartender: 5 steps (Welcome → Role → Intro → Demo → Test Sale)
  */
@@ -30,7 +30,6 @@ export const OnboardingProgressBar: React.FC = () => {
           OnboardingStep.OWNER_SETUP_STAFF,
           OnboardingStep.OWNER_ADD_PRODUCTS,
           OnboardingStep.OWNER_STOCK_INIT,
-          OnboardingStep.OWNER_CLOSING_HOUR,
           OnboardingStep.OWNER_REVIEW,
         ];
       case 'gerant':

@@ -1,13 +1,12 @@
 // Onboarding context & flow
 export { OnboardingFlow } from './OnboardingFlow';
 
-// Owner/Promoter components (7 steps)
+// Owner/Promoter components (6 steps)
 export { BarDetailsStep } from './BarDetailsStep';
 export { AddManagersStep } from './AddManagersStep';
 export { SetupStaffStep } from './SetupStaffStep';
 export { AddProductsStep } from './AddProductsStep';
 export { StockInitStep } from './StockInitStep';
-export { ClosingHourStep } from './ClosingHourStep';
 export { ReviewStep } from './ReviewStep';
 
 // Manager components (3 steps)

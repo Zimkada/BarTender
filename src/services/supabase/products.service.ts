@@ -477,6 +477,57 @@ export class ProductsService {
   }
 
   /**
+   * Upsert batch de produits pour un bar
+   * Utilisé par onboarding pour ajouter multiple produits en une seule opération
+   * Support du onConflict pour éviter les doublons
+   * Enrichit les display_name avec les noms réels depuis global_products
+   */
+  static async batchUpsertBarProducts(
+    barId: string,
+    products: Array<{ globalProductId: string; displayName: string; price: number }>
+  ): Promise<BarProduct[]> {
+    try {
+      // 1. Fetch real product names from global_products
+      const { data: globalProducts, error: fetchError } = await supabase
+        .from('global_products')
+        .select('id, name')
+        .in('id', products.map(p => p.globalProductId));
+
+      if (fetchError) {
+        console.warn('Failed to fetch global product names, using fallback:', fetchError);
+      }
+
+      // 2. Create a map of globalProductId -> real name
+      const productNameMap = new Map(
+        (globalProducts || []).map(p => [p.id, p.name])
+      );
+
+      // 3. Map products with real names or fallback
+      const barProducts = products.map(p => ({
+        bar_id: barId,
+        global_product_id: p.globalProductId,
+        display_name: productNameMap.get(p.globalProductId) || p.displayName,
+        price: p.price,
+        is_active: true,
+      }));
+
+      // 4. Upsert with conflict resolution
+      const { data, error } = await supabase
+        .from('bar_products')
+        .upsert(barProducts as BarProductInsert[], { onConflict: 'bar_id,global_product_id' })
+        .select();
+
+      if (error || !data) {
+        throw new Error('Erreur lors de l\'ajout des produits');
+      }
+
+      return data;
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
    * Récupérer les produits en rupture de stock
    */
   static async getLowStockProducts(barId: string): Promise<BarProductWithDetails[]> {

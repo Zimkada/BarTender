@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '../lib/supabase';
 
 /**
  * Onboarding Step Enum
@@ -15,7 +16,6 @@ export enum OnboardingStep {
   OWNER_SETUP_STAFF = 'owner_setup_staff',
   OWNER_ADD_PRODUCTS = 'owner_add_products',
   OWNER_STOCK_INIT = 'owner_stock_init',
-  OWNER_CLOSING_HOUR = 'owner_closing_hour',
   OWNER_REVIEW = 'owner_review',
 
   // Manager path (3 steps)
@@ -59,9 +59,6 @@ export interface StepData {
   };
   [OnboardingStep.OWNER_STOCK_INIT]?: {
     stocks: Record<string, number>;
-  };
-  [OnboardingStep.OWNER_CLOSING_HOUR]?: {
-    closingHour: number;
   };
 }
 
@@ -114,7 +111,7 @@ export const OnboardingContext = createContext<OnboardingContextType | undefined
   undefined
 );
 
-const STORAGE_KEY = 'onboarding_progress';
+// Removed: localStorage no longer used for onboarding persistence
 
 /**
  * Get step sequence based on role
@@ -132,7 +129,6 @@ function getStepSequence(role: UserRole | null): OnboardingStep[] {
         OnboardingStep.OWNER_SETUP_STAFF,
         OnboardingStep.OWNER_ADD_PRODUCTS,
         OnboardingStep.OWNER_STOCK_INIT,
-        OnboardingStep.OWNER_CLOSING_HOUR,
         OnboardingStep.OWNER_REVIEW,
       ];
       break;
@@ -196,36 +192,108 @@ interface OnboardingProviderProps {
 export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children }) => {
   const [state, setState] = useState<OnboardingState>(defaultState);
 
-  // Load state from localStorage on mount
+  // Hydrate stepData from database when barId changes (resuming onboarding)
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
+    if (!state.barId) return;
+
+    const hydrateFromDatabase = async () => {
       try {
-        const parsed = JSON.parse(stored);
+        const { data: bar } = await supabase
+          .from('bars')
+          .select('name, address, settings')
+          .eq('id', state.barId!)
+          .single();
 
-        // Defensive: ensure critical fields are primitives
-        const safeRole = (parsed.userRole ? String(parsed.userRole) : null) as UserRole | null;
-        const safeUserId = parsed.userId ? String(parsed.userId) : null;
-        const safeBarId = parsed.barId ? String(parsed.barId) : null;
+        const { data: products } = await supabase
+          .from('bar_products')
+          .select('id, global_product_id, price')
+          .eq('bar_id', state.barId!)
+          .eq('is_active', true);
 
-        setState({
-          ...parsed,
-          userRole: safeRole,
-          userId: safeUserId,
-          barId: safeBarId,
-          startedAt: typeof parsed.startedAt === 'string' ? parsed.startedAt : null,
-          lastUpdatedAt: typeof parsed.lastUpdatedAt === 'string' ? parsed.lastUpdatedAt : null,
-        });
+        // Récupérer les stocks avec le global_product_id depuis bar_products
+        const { data: barProductsForStock } = await supabase
+          .from('bar_products')
+          .select('id, global_product_id')
+          .eq('bar_id', state.barId!);
+
+        const { data: supplies } = await supabase
+          .from('supplies')
+          .select('product_id, quantity')
+          .eq('bar_id', state.barId!);
+
+        const { data: members } = await supabase
+          .from('bar_members')
+          .select('user_id, role, virtual_server_name')
+          .eq('bar_id', state.barId!)
+          .eq('is_active', true);
+
+        // Build stepData from database
+        const hydratedStepData: StepData = {};
+
+        if (bar) {
+          const settings = (bar.settings as any) || {};
+          hydratedStepData[OnboardingStep.OWNER_BAR_DETAILS] = {
+            barName: bar.name || '',
+            location: bar.address || '',
+            closingHour: settings.businessDayCloseHour || 6,
+            operatingMode: (settings.operatingMode === 'full' ? 'full' : 'simplifié') as 'full' | 'simplifié',
+            contact: '',
+          };
+        }
+
+        if (products && products.length > 0) {
+          hydratedStepData[OnboardingStep.OWNER_ADD_PRODUCTS] = {
+            products: products.map((p: any) => ({
+              productId: p.global_product_id,
+              localPrice: p.price,
+            })),
+          };
+        }
+
+        if (supplies && supplies.length > 0 && barProductsForStock) {
+          // Créer un map bar_product.id -> global_product_id
+          const productIdToGlobalId = new Map(
+            barProductsForStock.map((bp: any) => [bp.id, bp.global_product_id])
+          );
+
+          const stocksMap: Record<string, number> = {};
+          supplies.forEach((s: any) => {
+            const globalProductId = productIdToGlobalId.get(s.product_id);
+            if (globalProductId) {
+              stocksMap[globalProductId] = s.quantity;
+            }
+          });
+          hydratedStepData[OnboardingStep.OWNER_STOCK_INIT] = {
+            stocks: stocksMap,
+          };
+        }
+
+        if (members && members.length > 0) {
+          const managers = members.filter((m: any) => m.role === 'gérant' && m.user_id);
+          const servers = members.filter((m: any) => m.role === 'serveur' && m.virtual_server_name);
+
+          if (managers.length > 0) {
+            hydratedStepData[OnboardingStep.OWNER_ADD_MANAGERS] = {
+              managerIds: managers.map((m: any) => m.user_id),
+            };
+          }
+
+          if (servers.length > 0) {
+            hydratedStepData[OnboardingStep.OWNER_SETUP_STAFF] = {
+              serverNames: servers.map((m: any) => m.virtual_server_name),
+            };
+          }
+        }
+
+        // Update state with hydrated data
+        updateState({ stepData: hydratedStepData });
       } catch (error) {
-        console.error('Failed to parse onboarding state from storage', error);
+        console.error('Failed to hydrate onboarding data from database:', error);
       }
-    }
-  }, []);
+    };
 
-  // Persist state to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
+    hydrateFromDatabase();
+  }, [state.barId]);
 
   const updateState = (updates: Partial<OnboardingState>) => {
     setState((prev) => ({
@@ -314,7 +382,6 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
 
   const resetOnboarding = () => {
     updateState(defaultState);
-    localStorage.removeItem(STORAGE_KEY);
   };
 
   const value: OnboardingContextType = {

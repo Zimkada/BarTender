@@ -1,8 +1,14 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
 import { auditLogger } from '../AuditLogger';
+import { ProductsService } from './products.service';
+import { StockService } from './stock.service';
+import { BarsService } from './bars.service';
 
 type BarUpdate = Database['public']['Tables']['bars']['Update'];
+type BarMemberInsert = Database['public']['Tables']['bar_members']['Insert'];
+type BarProductInsert = Database['public']['Tables']['bar_products']['Insert'];
+type SupplyInsert = Database['public']['Tables']['supplies']['Insert'];
 
 /**
  * Onboarding Service
@@ -33,9 +39,13 @@ export class OnboardingService {
       }
 
       // Log audit event
-      await AuditLogger.log('ONBOARDING_COMPLETED', {
-        bar_id: barId,
-        user_id: ownerId,
+      await auditLogger.log({
+        event: 'BAR_UPDATED',
+        severity: 'info',
+        userId: ownerId,
+        userName: 'System',
+        userRole: 'promoteur',
+        barId: barId,
         description: 'Owner completed onboarding setup and launched bar',
       });
     } catch (error: any) {
@@ -46,6 +56,7 @@ export class OnboardingService {
   /**
    * Assign manager to bar
    * Called from AddManagersStep.tsx when adding manager
+   * REFACTORED: Delegates to BarsService.assignMemberToBar()
    */
   static async assignManager(
     userId: string,
@@ -53,24 +64,19 @@ export class OnboardingService {
     assignedByUserId: string
   ): Promise<void> {
     try {
-      const { error } = await supabase.from('bar_members').insert({
-        user_id: userId,
-        bar_id: barId,
-        role: 'gérant',
-        assigned_by: assignedByUserId,
-        is_active: true,
-      });
+      // Delegate to BarsService for upsert
+      await BarsService.assignMemberToBar(barId, userId, 'gérant', assignedByUserId);
 
-      if (error) {
-        throw new Error(`Failed to assign manager: ${error.message}`);
-      }
-
-      // Log audit
-      await AuditLogger.log('MANAGER_ASSIGNED', {
-        bar_id: barId,
-        manager_id: userId,
-        assigned_by: assignedByUserId,
-        description: `Manager ${userId} assigned to bar ${barId}`,
+      // Log audit event (specific to onboarding)
+      await auditLogger.log({
+        event: 'MEMBER_ADDED',
+        severity: 'info',
+        userId: assignedByUserId,
+        userName: 'System',
+        userRole: 'promoteur',
+        barId: barId,
+        description: `Manager ${userId} assigned to bar during onboarding`,
+        metadata: { manager_id: userId },
       });
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
@@ -90,28 +96,31 @@ export class OnboardingService {
       // Insert multiple server records as bar_members
       const serverRecords = serverNames.map((name) => ({
         bar_id: barId,
-        user_id: `server_${barId}_${name}`, // Temp ID for mapping
-        role: 'serveur' as const,
+        user_id: null,
+        virtual_server_name: name,
+        role: 'serveur',
         assigned_by: createdByUserId,
         is_active: true,
-        display_name: name, // Store name for reference
-      }));
+      } as BarMemberInsert));
 
       const { error } = await supabase
         .from('bar_members')
-        .insert(serverRecords as any);
+        .upsert(serverRecords, { onConflict: 'bar_id,virtual_server_name' });
 
       if (error) {
         throw new Error(`Failed to create servers: ${error.message}`);
       }
 
       // Log audit
-      await AuditLogger.log('SERVERS_CREATED', {
-        bar_id: barId,
-        server_count: serverNames.length,
-        server_names: serverNames,
-        created_by: createdByUserId,
+      await auditLogger.log({
+        event: 'MEMBER_ADDED',
+        severity: 'info',
+        userId: createdByUserId,
+        userName: 'System',
+        userRole: 'promoteur',
+        barId: barId,
         description: `${serverNames.length} servers created for bar`,
+        metadata: { server_count: serverNames.length },
       });
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
@@ -121,6 +130,7 @@ export class OnboardingService {
   /**
    * Add products to bar catalog
    * Called from AddProductsStep.tsx when selecting products
+   * REFACTORED: Delegates to ProductsService.batchUpsertBarProducts()
    */
   static async addProductsToBar(
     barId: string,
@@ -128,27 +138,26 @@ export class OnboardingService {
     addedByUserId: string
   ): Promise<void> {
     try {
-      const barProducts = products.map((p) => ({
-        bar_id: barId,
-        product_id: p.productId,
-        local_price: p.localPrice,
-        is_available: true,
-      }));
+      // Delegate to ProductsService for batch upsert
+      await ProductsService.batchUpsertBarProducts(
+        barId,
+        products.map(p => ({
+          globalProductId: p.productId,
+          displayName: `Product ${p.productId}`, // Fallback if name not available
+          price: p.localPrice,
+        }))
+      );
 
-      const { error } = await supabase
-        .from('bar_products')
-        .insert(barProducts as any);
-
-      if (error) {
-        throw new Error(`Failed to add products: ${error.message}`);
-      }
-
-      // Log audit
-      await AuditLogger.log('PRODUCTS_ADDED', {
-        bar_id: barId,
-        product_count: products.length,
-        added_by: addedByUserId,
-        description: `${products.length} products added to bar catalog`,
+      // Log audit event (specific to onboarding)
+      await auditLogger.log({
+        event: 'PRODUCT_CREATED',
+        severity: 'info',
+        userId: addedByUserId,
+        userName: 'System',
+        userRole: 'promoteur',
+        barId: barId,
+        description: `${products.length} products added to bar catalog during onboarding`,
+        metadata: { product_count: products.length },
       });
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
@@ -158,6 +167,7 @@ export class OnboardingService {
   /**
    * Initialize stock for products
    * Called from StockInitStep.tsx when owner sets initial inventory
+   * REFACTORED: Delegates to StockService.batchUpsertSupplies()
    */
   static async initializeStock(
     barId: string,
@@ -165,41 +175,38 @@ export class OnboardingService {
     initializedByUserId: string
   ): Promise<void> {
     try {
-      // Get all bar_products for this bar to get IDs
+      // 1. Get all bar_products for this bar to map global_product_id -> bar_product.id
       const { data: barProducts, error: queryError } = await supabase
         .from('bar_products')
-        .select('id, product_id')
+        .select('id, global_product_id')
         .eq('bar_id', barId);
 
       if (queryError || !barProducts) {
         throw new Error('Failed to fetch bar products');
       }
 
-      // Create supplies records for each product
-      const suppliesRecords = barProducts
-        .filter((bp: any) => stocks[bp.product_id] !== undefined)
+      // 2. Map global product IDs to bar_product IDs and build supplies data
+      const suppliesData = barProducts
+        .filter((bp: any) => bp.global_product_id && stocks[bp.global_product_id] !== undefined)
         .map((bp: any) => ({
-          bar_id: barId,
-          product_id: bp.product_id,
-          quantity_received: stocks[bp.product_id],
-          unit_cost: 0, // Would be set from product pricing
-          source_type: 'initial_stock' as const,
-          notes: 'Initial stock setup during onboarding',
-          recorded_by: initializedByUserId,
+          productId: bp.id, // Use the bar_product UUID
+          quantity: stocks[bp.global_product_id],
+          suppliedBy: initializedByUserId,
         }));
 
-      const { error } = await supabase.from('supplies').insert(suppliesRecords as any);
+      // 3. Delegate to StockService for batch upsert
+      await StockService.batchUpsertSupplies(barId, suppliesData);
 
-      if (error) {
-        throw new Error(`Failed to initialize stock: ${error.message}`);
-      }
-
-      // Log audit
-      await AuditLogger.log('STOCK_INITIALIZED', {
-        bar_id: barId,
-        product_count: suppliesRecords.length,
-        initialized_by: initializedByUserId,
+      // 4. Log audit event (specific to onboarding)
+      await auditLogger.log({
+        event: 'SUPPLY_CREATED',
+        severity: 'info',
+        userId: initializedByUserId,
+        userName: 'System',
+        userRole: 'promoteur',
+        barId: barId,
         description: 'Initial stock initialized during onboarding',
+        metadata: { product_count: suppliesData.length },
       });
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
@@ -228,11 +235,15 @@ export class OnboardingService {
         throw new Error(`Failed to update mode: ${error.message}`);
       }
 
-      await AuditLogger.log('MODE_UPDATED', {
-        bar_id: barId,
-        mode,
-        updated_by: updatedByUserId,
+      await auditLogger.log({
+        event: 'BAR_UPDATED',
+        severity: 'info',
+        userId: updatedByUserId,
+        userName: 'System',
+        userRole: 'promoteur',
+        barId: barId,
         description: `Operating mode changed to ${mode}`,
+        metadata: { mode },
       });
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
@@ -253,7 +264,7 @@ export class OnboardingService {
       // Check 1: Bar details complete
       const { data: bar, error: barError } = await supabase
         .from('bars')
-        .select('id, name, location, closing_hour, operating_mode, is_setup_complete')
+        .select('id, name, address, closing_hour, settings')
         .eq('id', barId)
         .single();
 
@@ -262,7 +273,7 @@ export class OnboardingService {
         return { isReady: false, errors };
       }
 
-      if (!bar.name || !bar.location) {
+      if (!bar.name || !bar.address) {
         errors.push('Bar details incomplete');
       }
 
@@ -329,9 +340,9 @@ export class OnboardingService {
       // Get bar info
       const { data: bar } = await supabase
         .from('bars')
-        .select('name, is_setup_complete, setup_completed_at')
+        .select('name, settings, is_setup_complete, setup_completed_at')
         .eq('id', barId)
-        .single();
+        .single() as any;
 
       // Get counts
       const { count: managerCount } = await supabase
@@ -385,7 +396,7 @@ export class OnboardingService {
     operatingMode?: 'full' | 'simplifié'
   ): Promise<{ success: boolean; completedAt?: string; error?: string }> {
     try {
-      const { data, error } = await supabase.rpc(
+      const { data, error } = await (supabase.rpc as any)(
         'complete_bar_onboarding',
         {
           p_bar_id: barId,
@@ -398,21 +409,27 @@ export class OnboardingService {
         throw new Error(`RPC failed: ${error.message}`);
       }
 
-      if (!data?.success) {
-        throw new Error(data?.error || 'Unknown error in RPC');
+      const result = Array.isArray(data) ? data[0] : data;
+
+      if (!result?.success) {
+        throw new Error(result?.error || 'Unknown error in RPC');
       }
 
-      // Log completion (RPC handles this via triggers, but double-logging for safety)
-      await auditLogger.log('ONBOARDING_COMPLETED_VIA_RPC', {
-        bar_id: barId,
-        user_id: ownerId,
+      // Log completion
+      await auditLogger.log({
+        event: 'BAR_UPDATED',
+        severity: 'info',
+        userId: ownerId,
+        userName: 'System',
+        userRole: 'promoteur',
+        barId: barId,
         description: 'Owner completed onboarding using atomic RPC',
-        operating_mode: operatingMode,
+        metadata: { operating_mode: operatingMode },
       });
 
       return {
         success: true,
-        completedAt: data.completed_at,
+        completedAt: result.completed_at,
       };
     } catch (error: any) {
       console.error('Atomic onboarding failed:', error);

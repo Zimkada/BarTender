@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
 import { useBar } from '../../context/BarContext';
 import { LoadingButton } from '../ui/LoadingButton';
+import { BarsService } from '../../services/supabase/bars.service';
 
 interface BarDetailsFormData {
   barName: string;
@@ -22,18 +23,22 @@ export const BarDetailsStep: React.FC = () => {
   const savedData = stepData[OnboardingStep.OWNER_BAR_DETAILS] as BarDetailsFormData | undefined;
   const [formData, setFormData] = useState<BarDetailsFormData>({
     barName: savedData?.barName || currentBar?.name || '',
-    location: savedData?.location || currentBar?.location || '',
-    closingHour: savedData?.closingHour || currentBar?.closing_hour || 6,
-    operatingMode: savedData?.operatingMode || (currentBar?.operating_mode as 'full' | 'simplifié') || 'simplifié',
-    contact: savedData?.contact || currentBar?.contact_email || '',
+    location: savedData?.location || currentBar?.address || '',
+    closingHour: savedData?.closingHour || currentBar?.closingHour || 6,
+    operatingMode: savedData?.operatingMode ||
+      (currentBar?.settings?.operatingMode === 'simplified' ? 'simplifié' :
+        currentBar?.settings?.operatingMode === 'full' ? 'full' : 'simplifié'),
+    contact: savedData?.contact || currentBar?.email || '',
   });
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Nom du bar: requis seulement si modifié (vide ET pas de valeur existante)
-    if (formData.barName.trim().length > 0 && formData.barName.length < 3) {
-      newErrors.barName = 'Nom du bar doit avoir au moins 3 caractères';
+    // Nom du bar: obligatoire (min 3 caractères)
+    if (!formData.barName.trim()) {
+      newErrors.barName = 'Le nom du bar est obligatoire';
+    } else if (formData.barName.trim().length < 3) {
+      newErrors.barName = 'Le nom du bar doit avoir au moins 3 caractères';
     }
     if (formData.barName.length > 50) {
       newErrors.barName = 'Nom du bar trop long (max 50 caractères)';
@@ -63,15 +68,30 @@ export const BarDetailsStep: React.FC = () => {
 
     setLoading(true);
     try {
-      // Save form data to context
+      if (!currentBar?.id) throw new Error('Aucun bar sélectionné');
+
+      // 1. Persist to Database immediately (settings are JSONB, not separate columns)
+      const currentSettings = (currentBar.settings as any) || {};
+      await BarsService.updateBar(currentBar.id, {
+        name: formData.barName,
+        address: formData.location,
+        email: formData.contact,
+        settings: {
+          ...currentSettings,
+          businessDayCloseHour: formData.closingHour,
+          operatingMode: formData.operatingMode,
+        },
+      } as any);
+
+      // 2. Save form data to context for UI state
       updateStepData(OnboardingStep.OWNER_BAR_DETAILS, formData);
       completeStep(OnboardingStep.OWNER_BAR_DETAILS, formData);
 
-      // Move to next step
+      // 3. Move to next step
       nextStep();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur lors de l\'enregistrement des détails du bar:', error);
-      setErrors({ submit: 'Impossible d\'enregistrer les détails du bar' });
+      setErrors({ submit: error.message || 'Impossible d\'enregistrer les détails du bar' });
     } finally {
       setLoading(false);
     }
@@ -248,18 +268,40 @@ export const BarDetailsStep: React.FC = () => {
             >
               Retour
             </button>
-            <button
+            <LoadingButton
               type="button"
-              onClick={() => {
-                // Save current form data and skip to dashboard
-                updateStepData(OnboardingStep.OWNER_BAR_DETAILS, formData);
-                completeStep(OnboardingStep.OWNER_BAR_DETAILS, formData);
-                completeOnboarding();
+              isLoading={loading}
+              onClick={async () => {
+                setLoading(true);
+                try {
+                  if (!currentBar?.id) throw new Error('Aucun bar sélectionné');
+
+                  // Persist current state before leaving (settings are JSONB)
+                  const currentSettings = (currentBar.settings as any) || {};
+                  await BarsService.updateBar(currentBar.id, {
+                    name: formData.barName,
+                    address: formData.location,
+                    email: formData.contact,
+                    settings: {
+                      ...currentSettings,
+                      businessDayCloseHour: formData.closingHour,
+                      operatingMode: formData.operatingMode,
+                    },
+                  } as any);
+
+                  updateStepData(OnboardingStep.OWNER_BAR_DETAILS, formData);
+                  completeStep(OnboardingStep.OWNER_BAR_DETAILS, formData);
+                  completeOnboarding();
+                } catch (error: any) {
+                  setErrors({ submit: 'Erreur lors de la sauvegarde : ' + error.message });
+                } finally {
+                  setLoading(false);
+                }
               }}
               className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
               Compléter Plus Tard
-            </button>
+            </LoadingButton>
             <LoadingButton
               type="submit"
               isLoading={loading}

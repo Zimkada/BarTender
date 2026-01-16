@@ -5,6 +5,7 @@ import { Bar } from '../../types';
 type BarRow = Database['public']['Tables']['bars']['Row'];
 // type BarInsert = Database['public']['Tables']['bars']['Insert']; // Unused
 type BarUpdate = Database['public']['Tables']['bars']['Update'];
+type BarMemberInsert = Database['public']['Tables']['bar_members']['Insert'];
 
 export interface BarWithOwner extends Bar {
   owner_name: string;
@@ -36,7 +37,7 @@ export class BarsService {
       name: row.name,
       address: row.address || undefined,
       phone: row.phone || undefined,
-      email: undefined,
+      email: row.contact_email || undefined,
       ownerId: row.owner_id || '',
       createdAt: new Date(row.created_at || Date.now()),
       isActive: row.is_active || false,
@@ -522,6 +523,36 @@ export class BarsService {
     } catch (error: any) {
       console.error('Error adding existing member:', error);
       return { success: false, error: error.message || 'Erreur lors de l\'ajout' };
+    }
+  }
+
+  /**
+   * Assigner un membre utilisateur à un bar
+   * Support upsert pour éviter les doublons
+   * Utilisé par onboarding pour assigner des managers
+   */
+  static async assignMemberToBar(
+    barId: string,
+    userId: string,
+    role: 'promoteur' | 'gérant' | 'serveur',
+    assignedByUserId: string
+  ): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('bar_members')
+        .upsert({
+          bar_id: barId,
+          user_id: userId,
+          role,
+          assigned_by: assignedByUserId,
+          is_active: true,
+        } as BarMemberInsert, { onConflict: 'bar_id,user_id' });
+
+      if (error) {
+        throw new Error(`Erreur lors de l'assignation du membre: ${error.message}`);
+      }
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
     }
   }
 }

@@ -182,18 +182,28 @@ export const AddProductsStep: React.FC = () => {
             >
               Retour
             </button>
-            <button
+            <LoadingButton
               type="button"
-              onClick={() => {
-                // Skip to dashboard
-                updateStepData(OnboardingStep.OWNER_ADD_PRODUCTS, formData);
-                completeStep(OnboardingStep.OWNER_ADD_PRODUCTS, formData);
-                completeOnboarding();
+              isLoading={loading}
+              onClick={async () => {
+                setLoading(true);
+                try {
+                  if (formData.products.length > 0 && currentBar?.id && currentSession?.userId) {
+                    await OnboardingService.addProductsToBar(currentBar.id, formData.products, currentSession.userId);
+                  }
+                  updateStepData(OnboardingStep.OWNER_ADD_PRODUCTS, formData);
+                  completeStep(OnboardingStep.OWNER_ADD_PRODUCTS, formData);
+                  completeOnboarding();
+                } catch (error: any) {
+                  setErrors('Erreur lors de la sauvegarde : ' + error.message);
+                } finally {
+                  setLoading(false);
+                }
               }}
               className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
             >
               Compléter Plus Tard
-            </button>
+            </LoadingButton>
             <LoadingButton
               type="submit"
               isLoading={loading}
