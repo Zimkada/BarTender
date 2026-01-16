@@ -130,13 +130,17 @@ export function EnrichCatalogModal({
   }
 
   async function handleEnrich() {
+    console.log('🟢 handleEnrich called. Name:', name, 'Image:', image, 'SourceImage:', sourceProduct.localImage);
+
     // Validations
     if (!name.trim()) {
+      console.log('❌ Name empty');
       showNotification({ type: 'error', message: 'Le nom est requis' });
       return;
     }
 
     if (!image && !sourceProduct.localImage) {
+      console.log('❌ No image');
       showNotification({
         type: 'error',
         message: 'Une image est requise pour enrichir le catalogue'
@@ -160,12 +164,15 @@ export function EnrichCatalogModal({
     };
 
     try {
+      console.log('✅ Validations passed. Calling enrichGlobalCatalogWithLocal...');
       setStatus('processing');
 
-      await CatalogEnrichmentService.enrichGlobalCatalogWithLocal(
+      const result = await CatalogEnrichmentService.enrichGlobalCatalogWithLocal(
         sourceProduct.barProductId,
         enrichmentData
       );
+
+      console.log('✅ Enrichment success:', result);
 
       showNotification({
         type: 'success',
@@ -175,6 +182,7 @@ export function EnrichCatalogModal({
       onSuccess?.();
       onClose();
     } catch (error: any) {
+      console.error('🔴 Enrichment error:', error);
       showNotification({
         type: 'error',
         message: error.message || 'Erreur lors de l\'enrichissement'
@@ -422,7 +430,10 @@ export function EnrichCatalogModal({
           </Button>
 
           <LoadingButton
-            onClick={handleEnrich}
+            onClick={() => {
+              console.log('🔵 Button clicked. Status:', status, 'Name:', name, 'Disabled:', status === 'checking' || !name.trim());
+              handleEnrich();
+            }}
             loading={status === 'processing' || status === 'checking'}
             disabled={status === 'checking' || !name.trim()}
             variant="primary"
