@@ -54,6 +54,7 @@ export const GuideTourModal: React.FC = () => {
     currentStepIndex,
     isVisible,
     isLoading,
+    error,
     nextStep,
     prevStep,
     completeTour,
@@ -236,6 +237,19 @@ export const GuideTourModal: React.FC = () => {
                   </div>
                 )}
               </motion.div>
+
+              {/* Error Display with Retry */}
+              {error && (
+                <div className="px-6 py-3 bg-red-50 border-t border-red-200 flex-shrink-0">
+                  <div className="flex items-start gap-2">
+                    <span className="text-red-600 text-lg flex-shrink-0">⚠️</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-red-800">Erreur de sauvegarde</p>
+                      <p className="text-xs text-red-700 mt-1">{error}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Footer with buttons */}
               <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex gap-3 flex-shrink-0">

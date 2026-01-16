@@ -82,10 +82,16 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       // Log analytics
       if (userId) {
-        await auditLogger.log('GUIDE_STARTED', {
-          tour_id: tourId,
-          user_role: currentSession?.role,
-          timestamp: new Date().toISOString(),
+        auditLogger.log({
+          event: 'GUIDE_STARTED',
+          userId: userId,
+          userName: currentSession?.user?.email || 'Unknown',
+          userRole: currentSession?.role || 'serveur',
+          description: `Started guide: ${tourId}`,
+          metadata: {
+            tour_id: tourId,
+            timestamp: new Date().toISOString(),
+          },
         });
       }
     },
@@ -104,9 +110,16 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       // Log step view
       if (userId) {
-        auditLogger.log('GUIDE_STEP_VIEWED', {
-          tour_id: activeTour.id,
-          step_index: newIndex,
+        auditLogger.log({
+          event: 'GUIDE_STEP_VIEWED',
+          userId: userId,
+          userName: currentSession?.user?.email || 'Unknown',
+          userRole: currentSession?.role || 'serveur',
+          description: `Viewed step ${newIndex + 1} of guide: ${activeTour.id}`,
+          metadata: {
+            tour_id: activeTour.id,
+            step_index: newIndex,
+          },
         });
       }
     }
@@ -150,19 +163,26 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setCompletedGuides(prev => new Set([...prev, activeTour.id]));
 
         // Log completion
-        await auditLogger.log('GUIDE_COMPLETED', {
-          tour_id: activeTour.id,
-          user_role: currentSession?.role,
-          steps_count: activeTour.steps.length,
+        auditLogger.log({
+          event: 'GUIDE_COMPLETED',
+          userId: userId,
+          userName: currentSession?.user?.email || 'Unknown',
+          userRole: currentSession?.role || 'serveur',
+          description: `Completed guide: ${activeTour.id}`,
+          metadata: {
+            tour_id: activeTour.id,
+            steps_count: activeTour.steps.length,
+          },
         });
       }
 
       console.log('[GuideContext.completeTour] Closing tour');
-      // Close modal
+      // Close modal ONLY if no error
       closeTour();
     } catch (err: any) {
       console.error('Failed to complete guide:', err);
-      setError(err.message);
+      setError(err.message || 'Impossible de sauvegarder votre progression. Vérifiez votre connexion.');
+      // ✅ Do NOT close modal on error - let user retry
     } finally {
       setIsLoading(false);
     }
@@ -190,9 +210,16 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         });
 
         // Log skip
-        await auditLogger.log('GUIDE_SKIPPED', {
-          tour_id: activeTour.id,
-          step_index: currentStepIndex,
+        auditLogger.log({
+          event: 'GUIDE_SKIPPED',
+          userId: userId,
+          userName: currentSession?.user?.email || 'Unknown',
+          userRole: currentSession?.role || 'serveur',
+          description: `Skipped guide: ${activeTour.id} at step ${currentStepIndex + 1}`,
+          metadata: {
+            tour_id: activeTour.id,
+            step_index: currentStepIndex,
+          },
         });
       }
 
@@ -219,9 +246,16 @@ export const GuideProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           .eq('tour_id', activeTour.id);
 
         // Log rating
-        await auditLogger.log('GUIDE_RATED', {
-          tour_id: activeTour.id,
-          rating,
+        auditLogger.log({
+          event: 'GUIDE_RATED',
+          userId: userId,
+          userName: currentSession?.user?.email || 'Unknown',
+          userRole: currentSession?.role || 'serveur',
+          description: `Rated guide: ${activeTour.id} with ${rating} stars`,
+          metadata: {
+            tour_id: activeTour.id,
+            rating,
+          },
         });
 
         // Close after rating

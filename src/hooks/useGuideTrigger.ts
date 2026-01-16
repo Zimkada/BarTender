@@ -61,7 +61,7 @@ export const useGuideTrigger = (guideId: string) => {
     const shouldShow = guide.triggers.some((t: GuideTrigger) => !t.showOnce || !hasCompletedGuide(guideId));
 
     if (shouldShow) {
-      startTour(guideId);
+      startTour(guideId, guide); // ✅ Pass guide object
     }
   };
 
@@ -81,18 +81,24 @@ export const useAutoGuide = (
   shouldTrigger: boolean,
   options?: { delay?: number }
 ) => {
-  const { triggerGuide } = useGuideTrigger(guideId);
+  const { triggerGuide, isGuideActive } = useGuideTrigger(guideId);
+  const { activeTour } = useGuide();
 
   useEffect(() => {
     if (!shouldTrigger) return;
 
     const timer = setTimeout(
       () => {
-        triggerGuide();
+        // ✅ Only trigger if no guide is already active
+        if (!activeTour) {
+          triggerGuide();
+        } else {
+          console.log(`[useAutoGuide] Guide "${guideId}" suppressed (${activeTour.id} already active)`);
+        }
       },
       options?.delay ?? 2000
     );
 
     return () => clearTimeout(timer);
-  }, [shouldTrigger, guideId, triggerGuide, options?.delay]);
+  }, [shouldTrigger, guideId, triggerGuide, options?.delay, activeTour]);
 };
