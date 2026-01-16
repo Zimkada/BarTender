@@ -58,9 +58,7 @@ export class CatalogEnrichmentService {
           volume,
           local_category_id,
           created_at,
-          is_custom_product,
-          bars(name),
-          bar_categories(name)
+          is_custom_product
         `)
         .eq('is_custom_product', true)
         .eq('is_active', true)
@@ -93,17 +91,33 @@ export class CatalogEnrichmentService {
         throw new Error('Erreur lors de la récupération des produits custom');
       }
 
+      // Get unique bar IDs from products
+      const barIds = Array.from(new Set((data || []).map(p => p.bar_id)));
+
+      // Fetch bar names
+      let barNames: Record<string, string> = {};
+      if (barIds.length > 0) {
+        const { data: barsData } = await supabase
+          .from('bars')
+          .select('id, name')
+          .in('id', barIds);
+
+        if (barsData) {
+          barNames = Object.fromEntries(barsData.map(b => [b.id, b.name]));
+        }
+      }
+
       return (data || []).map((p: any) => ({
         barProductId: p.id,
         barId: p.bar_id,
-        barName: p.bars?.name || 'Bar inconnu',
+        barName: barNames[p.bar_id] || 'Bar inconnu',
         localName: p.local_name,
         localImage: p.local_image,
         price: p.price,
         stock: p.stock,
         volume: p.volume,
         localCategoryId: p.local_category_id,
-        localCategoryName: p.bar_categories?.name || 'Catégorie inconnue',
+        localCategoryName: 'Catégorie inconnue',
         createdAt: new Date(p.created_at || Date.now()),
         isCustomProduct: p.is_custom_product
       }));
