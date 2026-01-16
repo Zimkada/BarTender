@@ -27,6 +27,7 @@ import { useAutoGuide } from '../hooks/useGuideTrigger';
 import { useOnboarding } from '../context/OnboardingContext';
 import { useGuide } from '../context/GuideContext';
 import { useAuth } from '../context/AuthContext';
+import { CatalogContributionBadge } from '../components/products/CatalogContributionBadge';
 
 /**
  * InventoryPage - Page de gestion des produits
@@ -317,6 +318,14 @@ export default function InventoryPage() {
                                                     <h3 className="font-bold text-gray-800 text-base mb-1">{product.name}</h3>
                                                     <p className="text-gray-600 text-sm">{product.volume}</p>
                                                     <p className="text-gray-500 text-xs mt-1">{getCategoryName(product.categoryId)}</p>
+                                                    {product.globalProductId && (
+                                                        <div className="mt-2">
+                                                            <CatalogContributionBadge
+                                                                globalProductId={product.globalProductId}
+                                                                barName={currentBar?.name}
+                                                            />
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <div className={`flex-shrink-0 text-right`}>
                                                     <div className={`px-3 py-1 rounded-full text-sm font-bold ${(stockInfo?.availableStock ?? 0) <= product.alertThreshold
@@ -596,6 +605,14 @@ export default function InventoryPage() {
                                             <div>
                                                 <div className="text-gray-800 font-medium">{product.name}</div>
                                                 <div className="text-gray-600 text-sm">{product.volume}</div>
+                                                {product.globalProductId && (
+                                                    <div className="mt-2">
+                                                        <CatalogContributionBadge
+                                                            globalProductId={product.globalProductId}
+                                                            barName={currentBar?.name}
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="p-4 text-gray-700">{getCategoryName(product.categoryId)}</td>
