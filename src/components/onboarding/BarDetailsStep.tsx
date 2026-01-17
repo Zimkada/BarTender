@@ -1,5 +1,6 @@
 // Language: French (Français)
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
 import { useBar } from '../../context/BarContext';
 import { LoadingButton } from '../ui/LoadingButton';
@@ -14,6 +15,7 @@ interface BarDetailsFormData {
 }
 
 export const BarDetailsStep: React.FC = () => {
+  const navigate = useNavigate();
   const { stepData, updateStepData, completeStep, nextStep, previousStep, completeOnboarding } = useOnboarding();
   const { currentBar } = useBar();
   const [loading, setLoading] = useState(false);
@@ -307,7 +309,9 @@ export const BarDetailsStep: React.FC = () => {
 
                     updateStepData(OnboardingStep.OWNER_BAR_DETAILS, formData);
                     completeStep(OnboardingStep.OWNER_BAR_DETAILS, formData);
-                    completeOnboarding();
+                    // Note: Do NOT call completeOnboarding() here - user wants to finish later
+                    // Redirect to dashboard instead
+                    navigate('/dashboard');
                   } catch (error: any) {
                     setErrors({ submit: 'Erreur lors de la sauvegarde : ' + error.message });
                   } finally {
