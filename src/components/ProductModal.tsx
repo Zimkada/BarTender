@@ -76,7 +76,7 @@ export function ProductModal({ isOpen, onClose, onSave, product }: ProductModalP
         image: '',
         alertThreshold: '10',
       });
-      setMode('custom');
+      // Don't force mode here - let it stay at 'global' (default)
       setSelectedGlobalId(null);
     }
   }, [product, categories, isOpen]);
