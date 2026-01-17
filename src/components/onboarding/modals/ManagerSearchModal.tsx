@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useBar } from '@/context/BarContext';
+import { useAuth } from '@/context/AuthContext';
 
 interface User {
   id: string;
@@ -20,6 +22,8 @@ export const ManagerSearchModal: React.FC<ManagerSearchModalProps> = ({
   onCancel,
   selectedIds = [],
 }) => {
+  const { currentBar } = useBar();
+  const { currentSession } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -54,21 +58,53 @@ export const ManagerSearchModal: React.FC<ManagerSearchModalProps> = ({
     setLoading(true);
     setError('');
     try {
-      const { data, error: fetchError } = await supabase
+      if (!currentBar?.id) {
+        throw new Error('Aucun bar sélectionné');
+      }
+
+      if (!currentSession?.userId) {
+        throw new Error('Utilisateur non authentifié');
+      }
+
+      // SECURITY FIX: Fetch all active users AND check which ones are already in this bar
+      // This ensures we don't suggest users who are already members
+      const { data: allUsers, error: usersError } = await supabase
         .from('users')
         .select('id, name, email')
         .eq('is_active', true)
         .order('name', { ascending: true });
 
-      if (fetchError) {
-        throw new Error(fetchError.message);
+      if (usersError) {
+        throw new Error(usersError.message);
       }
 
-      setUsers(data || []);
-      setFilteredUsers(data || []);
+      // Get existing bar members to exclude them from the list
+      const { data: barMembers, error: membersError } = await supabase
+        .from('bar_members')
+        .select('user_id')
+        .eq('bar_id', currentBar.id)
+        .eq('is_active', true);
+
+      if (membersError) {
+        console.error('Error fetching bar members:', membersError);
+      }
+
+      const existingMemberIds = new Set(
+        barMembers?.map((m: any) => m.user_id) || []
+      );
+
+      // Filter out users who are already in this bar and the current user
+      const availableUsers = (allUsers || []).filter(
+        (user: any) =>
+          !existingMemberIds.has(user.id) &&
+          user.id !== currentSession.userId
+      );
+
+      setUsers(availableUsers);
+      setFilteredUsers(availableUsers);
     } catch (err: any) {
       console.error('Error fetching users:', err);
-      setError(err.message || 'Failed to load users');
+      setError(err.message || 'Impossible de charger les utilisateurs');
     } finally {
       setLoading(false);
     }
@@ -97,8 +133,8 @@ export const ManagerSearchModal: React.FC<ManagerSearchModalProps> = ({
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
-          <h2 className="text-lg font-semibold text-gray-900">Add Managers</h2>
-          <p className="text-sm text-gray-600 mt-1">Select existing users to add as managers</p>
+          <h2 className="text-lg font-semibold text-gray-900">Ajouter des Gérants</h2>
+          <p className="text-sm text-gray-600 mt-1">Sélectionnez les utilisateurs existants pour les ajouter comme gérants</p>
         </div>
 
         {/* Content */}
@@ -107,7 +143,7 @@ export const ManagerSearchModal: React.FC<ManagerSearchModalProps> = ({
           <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
             <input
               type="text"
-              placeholder="Search by name or email..."
+              placeholder="Rechercher par nom ou email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -127,7 +163,7 @@ export const ManagerSearchModal: React.FC<ManagerSearchModalProps> = ({
               <div className="inline-block">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
-              <p className="mt-2 text-sm text-gray-600">Loading users...</p>
+              <p className="mt-2 text-sm text-gray-600">Chargement des utilisateurs...</p>
             </div>
           )}
 
@@ -158,7 +194,9 @@ export const ManagerSearchModal: React.FC<ManagerSearchModalProps> = ({
           {!loading && filteredUsers.length === 0 && (
             <div className="px-6 py-8 text-center">
               <p className="text-sm text-gray-600">
-                {users.length === 0 ? 'No users found' : 'No results match your search'}
+                {users.length === 0
+                  ? 'Aucun utilisateur disponible à ajouter'
+                  : 'Aucun résultat ne correspond à votre recherche'}
               </p>
             </div>
           )}
@@ -170,14 +208,14 @@ export const ManagerSearchModal: React.FC<ManagerSearchModalProps> = ({
             onClick={onCancel}
             className="flex-1 px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-100 transition font-medium"
           >
-            Cancel
+            Annuler
           </button>
           <button
             onClick={handleConfirm}
             disabled={selected.size === 0}
             className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Add ({selected.size})
+            Ajouter ({selected.size})
           </button>
         </div>
       </div>

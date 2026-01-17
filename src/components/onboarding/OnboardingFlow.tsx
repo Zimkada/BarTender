@@ -40,38 +40,64 @@ export const OnboardingFlow: React.FC = () => {
     currentStep,
     initializeOnboarding,
     userId,
+    userRole,
   } = useOnboarding();
   const { currentSession } = useAuth();
   const { currentBar, barMembers } = useBar();
 
-  // Initialize onboarding on first mount if not already initialized
+  // Check if user has permission to access onboarding
+  // Rule: Only bar owner (promoteur) can always access onboarding
+  // Manager/Bartender can only access if explicitly invited (role exists in bar_members)
   useEffect(() => {
-    if (!userId && currentSession?.userId && currentBar?.id) {
-      if (currentSession && currentBar && barMembers) {
-        const userBarMember = barMembers.find(
-          (m: any) => String(m.userId) === String(currentSession.userId)
-        );
+    if (!currentSession?.userId || !currentBar?.id) return;
 
-        // Determine role: use bar member role if found, prioritize owner role if user is bar owner
-        let role: UserRole = 'serveur'; // default
+    const isBarOwner = String(currentBar.ownerId) === String(currentSession.userId);
+    const userBarMember = barMembers?.find(
+      (m: any) => String(m.userId) === String(currentSession.userId)
+    );
 
-        if (userBarMember?.role) {
-          role = String(userBarMember.role) as UserRole;
-        }
+    // PERMISSION CHECK:
+    // - Bar owner (promoteur): Always allowed
+    // - Manager (gérant): Only allowed if explicitly added to bar_members with role 'gérant'
+    // - Bartender (serveur): Only allowed if explicitly added to bar_members with role 'serveur'
+    const isManagerRole = ['gérant', 'manager'].includes(userRole || '');
+    const isBartenderRole = ['serveur', 'bartender'].includes(userRole || '');
+    const isInvitedManager = isManagerRole && userBarMember?.role === 'gérant';
+    const isInvitedBartender = isBartenderRole && userBarMember?.role === 'serveur';
 
-        // If user is the bar owner, ensure they have promoteur/owner role
-        if (String(currentBar.ownerId) === String(currentSession.userId)) {
-          role = 'promoteur';
-        }
-
-        initializeOnboarding(
-          String(currentSession.userId),
-          String(currentBar.id),
-          role
-        );
-      }
+    if (!isBarOwner && !isInvitedManager && !isInvitedBartender) {
+      // User does not have permission to access onboarding
+      // Redirect to dashboard
+      console.warn(
+        `Access denied: User ${currentSession.userId} tried to access onboarding for bar ${currentBar.id} without permission`
+      );
+      navigate('/dashboard', { replace: true });
+      return;
     }
-  }, [currentSession?.userId, currentBar?.id, currentBar?.ownerId, barMembers, initializeOnboarding]);
+
+    // If already initialized, don't re-initialize
+    if (userId) return;
+
+    if (currentSession && currentBar && barMembers) {
+      // Determine role: use bar member role if found, prioritize owner role if user is bar owner
+      let role: UserRole = 'serveur'; // default
+
+      if (userBarMember?.role) {
+        role = String(userBarMember.role) as UserRole;
+      }
+
+      // If user is the bar owner, ensure they have promoteur/owner role
+      if (isBarOwner) {
+        role = 'promoteur';
+      }
+
+      initializeOnboarding(
+        String(currentSession.userId),
+        String(currentBar.id),
+        role
+      );
+    }
+  }, [currentSession?.userId, currentBar?.id, currentBar?.ownerId, barMembers, userRole, userId, initializeOnboarding, navigate]);
 
   // Render appropriate component based on current step
   const renderStep = () => {

@@ -1,5 +1,6 @@
 // Language: French (Français)
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
 import { useAuth } from '../../context/AuthContext';
 import { useBar } from '../../context/BarContext';
@@ -19,9 +20,10 @@ interface AddProductsFormData {
 type SelectedProduct = ProductWithPrice;
 
 export const AddProductsStep: React.FC = () => {
+  const navigate = useNavigate();
   const { currentSession } = useAuth();
   const { currentBar } = useBar();
-  const { stepData, updateStepData, completeStep, nextStep, previousStep, completeOnboarding } = useOnboarding();
+  const { stepData, updateStepData, completeStep, nextStep, previousStep } = useOnboarding();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -188,12 +190,22 @@ export const AddProductsStep: React.FC = () => {
               onClick={async () => {
                 setLoading(true);
                 try {
+                  // Persist to BD if there are products to save
                   if (formData.products.length > 0 && currentBar?.id && currentSession?.userId) {
                     await OnboardingService.addProductsToBar(currentBar.id, formData.products, currentSession.userId);
                   }
+
+                  // Save form data to context
                   updateStepData(OnboardingStep.OWNER_ADD_PRODUCTS, formData);
                   completeStep(OnboardingStep.OWNER_ADD_PRODUCTS, formData);
-                  completeOnboarding();
+
+                  // ⚠️ IMPORTANT: Do NOT call completeOnboarding() here
+                  // User wants to "Complete Later", not mark entire onboarding as done
+                  // They should continue to Stock Init step or manually exit
+                  // The banner will reappear when they come back if bar is not fully setup
+
+                  // Redirect to dashboard
+                  navigate('/dashboard');
                 } catch (error: any) {
                   setErrors('Erreur lors de la sauvegarde : ' + error.message);
                 } finally {

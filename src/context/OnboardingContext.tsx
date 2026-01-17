@@ -192,6 +192,21 @@ interface OnboardingProviderProps {
 export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children }) => {
   const [state, setState] = useState<OnboardingState>(defaultState);
 
+  // Reset onboarding state when barId changes (user switched bars)
+  useEffect(() => {
+    if (state.barId) {
+      // When bar changes, reset all onboarding state to allow re-initialization
+      // This ensures each bar has its own independent onboarding state
+      // The database flag (is_setup_complete) is the source of truth for display
+      updateState({
+        currentStep: OnboardingStep.WELCOME,
+        completedSteps: [],
+        stepData: {},
+        isComplete: false,
+      });
+    }
+  }, [state.barId]);
+
   // Hydrate stepData from database when barId changes (resuming onboarding)
   useEffect(() => {
     if (!state.barId) return;

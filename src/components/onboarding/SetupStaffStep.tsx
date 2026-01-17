@@ -1,7 +1,10 @@
 // Language: French (Français)
 import React, { useState } from 'react';
 import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
+import { useAuth } from '../../context/AuthContext';
+import { useBar } from '../../context/BarContext';
 import { LoadingButton } from '../ui/LoadingButton';
+import { OnboardingService } from '../../services/supabase/onboarding.service';
 
 interface SetupStaffFormData {
   serverNames: string[];
@@ -9,6 +12,8 @@ interface SetupStaffFormData {
 
 export const SetupStaffStep: React.FC = () => {
   const { stepData, updateStepData, completeStep, nextStep, previousStep } = useOnboarding();
+  const { currentSession } = useAuth();
+  const { currentBar } = useBar();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string>('');
   const [newServerName, setNewServerName] = useState('');
@@ -52,12 +57,33 @@ export const SetupStaffStep: React.FC = () => {
 
     setLoading(true);
     try {
+      if (!currentBar?.id) {
+        throw new Error('Bar non trouvé');
+      }
+
+      if (!currentSession?.userId) {
+        throw new Error('Utilisateur non authentifié');
+      }
+
+      // Persist servers to database ONLY if there are servers to create (mode full)
+      // In simplified mode, serverNames is empty and this is skipped
+      if (formData.serverNames.length > 0) {
+        await OnboardingService.createServers(
+          currentBar.id,
+          formData.serverNames,
+          currentSession.userId
+        );
+      }
+
+      // Save form data to context for UI state
       updateStepData(OnboardingStep.OWNER_SETUP_STAFF, formData);
       completeStep(OnboardingStep.OWNER_SETUP_STAFF, formData);
+
+      // Move to next step
       nextStep();
     } catch (error) {
       console.error('Erreur lors de l\'enregistrement du personnel:', error);
-      setErrors('Impossible d\'enregistrer le personnel');
+      setErrors(error instanceof Error ? error.message : 'Impossible d\'enregistrer le personnel');
     } finally {
       setLoading(false);
     }
@@ -150,7 +176,7 @@ export const SetupStaffStep: React.FC = () => {
             <label htmlFor="serverName" className="block text-sm font-medium text-gray-700">
               Nom du Serveur
             </label>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 id="serverName"
                 type="text"
@@ -171,7 +197,7 @@ export const SetupStaffStep: React.FC = () => {
               <button
                 type="button"
                 onClick={handleAddServer}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
               >
                 Ajouter
               </button>

@@ -1,11 +1,12 @@
 // Language: French (Français)
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
 import { useAuth } from '../../context/AuthContext';
 import { useBar } from '../../context/BarContext';
 import { LoadingButton } from '../ui/LoadingButton';
 import { OnboardingService } from '../../services/supabase/onboarding.service';
+import { supabase } from '../../lib/supabase';
 
 export const ReviewStep: React.FC = () => {
   const navigate = useNavigate();
@@ -15,17 +16,78 @@ export const ReviewStep: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string>('');
 
+  // Real-time data from database (more reliable than stepData)
+  const [realData, setRealData] = useState({
+    managerCount: 0,
+    staffCount: 0,
+    productNames: [] as string[],
+    totalStock: 0,
+  });
+
+  // Load real data from database
+  useEffect(() => {
+    if (!currentBar?.id) return;
+
+    const loadRealData = async () => {
+      try {
+        // Get managers count
+        const { count: managersCount } = await supabase
+          .from('bar_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('bar_id', currentBar.id)
+          .eq('role', 'gérant')
+          .eq('is_active', true);
+
+        // Get staff count
+        const { count: staffCount } = await supabase
+          .from('bar_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('bar_id', currentBar.id)
+          .eq('role', 'serveur')
+          .eq('is_active', true);
+
+        // Get products with names (handles both global and local products)
+        const { data: barProducts } = await supabase
+          .from('bar_products')
+          .select(`
+            id,
+            name,
+            global_products (
+              name
+            )
+          `)
+          .eq('bar_id', currentBar.id)
+          .eq('is_active', true);
+
+        // Use global product name if available, otherwise use local product name
+        const productNames = barProducts?.map((p: any) =>
+          p.global_products?.name || p.name || 'Produit inconnu'
+        ) || [];
+
+        // Get total stock
+        const { data: supplies } = await supabase
+          .from('supplies')
+          .select('quantity')
+          .eq('bar_id', currentBar.id);
+
+        const totalStock = supplies?.reduce((sum, s) => sum + (s.quantity || 0), 0) || 0;
+
+        setRealData({
+          managerCount: managersCount || 0,
+          staffCount: staffCount || 0,
+          productNames,
+          totalStock,
+        });
+      } catch (error) {
+        console.error('Failed to load real data:', error);
+      }
+    };
+
+    loadRealData();
+  }, [currentBar?.id]);
+
   // Gather all step data for summary
   const barDetails = stepData[OnboardingStep.OWNER_BAR_DETAILS] as any;
-  const managers = stepData[OnboardingStep.OWNER_ADD_MANAGERS] as any;
-  const staff = stepData[OnboardingStep.OWNER_SETUP_STAFF] as any;
-  const products = stepData[OnboardingStep.OWNER_ADD_PRODUCTS] as any;
-  const stock = stepData[OnboardingStep.OWNER_STOCK_INIT] as any;
-
-  const managerCount = managers?.managerIds?.length || 0;
-  const staffCount = staff?.serverNames?.length || 0;
-  const productCount = products?.products?.length || 0;
-  const totalStock = Object.values(stock?.stocks || {}).reduce((sum: number, qty: any) => sum + (qty || 0), 0);
 
   const handleLaunch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,7 +211,7 @@ export const ReviewStep: React.FC = () => {
             <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
               <div>
                 <p className="text-sm font-medium text-gray-900">Gérants</p>
-                <p className="text-xs text-gray-600">{managerCount} compte(s)</p>
+                <p className="text-xs text-gray-600">{realData.managerCount} compte(s)</p>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-green-600">✓</span>
@@ -168,7 +230,7 @@ export const ReviewStep: React.FC = () => {
               <div>
                 <p className="text-sm font-medium text-gray-900">Personnel</p>
                 <p className="text-xs text-gray-600">
-                  {staffCount > 0 ? `${staffCount} serveur(s)` : 'Dynamique (mode simplifié)'}
+                  {realData.staffCount > 0 ? `${realData.staffCount} serveur(s)` : 'Dynamique (mode simplifié)'}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -185,11 +247,20 @@ export const ReviewStep: React.FC = () => {
 
             {/* Products */}
             <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
-              <div>
+              <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900">Produits</p>
-                <p className="text-xs text-gray-600">{productCount} produit(s)</p>
+                <p className="text-xs text-gray-600">{realData.productNames.length} produit(s)</p>
+                {realData.productNames.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {realData.productNames.map((name, idx) => (
+                      <span key={idx} className="inline-block px-2 py-0.5 bg-white border border-gray-200 rounded text-xs text-gray-700">
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <span className="text-green-600">✓</span>
                 <button
                   type="button"
@@ -205,7 +276,7 @@ export const ReviewStep: React.FC = () => {
             <div className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg">
               <div>
                 <p className="text-sm font-medium text-gray-900">Stock Initial</p>
-                <p className="text-xs text-gray-600">{totalStock} unité(s) au total</p>
+                <p className="text-xs text-gray-600">{realData.totalStock} unité(s) au total</p>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-green-600">✓</span>
@@ -234,23 +305,26 @@ export const ReviewStep: React.FC = () => {
             </div>
           )}
 
-          {/* Buttons */}
-          <div className="flex gap-3 pt-6 border-t">
-            <button
-              type="button"
-              onClick={previousStep}
-              className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-            >
-              Retour
-            </button>
-            <LoadingButton
-              type="submit"
-              isLoading={loading}
-              loadingText="Lancement..."
-              className="ml-auto px-8 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold text-lg"
-            >
-              🚀 Lancer le Bar
-            </LoadingButton>
+          {/* Buttons - Responsive Layout */}
+          <div className="pt-6 border-t space-y-3">
+            {/* Mobile: Retour + Lancer sur la même ligne */}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={previousStep}
+                className="flex-1 sm:flex-none px-4 sm:px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              >
+                Retour
+              </button>
+              <LoadingButton
+                type="submit"
+                isLoading={loading}
+                loadingText="Lancement..."
+                className="flex-1 sm:flex-none sm:ml-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold"
+              >
+                🚀 Lancer le Bar
+              </LoadingButton>
+            </div>
           </div>
         </form>
       </div>

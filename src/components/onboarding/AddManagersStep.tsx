@@ -58,18 +58,28 @@ export const AddManagersStep: React.FC = () => {
       const userId = currentSession.userId;
       const barId = currentBar.id;
 
-      // Assign each manager via API (will be called again in ReviewStep, but also saved here)
+      // Assign each manager via API with validation
+      // OnboardingService.assignManager() now verifies manager exists before assigning
+      const assignmentErrors: string[] = [];
+
       if (formData.managerIds && formData.managerIds.length > 0) {
         for (const managerId of formData.managerIds) {
-          // Verify manager exists before assigning
-          // (In real impl, would check if user exists)
           try {
             await OnboardingService.assignManager(managerId, barId, userId);
           } catch (error: any) {
-            console.warn(`Impossible d'assigner le gérant ${managerId}:`, error);
-            // Continue with next manager - don't fail the whole step
+            const errorMessage = error.message || `Impossible d'assigner le gérant ${managerId}`;
+            assignmentErrors.push(errorMessage);
+            console.error(`Erreur assignation gérant ${managerId}:`, error);
+            // Collect error but continue to try all managers
           }
         }
+      }
+
+      // If ANY managers failed to assign, throw error and don't proceed
+      if (assignmentErrors.length > 0) {
+        throw new Error(
+          `Erreur lors de l'assignation de gérants:\n${assignmentErrors.join('\n')}`
+        );
       }
 
       // Save form data to context

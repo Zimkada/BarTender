@@ -54,9 +54,32 @@ export class OnboardingService {
   }
 
   /**
+   * Verify manager exists before assigning
+   * Checks that user exists in auth.users
+   */
+  static async verifyManagerExists(userId: string): Promise<boolean> {
+    try {
+      const { data: user, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .single();
+
+      if (error || !user) {
+        return false;
+      }
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Assign manager to bar
    * Called from AddManagersStep.tsx when adding manager
    * REFACTORED: Delegates to BarsService.assignMemberToBar()
+   * NOW: Verifies manager exists before assigning
    */
   static async assignManager(
     userId: string,
@@ -64,6 +87,12 @@ export class OnboardingService {
     assignedByUserId: string
   ): Promise<void> {
     try {
+      // VALIDATION: Verify manager exists in system
+      const managerExists = await this.verifyManagerExists(userId);
+      if (!managerExists) {
+        throw new Error(`Gérant avec l'ID ${userId} n'existe pas dans le système`);
+      }
+
       // Delegate to BarsService for upsert
       await BarsService.assignMemberToBar(barId, userId, 'gérant', assignedByUserId);
 
