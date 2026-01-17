@@ -190,6 +190,31 @@ export const AddManagersStep: React.FC = () => {
                 Étape Suivante
               </LoadingButton>
             </div>
+
+            {/* Compléter Plus Tard centré en dessous */}
+            <div className="flex justify-center">
+              <LoadingButton
+                type="button"
+                isLoading={loading}
+                onClick={async () => {
+                  setLoading(true);
+                  try {
+                    // Save managers that were assigned before leaving
+                    updateStepData(OnboardingStep.OWNER_ADD_MANAGERS, formData);
+                    completeStep(OnboardingStep.OWNER_ADD_MANAGERS, formData);
+                    // Redirect to dashboard
+                    window.location.href = '/dashboard';
+                  } catch (error: any) {
+                    setErrors(error.message || 'Erreur lors de la sauvegarde');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="w-full sm:w-auto px-4 sm:px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              >
+                Compléter Plus Tard
+              </LoadingButton>
+            </div>
           </div>
         </form>
       </div>
