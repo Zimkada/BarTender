@@ -170,23 +170,26 @@ export const AddManagersStep: React.FC = () => {
             </div>
           )}
 
-          {/* Buttons */}
-          <div className="flex gap-3 pt-6 border-t">
-            <button
-              type="button"
-              onClick={previousStep}
-              className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-            >
-              Retour
-            </button>
-            <LoadingButton
-              type="submit"
-              isLoading={loading}
-              loadingText="Enregistrement..."
-              className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              Étape Suivante
-            </LoadingButton>
+          {/* Buttons - Responsive Layout */}
+          <div className="pt-6 border-t space-y-3">
+            {/* Mobile: Retour + Étape Suivante sur la même ligne */}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={previousStep}
+                className="flex-1 sm:flex-none px-4 sm:px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              >
+                Retour
+              </button>
+              <LoadingButton
+                type="submit"
+                isLoading={loading}
+                loadingText="Enregistrement..."
+                className="flex-1 sm:flex-none sm:ml-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Étape Suivante
+              </LoadingButton>
+            </div>
           </div>
         </form>
       </div>
