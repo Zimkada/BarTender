@@ -12,6 +12,7 @@
 import { useState, useEffect } from 'react';
 import { AlertCircle, Image as ImageIcon, Loader2, Lightbulb } from 'lucide-react';
 import { CatalogEnrichmentService } from '../../services/supabase/catalogEnrichment.service';
+import { CategoriesService } from '../../services/supabase/categories.service';
 import { ProductNormalization } from '../../utils/productNormalization';
 import { suggestCategory } from '../../utils/categorySuggestion';
 import type {
@@ -20,6 +21,7 @@ import type {
   SimilarGlobalProduct,
   EnrichmentStatus
 } from '../../types/catalogEnrichment';
+import type { GlobalCategory } from '../../types/index';
 import { useNotifications } from '../Notifications';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
@@ -39,22 +41,6 @@ interface EnrichCatalogModalProps {
   onSuccess?: () => void;
 }
 
-const GLOBAL_CATEGORIES = [
-  'Alcools',
-  'Bière',
-  'Spiritueux',
-  'Vin',
-  'Cocktails',
-  'Softs',
-  'Jus',
-  'Eau',
-  'Café',
-  'Thé',
-  'Petit-déjeuner',
-  'Snacks',
-  'Autres'
-];
-
 const STANDARD_VOLUMES = ['25cl', '33cl', '50cl', '60cl', '70cl', '1L', '1.5L', 'Autre'];
 
 export function EnrichCatalogModal({
@@ -72,6 +58,8 @@ export function EnrichCatalogModal({
   const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
   const [categoryConfidence, setCategoryConfidence] = useState<'high' | 'medium' | 'low'>('low');
   const [suggestCategoryReason, setSuggestCategoryReason] = useState<string>('');
+  const [globalCategories, setGlobalCategories] = useState<GlobalCategory[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
 
   // Formulaire
   const [name, setName] = useState(sourceProduct.localName);
@@ -90,6 +78,11 @@ export function EnrichCatalogModal({
     ProductNormalization.calculateSuggestedPriceRange(sourceProduct.price).max
   );
   const [linkSourceProduct, setLinkSourceProduct] = useState(true);
+
+  // Charger les catégories globales au chargement
+  useEffect(() => {
+    loadGlobalCategories();
+  }, []);
 
   // Détection doublons et suggestion de catégorie au chargement
   useEffect(() => {
@@ -135,12 +128,34 @@ export function EnrichCatalogModal({
     }
   }
 
+  async function loadGlobalCategories() {
+    try {
+      setCategoriesLoading(true);
+      const categories = await CategoriesService.getGlobalCategories();
+      setGlobalCategories(categories);
+
+      // Définir la catégorie par défaut à la première si disponible
+      if (categories.length > 0 && category === 'Autres') {
+        setCategory(categories[0].name);
+      }
+    } catch (error) {
+      console.error('Erreur chargement catégories globales:', error);
+      showNotification({
+        type: 'error',
+        message: 'Erreur lors du chargement des catégories'
+      });
+    } finally {
+      setCategoriesLoading(false);
+    }
+  }
+
   function suggestCategoryForProduct() {
     try {
       const suggestion = suggestCategory(
         name || sourceProduct.localName,
         sourceProduct.localCategoryName,
-        volume
+        volume,
+        globalCategories.map(c => c.name)
       );
 
       if (suggestion.suggestedCategory !== category) {
@@ -293,15 +308,22 @@ export function EnrichCatalogModal({
               <div>
                 <Label>Catégorie globale *</Label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   value={category}
                   onChange={e => setCategory(e.target.value)}
+                  disabled={categoriesLoading}
                 >
-                  {GLOBAL_CATEGORIES.map(cat => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
+                  {categoriesLoading ? (
+                    <option>Chargement des catégories...</option>
+                  ) : globalCategories.length > 0 ? (
+                    globalCategories.map(cat => (
+                      <option key={cat.id} value={cat.name}>
+                        {cat.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option>Aucune catégorie disponible</option>
+                  )}
                 </select>
 
                 {/* Suggestion de catégorie */}

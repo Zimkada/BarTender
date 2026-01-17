@@ -82,16 +82,26 @@ const KEYWORD_MAPPING: Record<string, { category: string; weight: number }[]> = 
 
 /**
  * Suggère une catégorie basée sur le nom et la catégorie locale du produit
+ * @param productName - Nom du produit
+ * @param localCategoryName - Catégorie locale du produit
+ * @param volume - Volume du produit
+ * @param availableCategories - Liste des catégories globales disponibles (optionnel, pour validation)
  */
 export function suggestCategory(
   productName: string,
   localCategoryName?: string,
-  volume?: string
+  volume?: string,
+  availableCategories?: string[]
 ): CategorySuggestion {
   const scores: Record<string, number> = {};
 
+  // Utiliser les catégories disponibles ou les catégories par défaut
+  const categoriesToUse = availableCategories && availableCategories.length > 0
+    ? availableCategories
+    : GLOBAL_CATEGORIES;
+
   // Initialiser tous les scores à 0
-  GLOBAL_CATEGORIES.forEach(cat => {
+  categoriesToUse.forEach(cat => {
     scores[cat] = 0;
   });
 
@@ -147,7 +157,7 @@ export function suggestCategory(
   }
 
   // Trouver la catégorie avec le score le plus élevé
-  let bestCategory = 'Autres';
+  let bestCategory = categoriesToUse.length > 0 ? categoriesToUse[0] : 'Autres';
   let bestScore = 0;
   let confidence: 'high' | 'medium' | 'low' = 'low';
   let reason = 'Catégorie par défaut';
@@ -167,10 +177,10 @@ export function suggestCategory(
     confidence = 'medium';
     reason = `Suggestion basée sur les mots-clés (score: ${Math.round(bestScore)}/100)`;
   } else {
-    // Si aucune correspondance trouvée, appliquer une logique par défaut
+    // Si aucune correspondance trouvée, utiliser la première catégorie disponible ou par défaut
     confidence = 'low';
-    reason = 'Aucune catégorie claire détectée, catégorie "Autres" proposée';
-    bestCategory = 'Autres';
+    reason = 'Aucune catégorie claire détectée';
+    bestCategory = categoriesToUse.length > 0 ? categoriesToUse[0] : 'Autres';
   }
 
   return {
@@ -186,11 +196,16 @@ export function suggestCategory(
 export function debugCategorySuggestion(
   productName: string,
   localCategoryName?: string,
-  volume?: string
+  volume?: string,
+  availableCategories?: string[]
 ): Record<string, { score: number; confidence: string }> {
   const scores: Record<string, number> = {};
 
-  GLOBAL_CATEGORIES.forEach(cat => {
+  const categoriesToUse = availableCategories && availableCategories.length > 0
+    ? availableCategories
+    : GLOBAL_CATEGORIES;
+
+  categoriesToUse.forEach(cat => {
     scores[cat] = 0;
   });
 
