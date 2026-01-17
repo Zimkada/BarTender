@@ -73,8 +73,10 @@ export function LocalProductsCatalogViewer({
   }
 
   function handleEnrichClick(product: LocalProductForEnrichment) {
+    console.log('🔵 handleEnrichClick called. Product:', product.localName);
     setSelectedProduct(product);
     setIsEnrichModalOpen(true);
+    console.log('📍 Modal should open now');
   }
 
   function handleEnrichmentSuccess() {
