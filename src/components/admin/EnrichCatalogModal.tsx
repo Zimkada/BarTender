@@ -10,9 +10,10 @@
  */
 
 import { useState, useEffect } from 'react';
-import { AlertCircle, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { AlertCircle, Image as ImageIcon, Loader2, Lightbulb } from 'lucide-react';
 import { CatalogEnrichmentService } from '../../services/supabase/catalogEnrichment.service';
 import { ProductNormalization } from '../../utils/productNormalization';
+import { suggestCategory } from '../../utils/categorySuggestion';
 import type {
   LocalProductForEnrichment,
   EnrichGlobalCatalogData,
@@ -68,6 +69,9 @@ export function EnrichCatalogModal({
   const [status, setStatus] = useState<EnrichmentStatus>('idle');
   const [similarProducts, setSimilarProducts] = useState<SimilarGlobalProduct[]>([]);
   const [foundDuplicate, setFoundDuplicate] = useState(false);
+  const [suggestedCategory, setSuggestedCategory] = useState<string | null>(null);
+  const [categoryConfidence, setCategoryConfidence] = useState<'high' | 'medium' | 'low'>('low');
+  const [suggestCategoryReason, setSuggestCategoryReason] = useState<string>('');
 
   // Formulaire
   const [name, setName] = useState(sourceProduct.localName);
@@ -87,18 +91,20 @@ export function EnrichCatalogModal({
   );
   const [linkSourceProduct, setLinkSourceProduct] = useState(true);
 
-  // Détection doublons au chargement
+  // Détection doublons et suggestion de catégorie au chargement
   useEffect(() => {
-    if (isOpen && name && sourceProduct) {
+    if (isOpen && sourceProduct) {
       detectSimilarProducts();
+      suggestCategoryForProduct();
     }
   }, [isOpen]);
 
-  // Re-détecter doublons quand le nom change
+  // Re-détecter doublons et re-suggérer catégorie quand le nom change
   useEffect(() => {
     const timer = setTimeout(() => {
       if (name && isOpen) {
         detectSimilarProducts();
+        suggestCategoryForProduct();
       }
     }, 500);
 
@@ -106,16 +112,13 @@ export function EnrichCatalogModal({
   }, [name, isOpen]);
 
   async function detectSimilarProducts() {
-    console.log('🔍 detectSimilarProducts started. Name:', name, 'Volume:', volume);
     try {
       setStatus('checking');
-      console.log('📍 Status set to checking');
       const similar = await CatalogEnrichmentService.findSimilarGlobalProducts(
         name,
         volume
       );
 
-      console.log('📍 Similar products found:', similar.length);
       setSimilarProducts(similar);
       setFoundDuplicate(similar.length > 0);
 
@@ -126,25 +129,41 @@ export function EnrichCatalogModal({
         });
       }
     } catch (error) {
-      console.error('🔴 Erreur détection doublons:', error);
+      console.error('Erreur détection doublons:', error);
     } finally {
-      console.log('📍 Status set back to idle');
       setStatus('idle');
     }
   }
 
-  async function handleEnrich() {
-    console.log('🟢 handleEnrich called. Name:', name, 'Image:', image, 'SourceImage:', sourceProduct.localImage);
+  function suggestCategoryForProduct() {
+    try {
+      const suggestion = suggestCategory(
+        name || sourceProduct.localName,
+        sourceProduct.localCategoryName,
+        volume
+      );
 
+      if (suggestion.suggestedCategory !== category) {
+        setSuggestedCategory(suggestion.suggestedCategory);
+        setCategoryConfidence(suggestion.confidence);
+        setSuggestCategoryReason(suggestion.reason);
+      } else {
+        setSuggestedCategory(null);
+      }
+    } catch (error) {
+      console.error('Erreur suggestion catégorie:', error);
+      setSuggestedCategory(null);
+    }
+  }
+
+  async function handleEnrich() {
     // Validations
     if (!name.trim()) {
-      console.log('❌ Name empty');
       showNotification({ type: 'error', message: 'Le nom est requis' });
       return;
     }
 
     if (!image && !sourceProduct.localImage) {
-      console.log('❌ No image');
       showNotification({
         type: 'error',
         message: 'Une image est requise pour enrichir le catalogue'
@@ -168,15 +187,12 @@ export function EnrichCatalogModal({
     };
 
     try {
-      console.log('✅ Validations passed. Calling enrichGlobalCatalogWithLocal...');
       setStatus('processing');
 
       const result = await CatalogEnrichmentService.enrichGlobalCatalogWithLocal(
         sourceProduct.barProductId,
         enrichmentData
       );
-
-      console.log('✅ Enrichment success:', result);
 
       showNotification({
         type: 'success',
@@ -186,7 +202,7 @@ export function EnrichCatalogModal({
       onSuccess?.();
       onClose();
     } catch (error: any) {
-      console.error('🔴 Enrichment error:', error);
+      console.error('Enrichment error:', error);
       showNotification({
         type: 'error',
         message: error.message || 'Erreur lors de l\'enrichissement'
@@ -196,11 +212,13 @@ export function EnrichCatalogModal({
     }
   }
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <Modal
-      isOpen={isOpen}
+      open={isOpen}
       onClose={onClose}
       title="➕ Enrichir le Catalogue Global"
       size="lg"
@@ -285,6 +303,39 @@ export function EnrichCatalogModal({
                     </option>
                   ))}
                 </select>
+
+                {/* Suggestion de catégorie */}
+                {suggestedCategory && (
+                  <div className={`mt-2 p-2 rounded text-xs ${
+                    categoryConfidence === 'high' ? 'bg-green-100 border border-green-300' :
+                    categoryConfidence === 'medium' ? 'bg-blue-100 border border-blue-300' :
+                    'bg-gray-100 border border-gray-300'
+                  }`}>
+                    <div className="flex items-start gap-1.5">
+                      <Lightbulb className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium">
+                          💡 Suggestion : {suggestedCategory}
+                        </p>
+                        <p className="text-gray-600 mt-0.5">{suggestCategoryReason}</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCategory(suggestedCategory);
+                            setSuggestedCategory(null);
+                          }}
+                          className={`mt-1.5 px-2 py-1 rounded text-xs font-medium transition ${
+                            categoryConfidence === 'high' ? 'bg-green-200 hover:bg-green-300 text-green-900' :
+                            categoryConfidence === 'medium' ? 'bg-blue-200 hover:bg-blue-300 text-blue-900' :
+                            'bg-gray-200 hover:bg-gray-300 text-gray-900'
+                          }`}
+                        >
+                          Appliquer
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -434,10 +485,7 @@ export function EnrichCatalogModal({
           </Button>
 
           <LoadingButton
-            onClick={() => {
-              console.log('🔵 Button clicked. Status:', status, 'Name:', name, 'Disabled:', status === 'checking' || !name.trim());
-              handleEnrich();
-            }}
+            onClick={handleEnrich}
             isLoading={status === 'processing' || status === 'checking'}
             disabled={status === 'checking' || !name.trim()}
             variant="primary"
