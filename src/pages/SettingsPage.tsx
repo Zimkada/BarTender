@@ -16,6 +16,7 @@ import { FEATURES } from '../config/features';
 import { useAutoGuide } from '../hooks/useGuideTrigger';
 import { useOnboarding } from '../context/OnboardingContext';
 import { useGuide } from '../context/GuideContext';
+import { GuideHeaderButton } from '../components/guide/GuideHeaderButton';
 
 const currencyOptions = [
     { code: 'FCFA', symbol: 'FCFA', name: 'Franc CFA' },
@@ -38,12 +39,15 @@ export default function SettingsPage() {
     const { hasCompletedGuide } = useGuide();
     const { showNotification } = useNotifications();
 
-    // Trigger settings guide after onboarding (first visit only)
-    useAutoGuide(
-        'manage-settings',
-        isComplete && !hasCompletedGuide('manage-settings'),
-        { delay: 1500 }
-    );
+    // Guide ID for settings - using header button instead
+    const settingsGuideId = 'manage-settings';
+
+    // Auto-guide disabled - using GuideHeaderButton in page header instead
+    // useAutoGuide(
+    //     'manage-settings',
+    //     isComplete && !hasCompletedGuide('manage-settings'),
+    //     { delay: 1500 }
+    // );
 
     const [activeTab, setActiveTab] = useState<'bar' | 'operational' | 'general' | 'security'>('bar');
 
@@ -240,22 +244,26 @@ export default function SettingsPage() {
             {/* Header */}
             <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden" data-guide="settings-header">
                 <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
-                    <div className="flex items-center gap-4">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => navigate(-1)}
-                            className="rounded-lg transition-colors hover:bg-white/20"
-                        >
-                            <ArrowLeft size={24} />
-                        </Button>
-                        <div className="flex items-center gap-3">
-                            <SettingsIcon size={24} />
-                            <div>
-                                <h1 className="text-xl font-bold">Paramètres</h1>
-                                <p className="text-amber-100 text-sm">Configuration du bar</p>
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => navigate(-1)}
+                                className="rounded-lg transition-colors hover:bg-white/20"
+                            >
+                                <ArrowLeft size={24} />
+                            </Button>
+                            <div className="flex items-center gap-3">
+                                <SettingsIcon size={24} />
+                                <div>
+                                    <h1 className="text-xl font-bold">Paramètres</h1>
+                                    <p className="text-amber-100 text-sm">Configuration du bar</p>
+                                </div>
                             </div>
                         </div>
+                        {/* Guide button */}
+                        <GuideHeaderButton guideId={settingsGuideId} variant="default" />
                     </div>
                 </div>
 

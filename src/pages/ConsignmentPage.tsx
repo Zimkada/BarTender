@@ -41,12 +41,8 @@ export default function ConsignmentPage() {
   const { isComplete } = useOnboarding();
   const { hasCompletedGuide } = useGuide();
 
-  // Trigger consignments guide after onboarding (first visit only)
-  useAutoGuide(
-    'manage-consignments',
-    isComplete && !hasCompletedGuide('manage-consignments'),
-    { delay: 1500 }
-  );
+  // Guide is now triggered via PageHeader button instead of auto-trigger
+  // useAutoGuide disabled in favor of manual trigger from header button
 
   const [activeTab, setActiveTab] = useState<TabType>('active');
   const navigate = useNavigate();
@@ -63,6 +59,7 @@ export default function ConsignmentPage() {
         subtitle="Gérer les produits consignés et récupérations"
         icon={<Package className="w-6 h-6 text-amber-600" />}
         hideSubtitleOnMobile
+        guideId="manage-consignments"
       />
 
       {/* Tabs Navigation and Content */}

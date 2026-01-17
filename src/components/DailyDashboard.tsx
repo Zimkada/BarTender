@@ -21,6 +21,7 @@ import { getCurrentBusinessDateString } from '../utils/businessDateHelpers';
 import { Button } from './ui/Button';
 import { useTeamPerformance } from '../hooks/useTeamPerformance';
 import { TeamPerformanceTable } from './analytics/TeamPerformanceTable';
+import { GuideHeaderButton } from './guide/GuideHeaderButton';
 
 // Sous-composant pour les ventes en attente
 const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users }: {
@@ -179,6 +180,14 @@ export function DailyDashboard() {
 
   const [showDetails, setShowDetails] = useState(false);
   const [cashClosed, setCashClosed] = useState(false);
+
+  // Determine dashboard guide ID based on user role
+  const dashboardGuideId = useMemo(() => {
+    const role = currentSession?.role || 'serveur';
+    if (role === 'promoteur') return 'dashboard-overview';
+    if (role === 'gerant') return 'manager-dashboard';
+    return undefined; // No guide for bartenders on dashboard
+  }, [currentSession?.role]);
   const [todayStats, setTodayStats] = useState<DailySalesSummary | null>(null);
   const [userFilter, setUserFilter] = useState<'all' | 'servers' | 'management'>('all');
 
@@ -377,9 +386,9 @@ export function DailyDashboard() {
             <Button onClick={() => navigate(-1)} className="p-2 hover:bg-white/20 rounded-lg" variant="ghost" size="icon">
               <ArrowLeft size={24} />
             </Button>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-1">
               <TrendingUp size={24} />
-              <div>
+              <div className="flex-1">
                 <div className="flex items-center gap-3">
                   <h1 className="text-xl font-bold">Tableau de bord</h1>
                   {currentBar?.id && currentBar.id !== '00000000-0000-0000-0000-000000000000' && (
@@ -397,6 +406,7 @@ export function DailyDashboard() {
                 </div>
                 <p className="text-sm text-amber-100">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
               </div>
+              {dashboardGuideId && <GuideHeaderButton guideId={dashboardGuideId} variant="default" />}
             </div>
           </div>
         </div>

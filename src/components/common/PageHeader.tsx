@@ -2,6 +2,7 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { GuideHeaderButton } from '../guide/GuideHeaderButton';
 
 export interface PageHeaderProps {
   title: string;
@@ -10,6 +11,7 @@ export interface PageHeaderProps {
   actions?: React.ReactNode;
   mobileActions?: React.ReactNode;  // Actions différentes sur mobile
   hideSubtitleOnMobile?: boolean;    // Masquer subtitle sur mobile pour gagner de l'espace
+  guideId?: string;  // ID du guide à afficher pour cette page
 }
 
 export function PageHeader({
@@ -18,9 +20,25 @@ export function PageHeader({
   icon,
   actions,
   mobileActions,
-  hideSubtitleOnMobile = false
+  hideSubtitleOnMobile = false,
+  guideId
 }: PageHeaderProps) {
   const navigate = useNavigate();
+
+  // Combine guide button with existing actions
+  const allActions = (
+    <>
+      {guideId && <GuideHeaderButton guideId={guideId} />}
+      {actions}
+    </>
+  );
+
+  const allMobileActions = (
+    <>
+      {guideId && <GuideHeaderButton guideId={guideId} variant="compact" />}
+      {mobileActions || actions}
+    </>
+  );
 
   return (
     <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white rounded-2xl shadow-sm mb-4 sm:mb-6 overflow-hidden p-4 sm:p-6">
@@ -53,24 +71,17 @@ export function PageHeader({
           </div>
 
           {/* Actions desktop uniquement */}
-          {actions && (
+          {allActions && (
             <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
-              {actions}
+              {allActions}
             </div>
           )}
         </div>
 
-        {/* Actions mobile : full width en dessous si mobileActions existe */}
-        {mobileActions && (
+        {/* Actions mobile : full width en dessous */}
+        {(mobileActions || actions || guideId) && (
           <div className="flex sm:hidden items-center gap-2">
-            {mobileActions}
-          </div>
-        )}
-
-        {/* Fallback : actions normales sur mobile si pas de mobileActions */}
-        {!mobileActions && actions && (
-          <div className="flex sm:hidden items-center gap-2">
-            {actions}
+            {allMobileActions}
           </div>
         )}
       </div>

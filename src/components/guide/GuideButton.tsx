@@ -24,20 +24,20 @@ const GuideSuggestionsPopover: React.FC<{
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="absolute bottom-16 right-0 w-72 md:w-80 max-h-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 md:max-h-96"
-          initial={{ opacity: 0, scale: 0.95, y: 10 }}
+          className="absolute top-16 right-0 w-72 md:w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50 flex flex-col max-h-[70vh] md:max-h-96"
+          initial={{ opacity: 0, scale: 0.95, y: -10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 10 }}
+          exit={{ opacity: 0, scale: 0.95, y: -10 }}
           transition={{ duration: 0.2 }}
         >
           {/* Header */}
-          <div className="px-4 py-3 border-b border-gray-200">
+          <div className="px-4 py-3 border-b border-gray-200 flex-shrink-0">
             <h3 className="font-semibold text-gray-900">Aide & Guides</h3>
             <p className="text-xs text-gray-600 mt-1">Apprenez à utiliser les fonctionnalités</p>
           </div>
 
-          {/* Guide list */}
-          <div className="max-h-96 overflow-y-auto">
+          {/* Guide list - Scrollable */}
+          <div className="flex-1 overflow-y-auto min-h-0">
             {suggestions.length > 0 ? (
               <div className="space-y-2 p-3">
                 {suggestions.map(guide => (
@@ -68,7 +68,7 @@ const GuideSuggestionsPopover: React.FC<{
           </div>
 
           {/* Footer */}
-          <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
+          <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex-shrink-0">
             <p className="text-xs text-gray-600">
               💡 Les guides apparaissent automatiquement sur les pages pertinentes
             </p>
@@ -81,11 +81,14 @@ const GuideSuggestionsPopover: React.FC<{
 
 /**
  * Main floating button component
+ * Only displayed on HomePage (route: /) to show all guides
+ * Positioned below the main app header
  */
-export const GuideButton: React.FC = () => {
+export const GuideButton: React.FC<{ showOnlyOnHomePage?: boolean }> = ({ showOnlyOnHomePage = true }) => {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const { startTour } = useGuide();
   const suggestions = useGuideSuggestions();
+  const location = window.location.pathname;
 
   // Debug: log suggestions
   React.useEffect(() => {
@@ -98,8 +101,13 @@ export const GuideButton: React.FC = () => {
     setIsPopoverOpen(false);
   };
 
+  // Only show on HomePage (route: /) if showOnlyOnHomePage is true
+  if (showOnlyOnHomePage && location !== '/') {
+    return null;
+  }
+
   return (
-    <div className="fixed bottom-20 right-6 z-50 md:bottom-24 safe-area-inset-bottom">
+    <div className="fixed top-[160px] right-4 z-40 md:top-[200px] md:right-6">
       {/* Popover */}
       <div className="relative">
         <GuideSuggestionsPopover
@@ -111,7 +119,7 @@ export const GuideButton: React.FC = () => {
         {/* Button */}
         <motion.button
           onClick={() => setIsPopoverOpen(!isPopoverOpen)}
-          className="w-12 h-12 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 hover:shadow-xl transition flex items-center justify-center font-bold text-lg"
+          className="w-12 h-12 rounded-full bg-sky-400 text-white shadow-lg hover:bg-sky-500 hover:shadow-xl transition flex items-center justify-center font-bold text-lg"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           aria-label="Open guides"

@@ -17,6 +17,7 @@ import { FEATURES } from '../config/features';
 import { useAutoGuide } from '../hooks/useGuideTrigger';
 import { useOnboarding } from '../context/OnboardingContext';
 import { useGuide } from '../context/GuideContext';
+import { GuideHeaderButton } from '../components/guide/GuideHeaderButton';
 
 /**
  * TeamManagementPage - Page de gestion de l'équipe
@@ -31,12 +32,15 @@ export default function TeamManagementPage() {
   const { hasCompletedGuide } = useGuide();
   const { isMobile } = useViewport();
 
-  // Trigger team guide after onboarding (first visit only)
-  useAutoGuide(
-    'manage-team',
-    isComplete && !hasCompletedGuide('manage-team'),
-    { delay: 1500 }
-  );
+  // Guide ID for team management - using header button instead
+  const teamGuideId = 'manage-team';
+
+  // Auto-guide disabled - using GuideHeaderButton in page header instead
+  // useAutoGuide(
+  //   'manage-team',
+  //   isComplete && !hasCompletedGuide('manage-team'),
+  //   { delay: 1500 }
+  // );
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -290,6 +294,8 @@ export default function TeamManagementPage() {
 
             {/* Action buttons in header */}
             <div className="flex items-center gap-2">
+              {/* Guide button */}
+              <GuideHeaderButton guideId={teamGuideId} variant="default" />
               {inactiveCount > 0 && (
                 <Button
                   onClick={() => setShowInactive(!showInactive)}

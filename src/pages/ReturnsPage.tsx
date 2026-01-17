@@ -103,12 +103,8 @@ export default function ReturnsPage() {
   const { isComplete } = useOnboarding();
   const { hasCompletedGuide } = useGuide();
 
-  // Trigger returns guide after onboarding (first visit only)
-  useAutoGuide(
-    'manage-returns',
-    isComplete && !hasCompletedGuide('manage-returns'),
-    { delay: 1500 }
-  );
+  // Guide is now triggered via PageHeader button instead of auto-trigger
+  // useAutoGuide disabled in favor of manual trigger from header button
 
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
@@ -407,6 +403,7 @@ export default function ReturnsPage() {
         subtitle="Gérer les retours clients et remboursements"
         icon={<RotateCcw size={24} className="text-amber-600" />}
         hideSubtitleOnMobile
+        guideId="manage-returns"
         actions={
           // Desktop : Icône seule pour "Nouveau retour"
           <div className="flex items-center gap-2" data-guide="returns-create-btn">

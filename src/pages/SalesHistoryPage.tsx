@@ -36,6 +36,7 @@ import { useAutoGuide } from '../hooks/useGuideTrigger';
 import { useOnboarding } from '../context/OnboardingContext';
 import { useGuide } from '../context/GuideContext';
 import { GuideTourModal } from '../components/guide/GuideTourModal';
+import { GuideHeaderButton } from '../components/guide/GuideHeaderButton';
 
 type ViewMode = 'list' | 'cards' | 'analytics';
 
@@ -56,19 +57,21 @@ export default function SalesHistoryPage() {
     const { isComplete: onboardingComplete } = useOnboarding();
     const { hasCompletedGuide } = useGuide();
 
-    // Auto-trigger stats guide for bartenders
-    useAutoGuide(
-        'bartender-stats',
-        onboardingComplete && currentSession?.role === 'serveur' && !hasCompletedGuide('bartender-stats'),
-        { delay: 2000 }
-    );
+    // Guide ID for sales history - using header button instead of auto-trigger
+    const historyGuideId = currentSession?.role === 'serveur' ? 'bartender-stats' : 'analytics-overview';
 
-    // Auto-trigger history/analytics guide for owners
-    useAutoGuide(
-        'analytics-overview',
-        onboardingComplete && currentSession?.role === 'promoteur' && !hasCompletedGuide('analytics-overview'),
-        { delay: 2500 }
-    );
+    // Auto-guides disabled - using GuideHeaderButton in page header instead
+    // useAutoGuide(
+    //     'bartender-stats',
+    //     onboardingComplete && currentSession?.role === 'serveur' && !hasCompletedGuide('bartender-stats'),
+    //     { delay: 2000 }
+    // );
+
+    // useAutoGuide(
+    //     'analytics-overview',
+    //     onboardingComplete && currentSession?.role === 'promoteur' && !hasCompletedGuide('analytics-overview'),
+    //     { delay: 2500 }
+    // );
 
     // Enable real-time sales updates
     useRealtimeSales({ barId: currentBar?.id || '' });
@@ -404,11 +407,17 @@ export default function SalesHistoryPage() {
                                     </div>
                                 </div>
                             </div>
+                            {/* Guide button - mobile */}
+                            {historyGuideId && (
+                                <GuideHeaderButton guideId={historyGuideId} variant="compact" />
+                            )}
+                        </div>
+                        <div className="px-4 py-3">
                             <Button
                                 onClick={exportSales}
                                 disabled={filteredSales.length === 0}
                                 title={`Exporter en ${exportFormat.toUpperCase()}`}
-                                className="w-full mt-2 flex items-center justify-center gap-2"
+                                className="w-full flex items-center justify-center gap-2"
                             >
                                 <Download size={18} className="mr-2" />
                                 <span className="text-sm font-medium">Exporter ({exportFormat.toUpperCase()})</span>
@@ -593,6 +602,10 @@ export default function SalesHistoryPage() {
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
+                                {/* Guide button */}
+                                {historyGuideId && (
+                                    <GuideHeaderButton guideId={historyGuideId} variant="default" />
+                                )}
                                 {/* Sélecteur de format d'export */}
                                 <div className="flex items-center gap-1 mr-2 bg-white/20 rounded-lg p-1">
                                     <Button

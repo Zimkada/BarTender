@@ -28,6 +28,7 @@ import { useOnboarding } from '../context/OnboardingContext';
 import { useGuide } from '../context/GuideContext';
 import { useAuth } from '../context/AuthContext';
 import { CatalogContributionBadge } from '../components/products/CatalogContributionBadge';
+import { GuideHeaderButton } from '../components/guide/GuideHeaderButton';
 
 /**
  * InventoryPage - Page de gestion des produits
@@ -51,15 +52,17 @@ export default function InventoryPage() {
     const { hasCompletedGuide } = useGuide();
     const { currentSession } = useAuth();
 
-    // Activation du guide auto pour l'inventaire (Propriétaire et Gérant)
+    // Guide ID for inventory (Propriétaire and Gérant)
+    // Auto-guide disabled in favor of manual trigger via header button
     const canSeeInventoryGuide = currentSession?.role === 'promoteur' || currentSession?.role === 'gerant';
     const inventoryGuideId = currentSession?.role === 'gerant' ? 'manager-inventory' : 'manage-inventory';
 
-    useAutoGuide(
-        inventoryGuideId,
-        onboardingComplete && canSeeInventoryGuide && !hasCompletedGuide(inventoryGuideId),
-        { delay: 2000 }
-    );
+    // useAutoGuide disabled - using GuideHeaderButton in page header instead
+    // useAutoGuide(
+    //     inventoryGuideId,
+    //     onboardingComplete && canSeeInventoryGuide && !hasCompletedGuide(inventoryGuideId),
+    //     { delay: 2000 }
+    // );
 
     const { formatPrice } = useCurrencyFormatter();
     const { isMobile } = useViewport();
@@ -195,6 +198,10 @@ export default function InventoryPage() {
                                     Inventaire
                                 </h1>
                             </div>
+                            {/* Guide button - mobile */}
+                            {canSeeInventoryGuide && inventoryGuideId && (
+                                <GuideHeaderButton guideId={inventoryGuideId} variant="compact" />
+                            )}
                         </div>
                         <div className="flex flex-wrap gap-2">
                             {/* 3. CONDITION D'AFFICHAGE DU BOUTON MOBILE */}
@@ -447,6 +454,10 @@ export default function InventoryPage() {
                             </div>
                         </div>
                         <div className="flex items-center gap-2" data-guide="inventory-add-btn">
+                            {/* Guide button */}
+                            {canSeeInventoryGuide && inventoryGuideId && (
+                                <GuideHeaderButton guideId={inventoryGuideId} variant="default" />
+                            )}
                             {/* 4. CONDITION D'AFFICHAGE DU BOUTON DESKTOP */}
                             {isProductImportEnabled && (
                                 <Button

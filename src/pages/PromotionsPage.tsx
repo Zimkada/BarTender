@@ -35,6 +35,7 @@ import { DropdownMenu } from '../components/ui/DropdownMenu';
 import { useAutoGuide } from '../hooks/useGuideTrigger';
 import { useOnboarding } from '../context/OnboardingContext';
 import { useGuide } from '../context/GuideContext';
+import { GuideHeaderButton } from '../components/guide/GuideHeaderButton';
 
 /**
  * PromotionsPage - Page de gestion des promotions
@@ -57,11 +58,15 @@ export default function PromotionsPage() {
     const [view, setView] = useState<'list' | 'analytics'>('list');
 
     // Trigger promotions guide after onboarding (first visit only)
-    useAutoGuide(
-        'manage-promotions',
-        isComplete && !hasCompletedGuide('manage-promotions'),
-        { delay: 1500 }
-    );
+    // Guide ID for promotions - using header button instead
+    const promotionsGuideId = 'manage-promotions';
+
+    // Auto-guide disabled - using GuideHeaderButton in page header instead
+    // useAutoGuide(
+    //     'manage-promotions',
+    //     isComplete && !hasCompletedGuide('manage-promotions'),
+    //     { delay: 1500 }
+    // );
 
     // Options pour le filtre de statut
     const statusFilterOptions: SelectOption[] = [
@@ -194,8 +199,11 @@ export default function PromotionsPage() {
                             </div>
                         </div>
 
-                        {/* View Switcher - Responsive */}
-                        <div className="flex bg-amber-700/30 p-1 rounded-lg w-full sm:w-auto" data-guide="promotions-analytics">
+                        <div className="flex items-center gap-2">
+                            {/* Guide button */}
+                            <GuideHeaderButton guideId={promotionsGuideId} variant="default" />
+                            {/* View Switcher - Responsive */}
+                            <div className="flex bg-amber-700/30 p-1 rounded-lg w-full sm:w-auto" data-guide="promotions-analytics">
                             <Button
                                 onClick={() => setView('list')}
                                 variant={view === 'list' ? 'default' : 'ghost'}
@@ -210,6 +218,7 @@ export default function PromotionsPage() {
                             >
                                 <BarChart3 size={16} className="mr-2" /> Analytics
                             </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
