@@ -34,7 +34,7 @@ type Mode = 'custom' | 'global';
 
 export function ProductModal({ isOpen, onClose, onSave, product }: ProductModalProps) {
   const { categories } = useAppContext();
-  const [mode, setMode] = useState<Mode>('custom');
+  const [mode, setMode] = useState<Mode>('global');
   const [formData, setFormData] = useState({
     name: '',
     volume: '',
@@ -184,30 +184,32 @@ export function ProductModal({ isOpen, onClose, onSave, product }: ProductModalP
       }
     >
       {!product && (
-        <div className="flex p-2 gap-2 bg-gray-50 border-b border-gray-100">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setMode('custom')}
-            className={`flex-1 ${mode === 'custom'
-                ? 'bg-white text-amber-600 shadow-sm border border-gray-200 hover:bg-white'
-                : 'text-gray-500 hover:bg-gray-100'
-              }`}
-          >
-            <PenTool size={16} className="mr-2" />
-            Produit Personnalisé
-          </Button>
+        <div className="flex flex-wrap p-2 gap-2 bg-gray-50 border-b border-gray-100">
           <Button
             type="button"
             variant="ghost"
             onClick={() => setMode('global')}
-            className={`flex-1 ${mode === 'global'
-                ? 'bg-white text-blue-600 shadow-sm border border-gray-200 hover:bg-white'
-                : 'text-gray-500 hover:bg-gray-100'
+            className={`flex-1 min-w-fit text-sm sm:text-base font-medium transition-all ${mode === 'global'
+                ? 'bg-blue-50 text-blue-700 shadow-md border-2 border-blue-400'
+                : 'text-gray-600 border-2 border-transparent hover:bg-blue-50/50'
               }`}
           >
-            <Globe size={16} className="mr-2" />
-            Catalogue Global
+            <Globe size={16} className="mr-1 sm:mr-2 shrink-0" />
+            <span className="hidden sm:inline">Catalogue Global</span>
+            <span className="sm:hidden">Catalogue</span>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => setMode('custom')}
+            className={`flex-1 min-w-fit text-sm sm:text-base font-medium transition-all ${mode === 'custom'
+                ? 'bg-amber-50 text-amber-700 shadow-md border-2 border-amber-400'
+                : 'text-gray-600 border-2 border-transparent hover:bg-amber-50/50'
+              }`}
+          >
+            <PenTool size={16} className="mr-1 sm:mr-2 shrink-0" />
+            <span className="hidden sm:inline">Produit Personnalisé</span>
+            <span className="sm:hidden">Personnalisé</span>
           </Button>
         </div>
       )}
@@ -268,7 +270,7 @@ export function ProductModal({ isOpen, onClose, onSave, product }: ProductModalP
 
         {(mode === 'custom' || selectedGlobalId || product) && (
           <form id="product-form" onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="space-y-4">
                                       <div>
                                         <Label htmlFor="productName">Nom du produit *</Label>
