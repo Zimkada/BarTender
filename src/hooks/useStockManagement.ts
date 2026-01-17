@@ -4,6 +4,7 @@ import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { calculateAvailableStock } from '../utils/calculations';
 import { auditLogger } from '../services/AuditLogger';
+import { toDbProduct, toDbProductForCreation } from '../utils/productMapper';
 import type { Product, ProductStockInfo, Supply, Expense } from '../types';
 
 // React Query Hooks
@@ -31,18 +32,7 @@ export const useStockManagement = () => {
   const addProduct = useCallback((productData: Omit<Product, 'id' | 'createdAt'>) => {
     if (!currentBar || !session) return;
 
-    const newProductData = {
-      bar_id: currentBar.id,
-      local_name: productData.name,
-      price: productData.price,
-      stock: productData.stock,
-      alert_threshold: productData.alertThreshold, // Mapping camelCase -> snake_case
-      local_category_id: productData.categoryId,
-      is_custom_product: productData.isCustomProduct ?? true,
-      global_product_id: productData.globalProductId,
-      local_image: productData.image,
-      volume: productData.volume,
-    };
+    const newProductData = toDbProductForCreation(productData, currentBar.id);
 
     mutations.createProduct.mutate(newProductData, {
       onSuccess: (data) => {
@@ -69,11 +59,9 @@ export const useStockManagement = () => {
   }, [addProduct]);
 
   const updateProduct = useCallback((id: string, updates: Partial<Product>) => {
-    // Mapping des champs si nécessaire
-    const dbUpdates: any = { ...updates };
-    if (updates.alertThreshold !== undefined) dbUpdates.alert_threshold = updates.alertThreshold;
-    if (updates.categoryId !== undefined) dbUpdates.local_category_id = updates.categoryId;
-    if (updates.name !== undefined) dbUpdates.local_name = updates.name;
+    // ✅ Use centralized mapper to convert camelCase → snake_case
+    // ⚠️ Stock field is automatically excluded (security: prevents direct manipulation)
+    const dbUpdates = toDbProduct(updates, true);
 
     mutations.updateProduct.mutate({ id, updates: dbUpdates });
   }, [mutations]);

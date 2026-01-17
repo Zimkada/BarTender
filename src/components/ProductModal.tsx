@@ -120,12 +120,17 @@ export function ProductModal({ isOpen, onClose, onSave, product }: ProductModalP
         name: formData.name,
         volume: formData.volume,
         price: parseFloat(formData.price),
-        stock: parseInt(formData.stock),
+        // ⚠️ Stock is ONLY included when creating new product (not editing)
+        // This prevents accidental or fraudulent stock modifications
+        ...(product ? {} : { stock: parseInt(formData.stock) }),
         categoryId: formData.categoryId,
         image: formData.image || undefined,
         alertThreshold: parseInt(formData.alertThreshold),
-        globalProductId: mode === 'global' ? selectedGlobalId || undefined : undefined,
-        isCustomProduct: mode === 'custom',
+        // When editing existing product, preserve original globalProductId if not changed
+        // When creating, use selectedGlobalId if global mode, else undefined
+        globalProductId: product?.globalProductId || (mode === 'global' ? selectedGlobalId || undefined : undefined),
+        // isCustomProduct = true ONLY if mode is custom AND no globalProductId
+        isCustomProduct: mode === 'custom' && !selectedGlobalId && !product?.globalProductId,
       });
       setIsSubmitting(false);
       onClose();
@@ -307,7 +312,7 @@ export function ProductModal({ isOpen, onClose, onSave, product }: ProductModalP
               </div>
             </div>
 
-                              <div className="grid grid-cols-3 gap-4 pt-2">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
                                 <div>
                                   <Label htmlFor="price">Prix de vente *</Label>
                                   <Input
@@ -321,20 +326,34 @@ export function ProductModal({ isOpen, onClose, onSave, product }: ProductModalP
                                       endAdornment="F"
                                   />
                                 </div>
-            
+
                                 <div>
-                                  <Label htmlFor="stock">Stock initial *</Label>
+                                  <Label htmlFor="stock">
+                                    Stock initial {product ? '(lecture seule)' : '*'}
+                                  </Label>
                                   <Input
                                       id="stock"
                                       type="number"
-                                      required
+                                      required={!product} // Required only when creating new product
                                       min="0"
                                       value={formData.stock}
-                                      onChange={(e) => handleInputChange('stock', e.target.value)}
+                                      onChange={(e) => {
+                                        // Only allow stock modification when creating new product
+                                        if (!product) {
+                                          handleInputChange('stock', e.target.value);
+                                        }
+                                      }}
+                                      disabled={!!product} // Disabled when editing (read-only)
                                       placeholder="24"
+                                      className={product ? 'opacity-60 cursor-not-allowed' : ''}
                                   />
+                                  {product && (
+                                    <p className="text-xs text-amber-600 mt-1">
+                                      ⚠️ Le stock ne peut être modifié que via: ventes, approvisionnements, ou ajustements spécifiques
+                                    </p>
+                                  )}
                                 </div>
-            
+
                                 <div>
                                   <Label htmlFor="alertThreshold">Seuil alerte *</Label>
                                   <Input
