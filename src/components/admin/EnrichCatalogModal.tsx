@@ -238,9 +238,11 @@ export function EnrichCatalogModal({
       title="➕ Enrichir le Catalogue Global"
       size="lg"
     >
-      <div className="space-y-6 max-h-[80vh] overflow-y-auto">
-        {/* Produit source */}
-        <div>
+      <div className="flex flex-col h-full">
+        {/* Contenu scrollable */}
+        <div className="space-y-6 flex-1 overflow-y-auto pr-2">
+          {/* Produit source */}
+          <div>
           <h3 className="font-semibold mb-3">📦 Produit Source</h3>
           <Card className="p-4 bg-blue-50 border-blue-200">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -499,9 +501,10 @@ export function EnrichCatalogModal({
             </div>
           </div>
         </div>
+        </div>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t">
+        {/* Actions - Boutons hors du scroll */}
+        <div className="flex justify-end gap-3 pt-4 border-t mt-4">
           <Button variant="outline" onClick={onClose}>
             Annuler
           </Button>

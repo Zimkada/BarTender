@@ -327,26 +327,32 @@ export class CatalogEnrichmentService {
           throw new Error('Erreur lors de la liaison du produit source');
         }
 
-        // 🔍 Log succès
-        await supabase
-          .from('audit_logs')
-          .insert({
-            event: 'CATALOG_ENRICHED_FROM_LOCAL',
-            severity: 'info',
-            user_id: userId,
-            user_name: authData.user.email || 'Unknown',
-            user_role: memberData.role,
-            bar_id: barProduct.bar_id,
-            bar_name: memberData.bars?.name,
-            description: `Produit "${enrichmentData.name}" enrichi au catalogue global (source: ${barProduct.local_name} de ${memberData.bars?.name})`,
-            metadata: {
-              global_product_id: newGlobalProduct.id,
-              bar_product_id: barProductId,
+        // 🔍 Log succès (non-blocking)
+        try {
+          const { error: auditError } = await supabase
+            .from('audit_logs')
+            .insert({
+              event: 'CATALOG_ENRICHED_FROM_LOCAL',
+              severity: 'info',
+              user_id: userId,
+              user_name: authData.user.email || 'Unknown',
+              user_role: memberData.role,
               bar_id: barProduct.bar_id,
-              volume: normalizedVolume
-            }
-          })
-          .catch(console.error); // Non bloquant
+              bar_name: memberData.bars?.name,
+              description: `Produit "${enrichmentData.name}" enrichi au catalogue global (source: ${barProduct.local_name} de ${memberData.bars?.name})`,
+              metadata: {
+                global_product_id: newGlobalProduct.id,
+                bar_product_id: barProductId,
+                bar_id: barProduct.bar_id,
+                volume: normalizedVolume
+              }
+            });
+          if (auditError) {
+            console.error('Audit log failed (non-blocking):', auditError);
+          }
+        } catch (auditErr) {
+          console.error('Audit log error (non-blocking):', auditErr);
+        }
 
         return {
           globalProduct: {
