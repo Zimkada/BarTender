@@ -21,12 +21,12 @@ export default function AnalyticsPage() {
   const { isComplete } = useOnboarding();
   const { hasCompletedGuide } = useGuide();
 
-  // Trigger analytics guide after onboarding (first visit only)
-  useAutoGuide(
-    'analytics-overview',
-    isComplete && !hasCompletedGuide('analytics-overview'),
-    { delay: 1500 }
-  );
+  // Auto-guide disabled - use GuideHeaderButton in header instead
+  // useAutoGuide(
+  //   'analytics-overview',
+  //   isComplete && !hasCompletedGuide('analytics-overview'),
+  //   { delay: 1500 }
+  // );
 
   // Générer les données pour les graphiques (12 derniers mois)
   const chartData = useMemo(() => {

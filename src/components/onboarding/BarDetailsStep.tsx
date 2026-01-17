@@ -75,11 +75,12 @@ export const BarDetailsStep: React.FC = () => {
       await BarsService.updateBar(currentBar.id, {
         name: formData.barName,
         address: formData.location,
-        email: formData.contact,
+        // Note: contact/email is stored in settings, not as a separate column
         settings: {
           ...currentSettings,
           businessDayCloseHour: formData.closingHour,
           operatingMode: formData.operatingMode,
+          contact: formData.contact, // Store contact in settings
         },
       } as any);
 
@@ -259,57 +260,65 @@ export const BarDetailsStep: React.FC = () => {
             </div>
           )}
 
-          {/* Buttons */}
-          <div className="flex gap-3 pt-6 border-t">
-            <button
-              type="button"
-              onClick={() => previousStep()}
-              className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-            >
-              Retour
-            </button>
-            <LoadingButton
-              type="button"
-              isLoading={loading}
-              onClick={async () => {
-                setLoading(true);
-                try {
-                  if (!currentBar?.id) throw new Error('Aucun bar sélectionné');
+          {/* Buttons - Responsive Layout */}
+          <div className="pt-6 border-t space-y-3">
+            {/* Mobile: Retour + Étape Suivante sur la même ligne */}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => previousStep()}
+                className="flex-1 sm:flex-none px-4 sm:px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              >
+                Retour
+              </button>
+              <LoadingButton
+                type="submit"
+                isLoading={loading}
+                loadingText="Enregistrement..."
+                className="flex-1 sm:flex-none sm:ml-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Étape Suivante
+              </LoadingButton>
+            </div>
 
-                  // Persist current state before leaving (settings are JSONB)
-                  const currentSettings = (currentBar.settings as any) || {};
-                  await BarsService.updateBar(currentBar.id, {
-                    name: formData.barName,
-                    address: formData.location,
-                    email: formData.contact,
-                    settings: {
-                      ...currentSettings,
-                      businessDayCloseHour: formData.closingHour,
-                      operatingMode: formData.operatingMode,
-                    },
-                  } as any);
+            {/* Completer Plus Tard centré en dessous */}
+            <div className="flex justify-center">
+              <LoadingButton
+                type="button"
+                isLoading={loading}
+                onClick={async () => {
+                  setLoading(true);
+                  try {
+                    if (!currentBar?.id) throw new Error('Aucun bar sélectionné');
 
-                  updateStepData(OnboardingStep.OWNER_BAR_DETAILS, formData);
-                  completeStep(OnboardingStep.OWNER_BAR_DETAILS, formData);
-                  completeOnboarding();
-                } catch (error: any) {
-                  setErrors({ submit: 'Erreur lors de la sauvegarde : ' + error.message });
-                } finally {
-                  setLoading(false);
-                }
-              }}
-              className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-            >
-              Compléter Plus Tard
-            </LoadingButton>
-            <LoadingButton
-              type="submit"
-              isLoading={loading}
-              loadingText="Enregistrement..."
-              className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              Étape Suivante
-            </LoadingButton>
+                    // Persist current state before leaving (settings are JSONB)
+                    const currentSettings = (currentBar.settings as any) || {};
+                    await BarsService.updateBar(currentBar.id, {
+                      name: formData.barName,
+                      address: formData.location,
+                      // Note: contact/email is stored in settings, not as a separate column
+                      settings: {
+                        ...currentSettings,
+                        businessDayCloseHour: formData.closingHour,
+                        operatingMode: formData.operatingMode,
+                        contact: formData.contact, // Store contact in settings
+                      },
+                    } as any);
+
+                    updateStepData(OnboardingStep.OWNER_BAR_DETAILS, formData);
+                    completeStep(OnboardingStep.OWNER_BAR_DETAILS, formData);
+                    completeOnboarding();
+                  } catch (error: any) {
+                    setErrors({ submit: 'Erreur lors de la sauvegarde : ' + error.message });
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="w-full sm:w-auto px-4 sm:px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              >
+                Compléter Plus Tard
+              </LoadingButton>
+            </div>
           </div>
         </form>
       </div>

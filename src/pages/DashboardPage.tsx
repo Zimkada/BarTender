@@ -21,12 +21,12 @@ export default function DashboardPage() {
   if (role === 'gerant') tourId = 'manager-dashboard';
   if (role === 'serveur') tourId = 'create-first-sale';
 
-  // Trigger dashboard guide after onboarding (first visit only)
-  useAutoGuide(
-    tourId,
-    onboardingComplete && !hasCompletedGuide(tourId),
-    { delay: 2000 }
-  );
+  // Auto-guide disabled - use GuideHeaderButton in header instead
+  // useAutoGuide(
+  //   tourId,
+  //   onboardingComplete && !hasCompletedGuide(tourId),
+  //   { delay: 2000 }
+  // );
 
   return <DailyDashboard />;
 }
