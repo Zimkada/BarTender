@@ -43,6 +43,7 @@ export class BarsService {
       isActive: row.is_active || false,
       closingHour: row.closing_hour ?? 6, // ✅ Mappage explicite
       settings: row.settings as any,
+      isSetupComplete: row.is_setup_complete || false,
     };
   }
 

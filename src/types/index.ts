@@ -40,6 +40,7 @@ export interface Bar {
   isActive: boolean;
   closingHour: number;
   settings: BarSettings;
+  isSetupComplete?: boolean;
 }
 
 export interface BarSettings {

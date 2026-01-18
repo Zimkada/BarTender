@@ -259,24 +259,16 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
         if (products && products.length > 0) {
           hydratedStepData[OnboardingStep.OWNER_ADD_PRODUCTS] = {
             products: products.map((p: any) => ({
-              productId: p.global_product_id,
+              productId: p.id,
               localPrice: p.price,
             })),
           };
         }
 
         if (supplies && supplies.length > 0 && barProductsForStock) {
-          // Créer un map bar_product.id -> global_product_id
-          const productIdToGlobalId = new Map(
-            barProductsForStock.map((bp: any) => [bp.id, bp.global_product_id])
-          );
-
           const stocksMap: Record<string, number> = {};
           supplies.forEach((s: any) => {
-            const globalProductId = productIdToGlobalId.get(s.product_id);
-            if (globalProductId) {
-              stocksMap[globalProductId] = s.quantity;
-            }
+            stocksMap[s.product_id] = s.quantity;
           });
           hydratedStepData[OnboardingStep.OWNER_STOCK_INIT] = {
             stocks: stocksMap,

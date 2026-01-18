@@ -24,7 +24,7 @@ export const OnboardingBanner: React.FC = () => {
   const isOnOnboardingPage = location.pathname === '/onboarding';
   const shouldShow =
     currentBar &&
-    !currentBar.is_setup_complete &&
+    !currentBar.isSetupComplete &&
     !isOnOnboardingPage &&
     !isDismissed &&
     (!deferredUntil || Date.now() >= deferredUntil);

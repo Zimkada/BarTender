@@ -29,33 +29,48 @@ export const StockInitStep: React.FC = () => {
 
   // Map productId -> productName for display
   const [productNames, setProductNames] = useState<Record<string, string>>({});
+  const [loadedStocks, setLoadedStocks] = useState(false);
 
-  // Load product names from database
+  // Load product names and actual stocks from database
   React.useEffect(() => {
-    const loadProductNames = async () => {
+    const loadProductData = async () => {
       if (productIds.length === 0) return;
       if (!currentBar?.id) return;
 
       // Import supabase
       const { supabase } = await import('@/lib/supabase');
 
-      // Fetch from bar_products to get display_name (works for both local and global products)
+      // Fetch from bar_products to get display_name and stock
       const { data: products } = await supabase
         .from('bar_products')
-        .select('id, display_name')
+        .select('id, display_name, stock')
         .eq('bar_id', currentBar.id)
         .in('id', productIds);
 
       if (products) {
         const nameMap: Record<string, string> = {};
+        const stockMap: Record<string, number> = {};
+
         products.forEach((p: any) => {
           nameMap[p.id] = p.display_name;
+          stockMap[p.id] = p.stock || 0;
         });
+
         setProductNames(nameMap);
+
+        // Update form data with actual stocks from database
+        setFormData((prev) => ({
+          stocks: {
+            ...prev.stocks,
+            ...stockMap,
+          },
+        }));
+
+        setLoadedStocks(true);
       }
     };
 
-    loadProductNames();
+    loadProductData();
   }, [productIds.length, currentBar?.id]);
 
   const handleStockChange = (productId: string, value: string) => {
