@@ -21,7 +21,7 @@ export const useOnboardingGuard = () => {
   const shouldRedirectToOnboarding =
     !!currentSession &&
     !!currentBar &&
-    !currentBar.is_setup_complete &&
+    !currentBar.isSetupComplete &&
     !isComplete;
 
   // Handle automatic redirect
@@ -33,7 +33,7 @@ export const useOnboardingGuard = () => {
 
   return {
     shouldRedirectToOnboarding,
-    barSetupComplete: currentBar?.is_setup_complete || false,
+    barSetupComplete: currentBar?.isSetupComplete || false,
     onboardingComplete: isComplete,
   };
 };
@@ -44,7 +44,7 @@ export const useOnboardingGuard = () => {
  */
 export const useCanCreateSale = () => {
   const { currentBar } = useBar();
-  return currentBar?.is_setup_complete || false;
+  return currentBar?.isSetupComplete || false;
 };
 
 /**
@@ -59,7 +59,7 @@ export const useManagerAccessLevel = () => {
   // This is implementation of Q5 decision: "Accès complet"
   return {
     canAccess: true, // Gérant has full access even if bar incomplete
-    barSetupComplete: currentBar?.is_setup_complete || false,
+    barSetupComplete: currentBar?.isSetupComplete || false,
     canCreateSales: true, // Manager can create sales regardless of setup status
   };
 };

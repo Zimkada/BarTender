@@ -15,7 +15,9 @@ RETURNS TABLE (
   created_at TIMESTAMPTZ,
   is_active BOOLEAN,
   closing_hour INT,
-  settings JSONB
+  settings JSONB,
+  is_setup_complete BOOLEAN,
+  setup_completed_at TIMESTAMPTZ
 ) AS $$
 BEGIN
   -- Check if user is impersonating OR is bar member
@@ -32,7 +34,9 @@ BEGIN
       b.created_at,
       b.is_active,
       b.closing_hour,
-      b.settings
+      b.settings,
+      b.is_setup_complete,
+      b.setup_completed_at
     FROM bars b
     INNER JOIN bar_members bm ON b.id = bm.bar_id
     WHERE bm.user_id = p_user_id

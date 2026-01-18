@@ -39,8 +39,10 @@ export const OnboardingFlow: React.FC = () => {
   const {
     currentStep,
     initializeOnboarding,
+    updateBarId,
     userId,
     userRole,
+    barId: contextBarId,
   } = useOnboarding();
   const { currentSession } = useAuth();
   const { currentBar, barMembers } = useBar();
@@ -98,6 +100,14 @@ export const OnboardingFlow: React.FC = () => {
       );
     }
   }, [currentSession?.userId, currentBar?.id, currentBar?.ownerId, barMembers, userRole, userId, initializeOnboarding, navigate]);
+
+  // Sync onboarding context barId with currentBar when user switches bars
+  // This triggers the reset and hydration effects in OnboardingContext
+  useEffect(() => {
+    if (currentBar?.id && contextBarId !== currentBar.id) {
+      updateBarId(currentBar.id);
+    }
+  }, [currentBar?.id, contextBarId, updateBarId]);
 
   // Render appropriate component based on current step
   const renderStep = () => {

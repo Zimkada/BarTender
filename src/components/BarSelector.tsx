@@ -44,8 +44,8 @@ export function BarSelector({ onCreateNew }: BarSelectorProps) {
     return null;
   }
 
-  const handleSwitch = (barId: string) => {
-    switchBar(barId);
+  const handleSwitch = async (barId: string) => {
+    await switchBar(barId);
     setIsOpen(false);
   };
 
@@ -94,7 +94,7 @@ export function BarSelector({ onCreateNew }: BarSelectorProps) {
                       {bar.name}
                     </p>
                     {/* Setup status indicator - only show when complete */}
-                    {bar.is_setup_complete && (
+                    {bar.isSetupComplete && (
                       <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" title="Setup completed" />
                     )}
                   </div>

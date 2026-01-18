@@ -238,7 +238,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setCurrentBar(null);
       setCurrentBarId(null);
     }
-  }, [currentBarId, bars, currentSession, getUserBars, refreshMembers]);
+  }, [currentBarId, bars, currentSession, getUserBars]);
 
   // Gestion des bars
   const createBar = useCallback(async (barData: Omit<Bar, 'id' | 'createdAt' | 'ownerId'> & { ownerId?: string }) => {
@@ -414,7 +414,14 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     // Mettre à jour la session AuthContext avec le NOUVEAU RÔLE
     updateCurrentBar(barId, bar.name, newRole);
-  }, [bars, updateCurrentBar, currentSession]);
+
+    // 🔄 Rafraîchir les données du bar (pour isSetupComplete, settings, etc.)
+    try {
+      await refreshBars();
+    } catch (error) {
+      console.warn('[BarContext] Error refreshing bars after switch:', error);
+    }
+  }, [bars, updateCurrentBar, currentSession, refreshBars]);
 
   // Gestion des membres
   const getBarMembers = useCallback(async (barId: string): Promise<(BarMember & { user: User })[]> => {

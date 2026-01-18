@@ -83,6 +83,7 @@ export interface OnboardingState {
  */
 export interface OnboardingContextType extends OnboardingState {
   initializeOnboarding: (userId: string, barId: string, role: UserRole) => void;
+  updateBarId: (barId: string) => void;
   goToStep: (step: OnboardingStep) => void;
   nextStep: () => void;
   previousStep: () => void;
@@ -329,6 +330,14 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     });
   };
 
+  // Update barId when user switches bars (triggers hydration and reset)
+  const updateBarId = (newBarId: string) => {
+    const safeBarId = newBarId ? String(newBarId) : null;
+    updateState({
+      barId: safeBarId,
+    });
+  };
+
   const goToStep = (step: OnboardingStep) => {
     updateState({ currentStep: step });
   };
@@ -394,6 +403,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
   const value: OnboardingContextType = {
     ...state,
     initializeOnboarding,
+    updateBarId,
     goToStep,
     nextStep,
     previousStep,

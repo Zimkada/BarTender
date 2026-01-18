@@ -27,11 +27,11 @@ export const OnboardingPage: React.FC = () => {
   // Redirect to dashboard if bar already setup complete (from database or context)
   useEffect(() => {
     // Check setup status from database OR from onboarding context completion
-    const isSetupComplete = (currentBar as any)?.is_setup_complete || onboardingComplete;
-    if (!barLoading && isSetupComplete) {
+    const isSetupComplete = currentBar?.isSetupComplete || onboardingComplete;
+    if (isSetupComplete) {
       navigate('/dashboard', { replace: true });
     }
-  }, [barLoading, currentBar, onboardingComplete, navigate]);
+  }, [currentBar?.isSetupComplete, onboardingComplete, navigate]);
 
   // Loading state
   if (barLoading) {
@@ -70,7 +70,7 @@ export const OnboardingPage: React.FC = () => {
   }
 
   // Bar already setup complete - shouldn't reach here due to redirect above
-  if ((currentBar as any).is_setup_complete) {
+  if (currentBar?.isSetupComplete) {
     return null; // Will redirect to dashboard
   }
 

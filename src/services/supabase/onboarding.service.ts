@@ -398,7 +398,7 @@ export class OnboardingService {
 
       return {
         barName: bar?.name || 'Unknown',
-        isSetupComplete: bar?.is_setup_complete || false,
+        isSetupComplete: bar?.is_setup_complete === true,
         completedAt: bar?.setup_completed_at || null,
         managerCount: managerCount || 0,
         serverCount: serverCount || 0,
