@@ -1,8 +1,9 @@
 import { useState, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package, AlertTriangle, Plus, Edit, Trash2, UploadCloud, TruckIcon, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Package, AlertTriangle, Plus, Edit, Trash2, UploadCloud, TruckIcon, BarChart3, TrendingDown, TrendingUp } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useStockManagement } from '../hooks/useStockManagement';
+import { useStockAdjustment } from '../hooks/mutations/useStockAdjustment';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { Product } from '../types';
 import { motion } from 'framer-motion';
@@ -15,6 +16,9 @@ import { useBarContext } from '../context/BarContext';
 const ProductModal = lazy(() => import('../components/ProductModal').then(m => ({ default: m.ProductModal })));
 const SupplyModal = lazy(() => import('../components/SupplyModal').then(m => ({ default: m.SupplyModal })));
 const ProductImport = lazy(() => import('../components/ProductImport').then(m => ({ default: m.ProductImport })));
+
+// Import StockAdjustmentModal directly (lighter component, used frequently)
+import { StockAdjustmentModal } from '../components/StockAdjustmentModal';
 import { searchProducts } from '../utils/productFilters';
 import { sortProducts, SortMode } from '../utils/productSorting';
 import { SearchBar } from '../components/common/SearchBar';
@@ -66,11 +70,15 @@ export default function InventoryPage() {
 
     const { formatPrice } = useCurrencyFormatter();
     const { isMobile } = useViewport();
+    const { showSuccess } = useFeedback();
+    const stockAdjustmentMutation = useStockAdjustment();
+
     const [showProductModal, setShowProductModal] = useState(false);
     const [showSupplyModal, setShowSupplyModal] = useState(false);
     const [showProductImport, setShowProductImport] = useState(false);
+    const [showStockAdjustmentModal, setShowStockAdjustmentModal] = useState(false);
     const [editingProduct, setEditingProduct] = useState<Product | undefined>();
-    const { showSuccess } = useFeedback();
+    const [adjustingProduct, setAdjustingProduct] = useState<Product | undefined>();
 
     // 2. UTILISATION DU HOOK POUR LE FEATURE FLAG
     const isProductImportEnabled = useFeatureFlag('product-import').data as boolean;
@@ -140,6 +148,43 @@ export default function InventoryPage() {
             console.error('Erreur suppression:', error);
         } finally {
             setIsDeleting(false);
+        }
+    };
+
+    const handleAdjustStock = (product: Product) => {
+        setAdjustingProduct(product);
+        setShowStockAdjustmentModal(true);
+    };
+
+    const handleAdjustmentSubmit = async (adjustmentData: {
+        productId: string;
+        delta: number;
+        reason: string;
+        notes?: string;
+    }) => {
+        if (!adjustingProduct || !currentBar || !currentSession) return;
+
+        try {
+            await stockAdjustmentMutation.mutateAsync({
+                productId: adjustmentData.productId,
+                productName: adjustingProduct.name,
+                oldStock: adjustingProduct.stock,
+                newStock: adjustingProduct.stock + adjustmentData.delta,
+                delta: adjustmentData.delta,
+                reason: adjustmentData.reason,
+                notes: adjustmentData.notes,
+                barId: currentBar.id,
+                barName: currentBar.name,
+                userId: currentSession.userId,
+                userName: currentSession.userName,
+                userRole: currentSession.role
+            });
+            showSuccess('Stock ajusté avec succès');
+            setShowStockAdjustmentModal(false);
+            setAdjustingProduct(undefined);
+        } catch (error: any) {
+            console.error('Erreur ajustement stock:', error);
+            throw error;
         }
     };
 
@@ -376,6 +421,14 @@ export default function InventoryPage() {
                                                     Modifier
                                                 </Button>
                                                 <Button
+                                                    onClick={() => handleAdjustStock(product)}
+                                                    className="flex-1 text-sm font-medium flex items-center justify-center gap-2"
+                                                    style={{ backgroundColor: '#3b82f6', color: 'white' }}
+                                                >
+                                                    <BarChart3 size={16} />
+                                                    Ajuster
+                                                </Button>
+                                                <Button
                                                     onClick={() => handleDeleteClick(product)}
                                                     variant="destructive"
                                                     className="text-sm font-medium"
@@ -415,6 +468,17 @@ export default function InventoryPage() {
                         products={products}
                     />
                 </Suspense>
+
+                {/* Stock Adjustment Modal - not lazy loaded for immediate visibility */}
+                {adjustingProduct && (
+                    <StockAdjustmentModal
+                        isOpen={showStockAdjustmentModal}
+                        onClose={() => setShowStockAdjustmentModal(false)}
+                        onSave={handleAdjustmentSubmit}
+                        product={adjustingProduct}
+                    />
+                )}
+
                 <ConfirmationModal
                     isOpen={!!productToDelete}
                     onClose={() => setProductToDelete(null)}
@@ -655,6 +719,14 @@ export default function InventoryPage() {
                                                     <Edit size={16} />
                                                 </Button>
                                                 <Button
+                                                    onClick={() => handleAdjustStock(product)}
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="hover:text-blue-600"
+                                                >
+                                                    <BarChart3 size={16} />
+                                                </Button>
+                                                <Button
                                                     onClick={() => handleDeleteClick(product)}
                                                     variant="ghost"
                                                     size="icon"
@@ -696,6 +768,17 @@ export default function InventoryPage() {
                     products={products}
                 />
             </Suspense>
+
+            {/* Stock Adjustment Modal - not lazy loaded for immediate visibility */}
+            {adjustingProduct && (
+                <StockAdjustmentModal
+                    isOpen={showStockAdjustmentModal}
+                    onClose={() => setShowStockAdjustmentModal(false)}
+                    onSave={handleAdjustmentSubmit}
+                    product={adjustingProduct}
+                />
+            )}
+
             <ConfirmationModal
                 isOpen={!!productToDelete}
                 onClose={() => setProductToDelete(null)}

@@ -305,6 +305,82 @@ export interface Sale {
   notes?: string;
 }
 
+// ===== AJUSTEMENTS DE STOCK =====
+export type AdjustmentReason =
+  | 'inventory_count'
+  | 'loss_damage'
+  | 'donation_sample'
+  | 'expiration'
+  | 'theft_report'
+  | 'other';
+
+export interface AdjustmentReasonConfig {
+  label: string;
+  description: string;
+  icon: string;
+  color: string;
+  requiresNotes: boolean;
+}
+
+export const ADJUSTMENT_REASONS: Record<AdjustmentReason, AdjustmentReasonConfig> = {
+  inventory_count: {
+    label: 'Inventaire physique',
+    description: 'Correction suite à comptage physique',
+    icon: 'ClipboardList',
+    color: 'blue',
+    requiresNotes: false
+  },
+  loss_damage: {
+    label: 'Perte / Dégât',
+    description: 'Produit endommagé ou cassé',
+    icon: 'AlertTriangle',
+    color: 'orange',
+    requiresNotes: false
+  },
+  donation_sample: {
+    label: 'Don / Dégustation',
+    description: 'Offert aux clients ou dégustation staff',
+    icon: 'Gift',
+    color: 'green',
+    requiresNotes: false
+  },
+  expiration: {
+    label: 'Expiration',
+    description: 'Produit expiré ou périmé',
+    icon: 'Calendar',
+    color: 'red',
+    requiresNotes: false
+  },
+  theft_report: {
+    label: 'Déclaration vol',
+    description: 'Vol détecté en inventaire',
+    icon: 'AlertCircle',
+    color: 'red',
+    requiresNotes: true
+  },
+  other: {
+    label: 'Autre',
+    description: 'Autre raison (notes obligatoires)',
+    icon: 'MoreHorizontal',
+    color: 'gray',
+    requiresNotes: true
+  }
+};
+
+export interface StockAdjustment {
+  id: string;
+  barId: string;
+  productId: string;
+  oldStock: number;
+  newStock: number;
+  delta: number;
+  reason: AdjustmentReason;
+  notes?: string;
+  adjustedBy: string;
+  adjustedAt: Date;
+  createdAt: Date;
+}
+
 // ===== RETOURS =====
 export type ReturnReason = 'defective' | 'wrong_item' | 'customer_change' | 'expired' | 'other';
 
