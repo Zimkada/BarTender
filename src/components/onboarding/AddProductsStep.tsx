@@ -34,6 +34,36 @@ export const AddProductsStep: React.FC = () => {
     products: savedData?.products || [],
   });
 
+  // Map productId -> productName for display
+  const [productNames, setProductNames] = useState<Record<string, string>>({});
+
+  // Load product names from database when formData.products changes
+  React.useEffect(() => {
+    const loadProductNames = async () => {
+      if (formData.products.length === 0) return;
+
+      const productIds = formData.products.map((p) => p.productId);
+
+      // Import supabase at top if not already imported
+      const { supabase } = await import('@/lib/supabase');
+
+      const { data: products } = await supabase
+        .from('global_products')
+        .select('id, name')
+        .in('id', productIds);
+
+      if (products) {
+        const nameMap: Record<string, string> = {};
+        products.forEach((p: any) => {
+          nameMap[p.id] = p.name;
+        });
+        setProductNames(nameMap);
+      }
+    };
+
+    loadProductNames();
+  }, [formData.products]);
+
   const handleOpenProductSelector = () => {
     setIsModalOpen(true);
   };
@@ -58,29 +88,9 @@ export const AddProductsStep: React.FC = () => {
     e.preventDefault();
     setErrors('');
 
-    // Validate: At least 1 product required if submitting
-    if (formData.products.length === 0) {
-      setErrors('❌ Veuillez ajouter au moins 1 produit pour continuer, ou cliquez sur "Compléter Plus Tard".');
-      return;
-    }
-
     setLoading(true);
     try {
-      if (!currentSession?.userId) {
-        throw new Error('Utilisateur non authentifié');
-      }
-
-      if (!currentBar?.id) {
-        throw new Error('Bar non trouvé');
-      }
-
-      const userId = currentSession.userId;
-      const barId = currentBar.id;
-
-      // Add products to bar via API (products already have prices from modal)
-      await OnboardingService.addProductsToBar(barId, formData.products, userId);
-
-      // Save form data to context
+      // Save form data to context (no need to persist if already in DB)
       updateStepData(OnboardingStep.OWNER_ADD_PRODUCTS, formData);
       completeStep(OnboardingStep.OWNER_ADD_PRODUCTS, formData);
 
@@ -134,7 +144,9 @@ export const AddProductsStep: React.FC = () => {
                   className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg"
                 >
                   <div>
-                    <span className="text-sm text-gray-900 block">ID : {product.productId}</span>
+                    <span className="text-sm text-gray-900 block font-medium">
+                      {productNames[product.productId] || product.productId}
+                    </span>
                     <span className="text-xs text-gray-600">Prix : {product.localPrice.toFixed(2)} FCFA</span>
                   </div>
                   <button
@@ -190,8 +202,7 @@ export const AddProductsStep: React.FC = () => {
                 type="submit"
                 isLoading={loading}
                 loadingText="Enregistrement..."
-                className="flex-1 sm:flex-none sm:ml-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-                disabled={formData.products.length === 0}
+                className="flex-1 sm:flex-none sm:ml-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
               >
                 Étape Suivante
               </LoadingButton>
