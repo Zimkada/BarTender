@@ -2,6 +2,8 @@
 -- RPC: Get current user's bars
 -- =====================================================
 
+DROP FUNCTION IF EXISTS get_my_bars();
+
 CREATE OR REPLACE FUNCTION get_my_bars()
 RETURNS TABLE (
   id UUID,
