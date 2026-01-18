@@ -27,6 +27,37 @@ export const StockInitStep: React.FC = () => {
     stocks: savedData?.stocks || productIds.reduce((acc: Record<string, number>, id: string) => ({ ...acc, [id]: 0 }), {}),
   });
 
+  // Map productId -> productName for display
+  const [productNames, setProductNames] = useState<Record<string, string>>({});
+
+  // Load product names from database
+  React.useEffect(() => {
+    const loadProductNames = async () => {
+      if (productIds.length === 0) return;
+      if (!currentBar?.id) return;
+
+      // Import supabase
+      const { supabase } = await import('@/lib/supabase');
+
+      // Fetch from bar_products to get display_name (works for both local and global products)
+      const { data: products } = await supabase
+        .from('bar_products')
+        .select('id, display_name')
+        .eq('bar_id', currentBar.id)
+        .in('id', productIds);
+
+      if (products) {
+        const nameMap: Record<string, string> = {};
+        products.forEach((p: any) => {
+          nameMap[p.id] = p.display_name;
+        });
+        setProductNames(nameMap);
+      }
+    };
+
+    loadProductNames();
+  }, [productIds.length, currentBar?.id]);
+
   const handleStockChange = (productId: string, value: string) => {
     const quantity = Math.max(0, parseInt(value, 10) || 0);
     setFormData((prev) => ({
@@ -116,7 +147,7 @@ export const StockInitStep: React.FC = () => {
                         htmlFor={`stock-${productId}`}
                         className="block text-sm font-medium text-gray-700 mb-1"
                       >
-                        Produit : {productId}
+                        Produit : {productNames[productId] || productId}
                       </label>
                       <input
                         id={`stock-${productId}`}

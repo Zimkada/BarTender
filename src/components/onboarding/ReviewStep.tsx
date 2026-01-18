@@ -46,22 +46,16 @@ export const ReviewStep: React.FC = () => {
           .eq('role', 'serveur')
           .eq('is_active', true);
 
-        // Get products with names (handles both global and local products)
+        // Get products with display_name (works for both global and local products)
         const { data: barProducts } = await supabase
           .from('bar_products')
-          .select(`
-            id,
-            name,
-            global_products (
-              name
-            )
-          `)
+          .select('id, display_name')
           .eq('bar_id', currentBar.id)
           .eq('is_active', true);
 
-        // Use global product name if available, otherwise use local product name
+        // Use display_name for all products
         const productNames = barProducts?.map((p: any) =>
-          p.global_products?.name || p.name || 'Produit inconnu'
+          p.display_name || 'Produit inconnu'
         ) || [];
 
         // Get total stock

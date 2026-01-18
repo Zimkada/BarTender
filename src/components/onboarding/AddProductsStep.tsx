@@ -41,28 +41,31 @@ export const AddProductsStep: React.FC = () => {
   React.useEffect(() => {
     const loadProductNames = async () => {
       if (formData.products.length === 0) return;
+      if (!currentBar?.id) return;
 
       const productIds = formData.products.map((p) => p.productId);
 
       // Import supabase at top if not already imported
       const { supabase } = await import('@/lib/supabase');
 
+      // Fetch from bar_products to get display_name (works for both local and global products)
       const { data: products } = await supabase
-        .from('global_products')
-        .select('id, name')
+        .from('bar_products')
+        .select('id, display_name')
+        .eq('bar_id', currentBar.id)
         .in('id', productIds);
 
       if (products) {
         const nameMap: Record<string, string> = {};
         products.forEach((p: any) => {
-          nameMap[p.id] = p.name;
+          nameMap[p.id] = p.display_name;
         });
         setProductNames(nameMap);
       }
     };
 
     loadProductNames();
-  }, [formData.products]);
+  }, [formData.products, currentBar?.id]);
 
   const handleOpenProductSelector = () => {
     setIsModalOpen(true);
