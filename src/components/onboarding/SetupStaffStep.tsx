@@ -1,5 +1,6 @@
 // Language: French (Français)
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
 import { useAuth } from '../../context/AuthContext';
 import { useBar } from '../../context/BarContext';
@@ -11,6 +12,7 @@ interface SetupStaffFormData {
 }
 
 export const SetupStaffStep: React.FC = () => {
+  const navigate = useNavigate();
   const { stepData, updateStepData, completeStep, nextStep, previousStep } = useOnboarding();
   const { currentSession } = useAuth();
   const { currentBar } = useBar();
@@ -222,23 +224,52 @@ export const SetupStaffStep: React.FC = () => {
             </ul>
           </div>
 
-          {/* Buttons */}
-          <div className="flex gap-3 pt-6 border-t">
-            <button
-              type="button"
-              onClick={previousStep}
-              className="px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-            >
-              Retour
-            </button>
-            <LoadingButton
-              type="submit"
-              isLoading={loading}
-              loadingText="Enregistrement..."
-              className="ml-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              Étape Suivante
-            </LoadingButton>
+          {/* Buttons - Responsive Layout */}
+          <div className="pt-6 border-t space-y-3">
+            {/* Mobile: Retour + Étape Suivante sur la même ligne */}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={previousStep}
+                className="flex-1 sm:flex-none px-4 sm:px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              >
+                Retour
+              </button>
+              <LoadingButton
+                type="submit"
+                isLoading={loading}
+                loadingText="Enregistrement..."
+                className="flex-1 sm:flex-none sm:ml-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                Étape Suivante
+              </LoadingButton>
+            </div>
+
+            {/* Compléter Plus Tard centré en dessous */}
+            <div className="flex justify-center">
+              <LoadingButton
+                type="button"
+                isLoading={loading}
+                loadingText="Sauvegarde..."
+                onClick={async () => {
+                  setLoading(true);
+                  try {
+                    // Save staff that were created before leaving
+                    updateStepData(OnboardingStep.OWNER_SETUP_STAFF, formData);
+                    completeStep(OnboardingStep.OWNER_SETUP_STAFF, formData);
+                    // Redirect to dashboard
+                    navigate('/dashboard');
+                  } catch (error: any) {
+                    setErrors(error.message || 'Erreur lors de la sauvegarde');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="w-full sm:w-auto px-4 sm:px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              >
+                Compléter Plus Tard
+              </LoadingButton>
+            </div>
           </div>
         </form>
       </div>
