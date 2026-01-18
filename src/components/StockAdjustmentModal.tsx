@@ -23,11 +23,6 @@ export function StockAdjustmentModal({
   product
 }: StockAdjustmentModalProps) {
   const { formatPrice } = useCurrencyFormatter();
-
-  // Debug logging
-  useEffect(() => {
-    console.log('StockAdjustmentModal:', { isOpen, productName: product?.name });
-  }, [isOpen, product]);
   const [formData, setFormData] = useState({
     delta: '',
     reason: 'inventory_count' as AdjustmentReason,
