@@ -20,6 +20,7 @@ import { useTopProducts } from '../hooks/queries/useTopProductsQuery';
 import { getCurrentBusinessDateString } from '../utils/businessDateHelpers';
 import { useTeamPerformance } from '../hooks/useTeamPerformance';
 import { TeamPerformanceTable } from './analytics/TeamPerformanceTable';
+import { replaceAccents } from '../utils/stringFormatting';
 
 // Sous-composant pour les ventes en attente
 const PendingSalesSection = ({ sales, onValidate, onReject, onValidateAll, users }: {
@@ -298,17 +299,6 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
     const barName = currentBar?.name || 'Mon Bar';
     const dateStr = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-    // Helper function to replace accented characters with their ASCII equivalents
-    const replaceAccents = (str: string) => {
-      return str
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/œ/g, "oe")
-        .replace(/Œ/g, "OE")
-        .replace(/æ/g, "ae")
-        .replace(/Æ/g, "AE");
-    };
-
     let msg = `*RAPPORT JOURNALIER - ${barName.toUpperCase()}*\n`;
     msg += `_${dateStr}_\n\n`;
 
@@ -332,7 +322,7 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
     msg += `---------------------------\n`;
     msg += `_Genere via BarTender_`;
 
-    const asciiMsg = replaceAccents(msg); // Apply the conversion
+    const asciiMsg = replaceAccents(msg);
     window.open(`https://wa.me/?text=${encodeURIComponent(asciiMsg)}`, '_blank');
     showSuccess('📱 Rapport exporté');
   };

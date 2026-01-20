@@ -24,8 +24,6 @@ export function SimplePageHeader({
     onBack,
     className
 }: SimplePageHeaderProps) {
-    const showMobileBottomActions = mobileActions !== undefined ? mobileActions : actions;
-
     return (
         <PageHeader
             className={className}
@@ -62,9 +60,9 @@ export function SimplePageHeader({
             </PageHeader.Top>
 
             {/* Mobile Actions : Affichés uniquement sur mobile via CSS du composant MobileActions */}
-            {showMobileBottomActions && (
+            {(mobileActions ?? actions) && (
                 <PageHeader.MobileActions>
-                    {showMobileBottomActions}
+                    {mobileActions ?? actions}
                 </PageHeader.MobileActions>
             )}
         </PageHeader>

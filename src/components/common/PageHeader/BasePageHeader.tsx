@@ -123,48 +123,59 @@ const PageHeader: PageHeaderComponent = ({
 };
 
 // Sub-components implementations
+/** Top-level flex container for header content (title/left + actions/right) */
 const Top: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <div className="flex items-center justify-between gap-2 sm:gap-3">
         {children}
     </div>
 );
 
+/** Left section container (back button + icon + title area) */
 const Left: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
         {children}
     </div>
 );
 
+/** Heading element - auto-truncated for long titles */
 const Title: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <div className="flex-1 min-w-0">
         <h1 className="text-lg sm:text-2xl font-bold truncate">{children}</h1>
     </div>
 );
 
+/** Icon container - typically for page context icon */
 const Icon: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => (
     <div className={`flex items-center justify-center bg-white/20 w-8 h-8 rounded-lg flex-shrink-0 ${className || ''}`}>
         {children}
     </div>
 );
 
+/** Subtitle/description text - hidden on mobile by default */
 const Description: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => (
     <p className={`text-xs sm:text-sm text-amber-100 mt-0.5 sm:mt-1 ${className || ''}`}>
         {children}
     </p>
 );
 
+/** Desktop-only actions container (hidden on mobile) */
 const Actions: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
         {children}
     </div>
 );
 
+/** Mobile-only actions container (hidden on desktop, displayed on new line) */
 const MobileActions: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <div className="flex sm:hidden items-center gap-2">
         {children}
     </div>
 );
 
+/**
+ * Back button sub-component
+ * @param {() => void} onClick - Custom back handler. If not provided, navigates back in history
+ */
 const Back: React.FC<{ onClick?: () => void }> = ({ onClick }) => {
     const navigate = useNavigate();
     return (
@@ -180,6 +191,11 @@ const Back: React.FC<{ onClick?: () => void }> = ({ onClick }) => {
     );
 };
 
+/**
+ * Guide button sub-component
+ * @param {string} guideId - Unique identifier for the guide tour
+ * @param {'default' | 'compact'} variant - Display variant ('default' for desktop, 'compact' for mobile)
+ */
 const Guide: React.FC<{ guideId: string; variant?: 'default' | 'compact' }> = ({ guideId, variant }) => (
     <GuideHeaderButton guideId={guideId} variant={variant} />
 );
