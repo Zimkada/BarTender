@@ -29,9 +29,9 @@ export interface AppContextType {
   clearCart: () => void;
 
   // Catégories
-  addCategory: (category: Omit<Category, 'id' | 'createdAt' | 'barId'>) => void;
-  linkCategory: (globalCategoryId: string) => void;
-  addCategories: (categories: Omit<Category, 'id' | 'createdAt' | 'barId'>[]) => void;
+  addCategory: (category: Omit<Category, 'id' | 'createdAt' | 'barId'>) => Promise<Category>;
+  linkCategory: (globalCategoryId: string) => Promise<void>;
+  addCategories: (categories: Omit<Category, 'id' | 'createdAt' | 'barId'>[]) => Promise<Category[]>;
   updateCategory: (id: string, updates: Partial<Category>) => void;
   deleteCategory: (id: string) => void;
 

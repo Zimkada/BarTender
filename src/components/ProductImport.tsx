@@ -11,9 +11,10 @@ import { EnhancedButton } from './EnhancedButton';
 interface ProductImportProps {
   isOpen: boolean;
   onClose: () => void;
+  inline?: boolean;
 }
 
-export function ProductImport({ isOpen, onClose }: ProductImportProps) {
+export function ProductImport({ isOpen, onClose, inline = false }: ProductImportProps) {
   const { categories, addCategories, products } = useAppContext();
   const { addProducts } = useStockManagement(); // ✅ Batch import au lieu de addProduct
   const { showSuccess, showError } = useFeedback();
@@ -188,50 +189,161 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
         color: '#f97316' // Orange par défaut
       }));
 
-      const createdCategories = addCategories(categoriesToAdd);
+      addCategories(categoriesToAdd).then((createdCategories) => {
+        // Mettre à jour le cache et localCategories
+        createdCategories.forEach((cat: any) => {
+          categoryCache.set(cat.name.toLowerCase(), cat.id);
+          localCategories.push(cat);
+          newCategoryNames.add(cat.name);
+        });
 
-      // Mettre à jour le cache et localCategories
-      createdCategories.forEach(cat => {
-        categoryCache.set(cat.name.toLowerCase(), cat.id);
-        localCategories.push(cat);
-        newCategoryNames.add(cat.name);
-      });
-
-      // ✅ Mettre à jour les categoryId PENDING dans validProductsToImport
-      validProductsToImport.forEach(product => {
-        if (!product.categoryId || product.categoryId === '' || product.categoryId === 'PENDING') {
-          const categoryName = product.categoryName;
-          if (categoryName) {
-            const categoryId = categoryCache.get(categoryName.toLowerCase());
-            if (categoryId) {
-              product.categoryId = categoryId;
+        // ✅ Mettre à jour les categoryId PENDING dans validProductsToImport
+        validProductsToImport.forEach(product => {
+          if (!product.categoryId || product.categoryId === '' || product.categoryId === 'PENDING') {
+            const categoryName = product.categoryName;
+            if (categoryName) {
+              const categoryId = categoryCache.get(categoryName.toLowerCase());
+              if (categoryId) {
+                product.categoryId = categoryId;
+              }
             }
           }
+          // Nettoyer le champ temporaire categoryName
+          delete product.categoryName;
+        });
+
+        // 3️⃣ PHASE IMPORT ATOMIQUE: Importer TOUS les produits valides en UNE SEULE opération
+        if (validProductsToImport.length > 0) {
+          addProducts(validProductsToImport);
+          let successMessage = `${validProductsToImport.length} produit(s) importé(s) avec succès.`;
+          if (newCategoryNames.size > 0) {
+            successMessage += ` Nouvelles catégories créées : ${[...newCategoryNames].join(', ')}.`;
+          }
+          showSuccess(successMessage);
         }
-        // Nettoyer le champ temporaire categoryName
-        delete product.categoryName;
+
+        // Réinitialiser l'état
+        if (errorCount === 0) {
+          setImportedProducts([]);
+          setFileName(null);
+          onClose();
+        }
       });
-    }
-
-    // 3️⃣ PHASE IMPORT ATOMIQUE: Importer TOUS les produits valides en UNE SEULE opération
-    if (validProductsToImport.length > 0) {
-      const importedProductsList = addProducts(validProductsToImport);
-
-      let successMessage = `${importedProductsList.length} produit(s) importé(s) avec succès.`;
-      if (newCategoryNames.size > 0) {
-        successMessage += ` Nouvelles catégories créées : ${[...newCategoryNames].join(', ')}.`;
+    } else {
+      // Pas de catégories à créer, import direct
+      if (validProductsToImport.length > 0) {
+        addProducts(validProductsToImport);
+        showSuccess(`${validProductsToImport.length} produit(s) importé(s) avec succès.`);
       }
-      showSuccess(successMessage);
-    }
 
-    // ✅ FIX BUG #4: Toujours réinitialiser l'état après import
-    if (errorCount === 0) {
-      // Réinitialiser l'état pour éviter double import
-      setImportedProducts([]);
-      setFileName(null);
-      onClose();
+      if (errorCount === 0) {
+        setImportedProducts([]);
+        setFileName(null);
+        onClose();
+      }
     }
   };
+
+  if (!isOpen && !inline) return null;
+
+  const content = (
+    <div className={`${inline ? '' : 'bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col'}`}>
+      {!inline && (
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <UploadCloud className="w-6 h-6 text-amber-500" />
+            <h2 className="text-xl font-bold text-gray-800">Importer des Produits</h2>
+          </div>
+          <button onClick={onClose} className="p-2 text-gray-600 hover:text-gray-600 rounded-lg">
+            <X size={24} />
+          </button>
+        </div>
+      )}
+
+      {/* Body */}
+      <div className={`${inline ? '' : 'p-6'} space-y-6`}>
+        {/* Instructions */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-amber-800">
+              <p className="font-semibold mb-2">Format du fichier Excel (.xlsx)</p>
+              <p>Votre fichier doit contenir les colonnes suivantes :</p>
+              <ul className="list-disc list-inside mt-1 font-mono text-xs bg-amber-100 p-2 rounded">
+                <li><strong>Nom</strong> (Requis) - Nom du produit</li>
+                <li>Volume (Optionnel) - Ex: 33cl, 1L, etc.</li>
+                <li><strong>Prix</strong> (Requis) - Prix de vente en FCFA</li>
+                <li><strong>Stock</strong> (Requis) - Quantité en stock</li>
+                <li>Categorie (Optionnel) - Nom de la catégorie</li>
+                <li>Seuil Alerte (Optionnel, défaut: 10)</li>
+              </ul>
+              <p className="mt-2 text-xs">
+                ℹ️ <strong>Notes:</strong> La première ligne doit être l'en-tête.
+                Les lignes vides sont ignorées automatiquement.
+                Si la catégorie n'existe pas, elle sera automatiquement créée avec une couleur par défaut.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Dropzone */}
+        <div
+          {...getRootProps()}
+          className={`p-12 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${isDragActive ? 'border-amber-500 bg-amber-50' : 'border-gray-300 hover:border-amber-400'
+            }`}
+        >
+          <input {...getInputProps()} />
+          <UploadCloud className="w-12 h-12 mx-auto text-gray-600 mb-4" />
+          {isDragActive ? (
+            <p className="text-amber-600 font-semibold">Déposez le fichier ici...</p>
+          ) : (
+            <div>
+              <p className="font-semibold text-gray-700">Glissez-déposez votre fichier ici</p>
+              <p className="text-sm text-gray-500 mt-1">ou cliquez pour sélectionner</p>
+            </div>
+          )}
+        </div>
+
+        {/* File Info & Preview */}
+        {fileName && (
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <FileText className="w-6 h-6 text-gray-600" />
+                <div>
+                  <p className="font-medium text-gray-800">{fileName}</p>
+                  <p className="text-sm text-gray-600">{importedProducts.length} produit(s) détecté(s)</p>
+                </div>
+              </div>
+              <button onClick={() => { setFileName(null); setImportedProducts([]); }} className="text-sm text-red-600 hover:underline">
+                Changer
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer / Actions */}
+      <div className={`p-6 border-t border-gray-200 ${inline ? 'mt-4' : 'bg-gray-50'}`}>
+        <div className="flex justify-end gap-4">
+          <EnhancedButton variant="secondary" onClick={onClose}>
+            Annuler
+          </EnhancedButton>
+          <EnhancedButton
+            variant="primary"
+            onClick={handleImport}
+            disabled={importedProducts.length === 0}
+          >
+            Importer {importedProducts.length > 0 ? `(${importedProducts.length})` : ''}
+          </EnhancedButton>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (inline) {
+    return content;
+  }
 
   return (
     <AnimatePresence mode="wait">
@@ -249,100 +361,11 @@ export function ProductImport({ isOpen, onClose }: ProductImportProps) {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col"
+            className="w-full max-w-2xl"
           >
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <div className="flex items-center gap-3">
-              <UploadCloud className="w-6 h-6 text-amber-500" />
-              <h2 className="text-xl font-bold text-gray-800">Importer des Produits</h2>
-            </div>
-            <button onClick={onClose} className="p-2 text-gray-600 hover:text-gray-600 rounded-lg">
-              <X size={24} />
-            </button>
-          </div>
-
-          {/* Body */}
-          <div className="p-6 space-y-6">
-            {/* Instructions */}
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-amber-800">
-                  <p className="font-semibold mb-2">Format du fichier Excel (.xlsx)</p>
-                  <p>Votre fichier doit contenir les colonnes suivantes :</p>
-                  <ul className="list-disc list-inside mt-1 font-mono text-xs bg-amber-100 p-2 rounded">
-                    <li><strong>Nom</strong> (Requis) - Nom du produit</li>
-                    <li>Volume (Optionnel) - Ex: 33cl, 1L, etc.</li>
-                    <li><strong>Prix</strong> (Requis) - Prix de vente en FCFA</li>
-                    <li><strong>Stock</strong> (Requis) - Quantité en stock</li>
-                    <li>Categorie (Optionnel) - Nom de la catégorie</li>
-                    <li>Seuil Alerte (Optionnel, défaut: 10)</li>
-                  </ul>
-                  <p className="mt-2 text-xs">
-                    ℹ️ <strong>Notes:</strong> La première ligne doit être l'en-tête.
-                    Les lignes vides sont ignorées automatiquement.
-                    Si la catégorie n'existe pas, elle sera automatiquement créée avec une couleur par défaut.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Dropzone */}
-            <div
-              {...getRootProps()}
-              className={`p-12 border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${
-                isDragActive ? 'border-amber-500 bg-amber-50' : 'border-gray-300 hover:border-amber-400'
-              }`}
-            >
-              <input {...getInputProps()} />
-              <UploadCloud className="w-12 h-12 mx-auto text-gray-600 mb-4" />
-              {isDragActive ? (
-                <p className="text-amber-600 font-semibold">Déposez le fichier ici...</p>
-              ) : (
-                <div>
-                  <p className="font-semibold text-gray-700">Glissez-déposez votre fichier ici</p>
-                  <p className="text-sm text-gray-500 mt-1">ou cliquez pour sélectionner</p>
-                </div>
-              )}
-            </div>
-
-            {/* File Info & Preview */}
-            {fileName && (
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-6 h-6 text-gray-600" />
-                    <div>
-                      <p className="font-medium text-gray-800">{fileName}</p>
-                      <p className="text-sm text-gray-600">{importedProducts.length} produit(s) détecté(s)</p>
-                    </div>
-                  </div>
-                  <button onClick={() => { setFileName(null); setImportedProducts([]); }} className="text-sm text-red-600 hover:underline">
-                    Changer
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Footer / Actions */}
-          <div className="p-6 border-t border-gray-200 bg-gray-50">
-            <div className="flex justify-end gap-4">
-              <EnhancedButton variant="secondary" onClick={onClose}>
-                Annuler
-              </EnhancedButton>
-              <EnhancedButton
-                variant="primary"
-                onClick={handleImport}
-                disabled={importedProducts.length === 0}
-              >
-                Importer {importedProducts.length > 0 ? `(${importedProducts.length})` : ''}
-              </EnhancedButton>
-            </div>
-          </div>
+            {content}
+          </motion.div>
         </motion.div>
-      </motion.div>
       )}
     </AnimatePresence>
   );

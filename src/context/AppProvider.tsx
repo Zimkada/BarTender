@@ -176,33 +176,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // --- CATEGORIES ---
     const addCategory = useCallback((category: Omit<Category, 'id' | 'createdAt' | 'barId'>) => {
-        categoryMutations.createCategory.mutate({
+        return categoryMutations.createCategory.mutateAsync({
             name: category.name,
             color: category.color,
-        }, {
-            onSuccess: () => {
-                showNotification('success', `Catégorie "${category.name}" créée avec succès`, { duration: 3000 });
-            },
-            onError: (error: any) => {
-                showNotification('error', error.message || 'Erreur lors de la création de la catégorie', { duration: 5000 });
-            },
+        }).then((data) => {
+            showNotification('success', `Catégorie "${category.name}" créée avec succès`, { duration: 3000 });
+            return data;
+        }).catch((error: any) => {
+            showNotification('error', error.message || 'Erreur lors de la création de la catégorie', { duration: 5000 });
+            throw error;
         });
     }, [categoryMutations, showNotification]);
 
     const linkCategory = useCallback((globalCategoryId: string) => {
-        categoryMutations.linkGlobalCategory.mutate(globalCategoryId, {
-            onSuccess: () => {
-                showNotification('success', 'Catégorie globale ajoutée avec succès', { duration: 3000 });
-            },
-            onError: (error: any) => {
-                showNotification('error', error.message || 'Erreur lors de l\'ajout de la catégorie', { duration: 5000 });
-            },
+        return categoryMutations.linkGlobalCategory.mutateAsync(globalCategoryId).then(() => {
+            showNotification('success', 'Catégorie globale ajoutée avec succès', { duration: 3000 });
+        }).catch((error: any) => {
+            showNotification('error', error.message || 'Erreur lors de l\'ajout de la catégorie', { duration: 5000 });
+            throw error;
         });
     }, [categoryMutations, showNotification]);
 
     const addCategories = useCallback((categories: Omit<Category, 'id' | 'createdAt' | 'barId'>[]) => {
         // Créer les catégories une par une
-        Promise.all(
+        return Promise.all(
             categories.map(cat =>
                 categoryMutations.createCategory.mutateAsync({
                     name: cat.name,
@@ -210,11 +207,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 })
             )
         )
-            .then(() => {
+            .then((results) => {
                 showNotification('success', `${categories.length} catégories créées avec succès`, { duration: 3000 });
+                return results;
             })
             .catch((error: any) => {
                 showNotification('error', error.message || 'Erreur lors de la création des catégories', { duration: 5000 });
+                throw error;
             });
     }, [categoryMutations, showNotification]);
 
