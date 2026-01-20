@@ -184,12 +184,8 @@ export default function PromotionsPage() {
                 subtitle="Créez et gérez vos offres spéciales"
                 icon={<Gift size={24} />}
                 guideId={promotionsGuideId}
-                view={view}
-                onViewChange={(v) => setView(v as any)}
-                viewOptions={[
-                    { id: 'list', label: 'Liste', icon: List },
-                    { id: 'analytics', label: 'Analytics', icon: BarChart3 }
-                ]}
+                currentView={view}
+                onViewChange={setView}
                 actions={
                     <Button
                         onClick={() => {
