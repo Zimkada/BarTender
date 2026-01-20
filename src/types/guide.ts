@@ -34,6 +34,9 @@ export interface GuideStep {
 
   // Optional media
   media?: GuideMedia;
+
+  // Role-based visibility: defaults to all roles if not specified
+  visibleFor?: UserRole[]; // e.g., ['promoteur', 'gerant'] or ['promoteur'] only
 }
 
 /**

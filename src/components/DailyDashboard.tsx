@@ -186,7 +186,8 @@ export function DailyDashboard() {
     const role = currentSession?.role || 'serveur';
     if (role === 'promoteur') return 'dashboard-overview';
     if (role === 'gerant') return 'manager-dashboard';
-    return undefined; // No guide for bartenders on dashboard
+    if (role === 'serveur') return 'serveur-dashboard';
+    return undefined;
   }, [currentSession?.role]);
   const [todayStats, setTodayStats] = useState<DailySalesSummary | null>(null);
   const [userFilter, setUserFilter] = useState<'all' | 'servers' | 'management'>('all');

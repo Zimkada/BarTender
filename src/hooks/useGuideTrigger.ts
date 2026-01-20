@@ -16,8 +16,7 @@ import {
   MANAGE_SETTINGS_GUIDE,
   MANAGE_PROMOTIONS_GUIDE
 } from '../data/guides/owner-guides';
-import { MANAGER_DASHBOARD_GUIDE, MANAGER_INVENTORY_GUIDE } from '../data/guides/manager-guides';
-import { BARTENDER_FIRST_SALE_GUIDE, BARTENDER_STATS_GUIDE } from '../data/guides/bartender-guides';
+import { SERVEUR_FIRST_SALE_GUIDE, SERVEUR_DASHBOARD_GUIDE, SERVEUR_HISTORY_GUIDE, SERVEUR_RETURNS_GUIDE, SERVEUR_CONSIGNMENTS_GUIDE } from '../data/guides/serveur-guides';
 import { GuideTour, GuideTrigger } from '../types/guide';
 
 /**
@@ -25,7 +24,7 @@ import { GuideTour, GuideTrigger } from '../types/guide';
  * Add guides here as they're created
  */
 const GUIDES_REGISTRY: Record<string, GuideTour> = {
-  // Owner Guides
+  // Unified Owner/Manager Guides (Role-filtered by visibleFor)
   'dashboard-overview': DASHBOARD_OVERVIEW_GUIDE,
   'manage-inventory': MANAGE_INVENTORY_GUIDE,
   'manage-returns': MANAGE_RETURNS_GUIDE,
@@ -35,13 +34,12 @@ const GUIDES_REGISTRY: Record<string, GuideTour> = {
   'manage-settings': MANAGE_SETTINGS_GUIDE,
   'manage-promotions': MANAGE_PROMOTIONS_GUIDE,
 
-  // Manager Guides
-  'manager-dashboard': MANAGER_DASHBOARD_GUIDE,
-  'manager-inventory': MANAGER_INVENTORY_GUIDE,
-
-  // Bartender Guides
-  'create-first-sale': BARTENDER_FIRST_SALE_GUIDE,
-  'bartender-stats': BARTENDER_STATS_GUIDE,
+  // Serveur Guides
+  'create-first-sale': SERVEUR_FIRST_SALE_GUIDE,
+  'serveur-dashboard': SERVEUR_DASHBOARD_GUIDE,
+  'serveur-history': SERVEUR_HISTORY_GUIDE,
+  'serveur-returns': SERVEUR_RETURNS_GUIDE,
+  'serveur-consignments': SERVEUR_CONSIGNMENTS_GUIDE,
 };
 
 export const useGuideTrigger = (guideId: string) => {

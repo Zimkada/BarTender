@@ -1,6 +1,6 @@
 import { useState, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Package, AlertTriangle, Plus, Edit, Trash2, UploadCloud, TruckIcon, BarChart3, TrendingDown, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Package, AlertTriangle, Plus, Edit, Trash2, UploadCloud, TruckIcon, BarChart3 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { useStockAdjustment } from '../hooks/mutations/useStockAdjustment';
@@ -27,12 +27,14 @@ import { CategoryStatsList } from '../components/common/CategoryStatsList';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
 import { EmptyState } from '../components/common/EmptyState';
 import { Button } from '../components/ui/Button';
-import { useAutoGuide } from '../hooks/useGuideTrigger';
+// import { useAutoGuide } from '../hooks/useGuideTrigger'; // removed
+import { GuideHeaderButton } from '../components/guide/GuideHeaderButton';
+import { ComplexPageHeader } from '../components/common/PageHeader/patterns/ComplexPageHeader';
 import { useOnboarding } from '../context/OnboardingContext';
 import { useGuide } from '../context/GuideContext';
 import { useAuth } from '../context/AuthContext';
 import { CatalogContributionBadge } from '../components/products/CatalogContributionBadge';
-import { GuideHeaderButton } from '../components/guide/GuideHeaderButton';
+// Duplicate import removed
 
 /**
  * InventoryPage - Page de gestion des produits
@@ -226,9 +228,11 @@ export default function InventoryPage() {
         return (
             <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-50">
                 {/* Header fixe */}
-                <div className="sticky top-0 bg-gradient-to-r from-amber-500 to-amber-500 text-white shadow-lg z-10">
-                    <div className="px-4 py-3">
-                        <div className="flex items-center justify-between mb-3">
+                {/* Header fixe */}
+                <div className="sticky top-0 z-10">
+                    {/* Header Orange (Actions Principales) */}
+                    <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white shadow-sm">
+                        <div className="px-4 py-3 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <Button
                                     variant="ghost"
@@ -243,63 +247,77 @@ export default function InventoryPage() {
                                     Inventaire
                                 </h1>
                             </div>
-                            {/* Guide button - mobile */}
-                            {canSeeInventoryGuide && inventoryGuideId && (
-                                <GuideHeaderButton guideId={inventoryGuideId} variant="compact" />
-                            )}
+                            <div className="flex items-center gap-1">
+                                {canSeeInventoryGuide && inventoryGuideId && (
+                                    <GuideHeaderButton guideId={inventoryGuideId} variant="compact" />
+                                )}
+                            </div>
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                            {/* 3. CONDITION D'AFFICHAGE DU BOUTON MOBILE */}
+                    </div>
+
+                    {/* Toolbar Blanche (Actions & Recherche) */}
+                    <div className="bg-white border-b border-gray-200 shadow-sm p-3 space-y-3">
+                        {/* Ligne 0: Actions Principales (Unifiées) */}
+                        <div className="grid grid-cols-3 gap-2">
+                            <Button
+                                onClick={handleAddProduct}
+                                className="bg-amber-500 hover:bg-amber-600 text-white border-0 h-9 rounded-lg flex items-center justify-center gap-1.5 px-1 shadow-sm transition-all active:scale-95"
+                            >
+                                <Plus size={16} />
+                                <span className="text-[11px] font-bold uppercase tracking-tight">Ajouter</span>
+                            </Button>
+
                             {isProductImportEnabled && (
                                 <Button
                                     onClick={() => setShowProductImport(true)}
-                                    variant="ghost"
-                                    className="flex-1 min-w-[120px] px-3 py-2 bg-white/20 backdrop-blur rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-white/30 text-white hover:bg-white/30"
+                                    variant="secondary"
+                                    className="bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-100 h-9 rounded-lg flex items-center justify-center gap-1.5 px-1 transition-all active:scale-95"
                                 >
-                                    <UploadCloud size={16} className="mr-2" />
-                                    Importer
+                                    <UploadCloud size={16} />
+                                    <span className="text-[11px] font-bold uppercase tracking-tight">Importer</span>
                                 </Button>
                             )}
+
                             <Button
                                 onClick={() => setShowSupplyModal(true)}
-                                variant="ghost"
-                                className="flex-1 min-w-[120px] px-3 py-2 bg-white/20 backdrop-blur rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-white/30 text-white hover:bg-white/30"
+                                variant="secondary"
+                                className="bg-green-50 hover:bg-green-100 text-green-700 border border-green-100 h-9 rounded-lg flex items-center justify-center gap-1.5 px-1 transition-all active:scale-95"
                             >
-                                <TruckIcon size={16} className="mr-2" />
-                                Approvisionner
-                            </Button>
-                            <Button
-                                onClick={handleAddProduct}
-                                variant="default"
-                                className="flex-1 min-w-[120px] px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center gap-2 active:bg-amber-50"
-                            >
-                                <Plus size={16} className="mr-2" />
-                                Ajouter
+                                <TruckIcon size={16} />
+                                <span className="text-[11px] font-bold uppercase tracking-tight">Approvisionner</span>
                             </Button>
                         </div>
-                    </div>
-                    {/* Recherche et tri */}
-                    <div className="px-4 pb-3 space-y-2">
-                        <SearchBar
-                            value={searchTerm}
-                            onChange={setSearchTerm}
-                            placeholder="Rechercher..."
-                        />
+
+                        {/* Ligne 1: Recherche */}
                         <div className="flex gap-2">
+                            <div className="relative flex-1">
+                                <SearchBar
+                                    value={searchTerm}
+                                    onChange={setSearchTerm}
+                                    placeholder="Rechercher un produit..."
+                                    className="w-full bg-gray-50 border-gray-200 focus:bg-white h-10"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Ligne 2: Tris (Horizontal Scroll) */}
+                        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                             {[
-                                { mode: 'category' as SortMode, icon: '📁', label: 'Cat.' },
-                                { mode: 'alphabetical' as SortMode, icon: '🔤', label: 'A-Z' },
-                                { mode: 'stock' as SortMode, icon: '⚠️', label: 'Stock' }
+                                { mode: 'category' as SortMode, icon: '📁', label: 'Par Catégorie' },
+                                { mode: 'alphabetical' as SortMode, icon: '🔤', label: 'Alphabétique' },
+                                { mode: 'stock' as SortMode, icon: '⚠️', label: 'Par Stock' }
                             ].map(({ mode, icon, label }) => (
-                                <Button
+                                <button
                                     key={mode}
                                     onClick={() => setSortMode(mode)}
-                                    variant={sortMode === mode ? 'default' : 'ghost'}
-                                    className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-all text-white ${sortMode === mode ? '' : 'bg-white/30 hover:bg-white/40'}`}
+                                    className={`px-3 py-1.5 rounded-full whitespace-nowrap text-xs font-medium transition-colors border flex items-center gap-1.5 ${sortMode === mode
+                                        ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                        : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                                        }`}
                                 >
-                                    <span className="mr-1">{icon}</span>
+                                    <span>{icon}</span>
                                     {label}
-                                </Button>
+                                </button>
                             ))}
                         </div>
                     </div>
@@ -496,92 +514,90 @@ export default function InventoryPage() {
     // ========== VERSION DESKTOP ==========
     return (
         <div className="max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden">
-                <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-4">
+            {/* Header Standardisé */}
+            <ComplexPageHeader
+                title="Inventaire"
+                subtitle="Gestion des produits"
+                icon={<Package size={28} />}
+                guideId={inventoryGuideId}
+                actions={
+                    <>
+                        {isProductImportEnabled && (
                             <Button
+                                onClick={() => setShowProductImport(true)}
                                 variant="ghost"
-                                size="icon"
-                                onClick={() => navigate(-1)}
-                                className="rounded-lg transition-colors hover:bg-white/20"
+                                className="text-white hover:bg-white/20"
+                                title="Importer"
+                                data-guide="inventory-import-btn"
                             >
-                                <ArrowLeft size={24} />
+                                <UploadCloud size={18} className="mr-2 hidden sm:block" />
+                                <span className="text-sm font-medium">Importer</span>
                             </Button>
-                            <div className="flex items-center gap-3">
-                                <Package size={28} />
-                                <div>
-                                    <h2 className="text-xl font-bold">Inventaire</h2>
-                                    <p className="text-sm text-amber-100">Gestion des produits</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2" data-guide="inventory-add-btn">
-                            {/* Guide button */}
-                            {canSeeInventoryGuide && inventoryGuideId && (
-                                <GuideHeaderButton guideId={inventoryGuideId} variant="default" />
-                            )}
-                            {/* 4. CONDITION D'AFFICHAGE DU BOUTON DESKTOP */}
-                            {isProductImportEnabled && (
-                                <Button
-                                    onClick={() => setShowProductImport(true)}
-                                    variant="ghost"
-                                    className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors flex items-center gap-2 text-white"
-                                    data-guide="inventory-import-btn"
-                                >
-                                    <UploadCloud size={18} className="mr-2" />
-                                    <span className="text-sm font-medium">Importer</span>
-                                </Button>
-                            )}
-                            <Button
-                                onClick={() => setShowSupplyModal(true)}
-                                variant="ghost"
-                                className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors flex items-center gap-2 text-white"
-                                data-guide="inventory-supply-btn"
-                            >
-                                <TruckIcon size={18} className="mr-2" />
-                                <span className="text-sm font-medium">Approvisionnement</span>
-                            </Button>
-                            <Button
-                                onClick={handleAddProduct}
-                                variant="default"
-                                className="px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
-                            >
-                                <Plus size={18} className="mr-2" />
-                                <span className="text-sm font-medium">Ajouter produit</span>
-                            </Button>
-                        </div>
-                    </div>
-                </div>
+                        )}
+                        <Button
+                            onClick={() => setShowSupplyModal(true)}
+                            variant="ghost"
+                            className="text-white hover:bg-white/20"
+                            title="Approvisionnement"
+                            data-guide="inventory-supply-btn"
+                        >
+                            <TruckIcon size={18} className="mr-2 hidden sm:block" />
+                            <span className="text-sm font-medium">Approvisionnement</span>
+                        </Button>
+                        <Button
+                            onClick={handleAddProduct}
+                            variant="default"
+                            className="bg-white text-amber-600 hover:bg-amber-50"
+                        >
+                            <Plus size={18} className="mr-2 hidden sm:block" />
+                            <span className="text-sm font-medium">Ajouter produit</span>
+                        </Button>
+                    </>
+                }
+            />
 
-                {/* Recherche et tri */}
-                <div className="p-4 border-b border-amber-100 space-y-3">
-                    <div data-guide="inventory-search">
-                        <SearchBar
-                            value={searchTerm}
-                            onChange={setSearchTerm}
-                            placeholder="Rechercher un produit..."
-                        />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-600 font-medium">Trier par :</span>
-                        <div className="flex gap-2">
+            {/* Toolbar filtres & recherche (Desktop) */}
+            <div className="bg-white border-b border-gray-100 p-4 shadow-sm mb-6 rounded-b-xl mx-4 lg:mx-8 -mt-4 relative z-10" data-guide="inventory-search">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-4 flex-1 min-w-[300px]">
+                        <div className="relative flex-1 max-w-md">
+                            <SearchBar
+                                value={searchTerm}
+                                onChange={setSearchTerm}
+                                placeholder="Rechercher par nom, catégorie..."
+                                className="w-full pl-10"
+                            />
+                        </div>
+                        {/* Filtres de tri */}
+                        <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg">
                             {[
-                                { mode: 'category' as SortMode, icon: '📁', label: 'Catégories' },
-                                { mode: 'alphabetical' as SortMode, icon: '🔤', label: 'A-Z' },
+                                { mode: 'category' as SortMode, icon: '📁', label: 'Catégorie' },
+                                { mode: 'alphabetical' as SortMode, icon: '🔤', label: 'Nom' },
                                 { mode: 'stock' as SortMode, icon: '⚠️', label: 'Stock' }
                             ].map(({ mode, icon, label }) => (
                                 <Button
                                     key={mode}
                                     onClick={() => setSortMode(mode)}
-                                    variant={sortMode === mode ? 'default' : 'secondary'}
-                                    className="px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+                                    variant={sortMode === mode ? 'default' : 'ghost'}
+                                    size="sm"
+                                    className={`text-xs ${sortMode === mode ? '' : 'text-gray-600 hover:text-gray-900'}`}
                                 >
-                                    <span className="mr-1.5">{icon}</span>
+                                    <span className="mr-2">{icon}</span>
                                     {label}
                                 </Button>
                             ))}
+                        </div>
+                    </div>
+
+                    {/* Stats rapides */}
+                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                            <span>{lowStockProducts.length} alerte(s)</span>
+                        </div>
+                        <div className="w-px h-4 bg-gray-200"></div>
+                        <div>
+                            Valeur: {formatPrice(products.reduce((acc, p) => acc + (p.price * p.stock), 0))}
                         </div>
                     </div>
                 </div>

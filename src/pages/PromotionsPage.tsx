@@ -15,8 +15,7 @@ import {
     Play,
     Pause,
     BarChart3,
-    List,
-    ArrowLeft
+    List
 } from 'lucide-react';
 import { useBarContext } from '../context/BarContext';
 import { useViewport } from '../hooks/useViewport';
@@ -32,10 +31,11 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select, SelectOption } from '../components/ui/Select';
 import { DropdownMenu } from '../components/ui/DropdownMenu';
-import { useAutoGuide } from '../hooks/useGuideTrigger';
+// import { useAutoGuide } from '../hooks/useGuideTrigger'; // removed
 import { useOnboarding } from '../context/OnboardingContext';
 import { useGuide } from '../context/GuideContext';
-import { GuideHeaderButton } from '../components/guide/GuideHeaderButton';
+// import { GuideHeaderButton } from '../components/guide/GuideHeaderButton'; // removed
+import { ViewSwitcherPageHeader } from '../components/common/PageHeader/patterns/ViewSwitcherPageHeader';
 
 /**
  * PromotionsPage - Page de gestion des promotions
@@ -178,51 +178,33 @@ export default function PromotionsPage() {
     return (
         <div className="max-w-7xl mx-auto">
             {/* Header */}
-            <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden">
-                <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => navigate(-1)}
-                                className="rounded-lg transition-colors hover:bg-white/20 flex-shrink-0"
-                            >
-                                <ArrowLeft size={24} />
-                            </Button>
-                            <div>
-                                <h1 className="text-xl font-bold flex items-center gap-2">
-                                    <Gift size={24} />
-                                    Gestion des Promotions
-                                </h1>
-                                <p className="text-amber-100 text-sm hidden sm:block">Créez et gérez vos offres spéciales</p>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                            {/* Guide button */}
-                            <GuideHeaderButton guideId={promotionsGuideId} variant="default" />
-                            {/* View Switcher - Responsive */}
-                            <div className="flex bg-amber-700/30 p-1 rounded-lg w-full sm:w-auto" data-guide="promotions-analytics">
-                            <Button
-                                onClick={() => setView('list')}
-                                variant={view === 'list' ? 'default' : 'ghost'}
-                                className={`flex items-center justify-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all flex-1 sm:flex-initial ${view === 'list' ? '' : 'text-amber-100 hover:bg-white/10'}`}
-                            >
-                                <List size={16} className="mr-2" /> Liste
-                            </Button>
-                            <Button
-                                onClick={() => setView('analytics')}
-                                variant={view === 'analytics' ? 'default' : 'ghost'}
-                                className={`flex items-center justify-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all flex-1 sm:flex-initial ${view === 'analytics' ? '' : 'text-amber-100 hover:bg-white/10'}`}
-                            >
-                                <BarChart3 size={16} className="mr-2" /> Analytics
-                            </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {/* Header Standardisé */}
+            <ViewSwitcherPageHeader
+                title="Gestion des Promotions"
+                subtitle="Créez et gérez vos offres spéciales"
+                icon={<Gift size={24} />}
+                guideId={promotionsGuideId}
+                view={view}
+                onViewChange={(v) => setView(v as any)}
+                viewOptions={[
+                    { id: 'list', label: 'Liste', icon: List },
+                    { id: 'analytics', label: 'Analytics', icon: BarChart3 }
+                ]}
+                actions={
+                    <Button
+                        onClick={() => {
+                            setEditingPromotion(null);
+                            setShowForm(true);
+                        }}
+                        variant="default"
+                        className="bg-white text-amber-600 hover:bg-amber-50"
+                        data-guide="promotions-add-btn"
+                    >
+                        <Plus size={20} className="mr-2" />
+                        Nouvelle Promo
+                    </Button>
+                }
+            />
 
             {view === 'analytics' ? (
                 <div className="bg-white rounded-2xl shadow-sm border border-amber-100 p-6">

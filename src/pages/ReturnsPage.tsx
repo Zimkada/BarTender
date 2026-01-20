@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
+  List,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getMobileAnimationProps } from '../utils/disableAnimationsOnMobile';
@@ -17,7 +18,7 @@ import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { useGuide } from '../context/GuideContext';
 import { useOnboarding } from '../context/OnboardingContext';
-import { useAutoGuide } from '@/hooks/useGuideTrigger';
+import { useAutoGuide } from '../hooks/useGuideTrigger';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from '../components/EnhancedButton';
@@ -25,7 +26,7 @@ import { User, Sale, SaleItem, Return, ReturnReason, ReturnReasonConfig } from '
 import { getBusinessDate, getCurrentBusinessDateString } from '../utils/businessDateHelpers';
 import { useViewport } from '../hooks/useViewport';
 import { Button } from '../components/ui/Button';
-import { PageHeader } from '../components/common/PageHeader';
+import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
 import { Textarea } from '../components/ui/Textarea';
 import { Label } from '../components/ui/Label';
 import { Input } from '../components/ui/Input';
@@ -99,7 +100,9 @@ export default function ReturnsPage() {
   // Seuls gérants/promoteurs peuvent créer et valider les retours
   const isReadOnly = currentSession?.role === 'serveur';
 
-  const [showCreateReturn, setShowCreateReturn] = useState(false);
+  // ✨ Navigation par onglets
+  const [activeTab, setActiveTab] = useState<'list' | 'create'>('list');
+  const showCreateReturn = activeTab === 'create';
   const { isComplete } = useOnboarding();
   const { hasCompletedGuide } = useGuide();
 
@@ -206,10 +209,7 @@ export default function ReturnsPage() {
     customRestock?: boolean
   ) => {
     const sale = sales.find(s => s.id === saleId);
-    const item = sale?.items.find((i: SaleItem) => {
-      const id = i.product?.id || i.product_id;
-      return id === productId;
-    });
+    const item = sale?.items.find((i: SaleItem) => i.product_id === productId);
 
     if (!sale || !item || !currentSession) {
       showError('Données invalides');
@@ -217,9 +217,9 @@ export default function ReturnsPage() {
     }
 
     // Extract product info with fallbacks
-    const productName = item.product?.name || item.product_name || 'Produit';
-    const productVolume = item.product?.volume || item.product_volume || '';
-    const productPrice = item.product?.price || item.unit_price || 0;
+    const productName = item.product_name || 'Produit';
+    const productVolume = item.product_volume || '';
+    const productPrice = item.unit_price || 0;
 
     const returnCheck = canReturnSale(sale);
     if (!returnCheck.allowed) {
@@ -302,8 +302,8 @@ export default function ReturnsPage() {
       }
     }, 100);
 
-    // Fermer le formulaire immédiatement
-    setShowCreateReturn(false);
+    // Rediriger vers l'onglet liste après succès (le timeout gère le scroll)
+    setActiveTab('list');
     setSelectedSale(null);
   };
 
@@ -396,63 +396,34 @@ export default function ReturnsPage() {
     return matchesStatus;
   });
 
+  const tabsConfig = [
+    { id: 'list', label: isMobile ? 'Liste' : 'Liste des retours', icon: List },
+    ...(!isReadOnly ? [{ id: 'create', label: isMobile ? 'Créer' : 'Nouveau retour', icon: RotateCcw }] : [])
+  ] as { id: string; label: string; icon: any }[];
+
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-4">
-      <PageHeader
-        title="Système de Retours"
+      <TabbedPageHeader
+        title={isMobile ? 'Retours' : 'Système de Retours'}
         subtitle="Gérer les retours clients et remboursements"
         icon={<RotateCcw size={24} className="text-amber-600" />}
         hideSubtitleOnMobile
-        guideId="manage-returns"
+        tabs={tabsConfig}
+        activeTab={activeTab}
+        onTabChange={(id) => setActiveTab(id as 'list' | 'create')}
+        guideId={currentSession?.role === 'serveur' ? 'serveur-returns' : 'manage-returns'}
         actions={
-          // Desktop : Icône seule pour "Nouveau retour"
-          <div className="flex items-center gap-2" data-guide="returns-create-btn">
-            {!showCreateReturn && !isReadOnly && (
-              <Button
-                onClick={() => setShowCreateReturn(true)}
-                className="shadow-sm"
-              >
-                <span>Nouveau retour</span>
-              </Button>
-            )}
-            {showCreateReturn && (
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setShowCreateReturn(false);
-                  setSelectedSale(null);
-                }}
-              >
-                Annuler
-              </Button>
-            )}
-          </div>
-        }
-        mobileActions={
-          // Mobile : Bouton explicite avec texte et icône
-          <div className="flex items-center gap-2 w-full">
-            {!showCreateReturn && !isReadOnly && (
-              <Button
-                onClick={() => setShowCreateReturn(true)}
-                className="shadow-sm flex-1"
-              >
-                <RotateCcw size={18} />
-                <span>Nouveau retour</span>
-              </Button>
-            )}
-            {showCreateReturn && (
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setShowCreateReturn(false);
-                  setSelectedSale(null);
-                }}
-                className="flex-1"
-              >
-                Annuler
-              </Button>
-            )}
-          </div>
+          showCreateReturn && (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setActiveTab('list');
+                setSelectedSale(null);
+              }}
+            >
+              Annuler
+            </Button>
+          )
         }
       />
 
@@ -493,29 +464,29 @@ export default function ReturnsPage() {
           )}
 
           {/* Search and Status Filter */}
-          <div className="flex flex-wrap gap-4">
+          <div className="flex items-center gap-2">
             <Input
               type="text"
-              placeholder="Rechercher un retour..."
+              placeholder="Rechercher..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              leftIcon={<Search size={18} />}
-              className="flex-1 min-w-[200px]"
+              leftIcon={<Search size={16} />}
+              className="flex-1 min-w-0 h-10"
             />
-            <div className="flex items-center gap-2">
-              <Filter size={18} className="text-gray-600" />
+            <div className="flex items-center gap-2 shrink-0">
+              {!isMobile && <Filter size={18} className="text-gray-600" />}
               <Select
                 options={
                   [
-                    { value: 'all', label: 'Tous les statuts' },
-                    { value: 'pending', label: 'En attente' },
-                    { value: 'approved', label: 'Approuvés' },
+                    { value: 'all', label: isMobile ? 'Tous' : 'Tous les statuts' },
+                    { value: 'pending', label: isMobile ? 'Attente' : 'En attente' },
+                    { value: 'approved', label: 'Validés' },
                     { value: 'rejected', label: 'Rejetés' }
                   ]
                 }
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as 'all' | 'pending' | 'approved' | 'rejected')}
-                className="flex-1 min-w-[150px]"
+                className="w-[110px] sm:w-[150px] h-10"
               />
             </div>
           </div>
@@ -689,7 +660,7 @@ export default function ReturnsPage() {
                   returnReasons={returnReasons}
                   onCreateReturn={createReturn}
                   onCancel={() => {
-                    setShowCreateReturn(false);
+                    setActiveTab('list');
                     setSelectedSale(null);
                   }}
                   selectedSale={selectedSale}
@@ -876,7 +847,7 @@ export default function ReturnsPage() {
                   returnReasons={returnReasons}
                   onCreateReturn={createReturn}
                   onCancel={() => {
-                    setShowCreateReturn(false);
+                    setActiveTab('list');
                     setSelectedSale(null);
                   }}
                   selectedSale={selectedSale}

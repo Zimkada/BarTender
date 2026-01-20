@@ -1,17 +1,16 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
     Search,
     Download,
-    Eye,
-    Users,
     ShoppingCart,
     TrendingUp,
-    ArrowLeft,
+    LayoutGrid,
+    List as ListIcon,
     X
 } from 'lucide-react';
 
 import { motion } from 'framer-motion';
+import { useNotifications } from '../components/Notifications';
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
@@ -29,14 +28,11 @@ import { useSalesFilters } from '../features/Sales/SalesHistory/hooks/useSalesFi
 import { useSalesStats } from '../features/Sales/SalesHistory/hooks/useSalesStats';
 import { AnalyticsView } from '../features/Sales/SalesHistory/views/AnalyticsView';
 import { SalesListView } from '../features/Sales/SalesHistory/views/SalesListView';
-import { SalesCardsView, SaleCard } from '../features/Sales/SalesHistory/views/SalesCardsView';
+import { SalesCardsView } from '../features/Sales/SalesHistory/views/SalesCardsView';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { useAutoGuide } from '../hooks/useGuideTrigger';
-import { useOnboarding } from '../context/OnboardingContext';
-import { useGuide } from '../context/GuideContext';
+import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
 import { GuideTourModal } from '../components/guide/GuideTourModal';
-import { GuideHeaderButton } from '../components/guide/GuideHeaderButton';
 
 type ViewMode = 'list' | 'cards' | 'analytics';
 
@@ -46,7 +42,7 @@ type ViewMode = 'list' | 'cards' | 'analytics';
  * Refactoré de composant nommé vers export default page
  */
 export default function SalesHistoryPage() {
-    const navigate = useNavigate();
+    const { showNotification } = useNotifications();
     const { sales, categories, products, returns, getReturnsBySale } = useAppContext();
     const { barMembers, currentBar } = useBarContext();
     const { formatPrice } = useCurrencyFormatter();
@@ -54,11 +50,9 @@ export default function SalesHistoryPage() {
     const { isMobile } = useViewport();
     const { showSuccess } = useFeedback();
     const { consignments } = useStockManagement();
-    const { isComplete: onboardingComplete } = useOnboarding();
-    const { hasCompletedGuide } = useGuide();
 
     // Guide ID for sales history - using header button instead of auto-trigger
-    const historyGuideId = currentSession?.role === 'serveur' ? 'bartender-stats' : 'analytics-overview';
+    const historyGuideId = currentSession?.role === 'serveur' ? 'serveur-history' : 'analytics-overview';
 
     // Auto-guides disabled - using GuideHeaderButton in page header instead
     // useAutoGuide(
@@ -306,12 +300,12 @@ export default function SalesHistoryPage() {
 
         // Trier par date/heure décroissante
         exportData.sort((a, b) => {
-            const dateA = new Date(`${a.Date} ${a.Heure}`);
-            const dateB = new Date(`${b.Date} ${b.Heure}`);
+            const dateA = new Date(`${a.Date} ${a.Heure} `);
+            const dateB = new Date(`${b.Date} ${b.Heure} `);
             return dateB.getTime() - dateA.getTime();
         });
 
-        const fileName = `ventes_${new Date().toISOString().split('T')[0]}`;
+        const fileName = `ventes_${new Date().toISOString().split('T')[0]} `;
 
 
 
@@ -378,165 +372,194 @@ export default function SalesHistoryPage() {
     };
 
 
+    const tabsConfig = [
+        { id: 'cards', label: isMobile ? 'Cartes' : 'Détails des ventes', icon: LayoutGrid },
+        { id: 'list', label: isMobile ? 'Liste' : 'Tableau des ventes', icon: ListIcon },
+        { id: 'analytics', label: isMobile ? 'Analytics' : 'Statistiques & Analyses', icon: TrendingUp }
+    ] as { id: string; label: string; icon: any }[];
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-50 pb-16 md:pb-0">
-            <div className={`bg-gradient-to-br from-amber-50 to-amber-50 w-full overflow-hidden flex flex-col ${isMobile
-                ? 'h-full'
-                : 'max-w-7xl mx-auto'
-                }`}
-            >
-                {/* ==================== VERSION MOBILE ==================== */}
-                {isMobile ? (
-                    <div className="flex flex-col h-full">
-                        {/* Header mobile */}
-                        <div className="flex-shrink-0 bg-gradient-to-r from-amber-500 to-amber-500 text-white p-4">
-                            <div className="flex items-center gap-3 mb-2">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => navigate(-1)}
-                                    className="rounded-lg transition-colors hover:bg-white/20"
-                                >
-                                    <ArrowLeft size={24} />
-                                </Button>
-                                <div className="flex items-center gap-3">
-                                    <TrendingUp size={24} />
-                                    <div>
-                                        <h1 className="text-lg font-bold">Historique</h1>
-                                        <p className="text-xs text-amber-100">{filteredSales.length} ventes</p>
-                                    </div>
+            <div className={`w-full flex flex-col ${isMobile ? 'h-full' : 'max-w-7xl mx-auto'}`}>
+                <TabbedPageHeader
+                    title={isMobile ? 'Historique' : 'Historique des ventes'}
+                    subtitle={
+                        <span>
+                            Consultez et analysez votre historique
+                            {!isMobile && <span className="ml-2 text-amber-200 font-medium">• {filteredSales.length} ventes</span>}
+                        </span>
+                    }
+                    icon={<TrendingUp size={24} />}
+                    tabs={tabsConfig}
+                    activeTab={viewMode}
+                    onTabChange={(id) => setViewMode(id as ViewMode)}
+                    guideId={historyGuideId}
+                    actions={
+                        !isMobile && (
+                            <div className="flex items-center gap-2">
+                                {/* Export format toggle (Tablets/Desktop) */}
+                                <div className="flex bg-white/10 rounded-lg p-1 border border-white/20">
+                                    <button
+                                        onClick={() => setExportFormat('excel')}
+                                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${exportFormat === 'excel' ? 'bg-green-600 text-white shadow-sm' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}
+                                    >
+                                        Excel
+                                    </button>
+                                    <button
+                                        onClick={() => setExportFormat('csv')}
+                                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${exportFormat === 'csv' ? 'bg-blue-600 text-white shadow-sm' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}
+                                    >
+                                        CSV
+                                    </button>
                                 </div>
+
+                                <Button
+                                    onClick={() => {
+                                        if (filteredSales.length === 0) {
+                                            showNotification('error', "Aucune vente à exporter");
+                                            return;
+                                        }
+                                        exportSales();
+                                    }}
+                                    title={`Exporter (${exportFormat.toUpperCase()})`}
+                                    size="sm"
+                                    className={`h-10 transition-all flex items-center justify-center gap-2 font-semibold ${filteredSales.length === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${exportFormat === 'excel'
+                                        ? 'bg-green-600 text-white hover:bg-green-700 shadow-sm'
+                                        : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
+                                        } w-40`}
+                                >
+                                    <Download size={18} />
+                                    <span className="whitespace-nowrap">Exporter ({exportFormat.toUpperCase()})</span>
+                                </Button>
                             </div>
-                            {/* Guide button - mobile */}
-                            {historyGuideId && (
-                                <GuideHeaderButton guideId={historyGuideId} variant="compact" />
-                            )}
-                        </div>
-                        <div className="px-4 py-3">
-                            <Button
-                                onClick={exportSales}
-                                disabled={filteredSales.length === 0}
-                                title={`Exporter en ${exportFormat.toUpperCase()}`}
-                                className="w-full flex items-center justify-center gap-2"
-                            >
-                                <Download size={18} className="mr-2" />
-                                <span className="text-sm font-medium">Exporter ({exportFormat.toUpperCase()})</span>
-                            </Button>
-                        </div>
+                        )
+                    }
+                />
 
-                        {/* Filtres compacts en haut (stats retirées, disponibles dans Analytics) */}
-                        <div className="flex-shrink-0 bg-amber-50 p-3" data-guide="sales-filters">
-                            {/* Sélecteur format export mobile */}
-                            <div className="flex gap-1 mb-3" >
-                                <Button
-                                    onClick={() => setExportFormat('excel')}
-                                    variant={exportFormat === 'excel' ? 'default' : 'secondary'}
-                                    className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg"
-                                >
-                                    📊 Excel
-                                </Button>
-                                <Button
-                                    onClick={() => setExportFormat('csv')}
-                                    variant={exportFormat === 'csv' ? 'default' : 'secondary'}
-                                    className="flex-1 px-3 py-1.5 text-xs font-medium rounded-lg"
-                                >
-                                    📄 CSV
-                                </Button>
-                            </div >
-
-                            {/* Filtres période horizontaux */}
-                            <div className="flex gap-2 overflow-x-auto pb-2 mb-3" >
-                                {
-                                    SALES_HISTORY_FILTERS.map(filter => (
-                                        <Button
-                                            key={filter}
-                                            onClick={() => setTimeRange(filter)}
-                                            variant={timeRange === filter ? 'default' : 'secondary'}
-                                            className="px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium"
-                                        >
-                                            {TIME_RANGE_CONFIGS[filter].label}
-                                        </Button>
-                                    ))
-                                }
-                            </div >
-
-                            {/* Date range personnalisée */}
-                            {
-                                isCustom && (
-                                    <div className="flex gap-2 mb-3">
-                                        <Input
-                                            type="date"
-                                            value={customRange.start}
-                                            onChange={(e) => updateCustomRange('start', e.target.value)}
-                                            placeholder="Début"
-                                            className="flex-1 text-sm"
-                                        />
-                                        <Input
-                                            type="date"
-                                            value={customRange.end}
-                                            onChange={(e) => updateCustomRange('end', e.target.value)}
-                                            placeholder="Fin"
-                                            className="flex-1 text-sm"
-                                        />
-                                    </div>
-                                )
-                            }
-
-                            {/* Recherche et Sélecteurs Top Produits (mobile) */}
-                            <div className="flex flex-wrap items-center gap-2 mb-3">
-                                {/* Recherche */}
+                {/* ==================== FILTERS AREA ==================== */}
+                <div className="bg-white border-b border-gray-200 p-4 shadow-sm z-10" data-guide="sales-filters">
+                    <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
+                        <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+                            {/* Search */}
+                            <div className="relative w-full sm:w-64">
+                                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                                 <Input
                                     type="text"
-                                    placeholder="ID vente ou produit..."
+                                    placeholder="Rechercher ID ou produit..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    leftIcon={<Search size={16} />}
-                                    className="flex-1 min-w-[150px] text-sm"
+                                    className="w-full pl-9 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                                 />
                             </div>
 
-                            {/* Mode d'affichage */}
-                            <div className="flex gap-2 overflow-x-auto pb-2">
-                                {[
-                                    { value: 'list', icon: Users, label: 'Liste' },
-                                    { value: 'cards', icon: Eye, label: 'Détails' },
-                                    { value: 'analytics', icon: TrendingUp, label: 'Analytics' }
-                                ].map(mode => {
-                                    const Icon = mode.icon;
-                                    return (
-                                        <Button
-                                            key={mode.value}
-                                            onClick={() => setViewMode(mode.value as ViewMode)}
-                                            variant={viewMode === mode.value ? 'default' : 'secondary'}
-                                            className="px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium flex items-center gap-1"
-                                        >
-                                            <Icon size={14} className="mr-1" />
-                                            {mode.label}
-                                        </Button>
-                                    );
-                                })}
-                            </div >
-                        </div >
+                            {/* Period Filters */}
+                            <div className="flex bg-gray-100 p-1 rounded-lg overflow-x-auto max-w-full no-scrollbar">
+                                {SALES_HISTORY_FILTERS.map(filter => (
+                                    <button
+                                        key={filter}
+                                        onClick={() => setTimeRange(filter)}
+                                        className={`px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-all ${timeRange === filter
+                                            ? 'bg-amber-500 text-white shadow-sm ring-1 ring-amber-600'
+                                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
+                                            }`}
+                                    >
+                                        {TIME_RANGE_CONFIGS[filter].label}
+                                    </button>
+                                ))}
+                            </div>
 
-                        {/* Contenu scrollable */}
-                        < div className="flex-1 overflow-y-auto p-3" >
-                            {
-                                filteredSales.length === 0 ? (
-                                    <div className="text-center py-12">
-                                        <ShoppingCart size={48} className="text-gray-300 mx-auto mb-4" />
-                                        <p className="text-gray-500">Aucune vente trouvée</p>
+                            {/* Custom Range */}
+                            {isCustom && (
+                                <div className="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200">
+                                    <Input
+                                        type="date"
+                                        value={customRange.start}
+                                        onChange={(e) => updateCustomRange('start', e.target.value)}
+                                        className="h-8 w-32 text-xs bg-white border-gray-200"
+                                    />
+                                    <span className="text-gray-400">→</span>
+                                    <Input
+                                        type="date"
+                                        value={customRange.end}
+                                        onChange={(e) => updateCustomRange('end', e.target.value)}
+                                        className="h-8 w-32 text-xs bg-white border-gray-200"
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Export format toggle & Action (Mobile only) */}
+                        {isMobile && (
+                            <div className="flex items-center gap-3 w-full justify-between pt-2 border-t border-gray-100 mt-1">
+                                <span className="text-xs text-gray-500 font-medium whitespace-nowrap">Format:</span>
+                                <div className="flex items-center gap-2 flex-1 justify-end">
+                                    <div className="flex bg-gray-100 rounded-lg p-1">
+                                        <button
+                                            onClick={() => setExportFormat('excel')}
+                                            className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${exportFormat === 'excel' ? 'bg-green-600 text-white shadow-md' : 'text-gray-500'}`}
+                                        >
+                                            XLS
+                                        </button>
+                                        <button
+                                            onClick={() => setExportFormat('csv')}
+                                            className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${exportFormat === 'csv' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500'}`}
+                                        >
+                                            CSV
+                                        </button>
                                     </div>
-                                ) : viewMode === 'cards' ? (
-                                    <div className="space-y-3">
-                                        <SalesCardsView
-                                            sales={filteredSales}
-                                            formatPrice={formatPrice}
-                                            onViewDetails={setSelectedSale}
-                                            getReturnsBySale={getReturnsBySale}
-                                            users={safeUsers}
-                                        />
-                                    </div>
-                                ) : viewMode === 'list' ? (
+
+                                    <Button
+                                        onClick={() => {
+                                            if (filteredSales.length === 0) {
+                                                showNotification('error', "Aucune vente à exporter");
+                                                return;
+                                            }
+                                            exportSales();
+                                        }}
+                                        size="sm"
+                                        className={`h-8 px-4 flex items-center gap-2 text-xs font-bold rounded-lg shadow-sm transition-all ${filteredSales.length === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${exportFormat === 'excel'
+                                            ? 'bg-green-600 text-white hover:bg-green-700'
+                                            : 'bg-blue-600 text-white hover:bg-blue-700'
+                                            }`}
+                                    >
+                                        <Download size={14} />
+                                        Exporter
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* ==================== CONTENT AREA ==================== */}
+                <div className="flex-1 overflow-y-auto p-4 bg-gray-50/30">
+                    <div className="flex items-center justify-between mb-4">
+                        <DataFreshnessIndicatorCompact
+                            viewName="sales_history"
+                            onRefreshComplete={() => showSuccess('Données actualisées')}
+                        />
+                    </div>
+
+                    {filteredSales.length === 0 ? (
+                        <div className="text-center py-20 bg-white rounded-xl border border-gray-200 shadow-sm">
+                            <ShoppingCart size={48} className="text-gray-300 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-600 mb-2">Aucune vente trouvée</h3>
+                            <p className="text-gray-500">Ajustez vos filtres ou changez la période</p>
+                        </div>
+                    ) : (
+                        <div className="mt-2">
+                            {viewMode === 'cards' ? (
+                                <div className="space-y-4 max-w-5xl mx-auto">
+                                    <SalesCardsView
+                                        sales={filteredSales}
+                                        formatPrice={formatPrice}
+                                        onViewDetails={setSelectedSale}
+                                        getReturnsBySale={getReturnsBySale}
+                                        users={safeUsers}
+                                    />
+                                </div>
+                            ) : viewMode === 'list' ? (
+                                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                                     <SalesListView
                                         sales={filteredSales}
                                         formatPrice={formatPrice}
@@ -544,272 +567,46 @@ export default function SalesHistoryPage() {
                                         getReturnsBySale={getReturnsBySale}
                                         users={safeUsers}
                                     />
-                                ) : (
-                                    <AnalyticsView
-                                        sales={filteredSales}
-                                        stats={stats}
-                                        formatPrice={formatPrice}
-                                        categories={categories}
-                                        products={products}
-                                        users={safeUsers}
-                                        barMembers={safeBarMembers}
-                                        timeRange={timeRange}
-                                        isMobile={isMobile}
-                                        returns={returns}
-                                        closeHour={closeHour}
-                                        filteredConsignments={filteredConsignments}
-                                        startDate={startDate}
-                                        endDate={endDate}
-                                        topProductMetric={topProductMetric}
-                                        setTopProductMetric={setTopProductMetric}
-                                        topProductsLimit={topProductsLimit}
-                                        setTopProductsLimit={setTopProductsLimit}
-                                        isLoadingTopProducts={isLoadingTopProducts}
-                                        viewMode={viewMode}
-                                    />
-                                )
-                            }
-                        </div >
-                    </div >
-                ) : (
-                    /* ==================== VERSION DESKTOP ==================== */
-                    <>
-                        {/* Header desktop */}
-                        <div className="flex-shrink-0 bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
-                            <div className="flex items-center gap-3 mb-3">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => navigate(-1)}
-                                    className="rounded-lg transition-colors hover:bg-white/20"
-                                >
-                                    <ArrowLeft size={24} />
-                                </Button>
-                                <div className="flex items-center gap-3">
-                                    <TrendingUp size={28} />
-                                    <div>
-                                        <div className="flex items-center gap-3">
-                                            <h1 className="text-xl font-bold">Historique des ventes</h1>
-                                            <DataFreshnessIndicatorCompact
-                                                viewName="top_products_by_period"
-                                                onRefreshComplete={async () => {
-                                                    showSuccess('✅ Données actualisées avec succès');
-                                                }}
-                                            />
-                                        </div>
-                                        <p className="text-sm text-amber-100">{filteredSales.length} ventes trouvées</p>
-                                    </div>
                                 </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                {/* Guide button */}
-                                {historyGuideId && (
-                                    <GuideHeaderButton guideId={historyGuideId} variant="default" />
-                                )}
-                                {/* Sélecteur de format d'export */}
-                                <div className="flex items-center gap-1 mr-2 bg-white/20 rounded-lg p-1">
-                                    <Button
-                                        onClick={() => setExportFormat('excel')}
-                                        variant="ghost"
-                                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${exportFormat === 'excel'
-                                            ? 'bg-white text-amber-900'
-                                            : 'text-white hover:bg-white/10'
-                                            }`}
-                                    >
-                                        Excel
-                                    </Button>
-                                    <Button
-                                        onClick={() => setExportFormat('csv')}
-                                        variant="ghost"
-                                        className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${exportFormat === 'csv'
-                                            ? 'bg-white text-amber-900'
-                                            : 'text-white hover:bg-white/10'
-                                            }`}
-                                    >
-                                        CSV
-                                    </Button>
-                                </div>
-                                <Button
-                                    onClick={exportSales}
-                                    disabled={filteredSales.length === 0}
-                                    className="px-4 py-2 flex items-center gap-2"
-                                >
-                                    <Download size={16} className="mr-2" />
-                                    <span className="text-sm font-medium">Exporter ({exportFormat.toUpperCase()})</span>
-                                </Button>
-                            </div>
-                        </div>
-                        {/* Barre de filtres Desktop */}
-                        <div className="flex-shrink-0 bg-white border-b border-amber-200 p-4 flex items-center gap-4 flex-wrap" data-guide="sales-filters">
-
-                            {/* Filtres de date */}
-                            <div className="flex bg-gray-100 rounded-lg p-1">
-                                {SALES_HISTORY_FILTERS.map(filter => (
-                                    <Button
-                                        key={filter}
-                                        onClick={() => setTimeRange(filter)}
-                                        variant={timeRange === filter ? 'default' : 'ghost'}
-                                        className="px-3 py-1.5 rounded-md text-sm font-medium transition-all"
-                                    >
-                                        {TIME_RANGE_CONFIGS[filter].label}
-                                    </Button>
-                                ))}
-                            </div>
-
-                            {/* Date range Custom */}
-                            {isCustom && (
-                                <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-lg border border-gray-200">
-                                    <Input
-                                        type="date"
-                                        value={customRange.start}
-                                        onChange={(e) => updateCustomRange('start', e.target.value)}
-                                        className="p-1.5 bg-transparent text-sm"
-                                    />
-                                    <span className="text-gray-600">-</span>
-                                    <Input
-                                        type="date"
-                                        value={customRange.end}
-                                        onChange={(e) => updateCustomRange('end', e.target.value)}
-                                        className="p-1.5 bg-transparent text-sm"
-                                    />
-                                </div>
+                            ) : (
+                                <AnalyticsView
+                                    sales={filteredSales}
+                                    stats={stats}
+                                    formatPrice={formatPrice}
+                                    categories={categories}
+                                    products={products}
+                                    users={safeUsers}
+                                    barMembers={safeBarMembers}
+                                    timeRange={timeRange}
+                                    isMobile={isMobile}
+                                    returns={returns}
+                                    closeHour={closeHour}
+                                    filteredConsignments={filteredConsignments}
+                                    startDate={startDate}
+                                    endDate={endDate}
+                                    topProductMetric={topProductMetric}
+                                    setTopProductMetric={setTopProductMetric}
+                                    topProductsLimit={topProductsLimit}
+                                    setTopProductsLimit={setTopProductsLimit}
+                                    isLoadingTopProducts={isLoadingTopProducts}
+                                    viewMode={viewMode}
+                                />
                             )}
-
-                            {/* Recherche */}
-                            <Input
-                                type="text"
-                                placeholder="ID vente ou produit..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                leftIcon={<Search size={16} />}
-                                className="w-64 text-sm bg-gray-50 border-amber-200 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                            />
-
-                            <div className="flex-1"></div>
-
-
                         </div>
-                        <div className="flex flex-1 overflow-hidden">
-
-
-                            {/* Contenu principal */}
-                            <div className="flex-1 flex flex-col overflow-hidden">
-                                {/* Toolbar */}
-                                <div className="flex-shrink-0 p-4 border-b border-amber-200 bg-amber-50">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-sm text-gray-600">Mode d'affichage:</span>
-                                            <div className="flex border border-amber-300 rounded-lg overflow-hidden">
-                                                {[
-                                                    { value: 'list', icon: Users, label: 'Liste' },
-                                                    { value: 'cards', icon: Eye, label: 'Détails' },
-                                                    { value: 'analytics', icon: TrendingUp, label: 'Analytics' }
-                                                ].map(mode => {
-                                                    const Icon = mode.icon;
-                                                    return (
-                                                        <Button
-                                                            key={mode.value}
-                                                            onClick={() => setViewMode(mode.value as ViewMode)}
-                                                            variant={viewMode === mode.value ? 'default' : 'ghost'}
-                                                            className="px-3 py-1.5 text-sm flex items-center gap-1 transition-colors"
-                                                        >
-                                                            <Icon size={14} className="mr-1" />
-                                                            {mode.label}
-                                                        </Button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Contenu ventes */}
-                                <div className="flex-1 overflow-y-auto p-4">
-                                    {(() => {
-
-
-                                        if (filteredSales.length === 0) {
-                                            return (
-                                                <div className="text-center py-12">
-                                                    <ShoppingCart size={48} className="text-gray-300 mx-auto mb-4" />
-                                                    <h3 className="text-lg font-medium text-gray-600 mb-2">Aucune vente trouvée</h3>
-                                                    <p className="text-gray-500">Ajustez vos filtres ou changez la période</p>
-                                                </div>
-                                            );
-                                        }
-
-                                        if (viewMode === 'cards') {
-
-                                            return (
-                                                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                                                    {filteredSales.map(sale => (
-                                                        <SaleCard
-                                                            key={sale.id}
-                                                            sale={sale}
-                                                            formatPrice={formatPrice}
-                                                            onViewDetails={() => setSelectedSale(sale)}
-                                                            getReturnsBySale={getReturnsBySale}
-                                                            users={safeUsers}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            );
-                                        }
-
-                                        if (viewMode === 'list') {
-
-                                            return (
-                                                <SalesListView
-                                                    sales={filteredSales}
-                                                    formatPrice={formatPrice}
-                                                    onViewDetails={setSelectedSale}
-                                                    getReturnsBySale={getReturnsBySale}
-                                                    users={safeUsers}
-                                                />
-                                            );
-                                        }
-
-
-                                        return (
-                                            <AnalyticsView
-                                                sales={filteredSales}
-                                                stats={stats}
-                                                formatPrice={formatPrice}
-                                                categories={categories}
-                                                products={products}
-                                                users={safeUsers}
-                                                barMembers={safeBarMembers}
-                                                timeRange={timeRange}
-                                                isMobile={isMobile}
-                                                returns={returns}
-                                                closeHour={closeHour}
-                                                filteredConsignments={filteredConsignments}
-                                                startDate={startDate}
-                                                endDate={endDate}
-                                                topProductMetric={topProductMetric}
-                                                setTopProductMetric={setTopProductMetric}
-                                                topProductsLimit={topProductsLimit}
-                                                setTopProductsLimit={setTopProductsLimit}
-                                                isLoadingTopProducts={isLoadingTopProducts}
-                                                viewMode={viewMode}
-                                            />
-                                        );
-                                    })()}
-                                </div>
-                            </div>
-                        </div>
-                    </>
-                )}
+                    )}
+                </div>
             </div>
 
             {/* Détail vente */}
-            {selectedSale && (
-                <SaleDetailModal
-                    sale={selectedSale}
-                    formatPrice={formatPrice}
-                    onClose={() => setSelectedSale(null)}
-                />
-            )}
+            {
+                selectedSale && (
+                    <SaleDetailModal
+                        sale={selectedSale}
+                        formatPrice={formatPrice}
+                        onClose={() => setSelectedSale(null)}
+                    />
+                )
+            }
 
             <GuideTourModal />
         </div>

@@ -8,18 +8,35 @@ import { useMemo } from 'react';
 import { useGuide } from '@/context/GuideContext';
 import { useAuth } from '@/context/AuthContext';
 import { OWNER_GUIDES } from '@/data/guides/owner-guides';
-import { MANAGER_GUIDES } from '@/data/guides/manager-guides';
-import { BARTENDER_GUIDES } from '@/data/guides/bartender-guides';
-import { GuideTour } from '@/types/guide';
+import { SERVEUR_GUIDES } from '@/data/guides/serveur-guides'; // Contains all 5 serveur guides
+import { GuideTour, UserRole } from '@/types/guide';
+
+/**
+ * Filter guide steps by role-based visibility
+ * Removes steps that don't have the current role in visibleFor
+ */
+const filterStepsByRole = (guide: GuideTour, role: UserRole): GuideTour => {
+  return {
+    ...guide,
+    steps: guide.steps.filter(step => {
+      // If visibleFor not specified, visible to all roles
+      if (!step.visibleFor) return true;
+      // Otherwise, visible only if role is in visibleFor list
+      return step.visibleFor.includes(role);
+    }),
+  };
+};
 
 /**
  * Registry of all guides by role
- * Add guides here as they're created (Phase 2+)
+ * Promoteur sees all OWNER_GUIDES
+ * Gérant sees OWNER_GUIDES filtered by targetRoles
+ * Serveur sees BARTENDER_GUIDES
  */
 const GUIDES_BY_ROLE: Record<string, GuideTour[]> = {
   promoteur: OWNER_GUIDES,
-  gerant: MANAGER_GUIDES,
-  serveur: BARTENDER_GUIDES,
+  gerant: OWNER_GUIDES.filter(g => g.targetRoles.includes('gerant')),
+  serveur: SERVEUR_GUIDES,
 };
 
 export interface GuideSuggestion {
@@ -40,20 +57,25 @@ export const useGuideSuggestions = (): GuideSuggestion[] => {
   const { currentSession } = useAuth();
   const { hasCompletedGuide } = useGuide();
 
-  const userRole = (currentSession?.role || 'serveur') as string;
+  const userRole = (currentSession?.role || 'serveur') as UserRole;
 
   return useMemo(() => {
     const guides = GUIDES_BY_ROLE[userRole] || [];
 
-    return guides.map(guide => ({
-      id: guide.id,
-      title: guide.title,
-      emoji: guide.emoji,
-      description: guide.description,
-      isNew: !hasCompletedGuide(guide.id),
-      estimatedDuration: guide.estimatedDuration,
-      guide: guide, // Include full guide object
-    }));
+    return guides.map(guide => {
+      // Filter steps by role visibility
+      const filteredGuide = filterStepsByRole(guide, userRole);
+
+      return {
+        id: filteredGuide.id,
+        title: filteredGuide.title,
+        emoji: filteredGuide.emoji,
+        description: filteredGuide.description,
+        isNew: !hasCompletedGuide(filteredGuide.id),
+        estimatedDuration: filteredGuide.estimatedDuration,
+        guide: filteredGuide, // Include filtered guide object
+      };
+    });
   }, [userRole, hasCompletedGuide]);
 };
 

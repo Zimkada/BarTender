@@ -13,10 +13,10 @@ import { Alert } from '../components/ui/Alert';
 import { RadioGroup, RadioGroupItem } from '../components/ui/Radio';
 import { ServerMappingsManager } from '../components/ServerMappingsManager';
 import { FEATURES } from '../config/features';
-import { useAutoGuide } from '../hooks/useGuideTrigger';
 import { useOnboarding } from '../context/OnboardingContext';
 import { useGuide } from '../context/GuideContext';
-import { GuideHeaderButton } from '../components/guide/GuideHeaderButton';
+// import { GuideHeaderButton } from '../components/guide/GuideHeaderButton'; // removed
+import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
 
 const currencyOptions = [
     { code: 'FCFA', symbol: 'FCFA', name: 'Franc CFA' },
@@ -241,52 +241,17 @@ export default function SettingsPage() {
 
     return (
         <div className="max-w-2xl mx-auto">
-            {/* Header */}
-            <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden" data-guide="settings-header">
-                <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => navigate(-1)}
-                                className="rounded-lg transition-colors hover:bg-white/20"
-                            >
-                                <ArrowLeft size={24} />
-                            </Button>
-                            <div className="flex items-center gap-3">
-                                <SettingsIcon size={24} />
-                                <div>
-                                    <h1 className="text-xl font-bold">Paramètres</h1>
-                                    <p className="text-amber-100 text-sm">Configuration du bar</p>
-                                </div>
-                            </div>
-                        </div>
-                        {/* Guide button */}
-                        <GuideHeaderButton guideId={settingsGuideId} variant="default" />
-                    </div>
-                </div>
-
-                {/* Tabs */}
-                <div className="px-6 py-3 border-b border-gray-200" data-guide="settings-tabs">
-                    <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-                        {tabs.map(tab => (
-                            <Button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                variant={activeTab === tab.id ? 'default' : 'ghost'}
-                                className={`flex-1 py-3 px-4 font-medium text-sm transition-colors whitespace-nowrap ${activeTab === tab.id
-                                    ? 'bg-white text-amber-600 border-b-2 border-amber-600 shadow-sm'
-                                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                                    }`}
-                            >
-                                <tab.icon className="w-4 h-4 inline mr-2" />
-                                {tab.label}
-                            </Button>
-                        ))}
-                    </div>
-                </div>
-            </div>
+            {/* Header Standardisé */}
+            <TabbedPageHeader
+                title="Paramètres"
+                subtitle="Configuration du bar"
+                icon={<SettingsIcon size={24} />}
+                tabs={tabs}
+                activeTab={activeTab}
+                onTabChange={(id) => setActiveTab(id as any)}
+                guideId={settingsGuideId}
+                hideSubtitleOnMobile={true}
+            />
 
             {/* Content */}
             <div className="bg-white rounded-2xl shadow-sm border border-amber-100 p-6 space-y-6" data-guide="settings-content">

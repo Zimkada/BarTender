@@ -76,11 +76,11 @@ export function SaleCard({
     return (
         <motion.div
             whileHover={{ y: -2 }}
-            className="bg-white rounded-xl p-4 border border-amber-100 shadow-sm hover:shadow-md transition-all"
+            className="bg-white rounded-xl p-2.5 border border-amber-100 shadow-sm hover:shadow-md transition-all"
         >
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-1.5">
                 <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-0.5">
                         <h4 className="font-semibold text-gray-800">Vente #{sale.id.slice(-6)}</h4>
                         <span className={`text-xs px-2 py-0.5 rounded-full border ${statusBadge.color}`}>
                             {statusBadge.label}
@@ -106,7 +106,7 @@ export function SaleCard({
                 </div>
             </div>
 
-            <div className="space-y-2 mb-4">
+            <div className="space-y-1 mb-2">
                 {sale.items.slice(0, 2).map((item: any, index) => {
                     const name = item.product?.name || item.product_name || 'Produit';
                     const volume = item.product?.volume || item.product_volume || '';
@@ -125,7 +125,7 @@ export function SaleCard({
 
             {/* Affichage des retours et montant net */}
             {hasReturns && (
-                <div className="mb-3 p-2 bg-red-50 border border-red-100 rounded-lg">
+                <div className="mb-2 p-1.5 bg-red-50 border border-red-100 rounded-lg">
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-red-700 font-medium">
                             <RotateCcw size={14} className="inline mr-1" />

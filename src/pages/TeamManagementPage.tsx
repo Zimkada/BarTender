@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Users, UserPlus, Shield, User as UserIcon, Check, Trash2, ArrowLeft, GitBranch, ChevronDown, ChevronUp } from 'lucide-react';
+import { Users, UserPlus, Shield, User as UserIcon, Check, Trash2, GitBranch, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from "../context/AuthContext";
 import { useBarContext } from '../context/BarContext';
 import { UserRole } from '../types';
@@ -14,10 +13,7 @@ import { Modal } from '../components/ui/Modal';
 import { ServerMappingsManager } from '../components/ServerMappingsManager';
 import { BarsService } from '../services/supabase/bars.service';
 import { FEATURES } from '../config/features';
-import { useAutoGuide } from '../hooks/useGuideTrigger';
-import { useOnboarding } from '../context/OnboardingContext';
-import { useGuide } from '../context/GuideContext';
-import { GuideHeaderButton } from '../components/guide/GuideHeaderButton';
+import { SimplePageHeader } from '../components/common/PageHeader/patterns/SimplePageHeader';
 
 /**
  * TeamManagementPage - Page de gestion de l'équipe
@@ -25,22 +21,15 @@ import { GuideHeaderButton } from '../components/guide/GuideHeaderButton';
  * Refactoré de modale vers page
  */
 export default function TeamManagementPage() {
-  const navigate = useNavigate();
+  // remove useNavigate
   const { hasPermission } = useAuth();
   const { currentBar, barMembers, removeBarMember, refreshBars } = useBarContext();
-  const { isComplete } = useOnboarding();
-  const { hasCompletedGuide } = useGuide();
   const { isMobile } = useViewport();
 
-  // Guide ID for team management - using header button instead
+  // Guide ID for team management
   const teamGuideId = 'manage-team';
 
-  // Auto-guide disabled - using GuideHeaderButton in page header instead
-  // useAutoGuide(
-  //   'manage-team',
-  //   isComplete && !hasCompletedGuide('manage-team'),
-  //   { delay: 1500 }
-  // );
+  // States...
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -264,71 +253,59 @@ export default function TeamManagementPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden" data-guide="team-header">
-        <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+      {/* Header Standardisé */}
+      <SimplePageHeader
+        title={isMobile ? 'Équipe' : "Gestion d'équipe"}
+        subtitle="Gérez les accès et les rôles de votre personnel"
+        icon={<Users size={24} />}
+        guideId={teamGuideId}
+        actions={
+          <div className="flex items-center gap-2">
+            {inactiveCount > 0 && (
               <Button
-                onClick={() => navigate(-1)}
+                onClick={() => setShowInactive(!showInactive)}
+                variant="ghost"
+                className={`flex items-center gap-2 text-white hover:bg-white/20 ${showInactive ? 'bg-white/20' : ''}`}
+                title={showInactive ? "Masquer les inactifs" : "Afficher les inactifs"}
+              >
+                <Users size={18} className="text-white" />
+                {!isMobile && (showInactive ? 'Masquer inactifs' : `Voir inactifs (${inactiveCount})`)}
+              </Button>
+            )}
+            <Button
+              onClick={() => setShowAddUser(true)}
+              className="flex items-center gap-2"
+            >
+              <UserPlus size={16} className="mr-2" />
+              Ajouter un membre
+            </Button>
+          </div>
+        }
+        mobileTopRightContent={
+          <div className="flex items-center gap-1">
+            {inactiveCount > 0 && (
+              <Button
+                onClick={() => setShowInactive(!showInactive)}
                 variant="ghost"
                 size="icon"
-                className="rounded-lg transition-colors hover:bg-white/20"
+                className={`rounded-lg transition-colors hover:bg-white/20 text-white ${showInactive ? 'bg-white/20 border border-white/30' : ''}`}
+                title={showInactive ? "Masquer les inactifs" : "Afficher les inactifs"}
               >
-                <ArrowLeft size={24} />
+                <Users size={20} />
               </Button>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                  <Users className="text-white" size={24} />
-                </div>
-                <div>
-                  <h1 className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-                    {isMobile ? 'Équipe' : 'Équipe du bar'}
-                  </h1>
-                  <p className={`text-amber-100 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                    {currentBar.name}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Action buttons in header */}
-            <div className="flex items-center gap-2">
-              {/* Guide button */}
-              <GuideHeaderButton guideId={teamGuideId} variant="default" />
-              {inactiveCount > 0 && (
-                <Button
-                  onClick={() => setShowInactive(!showInactive)}
-                  variant="ghost"
-                  className={`flex items-center gap-2 text-white hover:bg-white/20 ${showInactive ? 'bg-white/20' : ''}`}
-                  title={showInactive ? "Masquer les inactifs" : "Afficher les inactifs"}
-                >
-                  <Users size={18} className="text-white" />
-                  {isMobile ? (showInactive ? 'Actifs' : 'Tous') : (showInactive ? 'Masquer inactifs' : `Voir inactifs (${inactiveCount})`)}
-                </Button>
-              )}
-
-              {(hasPermission('canCreateManagers') || hasPermission('canCreateServers')) && (
-                <Button
-                  onClick={() => setShowAddUser(true)}
-                  variant="default"
-                  size={isMobile ? 'icon' : 'default'}
-                  className="flex items-center gap-2"
-                  title="Ajouter un membre"
-                  data-guide="team-add-btn"
-                >
-                  {isMobile ? (
-                    <UserPlus size={18} />
-                  ) : (
-                    'Ajouter un membre'
-                  )}
-                </Button>
-              )}
-
-            </div>
+            )}
+            <Button
+              onClick={() => setShowAddUser(true)}
+              variant="ghost"
+              size="icon"
+              className="rounded-lg transition-colors hover:bg-white/20 text-white"
+            >
+              <UserPlus size={24} />
+            </Button>
           </div>
-        </div>
-      </div>
+        }
+        mobileActions={null}
+      />
 
       {/* Content */}
       <div className="space-y-6">
@@ -635,6 +612,6 @@ export default function TeamManagementPage() {
 
         </Modal>
       </div>
-    </div>
+    </div >
   );
 }

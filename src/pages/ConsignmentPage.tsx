@@ -20,16 +20,14 @@ import { useAppContext } from '../context/AppContext';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
-import { useGuide } from '../context/GuideContext';
-import { useOnboarding } from '../context/OnboardingContext';
-import { useAutoGuide } from '@/hooks/useGuideTrigger';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from '../components/EnhancedButton';
 import type { User as UserType } from '../types';
 import { Sale, SaleItem, Consignment } from '../types';
 import { useViewport } from '../hooks/useViewport';
-import { PageHeader } from '../components/common/PageHeader';
+import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
+import { Button } from '../components/ui/Button';
 import { Textarea } from '../components/ui/Textarea';
 import { Label } from '../components/ui/Label';
 import { Alert } from '../components/ui/Alert';
@@ -38,12 +36,7 @@ import { Select } from '../components/ui/Select';
 type TabType = 'create' | 'active' | 'history';
 
 export default function ConsignmentPage() {
-  const { isComplete } = useOnboarding();
-  const { hasCompletedGuide } = useGuide();
-
-  // Guide is now triggered via PageHeader button instead of auto-trigger
-  // useAutoGuide disabled in favor of manual trigger from header button
-
+  const stockManager = useStockManagement();
   const [activeTab, setActiveTab] = useState<TabType>('active');
   const navigate = useNavigate();
   const { isMobile } = useViewport();
@@ -52,42 +45,54 @@ export default function ConsignmentPage() {
   // ✨ Déterminer si l'utilisateur est en mode read-only (serveur)
   const isReadOnly = currentSession?.role === 'serveur';
 
+  // Configuration des onglets pour TabbedPageHeader
+  const tabs = [
+    ...(!isReadOnly ? [{ id: 'create', label: isMobile ? 'Nouveau' : 'Nouvelle Consignation', icon: Package }] : []),
+    { id: 'active', label: isMobile ? 'En cours' : 'Consignations Actives', icon: Clock },
+    { id: 'history', label: isMobile ? 'Historique' : 'Historique des Consignations', icon: Archive },
+  ];
+
   return (
-    <div className="max-w-7xl mx-auto p-4 space-y-4">
-      <PageHeader
+    <div className="max-w-7xl mx-auto space-y-4">
+      <TabbedPageHeader
         title={isMobile ? 'Consignations' : 'Gestion des Consignations'}
         subtitle="Gérer les produits consignés et récupérations"
         icon={<Package className="w-6 h-6 text-amber-600" />}
         hideSubtitleOnMobile
-        guideId="manage-consignments"
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={(id) => setActiveTab(id as TabType)}
+        guideId={currentSession?.role === 'serveur' ? 'serveur-consignments' : 'manage-consignments'}
+        mobileTopRightContent={
+          activeTab === 'active' && (
+            <Button
+              onClick={stockManager.checkAndExpireConsignments}
+              variant="ghost"
+              size="icon"
+              className="rounded-lg transition-colors hover:bg-white/20 text-white"
+              title="Vérifier les expirations"
+            >
+              <Clock size={20} />
+            </Button>
+          )
+        }
+        actions={
+          !isMobile && activeTab === 'active' && (
+            <Button
+              onClick={stockManager.checkAndExpireConsignments}
+              variant="ghost"
+              className="text-white hover:bg-white/20 flex items-center gap-2"
+              title="Vérifier les expirations"
+            >
+              <Clock className="w-4 h-4" />
+              <span className="hidden sm:inline">Vérifier expirations</span>
+            </Button>
+          )
+        }
       />
 
-      {/* Tabs Navigation and Content */}
+      {/* Content Container */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="border-b border-gray-200 bg-gray-50">
-          <div className="flex overflow-x-auto">
-            {!isReadOnly && (
-              <TabButton
-                active={activeTab === 'create'}
-                onClick={() => setActiveTab('create')}
-                icon={<Package className="w-5 h-5" />}
-                label="Créer Consignation"
-              />
-            )}
-            <TabButton
-              active={activeTab === 'active'}
-              onClick={() => setActiveTab('active')}
-              icon={<Clock className="w-5 h-5" />}
-              label="Consignations Actives"
-            />
-            <TabButton
-              active={activeTab === 'history'}
-              onClick={() => setActiveTab('history')}
-              icon={<Archive className="w-5 h-5" />}
-              label="Historique"
-            />
-          </div>
-        </div>
 
         {/* Content */}
         <div className="p-6 min-h-[60vh]">
@@ -95,6 +100,7 @@ export default function ConsignmentPage() {
             {activeTab === 'create' && (
               <motion.div key="create" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} data-guide="consignments-create-tab">
                 <CreateConsignmentTab
+                  stockManager={stockManager}
                   onNavigateBack={() => navigate(-1)}
                   onCreationSuccess={() => setActiveTab('active')}
                 />
@@ -102,12 +108,12 @@ export default function ConsignmentPage() {
             )}
             {activeTab === 'active' && (
               <motion.div key="active" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} data-guide="consignments-active-tab">
-                <ActiveConsignmentsTab isReadOnly={isReadOnly} />
+                <ActiveConsignmentsTab stockManager={stockManager} isReadOnly={isReadOnly} />
               </motion.div>
             )}
             {activeTab === 'history' && (
               <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} data-guide="consignments-history-tab">
-                <HistoryTab />
+                <HistoryTab stockManager={stockManager} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -117,37 +123,18 @@ export default function ConsignmentPage() {
   );
 }
 
-// ===== TAB BUTTON =====
-interface TabButtonProps {
-  active: boolean;
-  onClick: () => void;
-  icon: React.ReactNode;
-  label: string;
-}
-
-const TabButton: React.FC<TabButtonProps> = ({ active, onClick, icon, label }) => (
-  <button
-    onClick={onClick}
-    className={`flex-1 flex items-center justify-center gap-2 px-6 py-4 font-medium transition-all whitespace-nowrap ${active
-      ? 'text-amber-600 border-b-2 border-amber-600 bg-white'
-      : 'text-gray-600 hover:text-amber-600 hover:bg-white/50'
-      }`}
-  >
-    {icon}
-    <span>{label}</span>
-  </button>
-);
+// ===== TAB CONTENT =====
 
 // ===== TAB 1: CRÉER CONSIGNATION =====
 interface CreateConsignmentTabProps {
+  stockManager: any;
   onNavigateBack: () => void;
   onCreationSuccess?: () => void;
 }
 
-const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateBack, onCreationSuccess }) => {
+const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ stockManager, onNavigateBack, onCreationSuccess }) => {
   const { showSuccess, showError } = useFeedback();
   const { getTodaySales, getReturnsBySale } = useAppContext();
-  const stockManager = useStockManagement();
   const { formatPrice } = useCurrencyFormatter();
   const { currentBar, barMembers } = useBarContext();
   const { currentSession: session } = useAuth();
@@ -586,8 +573,7 @@ const CreateConsignmentTab: React.FC<CreateConsignmentTabProps> = ({ onNavigateB
 };
 
 // ===== TAB 2: CONSIGNATIONS ACTIVES =====
-const ActiveConsignmentsTab: React.FC<{ isReadOnly?: boolean }> = ({ isReadOnly = false }) => {
-  const stockManager = useStockManagement();
+const ActiveConsignmentsTab: React.FC<{ stockManager: any, isReadOnly?: boolean }> = ({ stockManager, isReadOnly = false }) => {
   const { sales } = useAppContext();
   const { barMembers } = useBarContext();
   const { currentSession } = useAuth();
@@ -665,13 +651,6 @@ const ActiveConsignmentsTab: React.FC<{ isReadOnly?: boolean }> = ({ isReadOnly 
             <span className="text-2xl font-bold text-amber-600">{activeConsignments.length}</span>
             <span className="text-sm text-amber-700 ml-2">actif(s)</span>
           </div>
-          <button
-            onClick={stockManager.checkAndExpireConsignments}
-            className="text-sm text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1 bg-amber-50 px-3 py-2 rounded-lg"
-          >
-            <Clock className="w-4 h-4" />
-            Vérifier expirations
-          </button>
         </div>
 
         <div className="relative flex-1 max-w-md">
@@ -711,8 +690,7 @@ const ActiveConsignmentsTab: React.FC<{ isReadOnly?: boolean }> = ({ isReadOnly 
 };
 
 // ===== TAB 3: HISTORIQUE =====
-const HistoryTab: React.FC = () => {
-  const stockManager = useStockManagement();
+const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
   const { sales } = useAppContext();
   const { barMembers } = useBarContext();
   const { currentSession } = useAuth();
