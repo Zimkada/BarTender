@@ -2,6 +2,7 @@ import { Eye } from 'lucide-react';
 import { Sale, User } from '../../../../types';
 import { getSaleDate } from '../../../../utils/saleHelpers';
 import { EnhancedButton } from '../../../../components/EnhancedButton';
+import { useViewport } from '../../../../hooks/useViewport';
 
 interface SalesListViewProps {
     sales: Sale[];
@@ -18,6 +19,66 @@ export function SalesListView({
     getReturnsBySale,
     users
 }: SalesListViewProps) {
+    const { isMobile } = useViewport();
+
+    if (isMobile) {
+        return (
+            <div className="space-y-0 divide-y divide-gray-100 border-t border-b border-gray-100 bg-white">
+                {sales.map(sale => {
+                    const time = new Date(sale.validatedAt || sale.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                    const itemCount = sale.items.reduce((sum, item) => sum + item.quantity, 0);
+
+                    // Seller
+                    const serverUserId = sale.soldBy;
+                    const seller = users?.find(u => u.id === serverUserId);
+
+                    const saleReturns = getReturnsBySale(sale.id);
+                    const hasReturns = saleReturns.length > 0;
+                    const refundedAmount = saleReturns
+                        .filter(r => r.isRefunded && (r.status === 'approved' || r.status === 'restocked'))
+                        .reduce((sum, r) => sum + r.refundAmount, 0);
+
+                    const netAmount = sale.total - refundedAmount;
+
+                    return (
+                        <div
+                            key={sale.id}
+                            onClick={() => onViewDetails(sale)}
+                            className="p-4 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100 transition-colors cursor-pointer"
+                        >
+                            {/* Left: Time & ID */}
+                            <div className="flex flex-col w-12 shrink-0">
+                                <span className="text-sm font-bold text-gray-900">{time}</span>
+                                <span className="text-[10px] text-gray-400 font-mono">#{sale.id.slice(-4)}</span>
+                            </div>
+
+                            {/* Middle: Details */}
+                            <div className="flex-1 px-3 min-w-0">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                    <span className="text-xs font-medium text-gray-700 truncate">{seller?.name || 'Inconnu'}</span>
+                                    {hasReturns && <span className="w-1.5 h-1.5 bg-red-500 rounded-full shrink-0" />}
+                                </div>
+                                <div className="text-[11px] text-gray-500 truncate">
+                                    {itemCount} articles • {sale.status === 'validated' ? 'Payé' : sale.status}
+                                </div>
+                            </div>
+
+                            {/* Right: Amount */}
+                            <div className="text-right shrink-0">
+                                <div className={`font-mono font-bold text-sm ${hasReturns ? 'text-amber-600' : 'text-gray-900'}`}>
+                                    {formatPrice(netAmount)}
+                                </div>
+                                {hasReturns && (
+                                    <div className="text-[10px] text-red-500 font-medium">-{formatPrice(refundedAmount)}</div>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    }
+
     return (
         <div className="bg-white rounded-xl border border-amber-100 overflow-x-auto">
             <table className="w-full min-w-[900px]">
@@ -63,10 +124,10 @@ export function SalesListView({
                         const validator = sale.validatedBy ? users?.find(u => u.id === sale.validatedBy) : null;
 
                         return (
-                            <tr key={sale.id} className="border-t border-amber-100 hover:bg-amber-50">
+                            <tr key={sale.id} className="border-t border-amber-100 hover:bg-amber-50 group">
                                 <td className="p-4">
                                     <div className="flex items-center gap-2">
-                                        <span>#{sale.id.slice(-6)}</span>
+                                        <span className="font-mono text-gray-600">#{sale.id.slice(-6)}</span>
                                         {hasReturns && (
                                             <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
                                                 {saleReturns.length} retour{saleReturns.length > 1 ? 's' : ''}
@@ -81,33 +142,33 @@ export function SalesListView({
                                 </td>
                                 <td className="p-4">
                                     <div>
-                                        <p className="text-sm">{getSaleDate(sale).toLocaleDateString('fr-FR')}</p>
-                                        <p className="text-xs text-gray-600">{new Date(sale.validatedAt || sale.createdAt).toLocaleTimeString('fr-FR')}</p>
+                                        <p className="text-sm font-medium text-gray-800">{getSaleDate(sale).toLocaleDateString('fr-FR')}</p>
+                                        <p className="text-xs text-gray-500">{new Date(sale.validatedAt || sale.createdAt).toLocaleTimeString('fr-FR')}</p>
                                     </div>
                                 </td>
                                 <td className="p-4">
                                     <div>
-                                        <p className="text-sm font-medium">{seller?.name || 'Inconnu'}</p>
+                                        <p className="text-sm font-medium text-gray-800">{seller?.name || 'Inconnu'}</p>
                                         {validator && (
                                             <p className="text-xs text-gray-500">Val.: {validator.name}</p>
                                         )}
                                     </div>
                                 </td>
-                                <td className="p-4">{itemCount} articles</td>
+                                <td className="p-4 text-sm text-gray-600">{itemCount} art.</td>
                                 <td className="p-4">
-                                    <span className={`font-semibold ${hasReturns ? 'text-gray-500 line-through' : 'text-amber-600'}`}>
+                                    <span className={`font-mono font-medium ${hasReturns ? 'text-gray-500 line-through' : 'text-amber-600'}`}>
                                         {formatPrice(sale.total)}
                                     </span>
                                 </td>
                                 <td className="p-4">
                                     {refundedAmount > 0 ? (
-                                        <span className="text-red-600 font-medium">-{formatPrice(refundedAmount)}</span>
+                                        <span className="text-red-600 font-mono text-sm">-{formatPrice(refundedAmount)}</span>
                                     ) : (
-                                        <span className="text-gray-400">-</span>
+                                        <span className="text-gray-300">-</span>
                                     )}
                                 </td>
                                 <td className="p-4">
-                                    <span className="font-bold text-green-600">{formatPrice(netAmount)}</span>
+                                    <span className="font-bold font-mono text-green-700 text-base">{formatPrice(netAmount)}</span>
                                 </td>
                                 <td className="p-4">
                                     <EnhancedButton
@@ -127,3 +188,4 @@ export function SalesListView({
         </div>
     );
 }
+

@@ -1,125 +1,148 @@
 import React, { useState } from 'react';
 import { Package, Plus, AlertTriangle, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Product } from '../types';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
-import { IconButton } from './ui/IconButton';
 import { OptimizedImage } from './ui/OptimizedImage';
 
 interface ProductCardProps {
   product: Product;
   onAddToCart: (product: Product) => void;
-  availableStock?: number; // ✨ Optionnel, pour plus de précision (circuit disponible)
+  availableStock?: number;
 }
 
 export function ProductCard({ product, onAddToCart, availableStock }: ProductCardProps) {
   const { formatPrice } = useCurrencyFormatter();
 
-  // ✅ Utiliser availableStock si fourni, sinon fallback sur product.stock (étroitement lié au stock physique)
+  // Priorité au stock "calculé" (disponible) s'il est fourni, sinon stock physique
   const displayStock = availableStock !== undefined ? availableStock : product.stock;
   const isLowStock = displayStock <= product.alertThreshold;
+  const isStockEmpty = displayStock <= 0;
+
   const [showFeedback, setShowFeedback] = useState(false);
-  const { itemAddedToCart, setLoading, isLoading, showError } = useFeedback();
+  const { itemAddedToCart, isLoading } = useFeedback();
 
   const handleAddToCart = async (e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Stop propagation pour éviter d'autres events
+    e.preventDefault(); // Empêcher le focus/sélection natif sur mobile
 
-    if (displayStock === 0) {
-      showError('❌ Stock épuisé');
-      return;
-    }
+    if (isStockEmpty) return;
 
-    if (displayStock <= product.alertThreshold && displayStock > 0) {
-      if (!confirm(`⚠️ Stock critique (${displayStock} restants). Continuer ?`)) {
-        return;
-      }
-    }
+    // Feedback haptique simulé et visuel
+    if (navigator.vibrate) navigator.vibrate(10); // Vibration légère (5-10ms)
 
-    try {
-      setLoading('addToCart', true);
-      await onAddToCart(product);
-      itemAddedToCart(product.name);
-      setShowFeedback(true);
-      setTimeout(() => setShowFeedback(false), 1000);
-    } finally {
-      setLoading('addToCart', false);
-    }
+    // Optimistic UI: Feedback immédiat
+    setShowFeedback(true);
+    setTimeout(() => setShowFeedback(false), 800); // 800ms pour l'anim
+
+    // Action réelle (async ou sync)
+    // On ne bloque pas l'UI pour l'ajout panier, c'est instantané ressenti
+    onAddToCart(product);
+    itemAddedToCart(product.name);
   };
 
-  const getStockBadgeColor = () => {
-    if (displayStock === 0) return 'bg-red-500';
-    if (isLowStock) return 'bg-amber-500';
-    return 'bg-green-500';
+  /**
+   * Helper pour la couleur du badge de stock
+   */
+  const getStockStatus = () => {
+    if (isStockEmpty) return { color: 'bg-red-500', label: 'Épuisé' };
+    if (isLowStock) return { color: 'bg-amber-500', label: displayStock };
+    return { color: 'bg-emerald-500', label: displayStock }; // Emerald est plus "Premium" que Green
   };
+
+  const status = getStockStatus();
 
   return (
-    <div
+    <motion.div
+      whileTap={{ scale: 0.96 }}
+      animate={showFeedback ? { scale: [1, 1.05, 1], borderColor: '#f59e0b' } : {}}
+      transition={{ duration: 0.2 }}
       onClick={handleAddToCart}
-      className="bg-white rounded-xl border border-gray-200 shadow-sm relative overflow-hidden group active:scale-[0.98] transition-all cursor-pointer hover:shadow-md h-full flex flex-col"
+      className={`
+        relative flex flex-col h-full
+        bg-white rounded-2xl
+        border ${showFeedback ? 'border-amber-400' : 'border-gray-100'}
+        shadow-sm hover:shadow-md
+        overflow-hidden cursor-pointer select-none
+        touch-manipulation
+        ${isStockEmpty ? 'opacity-60 grayscale' : ''}
+      `}
     >
-      {/* Stock Badge */}
-      <div className={`absolute top-2 right-2 ${getStockBadgeColor()} text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold z-10 shadow-sm`}>
-        {displayStock}
+      {/* --- STOCK BADGE --- */}
+      <div className={`
+        absolute top-2 right-2 z-10
+        ${status.color} text-white
+        text-[10px] font-bold px-2 py-0.5 rounded-full
+        shadow-sm backdrop-blur-sm bg-opacity-90
+      `}>
+        {status.label}
       </div>
 
-      {/* Low Stock Alert */}
-      {isLowStock && displayStock > 0 && (
-        <div className="absolute top-2 left-2 bg-amber-500 text-white rounded-full p-1 z-10 shadow-sm">
-          <AlertTriangle size={12} />
-        </div>
-      )}
+      {/* --- IMAGE AREA (Aspect Ratio 1:1 pour cohérence) --- */}
+      <div className="aspect-square bg-gray-50 p-3 flex items-center justify-center relative">
+        {isLowStock && !isStockEmpty && (
+          <div className="absolute top-2 left-2 text-amber-500 animate-pulse">
+            <AlertTriangle size={14} />
+          </div>
+        )}
 
-      {/* Image */}
-      <div className="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden p-2">
         {product.image ? (
           <OptimizedImage
             src={product.image}
             alt={product.name}
             width={200}
             height={200}
-            className="w-full h-full object-contain mix-blend-multiply"
+            className="w-full h-full object-contain mix-blend-multiply transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <Package size={24} className="text-gray-300" />
+          <Package className="text-gray-300 w-1/2 h-1/2" strokeWidth={1.5} />
         )}
+
+        {/* --- ADD SUCCESS OVERLAY --- */}
+        <AnimatePresence>
+          {showFeedback && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-amber-500/80 flex items-center justify-center z-20"
+            >
+              <Check className="text-white w-12 h-12 drop-shadow-md" strokeWidth={3} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Content */}
-      <div className="p-2 flex flex-col flex-1">
-        <h3 className="font-bold text-gray-900 text-xs leading-tight mb-0.5 line-clamp-2 min-h-[2.5em]">
-          {product.name}
-        </h3>
-        <p className="text-[10px] text-gray-500 mb-1 truncate">{product.volume}</p>
+      {/* --- CONTENT AREA --- */}
+      <div className="p-3 flex flex-col flex-1 justify-between">
+        <div>
+          <h3 className="font-bold text-gray-800 text-sm leading-snug line-clamp-2 min-h-[2.5em]">
+            {product.name}
+          </h3>
+          <p className="text-[11px] text-gray-500 mt-0.5 font-medium">{product.volume}</p>
+        </div>
 
-        <div className="mt-auto flex items-center justify-between">
-          <span className="text-amber-600 font-bold text-sm font-mono">
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-amber-600 font-bold text-base font-mono">
             {formatPrice(product.price)}
           </span>
 
-          <IconButton
-            onClick={handleAddToCart}
-            disabled={displayStock === 0 || isLoading('addToCart')}
-            aria-label={`Ajouter ${product.name} au panier`}
-            className={`
-              w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm transition-colors
-              ${displayStock === 0
-                ? 'bg-gray-300 cursor-not-allowed'
-                : showFeedback
-                  ? 'bg-green-500'
-                  : 'bg-amber-500 hover:bg-amber-600'
-              }
-            `}
-          >
-            {isLoading('addToCart') ? (
-              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
-            ) : showFeedback ? (
-              <Check size={14} strokeWidth={3} />
-            ) : (
-              <Plus size={16} strokeWidth={3} />
-            )}
-          </IconButton>
+          {/* Bouton "+" visuel (décoratif car toute la carte est cliquable) 
+              mais utile pour l'affordance */}
+          <div className={`
+            w-8 h-8 rounded-full flex items-center justify-center
+            transition-colors duration-200
+            ${isStockEmpty
+              ? 'bg-gray-100 text-gray-400'
+              : 'bg-amber-100 text-amber-600'
+            }
+          `}>
+            <Plus size={18} strokeWidth={3} />
+          </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
+

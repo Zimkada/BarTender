@@ -30,7 +30,7 @@ export const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data
         );
     }
 
-    const CustomTooltip = ({ active, payload, label }: any) => {
+    const CustomTooltip = ({ active, payload, label: _label }: any) => {
         if (active && payload && payload.length) {
             const dataPoint = payload[0].payload;
             return (
@@ -55,7 +55,7 @@ export const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data
             <h4 className="text-sm font-semibold text-gray-800 mb-4 px-2">Performance par Membre</h4>
 
             <div className="w-full h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
                     <BarChart
                         data={sortedData}
                         layout="horizontal"
@@ -74,7 +74,7 @@ export const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data
                             tick={{ fill: '#9ca3af', fontSize: 11 }}
                             axisLine={false}
                             tickLine={false}
-                            tickFormatter={(value) => `${value}`} // Simplify axis labels, keep detail in tooltip
+                            tickFormatter={(value: any) => `${value}`} // Simplify axis labels, keep detail in tooltip
                         />
                         <Tooltip content={<CustomTooltip />} cursor={{ fill: '#fff7ed' }} />
                         <Bar
@@ -82,7 +82,7 @@ export const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data
                             radius={[4, 4, 0, 0]}
                             animationDuration={1500}
                         >
-                            {sortedData.map((entry, index) => (
+                            {sortedData.map((_entry, index) => (
                                 <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                             ))}
                         </Bar>

@@ -22,7 +22,7 @@ const PROMO_TYPE_LABELS: Record<string, string> = {
 
 /**
  * Composant partagé pour afficher la liste des produits dans le panier
- * Utilisé par Cart.tsx, ServerCart.tsx, QuickSaleFlow.tsx
+ * Utilisé par Cart.tsx et QuickSaleFlow.tsx
  * Gère l'affichage des promotions, contrôles de quantité, suppression
  */
 export function CartShared({
@@ -81,80 +81,80 @@ export function CartShared({
         <>
             <div className={styles.container}>
                 {items.map((item) => {
-                return (
-                    <div
-                        key={item.product.id}
-                        className={styles.card}
-                    >
-                        {/* Nom + bouton supprimer */}
-                        <div className={styles.header}>
-                            <div className="flex-1 min-w-0">
-                                <h3 className={styles.productName}>
-                                    {item.product.name}
-                                </h3>
-                                <p className="text-sm text-gray-600">{item.product.volume}</p>
-                            </div>
-                            <button
-                                onClick={() => onRemoveItem(item.product.id)}
-                                className={styles.deleteButton}
-                                aria-label="Supprimer"
-                            >
-                                <Trash2 size={isMobile ? 20 : 16} />
-                            </button>
-                        </div>
-
-                        {/* Quantité + Prix */}
-                        <div className="flex items-center justify-between">
-                            {/* Contrôles quantité */}
-                            <div className={styles.quantityContainer}>
+                    return (
+                        <div
+                            key={item.product.id}
+                            className={styles.card}
+                        >
+                            {/* Nom + bouton supprimer */}
+                            <div className={styles.header}>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className={styles.productName}>
+                                        {item.product.name}
+                                    </h3>
+                                    <p className="text-sm text-gray-600">{item.product.volume}</p>
+                                </div>
                                 <button
-                                    onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
-                                    className={styles.quantityButton}
-                                    aria-label="Diminuer quantité"
+                                    onClick={() => onRemoveItem(item.product.id)}
+                                    className={styles.deleteButton}
+                                    aria-label="Supprimer"
                                 >
-                                    <Minus size={isMobile ? 20 : 14} strokeWidth={3} />
-                                </button>
-                                <span className={styles.quantityText}>
-                                    {item.quantity}
-                                </span>
-                                <button
-                                    onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                                    className={styles.quantityButton}
-                                    aria-label="Augmenter quantité"
-                                >
-                                    <Plus size={isMobile ? 20 : 14} strokeWidth={3} />
+                                    <Trash2 size={isMobile ? 20 : 16} />
                                 </button>
                             </div>
 
-                            {/* Prix avec promotion */}
-                            <div className="text-right">
-                                {item.hasPromotion ? (
-                                    <>
-                                        <div className="flex items-center gap-1.5 justify-end mb-0.5">
-                                            <Tag size={16} className="text-green-600" />
-                                            <span className="text-sm text-green-600 font-semibold">
-                                                {item.promotion_type
-                                                    ? PROMO_TYPE_LABELS[item.promotion_type] || 'PROMO'
-                                                    : 'PROMO'}
-                                            </span>
-                                        </div>
-                                        <div className="text-base text-gray-400 line-through">
-                                            {formatPrice(item.original_unit_price * item.quantity)}
-                                        </div>
-                                        <div className="text-green-600 font-bold text-xl font-mono">
-                                            {formatPrice(item.total_price)}
-                                        </div>
-                                    </>
-                                ) : (
-                                    <span className={styles.priceText}>
-                                        {formatPrice(item.total_price)}
+                            {/* Quantité + Prix */}
+                            <div className="flex items-center justify-between">
+                                {/* Contrôles quantité */}
+                                <div className={styles.quantityContainer}>
+                                    <button
+                                        onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
+                                        className={styles.quantityButton}
+                                        aria-label="Diminuer quantité"
+                                    >
+                                        <Minus size={isMobile ? 20 : 14} strokeWidth={3} />
+                                    </button>
+                                    <span className={styles.quantityText}>
+                                        {item.quantity}
                                     </span>
-                                )}
+                                    <button
+                                        onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
+                                        className={styles.quantityButton}
+                                        aria-label="Augmenter quantité"
+                                    >
+                                        <Plus size={isMobile ? 20 : 14} strokeWidth={3} />
+                                    </button>
+                                </div>
+
+                                {/* Prix avec promotion */}
+                                <div className="text-right">
+                                    {item.hasPromotion ? (
+                                        <>
+                                            <div className="flex items-center gap-1.5 justify-end mb-0.5">
+                                                <Tag size={16} className="text-green-600" />
+                                                <span className="text-sm text-green-600 font-semibold">
+                                                    {item.promotion_type
+                                                        ? PROMO_TYPE_LABELS[item.promotion_type] || 'PROMO'
+                                                        : 'PROMO'}
+                                                </span>
+                                            </div>
+                                            <div className="text-base text-gray-400 line-through">
+                                                {formatPrice(item.original_unit_price * item.quantity)}
+                                            </div>
+                                            <div className="text-green-600 font-bold text-xl font-mono">
+                                                {formatPrice(item.total_price)}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <span className={styles.priceText}>
+                                            {formatPrice(item.total_price)}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                );
-            })}
+                    );
+                })}
             </div>
 
             {/* ✅ Affichage total réductions (optionnel) */}

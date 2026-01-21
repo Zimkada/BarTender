@@ -5,12 +5,9 @@ import {
     ShoppingCart,
     TrendingUp,
     LayoutGrid,
-    List as ListIcon,
-    X
+    List as ListIcon
 } from 'lucide-react';
 
-import { motion } from 'framer-motion';
-import { useNotifications } from '../components/Notifications';
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
@@ -20,15 +17,15 @@ import { useFeedback } from '../hooks/useFeedback';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { DataFreshnessIndicatorCompact } from '../components/DataFreshnessIndicator';
 import { useRealtimeSales } from '../hooks/useRealtimeSales';
-import { Sale, SaleItem, User } from '../types';
-import { getSaleDate } from '../utils/saleHelpers';
-// import { AnalyticsService } from '../services/supabase/analytics.service'; // Unused
+import { Sale, User } from '../types';
 import { SALES_HISTORY_FILTERS } from '../config/dateFilters';
 import { useSalesFilters } from '../features/Sales/SalesHistory/hooks/useSalesFilters';
 import { useSalesStats } from '../features/Sales/SalesHistory/hooks/useSalesStats';
+import { useSalesExport } from '../features/Sales/SalesHistory/hooks/useSalesExport';
 import { AnalyticsView } from '../features/Sales/SalesHistory/views/AnalyticsView';
 import { SalesListView } from '../features/Sales/SalesHistory/views/SalesListView';
 import { SalesCardsView } from '../features/Sales/SalesHistory/views/SalesCardsView';
+import { SaleDetailModal } from '../components/sales/SaleDetailModal';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
@@ -43,7 +40,6 @@ type ViewMode = 'list' | 'cards' | 'analytics';
  * Refactoré de composant nommé vers export default page
  */
 export default function SalesHistoryPage() {
-    const { showNotification } = useNotifications();
     const { sales, categories, products, returns, getReturnsBySale } = useAppContext();
     const { barMembers, currentBar } = useBarContext();
     const { formatPrice } = useCurrencyFormatter();
@@ -130,246 +126,18 @@ export default function SalesHistoryPage() {
         serverId: serverIdForAnalytics // Pass serverId for server filtering
     });
 
-    const exportSales = async () => {
-
-        // Préparer les données avec la nouvelle structure: lignes pour ventes + lignes pour retours
-        const exportData: any[] = [];
-
-        // 1. Ajouter toutes les ventes
-        filteredSales.forEach(sale => {
-            // Source of truth: soldBy is the business attribution
-            const serverUserId = sale.soldBy;
-            const user = safeUsers.find(u => u.id === serverUserId);
-            const member = safeBarMembers.find(m => m.userId === user?.id);
-            const vendeur = user?.name || 'Inconnu';
-            const role = member?.role || 'serveur';
-
-            // Déterminer le mode d'opération de cette vente
-            const operationMode = sale.serverId ? 'Simplifié' : 'Complet';
-
-            const saleDate = getSaleDate(sale);
-            // Get actual transaction time (not business date which is normalized to midnight)
-            const saleTimestamp = sale.validatedAt || sale.createdAt;
-            sale.items.forEach((item: SaleItem) => {
-                const name = item.product_name;
-                const volume = item.product_volume || '';
-                const price = item.unit_price;
-                // For now, we can try to find product to get category
-                const product = products.find(p => p.id === item.product_id);
-                const category = categories.find(c => c.id === product?.categoryId);
-                const cost = 0; // TODO: Calculer depuis Supply
-                const total = price * item.quantity;
-                const benefice = (price - cost) * item.quantity;
-
-                exportData.push({
-                    'Type': 'Vente',
-                    'Mode': operationMode,
-                    'Date': saleDate.toLocaleDateString('fr-FR'),
-                    'Heure': saleTimestamp.toLocaleTimeString('fr-FR'),
-                    'ID Transaction': sale.id.slice(-6),
-                    'Produit': name,
-                    'Catégorie': category?.name || 'Non classé',
-                    'Volume': volume,
-                    'Quantité': item.quantity,
-                    'Prix unitaire': price,
-                    'Coût unitaire': cost,
-                    'Total': total,
-                    'Bénéfice': benefice,
-                    'Utilisateur': vendeur,
-                    'Rôle': role,
-                    'Statut': sale.status,
-                    'Devise': sale.currency
-                });
-            });
-        });
-
-        // 2. Ajouter les retours associés aux ventes filtrées
-        const saleIds = new Set(filteredSales.map(s => s.id));
-        const relevantReturns = returns.filter(r => saleIds.has(r.saleId));
-
-        relevantReturns.forEach(ret => {
-            // Récupérer le produit via productId
-            const product = products.find(p => p.id === ret.productId);
-            if (!product) {
-                console.warn('⚠️ Retour avec produit introuvable:', ret.id);
-                return;
-            }
-
-            // Source of truth: server_id is the business attribution for returns
-            const serverUserId = ret.server_id;
-            const user = safeUsers.find(u => u.id === serverUserId);
-            const member = safeBarMembers.find(m => m.userId === user?.id);
-            const utilisateur = user?.name || 'Inconnu';
-            const role = member?.role || 'serveur';
-
-            // Déterminer le mode d'opération de ce retour (basé sur la vente originale)
-            const originalSale = sales.find(s => s.id === ret.saleId);
-            const operationMode = originalSale?.serverId ? 'Simplifié' : 'Complet';
-
-            const category = categories.find(c => c.id === product.categoryId);
-            const cost = 0; // TODO: Calculer depuis Supply
-            const total = ret.isRefunded ? -ret.refundAmount : 0; // Négatif si remboursé
-            const benefice = ret.isRefunded ? -(ret.refundAmount - (cost * ret.quantityReturned)) : 0;
-
-            exportData.push({
-                'Type': 'Retour',
-                'Mode': operationMode,
-                'Date': new Date(ret.returnedAt).toLocaleDateString('fr-FR'),
-                'Heure': new Date(ret.returnedAt).toLocaleTimeString('fr-FR'),
-                'ID Transaction': ret.id.slice(-6),
-                'Produit': ret.productName,
-                'Catégorie': category?.name || 'Non classé',
-                'Volume': ret.productVolume || '',
-                'Quantité': -ret.quantityReturned, // Négatif pour indiquer retour
-                'Prix unitaire': product.price,
-                'Coût unitaire': cost,
-                'Total': total,
-                'Bénéfice': benefice,
-                'Utilisateur': utilisateur,
-                'Rôle': role,
-                'Devise': 'XOF'
-            });
-        });
-
-        // 3. Ajouter toutes les consignations de la période filtrée
-        filteredConsignments.forEach(consignment => {
-            const product = products.find(p => p.id === consignment.productId);
-            if (!product) {
-                console.warn('⚠️ Consignation sans produit ignoré:', consignment.id);
-                return;
-            }
-
-            // ✨ MODE SWITCHING FIX: Always deduce seller from the sale, not from consignment.createdBy
-            // This matches the logic in ConsignmentPage: prioritize serverId (assigned server) over createdBy
-            let utilisateur = 'Inconnu';
-            let role = 'serveur';
-            let operationMode = 'Complet';
-
-            const originalSale = sales.find(s => s.id === consignment.saleId);
-            if (originalSale) {
-                // Source of truth: soldBy is the business attribution
-                const serverUserId = originalSale.soldBy;
-                const user = safeUsers.find(u => u.id === serverUserId);
-                const member = safeBarMembers.find(m => m.userId === user?.id);
-                utilisateur = user?.name || 'Inconnu';
-                role = member?.role || 'serveur';
-                operationMode = originalSale.serverId ? 'Simplifié' : 'Complet';
-            }
-
-            const category = categories.find(c => c.id === product.categoryId);
-
-            // Déterminer le statut pour affichage
-            let statusLabel = '';
-            switch (consignment.status) {
-                case 'active':
-                    statusLabel = 'Active';
-                    break;
-                case 'claimed':
-                    statusLabel = 'Récupérée';
-                    break;
-                case 'expired':
-                    statusLabel = 'Expirée';
-                    break;
-                case 'forfeited':
-                    statusLabel = 'Confisquée';
-                    break;
-            }
-
-            exportData.push({
-                'Type': 'Consignation',
-                'Mode': operationMode,
-                'Date': new Date(consignment.createdAt).toLocaleDateString('fr-FR'),
-                'Heure': new Date(consignment.createdAt).toLocaleTimeString('fr-FR'),
-                'ID Transaction': consignment.id.slice(-6),
-                'Produit': product.name,
-                'Catégorie': category?.name || 'Non classé',
-                'Volume': product.volume || '',
-                'Quantité': consignment.quantity,
-                'Prix unitaire': product.price,
-                'Coût unitaire': 0, // Les produits n'ont pas de coût dans le modèle actuel
-                'Total': consignment.totalAmount,
-                'Bénéfice': 0, // Consignations = pas de bénéfice immédiat
-                'Utilisateur': utilisateur,
-                'Rôle': role,
-                'Devise': 'XOF',
-                'Statut': statusLabel,
-                'Client': consignment.customerName || '',
-                'Expiration': new Date(consignment.expiresAt).toLocaleDateString('fr-FR')
-            });
-        });
-
-        // Trier par date/heure décroissante
-        exportData.sort((a, b) => {
-            const dateA = new Date(`${a.Date} ${a.Heure} `);
-            const dateB = new Date(`${b.Date} ${b.Heure} `);
-            return dateB.getTime() - dateA.getTime();
-        });
-
-        const fileName = `ventes_${new Date().toISOString().split('T')[0]} `;
-
-
-
-
-        if (exportData.length === 0) {
-            alert('Aucune donnée à exporter pour la période sélectionnée');
-            return;
-        }
-
-        if (exportFormat === 'excel') {
-            // Lazy load XLSX library only when export is triggered (~300 Kio savings)
-            const XLSX = await import('xlsx');
-
-            // Export Excel
-            const worksheet = XLSX.utils.json_to_sheet(exportData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Ventes');
-
-            // Ajuster la largeur des colonnes
-            const columnWidths = [
-                { wch: 10 }, // Type
-                { wch: 12 }, // Mode
-                { wch: 12 }, // Date
-                { wch: 10 }, // Heure
-                { wch: 12 }, // ID Transaction
-                { wch: 20 }, // Produit
-                { wch: 15 }, // Catégorie
-                { wch: 10 }, // Volume
-                { wch: 10 }, // Quantité
-                { wch: 12 }, // Prix unitaire
-                { wch: 12 }, // Coût unitaire
-                { wch: 12 }, // Total
-                { wch: 12 }, // Bénéfice
-                { wch: 15 }, // Utilisateur
-                { wch: 12 }, // Rôle
-                { wch: 8 }   // Devise
-            ];
-            worksheet['!cols'] = columnWidths;
-
-            try {
-                XLSX.writeFile(workbook, `${fileName}.xlsx`);
-            } catch (error) {
-                console.error('❌ Erreur export Excel:', error);
-                alert(`Erreur lors de l'export Excel: ${error}`);
-            }
-        } else {
-            // Export CSV
-            const headers = Object.keys(exportData[0] || {});
-            const csvContent = [
-                headers.join(','),
-                ...exportData.map(row => headers.map(header => `"${row[header as keyof typeof row]}"`).join(','))
-            ].join('\n');
-
-            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', `${fileName}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-        }
-    };
+    // HOOK: Export Logic
+    const { exportSales } = useSalesExport({
+        filteredSales,
+        filteredConsignments,
+        filteredReturns,
+        sales,
+        returns,
+        products,
+        categories,
+        users: safeUsers,
+        barMembers: safeBarMembers
+    });
 
 
     const tabsConfig = [
@@ -414,13 +182,7 @@ export default function SalesHistoryPage() {
                                 </div>
 
                                 <Button
-                                    onClick={() => {
-                                        if (filteredSales.length === 0) {
-                                            showNotification('error', "Aucune vente à exporter");
-                                            return;
-                                        }
-                                        exportSales();
-                                    }}
+                                    onClick={() => exportSales(exportFormat)}
                                     title={`Exporter (${exportFormat.toUpperCase()})`}
                                     size="sm"
                                     className={`h-10 transition-all flex items-center justify-center gap-2 font-semibold ${filteredSales.length === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${exportFormat === 'excel'
@@ -483,13 +245,7 @@ export default function SalesHistoryPage() {
                                     </div>
 
                                     <Button
-                                        onClick={() => {
-                                            if (filteredSales.length === 0) {
-                                                showNotification('error', "Aucune vente à exporter");
-                                                return;
-                                            }
-                                            exportSales();
-                                        }}
+                                        onClick={() => exportSales(exportFormat)}
                                         size="sm"
                                         className={`h-8 px-4 flex items-center gap-2 text-xs font-bold rounded-lg shadow-sm transition-all ${filteredSales.length === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${exportFormat === 'excel'
                                             ? 'bg-green-600 text-white hover:bg-green-700'
@@ -572,87 +328,13 @@ export default function SalesHistoryPage() {
             </div>
 
             {/* Détail vente */}
-            {
-                selectedSale && (
-                    <SaleDetailModal
-                        sale={selectedSale}
-                        formatPrice={formatPrice}
-                        onClose={() => setSelectedSale(null)}
-                    />
-                )
-            }
+            <SaleDetailModal
+                sale={selectedSale}
+                formatPrice={formatPrice}
+                onClose={() => setSelectedSale(null)}
+            />
 
             <GuideTourModal />
         </div>
-    );
-}
-
-// Modal détail vente
-function SaleDetailModal({
-    sale,
-    formatPrice,
-    onClose
-}: {
-    sale: Sale;
-    formatPrice: (price: number) => string;
-    onClose: () => void;
-}) {
-    return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-        >
-            <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="bg-white rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto"
-            >
-                <div className="flex items-center justify-between p-6 border-b">
-                    <h3 className="text-lg font-semibold text-gray-800">Détail vente #{sale.id.slice(-6)}</h3>
-                    <Button onClick={onClose} variant="ghost" size="icon" className="p-2 text-gray-600 hover:text-gray-600">
-                        <X size={20} />
-                    </Button>
-                </div>
-
-                <div className="p-6 space-y-4">
-                    <div>
-                        <p className="text-sm text-gray-600">Date et heure</p>
-                        <p className="font-medium">{new Date(sale.validatedAt || sale.createdAt).toLocaleString('fr-FR')}</p>
-                    </div>
-
-                    <div>
-                        <p className="text-sm text-gray-600 mb-2">Articles vendus</p>
-                        <div className="space-y-2">
-                            {sale.items.map((item: any, index) => {
-                                const name = item.product?.name || item.product_name || 'Produit';
-                                const volume = item.product?.volume || item.product_volume || '';
-                                const price = item.product?.price || item.unit_price || 0;
-                                return (
-                                    <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
-                                        <div>
-                                            <p className="font-medium text-gray-800">{name} {volume ? `(${volume})` : ''}</p>
-                                            <p className="text-sm text-gray-600">Qté: {item.quantity}</p>
-                                        </div>
-                                        <span className="font-semibold text-amber-600">
-                                            {formatPrice(price * item.quantity)}
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    <div className="border-t pt-4">
-                        <div className="flex justify-between items-center">
-                            <span className="text-lg font-semibold text-gray-800">Total</span>
-                            <span className="text-xl font-bold text-amber-600">{formatPrice(sale.total)}</span>
-                        </div>
-                    </div>
-                </div>
-            </motion.div>
-        </motion.div>
     );
 }

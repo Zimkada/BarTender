@@ -151,8 +151,8 @@ export function TopProductsChart({
           scrollbarColor: '#f59e0b #fef3c7'
         } : {}}
       >
-        <div style={needsScroll ? { minWidth: `${minChartWidth}px` } : {}}>
-          <ResponsiveContainer width="100%" height={isMobile ? 300 : 250}>
+        <div style={needsScroll ? { minWidth: `${minChartWidth}px` } : { width: '100%' }}>
+          <ResponsiveContainer width="100%" height={isMobile ? 300 : 250} minWidth={0} debounce={50}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" />
               <XAxis

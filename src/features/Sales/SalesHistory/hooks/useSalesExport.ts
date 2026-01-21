@@ -1,0 +1,284 @@
+import { useCallback } from 'react';
+import { Sale, SaleItem, Consignment, Return, User, BarMember, Category, Product } from '../../../../types';
+import { getSaleDate } from '../../../../utils/saleHelpers';
+import { useNotifications } from '../../../../components/Notifications';
+
+interface UseSalesExportProps {
+    filteredSales: Sale[];
+    filteredConsignments: Consignment[];
+    filteredReturns: Return[];
+    sales: Sale[]; // Needed to find original sale for returns/consignments
+    returns: Return[]; // Needed to find all returns related to sales
+    products: Product[];
+    categories: Category[];
+    users: User[];
+    barMembers: BarMember[];
+}
+
+export function useSalesExport({
+    filteredSales,
+    filteredConsignments,
+    filteredReturns,
+    sales,
+    returns,
+    products,
+    categories,
+    users,
+    barMembers
+}: UseSalesExportProps) {
+    const { showNotification } = useNotifications();
+
+    const exportSales = useCallback(async (format: 'csv' | 'excel') => {
+        if (filteredSales.length === 0 && filteredConsignments.length === 0 && filteredReturns.length === 0) {
+            showNotification('error', "Aucune donnée à exporter");
+            return;
+        }
+
+        // Préparer les données avec la nouvelle structure: lignes pour ventes + lignes pour retours
+        const exportData: any[] = [];
+
+        // 1. Ajouter toutes les ventes
+        filteredSales.forEach(sale => {
+            // Source of truth: soldBy is the business attribution
+            const serverUserId = sale.soldBy;
+            const user = users.find(u => u.id === serverUserId);
+            const member = barMembers.find(m => m.userId === user?.id);
+            const vendeur = user?.name || 'Inconnu';
+            const role = member?.role || 'serveur';
+
+            // Déterminer le mode d'opération de cette vente
+            const operationMode = sale.serverId ? 'Simplifié' : 'Complet';
+
+            const saleDate = getSaleDate(sale);
+            // Get actual transaction time (not business date which is normalized to midnight)
+            const saleTimestamp = sale.validatedAt || sale.createdAt;
+
+            sale.items.forEach((item: SaleItem) => {
+                const name = item.product_name;
+                const volume = item.product_volume || '';
+                const price = item.unit_price;
+                // For now, we can try to find product to get category
+                const product = products.find(p => p.id === item.product_id);
+                const category = categories.find(c => c.id === product?.categoryId);
+                const cost = 0; // TODO: Calculer depuis Supply
+                const total = price * item.quantity;
+                const benefice = (price - cost) * item.quantity;
+
+                exportData.push({
+                    'Type': 'Vente',
+                    'Mode': operationMode,
+                    'Date': saleDate.toLocaleDateString('fr-FR'),
+                    'Heure': saleTimestamp.toLocaleTimeString('fr-FR'),
+                    'ID Transaction': sale.id.slice(-6),
+                    'Produit': name,
+                    'Catégorie': category?.name || 'Non classé',
+                    'Volume': volume,
+                    'Quantité': item.quantity,
+                    'Prix unitaire': price,
+                    'Coût unitaire': cost,
+                    'Total': total,
+                    'Bénéfice': benefice,
+                    'Utilisateur': vendeur,
+                    'Rôle': role,
+                    'Statut': sale.status,
+                    'Devise': sale.currency
+                });
+            });
+        });
+
+        // 2. Ajouter les retours (soit filtrés s'ils sont passés, soit ceux associés aux ventes filtrées)
+        // Option A: Utiliser filteredReturns si disponible
+        // Option B: Calculer les retours liés aux ventes filtrées si filteredReturns est vide/non-utilisé
+        const returnsToExport = filteredReturns.length > 0 ? filteredReturns : [];
+
+        // Si filteredReturns est vide mais qu'on a des ventes, on pourrait vouloir exporter les retours liés aux ventes (comportement original)
+        // Mais pour la cohérence, utilisons filteredReturns qui est maintenant géré par le hook de filtre
+
+        returnsToExport.forEach(ret => {
+            // Récupérer le produit via productId
+            const product = products.find(p => p.id === ret.productId);
+            if (!product) {
+                console.warn('⚠️ Retour avec produit introuvable:', ret.id);
+                return;
+            }
+
+            // Source of truth: server_id is the business attribution for returns
+            const serverUserId = ret.server_id;
+            const user = users.find(u => u.id === serverUserId);
+            const member = barMembers.find(m => m.userId === user?.id);
+            const utilisateur = user?.name || 'Inconnu';
+            const role = member?.role || 'serveur';
+
+            // Déterminer le mode d'opération de ce retour (basé sur la vente originale)
+            const originalSale = sales.find(s => s.id === ret.saleId);
+            const operationMode = originalSale?.serverId ? 'Simplifié' : 'Complet';
+
+            const category = categories.find(c => c.id === product.categoryId);
+            const cost = 0; // TODO: Calculer depuis Supply
+            const total = ret.isRefunded ? -ret.refundAmount : 0; // Négatif si remboursé
+            const benefice = ret.isRefunded ? -(ret.refundAmount - (cost * ret.quantityReturned)) : 0;
+
+            exportData.push({
+                'Type': 'Retour',
+                'Mode': operationMode,
+                'Date': new Date(ret.returnedAt).toLocaleDateString('fr-FR'),
+                'Heure': new Date(ret.returnedAt).toLocaleTimeString('fr-FR'),
+                'ID Transaction': ret.id.slice(-6),
+                'Produit': ret.productName,
+                'Catégorie': category?.name || 'Non classé',
+                'Volume': ret.productVolume || '',
+                'Quantité': -ret.quantityReturned, // Négatif pour indiquer retour
+                'Prix unitaire': product.price,
+                'Coût unitaire': cost,
+                'Total': total,
+                'Bénéfice': benefice,
+                'Utilisateur': utilisateur,
+                'Rôle': role,
+                'Devise': 'XOF'
+            });
+        });
+
+        // 3. Ajouter toutes les consignations filtrées
+        filteredConsignments.forEach(consignment => {
+            const product = products.find(p => p.id === consignment.productId);
+            if (!product) {
+                console.warn('⚠️ Consignation sans produit ignoré:', consignment.id);
+                return;
+            }
+
+            // ✨ MODE SWITCHING FIX: Always deduce seller from the sale, not from consignment.createdBy
+            // This matches the logic in ConsignmentPage: prioritize serverId (assigned server) over createdBy
+            let utilisateur = 'Inconnu';
+            let role = 'serveur';
+            let operationMode = 'Complet';
+
+            const originalSale = sales.find(s => s.id === consignment.saleId);
+            if (originalSale) {
+                // Source of truth: soldBy is the business attribution
+                const serverUserId = originalSale.soldBy;
+                const user = users.find(u => u.id === serverUserId);
+                const member = barMembers.find(m => m.userId === user?.id);
+                utilisateur = user?.name || 'Inconnu';
+                role = member?.role || 'serveur';
+                operationMode = originalSale.serverId ? 'Simplifié' : 'Complet';
+            }
+
+            const category = categories.find(c => c.id === product.categoryId);
+
+            // Déterminer le statut pour affichage
+            let statusLabel = '';
+            switch (consignment.status) {
+                case 'active':
+                    statusLabel = 'Active';
+                    break;
+                case 'claimed':
+                    statusLabel = 'Récupérée';
+                    break;
+                case 'expired':
+                    statusLabel = 'Expirée';
+                    break;
+                case 'forfeited':
+                    statusLabel = 'Confisquée';
+                    break;
+            }
+
+            exportData.push({
+                'Type': 'Consignation',
+                'Mode': operationMode,
+                'Date': new Date(consignment.createdAt).toLocaleDateString('fr-FR'),
+                'Heure': new Date(consignment.createdAt).toLocaleTimeString('fr-FR'),
+                'ID Transaction': consignment.id.slice(-6),
+                'Produit': product.name,
+                'Catégorie': category?.name || 'Non classé',
+                'Volume': product.volume || '',
+                'Quantité': consignment.quantity,
+                'Prix unitaire': product.price,
+                'Coût unitaire': 0, // Les produits n'ont pas de coût dans le modèle actuel
+                'Total': consignment.totalAmount,
+                'Bénéfice': 0, // Consignations = pas de bénéfice immédiat
+                'Utilisateur': utilisateur,
+                'Rôle': role,
+                'Devise': 'XOF',
+                'Statut': statusLabel,
+                'Client': consignment.customerName || '',
+                'Expiration': new Date(consignment.expiresAt).toLocaleDateString('fr-FR')
+            });
+        });
+
+        // Trier par date/heure décroissante
+        exportData.sort((a, b) => {
+            const dateA = new Date(`${a.Date} ${a.Heure}`);
+            const dateB = new Date(`${b.Date} ${b.Heure}`);
+            return dateB.getTime() - dateA.getTime();
+        });
+
+        const fileName = `ventes_${new Date().toISOString().split('T')[0]}`;
+
+        if (exportData.length === 0) {
+            showNotification('error', 'Aucune donnée à exporter');
+            return;
+        }
+
+        if (format === 'excel') {
+            try {
+                // Lazy load XLSX library only when export is triggered
+                const XLSX = await import('xlsx');
+
+                // Export Excel
+                const worksheet = XLSX.utils.json_to_sheet(exportData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, 'Ventes');
+
+                // Ajuster la largeur des colonnes
+                const columnWidths = [
+                    { wch: 10 }, // Type
+                    { wch: 12 }, // Mode
+                    { wch: 12 }, // Date
+                    { wch: 10 }, // Heure
+                    { wch: 12 }, // ID Transaction
+                    { wch: 20 }, // Produit
+                    { wch: 15 }, // Catégorie
+                    { wch: 10 }, // Volume
+                    { wch: 10 }, // Quantité
+                    { wch: 12 }, // Prix unitaire
+                    { wch: 12 }, // Coût unitaire
+                    { wch: 12 }, // Total
+                    { wch: 12 }, // Bénéfice
+                    { wch: 15 }, // Utilisateur
+                    { wch: 12 }, // Rôle
+                    { wch: 8 },  // Devise
+                    { wch: 12 }, // Statut
+                    { wch: 15 }, // Client
+                    { wch: 12 }  // Expiration
+                ];
+                worksheet['!cols'] = columnWidths;
+
+                XLSX.writeFile(workbook, `${fileName}.xlsx`);
+                showNotification('success', 'Export Excel généré avec succès');
+            } catch (error) {
+                console.error('❌ Erreur export Excel:', error);
+                showNotification('error', `Erreur lors de l'export Excel`);
+            }
+        } else {
+            // Export CSV
+            const headers = Object.keys(exportData[0] || {});
+            const csvContent = [
+                headers.join(','),
+                ...exportData.map(row => headers.map(header => `"${row[header as keyof typeof row]}"`).join(','))
+            ].join('\n');
+
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `${fileName}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showNotification('success', 'Export CSV généré avec succès');
+        }
+    }, [filteredSales, filteredConsignments, filteredReturns, sales, returns, products, categories, users, barMembers, showNotification]);
+
+    return { exportSales };
+}

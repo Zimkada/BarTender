@@ -362,49 +362,53 @@ export function AnalyticsView({
               ({timeRange === 'today' ? 'par heure' : timeRange === 'week' ? 'par jour' : timeRange === 'month' ? 'par semaine' : 'par jour'})
             </span>
           </h4>
-          <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
-            <LineChart data={evolutionChartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" />
-              <XAxis dataKey="label" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-              <YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#fff', border: '1px solid #fdba74', borderRadius: '8px' }}
-                formatter={(value: any) => formatPrice(Number(value))}
-              />
-              <Line type="monotone" dataKey="revenue" stroke="#f97316" strokeWidth={2} dot={{ fill: '#f97316', r: 4 }} isAnimationActive={false} />
-            </LineChart>
-          </ResponsiveContainer>
+          <div style={{ width: '100%', height: isMobile ? 200 : 250 }}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
+              <LineChart data={evolutionChartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" />
+                <XAxis dataKey="label" tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                <YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #fdba74', borderRadius: '8px' }}
+                  formatter={(value: any) => formatPrice(Number(value))}
+                />
+                <Line type="monotone" dataKey="revenue" stroke="#f97316" strokeWidth={2} dot={{ fill: '#f97316', r: 4 }} isAnimationActive={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         {/* Répartition par catégorie */}
         <div className="bg-white rounded-xl p-4 border border-amber-100">
           <h4 className="text-sm font-semibold text-gray-800 mb-3">Répartition par catégorie</h4>
-          <ResponsiveContainer width="100%" height={isMobile ? 200 : 250}>
-            <PieChart>
-              <Pie
-                data={categoryData}
-                cx="50%"
-                cy="50%"
-                innerRadius={isMobile ? 40 : 60}
-                outerRadius={isMobile ? 70 : 90}
-                paddingAngle={2}
-                dataKey="value"
-                isAnimationActive={false}
-                label={(entry: any) => `${entry.percentage.toFixed(0)}%`}
-              >
-                {categoryData.map((_entry, index) => (
-                  <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value: any) => formatPrice(Number(value))} />
-              <Legend
-                layout={isMobile ? "horizontal" : "vertical"}
-                align={isMobile ? "center" : "right"}
-                verticalAlign={isMobile ? "bottom" : "middle"}
-                wrapperStyle={{ fontSize: '12px' }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          <div style={{ width: '100%', height: isMobile ? 200 : 250 }}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
+              <PieChart>
+                <Pie
+                  data={categoryData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={isMobile ? 40 : 60}
+                  outerRadius={isMobile ? 70 : 90}
+                  paddingAngle={2}
+                  dataKey="value"
+                  isAnimationActive={false}
+                  label={(entry: any) => `${entry.percentage.toFixed(0)}%`}
+                >
+                  {categoryData.map((_entry, index) => (
+                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value: any) => formatPrice(Number(value))} />
+                <Legend
+                  layout={isMobile ? "horizontal" : "vertical"}
+                  align={isMobile ? "center" : "right"}
+                  verticalAlign={isMobile ? "bottom" : "middle"}
+                  wrapperStyle={{ fontSize: '12px' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 

@@ -1,7 +1,6 @@
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { CreditCard, Banknote, Smartphone } from 'lucide-react';
 
-export type PaymentMethod = 'cash' | 'card' | 'mobile_money';
+export type PaymentMethod = 'cash' | 'mobile_money' | 'card' | 'credit';
 
 interface PaymentMethodSelectorProps {
     value: PaymentMethod;
@@ -9,75 +8,41 @@ interface PaymentMethodSelectorProps {
     className?: string;
 }
 
-const PAYMENT_METHODS = [
-    { value: 'cash' as const, label: 'Espèces', icon: '💵' },
-    { value: 'card' as const, label: 'Carte', icon: '💳' },
-    { value: 'mobile_money' as const, label: 'Mobile Money', icon: '📱' }
-];
-
 export function PaymentMethodSelector({ value, onChange, className = '' }: PaymentMethodSelectorProps) {
-    const [isOpen, setIsOpen] = useState(false);
-
-    const selectedMethod = PAYMENT_METHODS.find(m => m.value === value) || PAYMENT_METHODS[0];
+    const methods: { id: PaymentMethod; label: string; icon: React.ElementType }[] = [
+        { id: 'cash', label: 'Espèces', icon: Banknote },
+        { id: 'mobile_money', label: 'Mobile Money', icon: Smartphone },
+        { id: 'card', label: 'Carte', icon: CreditCard },
+        // { id: 'credit', label: 'À crédit', icon: Users }, // Disabled for now as per previous logic implied
+    ];
 
     return (
-        <div className={className}>
-            {/* Bouton collapse */}
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center justify-between px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-left transition-colors hover:bg-amber-100"
-                type="button"
-            >
-                <div className="flex items-center gap-2">
-                    <span className="text-base">{selectedMethod.icon}</span>
-                    <div>
-                        <div className="text-xs text-gray-600">Mode de paiement</div>
-                        <div className="text-sm font-medium text-gray-800">{selectedMethod.label}</div>
-                    </div>
-                </div>
-                <motion.div
-                    animate={{ rotate: isOpen ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="text-amber-500 text-xs"
-                >
-                    ▼
-                </motion.div>
-            </button>
+        <div className={`grid grid-cols-3 gap-2 ${className}`}>
+            {methods.map((method) => {
+                const Icon = method.icon;
+                const isSelected = value === method.id;
 
-            {/* Options (collapse) */}
-            <AnimatePresence>
-                {isOpen && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
+                return (
+                    <button
+                        key={method.id}
+                        onClick={() => onChange(method.id)}
+                        className={`
+                            flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-200
+                            ${isSelected
+                                ? 'bg-amber-50 border-amber-500 text-amber-700 shadow-sm'
+                                : 'bg-white border-gray-200 text-gray-500 hover:border-amber-200 hover:bg-gray-50'
+                            }
+                        `}
                     >
-                        <div className="grid grid-cols-3 gap-2 mt-2">
-                            {PAYMENT_METHODS.map(method => (
-                                <button
-                                    key={method.value}
-                                    onClick={() => {
-                                        onChange(method.value);
-                                        setIsOpen(false);
-                                    }}
-                                    className={`p-2 text-sm rounded-lg border-2 transition-colors ${value === method.value
-                                            ? 'border-amber-500 bg-amber-50 text-amber-700'
-                                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
-                                        }`}
-                                    type="button"
-                                >
-                                    <div className="text-center">
-                                        <div className="text-xl mb-1">{method.icon}</div>
-                                        <div className="text-xs font-medium">{method.label}</div>
-                                    </div>
-                                </button>
-                            ))}
+                        <div className={`mb-1.5 ${isSelected ? 'text-amber-500' : 'text-gray-400'}`}>
+                            <Icon size={20} strokeWidth={2.5} />
                         </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                        <span className="text-[10px] font-bold uppercase tracking-tight leading-none text-center">
+                            {method.label}
+                        </span>
+                    </button>
+                );
+            })}
         </div>
     );
 }
