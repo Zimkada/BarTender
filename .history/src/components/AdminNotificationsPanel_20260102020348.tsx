@@ -13,6 +13,7 @@ import {
   DollarSign,
   Sparkles,
   BarChart3,
+  UserCog,
   CheckCircle,
 } from 'lucide-react';
 import type { AdminNotification, NotificationPriority } from '../types';

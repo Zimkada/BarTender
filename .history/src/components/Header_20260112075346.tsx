@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; 
+import { useNavigate, Link } from 'react-router-dom'; // NEW: Import useNavigate and Link
 import {
   Settings,
   Users,
+  UserCog,
   LogOut,
   Crown,
   Menu,
   ShieldCheck, // Pour Super Admin
   Bell, // Pour notifications admin
-//  User, // Pour profil utilisateur
+  User, // Pour profil utilisateur
   Globe, // Pour catalogue global
   PlusCircle, // Added for "Add Product" button (ProductModal)
   ShoppingCart, // Added for "Quick Sale" button
   Package, // ✅ FIX: Added for "Supply" button
 } from 'lucide-react';
-//import { motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useRevenueStats } from '../hooks/useRevenueStats';
 import { useAuth } from "../context/AuthContext";
 import { useBarContext } from '../context/BarContext';
@@ -24,13 +25,13 @@ import { SyncStatusBadge } from './SyncStatusBadge'; // ✅ Badge sync unifié (
 import { NetworkBadge } from './NetworkBadge'; // ✅ Badge réseau compact pour le header
 import { RefreshButton } from './RefreshButton'; // ✅ Bouton rafraîchissement manuel
 import { useViewport } from '../hooks/useViewport';
-//import { ProfileSettings } from './ProfileSettings';
+import { ProfileSettings } from './ProfileSettings';
 import { Button } from './ui/Button';
 import { IconButton } from './ui/IconButton';
 import AnimatedBarName from './AnimatedBarName';
 import { AnimatedCounter } from './AnimatedCounter';
 
-//import { Bar } from '../types'; // NEW: Import Bar type
+import { Bar } from '../types'; // NEW: Import Bar type
 
 interface HeaderProps {
   // Modal triggers
@@ -52,7 +53,7 @@ interface HeaderProps {
 export function Header({
   onShowQuickSale,
   onShowProductModal,
-  //onShowCategoryModal,
+  onShowCategoryModal,
   // onShowUserManagement removed
   onShowSupplyModal,
   onToggleMobileSidebar = () => { },

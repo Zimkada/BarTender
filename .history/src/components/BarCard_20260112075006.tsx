@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bar, BarMember, User } from '../types';
+import { Bar, BarMember, User, UserRole } from '../types';
 import { BarActionButtons } from './BarActionButtons';
 
 interface BarCardProps {

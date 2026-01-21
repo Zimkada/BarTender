@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Building2, CheckCircle } from 'lucide-react';
+import { X, Building2, Loader, CheckCircle } from 'lucide-react';
 import { User } from '../types';
 import { AuthService } from '../services/supabase/auth.service';
 import { useBarContext } from '../context/BarContext';

@@ -26,7 +26,6 @@ export interface UserSession {
   loginTime: Date;
   permissions: RolePermissions;
   firstLogin?: boolean;
-  allbarIds?: string[]; // Ajout de la propriété (optionnelle ou obligatoire)
 }
 
 // ===== BARS & ORGANISATION =====

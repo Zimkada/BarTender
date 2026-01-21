@@ -8,6 +8,7 @@ import {
 import { AdminService } from '../services/supabase/admin.service';
 import type { AuditLog, AuditLogEvent, AuditLogSeverity, Bar } from '../types';
 import { Alert } from './ui/Alert';
+import { Select } from './ui/Select';
 import { AdminPanelErrorBoundary } from './AdminPanelErrorBoundary';
 import { AdminPanelSkeleton } from './AdminPanelSkeleton';
 

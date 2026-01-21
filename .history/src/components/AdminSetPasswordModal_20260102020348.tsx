@@ -1,6 +1,6 @@
 import { useState, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Lock } from 'lucide-react';
+import { X, Lock, AlertCircle } from 'lucide-react';
 import { User } from '../types';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';

@@ -9,7 +9,7 @@ import { GlobalProductList } from './GlobalProductList';
 import { Textarea } from './ui/Textarea';
 import { Label } from './ui/Label';
 import { Input } from './ui/Input';
-import { Select } from './ui/Select';
+import { Select, SelectOption } from './ui/Select';
 import { Button } from './ui/Button';
 import { Modal, ConfirmModal } from './ui/Modal';
 

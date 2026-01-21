@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { Bar } from '../types';
 import { useFeedback } from '../hooks/useFeedback';
-import { supabase } from '../lib/supabaseClient'; // Import supabase client
+import { supabase } from '../lib/supabase';
 
 interface BarStatsModalProps {
   isOpen: boolean;
@@ -43,7 +43,7 @@ type CombinedStats = {
 };
 
 export default function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
-  const { showSuccess, showError } = useFeedback();
+  const { showError } = useFeedback();
 
   const [combinedStats, setCombinedStats] = useState<CombinedStats | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -81,7 +81,7 @@ export default function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalPro
     };
 
     loadAllStats();
-  }, [isOpen, bar?.id, showError]);
+  }, [isOpen, bar?.id]);
 
   const stats = useMemo(() => {
     if (!combinedStats) return null;
@@ -297,7 +297,7 @@ export default function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalPro
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
                     <div><p className="text-gray-500 text-xs">Heure de fermeture</p><p className="font-semibold text-gray-900">{bar.closingHour ?? 6}h</p></div>
                     <div><p className="text-gray-500 text-xs">TVA</p><p className="font-semibold text-gray-900">{bar.settings?.taxRate ?? 0}%</p></div>
-                    <div><p className="text-gray-500 text-xs">Marge cible</p><p className="font-semibold text-gray-900">{bar.settings?.targetMargin ?? 0}%</p></div>
+                    <div><p className="text-gray-500 text-xs">Mode</p><p className="font-semibold text-gray-900">{bar.settings?.operatingMode === 'full' ? 'Complet' : 'Simplifié'}</p></div>
                   </div>
                 </section>
               </>

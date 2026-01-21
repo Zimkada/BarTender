@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, Plus, CheckCircle2 } from 'lucide-react';
+import { Building2, ChevronDown, Plus, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from "../context/AuthContext";

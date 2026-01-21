@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, Suspense, lazy } from 'react';
+import { useState, useMemo, useEffect, Suspense, lazy } from 'react';
 import { motion } from 'framer-motion';
 import {
   TrendingUp,
@@ -6,11 +6,11 @@ import {
   DollarSign,
   Calendar,
   Receipt,
-  CalendarDays,
   PlusCircle,
   X,
   Download
 } from 'lucide-react';
+import { PeriodFilter } from './common/filters/PeriodFilter';
 import { Select } from './ui/Select';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
@@ -24,7 +24,6 @@ import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 import { getSaleDate } from '../utils/saleHelpers';
 import { dateToInputValue } from '../utils/dateRangeCalculator';
-import { exportToExcel } from '../utils/exportToExcel';
 
 // Lazy load charts to reduce initial bundle size (saves ~110 KB gzipped)
 const AnalyticsCharts = lazy(() => import('./AnalyticsCharts'));
@@ -477,8 +476,8 @@ export function AccountingOverview() {
     // 1. ONGLET RÉSUMÉ
     const summaryData = [
       ['RAPPORT COMPTABLE', currentBar?.name || ''],
-      ['Période', periodLabel],
-      ['Date export', new Date().toLocaleDateString('fr-FR')],
+      ['PÉRIODE', periodLabel],
+      ['DATE EXPORT', new Date().toLocaleDateString('fr-FR')],
       ['Exporté par', currentSession?.userName || ''],
       [],
       ['REVENUS'],
@@ -544,7 +543,7 @@ export function AccountingOverview() {
       'ID Retour': ret.id.slice(0, 8),
       'ID Vente': ret.saleId.slice(0, 8),
       Produit: ret.productName,
-      Quantité: -ret.quantity, // Négatif pour indiquer retours
+      Quantité: -(ret as any).quantity, // Négatif pour indiquer retours
       'Montant remboursé': ret.refundAmount,
       Motif: ret.reason,
       Statut: ret.status,
@@ -563,7 +562,7 @@ export function AccountingOverview() {
       'Prix lot': supply.lotPrice,
       'Taille lot': supply.lotSize,
       'Coût total': supply.lotPrice * supply.lotSize,
-      Fournisseur: supply.supplierName || 'N/A',
+      Fournisseur: (supply as any).supplierName || supply.supplier || 'N/A',
     }));
     if (suppliesData.length > 0) {
       const suppliesSheet = XLSX.utils.json_to_sheet(suppliesData);
@@ -578,10 +577,8 @@ export function AccountingOverview() {
       })
       .map(exp => ({
         Date: new Date(exp.date).toLocaleDateString('fr-FR'),
-        Catégorie: exp.category === 'water' ? 'Eau' :
-          exp.category === 'electricity' ? 'Électricité' :
-            exp.category === 'maintenance' ? 'Entretien' :
-              exp.customCategory || 'Autre',
+        Catégorie: (exp as any).category === 'maintenance' ? 'Entretien' :
+          (exp as any).customCategory || 'Autre',
         Description: exp.description,
         Montant: exp.amount,
       }));
@@ -609,7 +606,7 @@ export function AccountingOverview() {
     // 7. ONGLET SALAIRES
     const salariesData = filteredSalaries.map(salary => ({
       Période: salary.period,
-      Membre: salary.memberName,
+      Membre: (salary as any).memberName || (salary as any).staffName || 'N/A',
       Montant: salary.amount,
       'Date paiement': new Date(salary.paidAt).toLocaleDateString('fr-FR'),
     }));
@@ -629,7 +626,7 @@ export function AccountingOverview() {
         'ID Vente': cons.saleId.slice(0, 8),
         Produit: cons.productName,
         Quantité: cons.quantity,
-        'Valeur totale': cons.totalValue,
+        'Valeur totale': (cons as any).totalValue || cons.totalAmount,
         Client: cons.customerName,
         Téléphone: cons.customerPhone || 'N/A',
         Statut: cons.status === 'active' ? 'Active' :
@@ -638,7 +635,7 @@ export function AccountingOverview() {
               'Confisquée',
         'Date expiration': new Date(cons.expiresAt).toLocaleDateString('fr-FR'),
         'Date récup./expir.': cons.claimedAt ? new Date(cons.claimedAt).toLocaleDateString('fr-FR') :
-          cons.expiredAt ? new Date(cons.expiredAt).toLocaleDateString('fr-FR') :
+          (cons as any).expiredAt ? new Date((cons as any).expiredAt).toLocaleDateString('fr-FR') :
             'N/A',
       }));
       const consignmentsSheet = XLSX.utils.json_to_sheet(consignmentsData);
@@ -765,51 +762,14 @@ export function AccountingOverview() {
         </div>
       </div>
 
-      {/* Period Type Selector - Fixed: removed w-fit for full width on mobile */}
-      <div className={`flex ${isMobile ? 'flex-row' : 'flex-wrap'} items-center gap-2 bg-gray-100 p-1 rounded-lg`}>
-        {ACCOUNTING_FILTERS.map(filter => (
-          <button
-            key={filter}
-            onClick={() => setTimeRange(filter)}
-            className={`${isMobile ? 'flex-1 px-2 py-2' : 'px-3 py-2'} rounded-md transition-colors flex items-center justify-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} ${timeRange === filter
-              ? 'bg-amber-500 text-white'
-              : 'text-gray-600 hover:bg-gray-200'
-              }`}
-          >
-            {filter === 'custom' && <CalendarDays size={isMobile ? 14 : 16} />}
-            {TIME_RANGE_CONFIGS[filter].label}
-          </button>
-        ))}
-      </div>
-
-      {/* Custom Date Range Pickers (only when custom selected) */}
-      {timeRange === 'custom' && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-          <p className={`text-gray-700 font-medium mb-2 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-            Sélectionner la période
-          </p>
-          <div className="flex flex-col sm:flex-row items-center gap-2">
-            <div className="flex-1 w-full">
-              <label className="block text-xs text-gray-600 mb-1">Date début</label>
-              <input
-                type="date"
-                value={customRange.start}
-                onChange={(e) => updateCustomRange('start', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-              />
-            </div>
-            <div className="flex-1 w-full">
-              <label className="block text-xs text-gray-600 mb-1">Date fin</label>
-              <input
-                type="date"
-                value={customRange.end}
-                onChange={(e) => updateCustomRange('end', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      <PeriodFilter
+        timeRange={timeRange}
+        setTimeRange={setTimeRange}
+        availableFilters={ACCOUNTING_FILTERS}
+        customRange={customRange}
+        updateCustomRange={updateCustomRange}
+        className="bg-white p-3 rounded-xl border border-gray-100 shadow-sm"
+      />
 
       {/* Period Label */}
       <div className={`bg-white border border-gray-200 rounded-lg ${isMobile ? 'p-2' : 'p-3'}`}>
@@ -819,207 +779,209 @@ export function AccountingOverview() {
       </div>
 
       {/* Main Stats */}
-      {viewMode === 'tresorerie' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Operating Profit */}
-          <div className={`bg-gradient-to-br ${operatingProfit >= 0
-            ? 'from-green-500 to-emerald-600'
-            : 'from-red-500 to-pink-600'
-            } text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'}`}>
-            <div className="flex items-center gap-2 mb-2">
-              {operatingProfit >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
-              <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                Bénéfice Opérationnel
-              </p>
-            </div>
-            <p className={`font-bold ${isMobile ? 'text-2xl' : 'text-3xl'}`}>
-              {formatPrice(operatingProfit)}
-            </p>
-            <p className={`mt-1 opacity-80 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-              Marge: {safeOperatingProfitMargin.toFixed(1)}%
-            </p>
-          </div>
-
-          {/* Total Revenue */}
-          <div className={`bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'}`}>
-
-            <div className="flex items-center gap-2 mb-2">
-              <DollarSign size={20} />
-              <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                Revenus période
-              </p>
-            </div>
-            <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-              {formatPrice(totalRevenue)}
-            </p>
-          </div>
-
-          {/* Operating Costs */}
-          <div className={`bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'}`}>
-            <div className="flex items-center gap-2 mb-2">
-              <Receipt size={20} />
-              <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                Dépenses Opérationnelles
-              </p>
-            </div>
-            <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-              {formatPrice(totalOperatingCosts)}
-            </p>
-          </div>
-
-          {/* Investments */}
-          <div className={`bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'} relative`}>
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp size={20} />
-              <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                Investissements
-              </p>
-              {investmentRate > 20 && (
-                <span className="bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
-                  ⚠️ Élevé
-                </span>
-              )}
-            </div>
-            <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-              {formatPrice(investments)}
-            </p>
-            {investmentRate > 20 && (
-              <p className={`mt-1 opacity-80 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                Impact trésorerie élevé ({investmentRate.toFixed(1)}% du CA)
-              </p>
-            )}
-          </div>
-        </div>
-      ) : (
-        // VUE ANALYTIQUE : 4 cards avec solde début/fin
-        <div className="space-y-8">
+      {
+        viewMode === 'tresorerie' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Solde début période avec détail */}
-            <div className={`bg-gradient-to-br from-gray-500 to-slate-600 text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'}`}>
-              <div className="flex items-center gap-2 mb-2">
-                <Calendar size={20} />
-                <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  Solde début
-                </p>
-              </div>
-              <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-                {formatPrice(previousBalance)}
-              </p>
-              {/* Détail de la composition */}
-              <div className={`hidden lg:block mt-2 pt-2 border-t border-white/20 space-y-1 opacity-80 ${isMobile ? 'text-[9px]' : 'text-[10px]'}`}>
-                <div className="flex justify-between">
-                  <span>• Capital initial:</span>
-                  <span>{formatPrice(previousBalanceDetails.initialBalance)}</span>
-                </div>
-                {previousBalanceDetails.capitalContributions > 0 && (
-                  <div className="flex justify-between">
-                    <span>• Apports capital:</span>
-                    <span className="text-blue-200">{formatPrice(previousBalanceDetails.capitalContributions)}</span>
-                  </div>
-                )}
-                {previousBalanceDetails.activityResult !== 0 && (
-                  <div className="flex justify-between">
-                    <span>• Résultat activité:</span>
-                    <span className={previousBalanceDetails.activityResult >= 0 ? 'text-green-200' : 'text-red-200'}>
-                      {formatPrice(previousBalanceDetails.activityResult)}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Revenus période */}
-            <div className={`bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'}`}>
-              <div className="flex items-center gap-2 mb-2">
-                <DollarSign size={20} />
-                <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  Revenus
-                </p>
-              </div>
-              <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-                + {formatPrice(totalRevenue)}
-              </p>
-              <p className={`mt-1 opacity-70 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-                Encaissements période
-              </p>
-            </div>
-
-            {/* Dépenses période */}
-            <div className={`bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'}`}>
-              <div className="flex items-center gap-2 mb-2">
-                <Receipt size={20} />
-                <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  Dépenses
-                </p>
-              </div>
-              <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
-                - {formatPrice(totalCosts)}
-              </p>
-              <p className={`mt-1 opacity-70 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-                Décaissements période
-              </p>
-            </div>
-
-            {/* Solde fin période (final balance) */}
-            <div className={`bg-gradient-to-br ${finalBalance >= 0
+            {/* Operating Profit */}
+            <div className={`bg-gradient-to-br ${operatingProfit >= 0
               ? 'from-green-500 to-emerald-600'
               : 'from-red-500 to-pink-600'
               } text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'}`}>
               <div className="flex items-center gap-2 mb-2">
-                {finalBalance >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
+                {operatingProfit >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
                 <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                  Solde fin
+                  Bénéfice Opérationnel
                 </p>
               </div>
               <p className={`font-bold ${isMobile ? 'text-2xl' : 'text-3xl'}`}>
-                {formatPrice(finalBalance)}
+                {formatPrice(operatingProfit)}
               </p>
-              <p className={`mt-1 opacity-80 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
-                Rentabilité globale
+              <p className={`mt-1 opacity-80 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                Marge: {safeOperatingProfitMargin.toFixed(1)}%
               </p>
+            </div>
+
+            {/* Total Revenue */}
+            <div className={`bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'}`}>
+
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign size={20} />
+                <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  Revenus période
+                </p>
+              </div>
+              <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+                {formatPrice(totalRevenue)}
+              </p>
+            </div>
+
+            {/* Operating Costs */}
+            <div className={`bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'}`}>
+              <div className="flex items-center gap-2 mb-2">
+                <Receipt size={20} />
+                <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  Dépenses Opérationnelles
+                </p>
+              </div>
+              <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+                {formatPrice(totalOperatingCosts)}
+              </p>
+            </div>
+
+            {/* Investments */}
+            <div className={`bg-gradient-to-br from-purple-500 to-fuchsia-600 text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'} relative`}>
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp size={20} />
+                <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  Investissements
+                </p>
+                {investmentRate > 20 && (
+                  <span className="bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full font-semibold">
+                    ⚠️ Élevé
+                  </span>
+                )}
+              </div>
+              <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+                {formatPrice(investments)}
+              </p>
+              {investmentRate > 20 && (
+                <p className={`mt-1 opacity-80 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  Impact trésorerie élevé ({investmentRate.toFixed(1)}% du CA)
+                </p>
+              )}
             </div>
           </div>
+        ) : (
+          // VUE ANALYTIQUE : 4 cards avec solde début/fin
+          <div className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Solde début période avec détail */}
+              <div className={`bg-gradient-to-br from-gray-500 to-slate-600 text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Calendar size={20} />
+                  <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    Solde début
+                  </p>
+                </div>
+                <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+                  {formatPrice(previousBalance)}
+                </p>
+                {/* Détail de la composition */}
+                <div className={`hidden lg:block mt-2 pt-2 border-t border-white/20 space-y-1 opacity-80 ${isMobile ? 'text-[9px]' : 'text-[10px]'}`}>
+                  <div className="flex justify-between">
+                    <span>• Capital initial:</span>
+                    <span>{formatPrice(previousBalanceDetails.initialBalance)}</span>
+                  </div>
+                  {previousBalanceDetails.capitalContributions > 0 && (
+                    <div className="flex justify-between">
+                      <span>• Apports capital:</span>
+                      <span className="text-blue-200">{formatPrice(previousBalanceDetails.capitalContributions)}</span>
+                    </div>
+                  )}
+                  {previousBalanceDetails.activityResult !== 0 && (
+                    <div className="flex justify-between">
+                      <span>• Résultat activité:</span>
+                      <span className={previousBalanceDetails.activityResult >= 0 ? 'text-green-200' : 'text-red-200'}>
+                        {formatPrice(previousBalanceDetails.activityResult)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-              <p className="text-xs text-gray-600">Marge Opérationnelle</p>
-              <p className={`text-lg font-bold ${safeOperatingProfitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {safeOperatingProfitMargin.toFixed(1)}%
-              </p>
+              {/* Revenus période */}
+              <div className={`bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <DollarSign size={20} />
+                  <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    Revenus
+                  </p>
+                </div>
+                <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+                  + {formatPrice(totalRevenue)}
+                </p>
+                <p className={`mt-1 opacity-70 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                  Encaissements période
+                </p>
+              </div>
+
+              {/* Dépenses période */}
+              <div className={`bg-gradient-to-br from-amber-500 to-amber-600 text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Receipt size={20} />
+                  <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    Dépenses
+                  </p>
+                </div>
+                <p className={`font-bold ${isMobile ? 'text-xl' : 'text-2xl'}`}>
+                  - {formatPrice(totalCosts)}
+                </p>
+                <p className={`mt-1 opacity-70 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                  Décaissements période
+                </p>
+              </div>
+
+              {/* Solde fin période (final balance) */}
+              <div className={`bg-gradient-to-br ${finalBalance >= 0
+                ? 'from-green-500 to-emerald-600'
+                : 'from-red-500 to-pink-600'
+                } text-white rounded-xl ${isMobile ? 'p-3' : 'p-4'}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  {finalBalance >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
+                  <p className={`opacity-90 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    Solde fin
+                  </p>
+                </div>
+                <p className={`font-bold ${isMobile ? 'text-2xl' : 'text-3xl'}`}>
+                  {formatPrice(finalBalance)}
+                </p>
+                <p className={`mt-1 opacity-80 ${isMobile ? 'text-[10px]' : 'text-xs'}`}>
+                  Rentabilité globale
+                </p>
+              </div>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-              <p className="text-xs text-gray-600">Croissance Revenus</p>
-              <p className={`text-lg font-bold ${revenueGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {revenueGrowth >= 0 ? '+' : ''}{revenueGrowth.toFixed(1)}%
-              </p>
+
+            {/* KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+                <p className="text-xs text-gray-600">Marge Opérationnelle</p>
+                <p className={`text-lg font-bold ${safeOperatingProfitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {safeOperatingProfitMargin.toFixed(1)}%
+                </p>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+                <p className="text-xs text-gray-600">Croissance Revenus</p>
+                <p className={`text-lg font-bold ${revenueGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {revenueGrowth >= 0 ? '+' : ''}{revenueGrowth.toFixed(1)}%
+                </p>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+                <p className="text-xs text-gray-600">Revenu / Serveur</p>
+                <p className="text-lg font-bold text-blue-600">
+                  {formatPrice(revenuePerServer)}
+                </p>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+                <p className="text-xs text-gray-600">Taux d'Investissement</p>
+                <p className="text-lg font-bold text-purple-600">
+                  {investmentRate.toFixed(1)}%
+                </p>
+              </div>
+              <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
+                <p className="text-xs text-gray-600">Fonds de Roulement</p>
+                <p className={`text-lg font-bold ${cashRunway >= 1 ? 'text-green-600' : cashRunway >= 0.5 ? 'text-amber-600' : 'text-red-600'}`}>
+                  {cashRunway.toFixed(1)} mois
+                </p>
+              </div>
             </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-              <p className="text-xs text-gray-600">Revenu / Serveur</p>
-              <p className="text-lg font-bold text-blue-600">
-                {formatPrice(revenuePerServer)}
-              </p>
-            </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-              <p className="text-xs text-gray-600">Taux d'Investissement</p>
-              <p className="text-lg font-bold text-purple-600">
-                {investmentRate.toFixed(1)}%
-              </p>
-            </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-200">
-              <p className="text-xs text-gray-600">Fonds de Roulement</p>
-              <p className={`text-lg font-bold ${cashRunway >= 1 ? 'text-green-600' : cashRunway >= 0.5 ? 'text-amber-600' : 'text-red-600'}`}>
-                {cashRunway.toFixed(1)} mois
-              </p>
-            </div>
+
+            {/* Charts */}
+            <Suspense fallback={<div className="text-center py-8 text-gray-500">Chargement des graphiques...</div>}>
+              <AnalyticsCharts data={chartData} expensesByCategory={expensesByCategoryData} />
+            </Suspense>
           </div>
-
-          {/* Charts */}
-          <Suspense fallback={<div className="text-center py-8 text-gray-500">Chargement des graphiques...</div>}>
-            <AnalyticsCharts data={chartData} expensesByCategory={expensesByCategoryData} />
-          </Suspense>
-        </div>
-      )}
+        )
+      }
 
       {/* Period Info */}
       <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
@@ -1037,299 +999,307 @@ export function AccountingOverview() {
       </div>
 
       {/* Analysis */}
-      {netProfit < 0 && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
-          <div className="flex items-start gap-3">
-            <TrendingDown className="text-red-500 flex-shrink-0" size={20} />
-            <div className="flex-1">
-              <p className={`font-medium text-red-800 ${isMobile ? 'text-sm' : ''}`}>
-                ⚠️ Période déficitaire
-              </p>
-              <p className={`mt-1 text-red-700 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                Les coûts dépassent les revenus. Analysez vos dépenses et optimisez vos approvisionnements.
-              </p>
+      {
+        netProfit < 0 && (
+          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+            <div className="flex items-start gap-3">
+              <TrendingDown className="text-red-500 flex-shrink-0" size={20} />
+              <div className="flex-1">
+                <p className={`font-medium text-red-800 ${isMobile ? 'text-sm' : ''}`}>
+                  ⚠️ Période déficitaire
+                </p>
+                <p className={`mt-1 text-red-700 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  Les coûts dépassent les revenus. Analysez vos dépenses et optimisez vos approvisionnements.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
-      {netProfit > 0 && operatingProfitMargin > 30 && (
-        <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
-          <div className="flex items-start gap-3">
-            <TrendingUp className="text-green-500 flex-shrink-0" size={20} />
-            <div className="flex-1">
-              <p className={`font-medium text-green-800 ${isMobile ? 'text-sm' : ''}`}>
-                ✅ Excellente rentabilité
-              </p>
-              <p className={`mt-1 text-green-700 ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                Votre marge bénéficiaire de {safeOperatingProfitMargin.toFixed(1)}% est très bonne. Continuez ainsi!
-              </p>
+      {
+        netProfit > 0 && operatingProfitMargin > 30 && (
+          <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
+            <div className="flex items-start gap-3">
+              <TrendingUp className="text-green-500 flex-shrink-0" size={20} />
+              <div className="flex-1">
+                <p className={`font-medium text-green-800 ${isMobile ? 'text-sm' : ''}`}>
+                  ✅ Excellente rentabilité
+                </p>
+                <p className={`mt-1 text-green-700 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  Votre marge bénéficiaire de {safeOperatingProfitMargin.toFixed(1)}% est très bonne. Continuez ainsi!
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Modal: Define Initial Balance */}
-      {showInitialBalanceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-xl shadow-2xl max-w-md w-full"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-purple-500 to-indigo-600">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <DollarSign size={22} />
-                Définir solde initial
-              </h3>
-              <button
-                onClick={() => setShowInitialBalanceModal(false)}
-                className="p-1 hover:bg-white/20 rounded-lg transition-colors"
-              >
-                <X size={20} className="text-white" />
-              </button>
-            </div>
+      {
+        showInitialBalanceModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white rounded-xl shadow-2xl max-w-md w-full"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-purple-500 to-indigo-600">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <DollarSign size={22} />
+                  Définir solde initial
+                </h3>
+                <button
+                  onClick={() => setShowInitialBalanceModal(false)}
+                  className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X size={20} className="text-white" />
+                </button>
+              </div>
 
-            {/* Body */}
-            <div className="p-6 space-y-4">
-              <p className="text-sm text-gray-600">
-                Définissez le solde initial de votre comptabilité (par exemple, le montant en caisse à l'ouverture du bar).
-              </p>
-
-              {/* Amount */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Montant (FCFA) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  value={initialBalanceForm.amount}
-                  onChange={(e) => setInitialBalanceForm(prev => ({ ...prev, amount: e.target.value }))}
-                  placeholder="Ex: 500000"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Peut être négatif si vous aviez des dettes
+              {/* Body */}
+              <div className="p-6 space-y-4">
+                <p className="text-sm text-gray-600">
+                  Définissez le solde initial de votre comptabilité (par exemple, le montant en caisse à l'ouverture du bar).
                 </p>
-              </div>
 
-              {/* Date */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date de référence <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={initialBalanceForm.date}
-                  onChange={(e) => setInitialBalanceForm(prev => ({ ...prev, date: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <input
-                  type="text"
-                  value={initialBalanceForm.description}
-                  onChange={(e) => setInitialBalanceForm(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Ex: Solde ouverture bar"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                />
-              </div>
-
-              {/* Existing initial balance */}
-              {initialBalanceHook.initialBalance && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                  <p className="text-xs font-medium text-yellow-800 mb-2">
-                    ⚠️ Un solde initial existe déjà :
+                {/* Amount */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Montant (FCFA) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={initialBalanceForm.amount}
+                    onChange={(e) => setInitialBalanceForm(prev => ({ ...prev, amount: e.target.value }))}
+                    placeholder="Ex: 500000"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Peut être négatif si vous aviez des dettes
                   </p>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-gray-700">
-                      {new Date(initialBalanceHook.initialBalance.date).toLocaleDateString('fr-FR')} - {initialBalanceHook.initialBalance.description}
-                    </span>
-                    <span className={`font-medium ${initialBalanceHook.initialBalance.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatPrice(initialBalanceHook.initialBalance.amount)}
-                    </span>
-                  </div>
-                  {initialBalanceHook.initialBalance.isLocked && (
-                    <p className="text-xs text-red-600 mt-2">
-                      🔒 Verrouillé (transactions postérieures existent)
-                    </p>
-                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Footer */}
-            <div className="flex items-center gap-3 p-4 border-t border-gray-200 bg-gray-50">
-              <button
-                onClick={() => setShowInitialBalanceModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleCreateInitialBalance}
-                disabled={!!initialBalanceHook.initialBalance}
-                className={`flex-1 px-4 py-2 rounded-lg transition-colors ${initialBalanceHook.initialBalance
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-purple-500 text-white hover:bg-purple-600'
-                  }`}
-              >
-                {initialBalanceHook.initialBalance ? 'Solde déjà défini' : 'Enregistrer'}
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+                {/* Date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Date de référence <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={initialBalanceForm.date}
+                    onChange={(e) => setInitialBalanceForm(prev => ({ ...prev, date: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    value={initialBalanceForm.description}
+                    onChange={(e) => setInitialBalanceForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Ex: Solde ouverture bar"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Existing initial balance */}
+                {initialBalanceHook.initialBalance && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <p className="text-xs font-medium text-yellow-800 mb-2">
+                      ⚠️ Un solde initial existe déjà :
+                    </p>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-700">
+                        {new Date(initialBalanceHook.initialBalance.date).toLocaleDateString('fr-FR')} - {initialBalanceHook.initialBalance.description}
+                      </span>
+                      <span className={`font-medium ${initialBalanceHook.initialBalance.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {formatPrice(initialBalanceHook.initialBalance.amount)}
+                      </span>
+                    </div>
+                    {initialBalanceHook.initialBalance.isLocked && (
+                      <p className="text-xs text-red-600 mt-2">
+                        🔒 Verrouillé (transactions postérieures existent)
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center gap-3 p-4 border-t border-gray-200 bg-gray-50">
+                <button
+                  onClick={() => setShowInitialBalanceModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleCreateInitialBalance}
+                  disabled={!!initialBalanceHook.initialBalance}
+                  className={`flex-1 px-4 py-2 rounded-lg transition-colors ${initialBalanceHook.initialBalance
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-purple-500 text-white hover:bg-purple-600'
+                    }`}
+                >
+                  {initialBalanceHook.initialBalance ? 'Solde déjà défini' : 'Enregistrer'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )
+      }
 
       {/* Modal: Add Capital Contribution */}
-      {showCapitalContributionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-indigo-600">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <DollarSign size={22} />
-                Apport de Capital
-              </h3>
-              <button
-                onClick={() => setShowCapitalContributionModal(false)}
-                className="p-1 hover:bg-white/20 rounded-lg transition-colors"
-              >
-                <X size={20} className="text-white" />
-              </button>
-            </div>
+      {
+        showCapitalContributionModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-indigo-600">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <DollarSign size={22} />
+                  Apport de Capital
+                </h3>
+                <button
+                  onClick={() => setShowCapitalContributionModal(false)}
+                  className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X size={20} className="text-white" />
+                </button>
+              </div>
 
-            {/* Body */}
-            <div className="p-6 space-y-4">
-              <p className="text-sm text-gray-600">
-                Enregistrez une injection d'argent pour renforcer la trésorerie du bar (apport personnel, prêt, etc.).
-              </p>
-
-              {/* Amount */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Montant (FCFA) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  value={capitalContributionForm.amount}
-                  onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, amount: e.target.value }))}
-                  placeholder="Ex: 500000"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Montant positif uniquement (entrée d'argent)
+              {/* Body */}
+              <div className="p-6 space-y-4">
+                <p className="text-sm text-gray-600">
+                  Enregistrez une injection d'argent pour renforcer la trésorerie du bar (apport personnel, prêt, etc.).
                 </p>
-              </div>
 
-              {/* Date */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={capitalContributionForm.date}
-                  onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, date: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                />
-              </div>
-
-              {/* Source */}
-              <div>
-                <Select
-                  label="Source"
-                  options={[
-                    { value: 'owner', label: '👤 Propriétaire (apport personnel)' },
-                    { value: 'partner', label: '🤝 Associé' },
-                    { value: 'investor', label: '💼 Investisseur externe' },
-                    { value: 'loan', label: '🏦 Prêt (banque/personnel)' },
-                    { value: 'other', label: '📋 Autre' },
-                  ]}
-                  value={capitalContributionForm.source}
-                  onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, source: e.target.value as import('../types').CapitalSource }))}
-                  required
-                />
-              </div>
-
-              {/* Source Details (optionnel) */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Détails source (optionnel)
-                </label>
-                <input
-                  type="text"
-                  value={capitalContributionForm.sourceDetails}
-                  onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, sourceDetails: e.target.value }))}
-                  placeholder="Ex: Prêt Banque ABC, Associé Guy GOUNOU..."
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <input
-                  type="text"
-                  value={capitalContributionForm.description}
-                  onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Ex: Apport pour couvrir fournisseur urgent"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                />
-              </div>
-
-              {/* Existing contributions */}
-              {capitalContributionsHook.contributions.length > 0 && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <p className="text-xs font-medium text-blue-800 mb-2">
-                    📋 Apports existants ({capitalContributionsHook.contributions.length})
+                {/* Amount */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Montant (FCFA) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={capitalContributionForm.amount}
+                    onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, amount: e.target.value }))}
+                    placeholder="Ex: 500000"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Montant positif uniquement (entrée d'argent)
                   </p>
-                  <div className="space-y-2 max-h-32 overflow-y-auto">
-                    {capitalContributionsHook.contributions.slice(0, 5).map(contrib => (
-                      <div key={contrib.id} className="flex items-center justify-between text-xs">
-                        <span className="text-gray-700">
-                          {new Date(contrib.date).toLocaleDateString('fr-FR')} - {contrib.source}
-                        </span>
-                        <span className="font-medium text-green-600">
-                          +{formatPrice(contrib.amount)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
                 </div>
-              )}
-            </div>
 
-            {/* Footer */}
-            <div className="flex items-center gap-3 p-4 border-t border-gray-200 bg-gray-50">
-              <button
-                onClick={() => setShowCapitalContributionModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleCreateCapitalContribution}
-                className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                Créer l'apport
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </div>
+                {/* Date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={capitalContributionForm.date}
+                    onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, date: e.target.value }))}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Source */}
+                <div>
+                  <Select
+                    label="Source"
+                    options={[
+                      { value: 'owner', label: '👤 Propriétaire (apport personnel)' },
+                      { value: 'partner', label: '🤝 Associé' },
+                      { value: 'investor', label: '💼 Investisseur externe' },
+                      { value: 'loan', label: '🏦 Prêt (banque/personnel)' },
+                      { value: 'other', label: '📋 Autre' },
+                    ]}
+                    value={capitalContributionForm.source}
+                    onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, source: e.target.value as import('../types').CapitalSource }))}
+                    required
+                  />
+                </div>
+
+                {/* Source Details (optionnel) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Détails source (optionnel)
+                  </label>
+                  <input
+                    type="text"
+                    value={capitalContributionForm.sourceDetails}
+                    onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, sourceDetails: e.target.value }))}
+                    placeholder="Ex: Prêt Banque ABC, Associé Guy GOUNOU..."
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <input
+                    type="text"
+                    value={capitalContributionForm.description}
+                    onChange={(e) => setCapitalContributionForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Ex: Apport pour couvrir fournisseur urgent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Existing contributions */}
+                {capitalContributionsHook.contributions.length > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-xs font-medium text-blue-800 mb-2">
+                      📋 Apports existants ({capitalContributionsHook.contributions.length})
+                    </p>
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {capitalContributionsHook.contributions.slice(0, 5).map(contrib => (
+                        <div key={contrib.id} className="flex items-center justify-between text-xs">
+                          <span className="text-gray-700">
+                            {new Date(contrib.date).toLocaleDateString('fr-FR')} - {contrib.source}
+                          </span>
+                          <span className="font-medium text-green-600">
+                            +{formatPrice(contrib.amount)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center gap-3 p-4 border-t border-gray-200 bg-gray-50">
+                <button
+                  onClick={() => setShowCapitalContributionModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleCreateCapitalContribution}
+                  className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Créer l'apport
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )
+      }
+    </div >
   );
 }

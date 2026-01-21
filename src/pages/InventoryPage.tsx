@@ -8,7 +8,6 @@ import {
     TruckIcon,
     BarChart3,
     Zap,
-    ChevronLeft,
     PlusCircle,
     FileSpreadsheet,
     Container,
@@ -40,6 +39,7 @@ import { CategoryStatsList } from '../components/common/CategoryStatsList';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
 import { EmptyState } from '../components/common/EmptyState';
 import { Button } from '../components/ui/Button';
+import { BackButton } from '../components/ui/BackButton';
 import { useAuth } from '../context/AuthContext';
 
 type ViewMode = 'products' | 'operations' | 'stats';
@@ -514,15 +514,11 @@ export default function InventoryPage() {
                                         className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 min-h-[400px]"
                                     >
                                         <div className="flex items-center gap-3 mb-6 border-b border-gray-50 pb-4">
-                                            <Button
+                                            <BackButton
                                                 onClick={handleBackToOperations}
-                                                variant="ghost"
-                                                size="sm"
+                                                iconType="chevron"
                                                 className="text-gray-500 hover:text-gray-900"
-                                            >
-                                                <ChevronLeft size={20} className="mr-1" />
-                                                Retour
-                                            </Button>
+                                            />
                                             <h2 className="text-lg font-bold text-gray-900">
                                                 {operationMode === 'add' && "Nouveau Produit"}
                                                 {operationMode === 'import' && "Importation Massive"}

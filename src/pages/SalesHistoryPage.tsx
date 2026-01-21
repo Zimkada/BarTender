@@ -23,7 +23,7 @@ import { useRealtimeSales } from '../hooks/useRealtimeSales';
 import { Sale, SaleItem, User } from '../types';
 import { getSaleDate } from '../utils/saleHelpers';
 // import { AnalyticsService } from '../services/supabase/analytics.service'; // Unused
-import { SALES_HISTORY_FILTERS, TIME_RANGE_CONFIGS } from '../config/dateFilters';
+import { SALES_HISTORY_FILTERS } from '../config/dateFilters';
 import { useSalesFilters } from '../features/Sales/SalesHistory/hooks/useSalesFilters';
 import { useSalesStats } from '../features/Sales/SalesHistory/hooks/useSalesStats';
 import { AnalyticsView } from '../features/Sales/SalesHistory/views/AnalyticsView';
@@ -32,6 +32,7 @@ import { SalesCardsView } from '../features/Sales/SalesHistory/views/SalesCardsV
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
+import { PeriodFilter } from '../components/common/filters/PeriodFilter';
 import { GuideTourModal } from '../components/guide/GuideTourModal';
 
 type ViewMode = 'list' | 'cards' | 'analytics';
@@ -92,9 +93,8 @@ export default function SalesHistoryPage() {
         setTimeRange,
         startDate,
         endDate,
-        customRange,
         updateCustomRange,
-        isCustom,
+        customRange,
         searchTerm,
         setSearchTerm,
         filteredSales,
@@ -451,41 +451,15 @@ export default function SalesHistoryPage() {
                                     className="w-full pl-9 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                                 />
                             </div>
-
-                            {/* Period Filters */}
-                            <div className="flex bg-gray-100 p-1 rounded-lg overflow-x-auto max-w-full no-scrollbar">
-                                {SALES_HISTORY_FILTERS.map(filter => (
-                                    <button
-                                        key={filter}
-                                        onClick={() => setTimeRange(filter)}
-                                        className={`px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-all ${timeRange === filter
-                                            ? 'bg-amber-500 text-white shadow-sm ring-1 ring-amber-600'
-                                            : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'
-                                            }`}
-                                    >
-                                        {TIME_RANGE_CONFIGS[filter].label}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Custom Range */}
-                            {isCustom && (
-                                <div className="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200">
-                                    <Input
-                                        type="date"
-                                        value={customRange.start}
-                                        onChange={(e) => updateCustomRange('start', e.target.value)}
-                                        className="h-8 w-32 text-xs bg-white border-gray-200"
-                                    />
-                                    <span className="text-gray-400">→</span>
-                                    <Input
-                                        type="date"
-                                        value={customRange.end}
-                                        onChange={(e) => updateCustomRange('end', e.target.value)}
-                                        className="h-8 w-32 text-xs bg-white border-gray-200"
-                                    />
-                                </div>
-                            )}
+                            {/* Unified Period Filter */}
+                            <PeriodFilter
+                                timeRange={timeRange}
+                                setTimeRange={setTimeRange}
+                                availableFilters={SALES_HISTORY_FILTERS}
+                                customRange={customRange}
+                                updateCustomRange={updateCustomRange}
+                                buttonClassName="Ring-0 shadow-none border-0"
+                            />
                         </div>
 
                         {/* Export format toggle & Action (Mobile only) */}

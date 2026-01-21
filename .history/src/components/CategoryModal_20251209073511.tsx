@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Globe, PenTool, Check, Info } from 'lucide-react';
+import { X, Globe, PenTool, Check, Info } from 'lucide-react';
 import { Category } from '../types';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CategoriesService } from '../services/supabase/categories.service';
 import { Modal } from './ui/Modal';
 import { Button } from './ui/Button';

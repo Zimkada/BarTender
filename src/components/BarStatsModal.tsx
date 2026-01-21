@@ -43,7 +43,7 @@ type CombinedStats = {
 };
 
 export default function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalProps) {
-  const { showSuccess, showError } = useFeedback();
+  const { showError } = useFeedback();
 
   const [combinedStats, setCombinedStats] = useState<CombinedStats | null>(null);
   const [isLoading, setIsLoading] = useState(false);

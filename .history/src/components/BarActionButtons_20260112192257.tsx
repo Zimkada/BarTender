@@ -10,7 +10,7 @@ interface BarActionButtonsProps {
 }
 
 export const BarActionButtons = React.memo<BarActionButtonsProps>(
-    ({ bar, onToggleStatus }) => {
+    ({ bar, onToggleStatus, onClose }) => {
         const [loading, setLoading] = useState(false);
 
         const handleToggleStatus = async () => {

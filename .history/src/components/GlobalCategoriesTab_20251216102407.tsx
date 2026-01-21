@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Save, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Loader2 } from 'lucide-react';
 import { CategoriesService } from '../services/supabase/categories.service';
 import { GlobalCategory } from '../types';
 import { useFeedback } from '../hooks/useFeedback';
