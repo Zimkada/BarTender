@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Globe, PenTool, Search, Check } from 'lucide-react';
+import { X, Globe, PenTool, Search, Check, ChevronRight } from 'lucide-react';
 import { Product, Category, GlobalProduct } from '../types';
 import { useAppContext } from '../context/AppContext';
 import { ImageUpload } from './ImageUpload';
@@ -10,6 +10,8 @@ import { Button } from './ui/Button';
 import { Label } from './ui/Label';
 import { Select } from './ui/Select';
 import { Input } from './ui/Input';
+import { motion, AnimatePresence } from 'framer-motion';
+import { BackButton } from './ui/BackButton';
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -21,10 +23,12 @@ interface ProductModalProps {
 }
 
 type Mode = 'custom' | 'global';
+type Step = 'selection' | 'details'; // NEW: For navigation
 
 export function ProductModal({ isOpen, onClose, onSave, product, inline = false }: ProductModalProps) {
   const { categories } = useAppContext();
   const [mode, setMode] = useState<Mode>('global');
+  const [step, setStep] = useState<Step>('selection'); // NEW: Current step
   const [formData, setFormData] = useState({
     name: '',
     volume: '',
@@ -46,6 +50,7 @@ export function ProductModal({ isOpen, onClose, onSave, product, inline = false 
   useEffect(() => {
     if (product) {
       setMode('custom'); // Editing is always custom-like view
+      setStep('details'); // Directly to details when editing
       setFormData({
         name: product.name,
         volume: product.volume,
@@ -68,6 +73,7 @@ export function ProductModal({ isOpen, onClose, onSave, product, inline = false 
       });
       // Don't force mode here - let it stay at 'global' (default)
       setSelectedGlobalId(null);
+      setStep('selection');
     }
   }, [product, categories, isOpen]);
 
@@ -99,7 +105,19 @@ export function ProductModal({ isOpen, onClose, onSave, product, inline = false 
       image: globalProduct.officialImage || '',
       // Keep price/stock empty or default
     }));
+    setStep('details'); // Advance to next step
   };
+
+  const handleBackToSelection = () => {
+    setStep('selection');
+    setSelectedGlobalId(null);
+  }
+
+  const handleCustomProductStart = () => {
+    setMode('custom');
+    setStep('details');
+  }
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,217 +156,232 @@ export function ProductModal({ isOpen, onClose, onSave, product, inline = false 
 
   const content = (
     <div className={`flex flex-col ${inline ? '' : 'h-full'}`}>
-      {!product && (
-        <div className="flex flex-wrap p-2 gap-2 bg-gray-50 border-b border-gray-100 rounded-t-xl">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setMode('global')}
-            className={`flex-1 min-w-fit text-sm sm:text-base font-medium transition-all ${mode === 'global'
-              ? 'bg-blue-50 text-blue-700 shadow-md border-2 border-blue-400'
-              : 'text-gray-600 border-2 border-transparent hover:bg-blue-50/50'
-              }`}
+      <AnimatePresence mode="wait">
+        {step === 'selection' && !product ? (
+          <motion.div
+            key="step-selection"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="flex-1 flex flex-col h-full"
           >
-            <Globe size={16} className="mr-1 sm:mr-2 shrink-0" />
-            <span className="hidden sm:inline">Catalogue Global</span>
-            <span className="sm:hidden">Catalogue</span>
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setMode('custom')}
-            className={`flex-1 min-w-fit text-sm sm:text-base font-medium transition-all ${mode === 'custom'
-              ? 'bg-amber-50 text-amber-700 shadow-md border-2 border-amber-400'
-              : 'text-gray-600 border-2 border-transparent hover:bg-amber-50/50'
-              }`}
-          >
-            <PenTool size={16} className="mr-1 sm:mr-2 shrink-0" />
-            <span className="hidden sm:inline">Produit Personnalisé</span>
-            <span className="sm:hidden">Personnalisé</span>
-          </Button>
-        </div>
-      )}
-
-      <div className="flex-1 overflow-y-auto p-4">
-        {mode === 'global' && !product ? (
-          <div className="space-y-4">
-            <Input
-              type="text"
-              placeholder="Rechercher dans le catalogue..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              leftIcon={<Search size={18} />}
-              className="bg-gray-50"
-            />
-            {isLoadingGlobal ? (
-              <div className="flex justify-center py-8">
-                <Spinner size="lg" />
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {filteredGlobalProducts.map((gp) => (
-                  <div
-                    key={gp.id}
-                    onClick={() => handleGlobalProductSelect(gp)}
-                    className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-3 ${selectedGlobalId === gp.id
-                      ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500'
-                      : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/30'
-                      }`}
-                  >
-                    <div className="w-12 h-12 bg-white rounded-lg border border-gray-100 flex items-center justify-center overflow-hidden shrink-0">
-                      {gp.officialImage ? (
-                        <img src={gp.officialImage} alt={gp.name} className="w-full h-full object-contain" />
-                      ) : (
-                        <Globe size={20} className="text-gray-300" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-gray-900 truncate">{gp.name}</h4>
-                      <p className="text-xs text-gray-500">{gp.brand} • {gp.volume}</p>
-                    </div>
-                    {selectedGlobalId === gp.id && (
-                      <div className="text-blue-600">
-                        <Check size={20} />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-            {selectedGlobalId && (
-              <div className="pt-4 border-t border-gray-100">
-                <h3 className="font-medium text-gray-900 mb-4">Détails du stock</h3>
-              </div>
-            )}
-          </div>
-        ) : null}
-
-        {(mode === 'custom' || selectedGlobalId || product) && (
-          <form id="product-form" onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="productName">Nom du produit *</Label>
-                  <Input
-                    id="productName"
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    placeholder="ex: Beaufort"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="productVolume">Volume/Contenance *</Label>
-                  <Input
-                    id="productVolume"
-                    type="text"
-                    required
-                    value={formData.volume}
-                    onChange={(e) => handleInputChange('volume', e.target.value)}
-                    placeholder="ex: 33cl, 50cl, 75cl"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="categoryId">Catégorie *</Label>
-                  <Select
-                    id="categoryId"
-                    required
-                    value={formData.categoryId}
-                    onChange={(e) => handleInputChange('categoryId', e.target.value)}
-                    options={categoryOptions}
-                  />
-                </div>
-              </div>
-              <div className="space-y-4">
-                <ImageUpload
-                  currentImage={formData.image}
-                  onImageChange={(url) => handleInputChange('image', url)}
-                  bucketName="product-images"
-                />
-              </div>
+            <div className="flex flex-wrap p-2 gap-2 bg-gray-50 border-b border-gray-100 rounded-t-xl shrink-0">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setMode('global')}
+                className={`flex-1 min-w-fit text-sm sm:text-base font-medium transition-all ${mode === 'global'
+                  ? 'bg-blue-50 text-blue-700 shadow-md border-2 border-blue-400'
+                  : 'text-gray-600 border-2 border-transparent hover:bg-blue-50/50'
+                  }`}
+              >
+                <Globe size={16} className="mr-1 sm:mr-2 shrink-0" />
+                <span className="hidden sm:inline">Catalogue Global</span>
+                <span className="sm:hidden">Catalogue</span>
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setMode('custom')} // Just change tab styling
+                onMouseDown={handleCustomProductStart} // Action on click
+                className={`flex-1 min-w-fit text-sm sm:text-base font-medium transition-all ${mode === 'custom'
+                  ? 'bg-amber-50 text-amber-700 shadow-md border-2 border-amber-400'
+                  : 'text-gray-600 border-2 border-transparent hover:bg-amber-50/50'
+                  }`}
+              >
+                <PenTool size={16} className="mr-1 sm:mr-2 shrink-0" />
+                <span className="hidden sm:inline">Produit Personnalisé</span>
+                <span className="sm:hidden">Personnalisé</span>
+              </Button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
-              <div>
-                <Label htmlFor="price">Prix de vente *</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  required
-                  min="0"
-                  value={formData.price}
-                  onChange={(e) => handleInputChange('price', e.target.value)}
-                  placeholder="500"
-                  endAdornment="F"
-                />
-              </div>
-              <div>
-                <Label htmlFor="stock">
-                  Stock initial {product ? '(lecture seule)' : '*'}
-                </Label>
-                <Input
-                  id="stock"
-                  type="number"
-                  required={!product}
-                  min="0"
-                  value={formData.stock}
-                  onChange={(e) => {
-                    if (!product) handleInputChange('stock', e.target.value);
-                  }}
-                  disabled={!!product}
-                  placeholder="24"
-                  className={product ? 'opacity-60 cursor-not-allowed' : ''}
-                />
-                {product && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    ⚠️ Le stock ne peut être modifié que via: ventes, approvisionnements, ou ajustements spécifiques
-                  </p>
+            <div className="flex-1 overflow-y-auto p-4">
+              {mode === 'global' && (
+                <div className="space-y-4">
+                  <Input
+                    type="text"
+                    placeholder="Rechercher dans le catalogue..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    leftIcon={<Search size={18} />}
+                    className="bg-gray-50"
+                  />
+                  {isLoadingGlobal ? (
+                    <div className="flex justify-center py-8">
+                      <Spinner size="lg" />
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {filteredGlobalProducts.map((gp) => (
+                        <div
+                          key={gp.id}
+                          onClick={() => handleGlobalProductSelect(gp)}
+                          className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-3 border-gray-200 hover:border-blue-300 hover:bg-blue-50/30 group active:scale-95`}
+                        >
+                          <div className="w-12 h-12 bg-white rounded-lg border border-gray-100 flex items-center justify-center overflow-hidden shrink-0 group-hover:scale-110 transition-transform">
+                            {gp.officialImage ? (
+                              <img src={gp.officialImage} alt={gp.name} className="w-full h-full object-contain" />
+                            ) : (
+                              <Globe size={20} className="text-gray-300" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-gray-900 truncate group-hover:text-blue-700 transition-colors">{gp.name}</h4>
+                            <p className="text-xs text-gray-500">{gp.brand} • {gp.volume}</p>
+                          </div>
+                          <ChevronRight size={18} className="text-gray-300 group-hover:text-blue-400 group-hover:translate-x-1 transition-all" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="step-details"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="flex-1 flex flex-col h-full"
+          >
+            {/* Header with back button only if we came from selection (not direct edit) */}
+            {!product && (
+              <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2 bg-gray-50/50">
+                <BackButton onClick={handleBackToSelection} label={mode === 'global' ? "Retour au catalogue" : "Annuler"} className='text-xs h-8' />
+                {mode === 'global' && selectedGlobalId && (
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-auto">Produit sélectionné</span>
+                )}
+                {mode === 'custom' && (
+                  <span className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-auto">Création manuelle</span>
                 )}
               </div>
-              <div>
-                <Label htmlFor="alertThreshold">Seuil alerte *</Label>
-                <Input
-                  id="alertThreshold"
-                  type="number"
-                  required
-                  min="0"
-                  value={formData.alertThreshold}
-                  onChange={(e) => handleInputChange('alertThreshold', e.target.value)}
-                  placeholder="10"
-                />
-              </div>
+            )}
+
+            <div className="flex-1 overflow-y-auto p-4">
+              <form id="product-form" onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="productName">Nom du produit *</Label>
+                      <Input
+                        id="productName"
+                        type="text"
+                        required
+                        value={formData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                        placeholder="ex: Beaufort"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="productVolume">Volume/Contenance *</Label>
+                      <Input
+                        id="productVolume"
+                        type="text"
+                        required
+                        value={formData.volume}
+                        onChange={(e) => handleInputChange('volume', e.target.value)}
+                        placeholder="ex: 33cl, 50cl, 75cl"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="categoryId">Catégorie *</Label>
+                      <Select
+                        id="categoryId"
+                        required
+                        value={formData.categoryId}
+                        onChange={(e) => handleInputChange('categoryId', e.target.value)}
+                        options={categoryOptions}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <ImageUpload
+                      currentImage={formData.image}
+                      onImageChange={(url) => handleInputChange('image', url)}
+                      bucketName="product-images"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-2">
+                  <div>
+                    <Label htmlFor="price">Prix de vente *</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      required
+                      min="0"
+                      value={formData.price}
+                      onChange={(e) => handleInputChange('price', e.target.value)}
+                      placeholder="500"
+                      endAdornment="F"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="stock">
+                      Stock initial {product ? '(lecture seule)' : '*'}
+                    </Label>
+                    <Input
+                      id="stock"
+                      type="number"
+                      required={!product}
+                      min="0"
+                      value={formData.stock}
+                      onChange={(e) => {
+                        if (!product) handleInputChange('stock', e.target.value);
+                      }}
+                      disabled={!!product}
+                      placeholder="24"
+                      className={product ? 'opacity-60 cursor-not-allowed' : ''}
+                    />
+                    {product && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        ⚠️ Le stock ne peut être modifié que via: ventes, approvisionnements, ou ajustements spécifiques
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <Label htmlFor="alertThreshold">Seuil alerte *</Label>
+                    <Input
+                      id="alertThreshold"
+                      type="number"
+                      required
+                      min="0"
+                      value={formData.alertThreshold}
+                      onChange={(e) => handleInputChange('alertThreshold', e.target.value)}
+                      placeholder="10"
+                    />
+                  </div>
+                </div>
+              </form>
             </div>
-          </form>
+
+            <div className={`p-4 border-t border-gray-100 flex gap-3 ${inline ? 'mt-auto' : ''}`}>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={onClose}
+                className="flex-1"
+                disabled={isSubmitting}
+              >
+                Fermer
+              </Button>
+
+              <Button
+                type="submit"
+                form="product-form"
+                disabled={isSubmitting || !formTouched}
+                className="flex-1"
+              >
+                {isSubmitting && <Spinner size="sm" className="mr-2" />}
+                {isSubmitting ? 'Traitement...' : (product ? 'Modifier' : 'Confirmer Ajout')}
+              </Button>
+            </div>
+          </motion.div>
         )}
-      </div>
-
-      {/* Buttons (always visible in inline, or in Modal footer) */}
-      {(inline || (mode === 'custom' || selectedGlobalId || product)) && (
-        <div className={`p-4 border-t border-gray-100 flex gap-3 ${inline ? 'mt-4' : ''}`}>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onClose}
-            className="flex-1"
-            disabled={isSubmitting}
-          >
-            Annuler
-          </Button>
-
-          {(mode === 'custom' || selectedGlobalId || product) && (
-            <Button
-              type="submit"
-              form="product-form"
-              disabled={isSubmitting || !(formTouched || selectedGlobalId)}
-              className="flex-1"
-            >
-              {isSubmitting && <Spinner size="sm" className="mr-2" />}
-              {isSubmitting ? 'Traitement...' : (product ? 'Modifier' : 'Ajouter')}
-            </Button>
-          )}
-        </div>
-      )}
+      </AnimatePresence>
     </div>
   );
 
