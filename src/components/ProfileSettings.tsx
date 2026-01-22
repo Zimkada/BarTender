@@ -1,9 +1,8 @@
 // components/ProfileSettings.tsx - Paramètres utilisateur (mot de passe, infos personnelles)
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  X,
-  User,
+  User as UserIcon,
   Lock,
   Eye,
   EyeOff,
@@ -12,22 +11,23 @@ import {
   CheckCircle,
   Phone,
   Mail,
+  Shield,
+  Calendar,
+  Zap,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AuthService } from '../services/supabase/auth.service';
 import { supabase } from '../lib/supabase';
 import type { User as UserType } from '../types';
 import { Input } from './ui/Input';
+import { TabbedPageHeader } from './common/PageHeader/patterns/TabbedPageHeader';
+import { useViewport } from '../hooks/useViewport';
 
-interface ProfileSettingsProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
+export function ProfileSettings() {
   const { currentSession, changePassword, refreshSession } = useAuth();
+  const { isMobile } = useViewport();
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState<'info' | 'password'>('info');
 
@@ -48,9 +48,9 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // Fetch user data when modal opens
+  // Fetch user data
   useEffect(() => {
-    if (isOpen && currentSession?.userId) {
+    if (currentSession?.userId) {
       setLoading(true);
       supabase
         .from('users')
@@ -59,11 +59,9 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
         .single()
         .then(({ data, error }) => {
           if (data) {
-            // Map Supabase user to UserType
             const user: UserType = {
               id: data.id,
               username: data.username || '',
-              password: '', // Not available
               name: data.name || '',
               phone: data.phone || '',
               email: data.email || '',
@@ -71,48 +69,27 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
               isActive: data.is_active ?? true,
               firstLogin: data.first_login ?? false,
               lastLoginAt: data.last_login_at ? new Date(data.last_login_at) : undefined,
+              role: data.role
             };
             setCurrentUser(user);
             setName(user.name);
             setEmail(user.email || '');
             setPhone(user.phone);
           } else if (error) {
-            console.error('Error fetching user profile:', error);
             setErrorMessage('Impossible de charger le profil utilisateur');
           }
           setLoading(false);
         });
     }
-  }, [isOpen, currentSession?.userId]);
+  }, [currentSession?.userId]);
 
-  // Validation mot de passe
-  const validatePassword = (password: string): string | null => {
-    if (password.length < 4) {
-      return 'Le mot de passe doit contenir au moins 4 caractères';
-    }
-    return null;
-  };
-
-  // Sauvegarder infos personnelles
   const handleSaveInfo = async () => {
     if (!currentUser) return;
-
     setErrorMessage('');
     setSuccessMessage('');
 
-    // Validation
     if (!name.trim()) {
       setErrorMessage('Le nom est requis');
-      return;
-    }
-
-    if (phone && !/^[0-9]{10}$/.test(phone.replace(/\s/g, ''))) {
-      setErrorMessage('Le téléphone doit contenir 10 chiffres');
-      return;
-    }
-
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setErrorMessage('Email invalide');
       return;
     }
 
@@ -123,7 +100,6 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
         phone: phone.trim(),
       });
 
-      // Update local state
       setCurrentUser(prev => prev ? {
         ...prev,
         name: name.trim(),
@@ -131,357 +107,286 @@ export function ProfileSettings({ isOpen, onClose }: ProfileSettingsProps) {
         phone: phone.trim(),
       } : null);
 
-      // Refresh global session
       await refreshSession();
-
       setSuccessMessage('Informations mises à jour avec succès !');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error: any) {
-      console.error('Error updating profile:', error);
       setErrorMessage(error.message || 'Erreur lors de la mise à jour');
     }
   };
 
-  // Changer mot de passe
   const handleChangePassword = async () => {
     if (!currentUser) return;
-
     setErrorMessage('');
     setSuccessMessage('');
 
-    // Note: We cannot validate current password client-side with Supabase Auth
-    // unless we try to sign in with it, which requires re-auth flow.
-    // For now, we trust the user is logged in.
-    // Ideally, we should ask for re-authentication before sensitive changes.
-
-    // Validation nouveau mot de passe
-    const passwordError = validatePassword(newPassword);
-    if (passwordError) {
-      setErrorMessage(passwordError);
+    if (newPassword.length < 4) {
+      setErrorMessage('Le mot de passe doit contenir au moins 4 caractères');
       return;
     }
 
-    // Vérifier confirmation
     if (newPassword !== confirmPassword) {
       setErrorMessage('Les nouveaux mots de passe ne correspondent pas');
       return;
     }
 
-    // Vérifier que le nouveau mot de passe est différent
-    if (newPassword === currentPassword) {
-      setErrorMessage('Le nouveau mot de passe doit être différent de l\'ancien');
-      return;
-    }
-
     try {
       await changePassword(newPassword);
-
-      // Reset formulaire
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setSuccessMessage('Mot de passe modifié avec succès !');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error: any) {
-      console.error('Error changing password:', error);
-      setErrorMessage(error.message || 'Erreur lors du changement de mot de passe');
+      setErrorMessage(error.message || 'Erreur lors du changement');
     }
   };
 
-  if (!isOpen) return null;
+  const roleColors = currentSession?.role === 'super_admin'
+    ? { primary: 'from-indigo-600 to-purple-600', secondary: 'bg-indigo-50 text-indigo-700 border-indigo-200' }
+    : { primary: 'from-amber-500 to-orange-600', secondary: 'bg-amber-50 text-amber-700 border-amber-200' };
+
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+      <div className={`animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${currentSession?.role === 'super_admin' ? 'border-indigo-600' : 'border-amber-600'}`}></div>
+      <p className="text-gray-500 font-medium animate-pulse">Chargement de votre profil...</p>
+    </div>
+  );
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={onClose}
-        >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            onClick={e => e.stopPropagation()}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col"
-          >
-            {/* Header */}
-            <div
-              className={`bg-gradient-to-r ${currentSession?.role === 'super_admin'
-                  ? 'from-indigo-600 to-purple-600'
-                  : 'from-amber-500 to-orange-500'
-                } p-6 text-white`}
+    <div className="max-w-7xl mx-auto space-y-6">
+      <TabbedPageHeader
+        title={isMobile ? "Profil" : "Mon Profil Utilisateur"}
+        subtitle="Gérez vos informations et votre sécurité"
+        icon={<UserIcon className={`w-6 h-6 ${currentSession?.role === 'super_admin' ? 'text-indigo-600' : 'text-amber-600'}`} />}
+        tabs={[
+          { id: 'info', label: 'Informations', icon: UserIcon },
+          { id: 'password', label: 'Sécurité', icon: Lock },
+        ]}
+        activeTab={activeTab}
+        onTabChange={(id) => setActiveTab(id as 'info' | 'password')}
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-10">
+        {/* Left Column: Forms */}
+        <div className="lg:col-span-2 space-y-6">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="bg-white rounded-3xl p-6 md:p-10 border border-gray-100 shadow-sm"
             >
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold">Mon Profil</h2>
-                  <p
-                    className={`${currentSession?.role === 'super_admin'
-                        ? 'text-indigo-100'
-                        : 'text-amber-100'
-                      } text-sm mt-1`}
-                  >
-                    Gérez vos informations personnelles
-                  </p>
+              {successMessage && (
+                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-2xl flex items-center gap-3 text-green-800 animate-in fade-in slide-in-from-top-2">
+                  <CheckCircle className="w-5 h-5 flex-shrink-0" />
+                  <p className="text-sm font-bold">{successMessage}</p>
                 </div>
-                <button
-                  onClick={onClose}
-                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-            </div>
+              )}
 
-            {loading ? (
-              <div className="p-8 flex justify-center">
-                <div
-                  className={`animate-spin rounded-full h-8 w-8 border-b-2 ${currentSession?.role === 'super_admin'
-                      ? 'border-indigo-600'
-                      : 'border-amber-500'
-                    }`}
-                ></div>
-              </div>
-            ) : !currentUser ? (
-              <div className="p-8 text-center text-red-600">
-                <AlertCircle className="w-12 h-12 mx-auto mb-2" />
-                <p>Impossible de charger le profil.</p>
-              </div>
-            ) : (
-              <>
-                {/* Tabs */}
-                <div className="flex border-b bg-gray-50">
-                  <button
-                    onClick={() => setActiveTab('info')}
-                    className={`flex-1 py-3 px-4 font-medium transition-colors ${activeTab === 'info'
-                        ? `bg-white border-b-2 ${currentSession?.role === 'super_admin'
-                          ? 'text-indigo-600 border-indigo-600'
-                          : 'text-amber-600 border-amber-600'
-                        }`
-                        : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                  >
-                    <User className="w-4 h-4 inline mr-2" />
-                    Informations
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('password')}
-                    className={`flex-1 py-3 px-4 font-medium transition-colors ${activeTab === 'password'
-                        ? `bg-white border-b-2 ${currentSession?.role === 'super_admin'
-                          ? 'text-indigo-600 border-indigo-600'
-                          : 'text-amber-600 border-amber-600'
-                        }`
-                        : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                  >
-                    <Lock className="w-4 h-4 inline mr-2" />
-                    Mot de passe
-                  </button>
+              {errorMessage && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-3 text-red-800 animate-in fade-in slide-in-from-top-2">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <p className="text-sm font-bold">{errorMessage}</p>
                 </div>
+              )}
 
-                {/* Messages */}
-                {successMessage && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mx-6 mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-800"
-                  >
-                    <CheckCircle className="w-5 h-5 flex-shrink-0" />
-                    <p className="text-sm font-medium">{successMessage}</p>
-                  </motion.div>
-                )}
-
-                {errorMessage && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-800"
-                  >
-                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                    <p className="text-sm font-medium">{errorMessage}</p>
-                  </motion.div>
-                )}
-
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto p-6">
-                  {activeTab === 'info' && (
-                    <div className="space-y-4">
-                      {/* Nom */}
+              {activeTab === 'info' ? (
+                <div className="space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Nom Complet</label>
                       <Input
-                        label="Nom complet"
                         type="text"
                         value={name}
                         onChange={e => setName(e.target.value)}
-                        placeholder="Koffi KOUASSI"
-                        required
+                        placeholder="Jean Dupont"
+                        className="h-12 text-lg font-bold bg-gray-50 border-gray-100 focus:bg-white transition-all"
                       />
-
-                      {/* Email */}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Email</label>
                       <Input
-                        label="Email"
                         type="email"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
-                        placeholder="email@exemple.com"
-                        leftIcon={<Mail className="w-4 h-4" />}
+                        placeholder="jean@bartender.app"
+                        leftIcon={<Mail className="w-4 h-4 text-gray-400" />}
+                        className="h-12 bg-gray-50 border-gray-100 focus:bg-white transition-all"
                       />
-
-                      {/* Téléphone */}
+                    </div>
+                    <div className="space-y-2 col-span-1 md:col-span-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Téléphone</label>
                       <Input
-                        label="Téléphone"
                         type="tel"
                         value={phone}
                         onChange={e => setPhone(e.target.value)}
-                        placeholder="0197000000"
-                        leftIcon={<Phone className="w-4 h-4" />}
-                        required
+                        placeholder="01 02 03 04 05"
+                        leftIcon={<Phone className="w-4 h-4 text-gray-400" />}
+                        className="h-12 bg-gray-50 border-gray-100 focus:bg-white transition-all"
                       />
-
-                      {/* Infos en lecture seule */}
-                      <div className="bg-gray-50 rounded-lg p-4 space-y-2 mt-6">
-                        <p className="text-xs text-gray-500 font-semibold uppercase">
-                          Informations du compte
-                        </p>
-                        <div className="text-sm">
-                          <span className="text-gray-600">Nom d'utilisateur: </span>
-                          <span className="font-medium">{currentUser.username}</span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-gray-600">Rôle: </span>
-                          <span className="font-medium">{currentSession?.role}</span>
-                        </div>
-                        <div className="text-sm">
-                          <span className="text-gray-600">Créé le: </span>
-                          <span className="font-medium">
-                            {new Date(currentUser.createdAt).toLocaleDateString('fr-FR')}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Bouton sauvegarder */}
-                      <button
-                        onClick={handleSaveInfo}
-                        className={`w-full bg-gradient-to-r ${currentSession?.role === 'super_admin'
-                            ? 'from-indigo-600 to-purple-600'
-                            : 'from-amber-500 to-orange-500'
-                          } text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-shadow flex items-center justify-center gap-2 mt-6`}
-                      >
-                        <Save className="w-5 h-5" />
-                        Enregistrer les modifications
-                      </button>
                     </div>
-                  )}
+                  </div>
 
-                  {activeTab === 'password' && (
-                    <div className="space-y-4">
-                      {/* Mot de passe actuel */}
-                      <div>
-                        <Input
-                          label="Mot de passe actuel"
-                          type={showCurrentPassword ? 'text' : 'password'}
-                          value={currentPassword}
-                          onChange={e => setCurrentPassword(e.target.value)}
-                          placeholder="••••••••"
-                          required
-                          rightIcon={
-                            <button
-                              type="button"
-                              onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                              className="text-gray-600 hover:text-gray-600"
-                            >
-                              {showCurrentPassword ? (
-                                <EyeOff className="w-5 h-5" />
-                              ) : (
-                                <Eye className="w-5 h-5" />
-                              )}
-                            </button>
-                          }
-                        />
-                      </div>
+                  <div className="pt-4">
+                    <button
+                      onClick={handleSaveInfo}
+                      disabled={loading}
+                      className={`w-full h-14 bg-gradient-to-r ${roleColors.primary} text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-gray-200 transition-all active:scale-[0.98] hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-3`}
+                    >
+                      <Save size={20} />
+                      Sauvegarder les modifications
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Mot de passe actuel</label>
+                    <Input
+                      type={showCurrentPassword ? 'text' : 'password'}
+                      value={currentPassword}
+                      onChange={e => setCurrentPassword(e.target.value)}
+                      placeholder="••••••••"
+                      rightIcon={
+                        <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="text-gray-400">
+                          {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      }
+                      className="h-12 bg-gray-50 border-gray-100 focus:bg-white"
+                    />
+                  </div>
 
-                      {/* Nouveau mot de passe */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Nouveau mot de passe</label>
                       <Input
-                        label="Nouveau mot de passe"
                         type={showNewPassword ? 'text' : 'password'}
                         value={newPassword}
                         onChange={e => setNewPassword(e.target.value)}
                         placeholder="••••••••"
-                        required
-                        helperText="Minimum 4 caractères"
                         rightIcon={
-                          <button
-                            type="button"
-                            onClick={() => setShowNewPassword(!showNewPassword)}
-                            className="text-gray-600 hover:text-gray-600"
-                          >
-                            {showNewPassword ? (
-                              <EyeOff className="w-5 h-5" />
-                            ) : (
-                              <Eye className="w-5 h-5" />
-                            )}
+                          <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="text-gray-400">
+                            {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>
                         }
+                        className="h-12 bg-gray-50 border-gray-100 focus:bg-white"
                       />
-
-                      {/* Confirmer nouveau mot de passe */}
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Confirmer</label>
                       <Input
-                        label="Confirmer le nouveau mot de passe"
                         type={showConfirmPassword ? 'text' : 'password'}
                         value={confirmPassword}
                         onChange={e => setConfirmPassword(e.target.value)}
                         placeholder="••••••••"
-                        required
                         rightIcon={
-                          <button
-                            type="button"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="text-gray-600 hover:text-gray-600"
-                          >
-                            {showConfirmPassword ? (
-                              <EyeOff className="w-5 h-5" />
-                            ) : (
-                              <Eye className="w-5 h-5" />
-                            )}
+                          <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="text-gray-400">
+                            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>
                         }
+                        className="h-12 bg-gray-50 border-gray-100 focus:bg-white"
                       />
-
-                      {/* Conseils sécurité */}
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
-                        <p className="text-sm text-blue-900 font-semibold mb-2">
-                          💡 Conseils pour un mot de passe sécurisé
-                        </p>
-                        <ul className="text-xs text-blue-800 space-y-1 list-disc list-inside">
-                          <li>Utilisez au moins 8 caractères</li>
-                          <li>Mélangez lettres majuscules et minuscules</li>
-                          <li>Ajoutez des chiffres et des caractères spéciaux</li>
-                          <li>Ne réutilisez pas vos anciens mots de passe</li>
-                        </ul>
-                      </div>
-
-                      {/* Bouton changer mot de passe */}
-                      <button
-                        onClick={handleChangePassword}
-                        disabled={!currentPassword || !newPassword || !confirmPassword}
-                        className={`w-full bg-gradient-to-r ${currentSession?.role === 'super_admin'
-                            ? 'from-indigo-600 to-purple-600'
-                            : 'from-amber-500 to-orange-500'
-                          } text-white py-3 rounded-lg font-semibold hover:shadow-lg transition-shadow flex items-center justify-center gap-2 mt-6 disabled:opacity-50 disabled:cursor-not-allowed`}
-                      >
-                        <Lock className="w-5 h-5" />
-                        Changer le mot de passe
-                      </button>
                     </div>
-                  )}
+                  </div>
+
+                  <div className="bg-blue-50/50 p-5 rounded-2xl border border-blue-100 border-dashed">
+                    <p className="text-xs text-blue-900 font-bold mb-3 flex items-center gap-2">
+                      <Shield size={14} className="text-blue-500" />
+                      Conseils sécurité
+                    </p>
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] text-blue-700 font-bold uppercase tracking-wide opacity-80">
+                      <li className="flex items-center gap-2">✓ Min. 8 caractères</li>
+                      <li className="flex items-center gap-2">✓ Majuscules & Minuscules</li>
+                      <li className="flex items-center gap-2">✓ Chiffres & Signes</li>
+                      <li className="flex items-center gap-2">✓ Différent du précédent</li>
+                    </ul>
+                  </div>
+
+                  <div className="pt-4">
+                    <button
+                      onClick={handleChangePassword}
+                      disabled={!newPassword || newPassword !== confirmPassword}
+                      className={`w-full h-14 bg-gradient-to-r ${roleColors.primary} text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-gray-200 transition-all active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-3`}
+                    >
+                      <Lock size={20} />
+                      Mettre à jour le mot de passe
+                    </button>
+                  </div>
                 </div>
-              </>
-            )}
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Right Column: User ID Card Ticket */}
+        <div className="lg:col-span-1">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden border border-slate-700 shadow-2xl flex flex-col min-h-[500px]">
+            {/* Cutouts for Ticket Effect */}
+            <div className="absolute top-1/2 -left-6 w-12 h-12 bg-gray-50 rounded-full -translate-y-1/2" />
+            <div className="absolute top-1/2 -right-6 w-12 h-12 bg-gray-50 rounded-full -translate-y-1/2" />
+
+            {/* Avatar Section */}
+            <div className="text-center mb-10 relative z-10">
+              <div className={`w-28 h-28 mx-auto rounded-3xl bg-gradient-to-br ${roleColors.primary} p-1 mb-6 rotate-3 shadow-2xl transition-transform hover:rotate-0`}>
+                <div className="w-full h-full bg-slate-800 rounded-[1.4rem] flex items-center justify-center border border-white/10 group overflow-hidden shadow-inner">
+                  <span className="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-t from-white to-white/50 group-hover:scale-110 transition-transform">
+                    {name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '??'}
+                  </span>
+                </div>
+              </div>
+              <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full ${roleColors.secondary} text-[10px] font-black uppercase tracking-[0.2em] shadow-lg border border-slate-700/50`}>
+                <Shield size={12} />
+                {currentSession?.role?.replace('_', ' ')}
+              </div>
+            </div>
+
+            {/* Stats / Details */}
+            <div className="space-y-6 flex-1 relative z-10">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Identifiant Système</p>
+                <p className="text-lg font-black font-mono text-white/90">@{currentUser?.username}</p>
+              </div>
+
+              <div className="h-px bg-white/10 border-t border-dashed border-white/20 my-6" />
+
+              <div className="grid grid-cols-1 gap-5">
+                <div className="flex items-center gap-4 group">
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors border border-white/10">
+                    <Calendar size={18} className="text-slate-400 group-hover:text-white" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Membre depuis</p>
+                    <p className="text-sm font-bold text-white/80">{currentUser?.createdAt.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 group">
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors border border-white/10">
+                    <Zap size={18} className="text-slate-400 group-hover:text-white" />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Dernier accès</p>
+                    <p className="text-sm font-bold text-white/80">
+                      {currentUser?.lastLoginAt ? new Date(currentUser.lastLoginAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Maintenant'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Branding / Info */}
+            <div className="mt-10 pt-6 border-t border-white/10 text-center relative z-10">
+              <p className="text-[9px] font-bold text-slate-600 uppercase tracking-[0.3em]">BarTender Digital ID</p>
+              <div className="flex justify-center gap-1 mt-3">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <div key={i} className={`h-1 rounded-full ${i % 3 === 0 ? 'w-4 bg-amber-500' : 'w-2 bg-slate-700'}`} />)}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

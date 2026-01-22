@@ -16,13 +16,14 @@ import { FEATURES } from '../config/features';
 import { useOnboarding } from '../context/OnboardingContext';
 import { useGuide } from '../context/GuideContext';
 // import { GuideHeaderButton } from '../components/guide/GuideHeaderButton'; // removed
+import { useViewport } from '../hooks/useViewport';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
 
 const currencyOptions = [
-    { code: 'FCFA', symbol: 'FCFA', name: 'Franc CFA' },
-    { code: 'EUR', symbol: '€', name: 'Euro' },
-    { code: 'USD', symbol: '$', name: 'Dollar US' },
-    { code: 'GBP', symbol: '£', name: 'Livre Sterling' },
+    { code: 'FCFA', symbol: 'FCFA', name: 'Franc CFA (XOF)' },
+    { code: 'XAF', symbol: 'FCFA', name: 'Franc CFA (XAF)' },
+    { code: 'NGN', symbol: '₦', name: 'Naira' },
+    { code: 'GHS', symbol: '₵', name: 'Cedi' },
 ];
 
 /**
@@ -49,7 +50,9 @@ export default function SettingsPage() {
     //     { delay: 1500 }
     // );
 
-    const [activeTab, setActiveTab] = useState<'bar' | 'operational' | 'general' | 'security'>('bar');
+    const { isMobile } = useViewport();
+
+    const [activeTab, setActiveTab] = useState<'bar' | 'operational' | 'security'>('bar');
 
     // États 2FA
     const [isMfaEnabled, setIsMfaEnabled] = useState(false);
@@ -138,10 +141,21 @@ export default function SettingsPage() {
 
     // Tabs configuration
     const tabs = [
-        { id: 'bar' as const, label: 'Bar', icon: Building2 },
-        { id: 'operational' as const, label: 'Opérationnel', icon: Clock },
-        { id: 'general' as const, label: 'Général', icon: SettingsIcon },
-        { id: 'security' as const, label: 'Sécurité', icon: ShieldCheck }
+        {
+            id: 'bar' as const,
+            label: isMobile ? 'Infos Bar' : 'Informations Bar',
+            icon: Building2
+        },
+        {
+            id: 'operational' as const,
+            label: isMobile ? 'Gestion' : 'Configuration de gestion',
+            icon: Clock
+        },
+        {
+            id: 'security' as const,
+            label: 'Sécurité',
+            icon: ShieldCheck
+        }
     ];
 
     // Fonctions MFA
@@ -450,6 +464,41 @@ export default function SettingsPage() {
                             </div>
                         </div>
 
+                        <div className="border-t border-gray-100 pt-6 pb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                                <DollarSign size={16} className="text-amber-500" /> Devise Principale
+                            </label>
+                            <div className="grid grid-cols-2 gap-3">
+                                {currencyOptions.map((currency) => (
+                                    <label
+                                        key={currency.code}
+                                        className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer border transition-all ${tempSettings.currency === currency.code
+                                                ? 'bg-amber-50 border-amber-500 shadow-sm'
+                                                : 'bg-white border-gray-200 hover:bg-gray-50'
+                                            }`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="currency"
+                                            className="accent-amber-500 w-4 h-4"
+                                            checked={tempSettings.currency === currency.code}
+                                            onChange={() => {
+                                                setTempSettings({
+                                                    ...tempSettings,
+                                                    currency: currency.code,
+                                                    currencySymbol: currency.symbol,
+                                                });
+                                            }}
+                                        />
+                                        <div>
+                                            <div className="font-bold text-sm text-gray-800">{currency.code}</div>
+                                            <div className="text-xs text-gray-500">{currency.name}</div>
+                                        </div>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-3">Mode de fonctionnement</label>
                             <RadioGroup
@@ -500,49 +549,12 @@ export default function SettingsPage() {
                                 )}
                             </div>
                         )}
+
+
                     </>
                 )}
 
-                {/* Onglet Général */}
-                {activeTab === 'general' && (
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-                            <DollarSign size={16} className="text-amber-500" /> Devise
-                        </label>
-                        <RadioGroup
-                            value={tempSettings.currency}
-                            onValueChange={(value) => {
-                                const selectedCurrency = currencyOptions.find(c => c.code === value);
-                                if (selectedCurrency) {
-                                    setTempSettings({
-                                        ...tempSettings,
-                                        currency: selectedCurrency.code,
-                                        currencySymbol: selectedCurrency.symbol,
-                                    });
-                                }
-                            }}
-                            className="space-y-2"
-                        >
-                            {currencyOptions.map((currency) => (
-                                <label
-                                    key={currency.code}
-                                    htmlFor={`currency-${currency.code}`}
-                                    className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl cursor-pointer hover:bg-amber-100 border"
-                                >
-                                    <RadioGroupItem
-                                        value={currency.code}
-                                        id={`currency-${currency.code}`}
-                                        className="mt-1"
-                                    />
-                                    <div>
-                                        <div className="font-medium">{currency.name}</div>
-                                        <div className="text-sm text-gray-600">{currency.symbol}</div>
-                                    </div>
-                                </label>
-                            ))}
-                        </RadioGroup>
-                    </div>
-                )}
+
             </div>
 
             {/* Footer */}

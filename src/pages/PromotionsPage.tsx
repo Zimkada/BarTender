@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
     Plus,
     Search,
@@ -18,55 +16,37 @@ import {
     List
 } from 'lucide-react';
 import { useBarContext } from '../context/BarContext';
-import { useViewport } from '../hooks/useViewport';
 import { PromotionsService } from '../services/supabase/promotions.service';
 import { Promotion, PromotionStatus, PromotionType } from '../types';
 import { useNotifications } from '../components/Notifications';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { EnhancedButton } from '../components/EnhancedButton';
 import { PromotionForm } from '../components/promotions/PromotionForm';
 import { PromotionsAnalytics } from '../components/promotions/PromotionsAnalytics';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select, SelectOption } from '../components/ui/Select';
-import { DropdownMenu } from '../components/ui/DropdownMenu';
-// import { useAutoGuide } from '../hooks/useGuideTrigger'; // removed
-import { useOnboarding } from '../context/OnboardingContext';
-import { useGuide } from '../context/GuideContext';
-// import { GuideHeaderButton } from '../components/guide/GuideHeaderButton'; // removed
-import { ViewSwitcherPageHeader } from '../components/common/PageHeader/patterns/ViewSwitcherPageHeader';
+import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useViewport } from '../hooks/useViewport';
 
 /**
  * PromotionsPage - Page de gestion des promotions
  * Route: /promotions
- * Refactoré de modale vers page
  */
 export default function PromotionsPage() {
-    const navigate = useNavigate();
     const { currentBar } = useBarContext();
-    const { isMobile } = useViewport();
     const { showNotification } = useNotifications();
-    const { isComplete } = useOnboarding();
-    const { hasCompletedGuide } = useGuide();
+    const { isMobile } = useViewport();
     const [promotions, setPromotions] = useState<Promotion[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<PromotionStatus | 'all'>('all');
-    const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
-    const [view, setView] = useState<'list' | 'analytics'>('list');
+    const [activeTab, setActiveTab] = useState<'list' | 'analytics' | 'new'>('list');
 
-    // Trigger promotions guide after onboarding (first visit only)
-    // Guide ID for promotions - using header button instead
+    // Guide ID for promotions
     const promotionsGuideId = 'manage-promotions';
-
-    // Auto-guide disabled - using GuideHeaderButton in page header instead
-    // useAutoGuide(
-    //     'manage-promotions',
-    //     isComplete && !hasCompletedGuide('manage-promotions'),
-    //     { delay: 1500 }
-    // );
 
     // Options pour le filtre de statut
     const statusFilterOptions: SelectOption[] = [
@@ -122,12 +102,12 @@ export default function PromotionsPage() {
 
     const getStatusColor = (status: PromotionStatus) => {
         switch (status) {
-            case 'active': return 'bg-green-100 text-green-800';
-            case 'scheduled': return 'bg-blue-100 text-blue-800';
-            case 'expired': return 'bg-gray-100 text-gray-800';
-            case 'paused': return 'bg-amber-100 text-amber-800';
-            case 'draft': return 'bg-purple-100 text-purple-800';
-            default: return 'bg-gray-100 text-gray-800';
+            case 'active': return 'bg-green-100/80 text-green-800 border-green-200';
+            case 'scheduled': return 'bg-blue-100/80 text-blue-800 border-blue-200';
+            case 'expired': return 'bg-gray-100/80 text-gray-800 border-gray-200';
+            case 'paused': return 'bg-amber-100/80 text-amber-800 border-amber-200';
+            case 'draft': return 'bg-purple-100/80 text-purple-800 border-purple-200';
+            default: return 'bg-gray-100/80 text-gray-800 border-gray-200';
         }
     };
 
@@ -167,6 +147,8 @@ export default function PromotionsPage() {
         return matchesSearch && matchesStatus;
     });
 
+    const activeCount = promotions.filter(p => p.status === 'active').length;
+
     if (!currentBar) {
         return (
             <div className="flex items-center justify-center min-h-[50vh]">
@@ -176,215 +158,224 @@ export default function PromotionsPage() {
     }
 
     return (
-        <div className="max-w-7xl mx-auto">
-            {/* Header */}
-            {/* Header Standardisé */}
-            <ViewSwitcherPageHeader
-                title="Gestion des Promotions"
-                subtitle="Créez et gérez vos offres spéciales"
-                icon={<Gift size={24} />}
-                guideId={promotionsGuideId}
-                currentView={view}
-                onViewChange={setView}
-                actions={
-                    <Button
-                        onClick={() => {
-                            setEditingPromotion(null);
-                            setShowForm(true);
-                        }}
-                        variant="default"
-                        className="bg-white text-amber-600 hover:bg-amber-50"
-                        data-guide="promotions-add-btn"
-                    >
-                        <Plus size={20} className="mr-2" />
-                        Nouvelle Promo
-                    </Button>
+        <div className="space-y-6">
+            <TabbedPageHeader
+                title={
+                    <div className="flex items-center gap-3">
+                        Gestion des Promotions
+                        <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse"></span>
+                            {activeCount} active{activeCount > 1 ? 's' : ''}
+                        </span>
+                    </div>
                 }
+                subtitle="Optimisez vos ventes avec des offres stratégiques"
+                icon={<Gift size={24} className="text-amber-500" />}
+                tabs={[
+                    { id: 'list', label: isMobile ? 'Catalogue' : 'Catalogue d\'Offres', icon: List },
+                    { id: 'analytics', label: isMobile ? 'Analyses' : 'Performance & ROI', icon: BarChart3 },
+                    { id: 'new', label: isMobile ? 'Nouveau' : 'Nouvelle Promotion', icon: Plus }
+                ]}
+                activeTab={activeTab}
+                onTabChange={(id) => setActiveTab(id as 'list' | 'analytics' | 'new')}
+                guideId={promotionsGuideId}
             />
 
-            {view === 'analytics' ? (
-                <div className="bg-white rounded-2xl shadow-sm border border-amber-100 p-6">
+            {activeTab === 'analytics' && (
+                <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] shadow-xl border border-white/20 overflow-hidden min-h-[600px]">
                     <PromotionsAnalytics />
                 </div>
-            ) : (
+            )}
+
+            {activeTab === 'list' && (
                 <>
-                    {/* Toolbar */}
-                    <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-4 mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-                        <div className="flex flex-col sm:flex-row gap-4 flex-1 w-full" data-guide="promotions-search">
-                            <div className="flex-1">
+                    {/* Toolbar Premium */}
+                    <div className="bg-white/60 backdrop-blur-md rounded-2xl shadow-sm border border-white/40 p-3 sm:p-4 mb-8 flex flex-col sm:flex-row gap-4 justify-between items-center transition-all hover:bg-white/80">
+                        <div className="flex flex-col sm:flex-row gap-3 flex-1 w-full" data-guide="promotions-search">
+                            <div className="flex-1 relative group">
                                 <Input
                                     type="text"
                                     placeholder="Rechercher une promotion..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    leftIcon={<Search size={20} />}
+                                    leftIcon={<Search size={20} className="text-amber-500/60" />}
+                                    className="bg-white/50 border-white/20 focus:border-amber-500/50 rounded-xl pl-11 h-12 transition-all w-full"
                                 />
                             </div>
                             <div className="flex items-center gap-2 w-full sm:w-auto">
-                                <Filter size={20} className="text-gray-600" />
+                                <div className="p-3 bg-amber-50 rounded-xl text-amber-600 hidden sm:block border border-amber-100">
+                                    <Filter size={18} />
+                                </div>
                                 <Select
                                     options={statusFilterOptions}
                                     value={statusFilter}
                                     onChange={(e) => setStatusFilter(e.target.value as any)}
+                                    className="bg-white/50 border-white/20 rounded-xl flex-1 h-12"
                                 />
                             </div>
+                            <Button
+                                onClick={() => { setSelectedPromotion(null); setActiveTab('new'); }}
+                                className="flex w-full sm:w-auto items-center justify-center bg-gradient-to-r from-amber-500 to-orange-600 text-white border-0 shadow-lg shadow-amber-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 font-bold px-6 h-12 rounded-xl"
+                            >
+                                <Plus size={20} className="mr-2" />
+                                Créer
+                            </Button>
                         </div>
-                        <EnhancedButton
-                            variant="primary"
-                            onClick={() => { setSelectedPromotion(null); setShowCreateModal(true); }}
-                            icon={<Plus size={20} />}
-                            className="w-full sm:w-auto"
-                            data-guide="promotions-create-btn"
-                        >
-                            Nouvelle Promotion
-                        </EnhancedButton>
                     </div>
 
                     {/* Content */}
                     {isLoading ? (
-                        <div className="flex justify-center items-center h-64">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
+                        <div className="flex flex-col justify-center items-center h-96 gap-4">
+                            <div className="relative">
+                                <div className="animate-spin rounded-full h-16 w-16 border-4 border-amber-100 border-t-amber-500"></div>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <Gift size={24} className="text-amber-500 animate-pulse" />
+                                </div>
+                            </div>
+                            <p className="text-gray-400 font-medium animate-pulse">Chargement de vos offres...</p>
                         </div>
                     ) : filteredPromotions.length === 0 ? (
-                        <div className="bg-white rounded-2xl shadow-sm border border-amber-100 p-12 text-center">
-                            <div className="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <div className="bg-white/60 backdrop-blur-sm rounded-[2.5rem] border-2 border-dashed border-amber-200 p-12 sm:p-20 text-center">
+                            <div className="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner shadow-amber-200/50">
                                 <Gift size={48} className="text-amber-500" />
                             </div>
-                            <h2 className="text-xl font-bold text-gray-800 mb-2">Aucune promotion trouvée</h2>
-                            <p className="text-gray-500 mb-6">Commencez par créer votre première offre spéciale !</p>
-                            <EnhancedButton
-                                variant="primary"
-                                onClick={() => { setSelectedPromotion(null); setShowCreateModal(true); }}
-                                icon={<Plus size={20} />}
+                            <h2 className="text-2xl font-bold text-gray-800 mb-3">Aucune promotion trouvée</h2>
+                            <p className="text-gray-500 mb-10 max-w-md mx-auto">Boostez vos ventes aujourd'hui ! Créez une offre attractive pour vos clients en quelques secondes.</p>
+                            <Button
+                                onClick={() => { setSelectedPromotion(null); setActiveTab('new'); }}
+                                className="bg-amber-500 hover:bg-amber-600 text-white px-8 py-6 h-auto rounded-2xl font-bold transition-all shadow-lg shadow-amber-500/20"
                             >
-                                Créer une promotion
-                            </EnhancedButton>
+                                <Plus size={24} className="mr-2" />
+                                Créer ma première promotion
+                            </Button>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 px-4 sm:px-0">
-                            {filteredPromotions.map((promo) => (
-                                <motion.div
-                                    key={promo.id}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col"
-                                    data-guide="promotions-list"
-                                >
-                                    <div className="p-5 flex-1">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1.5 ${getStatusColor(promo.status)}`} data-guide="promotions-status">
-                                                <span className={`w-1.5 h-1.5 rounded-full ${promo.status === 'active' ? 'bg-green-500' : 'bg-current'}`}></span>
-                                                {promo.status === 'active' ? 'Active' :
-                                                    promo.status === 'scheduled' ? 'Programmée' :
-                                                        promo.status === 'paused' ? 'En pause' :
-                                                            promo.status === 'expired' ? 'Expirée' : 'Brouillon'}
-                                            </div>
-                                            {/* Actions - Desktop buttons or mobile dropdown */}
-                                            {!isMobile ? (
-                                                <div className="flex gap-1">
-                                                    <Button
-                                                        onClick={() => handleToggleStatus(promo)}
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="p-1.5 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg"
-                                                        title={promo.status === 'active' ? 'Pause' : 'Activer'}
-                                                    >
-                                                        {promo.status === 'active' ? <Pause size={18} /> : <Play size={18} />}
-                                                    </Button>
-                                                    <Button
-                                                        onClick={() => { setSelectedPromotion(promo); setShowCreateModal(true); }}
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
-                                                    >
-                                                        <Edit size={18} />
-                                                    </Button>
-                                                    <Button
-                                                        onClick={() => handleDelete(promo.id)}
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </Button>
-                                                </div>
-                                            ) : (
-                                                <DropdownMenu
-                                                    items={[
-                                                        {
-                                                            label: promo.status === 'active' ? 'Pause' : 'Activer',
-                                                            icon: promo.status === 'active' ? <Pause size={16} /> : <Play size={16} />,
-                                                            onClick: () => handleToggleStatus(promo),
-                                                        },
-                                                        {
-                                                            label: 'Éditer',
-                                                            icon: <Edit size={16} />,
-                                                            onClick: () => { setSelectedPromotion(promo); setShowCreateModal(true); },
-                                                        },
-                                                        {
-                                                            label: 'Supprimer',
-                                                            icon: <Trash2 size={16} />,
-                                                            variant: 'danger',
-                                                            onClick: () => handleDelete(promo.id),
-                                                        },
-                                                    ]}
-                                                />
-                                            )}
-                                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 px-1 overflow-visible">
+                            <AnimatePresence>
+                                {filteredPromotions.map((promo) => (
+                                    <motion.div
+                                        key={promo.id}
+                                        layout
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.9 }}
+                                        whileHover={{ y: -8 }}
+                                        className="relative group h-full"
+                                    >
+                                        {/* Digital Ticket Decoration */}
+                                        <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-50 border-r border-gray-100 z-10 hidden sm:block shadow-inner"></div>
+                                        <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-50 border-l border-gray-100 z-10 hidden sm:block shadow-inner"></div>
 
-                                        <h2 className="text-lg font-bold text-gray-800 mb-2">{promo.name}</h2>
-                                        <p className="text-gray-500 text-sm mb-4 line-clamp-2">{promo.description || 'Aucune description'}</p>
+                                        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm group-hover:shadow-2xl group-hover:border-amber-100 transition-all duration-300 overflow-hidden flex flex-col h-full">
+                                            <div className="p-6 sm:p-8 flex-1">
+                                                <div className="flex justify-between items-start mb-6">
+                                                    <div className={`px-4 py-1.5 rounded-full text-xs font-bold border flex items-center gap-2 ${getStatusColor(promo.status)}`}>
+                                                        <span className={`w-2 h-2 rounded-full ${promo.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-current opacity-50'}`}></span>
+                                                        {promo.status === 'active' ? 'ACTIVE' :
+                                                            promo.status === 'scheduled' ? 'PROGRAMMÉE' :
+                                                                promo.status === 'paused' ? 'EN PAUSE' :
+                                                                    promo.status === 'expired' ? 'EXPIRÉE' : 'BROUILLON'}
+                                                    </div>
 
-                                        <div className="space-y-3">
-                                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500">
-                                                    {getTypeIcon(promo.type)}
+                                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <Button
+                                                            onClick={() => handleToggleStatus(promo)}
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="w-10 h-10 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-xl"
+                                                        >
+                                                            {promo.status === 'active' ? <Pause size={18} /> : <Play size={18} />}
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => { setSelectedPromotion(promo); setActiveTab('new'); }}
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="w-10 h-10 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl"
+                                                        >
+                                                            <Edit size={18} />
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => handleDelete(promo.id)}
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="w-10 h-10 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl"
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </Button>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <div className="font-medium text-gray-900">{getTypeLabel(promo.type)}</div>
-                                                    <div className="text-xs text-gray-500">
-                                                        {(promo.type === 'pourcentage' || promo.type === 'percentage') && `-${promo.discountPercentage}%`}
-                                                        {(promo.type === 'reduction_vente' || promo.type === 'fixed_discount') && `-${promo.discountAmount} FCFA sur vente`}
-                                                        {promo.type === 'reduction_produit' && `-${promo.discountAmount} FCFA/unité`}
-                                                        {promo.type === 'majoration_produit' && `+${promo.discountAmount} FCFA/unité`}
-                                                        {(promo.type === 'prix_special' || promo.type === 'special_price') && `${promo.specialPrice} FCFA`}
-                                                        {(promo.type === 'lot' || promo.type === 'bundle') && `${promo.bundleQuantity} pour ${promo.bundlePrice} FCFA`}
+
+                                                <h3 className="text-xl font-black text-gray-800 mb-3 leading-tight group-hover:text-amber-600 transition-colors uppercase tracking-tight">{promo.name}</h3>
+                                                <p className="text-gray-500 text-sm mb-8 line-clamp-2 leading-relaxed">{promo.description || 'Optimisez vos ventes avec cette offre exclusive.'}</p>
+
+                                                <div className="space-y-4">
+                                                    {/* Type & Value */}
+                                                    <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 group-hover:bg-amber-50 group-hover:border-amber-100 transition-colors">
+                                                        <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-amber-500 shadow-sm">
+                                                            {getTypeIcon(promo.type)}
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-bold text-gray-900 text-sm">{getTypeLabel(promo.type)}</div>
+                                                            <div className="text-xs text-amber-600 font-bold">
+                                                                {(promo.type === 'pourcentage' || promo.type === 'percentage') && `-${promo.discountPercentage}%`}
+                                                                {(promo.type === 'reduction_vente' || promo.type === 'fixed_discount') && `-${promo.discountAmount} FCFA TOTAL`}
+                                                                {promo.type === 'reduction_produit' && `-${promo.discountAmount} FCFA/UNITÉ`}
+                                                                {promo.type === 'majoration_produit' && `+${promo.discountAmount} FCFA/UNITÉ`}
+                                                                {(promo.type === 'prix_special' || promo.type === 'special_price') && `${promo.specialPrice} FCFA UNITÉ`}
+                                                                {(promo.type === 'lot' || promo.type === 'bundle') && `${promo.bundleQuantity} pour ${promo.bundlePrice} FCFA`}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Validity */}
+                                                    <div className="flex items-center gap-4 px-2">
+                                                        <div className="w-10 h-10 flex items-center justify-center text-gray-400">
+                                                            <Calendar size={20} />
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Validité</div>
+                                                            <div className="text-xs font-semibold text-gray-600">
+                                                                Du {format(new Date(promo.startDate), 'dd MMM yyyy', { locale: fr })}
+                                                                {promo.endDate ? ` au ${format(new Date(promo.endDate), 'dd MMM yyyy', { locale: fr })}` : ' (Illimité)'}
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500">
-                                                    <Calendar size={16} />
-                                                </div>
-                                                <div>
-                                                    <div className="font-medium text-gray-900">Validité</div>
-                                                    <div className="text-xs text-gray-500">
-                                                        Du {format(new Date(promo.startDate), 'dd MMM yyyy', { locale: fr })}
-                                                        {promo.endDate ? ` au ${format(new Date(promo.endDate), 'dd MMM yyyy', { locale: fr })}` : ' (Illimité)'}
+                                            {/* Footer with usage dots decoration */}
+                                            <div className="relative">
+                                                <div className="absolute top-0 left-0 right-0 border-t border-dashed border-gray-200"></div>
+                                                <div className="px-8 py-5 flex justify-between items-center bg-slate-50/50">
+                                                    <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Usage Total</span>
+                                                    <div className="flex items-baseline gap-1">
+                                                        <span className="text-2xl font-black text-gray-900 leading-none">{promo.currentUses || 0}</span>
+                                                        <span className="text-[10px] font-bold text-gray-400 uppercase">Fois</span>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-
-                                    <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex justify-between items-center text-sm">
-                                        <span className="text-gray-500">Utilisations:</span>
-                                        <span className="font-semibold text-gray-900">{promo.currentUses || 0}</span>
-                                    </div>
-                                </motion.div>
-                            ))}
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
                         </div>
                     )}
                 </>
             )}
 
-            <PromotionForm
-                isOpen={showCreateModal}
-                onClose={() => { setShowCreateModal(false); setSelectedPromotion(null); }}
-                onSave={loadPromotions}
-                initialData={selectedPromotion}
-            />
+            {activeTab === 'new' && (
+                <div className="bg-white/80 backdrop-blur-xl rounded-[2rem] shadow-xl border border-white/20 overflow-hidden h-[calc(100vh-12rem)]">
+                    <PromotionForm
+                        isOpen={true}
+                        onClose={() => setActiveTab('list')}
+                        onSave={() => {
+                            loadPromotions();
+                            setActiveTab('list');
+                        }}
+                        initialData={selectedPromotion}
+                    />
+                </div>
+            )}
         </div>
     );
 }

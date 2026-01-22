@@ -6,24 +6,23 @@ import {
     ShoppingBag,
     ArrowUpRight,
     ArrowDownRight,
-    Tag
+    Target,
+    Zap
 } from 'lucide-react';
 import { useBarContext } from '../../context/BarContext';
-import { useViewport } from '../../hooks/useViewport';
 import { PromotionsService } from '../../services/supabase/promotions.service';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { useDateRangeFilter } from '../../hooks/useDateRangeFilter';
 import { PROMOTIONS_FILTERS } from '../../config/dateFilters';
 import { PeriodFilter } from '../common/filters/PeriodFilter';
+import { motion } from 'framer-motion';
 
 export function PromotionsAnalytics() {
     const { currentBar } = useBarContext();
-    const { isMobile } = useViewport();
     const { formatPrice } = useCurrencyFormatter();
     const [isLoading, setIsLoading] = useState(true);
     const [stats, setStats] = useState<any>(null);
 
-    // ✨ Utiliser le hook de filtrage temporel
     const {
         timeRange,
         setTimeRange,
@@ -35,10 +34,9 @@ export function PromotionsAnalytics() {
         comparison
     } = useDateRangeFilter({
         defaultRange: 'today',
-        enableComparison: true  // Pour calculer croissance
+        enableComparison: true
     });
 
-    // Charger les stats à chaque changement de période
     useEffect(() => {
         if (currentBar) {
             loadStats();
@@ -49,13 +47,11 @@ export function PromotionsAnalytics() {
         if (!currentBar) return;
         setIsLoading(true);
         try {
-            // Période actuelle
             const [globalStats, performanceStats] = await Promise.all([
                 PromotionsService.getGlobalStats(currentBar.id, startDate, endDate),
                 PromotionsService.getPromotionsPerformance(currentBar.id, startDate, endDate)
             ]);
 
-            // Période précédente (pour comparaison)
             let previousGlobalStats = null;
             if (comparison) {
                 previousGlobalStats = await PromotionsService.getGlobalStats(
@@ -69,7 +65,6 @@ export function PromotionsAnalytics() {
                 ...globalStats,
                 totalUses: globalStats.totalApplications,
                 topPromotions: performanceStats,
-                // Croissances
                 revenueGrowth: calculateGrowth(globalStats.totalRevenue, previousGlobalStats?.totalRevenue),
                 usesGrowth: calculateGrowth(globalStats.totalApplications, previousGlobalStats?.totalApplications)
             });
@@ -80,7 +75,6 @@ export function PromotionsAnalytics() {
         }
     };
 
-    // Calculer le pourcentage de croissance
     const calculateGrowth = (current: number, previous?: number): number => {
         if (!previous || previous === 0) return 0;
         return Math.round(((current - previous) / previous) * 100);
@@ -88,215 +82,187 @@ export function PromotionsAnalytics() {
 
     if (isLoading) {
         return (
-            <div className="space-y-6 p-6">
-                {/* Header skeleton */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                        <div className="h-6 w-48 bg-gray-200 rounded-lg animate-pulse mb-2"></div>
-                        <div className="h-4 w-32 bg-gray-100 rounded-lg animate-pulse"></div>
-                    </div>
-                    <div className="flex gap-2 w-full sm:w-auto">
-                        {[1, 2, 3].map((i) => (
-                            <div key={i} className="h-9 w-24 bg-gray-200 rounded-lg animate-pulse"></div>
-                        ))}
-                    </div>
+            <div className="space-y-8 p-8 animate-pulse">
+                <div className="flex justify-between items-center">
+                    <div className="h-8 w-64 bg-slate-100 rounded-xl"></div>
+                    <div className="h-10 w-48 bg-slate-100 rounded-xl"></div>
                 </div>
-
-                {/* KPI Cards Skeleton */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                        <div key={i} className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm">
-                            <div className="flex justify-between items-start mb-2">
-                                <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
-                                <div className="w-12 h-6 bg-gray-100 rounded-full animate-pulse"></div>
-                            </div>
-                            <div className="h-4 w-24 bg-gray-100 rounded animate-pulse mb-2"></div>
-                            <div className="h-8 w-32 bg-gray-200 rounded animate-pulse"></div>
-                        </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="h-32 bg-slate-50 rounded-[2rem] border border-slate-100"></div>
                     ))}
                 </div>
-
-                {/* Table/Cards Skeleton */}
-                <div className="bg-white rounded-xl border border-amber-100 shadow-sm">
-                    <div className="p-4 border-b border-gray-100">
-                        <div className="h-5 w-32 bg-gray-200 rounded animate-pulse"></div>
-                    </div>
-                    <div className={!isMobile ? "overflow-x-auto" : ""}>
-                        {!isMobile ? (
-                            // Desktop table skeleton
-                            <table className="w-full">
-                                <thead className="bg-gray-50">
-                                    <tr>
-                                        {[1, 2, 3, 4, 5].map((i) => (
-                                            <th key={i} className="p-4">
-                                                <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-100">
-                                    {[1, 2, 3, 4, 5].map((row) => (
-                                        <tr key={row}>
-                                            {[1, 2, 3, 4, 5].map((col) => (
-                                                <td key={col} className="p-4">
-                                                    <div className="h-4 w-24 bg-gray-100 rounded animate-pulse"></div>
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        ) : (
-                            // Mobile cards skeleton
-                            <div className="divide-y divide-gray-100">
-                                {[1, 2, 3].map((i) => (
-                                    <div key={i} className="p-4 bg-gray-50">
-                                        <div className="h-5 w-40 bg-gray-200 rounded animate-pulse mb-3"></div>
-                                        <div className="space-y-2">
-                                            {[1, 2, 3, 4].map((j) => (
-                                                <div key={j} className="flex justify-between">
-                                                    <div className="h-4 w-20 bg-gray-100 rounded animate-pulse"></div>
-                                                    <div className="h-4 w-24 bg-gray-100 rounded animate-pulse"></div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
+                <div className="h-96 bg-slate-50 rounded-[2.5rem] border border-slate-100"></div>
             </div>
         );
     }
 
+    const kpis = [
+        {
+            label: 'Chiffre d\'Affaires',
+            value: formatPrice(stats?.totalRevenue || 0),
+            growth: stats?.revenueGrowth,
+            icon: <DollarSign size={24} />,
+            color: 'text-emerald-600',
+            bg: 'bg-emerald-50',
+            gradient: 'from-emerald-500 to-teal-600'
+        },
+        {
+            label: 'Utilisations',
+            value: stats?.totalUses || 0,
+            growth: stats?.usesGrowth,
+            icon: <ShoppingBag size={24} />,
+            color: 'text-blue-600',
+            bg: 'bg-blue-50',
+            gradient: 'from-blue-500 to-indigo-600'
+        },
+        {
+            label: 'Profit Réalisé',
+            value: formatPrice(stats?.netProfit || 0),
+            subValue: `Marge: ${stats?.marginPercentage || 0}%`,
+            icon: <TrendingUp size={24} />,
+            color: 'text-amber-600',
+            bg: 'bg-amber-50',
+            gradient: 'from-amber-500 to-orange-600'
+        },
+        {
+            label: 'Retour sur Invest.',
+            value: `${stats?.roi || 0}%`,
+            subValue: `Coût: ${formatPrice(stats?.totalCostOfGoods || 0)}`,
+            icon: <Target size={24} />,
+            color: 'text-purple-600',
+            bg: 'bg-purple-50',
+            gradient: 'from-purple-500 to-fuchsia-600'
+        }
+    ];
+
     return (
-        <div className="space-y-6 p-6">
-            {/* Header & Filters */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="space-y-8 p-6 sm:p-10 bg-slate-50/30">
+            {/* Header & Filter Section */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                 <div>
-                    <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                        <BarChart3 className="text-amber-600" />
-                        Performance des Promotions
+                    <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight flex items-center gap-3">
+                        <BarChart3 className="text-amber-500" />
+                        Intelligence Promotions
                     </h3>
-                    <p className="text-sm text-gray-500 mt-1">{periodLabel}</p>
+                    <p className="text-gray-500 font-medium mt-1">Analyse des performances pour la période : <span className="text-amber-600 font-bold">{periodLabel}</span></p>
                 </div>
 
-                {/* Unified Period Filter */}
-                <PeriodFilter
-                    timeRange={timeRange}
-                    setTimeRange={setTimeRange}
-                    availableFilters={PROMOTIONS_FILTERS}
-                    customRange={customRange}
-                    updateCustomRange={updateCustomRange}
-                    className="w-full sm:w-auto"
-                />
-            </div>
-
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4" data-guide="promo-kpis">
-                {/* CA Généré */}
-                <div className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm">
-                    <div className="flex justify-between items-start mb-2">
-                        <div className="p-2 bg-green-50 rounded-lg text-green-600">
-                            <DollarSign size={20} />
-                        </div>
-                        {stats?.revenueGrowth !== undefined && stats.revenueGrowth !== 0 && (
-                            <GrowthBadge value={stats.revenueGrowth} />
-                        )}
-                    </div>
-                    <p className="text-sm text-gray-500">CA Généré</p>
-                    <h4 className="text-2xl font-bold text-gray-800">{formatPrice(stats?.totalRevenue || 0)}</h4>
-                </div>
-
-                {/* Utilisations */}
-                <div className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm">
-                    <div className="flex justify-between items-start mb-2">
-                        <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
-                            <ShoppingBag size={20} />
-                        </div>
-                        {stats?.usesGrowth !== undefined && stats.usesGrowth !== 0 && (
-                            <GrowthBadge value={stats.usesGrowth} />
-                        )}
-                    </div>
-                    <p className="text-sm text-gray-500">Utilisations</p>
-                    <h4 className="text-2xl font-bold text-gray-800">{stats?.totalUses || 0}</h4>
-                </div>
-
-                {/* Réductions */}
-                <div className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm">
-                    <div className="flex justify-between items-start mb-2">
-                        <div className="p-2 bg-red-50 rounded-lg text-red-600">
-                            <Tag size={20} />
-                        </div>
-                        <span className="text-xs text-gray-400">Total</span>
-                    </div>
-                    <p className="text-sm text-gray-500">Réductions offertes</p>
-                    <h4 className="text-2xl font-bold text-gray-800">{formatPrice(stats?.totalDiscount || 0)}</h4>
-                </div>
-
-                {/* Profit Réalisé (Net profit après coûts des produits) */}
-                <div className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm">
-                    <div className="flex justify-between items-start mb-2">
-                        <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
-                            <TrendingUp size={20} />
-                        </div>
-                        <span className="text-xs text-gray-400">Marge</span>
-                    </div>
-                    <p className="text-sm text-gray-500">Profit Réalisé</p>
-                    <h4 className="text-2xl font-bold text-gray-800">{formatPrice(stats?.netProfit || 0)}</h4>
-                    <p className="text-xs text-gray-400 mt-1">Marge: {stats?.marginPercentage || 0}%</p>
-                </div>
-
-                {/* ROI (basé sur coûts des produits) */}
-                <div className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm">
-                    <div className="flex justify-between items-start mb-2">
-                        <div className="p-2 bg-purple-50 rounded-lg text-purple-600">
-                            <TrendingUp size={20} />
-                        </div>
-                        <span className="flex items-center text-xs font-medium text-purple-600 bg-purple-50 px-2 py-1 rounded-full">
-                            ROI
-                        </span>
-                    </div>
-                    <p className="text-sm text-gray-500">Retour sur Invest.</p>
-                    <h4 className="text-2xl font-bold text-gray-800">{stats?.roi || 0}%</h4>
-                    <p className="text-xs text-gray-400 mt-1">Coût des produits: {formatPrice(stats?.totalCostOfGoods || 0)}</p>
+                <div className="w-full lg:w-auto bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
+                    <PeriodFilter
+                        timeRange={timeRange}
+                        setTimeRange={setTimeRange}
+                        availableFilters={PROMOTIONS_FILTERS}
+                        customRange={customRange}
+                        updateCustomRange={updateCustomRange}
+                        className="w-full lg:w-auto border-none shadow-none"
+                    />
                 </div>
             </div>
 
-            {/* Top Promotions - Table (Desktop) or Cards (Mobile) */}
-            <div className="bg-white rounded-xl border border-amber-100 shadow-sm" data-guide="promo-performance">
-                <div className="p-4 border-b border-gray-100">
-                    <h4 className="font-bold text-gray-800">Top Promotions</h4>
+            {/* KPI Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {kpis.map((kpi, index) => (
+                    <motion.div
+                        key={index}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative"
+                    >
+                        {/* Background Decoration */}
+                        <div className={`absolute -right-4 -bottom-4 w-24 h-24 ${kpi.bg} opacity-20 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500`}></div>
+
+                        <div className="flex justify-between items-start mb-6 relative z-10">
+                            <div className={`p-3 ${kpi.bg} ${kpi.color} rounded-2xl group-hover:scale-110 transition-transform transform rotate-3`}>
+                                {kpi.icon}
+                            </div>
+                            {kpi.growth !== undefined && (
+                                <GrowthBadge value={kpi.growth} />
+                            )}
+                        </div>
+
+                        <div className="relative z-10">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">{kpi.label}</p>
+                            <h4 className="text-2xl font-black text-gray-900 leading-none mb-2">{kpi.value}</h4>
+                            {kpi.subValue && (
+                                <p className="text-xs font-bold text-amber-600/60 uppercase">{kpi.subValue}</p>
+                            )}
+                        </div>
+                    </motion.div>
+                ))}
+            </div>
+
+            {/* Performance Details Card */}
+            <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl overflow-hidden relative">
+                {/* Header Decoration */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500"></div>
+
+                <div className="p-8 sm:p-10 border-b border-gray-50 flex justify-between items-center">
+                    <div>
+                        <h4 className="text-xl font-black text-gray-900 uppercase tracking-tight flex items-center gap-3">
+                            <Zap className="text-amber-500" size={20} />
+                            Classement des Offres
+                        </h4>
+                        <p className="text-sm text-gray-400 font-medium mt-1">Comparaison détaillée par rentabilité directe</p>
+                    </div>
+                    <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-full">
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Analyse en temps réel</span>
+                    </div>
                 </div>
 
-                {stats?.topPromotions?.length > 0 ? (
-                    !isMobile ? (
-                        // Desktop Table Layout
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-gray-50 text-gray-500">
+                <div className="p-2 sm:p-6">
+                    {stats?.topPromotions?.length > 0 ? (
+                        <div className="overflow-x-auto ring-1 ring-gray-50 rounded-3xl">
+                            <table className="w-full text-left text-sm whitespace-nowrap">
+                                <thead className="bg-slate-50/50 text-gray-400">
                                     <tr>
-                                        <th className="p-4 font-medium">Promotion</th>
-                                        <th className="p-4 font-medium">Utilisations</th>
-                                        <th className="p-4 font-medium">CA Généré</th>
-                                        <th className="p-4 font-medium">Coût des produits</th>
-                                        <th className="p-4 font-medium">Profit Net</th>
-                                        <th className="p-4 font-medium">Marge %</th>
+                                        <th className="p-5 font-black uppercase tracking-widest text-[10px]">Promotion</th>
+                                        <th className="p-5 font-black uppercase tracking-widest text-[10px] text-center">Score</th>
+                                        <th className="p-5 font-black uppercase tracking-widest text-[10px]">CA Généré</th>
+                                        <th className="p-5 font-black uppercase tracking-widest text-[10px]">Profit Net</th>
+                                        <th className="p-5 font-black uppercase tracking-widest text-[10px]">Efficacité</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-100">
+                                <tbody className="divide-y divide-gray-50">
                                     {stats.topPromotions.map((promo: any, index: number) => (
-                                        <tr key={index} className="hover:bg-gray-50 transition-colors">
-                                            <td className="p-4 font-medium text-gray-800">{promo.name}</td>
-                                            <td className="p-4 text-gray-600">{promo.uses}</td>
-                                            <td className="p-4 text-green-600 font-medium">{formatPrice(promo.revenue)}</td>
-                                            <td className="p-4 text-orange-600">{formatPrice(promo.costOfGoods || 0)}</td>
-                                            <td className="p-4 text-emerald-600 font-medium">{formatPrice(promo.netProfit || 0)}</td>
-                                            <td className="p-4">
-                                                <span className={`font-medium ${(promo.marginPercentage || 0) >= 30 ? 'text-green-600' : (promo.marginPercentage || 0) >= 15 ? 'text-amber-600' : 'text-red-600'}`}>
-                                                    {promo.marginPercentage || 0}%
-                                                </span>
+                                        <tr key={index} className="hover:bg-amber-50/30 transition-colors group">
+                                            <td className="p-5">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-bold text-gray-400 group-hover:bg-amber-500 group-hover:text-white transition-all">
+                                                        {index + 1}
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-black text-gray-900 uppercase tracking-tight">{promo.name}</div>
+                                                        <div className="text-[10px] text-gray-400 font-bold uppercase">{promo.uses} utilisations</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="p-5 text-center">
+                                                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full border-4 border-slate-50 font-black text-gray-900 group-hover:border-amber-100 group-hover:text-amber-600 transition-all">
+                                                    {Math.min(99, Math.round((promo.marginPercentage + (promo.uses / 10)) * 1.5))}
+                                                </div>
+                                            </td>
+                                            <td className="p-5">
+                                                <div className="font-black text-emerald-600 tracking-tight">{formatPrice(promo.revenue)}</div>
+                                                <div className="text-[10px] text-gray-400 font-bold uppercase">Coût: {formatPrice(promo.costOfGoods || 0)}</div>
+                                            </td>
+                                            <td className="p-5">
+                                                <div className="font-black text-gray-900 tracking-tight">{formatPrice(promo.netProfit || 0)}</div>
+                                                <div className="flex items-center gap-1 text-[10px] font-black text-orange-500/60 uppercase">
+                                                    ROI {Math.round((promo.netProfit / (promo.costOfGoods || 1)) * 100)}%
+                                                </div>
+                                            </td>
+                                            <td className="p-5">
+                                                <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                    <motion.div
+                                                        initial={{ width: 0 }}
+                                                        animate={{ width: `${promo.marginPercentage}%` }}
+                                                        className={`h-full bg-gradient-to-r ${promo.marginPercentage >= 30 ? 'from-green-500 to-emerald-600' : 'from-amber-400 to-orange-500'} rounded-full`}
+                                                    ></motion.div>
+                                                </div>
+                                                <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1.5">{promo.marginPercentage}% Marge</div>
                                             </td>
                                         </tr>
                                     ))}
@@ -304,66 +270,30 @@ export function PromotionsAnalytics() {
                             </table>
                         </div>
                     ) : (
-                        // Mobile Card Layout
-                        <div className="divide-y divide-gray-100">
-                            {stats.topPromotions.map((promo: any, index: number) => (
-                                <div key={index} className="p-4 bg-gray-50 border-b border-gray-100 last:border-b-0">
-                                    <h5 className="font-bold text-gray-800 mb-3 truncate">{promo.name}</h5>
-                                    <div className="space-y-2 text-sm">
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Utilisations:</span>
-                                            <span className="font-semibold text-gray-800">{promo.uses}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">CA Généré:</span>
-                                            <span className="font-semibold text-green-600">{formatPrice(promo.revenue)}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Coût des produits:</span>
-                                            <span className="font-semibold text-orange-600">{formatPrice(promo.costOfGoods || 0)}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Profit Net:</span>
-                                            <span className="font-semibold text-emerald-600">{formatPrice(promo.netProfit || 0)}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Marge:</span>
-                                            <span className={`font-semibold ${(promo.marginPercentage || 0) >= 30 ? 'text-green-600' : (promo.marginPercentage || 0) >= 15 ? 'text-amber-600' : 'text-red-600'}`}>
-                                                {promo.marginPercentage || 0}%
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                        <div className="p-20 text-center flex flex-col items-center gap-6">
+                            <div className="w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center border-4 border-dashed border-slate-100 text-slate-200">
+                                <BarChart3 size={64} />
+                            </div>
+                            <div>
+                                <h5 className="text-xl font-black text-gray-300 uppercase tracking-widest">Le silence règne ici</h5>
+                                <p className="text-gray-400 font-medium max-w-xs mx-auto mt-2">Aucune donnée trouvée pour les filtres sélectionnés. Il est temps de lancer une promotion !</p>
+                            </div>
                         </div>
-                    )
-                ) : (
-                    // Empty State
-                    <div className="p-8 sm:p-12 text-center">
-                        <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Tag size={32} className="text-amber-500" />
-                        </div>
-                        <h5 className="text-lg font-bold text-gray-800 mb-2">Aucune donnée de promotion</h5>
-                        <p className="text-gray-500 text-sm mb-1">Aucune promotion n'a généré de ventes</p>
-                        <p className="text-gray-400 text-xs">pendant la période {periodLabel.toLowerCase()}</p>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
         </div>
     );
 }
 
-/**
- * Badge de croissance (+ ou -)
- */
 function GrowthBadge({ value }: { value: number }) {
     const isPositive = value > 0;
     const Icon = isPositive ? ArrowUpRight : ArrowDownRight;
-    const colorClass = isPositive ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50';
+    const colorClass = isPositive ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-rose-600 bg-rose-50 border-rose-100';
 
     return (
-        <span className={`flex items-center text-xs font-medium px-2 py-1 rounded-full ${colorClass}`}>
-            <Icon size={12} className="mr-1" />
+        <span className={`flex items-center text-[10px] font-black px-3 py-1.5 rounded-xl border ${colorClass} shadow-sm uppercase tracking-tighter`}>
+            <Icon size={14} className="mr-1" />
             {isPositive ? '+' : ''}{value}%
         </span>
     );

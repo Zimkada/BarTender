@@ -419,36 +419,34 @@ export default function ReturnsPage() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-4">
-      {!showCreateReturn && (
-        <TabbedPageHeader
-          title={isMobile ? "Retours" : "Système de Retours"}
-          subtitle={
-            <div className="flex items-center gap-2">
-              <span>Gérer les retours clients</span>
-              {todayRefundedAmount > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-bold border border-amber-200"
-                >
-                  <DollarSign size={10} />
-                  Aujourd'hui: <AnimatedCounter value={todayRefundedAmount} /> FCFA
-                </motion.div>
-              )}
-            </div>
-          }
-          icon={<RotateCcw size={24} className="text-amber-600" />}
-          hideSubtitleOnMobile
-          tabs={tabsConfig}
-          activeTab={activeTab}
-          onTabChange={(id) => setActiveTab(id as "list" | "create" | "stats")}
-          guideId={
-            currentSession?.role === "serveur"
-              ? "serveur-returns"
-              : "manage-returns"
-          }
-        />
-      )}
+      <TabbedPageHeader
+        title={isMobile ? "Retours" : "Système de Retours"}
+        subtitle={
+          <div className="flex items-center gap-2">
+            <span>Gérer les retours clients</span>
+            {todayRefundedAmount > 0 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-bold border border-amber-200"
+              >
+                <DollarSign size={10} />
+                Aujourd'hui: <AnimatedCounter value={todayRefundedAmount} /> FCFA
+              </motion.div>
+            )}
+          </div>
+        }
+        icon={<RotateCcw size={24} className="text-amber-600" />}
+        hideSubtitleOnMobile
+        tabs={tabsConfig}
+        activeTab={activeTab}
+        onTabChange={(id) => setActiveTab(id as "list" | "create" | "stats")}
+        guideId={
+          currentSession?.role === "serveur"
+            ? "serveur-returns"
+            : "manage-returns"
+        }
+      />
 
       {/* Filters Area (Visible in List and Stats modes) */}
       {!showCreateReturn && (

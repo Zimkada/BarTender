@@ -188,17 +188,6 @@ export function CreateReturnForm({
       />
 
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <BackButton
-            onClick={onCancel}
-            showLabel={false}
-            title="Retour à la liste"
-          />
-          <h2 className="text-lg font-bold text-gray-800 tracking-tight">
-            Créer un nouveau retour
-          </h2>
-        </div>
-
         <div className="space-y-4">
           <AnimatePresence mode="wait">
             {!selectedSale ? (
@@ -210,6 +199,11 @@ export function CreateReturnForm({
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-4"
               >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-bold text-gray-800 whitespace-nowrap">
+                    1. Sélectionner la vente
+                  </h3>
+                </div>
                 {/* Info Accordion "Processus de retour" - Fidèle à la capture */}
                 <div className="mb-4">
                   <button
@@ -388,27 +382,32 @@ export function CreateReturnForm({
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-4"
+                className="space-y-6"
               >
-                <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100">
-                  <div className="flex items-start justify-between gap-3 mb-4 pb-3 border-b border-amber-200/50">
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[9px] uppercase font-black text-amber-600 tracking-widest leading-none mb-1">Vente</span>
-                      <span className="text-[10px] font-bold text-gray-400 leading-none mb-1">#...{selectedSale.id.slice(-4)}</span>
-                      <h3 className="text-sm font-black text-gray-800 leading-none">
-                        {formatPrice(selectedSale.total)}
-                      </h3>
-                    </div>
-                    <BackButton
-                      onClick={() => {
-                        onSelectSale(null);
-                        setSelectedProduct(null);
-                      }}
-                      label="Changer vente"
-                      className="h-9 px-2.5 text-[11px] bg-white border-amber-200 text-amber-700 hover:bg-amber-100 hover:text-amber-800 shadow-sm shrink-0"
-                      variant="outline"
-                    />
+                <div className="flex items-center gap-3">
+                  <BackButton
+                    onClick={() => {
+                      onSelectSale(null);
+                      setSelectedProduct(null);
+                    }}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-600 border-none px-2"
+                  />
+                  <h3 className="text-lg font-bold text-gray-800 whitespace-nowrap">2. Choisir le produit</h3>
+                </div>
+
+                {/* Selected Sale Recap - Premium Dark Style */}
+                <div className="bg-gradient-to-br from-amber-900 to-amber-950 text-white rounded-2xl p-5 shadow-lg flex justify-between items-center border border-amber-800/50">
+                  <div>
+                    <p className="text-[10px] uppercase font-black text-amber-200/60 tracking-widest mb-1">Vente sélectionnée</p>
+                    <p className="text-sm font-bold text-amber-50">#{selectedSale.id.slice(-6).toUpperCase()}</p>
                   </div>
+                  <div className="text-right">
+                    <p className="text-[10px] uppercase font-black text-amber-200/60 tracking-widest mb-1">Total Payé</p>
+                    <p className="text-xl font-black text-white font-mono tracking-tighter">{formatPrice(selectedSale.total)}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
 
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
                     Sélectionner un produit à retourner
@@ -483,120 +482,152 @@ export function CreateReturnForm({
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="space-y-4"
+                className="space-y-6"
               >
+                <div className="flex items-center gap-3">
+                  <BackButton
+                    onClick={() => setSelectedProduct(null)}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-600 border-none px-2"
+                  />
+                  <h3 className="text-lg font-bold text-gray-800 whitespace-nowrap">3. Détails du retour</h3>
+                </div>
+
                 <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-100/50">
                   <div className="flex items-start justify-between gap-3 mb-4 pb-3 border-b border-blue-200/30">
                     <div className="flex flex-col min-w-0">
-                      <span className="text-[9px] uppercase font-black text-blue-600 tracking-widest leading-none mb-1">Produit</span>
+                      <span className="text-[9px] uppercase font-black text-blue-600 tracking-widest leading-none mb-1">Produit sélectionné</span>
                       <h3 className="text-xs font-black text-gray-800 leading-tight">
                         {selectedProduct.product_name}
                       </h3>
                     </div>
-                    <BackButton
-                      onClick={() => setSelectedProduct(null)}
-                      label="Changer produit"
-                      className="h-9 px-2.5 text-[11px] bg-white border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 shadow-sm shrink-0"
-                      variant="outline"
-                    />
                   </div>
 
-                  <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                    <div className="grid grid-cols-1 gap-6 mb-6">
-                      <div>
-                        <Label className="text-xs uppercase font-bold text-gray-400 mb-3 block tracking-wider">
-                          1. Quantité à retourner
-                        </Label>
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                          <div className="flex items-center gap-1 bg-gray-100 p-1.5 rounded-2xl border border-gray-200 shadow-inner w-fit">
-                            <button
-                              type="button"
-                              onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                              className="w-10 h-10 flex items-center justify-center bg-white rounded-xl shadow-sm text-gray-600 hover:text-blue-600 disabled:opacity-30 transition-all active:scale-95"
-                              disabled={quantity <= 1}
-                            >
-                              <Minus size={18} />
-                            </button>
-                            <div className="w-14 text-center font-black text-xl text-gray-800 select-none">
-                              {quantity}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Left Column: Form */}
+                    <div className="lg:col-span-2 space-y-6 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                      <div className="grid grid-cols-1 gap-6">
+                        <div>
+                          <Label className="text-xs uppercase font-bold text-gray-400 mb-3 block tracking-wider">
+                            1. Quantité à retourner
+                          </Label>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                            <div className="flex items-center gap-1 bg-gray-50 p-1.5 rounded-2xl border border-gray-200 shadow-inner w-fit">
+                              <button
+                                type="button"
+                                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                                className="w-10 h-10 flex items-center justify-center bg-white rounded-xl shadow-sm text-gray-600 hover:text-blue-600 disabled:opacity-30 transition-all active:scale-95"
+                                disabled={quantity <= 1}
+                              >
+                                <Minus size={18} />
+                              </button>
+                              <div className="w-14 text-center font-black text-xl text-gray-800 select-none">
+                                {quantity}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setQuantity(Math.min(availableQty, quantity + 1))}
+                                className="w-10 h-10 flex items-center justify-center bg-white rounded-xl shadow-sm text-gray-600 hover:text-blue-600 disabled:opacity-30 transition-all active:scale-95"
+                                disabled={quantity >= availableQty}
+                              >
+                                <Plus size={18} />
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => setQuantity(Math.min(availableQty, quantity + 1))}
-                              className="w-10 h-10 flex items-center justify-center bg-white rounded-xl shadow-sm text-gray-600 hover:text-blue-600 disabled:opacity-30 transition-all active:scale-95"
-                              disabled={quantity >= availableQty}
-                            >
-                              <Plus size={18} />
-                            </button>
-                          </div>
 
-                          <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Disponible sur cette vente</span>
-                            <span className="text-sm font-black text-gray-700">{availableQty} unités</span>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Maximum sur cette vente</span>
+                              <span className="text-sm font-black text-gray-700">{availableQty} unités</span>
+                            </div>
                           </div>
+                        </div>
+
+                        <div>
+                          <Label className="text-xs uppercase font-bold text-gray-400 mb-3 block tracking-wider">
+                            2. Motif du retour
+                          </Label>
+                          <ReturnReasonSelector
+                            reasons={returnReasons}
+                            selectedReason={reason}
+                            onSelect={(r) => setReason(r)}
+                          />
                         </div>
                       </div>
 
                       <div>
-                        <Label className="text-xs uppercase font-bold text-gray-400 mb-3 block tracking-wider">
-                          2. Motif du retour
+                        <Label htmlFor="returnNotes" className="text-xs uppercase font-bold text-gray-400 mb-2 block tracking-wider">
+                          3. Notes (Optionnel)
                         </Label>
-                        <ReturnReasonSelector
-                          reasons={returnReasons}
-                          selectedReason={reason}
-                          onSelect={(r) => setReason(r)}
+                        <Textarea
+                          id="returnNotes"
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          rows={3}
+                          className="rounded-xl border-gray-200 focus:ring-blue-500/20 text-sm bg-gray-50 focus:bg-white"
+                          placeholder="Précisez la raison si nécessaire..."
                         />
                       </div>
                     </div>
 
-                    <div className="mb-6">
-                      <Label htmlFor="returnNotes" className="text-xs uppercase font-bold text-gray-400 mb-2 block tracking-wider">
-                        3. Notes (Optionnel)
-                      </Label>
-                      <Textarea
-                        id="returnNotes"
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        rows={2}
-                        className="rounded-xl border-gray-200 focus:ring-blue-500/20 text-sm"
-                        placeholder="Précisez la raison si nécessaire..."
-                      />
-                    </div>
+                    {/* Right Column: Ticket Recap */}
+                    <div className="lg:col-span-1">
+                      <div className="bg-blue-100 rounded-3xl p-6 border-2 border-dashed border-blue-300 relative overflow-hidden h-full flex flex-col">
+                        {/* Top Cutout */}
+                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-gray-50 rounded-full sm:bg-transparent" />
 
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      key={reason}
-                      className="mb-8 p-4 bg-gray-50 rounded-xl border border-gray-200 flex gap-3 items-start"
-                    >
-                      <Info className="text-blue-500 mt-0.5" size={18} />
-                      <div>
-                        <p className="text-xs font-bold text-gray-700 mb-0.5">Impact automatique :</p>
-                        <p className="text-[11px] text-gray-600 leading-relaxed">
-                          {reason === 'defective' && "L'article sera marqué comme défectueux. Remboursé, mais non remis en stock."}
-                          {reason === 'wrong_item' && "L'article sera remis en stock vendable et le montant sera remboursé."}
-                          {reason === 'customer_change' && "L'article sera remis en stock vendable sans remboursement automatique."}
-                          {reason === 'expired' && "L'article sera retiré de l'inventaire et le montant remboursé."}
-                          {reason === 'other' && "Le gérant devra décider manuellement du remboursement et du stock."}
-                        </p>
+                        <div className="text-center mb-6">
+                          <Info className="w-10 h-10 text-blue-600 mx-auto mb-2 opacity-50" />
+                          <h4 className="font-black text-blue-900 uppercase tracking-widest text-sm">Récapitulatif</h4>
+                        </div>
+
+                        <div className="space-y-4 flex-1">
+                          <div className="bg-white/50 p-3 rounded-xl">
+                            <p className="text-[10px] font-black text-blue-700 uppercase mb-1">Impact auto</p>
+                            <p className="text-[11px] text-blue-900 leading-snug">
+                              {reason === 'defective' && "Défectueux: Remboursé, non restocké."}
+                              {reason === 'wrong_item' && "Erreur: Remboursé et restocké."}
+                              {reason === 'customer_change' && "Changement: Restocké, non remboursé."}
+                              {reason === 'expired' && "Périmé: Remboursé, non restocké."}
+                              {reason === 'other' && "Décision manuelle requise."}
+                            </p>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-white/50 p-3 rounded-xl">
+                              <p className="text-[10px] font-black text-blue-700 uppercase mb-1">Quantité</p>
+                              <p className="font-black text-blue-950 text-xl">{quantity}</p>
+                            </div>
+                            <div className="bg-white/50 p-3 rounded-xl">
+                              <p className="text-[10px] font-black text-blue-700 uppercase mb-1">Unitaire</p>
+                              <p className="font-black text-blue-950 text-base">{formatPrice(selectedProduct.unit_price)}</p>
+                            </div>
+                          </div>
+
+                          <div className="bg-blue-900 text-blue-50 p-4 rounded-xl shadow-inner text-center">
+                            <p className="text-[10px] font-black uppercase opacity-60 mb-1">Montant Retour</p>
+                            <p className="font-black text-2xl font-mono tracking-tighter">
+                              {formatPrice(selectedProduct.unit_price * quantity)}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-8">
+                          <EnhancedButton
+                            onClick={handleSubmit}
+                            variant="primary"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black uppercase tracking-wide shadow-lg shadow-blue-200 transition-all active:scale-95"
+                          >
+                            Confirmer retour
+                          </EnhancedButton>
+                          <button
+                            onClick={onCancel}
+                            className="w-full mt-3 text-blue-800/50 font-bold text-xs uppercase hover:text-blue-800 transition-colors"
+                          >
+                            Abandonner
+                          </button>
+                        </div>
+
+                        {/* Bottom Cutout */}
+                        <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-gray-50 rounded-full sm:bg-transparent" />
                       </div>
-                    </motion.div>
-
-                    <div className="flex gap-3">
-                      <EnhancedButton
-                        onClick={() => setSelectedProduct(null)}
-                        variant="secondary"
-                        className="flex-1"
-                      >
-                        Annuler
-                      </EnhancedButton>
-                      <EnhancedButton
-                        onClick={handleSubmit}
-                        variant="primary"
-                        className="flex-1"
-                      >
-                        Confirmer retour
-                      </EnhancedButton>
                     </div>
                   </div>
                 </div>

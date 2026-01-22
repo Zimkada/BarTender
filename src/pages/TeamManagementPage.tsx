@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Users, UserPlus, Shield, User as UserIcon, Check, Trash2, GitBranch, ChevronDown, ChevronUp } from 'lucide-react';
+import { Users, UserPlus, User as UserIcon, Trash2, GitBranch, Phone, Clock, Mail, Search, Eye, EyeOff, AlertTriangle, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from "../context/AuthContext";
 import { useBarContext } from '../context/BarContext';
 import { UserRole } from '../types';
@@ -9,11 +10,10 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Label } from '../components/ui/Label';
 import { Alert } from '../components/ui/Alert';
-import { Modal } from '../components/ui/Modal';
 import { ServerMappingsManager } from '../components/ServerMappingsManager';
 import { BarsService } from '../services/supabase/bars.service';
 import { FEATURES } from '../config/features';
-import { SimplePageHeader } from '../components/common/PageHeader/patterns/SimplePageHeader';
+import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
 
 /**
  * TeamManagementPage - Page de gestion de l'équipe
@@ -34,26 +34,30 @@ export default function TeamManagementPage() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [showAddUser, setShowAddUser] = useState(false);
   const [selectedRole, setSelectedRole] = useState<UserRole>('serveur');
   const [showInactive, setShowInactive] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   // New states for "Existing Member" feature
+  // Modal states (renamed to avoid confusion if needed, but keeping for now)
   const [activeTab, setActiveTab] = useState<'new' | 'existing'>('new');
+  // New Page Tab state
+  const [pageTab, setPageTab] = useState<'members' | 'mappings' | 'add'>('members');
+  const [isInfoExpanded, setIsInfoExpanded] = useState(false);
+  // Search state
+  const [searchTerm, setSearchTerm] = useState('');
   const [existingEmail, setExistingEmail] = useState('');
   const [candidates, setCandidates] = useState<Array<{ id: string; name: string; email: string; role: string; sourceBarName: string }>>([]);
   const [selectedCandidateId, setSelectedCandidateId] = useState('');
   const [loadingCandidates, setLoadingCandidates] = useState(false);
-  const [showMappings, setShowMappings] = useState(false);
 
-  // Load candidates when switching to 'existing' tab
+  // Load candidates when switching to 'add' tab and 'existing' mode
   React.useEffect(() => {
-    if (showAddUser && activeTab === 'existing' && currentBar) {
+    if (pageTab === 'add' && activeTab === 'existing' && currentBar) {
       loadCandidates();
     }
-  }, [showAddUser, activeTab, currentBar]);
+  }, [pageTab, activeTab, currentBar]);
 
   const loadCandidates = async () => {
     if (!currentBar) return;
@@ -82,7 +86,7 @@ export default function TeamManagementPage() {
       // Auto-append domain if username is provided instead of email
       let emailToUse = existingEmail;
       if (emailToUse && !emailToUse.includes('@')) {
-        emailToUse = `${emailToUse}@bartender.app`;
+        emailToUse = `${emailToUse} @bartender.app`;
       }
 
       const result = await BarsService.addMemberExisting(
@@ -95,7 +99,7 @@ export default function TeamManagementPage() {
         setSuccess(result.message || 'Membre ajouté avec succès !');
         await refreshBars();
         setTimeout(() => {
-          setShowAddUser(false);
+          setPageTab('members');
           setSuccess('');
           setExistingEmail('');
           setSelectedCandidateId('');
@@ -116,34 +120,26 @@ export default function TeamManagementPage() {
     );
   }
 
-  // Filtrer les membres selon le toggle Inactif
-  const displayedMembers = barMembers.filter(member => showInactive || member.isActive);
+  // Filtrer les membres selon le toggle Inactif et la recherche
+  const displayedMembers = barMembers.filter(member => {
+    const matchesStatus = showInactive || member.isActive;
+    const matchesSearch = searchTerm === '' ||
+      (member.user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        member.user?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        member.user?.username?.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  // Stats sur TOUS les membres actifs uniquement pour les compteurs
-  const activeMembers = barMembers.filter(m => m.isActive);
-  const managersCount = activeMembers.filter(m => m.role === 'gerant').length;
-  const serversCount = activeMembers.filter(m => m.role === 'serveur').length;
+    return matchesStatus && matchesSearch;
+  });
+
+  // Stats dynamiques basées sur le filtre "Afficher inactifs"
+  // Si showInactive est ON, on compte tout le monde. Sinon, seulement les actifs.
+  const statsSource = showInactive ? barMembers : barMembers.filter(m => m.isActive);
+
+  const managersCount = statsSource.filter(m => m.role === 'gerant').length;
+  const serversCount = statsSource.filter(m => m.role === 'serveur').length;
+
   const inactiveCount = barMembers.filter(m => !m.isActive).length;
 
-  const getRoleIcon = (role: UserRole) => {
-    switch (role) {
-      case 'super_admin': return Shield;
-      case 'promoteur': return Shield;
-      case 'gerant': return UserIcon;
-      case 'serveur': return Users;
-      default: return Users;
-    }
-  };
-
-  const getRoleColor = (role: UserRole) => {
-    switch (role) {
-      case 'super_admin': return 'text-purple-800 bg-purple-200';
-      case 'promoteur': return 'text-purple-600 bg-purple-100';
-      case 'gerant': return 'text-amber-600 bg-amber-100';
-      case 'serveur': return 'text-amber-600 bg-amber-100';
-      default: return 'text-gray-600 bg-gray-100';
-    }
-  };
 
   const getRoleLabel = (role: UserRole) => {
     switch (role) {
@@ -174,7 +170,7 @@ export default function TeamManagementPage() {
     try {
       const generatedEmail = username.includes('@')
         ? username
-        : `${username}@bartender.app`;
+        : `${username} @bartender.app`;
 
       await AuthService.signup(
         {
@@ -192,8 +188,8 @@ export default function TeamManagementPage() {
       await refreshBars();
 
       const successMessage = selectedRole === 'gerant'
-        ? `✅ Gérant "${name}" créé avec succès !\n📧 Email: ${generatedEmail}\n🔑 Mot de passe: ${password}\n\n⚠️ Communiquez ces identifiants au gérant.`
-        : `✅ Serveur "${name}" créé avec succès !\n📧 Email: ${generatedEmail}\n🔑 Mot de passe: ${password}\n\n⚠️ Communiquez ces identifiants au serveur.`;
+        ? `✅ Gérant "${name}" créé avec succès!\n📧 Email: ${generatedEmail} \n🔑 Mot de passe: ${password} \n\n⚠️ Communiquez ces identifiants au gérant.`
+        : `✅ Serveur "${name}" créé avec succès!\n📧 Email: ${generatedEmail} \n🔑 Mot de passe: ${password} \n\n⚠️ Communiquez ces identifiants au serveur.`;
 
       setSuccess(successMessage);
 
@@ -203,7 +199,7 @@ export default function TeamManagementPage() {
       setPhone('');
 
       setTimeout(() => {
-        setShowAddUser(false);
+        setPageTab('members');
         setSuccess('');
       }, 4000);
 
@@ -220,7 +216,7 @@ export default function TeamManagementPage() {
       } else if (err.message.includes('permission')) {
         errorMessage = '❌ Vous n\'avez pas les permissions nécessaires.';
       } else if (err.message) {
-        errorMessage = `❌ ${err.message}`;
+        errorMessage = `❌ ${err.message} `;
       }
 
       setError(errorMessage);
@@ -228,7 +224,7 @@ export default function TeamManagementPage() {
   };
 
   const handleRemoveMember = async (memberId: string, userName: string) => {
-    if (window.confirm(`Êtes-vous sûr de vouloir retirer ${userName} ?`)) {
+    if (window.confirm(`Êtes - vous sûr de vouloir retirer ${userName} ?`)) {
       try {
         const result = await removeBarMember(memberId);
 
@@ -253,364 +249,544 @@ export default function TeamManagementPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      {/* Header Standardisé */}
-      <SimplePageHeader
+      {/* Header avec Onglets */}
+      <TabbedPageHeader
         title={isMobile ? 'Équipe' : "Gestion d'équipe"}
         subtitle="Gérez les accès et les rôles de votre personnel"
         icon={<Users size={24} />}
         guideId={teamGuideId}
-        actions={
-          <div className="flex items-center gap-2">
-            {inactiveCount > 0 && (
-              <Button
-                onClick={() => setShowInactive(!showInactive)}
-                variant="ghost"
-                className={`flex items-center gap-2 text-white hover:bg-white/20 ${showInactive ? 'bg-white/20' : ''}`}
-                title={showInactive ? "Masquer les inactifs" : "Afficher les inactifs"}
-              >
-                <Users size={18} className="text-white" />
-                {!isMobile && (showInactive ? 'Masquer inactifs' : `Voir inactifs (${inactiveCount})`)}
-              </Button>
-            )}
-            <Button
-              onClick={() => setShowAddUser(true)}
-              className="flex items-center gap-2"
-            >
-              <UserPlus size={16} className="mr-2" />
-              Ajouter un membre
-            </Button>
-          </div>
-        }
-        mobileTopRightContent={
-          <div className="flex items-center gap-1">
-            {inactiveCount > 0 && (
-              <Button
-                onClick={() => setShowInactive(!showInactive)}
-                variant="ghost"
-                size="icon"
-                className={`rounded-lg transition-colors hover:bg-white/20 text-white ${showInactive ? 'bg-white/20 border border-white/30' : ''}`}
-                title={showInactive ? "Masquer les inactifs" : "Afficher les inactifs"}
-              >
-                <Users size={20} />
-              </Button>
-            )}
-            <Button
-              onClick={() => setShowAddUser(true)}
-              variant="ghost"
-              size="icon"
-              className="rounded-lg transition-colors hover:bg-white/20 text-white"
-            >
-              <UserPlus size={24} />
-            </Button>
-          </div>
-        }
-        mobileActions={null}
+        tabs={[
+          { id: 'members', label: isMobile ? 'Équipe' : 'Mon Équipe', icon: Users },
+          { id: 'add', label: isMobile ? 'Ajouter' : 'Recrutement', icon: UserPlus },
+          ...(FEATURES.ENABLE_SWITCHING_MODE ? [{ id: 'mappings', label: isMobile ? 'Caisses' : 'Assignation Caisses', icon: GitBranch }] : [])
+        ]}
+        activeTab={pageTab}
+        onTabChange={(id) => {
+          setPageTab(id as 'members' | 'mappings' | 'add');
+          setError('');
+          setSuccess('');
+        }}
       />
 
       {/* Content */}
       <div className="space-y-6">
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4" data-guide="team-stats">
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-amber-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600">Gérants</p>
-                <p className="text-2xl font-bold">{managersCount}</p>
-              </div>
-              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
-                <UserIcon className="w-6 h-6 text-amber-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-amber-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600">Serveurs</p>
-                <p className="text-2xl font-bold">{serversCount}</p>
-              </div>
-              <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
-                <Users className="w-6 h-6 text-amber-600" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-amber-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600">Total équipe</p>
-                <p className="text-2xl font-bold">{activeMembers.length}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <Check className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Members List */}
-        <div className="bg-white rounded-xl shadow-sm border border-amber-100 overflow-hidden" data-guide="team-list">
-          <div className="p-6 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-800">Membres de l'équipe</h3>
-          </div>
-
-          <div className="divide-y divide-gray-100">
-            {displayedMembers.map(member => {
-              const Icon = getRoleIcon(member.role);
-              const colorClass = getRoleColor(member.role);
-
-              return (
-                <div key={member.id} className={`p-4 hover:bg-gray-50 transition-colors ${!member.isActive ? 'opacity-70 bg-gray-50/50' : ''}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${colorClass}`}>
-                        <Icon size={20} />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-gray-800">{member.user?.name || 'Utilisateur inconnu'}</p>
-                          {!member.isActive && (
-                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-gray-200 text-gray-600 rounded uppercase tracking-wider">
-                              Inactif
-                            </span>
-                          )}
-                          {member.role === 'promoteur' && (
-                            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-purple-100 text-purple-700 rounded uppercase tracking-wider border border-purple-200">
-                              Propriétaire
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-500">
-                          {getRoleLabel(member.role)} • @{member.user?.username || 'unknown'}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      {member.user?.lastLoginAt && (
-                        <span className="text-xs text-gray-600 hidden sm:inline">
-                          Dernière connexion: {new Date(member.user.lastLoginAt).toLocaleDateString()}
-                        </span>
-                      )}
-
-                      {member.isActive && member.role !== 'promoteur' && member.role !== 'super_admin' &&
-                        ((member.role === 'gerant' && hasPermission('canCreateManagers')) ||
-                          (member.role === 'serveur' && hasPermission('canCreateServers'))) && (
-                          <Button
-                            onClick={() => member.user && handleRemoveMember(member.id, member.user.name)}
-                            variant="ghost"
-                            size="icon"
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Retirer de l'équipe"
-                          >
-                            <Trash2 size={16} />
-                          </Button>
-                        )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ✨ NOUVEAU: Mappings de serveurs (Mode Simplifié) */}
-        {FEATURES.ENABLE_SWITCHING_MODE && (
-          <div className="bg-white rounded-xl shadow-sm border border-amber-100 overflow-hidden" data-guide="team-mappings">
-            <button
-              onClick={() => setShowMappings(!showMappings)}
-              className="w-full p-6 border-b border-gray-100 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                <GitBranch size={20} className="text-amber-500" />
-                <div className="text-left">
-                  <h3 className="font-semibold text-gray-800">Mappings Serveurs (Mode Simplifié)</h3>
-                  <p className="text-xs text-gray-500">Associez des noms de serveurs (ex: "Afi") à des comptes réels.</p>
-                </div>
-              </div>
-              {showMappings ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
-            </button>
-
-            {showMappings && (
-              <div className="p-6">
-                <ServerMappingsManager
-                  barId={currentBar.id}
-                  barMembers={barMembers
-                    .filter(m => m.isActive)
-                    .map(m => ({
-                      userId: m.userId,
-                      name: m.user?.name || 'Inconnu',
-                      role: m.role
-                    }))
-                  }
-                  enabled={FEATURES.SHOW_SWITCHING_MODE_UI}
+        {pageTab === 'members' && (
+          <>
+            {/* Smart Toolbar for Members Tab */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 bg-white rounded-xl shadow-sm border border-gray-100">
+              {/* Search Input */}
+              <div className="relative flex-grow w-full md:w-auto">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Rechercher un membre..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 pr-3 py-2 text-sm rounded-md border border-gray-300 focus:ring-amber-500 focus:border-amber-500 w-full"
                 />
               </div>
-            )}
-          </div>
-        )}
 
-
-
-        {/* Add User Modal - Kept as internal modal for the form */}
-        <Modal
-          open={showAddUser}
-          onClose={() => setShowAddUser(false)}
-          title="Ajouter un membre"
-          size="lg"
-          footer={null} // Footer handling inside for tabs
-        >
-          {/* Tabs Navigation */}
-          <div className="flex border-b mb-4">
-            <button
-              className={`flex-1 pb-2 text-sm font-medium ${activeTab === 'new' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500'}`}
-              onClick={() => setActiveTab('new')}
-            >
-              Nouveau Compte
-            </button>
-            <button
-              className={`flex-1 pb-2 text-sm font-medium ${activeTab === 'existing' ? 'border-b-2 border-amber-500 text-amber-600' : 'text-gray-500'}`}
-              onClick={() => setActiveTab('existing')}
-            >
-              Membre Existant / Import
-            </button>
-          </div>
-
-          {/* Role Selection (Common) */}
-          <div className="mb-4">
-            <label className="block text-xs font-medium text-gray-700 mb-1.5">
-              Rôle à attribuer
-            </label>
-            <div className="flex bg-gray-100 p-1 rounded-lg">
-              {hasPermission('canCreateManagers') && (
-                <Button
-                  type="button"
-                  onClick={() => setSelectedRole('gerant')}
-                  variant={selectedRole === 'gerant' ? 'default' : 'ghost'}
-                  className="flex-1 py-1.5 text-sm font-medium rounded-md transition-all"
-                >
-                  Gérant
-                </Button>
-              )}
-              {hasPermission('canCreateServers') && (
-                <Button
-                  type="button"
-                  onClick={() => setSelectedRole('serveur')}
-                  variant={selectedRole === 'serveur' ? 'default' : 'ghost'}
-                  className="flex-1 py-1.5 text-sm font-medium rounded-md transition-all"
-                >
-                  Serveur
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Tab Content: Existing User */}
-          {activeTab === 'existing' && (
-            <form onSubmit={handleAddExistingUser} className="space-y-4">
-              <div className="bg-amber-50 p-3 rounded-lg border border-amber-100 mb-4">
-                <p className="text-xs text-amber-800">
-                  💡 Importez rapidement vos employés d'autres bars ou ajoutez quelqu'un par email.
-                </p>
-              </div>
-
-              {/* Candidate Selection */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Importer de mon équipe (Autre Bar)
-                </label>
-                {loadingCandidates ? (
-                  <p className="text-xs text-gray-500">Chargement...</p>
-                ) : (
-                  <select
-                    className="w-full text-sm border-gray-300 rounded-md focus:ring-amber-500 focus:border-amber-500"
-                    value={selectedCandidateId}
-                    onChange={(e) => {
-                      setSelectedCandidateId(e.target.value);
-                      if (e.target.value) setExistingEmail(''); // Clear email if selecting
-                    }}
+              {/* Compact Stats Strip */}
+              <div className="flex items-center gap-4 text-sm font-medium text-gray-600 w-full md:w-auto justify-between md:justify-start">
+                <div className="flex items-center gap-1">
+                  <UserIcon className="h-4 w-4 text-amber-500" />
+                  <span>Gérants: <span className="font-bold text-gray-800">{managersCount}</span></span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Users className="h-4 w-4 text-amber-500" />
+                  <span>Serveurs: <span className="font-bold text-gray-800">{serversCount}</span></span>
+                </div>
+                {inactiveCount > 0 && (
+                  <Button
+                    onClick={() => setShowInactive(!showInactive)}
+                    variant="ghost"
+                    size="sm"
+                    className={`flex items-center gap-2 text-gray-600 hover:bg-gray-100 ${showInactive ? 'bg-gray-100 text-amber-600' : ''}`}
+                    title={showInactive ? "Masquer les inactifs" : "Inclure les inactifs"}
                   >
-                    <option value="">-- Sélectionner un employé --</option>
-                    {candidates.map(c => (
-                      <option key={c.id} value={c.id}>
-                        {c.name} ({c.role} chez {c.sourceBarName})
-                      </option>
-                    ))}
-                  </select>
+                    {showInactive ? <Eye size={16} className="text-amber-600" /> : <EyeOff size={16} className="text-gray-400" />}
+                    <span className="text-xs font-medium">
+                      {showInactive ? 'Masquer inactifs' : `Inactifs (${inactiveCount})`}
+                    </span>
+                  </Button>
                 )}
               </div>
 
-              <div className="text-center text-xs text-gray-400 font-medium my-2">- OU -</div>
-
-              {/* Email/Username Input */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Ajouter par Email ou Nom d'utilisateur
-                </label>
-                <Input
-                  type="text"
-                  placeholder="email@exemple.com ou nom.utilisateur"
-                  value={existingEmail}
-                  onChange={(e) => {
-                    setExistingEmail(e.target.value.trim()); // Trim spaces
-                    if (e.target.value) setSelectedCandidateId('');
-                  }}
-                  className="text-sm"
-                />
-                <p className="text-[10px] text-gray-500 mt-1">
-                  💡 Si vous entrez un nom d'utilisateur (ex: "toto"), nous chercherons "toto@bartender.app".
-                </p>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <Button type="button" onClick={() => setShowAddUser(false)} variant="secondary" className="flex-1">
-                  Annuler
-                </Button>
-                <Button type="submit" disabled={!selectedCandidateId && !existingEmail} className="flex-1">
-                  Ajouter
+              {/* Add Member Button - Moved to Smart Toolbar */}
+              <div className="w-full md:w-auto mt-4 md:mt-0">
+                <Button
+                  onClick={() => setPageTab('add')}
+                  className="w-full md:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-md shadow-amber-100 transition-all active:scale-95"
+                >
+                  <UserPlus size={16} />
+                  <span className="font-medium">Ajouter</span>
                 </Button>
               </div>
-            </form>
-          )}
+            </div>
 
-          {/* Tab Content: New User (Existing Form) */}
-          {activeTab === 'new' && (
-            <form id="add-member-form" onSubmit={handleAddUser} className="space-y-4">
-              {/* Copied Grid Layout from original but removing Role (already atop) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="col-span-1">
-                  <Label htmlFor="username" className="text-xs">Nom d'utilisateur *</Label>
-                  <Input id="username" type="text" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))} placeholder="nom.prenom" className="text-sm" />
-                </div>
-                <div className="col-span-1">
-                  <Label htmlFor="password" className="text-xs">Mot de passe *</Label>
-                  <Input id="password" type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Min 8 chars" className="text-sm" />
-                </div>
-                <div className="col-span-1">
-                  <Label htmlFor="name" className="text-xs">Nom complet *</Label>
-                  <Input id="name" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Prénom Nom" className="text-sm" />
-                </div>
-                <div className="col-span-1">
-                  <Label htmlFor="phone" className="text-xs"> Téléphone *</Label>
-                  <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="0197000000" className="text-sm" />
-                </div>
-              </div>
+            {/* Members List - GRID VIEW */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-guide="team-list">
+              <AnimatePresence mode="popLayout">
+                {displayedMembers.map((member, index) => {
+                  const user = member.user;
+                  const initials = user?.name
+                    ? user.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
+                    : '??';
 
-              <div className="flex gap-3 pt-4">
-                <Button type="button" onClick={() => setShowAddUser(false)} variant="secondary" className="flex-1"> Annuler </Button>
-                <Button type="submit" className="flex-1"> Créer </Button>
-              </div>
-            </form>
-          )}
+                  const isRecentLogin = user?.lastLoginAt && (new Date().getTime() - new Date(user.lastLoginAt).getTime() < 24 * 60 * 60 * 1000); // 24h
 
-          {/* Status Messages (Common) */}
-          <div className="mt-4">
-            {error && <Alert show={!!error} variant="destructive" className="text-xs">{error}</Alert>}
-            {success && <Alert show={!!success} variant="success" className="text-xs whitespace-pre-line">{success}</Alert>}
+                  return (
+                    <motion.div
+                      key={member.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, y: -20 }}
+                      transition={{ duration: 0.2, delay: index * 0.05 }}
+                      className={`group relative bg-white rounded-3xl p-6 border-2 transition-all hover:-translate-y-1 hover:shadow-xl ${!member.isActive
+                        ? 'border-gray-100 bg-gray-50/50 opacity-75'
+                        : 'border-gray-100 hover:border-amber-200 shadow-sm'
+                        }`}
+                    >
+                      {/* Status Dot */}
+                      <div className="absolute top-6 left-6 flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full ${member.isActive ? (isRecentLogin ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-gray-300') : 'bg-red-400'}`}></span>
+                        <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                          {!member.isActive ? 'Inactif' : (isRecentLogin ? 'Actif récemment' : 'Hors ligne')}
+                        </span>
+                      </div>
+
+                      {/* Actions Menu (Top Right) */}
+                      <div className="absolute top-5 right-5">
+                        {member.isActive && member.role !== 'promoteur' && member.role !== 'super_admin' &&
+                          ((member.role === 'gerant' && hasPermission('canCreateManagers')) ||
+                            (member.role === 'serveur' && hasPermission('canCreateServers'))) && (
+                            <button
+                              onClick={() => member.user && handleRemoveMember(member.id, member.user.name)}
+                              className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                              title="Retirer de l'équipe"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
+                      </div>
+
+                      {/* Avatar Section */}
+                      <div className="mt-8 mb-6 flex flex-col items-center">
+                        <div className={`w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-black mb-4 shadow-lg rotate-3 transition-transform group-hover:rotate-0 ${member.role === 'promoteur' ? 'bg-purple-100 text-purple-600' :
+                          member.role === 'gerant' ? 'bg-amber-100 text-amber-600' :
+                            'bg-blue-100 text-blue-600'
+                          }`}>
+                          {initials}
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900 leading-tight text-center px-2">{user?.name || 'Inconnu'}</h3>
+                        <p className="text-sm font-medium text-gray-400 mb-2">@{user?.username || 'unknown'}</p>
+
+                        {/* Role Badge */}
+                        <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${member.role === 'promoteur' ? 'bg-purple-100 text-purple-700' :
+                          member.role === 'gerant' ? 'bg-amber-100 text-amber-800' :
+                            'bg-gray-100 text-gray-600'
+                          }`}>
+                          {getRoleLabel(member.role)}
+                        </span>
+                      </div>
+
+                      {/* Details Grid */}
+                      <div className="space-y-3 pt-6 border-t border-dashed border-gray-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
+                            <Phone size={14} className="text-gray-400" />
+                          </div>
+                          <span className="text-xs font-semibold text-gray-600">{user?.phone || 'Non renseigné'}</span>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
+                            <Mail size={14} className="text-gray-400" />
+                          </div>
+                          <span className="text-xs font-semibold text-gray-600 truncate max-w-[180px]" title={user?.email}>
+                            {user?.email || 'Pas d\'email'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
+                            <Clock size={14} className="text-gray-400" />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-[10px] text-gray-400 uppercase font-bold">Dernière connexion</span>
+                            <span className="text-xs font-bold text-gray-700">
+                              {user?.lastLoginAt
+                                ? new Date(user.lastLoginAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                                : 'Jamais'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+          </>
+        )}
+
+        {/* ✨ NOUVEAU: Mappings de serveurs (Mode Simplifié) */}
+        {pageTab === 'mappings' && FEATURES.ENABLE_SWITCHING_MODE && (
+          <div className="bg-white rounded-xl shadow-sm border border-amber-100 overflow-hidden" data-guide="team-mappings">
+            <div className="p-6">
+              <ServerMappingsManager
+                barId={currentBar.id}
+                barMembers={barMembers
+                  .filter(m => m.isActive)
+                  .map(m => ({
+                    userId: m.userId,
+                    name: m.user?.name || 'Inconnu',
+                    role: m.role
+                  }))
+                }
+                enabled={FEATURES.SHOW_SWITCHING_MODE_UI}
+              />
+            </div>
           </div>
+        )}
 
-        </Modal>
+        {/* ✨ NOUVEAU: Flux d'ajout de membre (Mode Focus) */}
+        {pageTab === 'add' && (
+          <motion.div
+            key="add-member-flow"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="space-y-6"
+          >
+            {/* 📘 ONBOARDING / HELP PANEL */}
+            <div className="bg-amber-50 border border-amber-200 rounded-xl overflow-hidden shadow-sm">
+              <button
+                onClick={() => setIsInfoExpanded(!isInfoExpanded)}
+                className="w-full px-5 py-4 flex items-center justify-between hover:bg-amber-100/50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="bg-amber-100 p-2 rounded-lg">
+                    <AlertTriangle className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <p className="font-bold text-amber-900">Processus de recrutement</p>
+                </div>
+                {isInfoExpanded ? (
+                  <ChevronDown className="w-5 h-5 text-amber-600" />
+                ) : (
+                  <ChevronUp className="w-5 h-5 text-amber-600" />
+                )}
+              </button>
+              <AnimatePresence>
+                {isInfoExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="px-5 pb-5 pt-1 border-t border-amber-200">
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3">
+                          <span className="bg-amber-100 text-amber-700 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</span>
+                          <p className="text-sm text-amber-800">Choisissez si vous créez un nouveau compte ou si vous réutilisez un membre existant.</p>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <span className="bg-amber-100 text-amber-700 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</span>
+                          <p className="text-sm text-amber-800">Attribuez le rôle (Gérant ou Serveur) selon les besoins du bar.</p>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <span className="bg-amber-100 text-amber-700 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</span>
+                          <p className="text-sm text-amber-800">Partagez les identifiants générés en toute sécurité avec le nouveau membre.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Left Column: Form */}
+              <div className="lg:col-span-2 space-y-6">
+                <div className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm">
+                  {/* Step 1: Mode Selection */}
+                  <div className="flex flex-col gap-6">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-bold text-gray-800">1. Quel type d'ajout ?</h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <button
+                        onClick={() => setActiveTab('new')}
+                        className={`p-6 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 text-center ${activeTab === 'new'
+                          ? 'bg-amber-50 border-amber-500 shadow-lg shadow-amber-100'
+                          : 'bg-white border-gray-100 hover:border-amber-200'}`}
+                      >
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${activeTab === 'new' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                          <UserIcon size={24} />
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-900">Nouveau Compte</p>
+                          <p className="text-xs text-gray-500 mt-1">Créer des identifiants de zéro pour un nouvel employé</p>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => setActiveTab('existing')}
+                        className={`p-6 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 text-center ${activeTab === 'existing'
+                          ? 'bg-amber-50 border-amber-500 shadow-lg shadow-amber-100'
+                          : 'bg-white border-gray-100 hover:border-amber-200'}`}
+                      >
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${activeTab === 'existing' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                          <UserPlus size={24} />
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-900">Membre Existant</p>
+                          <p className="text-xs text-gray-500 mt-1">Importer un membre de votre équipe d'un autre bar</p>
+                        </div>
+                      </button>
+                    </div>
+
+                    <div className="h-px bg-gray-100 my-2" />
+
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-bold text-gray-800">2. Détails & Rôle</h3>
+
+                      {/* Common: Role Selection */}
+                      <div className="space-y-3">
+                        <Label className="font-bold text-gray-700">Rôle à attribuer</Label>
+                        <div className="flex bg-gray-50 p-1.5 rounded-2xl border border-gray-200">
+                          {hasPermission('canCreateManagers') && (
+                            <button
+                              onClick={() => setSelectedRole('gerant')}
+                              className={`flex-1 py-3 px-4 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${selectedRole === 'gerant'
+                                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-200'
+                                : 'text-gray-500 hover:bg-gray-100'}`}
+                            >
+                              Gérant
+                            </button>
+                          )}
+                          {hasPermission('canCreateServers') && (
+                            <button
+                              onClick={() => setSelectedRole('serveur')}
+                              className={`flex-1 py-3 px-4 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${selectedRole === 'serveur'
+                                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-200'
+                                : 'text-gray-500 hover:bg-gray-100'}`}
+                            >
+                              Serveur
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Form Content */}
+                      <AnimatePresence mode="wait">
+                        {activeTab === 'new' ? (
+                          <motion.form
+                            key="new-form"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="space-y-6"
+                            onSubmit={handleAddUser}
+                          >
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div className="space-y-2">
+                                <Label htmlFor="username" className="font-bold text-gray-700">Identifiant de connexion *</Label>
+                                <Input
+                                  id="username"
+                                  type="text"
+                                  value={username}
+                                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
+                                  placeholder="exemple: jean.dupont"
+                                  className="h-12 bg-gray-50 border-gray-200 focus:bg-white"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="password" className="font-bold text-gray-700">Mot de passe temporaire *</Label>
+                                <Input
+                                  id="password"
+                                  type="text"
+                                  value={password}
+                                  onChange={(e) => setPassword(e.target.value)}
+                                  placeholder="Min. 8 caractères"
+                                  className="h-12 bg-gray-50 border-gray-200 focus:bg-white"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="name" className="font-bold text-gray-700">Nom & Prénom *</Label>
+                                <Input
+                                  id="name"
+                                  type="text"
+                                  value={name}
+                                  onChange={(e) => setName(e.target.value)}
+                                  placeholder="Jean Dupont"
+                                  className="h-12 bg-gray-50 border-gray-200 focus:bg-white text-lg font-medium"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="phone" className="font-bold text-gray-700">Téléphone *</Label>
+                                <Input
+                                  id="phone"
+                                  type="tel"
+                                  value={phone}
+                                  onChange={(e) => setPhone(e.target.value)}
+                                  placeholder="+229 00 00 00 00"
+                                  className="h-12 bg-gray-50 border-gray-200 focus:bg-white"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="pt-2">
+                              <Button
+                                type="submit"
+                                className="w-full h-14 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-amber-200"
+                              >
+                                Créer le compte
+                              </Button>
+                            </div>
+                          </motion.form>
+                        ) : (
+                          <motion.form
+                            key="existing-form"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="space-y-6"
+                            onSubmit={handleAddExistingUser}
+                          >
+                            <div className="space-y-2">
+                              <Label className="font-bold text-gray-700">Importer de mon équipe (Autre Bar)</Label>
+                              {loadingCandidates ? (
+                                <div className="h-12 animate-pulse bg-gray-100 rounded-xl" />
+                              ) : (
+                                <select
+                                  className="w-full h-12 bg-gray-50 border-gray-200 rounded-xl px-4 font-medium focus:ring-2 focus:ring-amber-500 transition-all cursor-pointer"
+                                  value={selectedCandidateId}
+                                  onChange={(e) => {
+                                    setSelectedCandidateId(e.target.value);
+                                    if (e.target.value) setExistingEmail('');
+                                  }}
+                                >
+                                  <option value="">-- Sélectionnez un employé --</option>
+                                  {candidates.map(c => (
+                                    <option key={c.id} value={c.id}>
+                                      {c.name} ({c.role} chez {c.sourceBarName})
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-4 my-2">
+                              <div className="h-px bg-gray-100 flex-1" />
+                              <span className="text-xs font-black text-gray-300 uppercase tracking-widest">OU</span>
+                              <div className="h-px bg-gray-100 flex-1" />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="existing-email" className="font-bold text-gray-700">Rechercher par Email / Identifiant</Label>
+                              <Input
+                                id="existing-email"
+                                type="text"
+                                placeholder="exemple@mail.com ou login.membre"
+                                value={existingEmail}
+                                onChange={(e) => {
+                                  setExistingEmail(e.target.value.trim());
+                                  if (e.target.value) setSelectedCandidateId('');
+                                }}
+                                className="h-12 bg-gray-50 border-gray-200 focus:bg-white"
+                              />
+                            </div>
+
+                            <div className="pt-2">
+                              <Button
+                                type="submit"
+                                disabled={!selectedCandidateId && !existingEmail}
+                                className="w-full h-14 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-amber-200"
+                              >
+                                Ajouter à l'équipe
+                              </Button>
+                            </div>
+                          </motion.form>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Internal Status Messages */}
+                <AnimatePresence>
+                  {(error || success) && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="mt-4">
+                      {error && <Alert show={!!error} variant="destructive" className="rounded-2xl shadow-lg border-red-200">{error}</Alert>}
+                      {success && <Alert show={!!success} variant="success" className="rounded-2xl shadow-lg border-green-200 whitespace-pre-line">{success}</Alert>}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Right Column: Profile Preview Ticket */}
+              <div className="lg:col-span-1">
+                <div className="bg-amber-100 rounded-3xl p-6 border-2 border-dashed border-amber-300 relative overflow-hidden h-full flex flex-col min-h-[400px]">
+                  {/* Cutouts */}
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-gray-50 rounded-full" />
+                  <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-gray-50 rounded-full" />
+
+                  <div className="text-center mb-8">
+                    <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4 border border-amber-200">
+                      <UserIcon size={32} className="text-amber-600" />
+                    </div>
+                    <h4 className="font-black text-amber-900 uppercase tracking-widest text-sm">Aperçu Profil</h4>
+                  </div>
+
+                  <div className="space-y-5 flex-1">
+                    <div className="bg-white/50 p-4 rounded-2xl">
+                      <p className="text-[10px] font-black text-amber-700 uppercase mb-1">Nom Complet</p>
+                      <p className="font-black text-amber-950 text-lg leading-tight">{name || (selectedCandidateId ? candidates.find(c => c.id === selectedCandidateId)?.name : 'Nouveau Membre')}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white/50 p-4 rounded-2xl">
+                        <p className="text-[10px] font-black text-amber-700 uppercase mb-1">Rôle</p>
+                        <p className="font-black text-amber-950 uppercase text-xs">{selectedRole}</p>
+                      </div>
+                      <div className="bg-white/50 p-4 rounded-2xl">
+                        <p className="text-[10px] font-black text-amber-700 uppercase mb-1">Identifiant</p>
+                        <p className="font-black text-amber-950 text-xs truncate">{username || (existingEmail ? existingEmail.split('@')[0] : '---')}</p>
+                      </div>
+                    </div>
+
+                    <div className="bg-amber-950 text-amber-100 p-5 rounded-2xl shadow-xl text-center">
+                      <p className="text-[10px] font-black uppercase opacity-60 mb-2 tracking-widest leading-none">Accès Bar</p>
+                      <p className="font-black text-base text-amber-50">{currentBar.name}</p>
+                    </div>
+
+                    <div className="px-2 text-center pt-4">
+                      <div className="flex items-center justify-center gap-2 text-amber-800/60 text-xs font-medium italic">
+                        <Info size={14} />
+                        <span>L'employé pourra se connecter dès validation</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8">
+                    <button
+                      onClick={() => setPageTab('members')}
+                      className="w-full py-3 text-amber-800/50 font-black text-xs uppercase hover:text-amber-800 transition-colors"
+                    >
+                      Abandonner
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
       </div>
     </div >
   );
