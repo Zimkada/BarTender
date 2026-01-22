@@ -39,7 +39,7 @@ export default function DashboardPage() {
   const tabsConfig = [
     { id: 'summary', label: isMobile ? 'Synthèse' : 'Synthèse du jour', icon: LayoutDashboard },
     { id: 'orders', label: isMobile ? 'Commandes' : 'Gestion Commandes', icon: ShoppingCart },
-    { id: 'performance', label: 'Performance', icon: BarChart3 }
+    { id: 'performance', label: isMobile ? 'Performance' : 'Performance équipe', icon: BarChart3 }
   ];
 
   return (

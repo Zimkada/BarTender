@@ -132,6 +132,7 @@ export function useInventoryActions() {
         showStockAdjustmentModal,
         setShowStockAdjustmentModal,
         editingProduct,
+        setEditingProduct,
         adjustingProduct,
         setAdjustingProduct,
         productToDelete,

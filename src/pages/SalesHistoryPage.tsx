@@ -79,7 +79,7 @@ export default function SalesHistoryPage() {
             .filter((u): u is User => !!u);
     }, [safeBarMembers]);
 
-    const [viewMode, setViewMode] = useState<ViewMode>('cards');
+    const [viewMode, setViewMode] = useState<ViewMode>('list');
     const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
     const [exportFormat, setExportFormat] = useState<'csv' | 'excel'>('excel');
 
@@ -141,9 +141,9 @@ export default function SalesHistoryPage() {
 
 
     const tabsConfig = [
-        { id: 'cards', label: isMobile ? 'Cartes' : 'Détails des ventes', icon: LayoutGrid },
-        { id: 'list', label: isMobile ? 'Liste' : 'Tableau des ventes', icon: ListIcon },
-        { id: 'analytics', label: isMobile ? 'Analytics' : 'Statistiques & Analyses', icon: TrendingUp }
+        { id: 'list', label: isMobile ? 'Tableau' : 'Tableau des ventes', icon: ListIcon },
+        { id: 'cards', label: isMobile ? 'Détails' : 'Détails des ventes', icon: LayoutGrid },
+        { id: 'analytics', label: isMobile ? 'Statistiques' : 'Statistiques & Analyses', icon: TrendingUp }
     ] as { id: string; label: string; icon: any }[];
 
     return (

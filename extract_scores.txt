@@ -1,8 +1,0 @@
-OLD HOMEPAGE (Dec 31):
-Performance: 0.39 * 100 = 39
-Accessibility: 0.86 * 100 = 86
-Best-Practices: 1 * 100 = 100
-SEO: 1 * 100 = 100
-PWA: 0 (not in categories)
-
-Need to extract from: c:\Users\HP ELITEBOOK\DEV\BarTender\score_pwa2\bar-tender-ten.vercel.app-20260101T180352.json-homepage2.json

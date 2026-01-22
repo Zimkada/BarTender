@@ -66,7 +66,7 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
     },
     {
       icon: <TrendingUp size={24} />,
-      label: 'Prévisions',
+      label: 'Prévisions et IA',
       path: '/forecasting',
       color: 'text-indigo-600',
       roles: ['promoteur', 'gerant']

@@ -16,7 +16,7 @@ import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
 import { SearchBar } from '../components/common/SearchBar';
 import { Button } from '../components/ui/Button';
-import { EmptyState } from '../components/common/EmptyState';
+
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
 import { StockAdjustmentModal } from '../components/StockAdjustmentModal';
 import { InventoryList } from '../components/inventory/InventoryList';
@@ -82,7 +82,7 @@ export default function InventoryPage() {
     const tabsConfig = [
         { id: 'products', label: isMobile ? 'Produits' : 'Mes Produits', icon: Package },
         { id: 'operations', label: 'Opérations', icon: Zap },
-        { id: 'stats', label: isMobile ? 'Stats' : 'Statistiques', icon: BarChart3 }
+        { id: 'stats', label: 'Statistiques', icon: BarChart3 }
     ];
 
     return (

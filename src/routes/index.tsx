@@ -13,7 +13,7 @@ const HomePage = lazyWithRetry(() => import('../pages/HomePage'));
 // === Pages (export default) - With automatic retry on chunk load failure ===
 const DashboardPage = lazyWithRetry(() => import('../pages/DashboardPage'));
 const SaleDetailsPage = lazyWithRetry(() => import('../pages/SaleDetailsPage'));
-const ForecastingPage = lazyWithRetry(() => import('../pages/ForecastingPage'));
+const ForecastingAIPage = lazyWithRetry(() => import('../pages/ForecastingAIPage'));
 const ReturnsPage = lazyWithRetry(() => import('../pages/ReturnsPage'));
 const ConsignmentPage = lazyWithRetry(() => import('../pages/ConsignmentPage'));
 const AdminNotificationsPage = lazyWithRetry(() => import('../pages/AdminNotificationsPage'));
@@ -64,7 +64,7 @@ export const router = createBrowserRouter([
       { path: 'security', element: <SecurityDashboardPage /> },
     ],
   },
-  
+
   // =====================
   // Routes Application (Bar Users) - RootLayout
   // =====================
@@ -99,7 +99,7 @@ export const router = createBrowserRouter([
       },
       { path: 'settings', element: <SettingsPage /> },
       { path: 'profil', element: <ProfilePage /> },
-      { path: 'forecasting', element: <ForecastingPage /> },
+      { path: 'forecasting', element: <ForecastingAIPage /> },
       { path: 'returns', element: <ReturnsPage /> },
       { path: 'consignments', element: <ConsignmentPage /> },
       { path: 'team', element: <TeamPage /> },
@@ -107,7 +107,7 @@ export const router = createBrowserRouter([
       { path: 'onboarding', element: <OnboardingPage /> },
     ],
   },
-  
+
   // =====================
   // Routes Auth (Public)
   // =====================

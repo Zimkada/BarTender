@@ -414,7 +414,7 @@ export default function ReturnsPage() {
       ]
       : []),
     { id: "list", label: isMobile ? "Liste" : "Liste des retours", icon: List },
-    { id: "stats", label: "Stats", icon: BarChart3 },
+    { id: "stats", label: "Statistiques", icon: BarChart3 },
   ] as { id: string; label: string; icon: any }[];
 
   return (

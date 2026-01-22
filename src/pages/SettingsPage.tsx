@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Settings as SettingsIcon, DollarSign, Clock, Building2, Mail, Phone, MapPin, ShieldCheck, CheckCircle, AlertCircle, GitBranch } from 'lucide-react';
+import { Settings as SettingsIcon, DollarSign, Clock, Building2, Mail, Phone, MapPin, ShieldCheck, CheckCircle, AlertCircle, GitBranch } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useNotifications } from '../components/Notifications';
 import { Factor } from '@supabase/supabase-js'; // Import Factor type
@@ -13,8 +13,6 @@ import { Alert } from '../components/ui/Alert';
 import { RadioGroup, RadioGroupItem } from '../components/ui/Radio';
 import { ServerMappingsManager } from '../components/ServerMappingsManager';
 import { FEATURES } from '../config/features';
-import { useOnboarding } from '../context/OnboardingContext';
-import { useGuide } from '../context/GuideContext';
 // import { GuideHeaderButton } from '../components/guide/GuideHeaderButton'; // removed
 import { useViewport } from '../hooks/useViewport';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
@@ -35,22 +33,12 @@ export default function SettingsPage() {
     const navigate = useNavigate();
     const { settings, updateSettings } = useSettings();
     const { currentBar, updateBar } = useBarContext();
-    const { currentSession } = useAuth();
-    const { isComplete } = useOnboarding();
-    const { hasCompletedGuide } = useGuide();
     const { showNotification } = useNotifications();
+    const { isMobile } = useViewport();
+    const { currentSession } = useAuth();
 
     // Guide ID for settings - using header button instead
     const settingsGuideId = 'manage-settings';
-
-    // Auto-guide disabled - using GuideHeaderButton in page header instead
-    // useAutoGuide(
-    //     'manage-settings',
-    //     isComplete && !hasCompletedGuide('manage-settings'),
-    //     { delay: 1500 }
-    // );
-
-    const { isMobile } = useViewport();
 
     const [activeTab, setActiveTab] = useState<'bar' | 'operational' | 'security'>('bar');
 
@@ -77,7 +65,7 @@ export default function SettingsPage() {
                     const totpFactor = data.all.find((f: Factor) => f.factor_type === 'totp' && f.status === 'verified');
                     setIsMfaEnabled(!!totpFactor);
                     if (totpFactor) setMfaFactorId(totpFactor.id);
-                } catch (err: unknown) {
+                } catch (err: any) {
                     if (err.message?.includes('Auth session missing')) {
                         setMfaError("Session expirée. Veuillez vous reconnecter.");
                     } else {
@@ -170,7 +158,7 @@ export default function SettingsPage() {
             setMfaFactorId(data.id);
             setMfaStep('verify');
             showNotification('success', 'Scannez le QR code et entrez le code de vérification.');
-        } catch (error: unknown) {
+        } catch (error: any) {
             setMfaError(error.message);
             showNotification('error', `Erreur d'inscription 2FA: ${error.message}`);
         } finally {
@@ -194,7 +182,7 @@ export default function SettingsPage() {
             setMfaSecret(null);
             setVerifyCode('');
             showNotification('success', 'Authentification à deux facteurs activée avec succès !');
-        } catch (error: unknown) {
+        } catch (error: any) {
             setMfaError(error.message);
             showNotification('error', `Erreur de vérification 2FA: ${error.message}`);
         } finally {
@@ -216,7 +204,7 @@ export default function SettingsPage() {
             setMfaStep('idle');
             setMfaFactorId(null);
             showNotification('success', 'Authentification à deux facteurs désactivée.');
-        } catch (error: unknown) {
+        } catch (error: any) {
             setMfaError(error.message);
             showNotification('error', `Erreur de désactivation 2FA: ${error.message}`);
         } finally {
@@ -473,8 +461,8 @@ export default function SettingsPage() {
                                     <label
                                         key={currency.code}
                                         className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer border transition-all ${tempSettings.currency === currency.code
-                                                ? 'bg-amber-50 border-amber-500 shadow-sm'
-                                                : 'bg-white border-gray-200 hover:bg-gray-50'
+                                            ? 'bg-amber-50 border-amber-500 shadow-sm'
+                                            : 'bg-white border-gray-200 hover:bg-gray-50'
                                             }`}
                                     >
                                         <input

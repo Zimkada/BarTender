@@ -1,10 +1,11 @@
 import { useState, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PlusCircle, TruckIcon, FileSpreadsheet, AlertTriangle, Package } from 'lucide-react';
+import { PlusCircle, TruckIcon, FileSpreadsheet, ShoppingCart } from 'lucide-react';
 import { Product, ProductStockInfo, Category } from '../../types';
-import { Button } from '../ui/Button';
+
 import { InventoryAddForm } from './operations/InventoryAddForm';
 import { InventorySupplyForm } from './operations/InventorySupplyForm';
+import { OrderPreparation } from './operations/OrderPreparation';
 import { BackButton } from '../ui/BackButton';
 
 // Lazy load
@@ -21,7 +22,7 @@ interface InventoryOperationsProps {
     isProductImportEnabled: boolean;
 }
 
-type OperationMode = 'menu' | 'add' | 'supply' | 'import';
+type OperationMode = 'menu' | 'add' | 'supply' | 'import' | 'order-prep';
 
 export function InventoryOperations({
     lowStockProducts,
@@ -48,7 +49,7 @@ export function InventoryOperations({
                         className="space-y-6"
                     >
                         {/* Tuiles d'action */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <button
                                 onClick={() => setMode('add')}
                                 className="group p-6 bg-white rounded-2xl border-2 border-transparent hover:border-amber-400 shadow-sm transition-all text-left flex items-start gap-4 active:scale-95"
@@ -56,22 +57,9 @@ export function InventoryOperations({
                                 <div className="p-3 bg-amber-100 text-amber-600 rounded-xl group-hover:scale-110 transition-transform">
                                     <PlusCircle size={28} />
                                 </div>
-                                <div>
+                                <div className="min-w-0">
                                     <h3 className="font-bold text-gray-900">Nouveau Produit</h3>
-                                    <p className="text-sm text-gray-500">Ajouter manuellement au catalogue</p>
-                                </div>
-                            </button>
-
-                            <button
-                                onClick={() => setMode('supply')}
-                                className="group p-6 bg-white rounded-2xl border-2 border-transparent hover:border-green-400 shadow-sm transition-all text-left flex items-start gap-4 active:scale-95"
-                            >
-                                <div className="p-3 bg-green-100 text-green-600 rounded-xl group-hover:scale-110 transition-transform">
-                                    <TruckIcon size={28} />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-gray-900">Approvisionner</h3>
-                                    <p className="text-sm text-gray-500">Enregistrer des entrées de stock</p>
+                                    <p className="text-sm text-gray-500 line-clamp-1">Ajout manuel</p>
                                 </div>
                             </button>
 
@@ -83,63 +71,44 @@ export function InventoryOperations({
                                     <div className="p-3 bg-blue-100 text-blue-600 rounded-xl group-hover:scale-110 transition-transform">
                                         <FileSpreadsheet size={28} />
                                     </div>
-                                    <div>
+                                    <div className="min-w-0">
                                         <h3 className="font-bold text-gray-900">Import Excel</h3>
-                                        <p className="text-sm text-gray-500">Charger une liste massive</p>
+                                        <p className="text-sm text-gray-500 line-clamp-1">Chargement massif</p>
                                     </div>
                                 </button>
                             )}
+
+                            <button
+                                onClick={() => setMode('order-prep')}
+                                className="group p-6 bg-white rounded-2xl border-2 border-transparent hover:border-orange-400 shadow-sm transition-all text-left flex items-start gap-4 active:scale-95"
+                            >
+                                <div className="p-3 bg-orange-100 text-orange-600 rounded-xl group-hover:scale-110 transition-transform relative">
+                                    <ShoppingCart size={28} />
+                                    {lowStockProducts.length > 0 && (
+                                        <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 border-2 border-white rounded-full animate-pulse" />
+                                    )}
+                                </div>
+                                <div className="min-w-0">
+                                    <h3 className="font-bold text-gray-900">Préparation Commandes</h3>
+                                    <p className="text-sm text-gray-500 line-clamp-1">Analyses & Suggestions d'achat</p>
+                                </div>
+                            </button>
+
+                            <button
+                                onClick={() => setMode('supply')}
+                                className="group p-6 bg-white rounded-2xl border-2 border-transparent hover:border-green-400 shadow-sm transition-all text-left flex items-start gap-4 active:scale-95"
+                            >
+                                <div className="p-3 bg-green-100 text-green-600 rounded-xl group-hover:scale-110 transition-transform">
+                                    <TruckIcon size={28} />
+                                </div>
+                                <div className="min-w-0">
+                                    <h3 className="font-bold text-gray-900">Approvisionner</h3>
+                                    <p className="text-sm text-gray-500 line-clamp-1">Entrées de stock</p>
+                                </div>
+                            </button>
                         </div>
 
-                        {/* Section Alertes */}
-                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                            <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-                                <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                                    <AlertTriangle size={18} className="text-orange-500" />
-                                    Urgent : Stocks bas
-                                </h3>
-                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${lowStockProducts.length > 0 ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}>
-                                    {lowStockProducts.length > 0 ? `${lowStockProducts.length} alertes` : 'OK'}
-                                </span>
-                            </div>
 
-                            <div className="p-4">
-                                {lowStockProducts.length === 0 ? (
-                                    <div className="text-center py-6">
-                                        <div className="w-12 h-12 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                                            <Package size={24} />
-                                        </div>
-                                        <p className="text-gray-600 font-medium">Tous les stocks sont à jour ✓</p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-2">
-                                        {lowStockProducts.map(product => {
-                                            const stock = getProductStockInfo(product.id);
-                                            return (
-                                                <div key={product.id} className="flex items-center justify-between p-3 bg-orange-50/50 rounded-xl border border-orange-100">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center text-orange-600 font-bold border border-orange-100">
-                                                            {stock?.physicalStock ?? 0}
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm font-bold text-gray-900">{product.name}</p>
-                                                            <p className="text-[10px] text-gray-500 uppercase font-black">Seuil: {product.alertThreshold}</p>
-                                                        </div>
-                                                    </div>
-                                                    <Button
-                                                        onClick={() => setMode('supply')}
-                                                        size="sm"
-                                                        className="bg-orange-500 hover:bg-orange-600 text-white text-[10px] font-bold h-7"
-                                                    >
-                                                        Réappro
-                                                    </Button>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
                     </motion.div>
                 ) : (
                     <motion.div
@@ -165,6 +134,11 @@ export function InventoryOperations({
                                 products={products}
                             />
                         )}
+                        {mode === 'order-prep' && (
+                            <OrderPreparation
+                                onBack={handleBack}
+                            />
+                        )}
                         {mode === 'import' && (
                             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 min-h-[400px]">
                                 <div className="flex items-center gap-3 mb-6 border-b border-gray-50 pb-4">
@@ -187,6 +161,6 @@ export function InventoryOperations({
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 }

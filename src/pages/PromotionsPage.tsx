@@ -162,7 +162,7 @@ export default function PromotionsPage() {
             <TabbedPageHeader
                 title={
                     <div className="flex items-center gap-3">
-                        Gestion des Promotions
+                        {isMobile ? 'Promotions' : 'Gestion des Promotions'}
                         <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600 border border-amber-500/20">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5 animate-pulse"></span>
                             {activeCount} active{activeCount > 1 ? 's' : ''}
@@ -173,7 +173,7 @@ export default function PromotionsPage() {
                 icon={<Gift size={24} className="text-amber-500" />}
                 tabs={[
                     { id: 'list', label: isMobile ? 'Catalogue' : 'Catalogue d\'Offres', icon: List },
-                    { id: 'analytics', label: isMobile ? 'Analyses' : 'Performance & ROI', icon: BarChart3 },
+                    { id: 'analytics', label: 'Analyses', icon: BarChart3 },
                     { id: 'new', label: isMobile ? 'Nouveau' : 'Nouvelle Promotion', icon: Plus }
                 ]}
                 activeTab={activeTab}
