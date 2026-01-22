@@ -81,7 +81,7 @@ function InventorySummaryCards({ products, formatPrice }: { products: Product[],
             delay: 0.1
         },
         {
-            label: "Valeur Achat Stock",
+            label: "Valeur Achat Stock Actuel",
             value: formatPrice(stats.purchaseValue),
             icon: Wallet,
             color: "bg-emerald-50 text-emerald-600",
@@ -89,7 +89,7 @@ function InventorySummaryCards({ products, formatPrice }: { products: Product[],
             delay: 0.2
         },
         {
-            label: "Valeur Vente Stock",
+            label: "Valeur Vente Stock Actuel",
             value: formatPrice(stats.saleValue),
             icon: TrendingUp,
             color: "bg-amber-50 text-amber-600",
