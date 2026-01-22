@@ -34,8 +34,12 @@ export function InventoryOperations({
     isProductImportEnabled
 }: InventoryOperationsProps) {
     const [mode, setMode] = useState<OperationMode>('menu');
+    const [supplyInitialData, setSupplyInitialData] = useState<{ productId?: string; quantity?: number } | undefined>(undefined);
 
-    const handleBack = () => setMode('menu');
+    const handleBack = () => {
+        setMode('menu');
+        setSupplyInitialData(undefined);
+    };
 
     return (
         <div className="space-y-6">
@@ -132,11 +136,17 @@ export function InventoryOperations({
                                 onClose={handleBack}
                                 onSave={onSupply}
                                 products={products}
+                                initialProductId={supplyInitialData?.productId}
+                                initialQuantity={supplyInitialData?.quantity}
                             />
                         )}
                         {mode === 'order-prep' && (
                             <OrderPreparation
                                 onBack={handleBack}
+                                onSupplyClick={(product, quantity) => {
+                                    setSupplyInitialData({ productId: product.productId, quantity });
+                                    setMode('supply');
+                                }}
                             />
                         )}
                         {mode === 'import' && (

@@ -9,9 +9,11 @@ interface InventorySupplyFormProps {
     onClose: () => void;
     onSave: (data: any) => Promise<void> | void;
     products: Product[];
+    initialProductId?: string;
+    initialQuantity?: number;
 }
 
-export function InventorySupplyForm({ onClose, onSave, products }: InventorySupplyFormProps) {
+export function InventorySupplyForm({ onClose, onSave, products, initialProductId, initialQuantity }: InventorySupplyFormProps) {
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 min-h-[400px]">
             <div className="flex items-center gap-3 mb-6 border-b border-gray-50 pb-4">
@@ -32,6 +34,8 @@ export function InventorySupplyForm({ onClose, onSave, products }: InventorySupp
                         onClose();
                     }}
                     products={products}
+                    initialProductId={initialProductId}
+                    initialQuantity={initialQuantity}
                 />
             </Suspense>
         </div>

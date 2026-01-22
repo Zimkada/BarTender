@@ -17,9 +17,11 @@ interface SupplyModalProps {
   }) => void;
   products: Product[];
   inline?: boolean;
+  initialProductId?: string;
+  initialQuantity?: number;
 }
 
-export function SupplyModal({ isOpen, onClose, onSave, products, inline = false }: SupplyModalProps) {
+export function SupplyModal({ isOpen, onClose, onSave, products, inline = false, initialProductId, initialQuantity }: SupplyModalProps) {
   const { formatPrice } = useCurrencyFormatter();
   const [formData, setFormData] = useState({
     productId: '',
@@ -32,14 +34,14 @@ export function SupplyModal({ isOpen, onClose, onSave, products, inline = false 
   useEffect(() => {
     if (isOpen) {
       setFormData({
-        productId: products[0]?.id || '',
-        quantity: '',
+        productId: initialProductId || products[0]?.id || '',
+        quantity: initialQuantity ? initialQuantity.toString() : '',
         lotSize: '',
         lotPrice: '',
         supplier: '',
       });
     }
-  }, [isOpen, products]);
+  }, [isOpen, products, initialProductId, initialQuantity]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

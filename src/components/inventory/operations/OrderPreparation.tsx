@@ -8,7 +8,8 @@ import {
     Calendar,
     X,
     Check,
-    Download
+    Download,
+    Eye
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useCurrencyFormatter } from '../../../hooks/useBeninCurrency';
@@ -37,9 +38,10 @@ interface StockAlert {
 
 interface OrderPreparationProps {
     onBack: () => void;
+    onSupplyClick: (product: ProductSalesStats, quantity: number) => void;
 }
 
-export function OrderPreparation({ onBack }: OrderPreparationProps) {
+export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProps) {
     const { formatPrice } = useCurrencyFormatter();
     const { isMobile } = useViewport();
     const { currentBar } = useBarContext();
@@ -49,7 +51,7 @@ export function OrderPreparation({ onBack }: OrderPreparationProps) {
     const [alerts, setAlerts] = useState<StockAlert[]>([]);
     const [productStats, setProductStats] = useState<ProductSalesStats[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [filterStatus, setFilterStatus] = useState<'all' | 'new' | 'read' | 'resolved'>('all');
+    const [filterStatus, setFilterStatus] = useState<'all' | 'new' | 'resolved'>('all');
     const [showOrderSuggestions, setShowOrderSuggestions] = useState(false);
 
     const coverageDays = currentBar?.settings?.supplyFrequency ?? 7;
@@ -134,11 +136,7 @@ export function OrderPreparation({ onBack }: OrderPreparationProps) {
             });
     }, [productStats, coverageDays, allProductsStockInfo]);
 
-    const markAsRead = (alertId: string) => {
-        setAlerts(prev => prev.map(alert =>
-            alert.id === alertId ? { ...alert, status: 'read' } : alert
-        ));
-    };
+
 
     const markAsResolved = (alertId: string) => {
         setAlerts(prev => prev.map(alert =>
@@ -226,8 +224,7 @@ export function OrderPreparation({ onBack }: OrderPreparationProps) {
                                             {[
                                                 { value: 'all', label: 'Toutes' },
                                                 { value: 'new', label: 'Nouvelles' },
-                                                { value: 'read', label: 'Lues' },
-                                                { value: 'resolved', label: 'Résolues' }
+                                                { value: 'resolved', label: 'Ignorées' }
                                             ].map(filter => (
                                                 <button
                                                     key={filter.value}
@@ -247,15 +244,15 @@ export function OrderPreparation({ onBack }: OrderPreparationProps) {
                                 <div className="space-y-3">
                                     {!showOrderSuggestions ? (
                                         filteredAlerts.length === 0 ? (
-                                            <EmptyAlertsState />
+                                            <EmptyAlertsState filter={filterStatus} />
                                         ) : (
                                             filteredAlerts.map(alert => (
                                                 <AlertCard
                                                     key={alert.id}
                                                     alert={alert}
-                                                    onMarkAsRead={() => markAsRead(alert.id)}
-                                                    onMarkAsResolved={() => markAsResolved(alert.id)}
+                                                    onIgnore={() => markAsResolved(alert.id)}
                                                     onDelete={() => deleteAlert(alert.id)}
+                                                    onViewSuggestion={() => setShowOrderSuggestions(true)}
                                                 />
                                             ))
                                         )
@@ -280,6 +277,8 @@ export function OrderPreparation({ onBack }: OrderPreparationProps) {
                                                         key={suggestion.productId}
                                                         suggestion={suggestion}
                                                         formatPrice={formatPrice}
+                                                        onSupply={() => onSupplyClick({ ...suggestion, daily_average: 0, sale_velocity: 0, last_sale_date: new Date().toISOString(), alert_threshold: 0, current_stock: suggestion.currentStock, product_id: suggestion.productId, product_name: suggestion.productName, product_volume: suggestion.productVolume }, suggestion.suggestedQuantity)}
+                                                        onBackToAlert={() => setShowOrderSuggestions(false)}
                                                     />
                                                 ))}
                                             </>
@@ -342,15 +341,15 @@ export function OrderPreparation({ onBack }: OrderPreparationProps) {
                                     {!showOrderSuggestions ? (
                                         <div className="space-y-4 max-w-2xl">
                                             {filteredAlerts.length === 0 ? (
-                                                <EmptyAlertsState />
+                                                <EmptyAlertsState filter={filterStatus} />
                                             ) : (
                                                 filteredAlerts.map(alert => (
                                                     <AlertCard
                                                         key={alert.id}
                                                         alert={alert}
-                                                        onMarkAsRead={() => markAsRead(alert.id)}
-                                                        onMarkAsResolved={() => markAsResolved(alert.id)}
+                                                        onIgnore={() => markAsResolved(alert.id)}
                                                         onDelete={() => deleteAlert(alert.id)}
+                                                        onViewSuggestion={() => setShowOrderSuggestions(true)}
                                                     />
                                                 ))
                                             )}
@@ -366,6 +365,7 @@ export function OrderPreparation({ onBack }: OrderPreparationProps) {
                                                             key={suggestion.productId}
                                                             suggestion={suggestion}
                                                             formatPrice={formatPrice}
+                                                            onSupply={() => onSupplyClick({ ...suggestion, daily_average: 0, sale_velocity: 0, last_sale_date: new Date().toISOString(), alert_threshold: 0, current_stock: suggestion.currentStock, product_id: suggestion.productId, product_name: suggestion.productName, product_volume: suggestion.productVolume }, suggestion.suggestedQuantity)}
                                                         />
                                                     ))}
                                                 </div>
@@ -382,14 +382,35 @@ export function OrderPreparation({ onBack }: OrderPreparationProps) {
     );
 }
 
-function EmptyAlertsState() {
+function EmptyAlertsState({ filter }: { filter: 'all' | 'new' | 'resolved' }) {
+    const config = {
+        all: {
+            icon: Package,
+            title: "Aucune alerte",
+            desc: "Votre historique d'alertes est vide."
+        },
+        new: {
+            icon: Check,
+            title: "Stock impeccable",
+            desc: "Aucun produit n'est actuellement sous son seuil d'alerte."
+        },
+        resolved: {
+            icon: Bell,
+            title: "Aucune alerte ignorée",
+            desc: "Vous traitez toutes vos alertes de stock, bravo !"
+        }
+    };
+
+    const current = config[filter];
+    const Icon = current.icon;
+
     return (
         <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
-            <div className="w-16 h-16 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Package size={32} />
+            <div className="w-16 h-16 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Icon size={32} />
             </div>
-            <h3 className="text-lg font-bold text-gray-800 mb-1">Stock impeccable</h3>
-            <p className="text-gray-500 text-sm">Aucun produit n'est actuellement sous son seuil d'alerte.</p>
+            <h3 className="text-lg font-bold text-gray-800 mb-1">{current.title}</h3>
+            <p className="text-gray-500 text-sm">{current.desc}</p>
         </div>
     );
 }
@@ -408,14 +429,14 @@ function EmptySuggestionsState() {
 
 function AlertCard({
     alert,
-    onMarkAsRead,
-    onMarkAsResolved,
-    onDelete
+    onIgnore,
+    onDelete,
+    onViewSuggestion
 }: {
     alert: StockAlert;
-    onMarkAsRead: () => void;
-    onMarkAsResolved: () => void;
+    onIgnore: () => void;
     onDelete: () => void;
+    onViewSuggestion: () => void;
 }) {
     const getSeverityStyle = (severity: StockAlert['severity']) => {
         switch (severity) {
@@ -448,7 +469,7 @@ function AlertCard({
                     <div className="flex items-center justify-between gap-2 mb-3">
                         <p className="text-gray-500 text-xs font-medium truncate">{alert.productVolume}</p>
                         <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${alert.status === 'new' ? 'bg-red-50 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
-                            {alert.status === 'new' ? 'Nouveau' : alert.status === 'read' ? 'Lu' : 'Résolu'}
+                            {alert.status === 'new' ? 'Nouveau' : alert.status === 'read' ? 'Lu' : 'Ignoré'}
                         </span>
                     </div>
 
@@ -467,20 +488,26 @@ function AlertCard({
                 </div>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-gray-50 flex items-center justify-end gap-1">
-                {alert.status === 'new' && (
-                    <Button variant="ghost" size="sm" onClick={onMarkAsRead} className="h-9 w-9 p-0 text-amber-600 hover:bg-amber-50">
-                        <Check size={18} />
-                    </Button>
-                )}
-                {alert.status !== 'resolved' && (
-                    <Button variant="ghost" size="sm" onClick={onMarkAsResolved} className="h-9 px-3 text-green-600 hover:bg-green-50 flex items-center gap-1 font-bold">
-                        <Check size={16} /> Résoudre
-                    </Button>
-                )}
-                <Button variant="ghost" size="sm" onClick={onDelete} className="h-9 w-9 p-0 text-gray-400 hover:text-red-500 hover:bg-red-50">
-                    <X size={18} />
+            <div className="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between gap-2">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onViewSuggestion}
+                    className="h-8 px-3 text-amber-600 hover:bg-amber-50 flex items-center gap-1.5 font-bold text-xs"
+                >
+                    <ShoppingCart size={14} /> Voir suggestion
                 </Button>
+
+                <div className="flex items-center gap-1">
+                    {alert.status !== 'resolved' && (
+                        <Button variant="ghost" size="sm" onClick={onIgnore} className="h-8 px-3 text-gray-500 hover:bg-gray-50 flex items-center gap-1 font-medium text-xs">
+                            Ignorer
+                        </Button>
+                    )}
+                    <Button variant="ghost" size="sm" onClick={onDelete} className="h-8 w-8 p-0 text-gray-400 hover:text-red-500 hover:bg-red-50">
+                        <X size={16} />
+                    </Button>
+                </div>
             </div>
         </motion.div>
     );
@@ -488,10 +515,14 @@ function AlertCard({
 
 function OrderSuggestionCard({
     suggestion,
-    formatPrice
+    formatPrice,
+    onSupply,
+    onBackToAlert
 }: {
     suggestion: OrderSuggestion;
     formatPrice: (price: number) => string;
+    onSupply: () => void;
+    onBackToAlert?: () => void;
 }) {
     const getUrgencyConfig = (urgency: OrderSuggestion['urgency']) => {
         switch (urgency) {
@@ -506,7 +537,18 @@ function OrderSuggestionCard({
     return (
         <div className={`p-5 rounded-2xl border bg-white shadow-sm hover:shadow-md transition-shadow`}>
             <div className="mb-4">
-                <h4 className="font-bold text-gray-900 mb-1 truncate">{suggestion.productName}</h4>
+                <div className="flex justify-between items-start mb-1 gap-2">
+                    <h4 className="font-bold text-gray-900 truncate flex-1">{suggestion.productName}</h4>
+                    {onBackToAlert && (
+                        <button
+                            onClick={onBackToAlert}
+                            className="text-[10px] font-bold text-gray-400 hover:text-amber-600 underline decoration-gray-300 hover:decoration-amber-500 transition-colors whitespace-nowrap pt-1"
+                        >
+                            Voir alerte
+                        </button>
+                    )}
+                </div>
+
                 <div className="flex items-center justify-between gap-2">
                     <span className="text-gray-400 text-xs font-medium truncate">{suggestion.productVolume}</span>
                     <div className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter ${cfg.bg} ${cfg.text} border ${cfg.border}`}>
@@ -527,14 +569,26 @@ function OrderSuggestionCard({
             </div>
 
             <div className="pt-3 border-t border-gray-50 flex items-center justify-between gap-2">
-                <div className="shrink-0">
+                <div className="shrink-0 flex flex-col">
                     <span className="block text-gray-400 text-[9px] uppercase font-black mb-0.5">Coût estimé</span>
                     <span className="font-bold text-gray-900 text-sm">{formatPrice(suggestion.estimatedCost)}</span>
                 </div>
-                <p className="text-[10px] text-gray-500 italic leading-tight flex-1 text-right line-clamp-2">
-                    "{suggestion.reasoning}"
-                </p>
+
+                <div className="flex-1 flex justify-end">
+                    <EnhancedButton
+                        variant="primary"
+                        onClick={onSupply}
+                        size="sm"
+                        className="text-xs px-4 py-1.5 h-8 bg-amber-500 hover:bg-amber-600 text-white shadow-sm font-bold w-full sm:w-auto"
+                    >
+                        Approvisionner
+                    </EnhancedButton>
+                </div>
             </div>
+
+            <p className="mt-3 text-[10px] text-gray-500 italic leading-tight line-clamp-2 w-full text-center bg-gray-50/50 p-1.5 rounded-lg border border-gray-100">
+                "{suggestion.reasoning}"
+            </p>
         </div>
     );
 }

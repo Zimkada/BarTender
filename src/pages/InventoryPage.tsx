@@ -1,5 +1,5 @@
 import { useState, Suspense, lazy } from 'react';
-import { Package, BarChart3, Zap, Plus } from 'lucide-react';
+import { Package, BarChart3, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Hooks & Context
@@ -15,7 +15,7 @@ import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 // Components
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
 import { SearchBar } from '../components/common/SearchBar';
-import { Button } from '../components/ui/Button';
+
 
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
 import { StockAdjustmentModal } from '../components/StockAdjustmentModal';
@@ -66,7 +66,7 @@ export default function InventoryPage() {
         isDeleting,
 
         // Actions
-        handleAddProduct,
+
         handleEditProduct,
         handleSaveProduct,
         handleAdjustStock,
@@ -96,18 +96,6 @@ export default function InventoryPage() {
                 activeTab={viewMode}
                 onTabChange={(id) => setViewMode(id as ViewMode)}
                 guideId={inventoryGuideId}
-                actions={
-                    !isMobile && (
-                        <Button
-                            onClick={handleAddProduct}
-                            variant="default"
-                            className="bg-white text-amber-600 hover:bg-amber-50"
-                        >
-                            <Plus size={18} className="mr-2" />
-                            Ajouter produit
-                        </Button>
-                    )
-                }
             />
 
             <main className="container mx-auto px-4 py-4 pb-24">
