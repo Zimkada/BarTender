@@ -1,13 +1,11 @@
 // Onboarding context & flow
 export { OnboardingFlow } from './OnboardingFlow';
 
-// Owner/Promoter components (6 steps)
+// Owner/Promoter components (kept steps - redirect steps removed)
 export { BarDetailsStep } from './BarDetailsStep';
-export { AddManagersStep } from './AddManagersStep';
-export { SetupStaffStep } from './SetupStaffStep';
-export { AddProductsStep } from './AddProductsStep';
-export { StockInitStep } from './StockInitStep';
 export { ReviewStep } from './ReviewStep';
+// Removed: AddManagersStep, SetupStaffStep, AddProductsStep, StockInitStep
+// These have been replaced by RedirectStep with config-driven architecture
 
 // Manager components (3 steps)
 export { ManagerRoleConfirmStep } from './ManagerRoleConfirmStep';

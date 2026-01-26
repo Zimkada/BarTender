@@ -86,6 +86,28 @@ export const ManagerRoleConfirmStep: React.FC = () => {
             </div>
           </div>
 
+          {/* Delegable Tasks */}
+          <div className="p-6 bg-amber-50 border border-amber-200 rounded-lg">
+            <h2 className="text-lg font-semibold text-amber-900 mb-4">💡 Vous pouvez aider le propriétaire</h2>
+            <p className="text-sm text-amber-800 mb-3">
+              Le propriétaire peut vous demander de configurer certaines tâches pour le bar :
+            </p>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <span className="text-amber-600 text-lg">✓</span>
+                <span className="text-gray-900">Ajouter des produits au catalogue</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-amber-600 text-lg">✓</span>
+                <span className="text-gray-900">Initialiser le stock</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-amber-600 text-lg">✓</span>
+                <span className="text-gray-900">Créer des comptes serveurs</span>
+              </div>
+            </div>
+          </div>
+
           {/* Next Steps */}
           <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
             <h3 className="font-medium text-gray-900 mb-3">Prochaines étapes :</h3>

@@ -76,10 +76,24 @@ export const WelcomeStep: React.FC = () => {
         </div>
 
         {/* CTA Button */}
-        <div className="flex justify-center">
+        {/* Footer Actions Standardisé */}
+        <div className="flex flex-col sm:flex-row gap-3 mt-8 pt-6 border-t border-gray-100 items-center justify-between">
+          <div className="w-20"></div> {/* Spacer pour centrer le bouton du milieu si besoin, ou vide */}
+
+          <button
+            onClick={() => {
+              // Redirige vers le dashboard
+              // Note: l'onboarding restera "actif" tant que non complété, mais l'utilisateur peut explorer
+              window.location.href = '/dashboard';
+            }}
+            className="text-gray-400 hover:text-gray-600 font-medium text-sm underline decoration-gray-300 underline-offset-4 px-4 py-2"
+          >
+            Compléter plus tard
+          </button>
+
           <button
             onClick={nextStep}
-            className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold text-lg"
+            className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold text-lg shadow-md"
           >
             Commencer
           </button>

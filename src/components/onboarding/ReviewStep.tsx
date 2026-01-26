@@ -8,6 +8,7 @@ import { LoadingButton } from '../ui/LoadingButton';
 import { OnboardingService } from '../../services/supabase/onboarding.service';
 import { supabase } from '../../lib/supabase';
 
+
 export const ReviewStep: React.FC = () => {
   const navigate = useNavigate();
   const { currentSession } = useAuth();
@@ -100,21 +101,22 @@ export const ReviewStep: React.FC = () => {
       const barId = currentBar.id;
 
       /**
-       * PHASE 1 + PHASE 2 FIX: Atomic onboarding completion
+       * REFACTORED ARCHITECTURE: Redirect-based onboarding with atomic completion
        *
-       * PHASE 1 (Already Done): Removed duplicate assignments
-       * - All data already assigned in their respective steps:
-       *   * Managers: Added in AddManagersStep.handleSubmit()
-       *   * Staff: Created in SetupStaffStep.handleSubmit()
-       *   * Products: Added in AddProductsStep.handleSubmit()
-       *   * Stock: Initialized in StockInitStep.handleSubmit()
+       * NEW APPROACH (Config-Driven):
+       * - All configuration done in real business pages (not onboarding duplicates):
+       *   * Managers: Added via /team page (TeamManagementPage)
+       *   * Staff: Created via /team page (TeamManagementPage)
+       *   * Products: Added via /inventory page (InventoryPage)
+       *   * Stock: Initialized via /inventory page (InventoryPage)
        *   * Mode: Set in BarDetailsStep.handleSubmit()
+       * - Auto-detection via OnboardingCompletionService (polling 5s)
+       * - Zero code duplication (1,205 lines removed)
        *
-       * PHASE 2 (NEW): Single atomic RPC transaction
+       * ATOMIC RPC TRANSACTION:
        * - Uses complete_bar_onboarding() RPC for atomic transaction
        * - All verification + mode update + launch in one DB call
        * - Prevents partial failures and improves performance
-       * - Maintains exact same business logic as Phase 1
        *
        * Benefits:
        * - Single DB roundtrip vs 3 separate calls (better performance)
@@ -208,7 +210,11 @@ export const ReviewStep: React.FC = () => {
                 <p className="text-xs text-gray-600">{realData.managerCount} compte(s)</p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-green-600">✓</span>
+                {realData.managerCount > 0 ? (
+                  <span className="text-green-600 font-bold">✓</span>
+                ) : (
+                  <span className="text-gray-300 transform scale-75">○</span>
+                )}
                 <button
                   type="button"
                   onClick={() => handleEditStep(OnboardingStep.OWNER_ADD_MANAGERS)}
@@ -228,7 +234,11 @@ export const ReviewStep: React.FC = () => {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-green-600">✓</span>
+                {realData.staffCount > 0 ? (
+                  <span className="text-green-600 font-bold">✓</span>
+                ) : (
+                  <span className="text-amber-500 font-bold" title="Aucun serveur ajouté">⚠️</span>
+                )}
                 <button
                   type="button"
                   onClick={() => handleEditStep(OnboardingStep.OWNER_SETUP_STAFF)}
@@ -255,7 +265,11 @@ export const ReviewStep: React.FC = () => {
                 )}
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <span className="text-green-600">✓</span>
+                {realData.productNames.length > 0 ? (
+                  <span className="text-green-600 font-bold">✓</span>
+                ) : (
+                  <span className="text-red-500 font-bold" title="Aucun produit">✕</span>
+                )}
                 <button
                   type="button"
                   onClick={() => handleEditStep(OnboardingStep.OWNER_ADD_PRODUCTS)}
@@ -273,7 +287,11 @@ export const ReviewStep: React.FC = () => {
                 <p className="text-xs text-gray-600">{realData.totalStock} unité(s) au total</p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-green-600">✓</span>
+                {realData.totalStock > 0 ? (
+                  <span className="text-green-600 font-bold">✓</span>
+                ) : (
+                  <span className="text-amber-500 font-bold" title="Stock vide">⚠️</span>
+                )}
                 <button
                   type="button"
                   onClick={() => handleEditStep(OnboardingStep.OWNER_STOCK_INIT)}
@@ -302,19 +320,29 @@ export const ReviewStep: React.FC = () => {
           {/* Buttons - Responsive Layout */}
           <div className="pt-6 border-t space-y-3">
             {/* Mobile: Retour + Lancer sur la même ligne */}
-            <div className="flex gap-3">
+            {/* Footer Actions Standardisé */}
+            <div className="flex flex-col sm:flex-row gap-3 mt-8 pt-6 border-t border-gray-100 items-center justify-between">
               <button
                 type="button"
                 onClick={previousStep}
-                className="flex-1 sm:flex-none px-4 sm:px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                className="text-gray-500 hover:text-gray-700 font-medium text-sm px-4 py-2 rounded-lg hover:bg-gray-50 transition"
               >
                 Retour
               </button>
+
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard')}
+                className="text-gray-400 hover:text-gray-600 font-medium text-sm underline decoration-gray-300 underline-offset-4 px-4 py-2"
+              >
+                Compléter plus tard
+              </button>
+
               <LoadingButton
                 type="submit"
                 isLoading={loading}
                 loadingText="Lancement..."
-                className="flex-1 sm:flex-none sm:ml-auto px-4 sm:px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold"
+                className="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-bold shadow-md transform hover:scale-105"
               >
                 🚀 Lancer le Bar
               </LoadingButton>

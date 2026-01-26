@@ -21,11 +21,15 @@ export const OnboardingBanner: React.FC = () => {
   // 2. Not dismissed by user
   // 3. Deferral period not active
   // 4. User is NOT currently on the onboarding page
+  // 5. User is NOT currently in an active redirection step (mode=onboarding)
   const isOnOnboardingPage = location.pathname === '/onboarding';
+  const isActiveOnboardingMode = new URLSearchParams(location.search).get('mode') === 'onboarding';
+
   const shouldShow =
     currentBar &&
     !currentBar.isSetupComplete &&
     !isOnOnboardingPage &&
+    !isActiveOnboardingMode && // Disable if already in active flow
     !isDismissed &&
     (!deferredUntil || Date.now() >= deferredUntil);
 

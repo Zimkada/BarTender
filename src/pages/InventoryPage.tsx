@@ -1,4 +1,5 @@
-import { useState, Suspense, lazy } from 'react';
+import { useState, Suspense, lazy, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Package, BarChart3, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -22,6 +23,7 @@ import { StockAdjustmentModal } from '../components/StockAdjustmentModal';
 import { InventoryList } from '../components/inventory/InventoryList';
 import { InventoryOperations } from '../components/inventory/InventoryOperations';
 import { InventoryStats } from '../components/inventory/InventoryStats';
+import { OnboardingBreadcrumb } from '../components/onboarding/ui/OnboardingBreadcrumb';
 
 // Lazy load
 const ProductModal = lazy(() => import('../components/ProductModal').then(m => ({ default: m.ProductModal })));
@@ -38,8 +40,22 @@ export default function InventoryPage() {
     const { formatPrice } = useCurrencyFormatter();
     const isProductImportEnabled = useFeatureFlag('product-import').data as boolean;
 
+    const location = useLocation();
+    const navigate = useNavigate();
+    const searchParams = new URLSearchParams(location.search);
+    const isOnboardingMode = searchParams.get('mode') === 'onboarding';
+    const onboardingTask = searchParams.get('task');
+    const initialTab = searchParams.get('tab') as ViewMode | null;
+
     // 2. Local View State
-    const [viewMode, setViewMode] = useState<ViewMode>('products');
+    const [viewMode, setViewMode] = useState<ViewMode>(initialTab || 'products');
+
+    // Sync viewMode with URL tab param if it changes (e.g. navigation)
+    useEffect(() => {
+        if (initialTab && initialTab !== viewMode) {
+            setViewMode(initialTab);
+        }
+    }, [initialTab]);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortMode, setSortMode] = useState<SortMode>('category');
 
@@ -87,6 +103,16 @@ export default function InventoryPage() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-50">
+            {isOnboardingMode && (
+                <OnboardingBreadcrumb
+                    currentStep={
+                        onboardingTask === 'add-products' ? 'Ajouter des Produits' :
+                            onboardingTask === 'init-stock' ? 'Initialiser le Stock' :
+                                'Configuration'
+                    }
+                    onBackToOnboarding={() => navigate('/onboarding')}
+                />
+            )}
             {/* Header */}
             <TabbedPageHeader
                 title="Inventaire"
