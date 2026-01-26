@@ -334,9 +334,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [hasPermission, salesMutations]);
 
     const rejectSale = useCallback((saleId: string, rejectorId: string) => {
-        if (!hasPermission('canManageInventory')) return;
+        // Managers can reject any sale
+        if (hasPermission('canManageInventory')) {
+            salesMutations.rejectSale.mutate({ id: saleId, rejectorId });
+            return;
+        }
+
+        // Servers can only reject their own recent pending sales
+        const sale = sales.find(s => s.id === saleId);
+        if (!sale || !currentSession) return;
+
+        // Check if sale belongs to current server
+        if (sale.soldBy !== currentSession.userId) return;
+
+        // Check if sale is pending
+        if (sale.status !== 'pending') return;
+
+        // Check if sale is recent (< 10 minutes)
+        const saleCreatedAt = new Date(sale.createdAt);
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+        if (saleCreatedAt <= tenMinutesAgo) return;
+
+        // All checks passed, allow server to reject their own sale
         salesMutations.rejectSale.mutate({ id: saleId, rejectorId });
-    }, [hasPermission, salesMutations]);
+    }, [hasPermission, salesMutations, sales, currentSession]);
 
     const getSalesByDate = useCallback((startDate: Date, endDate: Date, includePending: boolean = false) => {
         const closeHour = currentBar?.closingHour ?? BUSINESS_DAY_CLOSE_HOUR;

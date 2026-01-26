@@ -146,12 +146,20 @@ export class SalesService {
         .select()
         .single();
 
-      if (error || !data) {
-        throw new Error('Erreur lors du rejet de la vente');
+      if (error) {
+        console.error('❌ rejectSale UPDATE error:', error);
+        console.error('❌ Sale ID:', saleId);
+        console.error('❌ Rejected by:', validatedBy);
+        throw new Error(`Erreur lors du rejet de la vente: ${error.message || error.code}`);
+      }
+
+      if (!data) {
+        throw new Error('Vente introuvable après rejet');
       }
 
       return data;
     } catch (error: any) {
+      console.error('❌ rejectSale exception:', error);
       throw new Error(handleSupabaseError(error));
     }
   }
