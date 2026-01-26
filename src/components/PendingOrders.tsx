@@ -1,11 +1,10 @@
-import { Clock, Check, X, User, ShoppingBag } from 'lucide-react';
+import { Clock, Check, X, User, ShoppingBag, AlertCircle } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { Sale, SaleItem } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EnhancedButton } from './EnhancedButton';
-import { RoleBasedComponent } from './RoleBasedComponent';
 
 interface PendingOrdersProps {
   isOpen: boolean;
@@ -18,30 +17,74 @@ const getUserName = (userId: string, users: any[]): string => {
   return user ? user.name : 'Inconnu';
 };
 
+// Helper pour vérifier si une vente est récente (< 10 minutes)
+const isSaleRecent = (createdAt: Date): boolean => {
+  const TEN_MINUTES_MS = 10 * 60 * 1000;
+  const now = new Date().getTime();
+  const saleTime = new Date(createdAt).getTime();
+  return (now - saleTime) < TEN_MINUTES_MS;
+};
+
+// Helper pour calculer le temps restant pour annulation
+const getTimeRemaining = (createdAt: Date): string => {
+  const TEN_MINUTES_MS = 10 * 60 * 1000;
+  const now = new Date().getTime();
+  const saleTime = new Date(createdAt).getTime();
+  const remaining = TEN_MINUTES_MS - (now - saleTime);
+
+  if (remaining <= 0) return '';
+
+  const minutes = Math.floor(remaining / 60000);
+  const seconds = Math.floor((remaining % 60000) / 1000);
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+};
+
 export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
   const {
-    sales, // On va chercher toutes les ventes
-    users, // On a besoin des utilisateurs pour afficher les noms
-    validateSale, // Future fonction du contexte
-    rejectSale,   // Future fonction du contexte
+    sales,
+    users,
+    validateSale,
+    rejectSale,
   } = useAppContext();
 
   const { currentSession } = useAuth();
   const { formatPrice } = useCurrencyFormatter();
 
-  // On filtre directement ici pour obtenir les ventes en attente
-  const pendingSales = sales.filter((sale: Sale) => sale.status === 'pending');
+  if (!currentSession) return null;
+
+  // Déterminer si l'utilisateur est gérant/promoteur
+  const isManager = currentSession.role === 'gerant' || currentSession.role === 'promoteur';
+  const isServer = currentSession.role === 'serveur';
+
+  // Filtrer les ventes en attente selon le rôle
+  const pendingSales = sales.filter((sale: Sale) => {
+    if (sale.status !== 'pending') return false;
+
+    // Gérant voit toutes les ventes
+    if (isManager) return true;
+
+    // Serveur voit uniquement ses propres ventes récentes
+    if (isServer) {
+      return sale.soldBy === currentSession.userId && isSaleRecent(sale.createdAt);
+    }
+
+    return false;
+  });
 
   const handleValidate = async (saleId: string) => {
     if (!currentSession) return;
-    // Idéalement, ajouter un feedback visuel ici (loading state)
     await validateSale(saleId, currentSession.userId);
   };
 
   const handleReject = async (saleId: string) => {
     if (!currentSession) return;
-    // Idéalement, ajouter un feedback visuel ici (loading state)
     await rejectSale(saleId, currentSession.userId);
+  };
+
+  // Déterminer si un serveur peut annuler une vente spécifique
+  const canServerCancel = (sale: Sale): boolean => {
+    if (!isServer) return false;
+    return sale.soldBy === currentSession.userId && isSaleRecent(sale.createdAt);
   };
 
   if (!isOpen) return null;
@@ -55,28 +98,27 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
         >
-          <RoleBasedComponent allowedRoles={['gerant', 'promoteur']}>
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="bg-gray-50 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-200 shadow-2xl"
-            >
-              <div className="flex items-center justify-between p-5 border-b border-gray-200 bg-white">
-                <h2 className="text-xl font-bold text-gray-800 flex items-center gap-3">
-                  <Clock size={24} className="text-amber-500" />
-                  Ventes en attente de validation
-                </h2>
-                <motion.button
-                  onClick={onClose}
-                  whileHover={{ scale: 1.1, rotate: 90 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="text-gray-600 hover:text-gray-600 transition-colors"
-                >
-                  <X size={24} />
-                </motion.button>
-              </div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="bg-gray-50 rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-200 shadow-2xl"
+          >
+            <div className="flex items-center justify-between p-5 border-b border-gray-200 bg-white">
+              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-3">
+                <Clock size={24} className="text-amber-500" />
+                {isManager ? 'Ventes en attente de validation' : 'Mes ventes en attente'}
+              </h2>
+              <motion.button
+                onClick={onClose}
+                whileHover={{ scale: 1.1, rotate: 90 }}
+                whileTap={{ scale: 0.9 }}
+                className="text-gray-600 hover:text-gray-600 transition-colors"
+              >
+                <X size={24} />
+              </motion.button>
+            </div>
 
               <div className="flex-1 overflow-y-auto p-5 space-y-4">
                 {pendingSales.length === 0 ? (
@@ -113,23 +155,41 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <EnhancedButton
-                            onClick={() => handleReject(sale.id)}
-                            className="bg-red-100 text-red-700 hover:bg-red-200"
-                            size="sm"
-                            icon={<X size={16} />}
-                          >
-                            Rejeter
-                          </EnhancedButton>
-                          <EnhancedButton
-                            onClick={() => handleValidate(sale.id)}
-                            className="bg-green-100 text-green-700 hover:bg-green-200"
-                            size="sm"
-                            icon={<Check size={16} />}
-                          >
-                            Valider
-                          </EnhancedButton>
+                        <div className="flex flex-col gap-2">
+                          {/* Timer pour serveurs */}
+                          {isServer && canServerCancel(sale) && (
+                            <div className="flex items-center gap-1 text-xs text-amber-600">
+                              <AlertCircle size={12} />
+                              <span>Annulation possible: {getTimeRemaining(sale.createdAt)}</span>
+                            </div>
+                          )}
+
+                          {/* Boutons d'action */}
+                          <div className="flex items-center gap-2">
+                            {/* Bouton Annuler - Visible pour: manager OU serveur (si c'est sa vente < 10min) */}
+                            {(isManager || canServerCancel(sale)) && (
+                              <EnhancedButton
+                                onClick={() => handleReject(sale.id)}
+                                className="bg-red-100 text-red-700 hover:bg-red-200"
+                                size="sm"
+                                icon={<X size={16} />}
+                              >
+                                Annuler
+                              </EnhancedButton>
+                            )}
+
+                            {/* Bouton Valider - Uniquement pour managers */}
+                            {isManager && (
+                              <EnhancedButton
+                                onClick={() => handleValidate(sale.id)}
+                                className="bg-green-100 text-green-700 hover:bg-green-200"
+                                size="sm"
+                                icon={<Check size={16} />}
+                              >
+                                Valider
+                              </EnhancedButton>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -159,7 +219,6 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
                 }
               </div>
             </motion.div>
-          </RoleBasedComponent>
         </motion.div>
       )}
     </AnimatePresence>

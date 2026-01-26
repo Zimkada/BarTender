@@ -61,16 +61,31 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
     // 4. Pending Sales (Orders Tab)
     const pendingSales = useMemo(() => {
         const isManager = !isServerRole;
+        const TEN_MINUTES_MS = 10 * 60 * 1000;
+        const now = new Date().getTime();
+
         return sales.filter(s => {
             const saleDateStr = s.businessDate instanceof Date
                 ? s.businessDate.toISOString().split('T')[0]
                 : String(s.businessDate).split('T')[0];
 
-            return (
-                s.status === 'pending' &&
-                saleDateStr === todayDateStr && // Filter expired
-                (isManager || s.soldBy === currentUserId || s.serverId === currentUserId)
-            );
+            // Basic filters: pending + today
+            if (s.status !== 'pending' || saleDateStr !== todayDateStr) {
+                return false;
+            }
+
+            // Managers see all
+            if (isManager) {
+                return true;
+            }
+
+            // Servers see only their own sales within 10 minutes
+            const isOwnSale = s.soldBy === currentUserId || s.serverId === currentUserId;
+            if (!isOwnSale) return false;
+
+            const saleTime = new Date(s.createdAt).getTime();
+            const isRecent = (now - saleTime) < TEN_MINUTES_MS;
+            return isRecent;
         });
     }, [sales, currentSession, todayDateStr, isServerRole, currentUserId]);
 

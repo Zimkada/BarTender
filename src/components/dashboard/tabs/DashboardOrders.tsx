@@ -11,6 +11,7 @@ interface DashboardOrdersProps {
     onReject: (saleId: string) => void;
     onValidateAll: (salesToValidate: Sale[]) => void;
     isServerRole: boolean;
+    currentUserId: string;
     formatPrice: (amount: number) => string;
 }
 
@@ -21,10 +22,25 @@ export function DashboardOrders({
     onReject,
     onValidateAll,
     isServerRole,
+    currentUserId,
     formatPrice
 }: DashboardOrdersProps) {
     const [expandedSales, setExpandedSales] = useState<Set<string>>(new Set());
     const showBulkValidation = !isServerRole;
+
+    // Helper pour vérifier si une vente est récente (< 10 minutes)
+    const isSaleRecent = (createdAt: Date): boolean => {
+        const TEN_MINUTES_MS = 10 * 60 * 1000;
+        const now = new Date().getTime();
+        const saleTime = new Date(createdAt).getTime();
+        return (now - saleTime) < TEN_MINUTES_MS;
+    };
+
+    // Déterminer si un serveur peut annuler une vente spécifique
+    const canServerCancel = (sale: Sale): boolean => {
+        if (!isServerRole) return false;
+        return sale.soldBy === currentUserId && isSaleRecent(sale.createdAt);
+    };
 
     const toggleExpanded = (saleId: string) => {
         setExpandedSales((prev: Set<string>) => {
@@ -90,9 +106,10 @@ export function DashboardOrders({
                             </div>
                             <div className="space-y-2">
                                 {serverSales.map(sale => {
-                                    const showButtons = !isServerRole;
                                     const isExpanded = expandedSales.has(sale.id);
                                     const totalItems = sale.items.reduce((sum: number, item: any) => sum + item.quantity, 0);
+                                    const canCancel = !isServerRole || canServerCancel(sale);
+                                    const canValidate = !isServerRole;
 
                                     return (
                                         <div key={sale.id} className="bg-amber-50 rounded-lg border border-amber-100 overflow-hidden">
@@ -110,10 +127,14 @@ export function DashboardOrders({
                                                         <span>Détails ({totalItems})</span>
                                                     </button>
                                                 </div>
-                                                {showButtons && (
+                                                {(canValidate || canCancel) && (
                                                     <div className="flex gap-2">
-                                                        <button onClick={() => onValidate(sale.id)} className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"><Check size={16} /></button>
-                                                        <button onClick={() => onReject(sale.id)} className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"><X size={16} /></button>
+                                                        {canValidate && (
+                                                            <button onClick={() => onValidate(sale.id)} className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"><Check size={16} /></button>
+                                                        )}
+                                                        {canCancel && (
+                                                            <button onClick={() => onReject(sale.id)} className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"><X size={16} /></button>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>

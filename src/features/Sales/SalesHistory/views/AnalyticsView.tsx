@@ -97,6 +97,13 @@ export function AnalyticsView({
 
   const { sales: allSales } = useAppContext();
 
+  // Helper pour calculer le CA NET d'une vente (après déduction des retours remboursés)
+  const getSaleNetRevenue = (sale: Sale): number => {
+    const saleReturns = returns.filter(r => r.saleId === sale.id && r.isRefunded && (r.status === 'approved' || r.status === 'restocked'));
+    const refundAmount = saleReturns.reduce((sum, r) => sum + r.refundAmount, 0);
+    return sale.total - refundAmount;
+  };
+
 
   // Calculer période précédente pour comparaison
   const { previousPeriodSales } = useMemo(() => {
@@ -121,7 +128,14 @@ export function AnalyticsView({
 
   // KPIs avec tendances
   const kpis = useMemo(() => {
-    const prevRevenue = previousPeriodSales.reduce((sum, s) => sum + s.total, 0);
+    // Calculer CA NET de la période précédente (brut - retours remboursés)
+    const prevGrossRevenue = previousPeriodSales.reduce((sum, s) => sum + s.total, 0);
+    const prevSaleIds = new Set(previousPeriodSales.map(s => s.id));
+    const prevRefunds = returns
+      .filter(r => prevSaleIds.has(r.saleId) && r.isRefunded && (r.status === 'approved' || r.status === 'restocked'))
+      .reduce((sum, r) => sum + r.refundAmount, 0);
+    const prevRevenue = prevGrossRevenue - prevRefunds;
+
     const prevCount = previousPeriodSales.length;
     const prevItems = previousPeriodSales.reduce((sum, s) =>
       sum + s.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0
@@ -137,7 +151,7 @@ export function AnalyticsView({
       kpi: { value: stats.kpiValue, label: stats.kpiLabel, change: 0 },
       items: { value: stats.totalItems, change: itemsChange }
     };
-  }, [sales, stats, previousPeriodSales]);
+  }, [sales, stats, previousPeriodSales, returns]);
 
   // Statistiques consignations
   const consignmentStats = useMemo(() => {
@@ -187,7 +201,7 @@ export function AnalyticsView({
         grouped.set(hour, { label, revenue: 0, sales: 0, sortKey: i });
       }
 
-      // 2. Peupler la matrice avec les ventes en utilisant l'heure de création réelle
+      // 2. Peupler la matrice avec les ventes en utilisant l'heure de création réelle (CA NET)
       sales.forEach(sale => {
         if (sale.status !== 'validated') return;
 
@@ -196,7 +210,7 @@ export function AnalyticsView({
 
         if (grouped.has(hour)) {
           const existing = grouped.get(hour)!;
-          existing.revenue += sale.total;
+          existing.revenue += getSaleNetRevenue(sale);
           existing.sales += 1;
         }
       });
@@ -223,7 +237,7 @@ export function AnalyticsView({
       if (!grouped[label]) {
         grouped[label] = { label, revenue: 0, sales: 0, timestamp };
       }
-      grouped[label].revenue += sale.total;
+      grouped[label].revenue += getSaleNetRevenue(sale);
       grouped[label].sales += 1;
       // Le timestamp est utilisé pour le tri chronologique des jours
       grouped[label].timestamp = Math.min(grouped[label].timestamp, timestamp);

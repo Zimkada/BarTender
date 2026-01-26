@@ -59,16 +59,19 @@ export const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data
                     <BarChart
                         data={sortedData}
                         layout="horizontal"
-                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                        margin={{ top: 5, right: 30, left: 20, bottom: 60 }}
                         barSize={40} // Consistent bar width
                     >
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#fed7aa" opacity={0.5} />
                         <XAxis
                             dataKey="name"
-                            tick={{ fill: '#4b5563', fontSize: 12 }}
+                            tick={{ fill: '#4b5563', fontSize: 11 }}
                             axisLine={false}
                             tickLine={false}
-                            interval={0} // Show all names if possible
+                            interval={0}
+                            angle={-45}
+                            textAnchor="end"
+                            height={60}
                         />
                         <YAxis
                             tick={{ fill: '#9ca3af', fontSize: 11 }}

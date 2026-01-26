@@ -86,7 +86,7 @@ export function SaleCard({
                     <div className="flex flex-col">
                         <span className="font-mono text-xs text-gray-400 font-bold tracking-widest">#{sale.id.slice(-6)}</span>
                         <span className="text-xs font-medium text-gray-500 flex items-center gap-1 mt-0.5">
-                            {getSaleDate(sale).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(sale.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                             {seller && <><span className="text-gray-300">•</span> <UserIcon size={10} /> {seller.name}</>}
                         </span>
                     </div>

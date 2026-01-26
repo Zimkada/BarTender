@@ -149,6 +149,7 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
             onReject={handleRejectSale}
             onValidateAll={handleValidateAll}
             isServerRole={analytics.isServerRole}
+            currentUserId={currentSession?.userId || ''}
             formatPrice={formatPrice}
           />
         </motion.div>
