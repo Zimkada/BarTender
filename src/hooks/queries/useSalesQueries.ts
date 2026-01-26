@@ -18,7 +18,7 @@ export const useSales = (barId: string | undefined) => {
     // 🔧 PHASE 1-2: SmartSync pour sales (INSERT car nouvelles ventes)
     const smartSync = useSmartSync({
         table: 'sales',
-        event: 'INSERT',
+        event: '*', // 🚀 FIX: Écouter TOUS les changements (UPDATE pour validation, DELETE, INSERT)
         barId: barId || undefined,
         enabled: isEnabled,
         staleTime: CACHE_STRATEGY.salesAndStock.staleTime,

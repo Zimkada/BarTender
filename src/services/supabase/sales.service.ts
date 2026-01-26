@@ -143,18 +143,18 @@ export class SalesService {
           rejected_at: new Date().toISOString(),
         })
         .eq('id', saleId)
+        .eq('status', 'pending') // 🚀 SÉCURITÉ CRITIQUE: On ne peut rejeter QUE ce qui est pending
         .select()
-        .single();
+        .maybeSingle(); // Utiliser maybeSingle pour ne pas throw error tout de suite si pas trouvé
 
       if (error) {
         console.error('❌ rejectSale UPDATE error:', error);
-        console.error('❌ Sale ID:', saleId);
-        console.error('❌ Rejected by:', validatedBy);
         throw new Error(`Erreur lors du rejet de la vente: ${error.message || error.code}`);
       }
 
       if (!data) {
-        throw new Error('Vente introuvable après rejet');
+        // Si data est null, c'est que soit l'ID n'existe pas, soit le statut n'était pas 'pending'
+        throw new Error('Impossible d\'annuler cette vente : elle a probablement déjà été validée ou modifiée.');
       }
 
       return data;

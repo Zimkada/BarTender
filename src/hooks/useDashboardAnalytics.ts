@@ -135,7 +135,7 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
         lowStockProducts,
 
         // Metrics
-        todayTotal: isServerRole ? (dailyStats?.net_revenue || 0) : todayTotal, // Servers see their own perf via teamPerformance usually, but here simplicity
+        todayTotal: todayTotal, // 🚀 FIX: todayTotal est déjà filtré par useRevenueStats selon le rôle (serveur/gérant)
         totalItems,
 
         // Computed/Rich Data
