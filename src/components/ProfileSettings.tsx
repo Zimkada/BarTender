@@ -71,7 +71,10 @@ export function ProfileSettings() {
               isActive: data.is_active ?? true,
               firstLogin: data.first_login ?? false,
               lastLoginAt: data.last_login_at ? new Date(data.last_login_at) : undefined,
-              role: data.role
+              role: data.role,
+              hasCompletedOnboarding: data.has_completed_onboarding ?? false,
+              onboardingCompletedAt: data.onboarding_completed_at ? new Date(data.onboarding_completed_at) : undefined,
+              trainingVersionCompleted: data.training_version_completed ?? 0,
             };
             setCurrentUser(user);
             setName(user.name);
@@ -375,6 +378,29 @@ export function ProfileSettings() {
                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Dernier accès</p>
                     <p className="text-sm font-bold text-white/80">
                       {currentUser?.lastLoginAt ? new Date(currentUser.lastLoginAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Maintenant'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 group">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center group-hover:bg-white/10 transition-colors border ${currentUser?.hasCompletedOnboarding ? 'bg-green-500/20 border-green-500/30' : 'bg-white/5 border-white/10'}`}>
+                    <GraduationCap size={18} className={currentUser?.hasCompletedOnboarding ? 'text-green-400 group-hover:text-green-300' : 'text-slate-400 group-hover:text-white'} />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Certification Formation</p>
+                    <p className={`text-sm font-bold ${currentUser?.hasCompletedOnboarding ? 'text-green-400' : 'text-amber-400'}`}>
+                      {currentUser?.hasCompletedOnboarding ? (
+                        <>
+                          ✓ Certifié
+                          {currentUser?.onboardingCompletedAt && (
+                            <span className="text-[10px] text-slate-400 ml-2">
+                              (v{currentUser?.trainingVersionCompleted || 1})
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        '⏳ En attente'
+                      )}
                     </p>
                   </div>
                 </div>
