@@ -94,14 +94,14 @@ export const GuideHeaderButton: React.FC<GuideHeaderButtonProps> = ({
       <div className="relative">
         <Button
           onClick={handleClick}
-          variant="ghost"
+          variant="info"
           size="icon"
-          className="bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg relative"
+          className="rounded-xl relative"
           title={guide?.title || 'Guides'}
         >
           <HelpCircle size={20} />
           {!showAllGuides && !isCompleted && (
-            <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white shadow-sm" />
           )}
         </Button>
         {popover}
@@ -113,14 +113,14 @@ export const GuideHeaderButton: React.FC<GuideHeaderButtonProps> = ({
     <div className="relative">
       <Button
         onClick={handleClick}
-        variant="ghost"
+        variant="info"
         size="sm"
-        className="bg-blue-100 hover:bg-blue-200 text-blue-700 gap-2 rounded-lg font-medium relative"
+        className="gap-2 rounded-xl font-bold relative px-4"
       >
-        <HelpCircle size={18} />
-        <span className="hidden md:inline">{showAllGuides ? 'Guides' : 'Guide'}</span>
+        <HelpCircle size={18} strokeWidth={2.5} />
+        <span className="hidden md:inline uppercase tracking-wider text-[10px]">{showAllGuides ? 'Guides' : 'Guide'}</span>
         {!showAllGuides && !isCompleted && (
-          <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white shadow-sm" />
         )}
       </Button>
       {popover}

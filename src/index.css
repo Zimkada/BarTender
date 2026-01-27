@@ -27,7 +27,8 @@
     --secondary-foreground: 24 9.8% 10%;
 
     --muted: 40 38% 95%;
-    --muted-foreground: 25 5.3% 35%; /* Darkened from 44.7% pour meilleur contraste */
+    --muted-foreground: 25 5.3% 35%;
+    /* Darkened from 44.7% pour meilleur contraste */
 
     --accent: 40 38% 95%;
     --accent-foreground: 24 9.8% 10%;
@@ -40,19 +41,161 @@
     --ring: 38 92% 50%;
 
     --radius: 0.5rem;
+
+    /* 🎨 Vision 2026 Design Tokens */
+    --glass-opacity: 0.7;
+    --glass-blur: 12px;
   }
 
   /* 🎨 Amélioration des contrastes pour accessibilité WCAG AA */
   .text-gray-400 {
     --tw-text-opacity: 1;
-    color: rgb(107 114 128 / var(--tw-text-opacity)); /* Upgraded from gray-400 to gray-500 */
+    color: rgb(107 114 128 / var(--tw-text-opacity));
+    /* Upgraded from gray-400 to gray-500 */
   }
 
   .text-gray-300 {
     --tw-text-opacity: 1;
-    color: rgb(156 163 175 / var(--tw-text-opacity)); /* Upgraded from gray-300 to gray-400 */
+    color: rgb(156 163 175 / var(--tw-text-opacity));
+    /* Upgraded from gray-300 to gray-400 */
   }
 }
+
+/* ========================================
+   🎨 VISION 2026 DESIGN SYSTEM
+   ======================================== */
+
+/* 🏔️ Header Principal - Couleur Unie (cohérence avec onglets actifs) */
+.liquid-gold-header {
+  background: linear-gradient(135deg, hsla(38, 92%, 60%, 1) 0%, hsla(38, 92%, 45%, 1) 100%);
+  position: relative;
+  overflow: hidden;
+  border-bottom: 3px solid rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 15px 50px -10px rgba(0, 0, 0, 0.6),
+    0 5px 15px -5px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 hsla(45, 100%, 90%, 0.4);
+}
+
+/* Effet Shimmer de luxe */
+.liquid-gold-header::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg,
+      transparent 45%,
+      hsla(0, 0%, 100%, 0.1) 50%,
+      transparent 55%);
+  animation: shimmer-header 8s infinite linear;
+  pointer-events: none;
+}
+
+@keyframes shimmer-header {
+  0% {
+    transform: translateX(-30%) translateY(-30%);
+  }
+
+  100% {
+    transform: translateX(30%) translateY(30%);
+  }
+}
+
+/* 🏔️ PageHeader - Spatial Floating Island */
+.glass-page-header {
+  background: linear-gradient(135deg,
+      hsla(0, 0%, 100%, 0.95) 0%,
+      hsla(38, 92%, 98%, 0.85) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid hsla(38, 92%, 50%, 0.15);
+  border-top: 6px solid hsla(38, 92%, 50%, 1);
+  border-radius: 2rem;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.12),
+    0 10px 20px -10px hsla(38, 92%, 20%, 0.1);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.glass-page-header:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 35px 70px -25px rgba(0, 0, 0, 0.2);
+}
+
+/* 🎯 PageHeader Icon */
+.glass-page-icon {
+  background: linear-gradient(135deg, hsla(38, 92%, 60%, 1) 0%, hsla(38, 92%, 40%, 1) 100%);
+  color: white;
+  box-shadow:
+    0 10px 20px -5px hsla(38, 92%, 50%, 0.4),
+    inset 0 2px 4px hsla(0, 0%, 100%, 0.3);
+  border: 1px solid hsla(0, 0%, 100%, 0.2);
+  transform: scale(1.05);
+}
+
+/* 🌫️ Boutons Glassmorphism */
+.glass-button-2026 {
+  background: linear-gradient(135deg, hsla(0, 0%, 100%, 0.2) 0%, hsla(0, 0%, 100%, 0.05) 100%);
+  backdrop-filter: blur(8px);
+  border: 1px solid hsla(0, 0%, 100%, 0.3);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 hsla(0, 0%, 100%, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-button-2026:hover {
+  background: linear-gradient(135deg, hsla(0, 0%, 100%, 0.3) 0%, hsla(0, 0%, 100%, 0.1) 100%);
+  border: 1px solid hsla(0, 0%, 100%, 0.5);
+  transform: translateY(-1px);
+  box-shadow:
+    0 10px 15px -3px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 hsla(0, 0%, 100%, 0.4);
+}
+
+/* 🍊 Bouton Orange Glass */
+.glass-orange-2026 {
+  background: linear-gradient(135deg, hsla(25, 95%, 60%, 0.45) 0%, hsla(25, 95%, 50%, 0.6) 100%);
+  backdrop-filter: blur(8px);
+  border: 1px solid hsla(25, 95%, 70%, 0.4);
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.2), inset 0 1px hsla(0, 0%, 100%, 0.3);
+}
+
+/* 🎨 Boutons d'Action PageHeader */
+.glass-action-button-2026 {
+  background: hsla(0, 0%, 100%, 0.6) !important;
+  backdrop-filter: blur(8px) !important;
+  border: 1px solid hsla(38, 92%, 50%, 0.2) !important;
+  color: hsla(38, 92%, 20%, 1) !important;
+  box-shadow:
+    0 2px 5px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 hsla(0, 0%, 100%, 0.5) !important;
+  transition: all 0.3s ease !important;
+  border-radius: 0.8rem !important;
+}
+
+.glass-action-button-2026:hover {
+  background: hsla(38, 92%, 50%, 0.1) !important;
+  border: 1px solid hsla(38, 92%, 50%, 0.4) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(38, 92, 50, 0.15) !important;
+}
+
+/* 🎯 Bouton Actif (Tabs) */
+.glass-action-button-active-2026 {
+  background: linear-gradient(135deg, hsla(38, 92%, 60%, 1) 0%, hsla(38, 92%, 45%, 1) 100%) !important;
+  color: white !important;
+  border: 1px solid hsla(0, 0%, 100%, 0.3) !important;
+  box-shadow:
+    0 8px 16px -4px hsla(38, 92%, 50%, 0.4),
+    inset 0 2px 4px hsla(0, 0%, 100%, 0.3) !important;
+}
+
+/* ========================================
+   📜 UTILITIES
+   ======================================== */
 
 /* Horizontal scrollbar at bottom */
 .scrollbar-bottom {
@@ -78,4 +221,8 @@
 
 .scrollbar-bottom::-webkit-scrollbar-thumb:hover {
   background: #6b7280;
+}
+
+.cyber-button-shadow {
+  box-shadow: var(--cyber-glow);
 }

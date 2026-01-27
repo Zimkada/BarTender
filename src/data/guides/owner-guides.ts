@@ -550,14 +550,16 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
       emoji: '👋',
       title: 'Bienvenue à la Gestion des Consignations !',
       description:
-        'La consignation concerne les produits **DÉJÀ PAYÉS** (vente effectuée) mais que le client n\'a pas pu consommer immédiatement. Ces produits restent dans votre **Stock Physique**, mais sont retirés du **Stock Vendable**.',
+        'La consignation est un système où le client **PAIE ET CONSOMME** un produit, mais **LAISSE L\'EMBALLAGE** (bouteille vide, casier) au bar avec un **DÉPÔT/CAUTION**. Le client peut revenir récupérer sa caution en rapportant l\'emballage. Les produits consignés restent dans votre **Stock Physique** mais sont retirés du **Stock Vendable** (réservés pour le client).',
       position: 'center',
       action: 'Suivant',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
+        '💰 Caution = Montant temporaire payé par le client pour l\'emballage',
         '📦 Stock Physique : Quantité totale réellement présente dans le bar',
-        '🔒 Stock Vendable : Stock Physique - Consignations actives',
-        '⏳ Délai : Paramétrable (7j par défaut). Après ce délai, le gérant décide de confisquer ou non',
+        '🔒 Stock Vendable : Stock Physique - Consignations actives (produits réservés)',
+        '⏳ Délai : Paramétrable (7j par défaut). Après ce délai, le gérant peut confisquer la caution',
+        '🔄 Récupération : Client rapporte l\'emballage et récupère sa caution',
       ],
     },
 

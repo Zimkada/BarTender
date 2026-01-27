@@ -27,7 +27,7 @@ const PageHeader: PageHeaderComponent = ({
     className
 }: PageHeaderProps) => {
     return (
-        <div className={`bg-amber-200/50 backdrop-blur-sm border border-amber-300/60 border-l-4 border-l-amber-500 text-amber-950 rounded-2xl shadow-md mb-4 sm:mb-6 overflow-hidden p-4 sm:p-6 ${className || ''}`}>
+        <div className={`glass-page-header rounded-2xl shadow-xl mb-4 sm:mb-6 overflow-hidden p-4 sm:p-6 transition-all duration-500 ${className || ''}`}>
             <div className="flex flex-col gap-3 sm:gap-4">
                 {children}
             </div>
@@ -59,28 +59,28 @@ const Title: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 /** Icon container - typically for page context icon */
 const Icon: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => (
-    <div className={`flex items-center justify-center bg-amber-500/20 text-amber-700 w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex-shrink-0 border border-amber-400/30 ${className || ''}`}>
+    <div className={`flex items-center justify-center glass-page-icon text-amber-700 w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex-shrink-0 ${className || ''}`}>
         {children}
     </div>
 );
 
 /** Subtitle/description text - hidden on mobile by default */
 const Description: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => (
-    <p className={`text-xs sm:text-sm text-amber-800/80 mt-0.5 sm:mt-1 font-medium ${className || ''}`}>
+    <p className={`text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1 font-medium ${className || ''}`}>
         {children}
     </p>
 );
 
 /** Desktop-only actions container (hidden on mobile) */
 const Actions: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+    <div className="hidden sm:flex items-center gap-2 flex-shrink-0 page-header-actions">
         {children}
     </div>
 );
 
 /** Mobile-only actions container (hidden on desktop, displayed on new line) */
 const MobileActions: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-    <div className="flex sm:hidden items-center gap-2">
+    <div className="flex sm:hidden items-center gap-2 page-header-actions">
         {children}
     </div>
 );
@@ -96,10 +96,10 @@ const Back: React.FC<{ onClick?: () => void }> = ({ onClick }) => {
             variant="ghost"
             size="icon"
             onClick={onClick || (() => navigate(-1))}
-            className="rounded-lg transition-colors hover:bg-white/20 flex-shrink-0"
+            className="glass-action-button-2026 w-10 h-10 sm:w-11 sm:h-11 flex-shrink-0"
         >
             <ArrowLeft size={20} className="sm:hidden" />
-            <ArrowLeft size={24} className="hidden sm:block" />
+            <ArrowLeft size={22} className="hidden sm:block" />
         </Button>
     );
 };

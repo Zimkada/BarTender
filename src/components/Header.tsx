@@ -95,7 +95,7 @@ export function Header({
     const isAdminView = currentSession?.role === 'super_admin';
 
     return (
-      <header className="bg-gradient-to-r from-amber-400 to-amber-500 shadow-lg sticky top-0 z-50">
+      <header className="liquid-gold-header sticky top-0 z-[100] transition-all duration-500">
         <div className="px-3 py-2">
           {/* Layout ADMIN: Indicateurs (LEFT) + Titre (CENTER) + Hamburger (RIGHT) */}
           {isAdminView ? (
@@ -124,10 +124,10 @@ export function Header({
                 onClick={onToggleMobileSidebar}
                 variant="ghost"
                 size="icon"
-                className="p-2 bg-white rounded-lg text-purple-600 active:scale-95 transition-all shadow-lg border-2 border-white/40 flex-shrink-0"
+                className="p-2 bg-white/90 backdrop-blur-md rounded-xl text-purple-600 active:scale-90 transition-all shadow-xl cyber-button-shadow border border-white/40 flex-shrink-0"
                 aria-label="Menu"
               >
-                <Menu size={22} className="stroke-[2.5]" />
+                <Menu size={22} className="stroke-[2]" />
               </Button>
             </div>
           ) : (
@@ -140,10 +140,10 @@ export function Header({
                   onClick={onToggleMobileSidebar}
                   variant="ghost"
                   size="icon"
-                  className="p-2 bg-amber-200 rounded-lg text-amber-600 active:scale-95 transition-all shadow-lg border-2 border-amber-200/40 flex-shrink-0"
+                  className="p-2 glass-button-2026 rounded-xl text-white active:scale-95 transition-all flex-shrink-0"
                   aria-label="Menu"
                 >
-                  <Menu size={22} className="stroke-[2.5]" />
+                  <Menu size={22} strokeWidth={2.5} />
                 </Button>
 
                 {/* Badges + Actions - RIGHT */}
@@ -156,7 +156,7 @@ export function Header({
                     onClick={logout}
                     variant="ghost"
                     size="icon"
-                    className="p-1.5 bg-red-500/80 rounded-lg text-white active:scale-95 transition-transform"
+                    className="p-1.5 bg-red-500/40 backdrop-blur-md border border-red-400/30 rounded-xl text-white active:scale-95 shadow-lg"
                     aria-label="Déconnexion"
                   >
                     <LogOut size={16} />
@@ -165,7 +165,7 @@ export function Header({
               </div>
 
               {/* Ligne 2: Nom du bar + Ventes du jour (même enveloppe) */}
-              <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2 mb-2">
+              <div className="glass-button-2026 rounded-2xl px-3 py-2.5 mb-2 shadow-xl border-white/40">
                 <div className="flex items-center justify-between gap-2">
                   {/* Nom du bar ou sélecteur - LEFT */}
                   {currentSession?.role === 'promoteur' ? (
@@ -199,9 +199,9 @@ export function Header({
 
               {/* Ligne 3: Rôle + Nom utilisateur (centré) */}
               <div className="flex items-center justify-center gap-2 mb-1 w-full">
-                <div className="flex items-center gap-1 bg-white/20 rounded-full px-2 py-0.5">
+                <div className="flex items-center gap-1 bg-black/10 backdrop-blur-sm rounded-full px-2.5 py-1 border border-white/10">
                   {getRoleIcon()}
-                  <span className="text-white text-xs font-medium">{getRoleLabel()}</span>
+                  <span className="text-white text-[10px] uppercase tracking-wider font-bold">{getRoleLabel()}</span>
                 </div>
                 {currentSession?.userName && (
                   <span className="text-white/90 text-xs font-medium">
@@ -219,7 +219,7 @@ export function Header({
 
   // ==================== VERSION DESKTOP (1% promoteurs avec PC) ====================
   return (
-    <header className="bg-gradient-to-r from-amber-500 to-amber-600 shadow-lg sticky top-0 z-50">
+    <header className="liquid-gold-header shadow-2xl sticky top-0 z-50 transition-all duration-500">
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Gauche: Hamburger + Logo + Indicateurs + Bar selector */}
@@ -229,10 +229,10 @@ export function Header({
               onClick={onToggleMobileSidebar}
               variant="ghost"
               size="icon"
-              className="p-2 bg-amber-200/50 rounded-lg text-white hover:bg-amber-200/60 transition-colors"
+              className="p-2 glass-button-2026 rounded-xl text-white flex-shrink-0"
               aria-label="Menu"
             >
-              <Menu size={24} />
+              <Menu size={24} strokeWidth={2.5} />
             </Button>
 
             {/* Titre / Sélecteur de bar unifié */}
@@ -265,7 +265,7 @@ export function Header({
                   onClick={onShowProductModal}
                   variant="ghost"
                   size="icon"
-                  className="p-2 bg-blue-500/90 rounded-lg text-white hover:bg-blue-600/90 transition-colors"
+                  className="p-2 glass-blue-2026 rounded-xl text-white active:scale-90 transition-all"
                   aria-label="Ajouter Produit"
                   title="Ajouter Produit"
                 >
@@ -275,7 +275,7 @@ export function Header({
                   onClick={onShowQuickSale}
                   variant="ghost"
                   size="icon"
-                  className="hidden md:flex p-2 bg-orange-500/90 rounded-lg text-white hover:bg-orange-600/90 transition-colors"
+                  className="hidden md:flex p-2 glass-orange-2026 rounded-xl text-white active:scale-90 transition-all"
                   aria-label="Vente Rapide"
                   title="Vente Rapide"
                 >
@@ -289,11 +289,11 @@ export function Header({
           <div className="flex items-center gap-2 md:gap-6">
             {/* Ventes du jour - Masqué pour super admin */}
             {currentSession?.role !== 'super_admin' && (
-              <div className="hidden sm:block bg-white/20 backdrop-blur-sm rounded-lg px-3 md:px-4 py-2 flex flex-col items-center">
-                <p className="text-white/80 text-xs md:text-sm">Ventes du jour</p>
+              <div className="hidden sm:block glass-button-2026 px-5 py-2 flex flex-col items-center rounded-2xl shadow-2xl border-white/40">
+                <p className="text-white/80 text-[10px] uppercase tracking-[0.2em] font-black">Revenue</p>
                 <AnimatedCounter
                   value={todayTotal}
-                  className="text-white text-lg md:text-2xl font-bold"
+                  className="text-white text-2xl md:text-3xl font-black tracking-tighter drop-shadow-md"
                   suffix=" FCFA"
                 />
               </div>
