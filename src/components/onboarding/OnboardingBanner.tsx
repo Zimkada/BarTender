@@ -8,18 +8,16 @@ import React, { useState, useEffect } from 'react';
 import { AlertCircle, ChevronRight, Clock } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useBar } from '../../context/BarContext';
-import { useOnboarding } from '../../context/OnboardingContext';
 
 export const OnboardingBanner: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentBar } = useBar();
-  const { isComplete: onboardingComplete } = useOnboarding();
   const [isDismissed, setIsDismissed] = useState(false);
   const [deferredUntil, setDeferredUntil] = useState<number | null>(null);
 
   // Show banner if:
-  // 1. Bar exists AND (Bar is not setup OR User hasn't completed onboarding training)
+  // 1. Bar exists AND Bar is not setup complete
   // 2. Not dismissed by user
   // 3. Deferral period not active
   // 4. User is NOT currently on the onboarding page
@@ -27,12 +25,9 @@ export const OnboardingBanner: React.FC = () => {
   const isOnOnboardingPage = location.pathname === '/onboarding';
   const isActiveOnboardingMode = new URLSearchParams(location.search).get('mode') === 'onboarding';
 
-  const barNeedsSetup = currentBar && !currentBar.isSetupComplete;
-  const userNeedsTraining = !onboardingComplete;  // Changed: Always show until training is complete
-
   const shouldShow =
     currentBar &&
-    (barNeedsSetup || userNeedsTraining) &&  // Changed: Show if bar needs setup OR user needs training
+    !currentBar.isSetupComplete &&  // Only show if bar needs configuration
     !isOnOnboardingPage &&
     !isActiveOnboardingMode &&
     !isDismissed &&
@@ -75,16 +70,10 @@ export const OnboardingBanner: React.FC = () => {
     setIsDismissed(true);
   };
 
-  // Dynamic content based on reason
-  const title = barNeedsSetup
-    ? `🎯 Finalisez la configuration de ${currentBar?.name}`
-    : `🚀 Bienvenue dans l'équipe de ${currentBar?.name} !`;
-
-  const description = barNeedsSetup
-    ? "Configurez votre bar en quelques minutes. Ajoutez les produits, le personnel et vos préférences."
-    : "Apprenez à utiliser l'application en 2 minutes avec notre tour guidé rapide.";
-
-  const buttonText = barNeedsSetup ? "Commencer" : "Faire le tour";
+  // Banner content (only shown for bar configuration)
+  const title = `🎯 Finalisez la configuration de ${currentBar?.name}`;
+  const description = "Configurez votre bar en quelques minutes. Ajoutez les produits, le personnel et vos préférences.";
+  const buttonText = "Commencer";
 
   return (
     <div className="fixed top-16 sm:top-20 md:top-24 left-0 right-0 z-40">

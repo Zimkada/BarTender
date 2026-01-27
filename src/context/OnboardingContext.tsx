@@ -343,11 +343,42 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     });
   };
 
-  const completeOnboarding = () => {
+  const completeOnboarding = async () => {
+    // Update context state
     updateState({
       isComplete: true,
       currentStep: OnboardingStep.COMPLETE,
     });
+
+    // Persist completion to database with versioning
+    if (state.userId && state.userRole) {
+      try {
+        // Get latest training version for user's role
+        const { data: latestVersion } = await supabase
+          .from('training_versions')
+          .select('version')
+          .eq('role', state.userRole)
+          .order('version', { ascending: false })
+          .limit(1)
+          .single();
+
+        const currentVersion = latestVersion?.version || 1;
+
+        // Update user record
+        await supabase
+          .from('users')
+          .update({
+            has_completed_onboarding: true,
+            onboarding_completed_at: new Date().toISOString(),
+            training_version_completed: currentVersion
+          })
+          .eq('id', state.userId);
+
+        console.log(`✅ Onboarding completed for user ${state.userId}, version ${currentVersion}`);
+      } catch (error) {
+        console.error('❌ Error persisting onboarding completion:', error);
+      }
+    }
   };
 
   const updateStepData = (step: OnboardingStep, data: any) => {

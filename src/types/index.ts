@@ -15,6 +15,9 @@ export interface User {
   firstLogin: boolean;
   lastLoginAt?: Date;
   role: UserRole;
+  hasCompletedOnboarding?: boolean;
+  onboardingCompletedAt?: Date;
+  trainingVersionCompleted?: number;
 }
 
 export interface UserSession {

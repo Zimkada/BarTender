@@ -14,6 +14,7 @@ import {
   Shield,
   Calendar,
   Zap,
+  GraduationCap,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AuthService } from '../services/supabase/auth.service';
@@ -22,6 +23,7 @@ import type { User as UserType } from '../types';
 import { Input } from './ui/Input';
 import { TabbedPageHeader } from './common/PageHeader/patterns/TabbedPageHeader';
 import { useViewport } from '../hooks/useViewport';
+import { TrainingTab } from './TrainingTab';
 
 export function ProfileSettings() {
   const { currentSession, changePassword, refreshSession } = useAuth();
@@ -29,7 +31,7 @@ export function ProfileSettings() {
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [activeTab, setActiveTab] = useState<'info' | 'password'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'password' | 'training'>('info');
 
   // Onglet Infos personnelles
   const [name, setName] = useState('');
@@ -162,9 +164,10 @@ export function ProfileSettings() {
         tabs={[
           { id: 'info', label: 'Informations', icon: UserIcon },
           { id: 'password', label: 'Sécurité', icon: Lock },
+          { id: 'training', label: 'Formation', icon: GraduationCap },
         ]}
         activeTab={activeTab}
-        onTabChange={(id) => setActiveTab(id as 'info' | 'password')}
+        onTabChange={(id) => setActiveTab(id as 'info' | 'password' | 'training')}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-10">
@@ -240,7 +243,7 @@ export function ProfileSettings() {
                     </button>
                   </div>
                 </div>
-              ) : (
+              ) : activeTab === 'password' ? (
                 <div className="space-y-8">
                   <div className="space-y-2">
                     <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Mot de passe actuel</label>
@@ -315,6 +318,8 @@ export function ProfileSettings() {
                     </button>
                   </div>
                 </div>
+              ) : (
+                <TrainingTab />
               )}
             </motion.div>
           </AnimatePresence>
