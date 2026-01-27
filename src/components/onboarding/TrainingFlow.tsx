@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
 import { useAuth } from '../../context/AuthContext';
+import { useBar } from '../../context/BarContext';
 
 // Components for Training/Education
 import { WelcomeStep } from './WelcomeStep';
@@ -20,8 +21,52 @@ import { motion } from 'framer-motion';
  */
 export const TrainingFlow: React.FC = () => {
     const navigate = useNavigate();
-    const { currentStep, userRole } = useOnboarding();
+    const {
+        currentStep,
+        userRole,
+        initializeOnboarding,
+        updateBarId,
+        userId,
+        barId: contextBarId
+    } = useOnboarding();
     const { currentSession } = useAuth();
+    const { currentBar, barMembers } = useBar(); // Destructured currentBar and barMembers from useBar
+
+    // Initialize Onboarding Context for Training
+    useEffect(() => {
+        if (!currentSession?.userId || !currentBar?.id) return;
+
+        // Sync bar ID if needed
+        if (contextBarId !== currentBar.id) {
+            updateBarId(currentBar.id);
+        }
+
+        // If context already has a user (initialized), don't re-init
+        if (userId) return;
+
+        // Determine role and init
+        const userBarMember = barMembers?.find(
+            (m: any) => String(m.userId) === String(currentSession.userId)
+        );
+        const isBarOwner = String(currentBar.ownerId) === String(currentSession.userId);
+
+        let role = 'serveur'; // default fallback
+        if (userBarMember?.role) {
+            role = String(userBarMember.role);
+        } else if (isBarOwner) {
+            role = 'promoteur';
+        }
+
+        // Force "Training Mode" by passing true for barIsAlreadySetup
+        // This ensures getStepSequence returns the training path
+        initializeOnboarding(
+            String(currentSession.userId),
+            String(currentBar.id),
+            role as any,
+            true // Force barIsAlreadySetup = true for Training Flow
+        );
+
+    }, [currentSession, currentBar, barMembers, userId, contextBarId, initializeOnboarding, updateBarId]);
 
     // Redirect to dashboard if completed
     useEffect(() => {

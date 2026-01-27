@@ -113,9 +113,9 @@ export const OnboardingContext = createContext<OnboardingContextType | undefined
 function getStepSequence(role: UserRole | null, barIsAlreadySetup: boolean = false): OnboardingStep[] {
   let sequence: OnboardingStep[] = [];
 
-  // Rule: If bar is already setup, staff ONLY does the training simulations
-  // Bar owner (promoteur) can still re-access config if they want, but usually it's for staff training
-  const isTrainingOnly = barIsAlreadySetup && role !== 'promoteur';
+  // Rule: If bar is already setup, we go into training/academy mode for everyone
+  // This allows Promoters to access the Academy (Manager Tour) even if setup is done
+  const isTrainingOnly = barIsAlreadySetup;
 
   switch (role) {
     case 'promoteur':
