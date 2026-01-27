@@ -24,14 +24,21 @@ export const OnboardingPage: React.FC = () => {
     }
   }, [currentSession, navigate]);
 
-  // Redirect to dashboard if bar already setup complete (from database or context)
+  // Redirect to dashboard if bar already setup complete AND user has already finished their tour
   useEffect(() => {
-    // Check setup status from database OR from onboarding context completion
-    const isSetupComplete = currentBar?.isSetupComplete || onboardingComplete;
-    if (isSetupComplete) {
+    // A user can access /onboarding if:
+    // 1. The bar itself is NOT complete (needs physical setup)
+    // 2. OR it's their first login (needs educational tour)
+    const barNeedsSetup = currentBar?.isSetupComplete === false;
+    const userNeedsTour = currentSession?.firstLogin === true;
+
+    // We only redirect away if BOTH are finished
+    const isEverythingDone = !barNeedsSetup && !userNeedsTour && onboardingComplete;
+
+    if (isEverythingDone) {
       navigate('/dashboard', { replace: true });
     }
-  }, [currentBar?.isSetupComplete, onboardingComplete, navigate]);
+  }, [currentBar?.isSetupComplete, currentSession?.firstLogin, onboardingComplete, navigate]);
 
   // Loading state
   if (barLoading) {
@@ -69,11 +76,7 @@ export const OnboardingPage: React.FC = () => {
     );
   }
 
-  // Bar already setup complete - shouldn't reach here due to redirect above
-  if (currentBar?.isSetupComplete) {
-    return null; // Will redirect to dashboard
-  }
-
   // Render onboarding flow
+  // Note: Users can access onboarding for training even if bar is already set up
   return <OnboardingFlow />;
 };

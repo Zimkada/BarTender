@@ -4,10 +4,14 @@ import { useOnboarding } from '../../context/OnboardingContext';
 /**
  * RoleDetectedStep
  * Displays the detected user role and its responsibilities
+ * Adapts message based on whether bar is already set up (training mode) or not (configuration mode)
  * Language: French (Français)
  */
 export const RoleDetectedStep: React.FC = () => {
-  const { userRole, nextStep } = useOnboarding();
+  const { userRole, nextStep, barIsAlreadySetup } = useOnboarding();
+
+  // Training mode: Bar is already set up, user just needs to learn the system
+  const isTrainingMode = barIsAlreadySetup && (userRole === 'gerant' || userRole === 'serveur' || userRole === 'manager' || userRole === 'bartender');
 
   const getRoleInfo = () => {
     switch (userRole) {
@@ -16,39 +20,65 @@ export const RoleDetectedStep: React.FC = () => {
         return {
           icon: '👑',
           title: 'Promoteur / Propriétaire',
-          description: 'Vous avez un contrôle total sur le bar, les gérants, les produits et les rapports financiers.',
-          responsibilities: [
-            'Configurer les détails du bar',
-            'Ajouter des gérants et serveurs',
-            'Créer votre catalogue de produits',
-            'Initialiser votre stock',
-          ],
+          description: isTrainingMode
+            ? 'Vous avez un contrôle total sur le bar. Cette formation vous montrera comment gérer efficacement votre établissement.'
+            : 'Vous avez un contrôle total sur le bar, les gérants, les produits et les rapports financiers.',
+          responsibilities: isTrainingMode
+            ? [
+              'Consulter les rapports financiers en temps réel',
+              'Superviser les gérants et serveurs',
+              'Analyser les performances de vente',
+              'Gérer les paramètres du bar',
+            ]
+            : [
+              'Configurer les détails du bar',
+              'Ajouter des gérants et serveurs',
+              'Créer votre catalogue de produits',
+              'Initialiser votre stock',
+            ],
         };
       case 'gerant':
-      case 'gérant':
       case 'manager':
         return {
           icon: '👔',
           title: 'Gérant',
-          description: 'Vous gérez les opérations quotidiennes, validez les ventes et supervisez l\'équipe.',
-          responsibilities: [
-            'Gérer le personnel et les serveurs',
-            'Valider les ventes et les retours',
-            'Superviser les niveaux de stock',
-            'Consulter les rapports de vente',
-          ],
+          description: isTrainingMode
+            ? 'Vous gérez les opérations quotidiennes. Cette formation vous montrera comment utiliser l\'application efficacement.'
+            : 'Vous gérez les opérations quotidiennes, validez les ventes et supervisez l\'équipe.',
+          responsibilities: isTrainingMode
+            ? [
+              'Consulter le tableau de bord en temps réel',
+              'Valider les ventes et gérer les retours',
+              'Superviser les serveurs et leurs performances',
+              'Analyser les rapports de vente',
+            ]
+            : [
+              'Gérer le personnel et les serveurs',
+              'Valider les ventes et les retours',
+              'Superviser les niveaux de stock',
+              'Consulter les rapports de vente',
+            ],
         };
       case 'serveur':
       case 'bartender':
         return {
           icon: '🍹',
           title: 'Serveur / Barman',
-          description: 'Vous enregistrez les ventes et servez les clients.',
-          responsibilities: [
-            'Prendre les commandes des clients',
-            'Enregistrer les ventes sur l\'application',
-            'Gérer les retours si nécessaire',
-          ],
+          description: isTrainingMode
+            ? 'Vous enregistrez les ventes et servez les clients. Cette formation vous montrera comment utiliser l\'application rapidement.'
+            : 'Vous enregistrez les ventes et servez les clients.',
+          responsibilities: isTrainingMode
+            ? [
+              'Enregistrer rapidement les ventes',
+              'Utiliser les raccourcis pour gagner du temps',
+              'Gérer les retours clients',
+              'Consulter votre historique de ventes',
+            ]
+            : [
+              'Prendre les commandes des clients',
+              'Enregistrer les ventes sur l\'application',
+              'Gérer les retours si nécessaire',
+            ],
         };
       default:
         return {

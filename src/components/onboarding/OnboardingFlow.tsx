@@ -55,8 +55,8 @@ const OWNER_REDIRECT_STEPS: Record<string, RedirectStepConfig> = {
   },
   [OnboardingStep.OWNER_STOCK_INIT]: {
     id: 'init-stock',
-    title: 'Initialiser le Stock',
-    description: 'Définissez les quantités initiales pour chaque produit',
+    title: 'Vérifier le Stock',
+    description: 'Initialisez ou ajustez les quantités des produits sans stock',
     icon: '📦',
     targetRoute: '/inventory?mode=onboarding&task=init-stock&tab=operations',
     completionCheck: OnboardingCompletionService.checkStockInitialized,
@@ -117,14 +117,15 @@ export const OnboardingFlow: React.FC = () => {
 
     // PERMISSION CHECK:
     // - Bar owner (promoteur): Always allowed
-    // - Manager (gérant): Only allowed if explicitly added to bar_members with role 'gérant'
+    // - Manager (gerant): Only allowed if explicitly added to bar_members with role 'gerant'
     // - Bartender (serveur): Only allowed if explicitly added to bar_members with role 'serveur'
-    const isManagerRole = ['gerant', 'manager'].includes(userRole || '');
-    const isBartenderRole = ['serveur', 'bartender'].includes(userRole || '');
-    const isInvitedManager = isManagerRole && userBarMember?.role === 'gerant';
-    const isInvitedBartender = isBartenderRole && userBarMember?.role === 'serveur';
 
-    if (!isBarOwner && !isInvitedManager && !isInvitedBartender) {
+    // Determine effective role from bar membership directly (source of truth before onboarding init)
+    const memberRole = userBarMember?.role;
+    const isManager = memberRole === 'gerant';
+    const isBartender = memberRole === 'serveur';
+
+    if (!isBarOwner && !isManager && !isBartender) {
       // User does not have permission to access onboarding
       // Redirect to dashboard
       console.warn(
@@ -153,7 +154,8 @@ export const OnboardingFlow: React.FC = () => {
       initializeOnboarding(
         String(currentSession.userId),
         String(currentBar.id),
-        role
+        role,
+        currentBar.isSetupComplete || false
       );
     }
   }, [currentSession?.userId, currentBar?.id, currentBar?.ownerId, barMembers, userRole, userId, initializeOnboarding, navigate]);

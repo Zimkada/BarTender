@@ -91,6 +91,7 @@ export function DashboardOrders({
                             <div className="space-y-2">
                                 {serverSales.map(sale => {
                                     const showButtons = !isServerRole;
+
                                     const isExpanded = expandedSales.has(sale.id);
                                     const totalItems = sale.items.reduce((sum: number, item: any) => sum + item.quantity, 0);
 

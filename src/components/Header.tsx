@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; 
+// Header component for BarTender application
+import { useNavigate } from 'react-router-dom';
 import {
   Settings,
   Users,
@@ -8,7 +8,7 @@ import {
   Menu,
   ShieldCheck, // Pour Super Admin
   Bell, // Pour notifications admin
-//  User, // Pour profil utilisateur
+  //  User, // Pour profil utilisateur
   Globe, // Pour catalogue global
   PlusCircle, // Added for "Add Product" button (ProductModal)
   ShoppingCart, // Added for "Quick Sale" button
@@ -18,7 +18,7 @@ import {
 import { useRevenueStats } from '../hooks/useRevenueStats';
 import { useAuth } from "../context/AuthContext";
 import { useBarContext } from '../context/BarContext';
-import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
+// import { useCurrencyFormatter } from '../hooks/useBeninCurrency'; // Unused
 import { BarSelector } from './BarSelector';
 import { SyncStatusBadge } from './SyncStatusBadge'; // ✅ Badge sync unifié (remplace OfflineIndicator, NetworkIndicator, SyncButton)
 import { NetworkBadge } from './NetworkBadge'; // ✅ Badge réseau compact pour le header
@@ -60,7 +60,7 @@ export function Header({
   // onSwitchToServer, // REMOVED
   unreadNotificationsCount = 0,
 }: HeaderProps) {
-  const { formatPrice } = useCurrencyFormatter();
+  // const { formatPrice } = useCurrencyFormatter(); // Unused
   const { currentSession, logout } = useAuth();
   const { currentBar } = useBarContext();
   const { isMobile } = useViewport();
@@ -95,7 +95,7 @@ export function Header({
     const isAdminView = currentSession?.role === 'super_admin';
 
     return (
-      <header className="bg-gradient-to-r from-amber-500 to-amber-500 shadow-lg sticky top-0 z-50">
+      <header className="bg-gradient-to-r from-amber-500 to-amber-600 shadow-lg sticky top-0 z-50">
         <div className="px-3 py-2">
           {/* Layout ADMIN: Indicateurs (LEFT) + Titre (CENTER) + Hamburger (RIGHT) */}
           {isAdminView ? (
@@ -105,44 +105,31 @@ export function Header({
                 {/* ✅ Nouveau badge sync unifié (remplace OfflineIndicator + NetworkIndicator + SyncButton) */}
                 <SyncStatusBadge compact position="header" />
                 <RefreshButton />
-                {/* Bouton retour à l'admin - visible seulement si en impersonation */}
-                {isAdminInImpersonation && (
-                  <Button
-                    onClick={handleReturnToAdmin}
-                    variant="ghost"
-                    size="icon"
-                    className="p-1.5 bg-purple-600/90 rounded-lg text-white active:scale-95 transition-transform"
-                    title="Retour à l'Admin"
-                    aria-label="Retour à l'Admin"
-                  >
-                    <ShieldCheck size={16} />
-                  </Button>
-                )}
-            </div>
+              </div>
 
-            {/* Logo + Nom bar - CENTER/RIGHT */}
-            <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-center">
-              <img
-                src="/icons/icon-48x48.png"
-                alt="BarTender"
-                className="w-5 h-5 flex-shrink-0 rounded"
-              />
-              <h1 className="text-sm font-bold text-white truncate">
-                <AnimatedBarName text={currentSession?.role === 'super_admin' ? 'BarTender Pro' : (currentBar?.name || 'BarTender')} />
-              </h1>
-            </div>
+              {/* Logo + Nom bar - CENTER/RIGHT */}
+              <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-center">
+                <img
+                  src="/icons/icon-48x48.png"
+                  alt="BarTender"
+                  className="w-5 h-5 flex-shrink-0 rounded"
+                />
+                <h1 className="text-sm font-bold text-white truncate">
+                  <AnimatedBarName text={currentSession?.role === 'super_admin' ? 'BarTender Pro' : (currentBar?.name || 'BarTender')} />
+                </h1>
+              </div>
 
-            {/* Bouton Menu Hamburger - FAR RIGHT side */}
-            <Button
-              onClick={onToggleMobileSidebar}
-              variant="ghost"
-              size="icon"
-              className="p-2 bg-white rounded-lg text-purple-600 active:scale-95 transition-all shadow-lg border-2 border-white/40 flex-shrink-0"
-              aria-label="Menu"
-            >
-              <Menu size={22} className="stroke-[2.5]" />
-            </Button>
-          </div>
+              {/* Bouton Menu Hamburger - FAR RIGHT side */}
+              <Button
+                onClick={onToggleMobileSidebar}
+                variant="ghost"
+                size="icon"
+                className="p-2 bg-white rounded-lg text-purple-600 active:scale-95 transition-all shadow-lg border-2 border-white/40 flex-shrink-0"
+                aria-label="Menu"
+              >
+                <Menu size={22} className="stroke-[2.5]" />
+              </Button>
+            </div>
           ) : (
             // Layout NON-ADMIN Mobile: 3 lignes
             <>
@@ -232,7 +219,7 @@ export function Header({
 
   // ==================== VERSION DESKTOP (1% promoteurs avec PC) ====================
   return (
-    <header className="bg-gradient-to-r from-amber-500 to-amber-500 shadow-lg sticky top-0 z-50">
+    <header className="bg-gradient-to-r from-amber-500 to-amber-600 shadow-lg sticky top-0 z-50">
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Gauche: Hamburger + Logo + Indicateurs + Bar selector */}

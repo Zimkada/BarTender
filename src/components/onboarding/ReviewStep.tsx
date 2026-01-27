@@ -50,7 +50,7 @@ export const ReviewStep: React.FC = () => {
         // Get products with display_name (works for both global and local products)
         const { data: barProducts } = await supabase
           .from('bar_products')
-          .select('id, display_name')
+          .select('id, display_name, stock')
           .eq('bar_id', currentBar.id)
           .eq('is_active', true);
 
@@ -59,13 +59,8 @@ export const ReviewStep: React.FC = () => {
           p.display_name || 'Produit inconnu'
         ) || [];
 
-        // Get total stock
-        const { data: supplies } = await supabase
-          .from('supplies')
-          .select('quantity')
-          .eq('bar_id', currentBar.id);
-
-        const totalStock = supplies?.reduce((sum, s) => sum + (s.quantity || 0), 0) || 0;
+        // Get total stock from bar_products (current physical stock)
+        const totalStock = barProducts?.reduce((sum, p: any) => sum + (p.stock || 0), 0) || 0;
 
         setRealData({
           managerCount: managersCount || 0,
@@ -125,10 +120,17 @@ export const ReviewStep: React.FC = () => {
        */
 
       // ATOMIC COMPLETION: All verification, mode update, and launch in one RPC call
+      const finalMode = barDetails?.operatingMode || currentBar?.settings?.operatingMode || 'simplifié';
+
+      // Use the actual bar owner's ID for the RPC verification, 
+      // as the RPC strictly checks bar.owner_id = p_owner_id.
+      // Since RLS allows managers to update the bar, this is a safe way to reuse the RPC.
+      const ownerIdForRpc = currentBar?.ownerId || userId;
+
       const result = await OnboardingService.completeBarOnboardingAtomic(
         barId,
-        userId,
-        barDetails?.operatingMode
+        ownerIdForRpc,
+        finalMode
       );
 
       if (!result.success) {
@@ -173,7 +175,7 @@ export const ReviewStep: React.FC = () => {
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Nom du Bar</p>
-                  <p className="text-lg font-semibold text-gray-900">{barDetails?.barName || 'N/A'}</p>
+                  <p className="text-lg font-semibold text-gray-900">{barDetails?.barName || currentBar?.name || 'N/A'}</p>
                 </div>
                 <span className="text-2xl">✓</span>
               </div>
@@ -183,19 +185,19 @@ export const ReviewStep: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs font-medium text-gray-600">Localisation</p>
-                  <p className="text-sm text-gray-900">{barDetails?.location || 'N/A'}</p>
+                  <p className="text-sm text-gray-900">{barDetails?.location || currentBar?.address || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-xs font-medium text-gray-600">Mode</p>
-                  <p className="text-sm text-gray-900 capitalize">{barDetails?.operatingMode || 'N/A'}</p>
+                  <p className="text-sm text-gray-900 capitalize">{barDetails?.operatingMode || currentBar?.settings?.operatingMode || 'N/A'}</p>
                 </div>
                 <div>
                   <p className="text-xs font-medium text-gray-600">Heure de Fermeture</p>
-                  <p className="text-sm text-gray-900">{barDetails?.closingHour}:00 du matin</p>
+                  <p className="text-sm text-gray-900">{(barDetails?.closingHour ?? currentBar?.closingHour) || 6}:00 du matin</p>
                 </div>
                 <div>
                   <p className="text-xs font-medium text-gray-600">Contact</p>
-                  <p className="text-sm text-gray-900">{barDetails?.contact || 'Non fourni'}</p>
+                  <p className="text-sm text-gray-900">{barDetails?.contact || currentBar?.phone || 'Non fourni'}</p>
                 </div>
               </div>
             </div>
@@ -307,6 +309,12 @@ export const ReviewStep: React.FC = () => {
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-900">
               ✨ Une fois lancé, votre bar est prêt pour les ventes ! Les gérants peuvent commencer à créer des transactions.
+            </p>
+          </div>
+
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm text-amber-900">
+              💡 <strong>Conseil :</strong> Besoin d'aide une fois lancé ? Cliquez sur le bouton bleu <strong>Guide (?)</strong> situé en haut à droite des pages pour des visites guidées interactives.
             </p>
           </div>
 

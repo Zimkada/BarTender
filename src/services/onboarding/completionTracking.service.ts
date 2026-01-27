@@ -28,20 +28,21 @@ export class OnboardingCompletionService {
      * Vérifie si le stock a été initialisé (au moins 1 produit avec stock > 0)
      */
     static async checkStockInitialized(barId: string): Promise<{ complete: boolean; count: number }> {
-        const { count, error } = await supabase
+        // Source 1: Supplies table (audit trail)
+        const { count: supplyCount } = await supabase
+            .from('supplies')
+            .select('*', { count: 'exact', head: true })
+            .eq('bar_id', barId);
+
+        // Source 2: bar_products.stock (direct stock declared during creation)
+        const { count: productWithStockCount } = await supabase
             .from('bar_products')
             .select('*', { count: 'exact', head: true })
             .eq('bar_id', barId)
-            .eq('is_active', true)
-            .gt('current_stock', 0);
+            .gt('stock', 0);
 
-        if (error) {
-            console.error('Error checking stock:', error);
-            return { complete: false, count: 0 };
-        }
-
-        const actualCount = count || 0;
-        return { complete: actualCount > 0, count: actualCount };
+        const totalCount = (supplyCount || 0) + (productWithStockCount || 0);
+        return { complete: totalCount > 0, count: totalCount };
     }
 
     /**
@@ -93,12 +94,12 @@ export class OnboardingCompletionService {
     }> {
         const { data: bar } = await supabase
             .from('bars')
-            .select('name, location')
+            .select('name, address')
             .eq('id', barId)
             .single();
 
         return {
-            barDetailsComplete: !!(bar?.name && bar?.location),
+            barDetailsComplete: !!(bar?.name && bar?.address),
             productsAdded: (await this.checkProductsAdded(barId)).complete,
         };
     }

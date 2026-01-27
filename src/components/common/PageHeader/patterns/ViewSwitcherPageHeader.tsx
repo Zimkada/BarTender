@@ -26,20 +26,20 @@ export function ViewSwitcherPageHeader({
 }: ViewSwitcherPageHeaderProps) {
 
     const ViewToggle = (
-        <div className="flex bg-amber-700/30 p-1 rounded-lg w-full sm:w-auto">
+        <div className="flex bg-amber-500/20 p-1 rounded-xl w-full sm:w-auto border border-amber-400/30">
             <Button
                 onClick={() => onViewChange('list')}
                 variant={currentView === 'list' ? 'default' : 'ghost'}
-                className={`flex items-center justify-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all flex-1 sm:flex-initial ${currentView === 'list' ? '' : 'text-amber-100 hover:bg-white/10'}`}
+                className={`flex items-center justify-center gap-2 px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all flex-1 sm:flex-initial ${currentView === 'list' ? 'bg-amber-600 text-white shadow-lg' : 'text-amber-800/70 hover:bg-amber-500/20 hover:text-amber-900'}`}
             >
-                <List size={16} className="mr-2" /> Liste
+                <List size={16} /> Liste
             </Button>
             <Button
                 onClick={() => onViewChange('analytics')}
                 variant={currentView === 'analytics' ? 'default' : 'ghost'}
-                className={`flex items-center justify-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all flex-1 sm:flex-initial ${currentView === 'analytics' ? '' : 'text-amber-100 hover:bg-white/10'}`}
+                className={`flex items-center justify-center gap-2 px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all flex-1 sm:flex-initial ${currentView === 'analytics' ? 'bg-amber-600 text-white shadow-lg' : 'text-amber-800/70 hover:bg-amber-500/20 hover:text-amber-900'}`}
             >
-                <BarChart3 size={16} className="mr-2" /> Analytics
+                <BarChart3 size={16} /> Statistiques
             </Button>
         </div>
     );

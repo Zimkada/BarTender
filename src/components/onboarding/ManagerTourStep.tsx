@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
 import { LoadingButton } from '../ui/LoadingButton';
-import { Check, X, ShoppingCart, ArrowRight, Clock, AlertCircle, ShieldCheck, Zap } from 'lucide-react';
+import { ShoppingCart, ArrowRight, AlertCircle, ShieldCheck, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 type DemoPhase =
@@ -26,6 +26,7 @@ export const ManagerTourStep: React.FC = () => {
 
   // Sim State
   const [selectedServer, setSelectedServer] = useState('');
+  const [selectedPaymentMode, setSelectedPaymentMode] = useState('');
   const [validatedOrders, setValidatedOrders] = useState<string[]>([]);
   const [rejectedOrders, setRejectedOrders] = useState<string[]>([]);
 
@@ -65,31 +66,32 @@ export const ManagerTourStep: React.FC = () => {
       case 'intro':
         title = "🚀 Académie BarTender";
         subtitle = "Devenez un Gérant Pro en moins de 2 minutes.";
+        gradient = "from-amber-500 via-amber-600 to-amber-700";
         break;
       case 'sim_intro':
       case 'sim_mapping':
       case 'sim_action':
         title = "Mission : La Vente Directe";
         subtitle = "Le mode simplifié pour une gestion centralisée.";
-        gradient = "from-amber-500 to-orange-600";
+        gradient = "from-amber-500 via-amber-600 to-amber-700";
         break;
       case 'sim_success':
-        title = "Vente Sécurisée !";
+        title = "Vente Réussie !";
         subtitle = "Mapping parfait, Afi peut être fière.";
-        gradient = "from-emerald-500 to-teal-600";
+        gradient = "from-amber-500 via-amber-600 to-amber-700";
         break;
       case 'full_intro':
       case 'full_validate':
       case 'full_reject':
         title = "Mission : Le Contrôle";
         subtitle = "Le mode complet pour déléguer en toute sécurité.";
-        gradient = "from-amber-600 to-orange-700";
+        gradient = "from-amber-500 via-amber-600 to-amber-700";
         break;
       case 'full_success':
       case 'complete':
         title = "Certification Obtenue !";
         subtitle = "Vous êtes officiellement un Gérant Certifié.";
-        gradient = "from-emerald-600 to-teal-700";
+        gradient = "from-amber-500 via-amber-600 to-amber-700";
         break;
     }
 
@@ -126,20 +128,20 @@ export const ManagerTourStep: React.FC = () => {
               <div className="space-y-2">
                 <h3 className="text-2xl font-bold text-gray-900">Le Mode Simplifié</h3>
                 <p className="text-gray-600 max-w-sm mx-auto leading-relaxed">
-                  Pas de temps à perdre ? Gérez tout depuis un seul appareil. Idéal pour un démarrage rapide.
+                  Centralisez tout sur un seul appareil. Idéal si vos serveurs n'ont pas de smartphone ou pour un service rapide au comptoir.
                 </p>
               </div>
               <div className="bg-white p-4 rounded-xl shadow-sm border border-amber-100 flex items-start gap-3 text-left max-w-sm mx-auto">
                 <ShieldCheck className="text-amber-500 shrink-0 mt-1" size={20} />
                 <p className="text-sm text-amber-800">
-                  Le <strong>Mapping</strong> assure que chaque vente soit créditée au bon serveur pour ses commissions.
+                  Le <strong>Mapping</strong> est le "pont" : il lie les noms de serveurs que vous sélectionnez au comptoir aux comptes réels des serveurs pour le calcul automatique du CA.
                 </p>
               </div>
               <button
                 onClick={() => setPhase('sim_mapping')}
                 className="group px-8 py-3 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition-all shadow-lg hover:shadow-amber-200/50 flex items-center gap-2 mx-auto"
               >
-                Découvrir le Mapping <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                Maîtriser le Mapping <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </button>
             </motion.div>
           )}
@@ -153,9 +155,19 @@ export const ManagerTourStep: React.FC = () => {
               className="space-y-6"
             >
               <GlassCard className="p-6 max-w-sm mx-auto">
-                <h4 className="font-bold text-gray-800 mb-6 text-sm uppercase tracking-widest flex items-center justify-center gap-2">
-                  <Zap size={14} className="text-amber-500" /> Configuration Expert
+                <h4 className="font-bold text-gray-800 mb-2 text-sm uppercase tracking-widest flex items-center justify-center gap-2">
+                  <Zap size={14} className="text-amber-500" /> Le Mapping des Serveurs
                 </h4>
+                <div className="mb-6 p-2 bg-blue-50 rounded-lg border border-blue-100 flex flex-col items-center gap-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                    <span className="text-[10px] font-bold text-blue-700 uppercase">Paramètres &gt; Onglet Gestion</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                    <span className="text-[10px] font-bold text-blue-700 uppercase">Gestion Équipe &gt; Onglet Caisses</span>
+                  </div>
+                </div>
                 <div className="space-y-3">
                   {[
                     { from: "Afi", to: "Afi Denise" },
@@ -177,7 +189,7 @@ export const ManagerTourStep: React.FC = () => {
                   ))}
                 </div>
                 <p className="text-xs text-gray-500 mt-6 italic">
-                  Les noms que vous écrivez à la main sont liés à vos membres réels.
+                  L'app reconnaît "Afi" et sait que c'est "Afi Denise". Votre Chiffre d'Affaires est ainsi toujours juste.
                 </p>
               </GlassCard>
               <button
@@ -239,11 +251,28 @@ export const ManagerTourStep: React.FC = () => {
                     </select>
                   </div>
 
+                  <div className={`space-y-2 p-1 rounded-2xl transition-all ${selectedServer && !selectedPaymentMode ? 'ring-4 ring-amber-400/20' : ''}`}>
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">
+                      Mode de paiement
+                    </label>
+                    <select
+                      className="w-full p-4 bg-gray-50 border-none rounded-xl font-bold text-gray-800 transition-all focus:ring-2 focus:ring-amber-500 focus:bg-white"
+                      value={selectedPaymentMode}
+                      onChange={(e) => setSelectedPaymentMode(e.target.value)}
+                      disabled={phase === 'sim_success'}
+                    >
+                      <option value="">-- Mode de paiement --</option>
+                      <option value="cash">Espèces</option>
+                      <option value="momo">Mobile Money</option>
+                      <option value="card">Carte Bancaire</option>
+                    </select>
+                  </div>
+
                   <button
-                    disabled={!selectedServer || phase === 'sim_success'}
+                    disabled={!selectedServer || !selectedPaymentMode || phase === 'sim_success'}
                     onClick={() => setPhase('sim_success')}
                     className={`w-full py-5 rounded-2xl font-black text-lg transition-all transform shadow-lg
-                        ${!selectedServer
+                        ${(!selectedServer || !selectedPaymentMode)
                         ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
                         : phase === 'sim_success'
                           ? 'bg-emerald-500 text-white'
@@ -265,9 +294,9 @@ export const ManagerTourStep: React.FC = () => {
                           setPhase('full_intro');
                           setSelectedServer('');
                         }}
-                        className="px-6 py-2 bg-slate-900 text-white rounded-lg font-bold hover:bg-black transition-colors"
+                        className="px-8 py-3 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-xl font-bold shadow-lg hover:shadow-amber-200/50 transition-all flex items-center gap-2 mx-auto"
                       >
-                        Mission Suivante →
+                        Mission Suivante <ArrowRight size={18} />
                       </button>
                     </motion.div>
                   )}
@@ -298,7 +327,7 @@ export const ManagerTourStep: React.FC = () => {
               <div className="space-y-2">
                 <h3 className="text-2xl font-bold text-gray-900">Le Mode Complet</h3>
                 <p className="text-gray-600 max-w-sm mx-auto leading-relaxed">
-                  Déléguez en toute sérénité. Vos serveurs ont l'appli, mais VOUS gardez le dernier mot sur le stock.
+                  Déléguez en toute sérénité. Vos serveurs ont l'appli, mais vous gardez le dernier mot sur le stock et les ventes.
                 </p>
               </div>
               <div className="bg-white p-4 rounded-xl shadow-sm border border-amber-100 flex items-start gap-3 text-left max-w-sm mx-auto">
@@ -427,7 +456,7 @@ export const ManagerTourStep: React.FC = () => {
                   <LoadingButton
                     onClick={handleContinue}
                     isLoading={loading}
-                    className="w-full py-5 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-2xl font-black text-lg shadow-2xl hover:shadow-amber-500/40 transform hover:scale-[1.02] transition-all"
+                    className="w-full py-5 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-white rounded-2xl font-black text-lg shadow-2xl hover:shadow-amber-500/40 transform hover:scale-[1.02] transition-all"
                   >
                     Commencer à Gérer
                   </LoadingButton>
@@ -453,24 +482,24 @@ export const ManagerTourStep: React.FC = () => {
                   <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                     <ShoppingCart size={80} />
                   </div>
-                  <div className="text-amber-600 mb-3 text-2xl font-black tracking-tighter">1. MODE SIMPLE</div>
+                  <div className="text-amber-600 mb-3 text-2xl font-black tracking-tighter">1. MODE SIMPLIFIÉ</div>
                   <p className="text-gray-600 text-sm font-medium leading-relaxed">
-                    Prenez les rênes. Un seul gérant, une seule caisse, zéro erreur.
+                    Tout le monde utilise le même appareil (caisse centrale). Vous sélectionnez manuellement qui a vendu.
                   </p>
                 </GlassCard>
                 <GlassCard className="p-8 group hover:border-orange-400 transition-all cursor-default relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                     <ShieldCheck size={80} />
                   </div>
-                  <div className="text-orange-600 mb-3 text-2xl font-black tracking-tighter">2. MODE ÉQUIPE</div>
+                  <div className="text-orange-600 mb-3 text-2xl font-black tracking-tighter">2. MODE COMPLET</div>
                   <p className="text-gray-600 text-sm font-medium leading-relaxed">
-                    Déléguez à Afi ou Rose, tout en gardant un contrôle absolu.
+                    Chaque serveur a son propre accès. Vous recevez, validez ou rejetez leurs commandes depuis votre poste.
                   </p>
                 </GlassCard>
               </div>
               <button
                 onClick={() => setPhase('sim_intro')}
-                className="group px-12 py-5 bg-slate-900 text-white rounded-2xl font-black text-lg shadow-2xl hover:bg-black transform hover:scale-105 transition-all flex items-center gap-3"
+                className="group px-12 py-5 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-2xl font-black text-lg shadow-2xl hover:shadow-orange-500/40 transform hover:scale-105 transition-all flex items-center gap-3"
               >
                 Lancer la Formation <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform" />
               </button>
@@ -485,16 +514,16 @@ export const ManagerTourStep: React.FC = () => {
         <div className="px-10 py-5 bg-white border-t border-gray-50 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">BarTender Learning System v2.0</span>
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Formation BarTender Pro : Gérant</span>
           </div>
           <div className="flex gap-2">
             {[1, 2, 3].map(i => (
               <div
                 key={i}
                 className={`h-1.5 rounded-full transition-all duration-500 ${(i === 1 && phase === 'intro') ||
-                    (i === 2 && phase.startsWith('sim')) ||
-                    (i === 3 && phase.startsWith('full'))
-                    ? 'w-8 bg-amber-500' : 'w-2 bg-gray-200'
+                  (i === 2 && phase.startsWith('sim')) ||
+                  (i === 3 && phase.startsWith('full'))
+                  ? 'w-8 bg-amber-500' : 'w-2 bg-gray-200'
                   }`}
               />
             ))}
