@@ -154,7 +154,7 @@ export default function SalesHistoryPage() {
                     subtitle={
                         <span>
                             Consultez et analysez votre historique
-                            {!isMobile && <span className="ml-2 text-amber-200 font-medium">• {filteredSales.length} ventes</span>}
+                            {!isMobile && <span className="ml-2 text-amber-900 font-medium">• {filteredSales.length} ventes</span>}
                         </span>
                     }
                     icon={<TrendingUp size={24} />}
@@ -169,13 +169,13 @@ export default function SalesHistoryPage() {
                                 <div className="flex bg-white/10 rounded-lg p-1 border border-white/20">
                                     <button
                                         onClick={() => setExportFormat('excel')}
-                                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${exportFormat === 'excel' ? 'bg-green-600 text-white shadow-sm' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}
+                                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${exportFormat === 'excel' ? 'bg-green-600 text-white shadow-sm' : 'text-amber-900 hover:bg-white/10 hover:text-amber-950'}`}
                                     >
                                         Excel
                                     </button>
                                     <button
                                         onClick={() => setExportFormat('csv')}
-                                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${exportFormat === 'csv' ? 'bg-blue-600 text-white shadow-sm' : 'text-white/80 hover:bg-white/10 hover:text-white'}`}
+                                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${exportFormat === 'csv' ? 'bg-blue-600 text-white shadow-sm' : 'text-amber-900 hover:bg-white/10 hover:text-amber-950'}`}
                                     >
                                         CSV
                                     </button>

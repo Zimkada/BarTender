@@ -54,7 +54,7 @@ export default function ConsignmentPage() {
               onClick={stockManager.checkAndExpireConsignments}
               variant="ghost"
               size="icon"
-              className="rounded-lg transition-colors hover:bg-white/20 text-white"
+              className="rounded-lg transition-colors hover:bg-white/20 text-amber-900"
               title="Vérifier les expirations"
             >
               <Clock size={20} />
@@ -66,7 +66,7 @@ export default function ConsignmentPage() {
             <Button
               onClick={stockManager.checkAndExpireConsignments}
               variant="ghost"
-              className="text-white hover:bg-white/20 flex items-center gap-2"
+              className="text-amber-900 hover:bg-white/20 flex items-center gap-2"
               title="Vérifier les expirations"
             >
               <Clock className="w-4 h-4" />

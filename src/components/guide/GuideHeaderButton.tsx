@@ -96,7 +96,7 @@ export const GuideHeaderButton: React.FC<GuideHeaderButtonProps> = ({
           onClick={handleClick}
           variant="ghost"
           size="icon"
-          className="bg-sky-100 hover:bg-sky-200 text-sky-700 rounded-lg relative"
+          className="bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg relative"
           title={guide?.title || 'Guides'}
         >
           <HelpCircle size={20} />
@@ -115,7 +115,7 @@ export const GuideHeaderButton: React.FC<GuideHeaderButtonProps> = ({
         onClick={handleClick}
         variant="ghost"
         size="sm"
-        className="bg-sky-100 hover:bg-sky-200 text-sky-700 gap-2 rounded-lg font-medium relative"
+        className="bg-blue-100 hover:bg-blue-200 text-blue-700 gap-2 rounded-lg font-medium relative"
       >
         <HelpCircle size={18} />
         <span className="hidden md:inline">{showAllGuides ? 'Guides' : 'Guide'}</span>

@@ -95,7 +95,7 @@ export function Header({
     const isAdminView = currentSession?.role === 'super_admin';
 
     return (
-      <header className="bg-gradient-to-r from-amber-500 to-amber-600 shadow-lg sticky top-0 z-50">
+      <header className="bg-gradient-to-r from-amber-400 to-amber-500 shadow-lg sticky top-0 z-50">
         <div className="px-3 py-2">
           {/* Layout ADMIN: Indicateurs (LEFT) + Titre (CENTER) + Hamburger (RIGHT) */}
           {isAdminView ? (
