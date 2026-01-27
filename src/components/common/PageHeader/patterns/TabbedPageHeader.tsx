@@ -84,7 +84,7 @@ export function TabbedPageHeader({
                                 key={tab.id}
                                 onClick={() => onTabChange(tab.id)}
                                 variant="ghost"
-                                className={`flex-1 py-2 sm:py-2.5 px-3 sm:px-5 font-bold text-[10px] sm:text-xs transition-all whitespace-nowrap uppercase tracking-widest ${isActive
+                                className={`flex-1 py-2 sm:py-2.5 px-3 sm:px-5 font-bold text-[10px] sm:text-xs transition-all whitespace-nowrap uppercase tracking-widest rounded-lg ${isActive
                                     ? 'glass-action-button-active-2026'
                                     : 'glass-action-button-2026 opacity-80'
                                     }`}

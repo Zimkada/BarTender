@@ -26,23 +26,24 @@ export function ViewSwitcherPageHeader({
 }: ViewSwitcherPageHeaderProps) {
 
     const ViewToggle = (
-        <div className="flex bg-amber-500/20 p-1 rounded-xl w-full sm:w-auto border border-amber-400/30">
+        <div className="flex bg-white/50 backdrop-blur-sm p-1 rounded-xl w-full sm:w-auto border border-amber-400/20">
             <Button
                 onClick={() => onViewChange('list')}
-                variant={currentView === 'list' ? 'default' : 'ghost'}
-                className={`flex items-center justify-center gap-2 px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all flex-1 sm:flex-initial ${currentView === 'list' ? 'bg-amber-600 text-white shadow-lg' : 'text-amber-800/70 hover:bg-amber-500/20 hover:text-amber-900'}`}
+                variant="ghost"
+                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex-1 sm:flex-initial ${currentView === 'list' ? 'glass-action-button-active-2026' : 'glass-action-button-2026'}`}
             >
                 <List size={16} /> Liste
             </Button>
             <Button
                 onClick={() => onViewChange('analytics')}
-                variant={currentView === 'analytics' ? 'default' : 'ghost'}
-                className={`flex items-center justify-center gap-2 px-4 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition-all flex-1 sm:flex-initial ${currentView === 'analytics' ? 'bg-amber-600 text-white shadow-lg' : 'text-amber-800/70 hover:bg-amber-500/20 hover:text-amber-900'}`}
+                variant="ghost"
+                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex-1 sm:flex-initial ${currentView === 'analytics' ? 'glass-action-button-active-2026' : 'glass-action-button-2026'}`}
             >
-                <BarChart3 size={16} /> Statistiques
+                <BarChart3 size={16} /> Stats
             </Button>
         </div>
     );
+
 
     return (
         <PageHeader>
