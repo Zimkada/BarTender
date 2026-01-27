@@ -32,7 +32,7 @@ export enum OnboardingStep {
   COMPLETE = 'complete',
 }
 
-export type UserRole = 'promoteur' | 'gerant' | 'serveur' | 'owner' | 'manager' | 'bartender' | 'gérant';
+export type UserRole = 'promoteur' | 'gerant' | 'serveur' | 'owner' | 'manager' | 'bartender';
 
 /**
  * Step data stored in localStorage for persistence
@@ -45,21 +45,10 @@ export interface StepData {
     operatingMode: 'full' | 'simplifié';
     contact?: string;
   };
-  [OnboardingStep.OWNER_ADD_MANAGERS]?: {
-    managerIds: string[];
-  };
-  [OnboardingStep.OWNER_SETUP_STAFF]?: {
-    serverNames: string[];
-  };
-  [OnboardingStep.OWNER_ADD_PRODUCTS]?: {
-    products: Array<{
-      productId: string;
-      localPrice: number;
-    }>;
-  };
-  [OnboardingStep.OWNER_STOCK_INIT]?: {
-    stocks: Record<string, number>;
-  };
+  [OnboardingStep.OWNER_SETUP_STAFF]?: any;
+  [OnboardingStep.OWNER_ADD_PRODUCTS]?: any;
+  [OnboardingStep.OWNER_STOCK_INIT]?: any;
+  [OnboardingStep.MANAGER_TOUR]?: any;
 }
 
 /**
@@ -74,15 +63,17 @@ export interface OnboardingState {
   userId: string | null;
   stepData: StepData;
   isComplete: boolean;
+  barIsAlreadySetup: boolean; // New: Flag to skip config if bar is ready
   startedAt: string | null;
   lastUpdatedAt: string | null;
+  navigationDirection: 'forward' | 'backward';
 }
 
 /**
  * Onboarding context actions
  */
 export interface OnboardingContextType extends OnboardingState {
-  initializeOnboarding: (userId: string, barId: string, role: UserRole) => void;
+  initializeOnboarding: (userId: string, barId: string, role: UserRole, barIsAlreadySetup?: boolean) => void;
   updateBarId: (barId: string) => void;
   goToStep: (step: OnboardingStep) => void;
   nextStep: () => void;
@@ -104,8 +95,10 @@ const defaultState: OnboardingState = {
   userId: null,
   stepData: {},
   isComplete: false,
+  barIsAlreadySetup: false,
   startedAt: null,
   lastUpdatedAt: null,
+  navigationDirection: 'forward',
 };
 
 export const OnboardingContext = createContext<OnboardingContextType | undefined>(
@@ -117,8 +110,13 @@ export const OnboardingContext = createContext<OnboardingContextType | undefined
 /**
  * Get step sequence based on role
  */
-function getStepSequence(role: UserRole | null): OnboardingStep[] {
+function getStepSequence(role: UserRole | null, barIsAlreadySetup: boolean = false): OnboardingStep[] {
   let sequence: OnboardingStep[] = [];
+
+  // Rule: If bar is already setup, staff ONLY does the training simulations
+  // Bar owner (promoteur) can still re-access config if they want, but usually it's for staff training
+  const isTrainingOnly = barIsAlreadySetup && role !== 'promoteur';
+
   switch (role) {
     case 'promoteur':
     case 'owner':
@@ -135,15 +133,30 @@ function getStepSequence(role: UserRole | null): OnboardingStep[] {
       break;
 
     case 'gerant':
-    case 'gérant':
     case 'manager':
-      sequence = [
-        OnboardingStep.WELCOME,
-        OnboardingStep.ROLE_DETECTED,
-        OnboardingStep.MANAGER_ROLE_CONFIRM,
-        OnboardingStep.MANAGER_CHECK_STAFF,
-        OnboardingStep.MANAGER_TOUR,
-      ];
+      if (isTrainingOnly) {
+        // Training path for Manager in a running bar
+        sequence = [
+          OnboardingStep.WELCOME,
+          OnboardingStep.ROLE_DETECTED,
+          OnboardingStep.MANAGER_ROLE_CONFIRM,
+          OnboardingStep.MANAGER_TOUR,
+        ];
+      } else {
+        // Setup Assist path for Manager in a new bar
+        sequence = [
+          OnboardingStep.WELCOME,
+          OnboardingStep.ROLE_DETECTED,
+          OnboardingStep.MANAGER_ROLE_CONFIRM,
+          OnboardingStep.MANAGER_CHECK_STAFF,
+          OnboardingStep.MANAGER_TOUR,
+          // Shared Setup Responsibility (Manager assists Owner)
+          OnboardingStep.OWNER_ADD_PRODUCTS,
+          OnboardingStep.OWNER_SETUP_STAFF,
+          OnboardingStep.OWNER_STOCK_INIT,
+          OnboardingStep.OWNER_REVIEW,
+        ];
+      }
       break;
 
     case 'serveur':
@@ -171,8 +184,8 @@ function getStepSequence(role: UserRole | null): OnboardingStep[] {
 /**
  * Get next step in sequence
  */
-function getNextStep(currentStep: OnboardingStep, role: UserRole | null): OnboardingStep {
-  const sequence = getStepSequence(role);
+function getNextStep(currentStep: OnboardingStep, role: UserRole | null, barIsAlreadySetup: boolean): OnboardingStep {
+  const sequence = getStepSequence(role, barIsAlreadySetup);
   const currentIndex = sequence.indexOf(currentStep);
   return currentIndex < sequence.length - 1 ? sequence[currentIndex + 1] : OnboardingStep.COMPLETE;
 }
@@ -180,8 +193,8 @@ function getNextStep(currentStep: OnboardingStep, role: UserRole | null): Onboar
 /**
  * Get previous step in sequence
  */
-function getPreviousStep(currentStep: OnboardingStep, role: UserRole | null): OnboardingStep {
-  const sequence = getStepSequence(role);
+function getPreviousStep(currentStep: OnboardingStep, role: UserRole | null, barIsAlreadySetup: boolean): OnboardingStep {
+  const sequence = getStepSequence(role, barIsAlreadySetup);
   const currentIndex = sequence.indexOf(currentStep);
   return currentIndex > 0 ? sequence[currentIndex - 1] : sequence[0];
 }
@@ -220,29 +233,6 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
           .eq('id', state.barId!)
           .single();
 
-        const { data: products } = await supabase
-          .from('bar_products')
-          .select('id, global_product_id, price')
-          .eq('bar_id', state.barId!)
-          .eq('is_active', true);
-
-        // Récupérer les stocks avec le global_product_id depuis bar_products
-        const { data: barProductsForStock } = await supabase
-          .from('bar_products')
-          .select('id, global_product_id')
-          .eq('bar_id', state.barId!);
-
-        const { data: supplies } = await supabase
-          .from('supplies')
-          .select('product_id, quantity')
-          .eq('bar_id', state.barId!);
-
-        const { data: members } = await supabase
-          .from('bar_members')
-          .select('user_id, role, virtual_server_name')
-          .eq('bar_id', state.barId!)
-          .eq('is_active', true);
-
         // Build stepData from database
         const hydratedStepData: StepData = {};
 
@@ -257,41 +247,8 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
           };
         }
 
-        if (products && products.length > 0) {
-          hydratedStepData[OnboardingStep.OWNER_ADD_PRODUCTS] = {
-            products: products.map((p: any) => ({
-              productId: p.id,
-              localPrice: p.price,
-            })),
-          };
-        }
-
-        if (supplies && supplies.length > 0 && barProductsForStock) {
-          const stocksMap: Record<string, number> = {};
-          supplies.forEach((s: any) => {
-            stocksMap[s.product_id] = s.quantity;
-          });
-          hydratedStepData[OnboardingStep.OWNER_STOCK_INIT] = {
-            stocks: stocksMap,
-          };
-        }
-
-        if (members && members.length > 0) {
-          const managers = members.filter((m: any) => m.role === 'gérant' && m.user_id);
-          const servers = members.filter((m: any) => m.role === 'serveur' && m.virtual_server_name);
-
-          if (managers.length > 0) {
-            hydratedStepData[OnboardingStep.OWNER_ADD_MANAGERS] = {
-              managerIds: managers.map((m: any) => m.user_id),
-            };
-          }
-
-          if (servers.length > 0) {
-            hydratedStepData[OnboardingStep.OWNER_SETUP_STAFF] = {
-              serverNames: servers.map((m: any) => m.virtual_server_name),
-            };
-          }
-        }
+        // Note: Products, Staff, and Stock data are no longer loaded into context
+        // because we now use RedirectSteps that check DB state directly via CompletionService
 
         // Update state with hydrated data
         updateState({ stepData: hydratedStepData });
@@ -311,7 +268,7 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     }));
   };
 
-  const initializeOnboarding = (userId: string, barId: string, role: UserRole) => {
+  const initializeOnboarding = (userId: string, barId: string, role: UserRole, barIsAlreadySetup: boolean = false) => {
     // Force conversion to string to avoid "Cannot convert object to primitive value" errors
     const safeUserId = userId ? String(userId) : '';
     const safeBarId = barId ? String(barId) : '';
@@ -322,11 +279,13 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
       userId: safeUserId,
       barId: safeBarId,
       userRole: safeRole,
+      barIsAlreadySetup: barIsAlreadySetup,
       currentStep: OnboardingStep.WELCOME,
       completedSteps: [],
       stepData: {},
       isComplete: false,
       startedAt: new Date().toISOString(),
+      navigationDirection: 'forward',
     });
   };
 
@@ -343,16 +302,20 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
   };
 
   const nextStep = () => {
-    const next = getNextStep(state.currentStep, state.userRole);
+    const next = getNextStep(state.currentStep, state.userRole, state.barIsAlreadySetup);
     updateState({
       currentStep: next,
       isComplete: next === OnboardingStep.COMPLETE,
+      navigationDirection: 'forward',
     });
   };
 
   const previousStep = () => {
-    const prev = getPreviousStep(state.currentStep, state.userRole);
-    updateState({ currentStep: prev });
+    const prev = getPreviousStep(state.currentStep, state.userRole, state.barIsAlreadySetup);
+    updateState({
+      currentStep: prev,
+      navigationDirection: 'backward',
+    });
   };
 
   const skipStep = () => {

@@ -68,21 +68,13 @@ export const ManagerCheckStaffStep: React.FC = () => {
               <div className="flex items-start gap-4">
                 <span className="text-3xl">⚠️</span>
                 <div>
-                  <h2 className="text-lg font-semibold text-amber-900">Aucun Serveur</h2>
+                  <h2 className="text-lg font-semibold text-amber-900">Aucun Serveur Détecté</h2>
                   <p className="mt-1 text-amber-800">
-                    Le bar est en <strong>Mode Simplifié</strong> ou le propriétaire n'a pas encore ajouté de serveurs.
+                    Pour suivre correctement les performances, vous devez avoir des comptes serveurs enregistrés.
                   </p>
                   <p className="mt-2 text-sm text-amber-800">
-                    💡 <strong>Que faire :</strong> Contactez le propriétaire pour ajouter des serveurs, ou continuez
-                    pour créer des ventes (les serveurs peuvent être ajoutés dynamiquement)
+                    💡 <strong>Que faire :</strong> Contactez le propriétaire pour ajouter des serveurs afin d'attribuer chaque vente à la bonne personne.
                   </p>
-
-                  <button
-                    type="button"
-                    className="mt-4 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition text-sm font-medium"
-                  >
-                    Envoyer un message au propriétaire
-                  </button>
                 </div>
               </div>
             </div>
@@ -92,9 +84,9 @@ export const ManagerCheckStaffStep: React.FC = () => {
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <h3 className="font-medium text-blue-900 mb-2">À propos des serveurs :</h3>
             <ul className="text-sm text-blue-800 space-y-1">
-              <li>✓ Chaque serveur suit qui a créé chaque vente</li>
-              <li>✓ Métriques de performance personnelles</li>
-              <li>✓ Peuvent être ajoutés à tout moment</li>
+              <li>✓ Chaque vente est attribuée à un serveur précis</li>
+              <li>✓ Permet le suivi individuel du Chiffre d'Affaires</li>
+              <li>✓ Indispensable pour un reporting fiable</li>
             </ul>
           </div>
 

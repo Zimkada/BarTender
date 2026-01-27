@@ -25,16 +25,7 @@ export function SimplePageHeader({
     className
 }: SimplePageHeaderProps) {
     return (
-        <PageHeader
-            className={className}
-            title={title}
-            subtitle={subtitle}
-            icon={icon}
-            actions={actions}
-            mobileActions={mobileActions}
-            mobileTopRightContent={mobileTopRightContent}
-            guideId={guideId}
-        >
+        <PageHeader className={className}>
             <PageHeader.Top>
                 <PageHeader.Left>
                     <PageHeader.Back onClick={onBack} />

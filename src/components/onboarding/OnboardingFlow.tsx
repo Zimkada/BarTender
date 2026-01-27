@@ -4,16 +4,28 @@ import { useOnboarding, OnboardingStep, UserRole } from '../../context/Onboardin
 import { useAuth } from '../../context/AuthContext';
 import { useBar } from '../../context/BarContext';
 
+import { OnboardingCompletionService } from '../../services/onboarding/completionTracking.service';
+import { RedirectStep } from './steps/RedirectStep';
+
+// Define the config type here or import it if exported
+interface RedirectStepConfig {
+  id: string;
+  title: string;
+  description: string;
+  icon?: string;
+  targetRoute: string;
+  completionCheck: (barId: string) => Promise<{ complete: boolean; count: number }>;
+  isMandatory: boolean;
+  delegationHint?: string;
+}
+
 // Welcome & Role detection
 import { WelcomeStep } from './WelcomeStep';
 import { RoleDetectedStep } from './RoleDetectedStep';
 
 // Owner components
 import { BarDetailsStep } from './BarDetailsStep';
-import { AddManagersStep } from './AddManagersStep';
-import { SetupStaffStep } from './SetupStaffStep';
-import { AddProductsStep } from './AddProductsStep';
-import { StockInitStep } from './StockInitStep';
+// Removed duplicated steps import (AddProducts, SetupStaff etc replaced by RedirectStep)
 import { ReviewStep } from './ReviewStep';
 
 // Manager components
@@ -29,6 +41,50 @@ import { BartenderTestSaleStep } from './BartenderTestSaleStep';
 // Progress indicator
 import { OnboardingProgressBar } from './OnboardingProgressBar';
 
+// Configuration des étapes propriétaire avec redirection
+const OWNER_REDIRECT_STEPS: Record<string, RedirectStepConfig> = {
+  [OnboardingStep.OWNER_ADD_PRODUCTS]: {
+    id: 'add-products',
+    title: 'Ajouter des Produits',
+    description: 'Créez votre catalogue de produits avec les prix locaux',
+    icon: '🍻',
+    targetRoute: '/inventory?mode=onboarding&task=add-products&tab=operations', // Fixed to operations where "Add Product" button is located
+    completionCheck: OnboardingCompletionService.checkProductsAdded,
+    isMandatory: true,
+    delegationHint: 'Vous pouvez aussi demander à votre gérant de faire cette tâche',
+  },
+  [OnboardingStep.OWNER_STOCK_INIT]: {
+    id: 'init-stock',
+    title: 'Vérifier le Stock',
+    description: 'Initialisez ou ajustez les quantités des produits sans stock',
+    icon: '📦',
+    targetRoute: '/inventory?mode=onboarding&task=init-stock&tab=operations',
+    completionCheck: OnboardingCompletionService.checkStockInitialized,
+    isMandatory: false,
+    delegationHint: 'Votre gérant peut aussi initialiser le stock',
+  },
+  [OnboardingStep.OWNER_SETUP_STAFF]: {
+    id: 'add-servers',
+    title: 'Créer Comptes Serveurs',
+    description: 'Ajoutez vos baristas et serveurs',
+    icon: '👥',
+    targetRoute: '/team?mode=onboarding&task=add-servers',
+    completionCheck: OnboardingCompletionService.checkServersAdded,
+    isMandatory: false,
+    delegationHint: 'Votre gérant peut créer les comptes serveurs',
+  },
+  [OnboardingStep.OWNER_ADD_MANAGERS]: {
+    id: 'add-managers',
+    title: 'Ajouter des Gérants',
+    description: 'Invitez des gérants pour superviser le bar',
+    icon: '👔',
+    targetRoute: '/team?mode=onboarding&task=add-managers',
+    completionCheck: OnboardingCompletionService.checkManagersAdded,
+    isMandatory: false,
+    delegationHint: undefined, // Pas de délégation (owner-only)
+  },
+};
+
 /**
  * Main Onboarding Flow Orchestrator
  * Renders the appropriate step component based on current step and role
@@ -43,6 +99,7 @@ export const OnboardingFlow: React.FC = () => {
     userId,
     userRole,
     barId: contextBarId,
+    nextStep, // We need nextStep for the RedirectStep callback
   } = useOnboarding();
   const { currentSession } = useAuth();
   const { currentBar, barMembers } = useBar();
@@ -60,14 +117,15 @@ export const OnboardingFlow: React.FC = () => {
 
     // PERMISSION CHECK:
     // - Bar owner (promoteur): Always allowed
-    // - Manager (gérant): Only allowed if explicitly added to bar_members with role 'gérant'
+    // - Manager (gerant): Only allowed if explicitly added to bar_members with role 'gerant'
     // - Bartender (serveur): Only allowed if explicitly added to bar_members with role 'serveur'
-    const isManagerRole = ['gérant', 'manager'].includes(userRole || '');
-    const isBartenderRole = ['serveur', 'bartender'].includes(userRole || '');
-    const isInvitedManager = isManagerRole && userBarMember?.role === 'gérant';
-    const isInvitedBartender = isBartenderRole && userBarMember?.role === 'serveur';
 
-    if (!isBarOwner && !isInvitedManager && !isInvitedBartender) {
+    // Determine effective role from bar membership directly (source of truth before onboarding init)
+    const memberRole = userBarMember?.role;
+    const isManager = memberRole === 'gerant';
+    const isBartender = memberRole === 'serveur';
+
+    if (!isBarOwner && !isManager && !isBartender) {
       // User does not have permission to access onboarding
       // Redirect to dashboard
       console.warn(
@@ -96,7 +154,8 @@ export const OnboardingFlow: React.FC = () => {
       initializeOnboarding(
         String(currentSession.userId),
         String(currentBar.id),
-        role
+        role,
+        currentBar.isSetupComplete || false
       );
     }
   }, [currentSession?.userId, currentBar?.id, currentBar?.ownerId, barMembers, userRole, userId, initializeOnboarding, navigate]);
@@ -111,6 +170,19 @@ export const OnboardingFlow: React.FC = () => {
 
   // Render appropriate component based on current step
   const renderStep = () => {
+    // Étapes avec redirection configurée
+    if (OWNER_REDIRECT_STEPS[currentStep]) {
+      const config = OWNER_REDIRECT_STEPS[currentStep];
+      return (
+        <RedirectStep
+          config={config}
+          onComplete={nextStep}
+          onSkip={!config.isMandatory ? nextStep : undefined}
+        />
+      );
+    }
+
+    // Étapes spéciales (formulaires inline)
     switch (currentStep) {
       // Welcome & Role detection
       case OnboardingStep.WELCOME:
@@ -121,14 +193,6 @@ export const OnboardingFlow: React.FC = () => {
       // Owner/Promoter path
       case OnboardingStep.OWNER_BAR_DETAILS:
         return <BarDetailsStep />;
-      case OnboardingStep.OWNER_ADD_MANAGERS:
-        return <AddManagersStep />;
-      case OnboardingStep.OWNER_SETUP_STAFF:
-        return <SetupStaffStep />;
-      case OnboardingStep.OWNER_ADD_PRODUCTS:
-        return <AddProductsStep />;
-      case OnboardingStep.OWNER_STOCK_INIT:
-        return <StockInitStep />;
       case OnboardingStep.OWNER_REVIEW:
         return <ReviewStep />;
 

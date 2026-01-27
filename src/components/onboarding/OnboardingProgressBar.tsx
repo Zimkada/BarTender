@@ -33,7 +33,6 @@ export const OnboardingProgressBar: React.FC = () => {
           OnboardingStep.OWNER_REVIEW,
         ];
       case 'gerant':
-      case 'gérant':
       case 'manager':
         return [
           OnboardingStep.WELCOME,
@@ -65,11 +64,14 @@ export const OnboardingProgressBar: React.FC = () => {
   // If somehow current step not in sequence, don't render
   if (!isValidStep) return null;
 
-  const stepNumber = currentIndex + 1;
+  // We want to exclude the 'WELCOME' step (index 0) from the count to make 'ROLE_DETECTED' step 1
+  // This makes the flow feel more logical: Welcome -> Step 1 (Role) -> Step 2 ...
   const totalSteps = stepSequence.length;
-  // Defensive: avoid NaN or Infinity
-  const progress = totalSteps > 0 ? (stepNumber / totalSteps) * 100 : 0;
-  const safeProgress = Math.min(Math.max(0, Number(progress) || 0), 100);
+  const displayTotalSteps = totalSteps - 1;
+  const displayStepNumber = currentIndex; // Index 1 becomes Step 1
+
+  // Special case for Welcome step (Index 0)
+  const isWelcomeStep = currentIndex === 0;
 
   return (
     <div className="w-full bg-white border-b border-gray-200 py-3 md:py-4 px-3 md:px-6 sticky top-0 z-50">
@@ -83,10 +85,16 @@ export const OnboardingProgressBar: React.FC = () => {
             </span>
           </div>
           <div className="text-right">
-            <p className="text-xs md:text-sm font-medium text-gray-600">
-              Étape <span className="font-bold text-blue-600">{Number(stepNumber) || 0}</span> sur{' '}
-              <span className="font-bold">{Number(totalSteps) || 0}</span>
-            </p>
+            {isWelcomeStep ? (
+              <p className="text-xs md:text-sm font-medium text-gray-600">
+                <span className="font-bold text-blue-600">Introduction</span>
+              </p>
+            ) : (
+              <p className="text-xs md:text-sm font-medium text-gray-600">
+                Étape <span className="font-bold text-blue-600">{Math.max(1, Number(displayStepNumber))}</span> sur{' '}
+                <span className="font-bold">{Math.max(1, Number(displayTotalSteps))}</span>
+              </p>
+            )}
           </div>
         </div>
 
@@ -94,14 +102,14 @@ export const OnboardingProgressBar: React.FC = () => {
         <div className="relative h-2 md:h-2.5 bg-gray-100 rounded-full overflow-hidden border border-gray-200">
           <div
             className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500 ease-out shadow-sm"
-            style={{ width: `${safeProgress}%` }}
+            style={{ width: `${isWelcomeStep ? 5 : (displayStepNumber / displayTotalSteps) * 100}%` }}
           />
         </div>
 
         {/* Labels info */}
         <div className="flex justify-between mt-1 md:mt-2">
           <span className="text-[10px] md:text-xs text-gray-500">Bienvenue</span>
-          <span className="text-[10px] md:text-xs font-bold text-blue-600">{Math.round(safeProgress)}% terminé</span>
+          <span className="text-[10px] md:text-xs font-bold text-blue-600">{isWelcomeStep ? 0 : Math.round((displayStepNumber / displayTotalSteps) * 100)}% terminé</span>
           <span className="text-[10px] md:text-xs text-gray-500">Prêt !</span>
         </div>
       </div>

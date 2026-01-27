@@ -7,9 +7,11 @@ import { Input } from './ui/Input';
 import { Alert } from './ui/Alert';
 
 
+import { useNavigate } from 'react-router-dom';
 import { useAuthNav } from '../layouts/AuthLayout';
 
 function LoginScreen() {
+  const navigate = useNavigate();
   const { navigateToForgotPassword } = useAuthNav();
   const { login, changePassword, verifyMfa } = useAuth();
   const { bars } = useBarContext();
@@ -123,6 +125,8 @@ function LoginScreen() {
     }
   };
 
+
+
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -151,8 +155,11 @@ function LoginScreen() {
       const result = await login(loginEmail, newPassword);
 
       if (result.user) {
-        // Connexion réussie, l'écran de login disparaîtra automatiquement
+        // Connexion réussie
         setIsFirstLogin(false);
+        // ✨ Redirection forcée vers l'onboarding pour le parcours éducatif (Gérants/Serveurs)
+        // C'est le seul moment où on force l'onboarding même si le bar est déjà configuré
+        navigate('/onboarding', { replace: true });
       }
     } catch (error: any) {
       setError(error.message || 'Erreur lors du changement de mot de passe');

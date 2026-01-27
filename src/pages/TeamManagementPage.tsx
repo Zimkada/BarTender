@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Users, UserPlus, User as UserIcon, Trash2, GitBranch, Phone, Clock, Mail, Search, Eye, EyeOff, AlertTriangle, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from "../context/AuthContext";
@@ -14,6 +15,7 @@ import { ServerMappingsManager } from '../components/ServerMappingsManager';
 import { BarsService } from '../services/supabase/bars.service';
 import { FEATURES } from '../config/features';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
+import { OnboardingBreadcrumb } from '../components/onboarding/ui/OnboardingBreadcrumb';
 
 /**
  * TeamManagementPage - Page de gestion de l'équipe
@@ -21,7 +23,12 @@ import { TabbedPageHeader } from '../components/common/PageHeader/patterns/Tabbe
  * Refactoré de modale vers page
  */
 export default function TeamManagementPage() {
-  // remove useNavigate
+  const location = useLocation();
+  const navigate = useNavigate();
+  const searchParams = new URLSearchParams(location.search);
+  const isOnboardingMode = searchParams.get('mode') === 'onboarding';
+  const onboardingTask = searchParams.get('task');
+
   const { hasPermission } = useAuth();
   const { currentBar, barMembers, removeBarMember, refreshBars } = useBarContext();
   const { isMobile } = useViewport();
@@ -249,6 +256,16 @@ export default function TeamManagementPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
+      {isOnboardingMode && (
+        <OnboardingBreadcrumb
+          currentStep={
+            onboardingTask === 'add-managers' ? 'Ajouter des Gérants' :
+              onboardingTask === 'add-servers' ? 'Créer Comptes Serveurs' :
+                'Configuration Équipe'
+          }
+          onBackToOnboarding={() => navigate('/onboarding')}
+        />
+      )}
       {/* Header avec Onglets */}
       <TabbedPageHeader
         title={isMobile ? 'Équipe' : "Gestion d'équipe"}

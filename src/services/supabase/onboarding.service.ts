@@ -1,14 +1,14 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
 import { auditLogger } from '../AuditLogger';
-import { ProductsService } from './products.service';
-import { StockService } from './stock.service';
-import { BarsService } from './bars.service';
+// Imports removed as they are no longer used by the remaining methods
+// import { ProductsService } from './products.service';
+// import { StockService } from './stock.service';
+// import { BarsService } from './bars.service';
 
 type BarUpdate = Database['public']['Tables']['bars']['Update'];
-type BarMemberInsert = Database['public']['Tables']['bar_members']['Insert'];
-type BarProductInsert = Database['public']['Tables']['bar_products']['Insert'];
-type SupplyInsert = Database['public']['Tables']['supplies']['Insert'];
+// Unused types removed
+
 
 /**
  * Onboarding Service
@@ -75,172 +75,9 @@ export class OnboardingService {
     }
   }
 
-  /**
-   * Assign manager to bar
-   * Called from AddManagersStep.tsx when adding manager
-   * REFACTORED: Delegates to BarsService.assignMemberToBar()
-   * NOW: Verifies manager exists before assigning
-   */
-  static async assignManager(
-    userId: string,
-    barId: string,
-    assignedByUserId: string
-  ): Promise<void> {
-    try {
-      // VALIDATION: Verify manager exists in system
-      const managerExists = await this.verifyManagerExists(userId);
-      if (!managerExists) {
-        throw new Error(`Gérant avec l'ID ${userId} n'existe pas dans le système`);
-      }
-
-      // Delegate to BarsService for upsert
-      await BarsService.assignMemberToBar(barId, userId, 'gérant', assignedByUserId);
-
-      // Log audit event (specific to onboarding)
-      await auditLogger.log({
-        event: 'MEMBER_ADDED',
-        severity: 'info',
-        userId: assignedByUserId,
-        userName: 'System',
-        userRole: 'promoteur',
-        barId: barId,
-        description: `Manager ${userId} assigned to bar during onboarding`,
-        metadata: { manager_id: userId },
-      });
-    } catch (error: any) {
-      throw new Error(handleSupabaseError(error));
-    }
-  }
-
-  /**
-   * Create server/bartender accounts
-   * Called from SetupStaffStep.tsx when owner creates servers (full mode)
-   */
-  static async createServers(
-    barId: string,
-    serverNames: string[],
-    createdByUserId: string
-  ): Promise<void> {
-    try {
-      // Insert multiple server records as bar_members
-      const serverRecords = serverNames.map((name) => ({
-        bar_id: barId,
-        user_id: null,
-        virtual_server_name: name,
-        role: 'serveur',
-        assigned_by: createdByUserId,
-        is_active: true,
-      } as BarMemberInsert));
-
-      const { error } = await supabase
-        .from('bar_members')
-        .upsert(serverRecords, { onConflict: 'bar_id,virtual_server_name' });
-
-      if (error) {
-        throw new Error(`Failed to create servers: ${error.message}`);
-      }
-
-      // Log audit
-      await auditLogger.log({
-        event: 'MEMBER_ADDED',
-        severity: 'info',
-        userId: createdByUserId,
-        userName: 'System',
-        userRole: 'promoteur',
-        barId: barId,
-        description: `${serverNames.length} servers created for bar`,
-        metadata: { server_count: serverNames.length },
-      });
-    } catch (error: any) {
-      throw new Error(handleSupabaseError(error));
-    }
-  }
-
-  /**
-   * Add products to bar catalog
-   * Called from AddProductsStep.tsx when selecting products
-   * REFACTORED: Delegates to ProductsService.batchUpsertBarProducts()
-   */
-  static async addProductsToBar(
-    barId: string,
-    products: Array<{ productId: string; localPrice: number }>,
-    addedByUserId: string
-  ): Promise<void> {
-    try {
-      // Delegate to ProductsService for batch upsert
-      await ProductsService.batchUpsertBarProducts(
-        barId,
-        products.map(p => ({
-          globalProductId: p.productId,
-          displayName: `Product ${p.productId}`, // Fallback if name not available
-          price: p.localPrice,
-        }))
-      );
-
-      // Log audit event (specific to onboarding)
-      await auditLogger.log({
-        event: 'PRODUCT_CREATED',
-        severity: 'info',
-        userId: addedByUserId,
-        userName: 'System',
-        userRole: 'promoteur',
-        barId: barId,
-        description: `${products.length} products added to bar catalog during onboarding`,
-        metadata: { product_count: products.length },
-      });
-    } catch (error: any) {
-      throw new Error(handleSupabaseError(error));
-    }
-  }
-
-  /**
-   * Initialize stock for products
-   * Called from StockInitStep.tsx when owner sets initial inventory
-   * REFACTORED: Delegates to StockService.batchUpsertSupplies()
-   */
-  static async initializeStock(
-    barId: string,
-    stocks: Record<string, number>, // productId -> quantity
-    initializedByUserId: string
-  ): Promise<void> {
-    try {
-      // 1. Get all bar_products for this bar to map global_product_id -> bar_product.id
-      const { data: barProducts, error: queryError } = await supabase
-        .from('bar_products')
-        .select('id, global_product_id')
-        .eq('bar_id', barId);
-
-      if (queryError || !barProducts) {
-        throw new Error('Failed to fetch bar products');
-      }
-
-      // 2. Map global product IDs to bar_product IDs and build supplies data
-      const suppliesData = barProducts
-        .filter((bp: any) => bp.global_product_id && stocks[bp.global_product_id] !== undefined)
-        .map((bp: any) => ({
-          productId: bp.id, // Use the bar_product UUID
-          quantity: stocks[bp.global_product_id],
-          suppliedBy: initializedByUserId,
-        }));
-
-      // 3. Delegate to StockService for batch upsert
-      await StockService.batchUpsertSupplies(barId, suppliesData);
-
-      // 4. Log audit event (specific to onboarding)
-      await auditLogger.log({
-        event: 'SUPPLY_CREATED',
-        severity: 'info',
-        userId: initializedByUserId,
-        userName: 'System',
-        userRole: 'promoteur',
-        barId: barId,
-        description: 'Initial stock initialized during onboarding',
-        metadata: { product_count: suppliesData.length },
-      });
-    } catch (error: any) {
-      throw new Error(handleSupabaseError(error));
-    }
-  }
+  // Methods removed: assignManager, createServers, addProductsToBar, initializeStock
+  // These duplicate logic in BarsService, ProductsService, and StockService
+  // and are no longer used by the redirected onboarding flow.
 
   /**
    * Update bar operating mode

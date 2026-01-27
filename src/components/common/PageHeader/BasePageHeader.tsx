@@ -27,7 +27,7 @@ const PageHeader: PageHeaderComponent = ({
     className
 }: PageHeaderProps) => {
     return (
-        <div className={`bg-gradient-to-r from-amber-500 to-amber-500 text-white rounded-2xl shadow-sm mb-4 sm:mb-6 overflow-hidden p-4 sm:p-6 ${className || ''}`}>
+        <div className={`bg-amber-200/50 backdrop-blur-sm border border-amber-300/60 border-l-4 border-l-amber-500 text-amber-950 rounded-2xl shadow-md mb-4 sm:mb-6 overflow-hidden p-4 sm:p-6 ${className || ''}`}>
             <div className="flex flex-col gap-3 sm:gap-4">
                 {children}
             </div>
@@ -53,20 +53,20 @@ const Left: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 /** Heading element - auto-truncated for long titles */
 const Title: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <div className="flex-1 min-w-0">
-        <h1 className="text-lg sm:text-2xl font-bold truncate">{children}</h1>
+        <h1 className="text-lg sm:text-2xl font-bold truncate tracking-tight">{children}</h1>
     </div>
 );
 
 /** Icon container - typically for page context icon */
 const Icon: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => (
-    <div className={`flex items-center justify-center bg-white/20 w-8 h-8 rounded-lg flex-shrink-0 ${className || ''}`}>
+    <div className={`flex items-center justify-center bg-amber-500/20 text-amber-700 w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex-shrink-0 border border-amber-400/30 ${className || ''}`}>
         {children}
     </div>
 );
 
 /** Subtitle/description text - hidden on mobile by default */
 const Description: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => (
-    <p className={`text-xs sm:text-sm text-amber-100 mt-0.5 sm:mt-1 ${className || ''}`}>
+    <p className={`text-xs sm:text-sm text-amber-800/80 mt-0.5 sm:mt-1 font-medium ${className || ''}`}>
         {children}
     </p>
 );

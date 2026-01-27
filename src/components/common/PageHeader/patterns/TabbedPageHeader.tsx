@@ -36,15 +36,7 @@ export function TabbedPageHeader({
     hideSubtitleOnMobile
 }: TabbedPageHeaderProps) {
     return (
-        <PageHeader
-            title={title}
-            subtitle={subtitle}
-            icon={icon}
-            actions={actions}
-            mobileTopRightContent={mobileTopRightContent}
-            hideSubtitleOnMobile={hideSubtitleOnMobile}
-            guideId={guideId}
-        >
+        <PageHeader>
             <PageHeader.Top>
                 <PageHeader.Left>
                     <PageHeader.Back onClick={onBack} />
@@ -92,12 +84,12 @@ export function TabbedPageHeader({
                                 key={tab.id}
                                 onClick={() => onTabChange(tab.id)}
                                 variant="ghost"
-                                className={`flex-1 py-2 px-4 font-medium text-sm transition-all whitespace-nowrap rounded-lg ${isActive
-                                    ? 'bg-white text-amber-600 shadow-sm'
-                                    : 'text-amber-100 hover:bg-white/10 hover:text-white'
+                                className={`flex-1 py-1.5 sm:py-2 px-3 sm:px-4 font-semibold text-xs sm:text-sm transition-all whitespace-nowrap rounded-xl ${isActive
+                                    ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30'
+                                    : 'text-amber-800/70 hover:bg-amber-500/20 hover:text-amber-900'
                                     }`}
                             >
-                                {Icon && <Icon className="w-4 h-4 hidden sm:inline mr-2" />}
+                                {Icon && <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 hidden sm:inline mr-2" />}
                                 {tab.label}
                             </Button>
                         );

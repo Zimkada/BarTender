@@ -2,183 +2,154 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
 import { LoadingButton } from '../ui/LoadingButton';
+import { CheckCircle2, LayoutDashboard, Rocket, Zap, ShieldCheck, Star } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export const BartenderTestSaleStep: React.FC = () => {
   const navigate = useNavigate();
   const { completeStep, completeOnboarding } = useOnboarding();
   const [loading, setLoading] = useState(false);
-  const [createdTestSale, setCreatedTestSale] = useState(false);
 
-  const handleCreateTestSale = async (e: React.FormEvent) => {
+  const handleFinish = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // In real implementation, would create an actual test sale
-      setCreatedTestSale(true);
-
       completeStep(OnboardingStep.BARTENDER_TEST_SALE, {
-        testSaleCreated: true,
-        timestamp: new Date().toISOString(),
-      });
-
-      // Simulate success
-      setTimeout(() => {
-        completeOnboarding();
-        navigate('/dashboard', { replace: true });
-      }, 1500);
-    } catch (error) {
-      console.error('Error creating test sale:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSkipTestSale = async () => {
-    setLoading(true);
-
-    try {
-      completeStep(OnboardingStep.BARTENDER_TEST_SALE, {
-        testSaleSkipped: true,
         timestamp: new Date().toISOString(),
       });
 
       completeOnboarding();
       navigate('/dashboard', { replace: true });
     } catch (error) {
-      console.error('Error skipping test sale:', error);
+      console.error('Error finishing onboarding:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  const GlassCard: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className={`bg-white/90 backdrop-blur-md border border-white/40 shadow-xl rounded-3xl ${className}`}
+    >
+      {children}
+    </motion.div>
+  );
+
   return (
-    <div className="w-full max-w-2xl mx-auto px-4">
-      <div className="bg-white rounded-lg shadow-md p-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            {createdTestSale ? '✓ Vente de Test Créée !' : 'Créer une Vente de Test'}
-          </h1>
-          <p className="mt-2 text-gray-600">
-            Essayez par vous-même (optionnel)
+    <div className="w-full max-w-4xl mx-auto px-4">
+      <div className="bg-slate-50 rounded-3xl overflow-hidden shadow-2xl border border-gray-200">
+        {/* Success Header */}
+        <div className="p-12 text-center bg-gradient-to-br from-emerald-500 via-teal-600 to-emerald-700 relative overflow-hidden text-white">
+          <motion.div
+            animate={{ scale: [1, 1.2, 1], rotate: [0, -90, 0] }}
+            transition={{ duration: 20, repeat: Infinity }}
+            className="absolute -top-24 -left-24 w-80 h-80 bg-white/10 rounded-full blur-3xl"
+          />
+
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="w-24 h-24 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl border-4 border-white/30"
+          >
+            <CheckCircle2 size={56} className="text-white" />
+          </motion.div>
+
+          <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tighter">Certification Terminée !</h1>
+          <p className="text-emerald-50 text-xl font-medium max-w-lg mx-auto leading-relaxed">
+            Félicitations. Vous avez complété avec succès votre formation BarTender Academy.
           </p>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleCreateTestSale} className="space-y-6">
-          {createdTestSale ? (
-            // Success State
-            <div className="p-6 bg-green-50 border border-green-200 rounded-lg">
-              <div className="text-center">
-                <div className="text-5xl mb-3">🎉</div>
-                <h2 className="text-lg font-semibold text-green-900 mb-2">
-                  Succès !
-                </h2>
-                <p className="text-green-800">
-                  Vous avez créé votre première vente de test. Le système l'a enregistrée correctement !
-                </p>
+        <div className="p-8 md:p-12 space-y-12">
+          {/* Summary Box */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <GlassCard className="p-6 text-center">
+              <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mx-auto mb-4 text-indigo-600">
+                <Star size={24} />
+              </div>
+              <h4 className="font-bold text-slate-800 text-sm mb-1 italic">Niveau</h4>
+              <p className="text-xl font-black text-indigo-600">CERTIFIÉ</p>
+            </GlassCard>
+
+            <GlassCard className="p-6 text-center border-t-4 border-amber-400">
+              <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center mx-auto mb-4 text-amber-600">
+                <Zap size={24} />
+              </div>
+              <h4 className="font-bold text-slate-800 text-sm mb-1 italic">Vitesse</h4>
+              <p className="text-xl font-black text-amber-600">OPTIMAL</p>
+            </GlassCard>
+
+            <GlassCard className="p-6 text-center">
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4 text-blue-600">
+                <ShieldCheck size={24} />
+              </div>
+              <h4 className="font-bold text-slate-800 text-sm mb-1 italic">Sécurité</h4>
+              <p className="text-xl font-black text-blue-600">GARANTIE</p>
+            </GlassCard>
+          </div>
+
+          <div className="space-y-6">
+            <h3 className="text-center text-slate-400 font-black text-xs uppercase tracking-[0.3em]">Vos Prochaines Étapes</h3>
+
+            <div className="space-y-4 max-w-2xl mx-auto">
+              <div className="flex items-center gap-5 p-5 bg-white rounded-2xl border border-slate-100 shadow-sm group hover:border-indigo-200 transition-all">
+                <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                  <Rocket size={20} />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-bold text-slate-800">Coup d'envoi</h4>
+                  <p className="text-sm text-slate-500">Accédez à votre tableau de bord personnel.</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-5 p-5 bg-white rounded-2xl border border-slate-100 shadow-sm group hover:border-indigo-200 transition-all">
+                <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                  <Zap size={20} />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-bold text-slate-800">Première Vente</h4>
+                  <p className="text-sm text-slate-500">Commencez à enregistrer vos ventes réelles dès maintenant.</p>
+                </div>
               </div>
             </div>
-          ) : (
-            // Pre-Creation State
-            <>
-              {/* Instructions */}
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h3 className="font-medium text-blue-900 mb-2">Voici ce que nous allons faire :</h3>
-                <ol className="text-sm text-blue-800 space-y-1">
-                  <li>1. Créer une vente de test avec un produit de démo (Heineken)</li>
-                  <li>2. Cliquez sur le bouton ci-dessous pour la créer</li>
-                  <li>3. Voyez-la enregistrée dans votre historique des ventes</li>
-                  <li>4. Ensuite, vous êtes prêt pour les vraies ventes !</li>
-                </ol>
-              </div>
-
-              {/* Demo Sale Details */}
-              <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                <h3 className="font-medium text-gray-900 mb-3">Détails de la Vente Démo :</h3>
-                <div className="space-y-2 text-sm text-gray-700">
-                  <div className="flex justify-between">
-                    <span>Produit :</span>
-                    <strong>Heineken (test)</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Quantité :</span>
-                    <strong>1 bouteille</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Prix unitaire :</span>
-                    <strong>300 FCFA</strong>
-                  </div>
-                  <div className="border-t pt-2 mt-2 flex justify-between font-semibold">
-                    <span>Total :</span>
-                    <strong>300 FCFA</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Paiement :</span>
-                    <strong>Espèces</strong>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-2">
-                    * C'est une vente de test. Vous pourrez la supprimer plus tard si nécessaire.
-                  </div>
-                </div>
-              </div>
-
-              {/* Why Try */}
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                <h3 className="font-medium text-amber-900 mb-2">Pourquoi essayer maintenant ?</h3>
-                <ul className="text-sm text-amber-800 space-y-1">
-                  <li>✓ Familiarisez-vous avec l'interface</li>
-                  <li>✓ Voyez exactement comment les ventes sont enregistrées</li>
-                  <li>✓ Gagnez en confiance avant les vraies ventes</li>
-                  <li>✓ Pas de pénalité - c'est juste un test</li>
-                </ul>
-              </div>
-            </>
-          )}
-
-          {/* Info Box */}
-          <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
-            <p className="text-sm text-indigo-900">
-              💡 <strong>Conseil :</strong> Après cela, vous pourrez créer de vraies ventes à tout moment. Chaque vente est suivie pour VOUS personnellement.
-            </p>
           </div>
 
-          {/* Buttons */}
-          <div className="flex flex-col gap-3 pt-6 border-t">
-            {!createdTestSale ? (
-              <>
-                <LoadingButton
-                  type="submit"
-                  isLoading={loading}
-                  loadingText="Création..."
-                  className="w-full px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold"
-                >
-                  Créer une Vente de Test
-                </LoadingButton>
+          {/* Tips Banner */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="bg-slate-900 rounded-3xl p-8 text-white flex flex-col md:flex-row items-center gap-6 shadow-2xl relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full -mr-16 -mt-16 blur-xl" />
+            <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center flex-shrink-0 border border-white/10">
+              <LayoutDashboard size={32} className="text-indigo-400" />
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <h4 className="font-bold text-xl mb-1">Rappel de Pro</h4>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                Toutes vos ventes sont suivies individuellement. Plus vous êtes précis, plus vous gagnez la confiance de votre équipe.
+              </p>
+            </div>
+          </motion.div>
 
-                <LoadingButton
-                  type="button"
-                  isLoading={loading}
-                  loadingText="Passage..."
-                  onClick={handleSkipTestSale}
-                  className="w-full px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                >
-                  Passer le Test
-                </LoadingButton>
-              </>
-            ) : (
-              <>
-                <p className="text-sm text-gray-600 text-center">
-                  Redirection vers le tableau de bord...
-                </p>
-                <div className="w-full bg-gray-200 rounded-full h-1 overflow-hidden">
-                  <div className="bg-green-600 h-full animate-pulse" style={{ width: '100%' }} />
-                </div>
-              </>
-            )}
+          {/* Action Button */}
+          <div className="flex justify-center pt-8 border-t border-slate-200">
+            <LoadingButton
+              onClick={handleFinish}
+              isLoading={loading}
+              className="px-16 py-5 bg-indigo-600 text-white rounded-2xl font-black shadow-xl hover:bg-indigo-700 hover:-translate-y-1 transition-all uppercase tracking-[0.1em] text-lg flex items-center gap-3"
+            >
+              Lancer le Dashboard <Rocket size={24} />
+            </LoadingButton>
           </div>
-        </form>
+        </div>
+
+        <div className="bg-slate-100 p-4 text-center text-[10px] uppercase font-black tracking-[0.2em] text-slate-400">
+          Système Certifié BarTender Academy • 2026
+        </div>
       </div>
     </div>
   );

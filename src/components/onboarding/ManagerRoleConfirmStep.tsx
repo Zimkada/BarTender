@@ -1,15 +1,16 @@
 // Language: French (Français)
 import React, { useState } from 'react';
 import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
+import { useBar } from '../../context/BarContext';
 import { LoadingButton } from '../ui/LoadingButton';
 
 export const ManagerRoleConfirmStep: React.FC = () => {
-  const { stepData, completeStep, nextStep, previousStep } = useOnboarding();
+  const { completeStep, nextStep, previousStep } = useOnboarding();
+  const { currentBar } = useBar();
   const [loading, setLoading] = useState(false);
 
-  // Get bar name if available
-  const barDetails = stepData[OnboardingStep.OWNER_BAR_DETAILS] as any;
-  const barName = barDetails?.barName || 'Your Bar';
+  // Get bar name from context
+  const barName = currentBar?.name || 'Votre Bar';
 
   const handleConfirm = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,8 +56,8 @@ export const ManagerRoleConfirmStep: React.FC = () => {
               <div className="flex items-start gap-3">
                 <span className="text-green-600 text-lg">✓</span>
                 <div>
-                  <p className="font-medium text-gray-900">Gérer l'Inventaire</p>
-                  <p className="text-sm text-gray-700">Suivre le stock, définir des alertes, enregistrer les approvisionnements</p>
+                  <p className="font-medium text-gray-900">Opérations (Stock & Retours/Consignations)</p>
+                  <p className="text-sm text-gray-700">Gérer le stock, les approvisionnements, les retours et les consignations</p>
                 </div>
               </div>
 
@@ -68,20 +69,31 @@ export const ManagerRoleConfirmStep: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-start gap-3">
-                <span className="text-gray-400 text-lg">✗</span>
-                <div>
-                  <p className="font-medium text-gray-900">Gérer l'Équipe</p>
-                  <p className="text-sm text-gray-700">Seul le propriétaire peut ajouter/supprimer des membres</p>
-                </div>
-              </div>
+            </div>
+          </div>
 
-              <div className="flex items-start gap-3">
-                <span className="text-gray-400 text-lg">✗</span>
-                <div>
-                  <p className="font-medium text-gray-900">Modifier les Paramètres</p>
-                  <p className="text-sm text-gray-700">Le propriétaire contrôle la configuration du bar</p>
-                </div>
+          {/* Delegable Tasks */}
+          <div className="p-6 bg-amber-50 border border-amber-200 rounded-lg">
+            <h2 className="text-lg font-semibold text-amber-900 mb-4">💡 Vous pouvez aider le propriétaire</h2>
+            <p className="text-sm text-amber-800 mb-3">
+              Le propriétaire peut vous demander de configurer certaines tâches pour le bar :
+            </p>
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <span className="text-amber-600 text-lg">✓</span>
+                <span className="text-gray-900">Configurer les paramètres du bar</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-amber-600 text-lg">✓</span>
+                <span className="text-gray-900">Ajouter des produits au catalogue</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-amber-600 text-lg">✓</span>
+                <span className="text-gray-900">Initialiser le stock</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-amber-600 text-lg">✓</span>
+                <span className="text-gray-900">Créer des comptes serveurs</span>
               </div>
             </div>
           </div>
@@ -108,7 +120,7 @@ export const ManagerRoleConfirmStep: React.FC = () => {
           {/* Info */}
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
             <p className="text-sm text-amber-900">
-              💡 <strong>Conseil :</strong> Besoin d'aide à tout moment ? Cliquez sur le bouton <strong>?</strong> en bas à droite.
+              💡 <strong>Conseil :</strong> Besoin d'aide ? Cliquez sur le bouton bleu <strong>Guide (?)</strong> situé en haut à droite des pages pour lancer une visite guidée.
             </p>
           </div>
 
