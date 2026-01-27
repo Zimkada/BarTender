@@ -120,16 +120,27 @@ function getStepSequence(role: UserRole | null, barIsAlreadySetup: boolean = fal
   switch (role) {
     case 'promoteur':
     case 'owner':
-      sequence = [
-        OnboardingStep.WELCOME,
-        OnboardingStep.ROLE_DETECTED,
-        OnboardingStep.OWNER_BAR_DETAILS,
-        OnboardingStep.OWNER_ADD_MANAGERS,
-        OnboardingStep.OWNER_SETUP_STAFF,
-        OnboardingStep.OWNER_ADD_PRODUCTS,
-        OnboardingStep.OWNER_STOCK_INIT,
-        OnboardingStep.OWNER_REVIEW,
-      ];
+      if (isTrainingOnly) {
+        // [NEW] Training path for Owner/Promoteuer in a running bar
+        // Reuses the Manager Academy tour which is comprehensive
+        sequence = [
+          OnboardingStep.WELCOME,
+          OnboardingStep.ROLE_DETECTED,
+          OnboardingStep.MANAGER_TOUR,
+        ];
+      } else {
+        // Setup path for Owner in a new bar
+        sequence = [
+          OnboardingStep.WELCOME,
+          OnboardingStep.ROLE_DETECTED,
+          OnboardingStep.OWNER_BAR_DETAILS,
+          OnboardingStep.OWNER_ADD_MANAGERS,
+          OnboardingStep.OWNER_SETUP_STAFF,
+          OnboardingStep.OWNER_ADD_PRODUCTS,
+          OnboardingStep.OWNER_STOCK_INIT,
+          OnboardingStep.OWNER_REVIEW,
+        ];
+      }
       break;
 
     case 'gerant':

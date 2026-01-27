@@ -1,18 +1,22 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useBar } from '../context/BarContext';
 import { useOnboarding } from '../context/OnboardingContext';
 import { OnboardingFlow } from '../components/onboarding/OnboardingFlow';
+import { TrainingFlow } from '../components/onboarding/TrainingFlow';
 
 /**
  * Onboarding Page
- * Displays the onboarding workflow based on user role
+ * Entry point that routes between:
+ * 1. Bar Setup Flow (OnboardingFlow) - For new bars
+ * 2. Training Flow (TrainingFlow) - For education/academy
  *
  * Route: /onboarding
  */
 export const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { currentSession } = useAuth();
   const { currentBar, loading: barLoading } = useBar();
   const { isComplete: onboardingComplete } = useOnboarding();
@@ -24,21 +28,15 @@ export const OnboardingPage: React.FC = () => {
     }
   }, [currentSession, navigate]);
 
-  // Redirect to dashboard if bar already setup complete AND user has already finished their tour
-  useEffect(() => {
-    // A user can access /onboarding if:
-    // 1. The bar itself is NOT complete (needs physical setup)
-    // 2. OR it's their first login (needs educational tour)
-    const barNeedsSetup = currentBar?.isSetupComplete === false;
-    const userNeedsTour = currentSession?.firstLogin === true;
+  // Determine Mode: Setup OR Training
+  // Explicit "mode=training" param takes precedence
+  // Otherwise, fallback to checking if bar needs setup
+  const searchParams = new URLSearchParams(location.search);
+  const modeParam = searchParams.get('mode');
 
-    // We only redirect away if BOTH are finished
-    const isEverythingDone = !barNeedsSetup && !userNeedsTour && onboardingComplete;
-
-    if (isEverythingDone) {
-      navigate('/dashboard', { replace: true });
-    }
-  }, [currentBar?.isSetupComplete, currentSession?.firstLogin, onboardingComplete, navigate]);
+  const barNeedsSetup = currentBar?.isSetupComplete === false;
+  // If bar is already setup, we default to training mode (unless explicitly forced otherwise)
+  const isTrainingMode = modeParam === 'training' || !barNeedsSetup;
 
   // Loading state
   if (barLoading) {
@@ -48,7 +46,7 @@ export const OnboardingPage: React.FC = () => {
           <div className="inline-block">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
           </div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600">Chargement...</p>
         </div>
       </div>
     );
@@ -59,24 +57,9 @@ export const OnboardingPage: React.FC = () => {
     return null; // Will redirect to login
   }
 
-  // No current bar
-  if (!currentBar) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow-md p-8 max-w-md text-center">
-          <p className="text-gray-600 mb-4">No bar selected. Please select or create a bar first.</p>
-          <button
-            onClick={() => navigate('/dashboard', { replace: true })}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            Go to Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Render onboarding flow
-  // Note: Users can access onboarding for training even if bar is already set up
-  return <OnboardingFlow />;
+  return (
+    <>
+      {isTrainingMode ? <TrainingFlow /> : <OnboardingFlow />}
+    </>
+  );
 };
