@@ -138,7 +138,7 @@ export const ReviewStep: React.FC = () => {
       }
 
       // Mark as complete in context
-      completeOnboarding();
+      await completeOnboarding();
 
       // Redirect to dashboard
       setTimeout(() => {

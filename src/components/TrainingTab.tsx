@@ -45,12 +45,15 @@ export function TrainingTab() {
                 .limit(1)
                 .single();
 
+
             if (versionData) {
                 setLatestVersion({
                     version: versionData.version,
                     changelog: versionData.changelog || '',
                     releasedAt: versionData.released_at,
                 });
+            } else {
+                console.warn(`No training version found for role: ${currentSession.role}`);
             }
 
             // Get user's completed version
