@@ -7,21 +7,18 @@ import { Card } from './ui/Card';
 import { useCategoryContextMenu } from '../hooks/useCategoryContextMenu';
 import { CategoryContextMenu } from './CategoryContextMenu';
 
-// Style caramel premium exact du header
-const CARAMEL_PREMIUM_GRADIENT = 'linear-gradient(135deg, hsla(38, 92%, 55%, 1) 0%, hsla(38, 92%, 38%, 1) 100%)';
-
+// Style utilisant les classes Tailwind brand
 const getButtonStyles = (isSelected: boolean) => {
     if (isSelected) {
         return {
-            className: 'px-4 py-2 rounded-lg font-semibold transition-all duration-200 text-white shadow-lg',
-            style: { background: CARAMEL_PREMIUM_GRADIENT, boxShadow: '0 10px 25px -5px hsla(38, 92%, 40%, 0.4)' }
+            className: 'px-4 py-2 rounded-lg font-semibold transition-all duration-200 text-white shadow-lg bg-gradient-to-br from-brand to-brand-dark shadow-brand-500/40'
         };
     }
     return {
-        className: 'px-4 py-2 rounded-lg font-semibold transition-all duration-200 bg-white/80 text-amber-800 border border-amber-200/50 hover:bg-amber-50 hover:border-amber-300/50 shadow-sm',
-        style: {}
+        className: 'px-4 py-2 rounded-lg font-semibold transition-all duration-200 bg-white/80 text-brand-800 border border-brand-200/50 hover:bg-brand-50 hover:border-brand-300/50 shadow-sm'
     };
 };
+
 
 interface CategoryFilterProps {
     categories: Category[];
@@ -61,14 +58,13 @@ export function CategoryFilter({
 
     return (
         <>
-            <Card variant="elevated" padding="sm" className="border-amber-100">
+            <Card variant="elevated" padding="sm" className="border-brand-100">
                 <h3 className="text-sm font-semibold text-gray-700 mb-3">Catégories</h3>
                 <div className="flex flex-wrap gap-2">
                     {/* All categories button */}
                     <button
                         onClick={() => onSelectCategory('all')}
                         className={getButtonStyles(selectedCategory === 'all').className}
-                        style={getButtonStyles(selectedCategory === 'all').style}
                     >
                         Tout ({totalProducts})
                     </button>
@@ -87,7 +83,6 @@ export function CategoryFilter({
                                 onTouchEnd={handleTouchEnd}
                                 onContextMenu={(e) => handleContextMenu(e, category)}
                                 className={buttonStyles.className}
-                                style={buttonStyles.style}
                             >
                                 {category.name} ({productCounts[category.id] || 0})
                             </button>
@@ -102,8 +97,7 @@ export function CategoryFilter({
                                 onClick={onAddCategory}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                style={{ background: CARAMEL_PREMIUM_GRADIENT }}
-                                className="block sm:hidden flex items-center justify-center w-10 h-10 rounded-lg text-white shadow-md transition-all"
+                                className="block sm:hidden flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-brand to-brand-dark text-white shadow-md shadow-brand-500/30 transition-all"
                                 title="Ajouter une catégorie"
                             >
                                 <Plus size={20} />
@@ -114,8 +108,7 @@ export function CategoryFilter({
                                 onClick={onAddCategory}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                style={{ background: CARAMEL_PREMIUM_GRADIENT }}
-                                className="hidden sm:flex items-center gap-2 px-4 py-2 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all"
+                                className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-brand to-brand-dark text-white rounded-lg font-semibold shadow-md shadow-brand-500/30 hover:shadow-lg transition-all"
                             >
                                 <Plus size={16} />
                                 Ajouter

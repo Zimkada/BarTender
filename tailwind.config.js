@@ -61,7 +61,28 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        // 🎨 Brand Color System - Couleur personnalisable
+        brand: {
+          DEFAULT: 'hsl(var(--brand-hue) var(--brand-saturation) var(--brand-light))',
+          dark: 'hsl(var(--brand-hue) var(--brand-saturation) var(--brand-dark))',
+          light: 'hsl(var(--brand-hue) var(--brand-saturation) 95%)',
+          muted: 'hsl(var(--brand-hue) var(--brand-saturation) 85%)',
+          foreground: 'hsl(0 0% 100%)',
+          ring: 'hsl(var(--brand-hue) var(--brand-saturation) 50%)',
+          border: 'hsl(var(--brand-hue) var(--brand-saturation) 80%)',
+          50: 'hsl(var(--brand-hue) var(--brand-saturation) 97%)',
+          100: 'hsl(var(--brand-hue) var(--brand-saturation) 92%)',
+          200: 'hsl(var(--brand-hue) var(--brand-saturation) 80%)',
+          300: 'hsl(var(--brand-hue) var(--brand-saturation) 70%)',
+          400: 'hsl(var(--brand-hue) var(--brand-saturation) 60%)',
+          500: 'hsl(var(--brand-hue) var(--brand-saturation) var(--brand-light))',
+          600: 'hsl(var(--brand-hue) var(--brand-saturation) 48%)',
+          700: 'hsl(var(--brand-hue) var(--brand-saturation) var(--brand-dark))',
+          800: 'hsl(var(--brand-hue) var(--brand-saturation) 30%)',
+          900: 'hsl(var(--brand-hue) var(--brand-saturation) 20%)',
+        },
       },
+
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',

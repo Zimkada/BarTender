@@ -99,15 +99,16 @@ export function Cart({
           onClick={onToggle}
           className={`
             fixed z-50 rounded-full active:scale-95 transition-all duration-200 flex items-center justify-center
-            bg-gradient-to-br from-amber-500 to-amber-700
+            bg-gradient-to-br from-brand to-brand-dark
             text-white
-            shadow-xl shadow-amber-600/40
-            hover:shadow-2xl hover:shadow-amber-600/50 hover:scale-105
+            shadow-xl shadow-brand-600/40
+            hover:shadow-2xl hover:shadow-brand-600/50 hover:scale-105
             ${isMobile
               ? 'bottom-20 right-4 w-14 h-14'
               : 'bottom-8 right-8 w-16 h-16'
             }
           `}
+
           aria-label="Panier"
         >
           <div className="relative">

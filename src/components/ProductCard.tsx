@@ -62,8 +62,8 @@ export function ProductCard({ product, onAddToCart, availableStock }: ProductCar
       className={`
         relative flex flex-col h-full
         bg-white rounded-2xl
-        border ${showFeedback ? 'border-amber-400' : 'border-amber-100'}
-        shadow-md shadow-amber-500/5 hover:shadow-xl hover:shadow-amber-500/15
+        border ${showFeedback ? 'border-brand-400' : 'border-brand-100'}
+        shadow-md shadow-brand-500/5 hover:shadow-xl hover:shadow-brand-500/15
         overflow-hidden cursor-pointer select-none
         touch-manipulation
         transition-all duration-200
