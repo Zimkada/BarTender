@@ -49,6 +49,37 @@
     --shadow-orange-light: hsla(38, 92%, 40%, 0.1);
     --shadow-orange-medium: hsla(38, 92%, 35%, 0.2);
     --shadow-orange-strong: hsla(38, 92%, 30%, 0.35);
+
+    /* ═══════════════════════════════════════════════════════════
+       🎨 BRAND COLOR SYSTEM - Couleur Personnalisable
+       Modifier --brand-hue pour changer toute l'identité visuelle
+       ═══════════════════════════════════════════════════════════ */
+
+    /* Teinte de base (0-360) - Ambre/Caramel par défaut */
+    --brand-hue: 38;
+    --brand-saturation: 92%;
+
+    /* Luminosités pour le gradient premium */
+    --brand-light: 55%;
+    --brand-dark: 38%;
+
+    /* Couleurs calculées */
+    --brand-primary: hsl(var(--brand-hue), var(--brand-saturation), var(--brand-light));
+    --brand-primary-dark: hsl(var(--brand-hue), var(--brand-saturation), var(--brand-dark));
+
+    /* Gradient principal (Header, Boutons actifs, etc.) */
+    --brand-gradient: linear-gradient(135deg,
+        hsl(var(--brand-hue), var(--brand-saturation), var(--brand-light)) 0%,
+        hsl(var(--brand-hue), var(--brand-saturation), var(--brand-dark)) 100%);
+
+    /* Ombre colorée harmonisée */
+    --brand-shadow: hsla(var(--brand-hue), var(--brand-saturation), 40%, 0.4);
+    --brand-shadow-light: hsla(var(--brand-hue), var(--brand-saturation), 40%, 0.15);
+
+    /* Couleurs dérivées pour UI */
+    --brand-bg-subtle: hsl(var(--brand-hue), var(--brand-saturation), 98%);
+    --brand-border: hsla(var(--brand-hue), var(--brand-saturation), 50%, 0.2);
+    --brand-text: hsl(var(--brand-hue), var(--brand-saturation), 20%);
   }
 
   /* 🎨 Amélioration des contrastes pour accessibilité WCAG AA */
@@ -68,16 +99,15 @@
    Ambre Caramel Premium (plus sombre, plus professionnel)
    ======================================== */
 
-/* 🏔️ Header Principal - Ambre Caramel Premium (55%→38%) */
+/* 🏔️ Header Principal - Utilise les variables brand */
 .liquid-gold-header {
-  background: linear-gradient(135deg, hsla(38, 92%, 55%, 1) 0%, hsla(38, 92%, 38%, 1) 100%);
+  background: var(--brand-gradient);
   position: relative;
   overflow: hidden;
-  border-bottom: 3px solid hsla(38, 92%, 22%, 0.6);
-  /* 🎨 Ombres colorées orange pour harmonie */
+  border-bottom: 3px solid hsl(var(--brand-hue), var(--brand-saturation), 22%);
   box-shadow:
-    0 20px 50px -10px hsla(38, 92%, 25%, 0.55),
-    0 8px 20px -5px hsla(38, 92%, 35%, 0.35),
+    0 20px 50px -10px hsla(var(--brand-hue), var(--brand-saturation), 25%, 0.55),
+    0 8px 20px -5px hsla(var(--brand-hue), var(--brand-saturation), 35%, 0.35),
     inset 0 1px 0 hsla(45, 100%, 90%, 0.3);
 }
 
@@ -107,48 +137,47 @@
   }
 }
 
-/* 🏔️ PageHeader - Ombres Orange Harmonisées */
+/* 🏔️ PageHeader - Ombres harmonisées avec brand */
 .glass-page-header {
   background: linear-gradient(135deg,
       hsla(0, 0%, 100%, 0.95) 0%,
-      hsla(38, 92%, 98%, 0.85) 100%);
+      hsla(var(--brand-hue), var(--brand-saturation), 98%, 0.85) 100%);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid hsla(38, 92%, 50%, 0.15);
-  border-top: 6px solid hsla(38, 92%, 45%, 1);
+  border: 1px solid var(--brand-border);
+  border-top: 6px solid hsl(var(--brand-hue), var(--brand-saturation), 45%);
   border-radius: 2rem;
-  /* 🎨 Ombres colorées orange */
   box-shadow:
-    0 25px 50px -12px hsla(38, 92%, 30%, 0.15),
-    0 10px 20px -10px hsla(38, 92%, 40%, 0.1);
+    0 25px 50px -12px hsla(var(--brand-hue), var(--brand-saturation), 30%, 0.15),
+    0 10px 20px -10px hsla(var(--brand-hue), var(--brand-saturation), 40%, 0.1);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-page-header:hover {
   transform: translateY(-2px);
   box-shadow:
-    0 35px 70px -25px hsla(38, 92%, 30%, 0.25),
-    0 15px 30px -10px hsla(38, 92%, 40%, 0.15);
+    0 35px 70px -25px hsla(var(--brand-hue), var(--brand-saturation), 30%, 0.25),
+    0 15px 30px -10px hsla(var(--brand-hue), var(--brand-saturation), 40%, 0.15);
 }
 
-/* 🎯 PageHeader Icon - Ombre Orange */
+/* 🎯 PageHeader Icon */
 .glass-page-icon {
-  background: linear-gradient(135deg, hsla(38, 92%, 55%, 1) 0%, hsla(38, 92%, 38%, 1) 100%);
+  background: var(--brand-gradient);
   color: white;
   box-shadow:
-    0 10px 25px -5px hsla(38, 92%, 40%, 0.5),
+    0 10px 25px -5px var(--brand-shadow),
     inset 0 2px 4px hsla(0, 0%, 100%, 0.3);
   border: 1px solid hsla(0, 0%, 100%, 0.2);
   transform: scale(1.05);
 }
 
-/* 🌫️ Boutons Glassmorphism - Ombres Subtiles */
+/* 🌫️ Boutons Glassmorphism */
 .glass-button-2026 {
   background: linear-gradient(135deg, hsla(0, 0%, 100%, 0.2) 0%, hsla(0, 0%, 100%, 0.05) 100%);
   backdrop-filter: blur(8px);
   border: 1px solid hsla(0, 0%, 100%, 0.3);
   box-shadow:
-    0 4px 10px -2px hsla(38, 92%, 40%, 0.15),
+    0 4px 10px -2px var(--brand-shadow-light),
     inset 0 1px 0 hsla(0, 0%, 100%, 0.3);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -158,46 +187,45 @@
   border: 1px solid hsla(0, 0%, 100%, 0.5);
   transform: translateY(-1px);
   box-shadow:
-    0 10px 20px -5px hsla(38, 92%, 40%, 0.25),
+    0 10px 20px -5px var(--brand-shadow),
     inset 0 1px 0 hsla(0, 0%, 100%, 0.4);
 }
 
 /* 🍊 Bouton Orange Glass */
 .glass-orange-2026 {
-  background: linear-gradient(135deg, hsla(25, 95%, 60%, 0.45) 0%, hsla(25, 95%, 50%, 0.6) 100%);
+  background: linear-gradient(135deg, hsla(var(--brand-hue), 95%, 60%, 0.45) 0%, hsla(var(--brand-hue), 95%, 50%, 0.6) 100%);
   backdrop-filter: blur(8px);
-  border: 1px solid hsla(25, 95%, 70%, 0.4);
-  box-shadow: 0 6px 15px -3px hsla(25, 95%, 45%, 0.35), inset 0 1px hsla(0, 0%, 100%, 0.3);
+  border: 1px solid hsla(var(--brand-hue), 95%, 70%, 0.4);
+  box-shadow: 0 6px 15px -3px hsla(var(--brand-hue), 95%, 45%, 0.35), inset 0 1px hsla(0, 0%, 100%, 0.3);
 }
 
 /* 🎨 Boutons d'Action PageHeader */
 .glass-action-button-2026 {
   background: hsla(0, 0%, 100%, 0.6) !important;
   backdrop-filter: blur(8px) !important;
-  border: 1px solid hsla(38, 92%, 50%, 0.2) !important;
-  color: hsla(38, 92%, 20%, 1) !important;
-  /* 🎨 Ombre colorée orange subtile */
+  border: 1px solid var(--brand-border) !important;
+  color: var(--brand-text) !important;
   box-shadow:
-    0 4px 10px -2px hsla(38, 92%, 40%, 0.1),
+    0 4px 10px -2px var(--brand-shadow-light),
     inset 0 1px 0 hsla(0, 0%, 100%, 0.5) !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
   border-radius: 0.8rem !important;
 }
 
 .glass-action-button-2026:hover {
-  background: hsla(38, 92%, 50%, 0.1) !important;
-  border: 1px solid hsla(38, 92%, 50%, 0.4) !important;
+  background: hsla(var(--brand-hue), var(--brand-saturation), 50%, 0.1) !important;
+  border: 1px solid hsla(var(--brand-hue), var(--brand-saturation), 50%, 0.4) !important;
   transform: translateY(-1px) !important;
-  box-shadow: 0 8px 20px -4px hsla(38, 92%, 40%, 0.2) !important;
+  box-shadow: 0 8px 20px -4px var(--brand-shadow) !important;
 }
 
-/* 🎯 Bouton Actif (Tabs) - Ambre Caramel Premium */
+/* 🎯 Bouton Actif (Tabs) - Utilise brand-gradient */
 .glass-action-button-active-2026 {
-  background: linear-gradient(135deg, hsla(38, 92%, 55%, 1) 0%, hsla(38, 92%, 38%, 1) 100%) !important;
+  background: var(--brand-gradient) !important;
   color: white !important;
   border: 1px solid hsla(0, 0%, 100%, 0.3) !important;
   box-shadow:
-    0 10px 25px -5px hsla(38, 92%, 40%, 0.5),
+    0 10px 25px -5px var(--brand-shadow),
     inset 0 2px 4px hsla(0, 0%, 100%, 0.3) !important;
 }
 
@@ -237,5 +265,5 @@
 
 /* 🎨 Selection aux couleurs de la marque */
 ::selection {
-  background: hsla(38, 92%, 50%, 0.3);
+  background: hsla(var(--brand-hue), var(--brand-saturation), 50%, 0.3);
 }
