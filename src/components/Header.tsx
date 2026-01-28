@@ -346,10 +346,11 @@ export function Header({
                 </Button>
                 <Button
                   onClick={onShowSupplyModal}
-                  variant="ghost"
+                  variant="info"
                   size="icon"
-                  className="p-2 bg-cyan-600/90 rounded-lg text-white hover:bg-cyan-700/90 transition-colors"
+                  className="p-2 rounded-xl"
                   title="Gestion des Approv."
+
                 >
                   <Package size={20} />
                 </Button>

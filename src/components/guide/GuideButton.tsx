@@ -116,10 +116,10 @@ export const GuideButton: React.FC<{ showOnlyOnHomePage?: boolean }> = ({ showOn
           isOpen={isPopoverOpen}
         />
 
-        {/* Button */}
+        {/* Button - Same style as PageHeader Guide Button */}
         <motion.button
           onClick={() => setIsPopoverOpen(!isPopoverOpen)}
-          className="w-12 h-12 rounded-full bg-sky-400 text-white shadow-lg hover:bg-sky-500 hover:shadow-xl transition flex items-center justify-center font-bold text-lg"
+          className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg shadow-blue-500/40 hover:shadow-xl hover:shadow-blue-500/50 hover:scale-105 transition-all flex items-center justify-center font-bold text-lg border border-white/40"
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
           aria-label="Open guides"
@@ -128,6 +128,7 @@ export const GuideButton: React.FC<{ showOnlyOnHomePage?: boolean }> = ({ showOn
         >
           ?
         </motion.button>
+
 
         {/* Notification dot (if new guides) */}
         {suggestions.some(g => g.isNew) && (

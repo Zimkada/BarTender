@@ -1,6 +1,4 @@
 // src/components/CategoryFilter.tsx
-import { cva } from 'class-variance-authority';
-import { cn } from '../lib/utils';
 import { Category } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { Plus } from 'lucide-react';
@@ -9,20 +7,21 @@ import { Card } from './ui/Card';
 import { useCategoryContextMenu } from '../hooks/useCategoryContextMenu';
 import { CategoryContextMenu } from './CategoryContextMenu';
 
-const categoryButtonVariants = cva(
-    'px-4 py-2 rounded-lg font-semibold transition-all duration-200',
-    {
-        variants: {
-            isSelected: {
-                true: 'bg-gradient-to-br from-amber-500 to-amber-700 text-white shadow-lg shadow-amber-500/30',
-                false: 'bg-white/80 text-amber-800 border border-amber-200/50 hover:bg-amber-50 hover:border-amber-300/50 shadow-sm shadow-amber-500/5',
-            },
-        },
-        defaultVariants: {
-            isSelected: false,
-        },
+// Style caramel premium exact du header
+const CARAMEL_PREMIUM_GRADIENT = 'linear-gradient(135deg, hsla(38, 92%, 55%, 1) 0%, hsla(38, 92%, 38%, 1) 100%)';
+
+const getButtonStyles = (isSelected: boolean) => {
+    if (isSelected) {
+        return {
+            className: 'px-4 py-2 rounded-lg font-semibold transition-all duration-200 text-white shadow-lg',
+            style: { background: CARAMEL_PREMIUM_GRADIENT, boxShadow: '0 10px 25px -5px hsla(38, 92%, 40%, 0.4)' }
+        };
     }
-);
+    return {
+        className: 'px-4 py-2 rounded-lg font-semibold transition-all duration-200 bg-white/80 text-amber-800 border border-amber-200/50 hover:bg-amber-50 hover:border-amber-300/50 shadow-sm',
+        style: {}
+    };
+};
 
 interface CategoryFilterProps {
     categories: Category[];
@@ -68,26 +67,32 @@ export function CategoryFilter({
                     {/* All categories button */}
                     <button
                         onClick={() => onSelectCategory('all')}
-                        className={cn(categoryButtonVariants({ isSelected: selectedCategory === 'all' }))}
+                        className={getButtonStyles(selectedCategory === 'all').className}
+                        style={getButtonStyles(selectedCategory === 'all').style}
                     >
                         Tout ({totalProducts})
                     </button>
 
                     {/* Individual category buttons */}
-                    {categories.map((category) => (
-                        <button
-                            key={category.id}
-                            onClick={() => onSelectCategory(category.id)}
-                            onMouseDown={(e) => handleMouseDown(e, category)}
-                            onMouseUp={handleMouseUp}
-                            onTouchStart={(e) => handleTouchStart(e, category)}
-                            onTouchEnd={handleTouchEnd}
-                            onContextMenu={(e) => handleContextMenu(e, category)}
-                            className={cn(categoryButtonVariants({ isSelected: selectedCategory === category.id }))}
-                        >
-                            {category.name} ({productCounts[category.id] || 0})
-                        </button>
-                    ))}
+                    {categories.map((category) => {
+                        const isSelected = selectedCategory === category.id;
+                        const buttonStyles = getButtonStyles(isSelected);
+                        return (
+                            <button
+                                key={category.id}
+                                onClick={() => onSelectCategory(category.id)}
+                                onMouseDown={(e) => handleMouseDown(e, category)}
+                                onMouseUp={handleMouseUp}
+                                onTouchStart={(e) => handleTouchStart(e, category)}
+                                onTouchEnd={handleTouchEnd}
+                                onContextMenu={(e) => handleContextMenu(e, category)}
+                                className={buttonStyles.className}
+                                style={buttonStyles.style}
+                            >
+                                {category.name} ({productCounts[category.id] || 0})
+                            </button>
+                        );
+                    })}
 
                     {/* Add Category Button - Responsive */}
                     {onAddCategory && hasPermission('canAddProducts') && (
@@ -97,7 +102,8 @@ export function CategoryFilter({
                                 onClick={onAddCategory}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                className="block sm:hidden flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-amber-700 text-white shadow-md shadow-amber-500/30 transition-all"
+                                style={{ background: CARAMEL_PREMIUM_GRADIENT }}
+                                className="block sm:hidden flex items-center justify-center w-10 h-10 rounded-lg text-white shadow-md transition-all"
                                 title="Ajouter une catégorie"
                             >
                                 <Plus size={20} />
@@ -108,7 +114,8 @@ export function CategoryFilter({
                                 onClick={onAddCategory}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-amber-500 to-amber-700 text-white rounded-lg font-semibold shadow-md shadow-amber-500/30 hover:shadow-lg transition-all"
+                                style={{ background: CARAMEL_PREMIUM_GRADIENT }}
+                                className="hidden sm:flex items-center gap-2 px-4 py-2 text-white rounded-lg font-semibold shadow-md hover:shadow-lg transition-all"
                             >
                                 <Plus size={16} />
                                 Ajouter

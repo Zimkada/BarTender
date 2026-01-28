@@ -31,15 +31,15 @@ export const PeriodFilter: React.FC<PeriodFilterProps> = ({
     return (
         <div className={`space-y-3 ${className}`}>
             {/* Boutons de filtres rapides */}
-            <div className="flex bg-gray-100 rounded-lg p-1 flex-wrap gap-1">
+            <div className="flex bg-white/80 backdrop-blur-sm rounded-xl p-1.5 flex-wrap gap-1.5 border border-amber-200/30 shadow-sm shadow-amber-500/5">
                 {availableFilters.map((filter) => (
                     <Button
                         key={filter}
                         onClick={() => setTimeRange(filter)}
                         variant={timeRange === filter ? "default" : "ghost"}
-                        className={`px-3 py-1.5 h-9 rounded-md text-xs font-medium transition-all flex-1 min-w-[80px] ${timeRange === filter
-                                ? 'bg-amber-500 text-white shadow-sm ring-1 ring-amber-600'
-                                : 'text-gray-600 hover:bg-gray-200'
+                        className={`px-3 py-1.5 h-9 rounded-lg text-xs font-bold transition-all flex-1 min-w-[80px] ${timeRange === filter
+                            ? 'bg-gradient-to-br from-amber-500 to-amber-700 text-white shadow-md shadow-amber-500/30'
+                            : 'text-amber-700 hover:bg-amber-50 hover:text-amber-800'
                             } ${buttonClassName}`}
                     >
                         {TIME_RANGE_CONFIGS[filter]?.label || filter}
@@ -49,19 +49,19 @@ export const PeriodFilter: React.FC<PeriodFilterProps> = ({
 
             {/* Date Range Personnalisé */}
             {isCustom && customRange && updateCustomRange && (
-                <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200 animate-in fade-in slide-in-from-top-1">
+                <div className="flex items-center gap-2 bg-amber-50/50 p-3 rounded-xl border border-amber-200/30 shadow-sm shadow-amber-500/5 animate-in fade-in slide-in-from-top-1">
                     <Input
                         type="date"
                         value={customRange.start}
                         onChange={(e) => updateCustomRange('start', e.target.value)}
-                        className="flex-1 text-sm h-9 bg-white"
+                        className="flex-1 text-sm h-9 bg-white rounded-lg border-amber-200/50"
                     />
-                    <span className="text-gray-400 font-medium">→</span>
+                    <span className="text-amber-500 font-bold">→</span>
                     <Input
                         type="date"
                         value={customRange.end}
                         onChange={(e) => updateCustomRange('end', e.target.value)}
-                        className="flex-1 text-sm h-9 bg-white"
+                        className="flex-1 text-sm h-9 bg-white rounded-lg border-amber-200/50"
                     />
                 </div>
             )}

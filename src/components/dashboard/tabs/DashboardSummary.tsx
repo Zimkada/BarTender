@@ -205,8 +205,12 @@ export function DashboardSummary({
                 </div>
             </div>
 
-            {/* Actions rapides */}
-            <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-3xl p-6 text-white shadow-lg shadow-amber-200 flex flex-col md:flex-row items-center justify-between gap-6">
+            {/* Actions rapides - Même couleur que le header */}
+            <div
+                style={{ background: 'linear-gradient(135deg, hsla(38, 92%, 55%, 1) 0%, hsla(38, 92%, 38%, 1) 100%)' }}
+                className="rounded-3xl p-6 text-white shadow-lg shadow-amber-600/30 flex flex-col md:flex-row items-center justify-between gap-6"
+            >
+
                 <div>
                     <h4 className="text-lg font-bold mb-1">Actions de fin de journée</h4>
                     <p className="text-amber-100 text-sm">Partagez le rapport ou clôturez votre caisse en un clic.</p>
@@ -214,19 +218,24 @@ export function DashboardSummary({
                 <div className="flex gap-3 w-full md:w-auto">
                     <EnhancedButton
                         onClick={onExportWhatsApp}
-                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-white text-emerald-600 rounded-2xl font-bold shadow-sm hover:bg-emerald-50 active:scale-95 transition-all"
+                        style={{ background: 'linear-gradient(135deg, hsla(38, 92%, 55%, 1) 0%, hsla(38, 92%, 38%, 1) 100%)' }}
+                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 text-white rounded-2xl font-bold shadow-lg shadow-amber-600/30 hover:shadow-amber-600/40 active:scale-95 transition-all"
                     >
                         <Share size={18} /> WhatsApp
                     </EnhancedButton>
+
+
                     {!isServerRole && (
                         !cashClosed ? (
                             <EnhancedButton
                                 onClick={onCloseCash}
                                 loading={isClosingCash}
-                                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-red-500 text-white rounded-2xl font-bold shadow-md hover:bg-red-600 active:scale-95 transition-all"
+                                style={{ background: 'linear-gradient(135deg, hsla(38, 92%, 55%, 1) 0%, hsla(38, 92%, 38%, 1) 100%)' }}
+                                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 text-white rounded-2xl font-bold shadow-lg shadow-amber-600/30 hover:shadow-amber-600/40 active:scale-95 transition-all"
                             >
                                 <Lock size={18} /> Fermer caisse
                             </EnhancedButton>
+
                         ) : (
                             <div className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-white/20 text-white rounded-2xl font-bold backdrop-blur-sm">
                                 <Lock size={18} /> Caisse fermée

@@ -22,7 +22,7 @@ export default function HomePage() {
   const { products: allProducts, getProductStockInfo } = useStockManagement();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const productsWithAvailableStock = useMemo(() => {
     return allProducts.map(product => {
       const stockInfo = getProductStockInfo(product.id);
@@ -79,9 +79,10 @@ export default function HomePage() {
             <h2 className="text-2xl font-bold text-gray-800">Vente Rapide</h2>
             <p className="text-sm text-gray-500">{currentBar.name}</p>
           </div>
-          <div className="flex items-center gap-2 text-amber-600">
-            <ShoppingCart size={24} />
-            <span className="text-sm font-medium">{allProducts.length} produits</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-100 to-amber-50 rounded-xl border border-amber-200/50">
+            <ShoppingCart size={18} className="text-amber-600" />
+            <span className="text-sm font-bold text-amber-700">{allProducts.length}</span>
+            <span className="text-xs text-amber-600/70">produits</span>
           </div>
         </div>
 
