@@ -1,4 +1,5 @@
 import { GuideTour } from '@/types/guide';
+import { PROFILE_GUIDE } from './owner-guides';
 
 /**
  * Guide 1: First Sale for Servers
@@ -135,16 +136,16 @@ export const SERVEUR_FIRST_SALE_GUIDE: GuideTour = {
  */
 export const SERVEUR_DASHBOARD_GUIDE: GuideTour = {
     id: 'serveur-dashboard',
-    title: 'Votre Tableau de Bord',
-    subtitle: 'Suivez vos ventes et performances',
-    description: 'Consultez vos métriques, ventes en attente et performances de la journée.',
+    title: 'Maîtrisez Votre Tableau de Bord',
+    subtitle: 'Vos ventes et performances en 3 onglets',
+    description: 'Découvrez les 3 onglets pour suivre vos ventes, vos performances et vos consignations.',
 
     targetRoles: ['serveur'],
 
-    estimatedDuration: 3,
+    estimatedDuration: 4,
     difficulty: 'beginner',
     emoji: '📊',
-    version: 1,
+    version: 2,
 
     triggers: [
         {
@@ -159,114 +160,141 @@ export const SERVEUR_DASHBOARD_GUIDE: GuideTour = {
         {
             id: 'step-1',
             emoji: '👋',
-            title: 'Bienvenue sur Votre Espace Personnel !',
+            title: 'Bienvenue sur Votre Tableau de Bord !',
             description:
-                'Ce tableau de bord affiche uniquement vos données personnelles : vos ventes, votre CA, vos performances et votre caisse.',
+                'Votre tableau de bord se divise en **3 onglets** : **Synthèse du jour** pour vos chiffres clés, **Gestion Commandes** pour voir vos ventes en attente, et **Ma Performance** pour suivre vos résultats. Toutes les données sont **filtrées à vos seules ventes**.',
             position: 'center',
-            action: 'Cliquez sur Suivant pour continuer',
+            action: 'Cliquez sur Suivant pour explorer',
             tips: [
-                'Toutes les informations se mettent à jour en temps réel',
-                'Vous ne voyez que vos propres données (pas celles des autres serveurs)',
-                'Vérifiez régulièrement ce tableau pour valider vos ventes',
+                '🔄 Les 3 onglets sont accessibles en haut du tableau de bord',
+                '⏱️ Données mises à jour en temps réel',
+                '🔒 Vous ne voyez que vos propres données (pas celles des autres serveurs)',
             ],
         },
 
+        // ONGLET 1 : SYNTHÈSE DU JOUR
         {
             id: 'step-2',
             emoji: '💰',
-            title: 'Votre Chiffre d\'Affaires du Jour',
+            title: 'Onglet 1 : Synthèse du Jour - Vos 6 Métriques',
             description:
-                'En haut à gauche, voyez votre chiffre d\'affaires net pour la journée commerciale actuelle (sans ventes en attente).',
-            elementSelector: '[data-guide="revenue-widget"]',
+                'Cet onglet affiche **6 métriques clés** de votre journée : **Revenus** (CA Net), **Ventes** (compteur), **Articles** vendus, **Alertes** stock, **Retours**, et **Consignations** actives. Ces chiffres se mettent à jour en temps réel.',
+            elementSelector: '[data-guide="revenue-stats"]',
             position: 'bottom',
-            action: 'Consultez votre CA net',
+            action: 'Examinez les 6 métriques',
             tips: [
-                '**CA Net** = Montant total de vos ventes validées',
-                'Les ventes en attente de validation ne sont pas comptées',
-                'Se remet à zéro à la clôture caisse (défaut: 6h du matin)',
+                '💚 **CA Net** = Montant total de vos ventes VALIDÉES',
+                '📊 **Ventes** = nombre de ventes validées + ventes en attente',
+                '📦 **Articles** = nombre total d\'articles que vous avez vendus',
+                '⚠️ **Alertes** = produits proches de la rupture',
+                '↩️ **Retours** = retours traités pendant votre service',
+                '🥃 **Consignations** = produits que vous avez mis en consignation',
             ],
         },
 
         {
             id: 'step-3',
-            emoji: '⏳',
-            title: 'Ventes en Attente de Validation',
+            emoji: '📈',
+            title: 'Vos Top Produits & Alertes Stock',
             description:
-                'Voyez toutes vos ventes qui attendent validation du gérant. Vous pouvez les consulter dans le détail pour vérifier qu\'elles sont correctes avant validation.',
-            elementSelector: '[data-guide="pending-sales"]',
+                'Sous les 6 métriques, vous trouvez **vos 5 meilleurs produits du jour** (les plus vendus) et **les produits en alerte stock** (proches de la rupture). Ces informations vous aident à préparer votre service et anticiper les réapprovisionnements.',
             position: 'bottom',
-            action: 'Vérifiez vos ventes en attente',
+            action: 'Consultez vos top produits et alertes',
             tips: [
-                '⏱️ Les ventes expirent à la clôture caisse si non validées',
-                '👁️ Vous pouvez consulter les détails de chaque vente',
-                '⚠️ Vous ne pouvez pas modifier une vente en attente',
-                '✅ Une fois validée par le gérant, impossible de modifier',
+                '🏆 Top 5 : Basé sur vos ventes validées du jour',
+                '⚠️ Alertes : Produits proches de rupture (signaler au gérant)',
+                '🔴 Rupture = plus disponible au bar',
+                '🟡 Faible stock = moins de 5 unités restantes',
             ],
         },
 
         {
             id: 'step-4',
-            emoji: '🏆',
-            title: 'Vos Top Produits',
+            emoji: '📱',
+            title: 'Action : Exporter WhatsApp',
             description:
-                'Découvrez les 3 articles que vous vendez le plus souvent. Cela vous aide à anticiper les besoins en stock.',
-            elementSelector: '[data-guide="top-products"]',
-            position: 'bottom',
-            action: 'Consultez vos meilleurs articles',
+                'En bas de cet onglet, un bouton **WhatsApp** pour exporter un rapport complet de vos ventes du jour. Utile pour communiquer avec votre gérant ou votre patron.',
+            elementSelector: '[data-guide="whatsapp-export"]',
+            position: 'top',
+            action: 'Cliquez pour exporter',
             tips: [
-                'Basé sur les ventes validées du jour',
-                'Vous pouvez identifier les produits à avoir en priorité',
-                'Utile pour préparer votre service et éviter les ruptures',
+                '📱 **WhatsApp** : Envoie CA, ventes, articles, retours, top 5 produits',
+                '✅ Basé sur vos ventes VALIDÉES',
+                '⚡ Vous pouvez exporter plusieurs fois par jour',
+                '💬 Parfait pour communiquer rapidement vos résultats',
             ],
         },
 
+        // ONGLET 2 : GESTION COMMANDES
         {
             id: 'step-5',
-            emoji: '⚠️',
-            title: 'Alertes Stock - Produits en Rupture',
+            emoji: '⏳',
+            title: 'Onglet 2 : Gestion Commandes - Vos Ventes en Attente',
             description:
-                'Vérifiez les produits en alerte stock. Si vous voyez une alerte, signalez-le à votre gérant pour réapprovisionner.',
-            elementSelector: '[data-guide="stock-alerts"]',
+                'Cet onglet affiche toutes vos ventes qui attendent validation de votre gérant. Pour chaque vente : heure de création, montant total, nombre d\'articles. Vous pouvez développer pour voir le détail des produits.',
+            elementSelector: '[data-guide="pending-sales"]',
             position: 'bottom',
-            action: 'Vérifiez les alertes stock',
+            action: 'Explorez une vente en attente',
             tips: [
-                '🔴 Rupture stock : Produit plus disponible en rayon',
-                '🟡 Faible stock : Moins de 5 unités restantes',
-                'Signaler rapidement au gérant les ruptures',
-                'Consultez aussi l\'historique pour analyser la consommation',
+                '📋 Chaque vente = créée par vous, en attente de validation du gérant',
+                '⏱️ Heure = moment où vous avez finalisé la vente',
+                '📊 Montant = total TTC des articles',
+                '⬇️ Cliquez pour développer et voir les articles détaillés',
+                '⏰ Les ventes expirent à la clôture caisse (défaut: 6h du matin)',
             ],
         },
 
         {
             id: 'step-6',
-            emoji: '📱',
-            title: 'Exporter Vos Ventes sur WhatsApp',
+            emoji: '❌',
+            title: 'Voir & Annuler Vos Ventes',
             description:
-                'En bas du tableau de bord, un bouton pour exporter un rapport de vos ventes du jour directement sur WhatsApp.',
-            elementSelector: '[data-guide="whatsapp-export"]',
-            position: 'top',
-            action: 'Cliquez pour exporter vos données',
+                'Pour chaque vente en attente, vous avez **1 action** : **✗ Annuler** la vente si vous vous êtes trompé. Vous pouvez aussi **consulter les détails** pour vérifier que tout est correct avant validation par le gérant.',
+            position: 'bottom',
+            action: 'Cliquez sur ✗ pour annuler si besoin',
             tips: [
-                '📱 Bouton **WhatsApp** : Envoie un rapport de vos ventes validées du jour',
-                'Le rapport inclut : CA, nombre de ventes, articles, top produits',
-                'Pratique pour communiquer avec votre gérant ou patron',
-                'Vous pouvez exporter plusieurs fois par jour',
+                '👁️ Vous pouvez **consulter le détail** de chaque vente',
+                '❌ **Annuler** = supprime la vente (si erreur)',
+                '⚠️ Vous NE POUVEZ PAS modifier une vente en attente',
+                '✅ Seul le gérant peut **valider** votre vente',
+                '⏱️ Une fois validée, impossible de revenir en arrière',
             ],
         },
 
+        // ONGLET 3 : PERFORMANCE
         {
             id: 'step-7',
-            emoji: '✅',
-            title: 'Vous Êtes Prêt !',
+            emoji: '👁️',
+            title: 'Onglet 3 : Ma Performance',
             description:
-                'Vous maîtrisez maintenant votre tableau de bord personnel. Pour explorer d\'autres fonctionnalités, ouvrez le menu hamburger (☰) : Historique, Retours, Consignations, etc.',
+                'Cet onglet affiche **votre performance personnelle** pour la journée : nombre de ventes validées et **chiffre d\'affaires net** généré. Suivez votre progression en temps réel.',
+            elementSelector: '[data-guide="team-performance"]',
+            position: 'bottom',
+            action: 'Consultez votre performance',
+            tips: [
+                '📈 **CA Net** = Ventes validées - Retours remboursés',
+                '📊 **Ventes** = nombre de ventes QUE VOUS AVEZ VALIDÉES',
+                '🏆 Seules les ventes validées par le gérant sont comptées',
+                '🔄 Données mises à jour en temps réel',
+                '💪 Utilisez ces chiffres pour suivre votre progression',
+            ],
+        },
+
+        // CONCLUSION
+        {
+            id: 'step-8',
+            emoji: '✅',
+            title: 'Vous Maîtrisez Votre Tableau de Bord !',
+            description:
+                'Félicitations ! Vous connaissez les 3 onglets de votre tableau de bord personnel : **Synthèse du jour** (vos chiffres clés), **Gestion Commandes** (vos ventes en attente), **Ma Performance** (vos résultats). Pour explorer d\'autres fonctionnalités, ouvrez le menu hamburger (☰).',
             position: 'center',
             action: 'Cliquez sur Fermer pour commencer',
             tips: [
-                '☰ Menu hamburger en haut à droite pour naviguer',
-                'Guides spécifiques disponibles pour chaque section',
-                'Vérifiez régulièrement vos ventes et alertes stock',
-                'Bonne vente ! 🎉',
+                '☰ Menu hamburger → Historique, Retours, Consignations',
+                '📝 Guide Historique : revoyez toutes vos ventes validées',
+                '↩️ Guide Retours : gérez les retours de clients',
+                '🥃 Guide Consignations : suivez les produits mis de côté',
+                '💪 Bonne vente et bonne journée ! 🎉',
             ],
         },
     ],
@@ -278,16 +306,16 @@ export const SERVEUR_DASHBOARD_GUIDE: GuideTour = {
  */
 export const SERVEUR_HISTORY_GUIDE: GuideTour = {
     id: 'serveur-history',
-    title: 'Consulter Votre Historique',
-    subtitle: 'Revoyez et analysez vos ventes',
-    description: 'Accédez à l\'historique complet de vos ventes avec filtres et exports.',
+    title: 'Votre Historique & Analytics',
+    subtitle: 'Analysez vos ventes en 3 vues',
+    description: 'Consultez vos ventes en 3 formats (Liste, Cartes, Analytics) avec filtres, recherche et exports.',
 
     targetRoles: ['serveur'],
 
-    estimatedDuration: 3,
+    estimatedDuration: 5,
     difficulty: 'intermediate',
     emoji: '📝',
-    version: 1,
+    version: 2,
 
     triggers: [
         {
@@ -299,86 +327,156 @@ export const SERVEUR_HISTORY_GUIDE: GuideTour = {
     ],
 
     steps: [
+        // ==================== INTRODUCTION ====================
         {
             id: 'step-1',
             emoji: '👋',
-            title: 'Bienvenue à l\'Historique des Ventes !',
+            title: 'Bienvenue dans Votre Historique',
             description:
-                'Vous voyez ici toutes vos ventes passées et validées. Vous avez accès à des filtres pour analyser vos ventes par période.',
+                'Votre **Historique** se divise en **3 vues** pour analyser toutes vos ventes en détail. Vous voyez uniquement vos ventes validées. Vous pouvez filtrer par période, chercher des ventes spécifiques, et exporter vos données.',
             position: 'center',
-            action: 'Cliquez sur Suivant pour continuer',
+            visibleFor: ['serveur'],
             tips: [
+                '🔄 Basculez entre les 3 vues avec les onglets en haut',
                 '✅ Vous voyez uniquement vos ventes validées (pas les autres serveurs)',
-                '⏳ Les ventes en attente de validation n\'apparaissent pas ici',
-                '📊 Vous pouvez filtrer par date et rechercher des ventes spécifiques',
-                'Les données se mettent à jour en temps réel',
+                '📋 Les filtres s\'appliquent à toutes les vues instantanément',
             ],
         },
 
+        // ==================== VUE 1: LISTE ====================
         {
             id: 'step-2',
-            emoji: '🔍',
-            title: 'Rechercher et Filtrer par Date',
+            emoji: '📋',
+            title: 'Vue 1: Tableau Complet de Vos Ventes',
             description:
-                'Utilisez les boutons de filtre en haut pour sélectionner une période : Aujourd\'hui, Hier, 7 jours, 30 jours, ou une plage personnalisée. Vous pouvez aussi rechercher par ID de vente ou nom de produit.',
-            elementSelector: '[data-guide="history-filters"]',
+                'La **Vue Liste** affiche chaque vente en **tableau détaillé** avec tous les paramètres : ID, date/heure, nombre d\'articles, total original, retours et **revenu net final**. Vous ne voyez que vos propres ventes.',
+            elementSelector: '[data-guide="sales-list"]',
             position: 'bottom',
-            action: 'Cliquez sur les filtres pour personnaliser',
+            visibleFor: ['serveur'],
             tips: [
-                '📅 **Filtres rapides** : Aujourd\'hui, Hier, 7 jours, 30 jours (boutons en haut)',
-                '📅 **Filtre personnalisé** : Sélectionnez deux dates précises (début et fin)',
-                '🔍 **Recherche texte** : Tapez l\'ID de la vente ou le nom du produit',
-                '⚡ Les filtres s\'appliquent instantanément',
+                '📌 La colonne Revenu Net déduit automatiquement les retours approuvés',
+                '🔴 Les ventes avec retours sont mises en évidence en rouge',
+                '👁️ Cliquez sur une vente pour voir le détail complet du ticket',
             ],
         },
 
+        // ==================== VUE 2: CARTES ====================
         {
             id: 'step-3',
-            emoji: '📋',
-            title: 'Tableau des Ventes',
+            emoji: '📇',
+            title: 'Vue 2: Cartes Visuelles (Mini-tickets)',
             description:
-                'Consultez le détail de chaque vente : date, produits, montant, mode de paiement, statut.',
-            elementSelector: '[data-guide="history-table"]',
-            position: 'top',
-            action: 'Explorez vos ventes',
+                'La **Vue Cartes** affiche vos ventes sous format **mini-ticket**. Parfait pour un aperçu rapide : ID, date, premiers produits, total avec retours et revenu net.',
+            elementSelector: '[data-guide="sales-cards"]',
+            position: 'bottom',
+            visibleFor: ['serveur'],
             tips: [
-                'Chaque ligne représente une vente',
-                'Cliquez sur une vente pour voir ses détails complets',
-                'Les ventes rejetées affichent le motif du rejet',
-                'Analysez vos patterns de vente pour optimiser votre service',
+                '✨ Format visuel idéal pour scanner rapidement vos ventes',
+                '🎴 Chaque carte affiche un résumé avec les 2 premiers produits + "+X autres"',
+                '⌚ Parfait pour les analyses sur mobile',
             ],
         },
 
+        // ==================== VUE 3: ANALYTICS - KPIs ====================
         {
             id: 'step-4',
-            emoji: '💾',
-            title: 'Exporter vos Données',
+            emoji: '📊',
+            title: 'Vue 3: Vos Analytics Personnelles',
             description:
-                'Téléchargez l\'historique complet en Excel ou envoyez-le sur WhatsApp. Utile pour analyse personnelle ou rapports.',
-            elementSelector: '[data-guide="history-export"]',
+                'La **Vue Analytics** synthétise **vos performances** avec **3 KPIs clés** (Revenu, Ventes, Articles vendus) et des **graphiques pour analyser vos résultats**.',
+            elementSelector: '[data-guide="analytics-kpis"]',
             position: 'bottom',
-            action: 'Cliquez pour exporter',
+            visibleFor: ['serveur'],
             tips: [
-                '📊 **Excel** : Fichier complet de toutes vos ventes avec tous les détails',
-                '📱 **WhatsApp** : Rapport formaté facile à lire et partager',
-                'L\'export respecte les filtres appliqués',
-                'Conservez vos rapports pour suivre votre progression',
+                '📈 Les KPIs incluent la comparaison avec la période précédente (%)',
+                '🔢 "Articles" = nombre total d\'articles que vous avez vendus',
+                '⚡ Tous les calculs incluent les ajustements de retours',
             ],
         },
 
+        // ==================== VUE 3: ÉVOLUTION DU CA ====================
         {
             id: 'step-5',
+            emoji: '📈',
+            title: 'Analyse: Évolution de Votre Revenu',
+            description:
+                'Le **graphique Revenu** suit vos **revenus nets** et s\'adapte selon la période : **Par heure** (≤2j) → **Par jour** (≤14j) → **Par jour/semaine** (>14j). Identifiez vos pics d\'activité personnels.',
+            elementSelector: '[data-guide="analytics-revenue-chart"]',
+            position: 'top',
+            visibleFor: ['serveur'],
+            tips: [
+                '⏰ Granularité automatique basée sur votre sélection de période',
+                '🌙 Respecte vos horaires de travail',
+                '💡 Identifiez vos meilleures heures et maximisez vos efforts',
+            ],
+        },
+
+        // ==================== VUE 3: CATÉGORIES ====================
+        {
+            id: 'step-6',
+            emoji: '🍰',
+            title: 'Analyse: Vos Catégories de Produits',
+            description:
+                'Le **graphique Catégories** (Donut) montre le **revenu net que VOUS avez généré par catégorie de produits**. Identifiez vos spécialités et vos points forts.',
+            elementSelector: '[data-guide="analytics-category-chart"]',
+            position: 'top',
+            visibleFor: ['serveur'],
+            tips: [
+                '🎯 Identifiez les catégories où vous êtes le plus efficace',
+                '🏆 Utilisez ces insights pour progresser en tant que vendeur',
+                '💰 Revenu Net = ce que vous avez réellement généré après retours',
+            ],
+        },
+
+        // ==================== VUE 3: TOP PRODUITS ====================
+        {
+            id: 'step-7',
+            emoji: '🏆',
+            title: 'Analyse: Vos Top Produits',
+            description:
+                'Découvrez vos **champions de vente** avec 3 filtres : **Unités vendues** (volume) → **Revenus générés** (CA) → ou **Profit** (marge nette). Concentrez-vous sur ce qui fonctionne le mieux pour vous.',
+            elementSelector: '[data-guide="analytics-top-products"]',
+            position: 'top',
+            visibleFor: ['serveur'],
+            tips: [
+                '⭐ Comparez volume vs revenu pour identifier vos meilleures ventes',
+                '💹 Top en Profit = articles les plus rentables que vous vendez',
+                '📊 Chaque vue inclut le volume et l\'analyse financière',
+            ],
+        },
+
+        // ==================== FILTRES & EXPORTS ====================
+        {
+            id: 'step-8',
+            emoji: '🔍',
+            title: 'Filtres, Recherche & Export',
+            description:
+                'Affinez vos analyses avec **Période** (Aujourd\'hui, Hier, 7j, 30j, Personnalisé) et **Recherche** (ID ou nom produit). Exportez en **Excel** ou **CSV** pour analyse personnelle.',
+            elementSelector: '[data-guide="sales-filters"]',
+            position: 'bottom',
+            visibleFor: ['serveur'],
+            tips: [
+                '⚡ Les filtres se mettent à jour instantanément',
+                '🔎 Recherche par ID de vente = 6 derniers chiffres du numéro',
+                '📊 Excel = avec mise en forme parfait pour vos rapports personnels',
+            ],
+        },
+
+        // ==================== CONCLUSION ====================
+        {
+            id: 'step-9',
             emoji: '✅',
             title: 'Vous Maîtrisez Votre Historique !',
             description:
-                'Vous avez maintenant tous les outils pour analyser vos ventes passées et suivre votre progression.',
+                'Vous connaissez maintenant les **3 vues**, les **filtres**, vos **analytics personnelles** et l\'**export**. Utilisez ces outils pour suivre votre progression et optimiser votre service !',
             position: 'center',
-            action: 'Cliquez sur Fermer pour commencer',
+            visibleFor: ['serveur'],
             tips: [
-                'Consultez régulièrement votre historique',
-                'Analysez vos trends (heures de pointe, produits populaires)',
-                'Utilisez les données pour optimiser votre service',
+                '📊 Consultez régulièrement vos analytics pour suivre votre progression',
+                '📈 Analysez vos trends et identifiez ce qui fonctionne pour vous',
+                '💡 Les données = meilleur outil pour vous améliorer en tant que vendeur',
             ],
+            action: '→ Vous pouvez explorer votre historique en détail !',
         },
     ],
 };
@@ -389,16 +487,16 @@ export const SERVEUR_HISTORY_GUIDE: GuideTour = {
  */
 export const SERVEUR_RETURNS_GUIDE: GuideTour = {
     id: 'serveur-returns',
-    title: 'Gérer Les Retours',
-    subtitle: 'Consultez les retours sur vos ventes',
-    description: 'Comprendre et consulter les retours effectués sur vos ventes.',
+    title: 'Consulter Vos Retours',
+    subtitle: 'Suivez les retours et remboursements de vos ventes',
+    description: 'Consultez les retours effectués sur vos ventes et comprenez leur impact sur votre CA.',
 
     targetRoles: ['serveur'],
 
-    estimatedDuration: 2,
-    difficulty: 'intermediate',
+    estimatedDuration: 3,
+    difficulty: 'beginner',
     emoji: '↩️',
-    version: 1,
+    version: 2,
 
     triggers: [
         {
@@ -410,67 +508,111 @@ export const SERVEUR_RETURNS_GUIDE: GuideTour = {
     ],
 
     steps: [
+        // ==================== INTRODUCTION ====================
         {
             id: 'step-1',
             emoji: '👋',
-            title: 'Bienvenue à la Gestion des Retours !',
+            title: 'Bienvenue aux Retours !',
             description:
-                'Vous consultez ici les retours effectués sur vos ventes. Vous pouvez les voir mais vous ne pouvez pas en créer (seul le gérant peut).',
+                'Vous consultez ici les retours effectués sur **vos propres ventes**. **Important** : Vous NE pouvez pas créer de retours (seul le gérant peut). Vous voyez **2 onglets** : **Liste** (tous vos retours) et **Statistiques** (KPIs impact).',
             position: 'center',
-            action: 'Cliquez sur Suivant pour continuer',
+            visibleFor: ['serveur'],
             tips: [
-                '🔍 Vous voyez uniquement les retours de vos propres ventes',
-                '📋 Chaque retour affiche le produit, la raison et le montant remboursé',
-                'Les retours affectent votre CA du jour',
+                '🔍 Vous voyez UNIQUEMENT les retours de vos propres ventes',
+                '💰 Chaque retour réduit votre CA du jour (remboursement débité)',
+                '🔒 Seul le gérant crée et approuve les retours',
+                '⏰ Retours créés avant fermeture caisse (6h matin défaut)',
             ],
         },
 
+        // ==================== ONGLET 1: LISTE ====================
         {
             id: 'step-2',
             emoji: '📋',
-            title: 'Liste des Retours',
+            title: 'Onglet 1: Liste de Vos Retours',
             description:
-                'Consultez tous les retours effectués sur vos ventes : produit retourné, raison (défaut, erreur, non consommé, etc.), montant remboursé.',
-            elementSelector: '[data-guide="returns-table"]',
+                'L\'**Onglet Liste** affiche tous les retours de vos ventes. Pour chacun, vous voyez : le **produit retourné**, la **raison** (Défectueux, Erreur, Non consommé, Périmé, Autre), le **statut** (EN ATTENTE, APPROUVÉ, REJETÉ), et le **montant remboursé**.',
+            elementSelector: '[data-guide="returns-list"]',
             position: 'bottom',
-            action: 'Examinez les détails de chaque retour',
+            visibleFor: ['serveur'],
             tips: [
-                '⏰ Retours autorisés avant clôture caisse (défaut: 6h du matin)',
-                '💰 Le montant remboursé réduit votre CA du jour',
-                '📝 Chaque retour a une raison enregistrée',
-                'Analysez les retours fréquents pour améliorer votre service',
+                '⏳ EN ATTENTE = Retour créé par gérant, pas encore finalisé',
+                '✅ APPROUVÉ = Retour finalisé, remboursement débité de votre CA',
+                '❌ REJETÉ = Retour annulé par gérant, aucun impact',
+                '🔴 Retours fréquents? Analyser pour améliorer qualité/service',
             ],
         },
 
         {
             id: 'step-3',
-            emoji: '🔍',
-            title: 'Filtrer vos Retours',
+            emoji: '⚙️',
+            title: 'Comprendre les Motifs de Retour',
             description:
-                'Utilisez les filtres pour trouver les retours par date, raison ou statut.',
-            elementSelector: '[data-guide="returns-filters"]',
+                'Il existe **5 types de retours** avec impacts différents : **Défectueux** (produit cassé/défaut) | **Erreur article** (mauvais produit servi) | **Non consommé** (client changé d\'avis) | **Périmé** (produit expiré) | **Autre** (cas spéciaux - gérant décide).',
+            elementSelector: '[data-guide="returns-reasons"]',
             position: 'bottom',
-            action: 'Filtrez pour affiner votre recherche',
+            visibleFor: ['serveur'],
             tips: [
-                '📅 Filtrer par date : Jour, semaine, mois ou plage personnalisée',
-                '🔍 Rechercher par ID de vente ou nom de produit',
-                '📂 Filtrer par statut : En attente, Approuvé, Rejeté',
+                '🔴 Défectueux = Produit destroyed, remboursement OUI',
+                '🟡 Erreur article = Mauvais produit, remboursement OUI',
+                '🔵 Non consommé = Client change avis, remboursement NON',
+                '🟣 Périmé = Produit expiré, remboursement OUI',
+                '⚪ Autre = Cas spéciaux, gérant décide',
             ],
         },
 
         {
             id: 'step-4',
-            emoji: '✅',
-            title: 'Comprendre Vos Retours !',
+            emoji: '🔍',
+            title: 'Filtrer & Rechercher Vos Retours',
             description:
-                'Vous avez maintenant une vue d\'ensemble des retours. Travaillez avec votre gérant pour minimiser les retours inutiles.',
-            position: 'center',
-            action: 'Cliquez sur Fermer pour commencer',
+                'Utilisez les **filtres de période** (Aujourd\'hui, 7j, 30j, personnalisé) et **filtres de statut** (EN ATTENTE, APPROUVÉ, REJETÉ) pour retrouver rapidement un retour. La **recherche texte** fonctionne par ID vente ou nom produit.',
+            elementSelector: '[data-guide="returns-filters"]',
+            position: 'bottom',
+            visibleFor: ['serveur'],
             tips: [
-                'Les retours sont importants pour la qualité du service',
-                'Collaborez avec votre gérant pour éviter les erreurs',
-                'Documentez les défauts pour améliorer la qualité',
+                '📅 Période : Aujourd\'hui, 7 derniers jours, 30 derniers jours, custom',
+                '🔍 Statut : Filtrez pour voir EN ATTENTE (non finalisés) ou APPROUVÉS (finalisés)',
+                '🔎 Recherche : Tapez ID de vente ou nom du produit',
             ],
+        },
+
+        // ==================== ONGLET 2: STATISTIQUES ====================
+        {
+            id: 'step-5',
+            emoji: '📊',
+            title: 'Onglet 2: Statistiques Personnelles',
+            description:
+                'L\'**Onglet Statistiques** synthétise **l\'impact des retours sur VOTRE CA** : À traiter (count), Remboursements (total €), Retours validés (count), Remis en stock (units), Pertes (units), Taux rejet (%). Visualisez aussi la **distribution par motif** pour identifier patterns.',
+            elementSelector: '[data-guide="returns-stats"]',
+            position: 'bottom',
+            visibleFor: ['serveur'],
+            tips: [
+                '🔴 À traiter = Nombre de retours EN ATTENTE',
+                '💰 Remboursements = Total € remboursé (affecte votre CA)',
+                '✅ Retours validés = Nombre approuvés',
+                '📦 Remis en stock = Units restaurées (Erreur, Non consommé)',
+                '💥 Pertes = Units perdues (Défectueux, Périmé)',
+                '📈 Utilisez ces données pour améliorer votre service',
+            ],
+        },
+
+        // ==================== CONCLUSION ====================
+        {
+            id: 'step-6',
+            emoji: '✅',
+            title: 'Vous Comprenez Vos Retours !',
+            description:
+                'Vous connaissez maintenant les **2 onglets** (Liste et Statistiques), les **5 motifs de retour**, et comment ils impactent votre CA. Utilisez ces insights pour améliorer votre service et minimiser les retours futures !',
+            position: 'center',
+            visibleFor: ['serveur'],
+            tips: [
+                '💡 Retours = Feedback de qualité (analysez les patterns)',
+                '⚠️ Erreur article fréquente? Vérifiez précision des commandes',
+                '💰 Non consommé élevé? Clients changent d\'avis = améliorer recommandations',
+                '🤝 Travaillez avec gérant pour minimiser retours inutiles',
+            ],
+            action: '→ Consultez vos retours et apprenez à vous améliorer !',
         },
     ],
 };
@@ -481,16 +623,16 @@ export const SERVEUR_RETURNS_GUIDE: GuideTour = {
  */
 export const SERVEUR_CONSIGNMENTS_GUIDE: GuideTour = {
     id: 'serveur-consignments',
-    title: 'Gérer Les Consignations',
-    subtitle: 'Consultez les consignations de vos ventes',
-    description: 'Comprendre et consulter les consignations effectuées sur vos ventes.',
+    title: 'Consulter Vos Consignations',
+    subtitle: 'Suivez les produits en mise de côté de vos ventes',
+    description: 'Consultez vos consignations actives et l\'historique des consignations complétées ou expirées.',
 
     targetRoles: ['serveur'],
 
-    estimatedDuration: 2,
-    difficulty: 'intermediate',
+    estimatedDuration: 3,
+    difficulty: 'beginner',
     emoji: '📦',
-    version: 1,
+    version: 2,
 
     triggers: [
         {
@@ -502,67 +644,108 @@ export const SERVEUR_CONSIGNMENTS_GUIDE: GuideTour = {
     ],
 
     steps: [
+        // ==================== INTRODUCTION ====================
         {
             id: 'step-1',
             emoji: '👋',
             title: 'Bienvenue aux Consignations !',
             description:
-                'Vous consultez ici les consignations effectuées sur vos ventes. Une consignation est un produit **déjà payé** (vente effectuée) que le client a laissé au bar et ne peut pas consommer immédiatement.',
+                'Vous consultez ici les consignations effectuées sur vos ventes. Une consignation est un produit **déjà payé** par le client mais qu\'il ne peut pas consommer immédiatement. Le client laisse le produit au bar et reviendra le chercher plus tard **sans remboursement** (mise de côté). **Important** : Vous ne pouvez que CONSULTER. Seul votre gérant peut valider les récupérations ou confisquer.',
             position: 'center',
-            action: 'Cliquez sur Suivant pour continuer',
+            visibleFor: ['serveur'],
             tips: [
-                '📦 Consignation : Produit payé que le client a laissé au bar en attente de récupération',
-                '🔍 Vous voyez uniquement les consignations de vos propres ventes',
-                '⏰ Chaque consignation a une date d\'expiration (délai paramétré par votre gérant)',
+                '✅ Consignation = Mise de côté (PAS de remboursement)',
+                '📦 Client paie → laisse produits au bar → reviendra chercher',
+                '🔍 Vous voyez UNIQUEMENT les consignations de vos propres ventes',
+                '🔒 Vous pouvez CONSULTER mais pas modifier/valider',
             ],
         },
 
+        // ==================== ONGLET 1: CONSIGNATIONS ACTIVES ====================
         {
             id: 'step-2',
             emoji: '📋',
-            title: 'Consignations Actives de Vos Ventes',
+            title: 'Onglet 1: Consignations Actives',
             description:
-                'Consultez les produits que vous avez laissé en consignation : le client a payé mais laisse le produit au bar en attente de récupération.',
+                'L\'**Onglet Consignations Actives** affiche les produits en attente de récupération : ceux que vos clients ont laissés au bar et qui n\'ont pas encore expiré. Chaque consignation affiche le **délai d\'expiration** restant.',
             elementSelector: '[data-guide="consignments-table"]',
             position: 'bottom',
-            action: 'Examinez chaque consignation',
+            visibleFor: ['serveur'],
             tips: [
-                '📦 Consignation = Produit déjà payé que le client a laissé au bar',
-                '⏰ Le délai avant expiration est défini par votre gérant (7 jours par défaut)',
-                '👁️ Vous pouvez consulter mais ne pouvez pas modifier les consignations',
-                'Seul votre gérant peut valider la récupération ou confisquer le produit',
+                '📦 Produit déjà payé que le client a laissé au bar',
+                '🥃 Exemple : Client paie 5 bières → consomme 2 → laisse 3 en consignation',
+                '⏰ Chaque consignation a un délai d\'expiration (7 jours par défaut)',
+                '🚨 Passé la date limite, votre gérant peut confisquer le produit',
             ],
         },
 
         {
             id: 'step-3',
-            emoji: '🔍',
-            title: 'Rechercher dans l\'Historique',
+            emoji: '⏱️',
+            title: 'Suivre l\'Urgence & l\'Expiration',
             description:
-                'Utilisez la recherche pour retrouver les consignations passées. L\'onglet Historique affiche le statut final de chaque consignation.',
-            elementSelector: '[data-guide="consignments-filters"]',
-            position: 'bottom',
-            action: 'Recherchez pour affiner votre recherche',
+                'Chaque consignation affiche un badge d\'urgence indiquant combien de temps il reste avant expiration. Informez vos clients de récupérer leurs produits avant le délai limite, sinon ils seront confisqués et réintégrés au stock.',
+            elementSelector: '[data-guide="consignments-urgency"]',
+            position: 'top',
+            visibleFor: ['serveur'],
             tips: [
-                '🔍 Rechercher : par nom de client, produit, ou ID de consignation',
-                '🔄 Statuts possibles : Récupérée (client a pris son produit) ou Confisquée (délai expiré, produit réintégré au stock)',
-                '📅 Les consignations expirent automatiquement selon le délai paramétré',
+                '🟢 Vert = Beaucoup de temps restant',
+                '🟡 Jaune = Délai court, client devrait récupérer bientôt',
+                '🔴 Rouge = Très court délai, dernier avertissement',
+                '💡 Avertissez vos clients en fonction de l\'urgence',
+            ],
+        },
+
+        // ==================== ONGLET 2: HISTORIQUE ====================
+        {
+            id: 'step-4',
+            emoji: '📚',
+            title: 'Onglet 2: Historique des Consignations',
+            description:
+                'L\'**Onglet Historique** affiche toutes les consignations complétées ou expirées. Vous voyez le **statut final** : Récupérée (client a pris son produit) ou Confisquée (délai expiré, produit réintégré au stock).',
+            elementSelector: '[data-guide="consignments-history"]',
+            position: 'bottom',
+            visibleFor: ['serveur'],
+            tips: [
+                '✅ Récupérée = Client est revenu chercher ses produits',
+                '🚫 Confisquée = Délai expiré, produit réintégré au stock vendable',
+                '📅 Vous pouvez filtrer par statut pour voir juste les récupérées ou confisquées',
+                '🔍 Recherchez par ID client, produit, ou date',
             ],
         },
 
         {
-            id: 'step-4',
-            emoji: '✅',
-            title: 'Vous Maîtrisez Les Consignations !',
+            id: 'step-5',
+            emoji: '🔍',
+            title: 'Rechercher & Filtrer vos Consignations',
             description:
-                'Vous avez maintenant une vue d\'ensemble des consignations. Travaillez avec votre gérant pour gérer les retours de bouteilles et articles.',
-            position: 'center',
-            action: 'Cliquez sur Fermer pour commencer',
+                'Utilisez les filtres pour trouver rapidement une consignation : **Par statut** (Récupérée/Confisquée/Historique), **Par date**, ou **Recherche texte** (client, produit, ID).',
+            elementSelector: '[data-guide="consignments-filters"]',
+            position: 'bottom',
+            visibleFor: ['serveur'],
             tips: [
-                'Les consignations sont importantes pour la gestion des emballages',
-                'Vérifiez que les crédits sont bien appliqués aux clients',
-                'Collaborez avec votre gérant pour clôturer les consignations complètes',
+                '🔄 Filtres par statut : Récupérée, Confisquée, ou Toutes',
+                '📅 Filtrez par période pour analyser vos consignations',
+                '🔎 Recherche texte rapide par nom client/produit',
             ],
+        },
+
+        // ==================== CONCLUSION ====================
+        {
+            id: 'step-6',
+            emoji: '✅',
+            title: 'Vous Maîtrisez vos Consignations !',
+            description:
+                'Vous connaissez maintenant les **2 onglets** (Actives et Historique), comment suivre l\'expiration, et comment utiliser la recherche. Votre rôle principal est d\'**informer les clients** de récupérer leurs produits avant expiration.',
+            position: 'center',
+            visibleFor: ['serveur'],
+            tips: [
+                '📦 Consultez régulièrement les consignations actives',
+                '⏰ Avertissez clients quand délai approche (surtout badges rouges)',
+                '📝 Historique = Suivi de vos consignations complétées/expirées',
+                '🔐 Seul votre gérant peut valider récupérations ou confisquer',
+            ],
+            action: '→ Consultez vos consignations et aidez vos clients !',
         },
     ],
 };
@@ -573,4 +756,5 @@ export const SERVEUR_GUIDES: GuideTour[] = [
     SERVEUR_HISTORY_GUIDE,
     SERVEUR_RETURNS_GUIDE,
     SERVEUR_CONSIGNMENTS_GUIDE,
+    PROFILE_GUIDE,
 ];

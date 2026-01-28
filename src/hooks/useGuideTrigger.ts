@@ -14,7 +14,9 @@ import {
   HISTORIQUE_GUIDE,
   MANAGE_TEAM_GUIDE,
   MANAGE_SETTINGS_GUIDE,
-  MANAGE_PROMOTIONS_GUIDE
+  MANAGE_PROMOTIONS_GUIDE,
+  PROFILE_GUIDE,
+  FORECASTING_AI_GUIDE,
 } from '../data/guides/owner-guides';
 import { SERVEUR_FIRST_SALE_GUIDE, SERVEUR_DASHBOARD_GUIDE, SERVEUR_HISTORY_GUIDE, SERVEUR_RETURNS_GUIDE, SERVEUR_CONSIGNMENTS_GUIDE } from '../data/guides/serveur-guides';
 import { GuideTour, GuideTrigger } from '../types/guide';
@@ -33,6 +35,8 @@ const GUIDES_REGISTRY: Record<string, GuideTour> = {
   'manage-team': MANAGE_TEAM_GUIDE,
   'manage-settings': MANAGE_SETTINGS_GUIDE,
   'manage-promotions': MANAGE_PROMOTIONS_GUIDE,
+  'my-profile': PROFILE_GUIDE,
+  'forecasting-guide': FORECASTING_AI_GUIDE,
 
   // Serveur Guides
   'create-first-sale': SERVEUR_FIRST_SALE_GUIDE,

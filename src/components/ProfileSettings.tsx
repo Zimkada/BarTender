@@ -171,6 +171,7 @@ export function ProfileSettings() {
         ]}
         activeTab={activeTab}
         onTabChange={(id) => setActiveTab(id as 'info' | 'password' | 'training')}
+        guideId="my-profile"
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-10">

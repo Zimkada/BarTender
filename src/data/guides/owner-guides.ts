@@ -13,16 +13,16 @@ import { GuideTour } from '@/types/guide';
  */
 export const DASHBOARD_OVERVIEW_GUIDE: GuideTour = {
   id: 'dashboard-overview',
-  title: 'Vue d\'ensemble du Tableau de Bord',
-  subtitle: 'Maîtrisez votre centre de gestion de bar',
-  description: 'Visite rapide des éléments essentiels de votre tableau de bord',
+  title: 'Maîtrisez votre Tableau de Bord',
+  subtitle: 'Gestion complète en 3 onglets',
+  description: 'Découvrez les 3 onglets principaux pour piloter votre bar au quotidien',
 
   targetRoles: ['promoteur', 'gerant'],
 
-  estimatedDuration: 2,
+  estimatedDuration: 3,
   difficulty: 'beginner',
   emoji: '🏠',
-  version: 1,
+  version: 2,
 
   triggers: [
     {
@@ -39,118 +39,146 @@ export const DASHBOARD_OVERVIEW_GUIDE: GuideTour = {
       emoji: '👋',
       title: 'Bienvenue sur votre Tableau de Bord !',
       description:
-        'Vous êtes maintenant prêt à gérer votre bar. Cette visite rapide vous montre les informations les plus importantes en un coup d\'œil.',
+        'Votre tableau de bord se divise en **3 onglets** : **Synthèse du jour** pour vos chiffres clés, **Gestion Commandes** pour valider les ventes, et **Performance équipe** pour suivre vos collaborateurs. Toutes les données se mettent à jour en temps réel.',
       position: 'center',
-      action: 'Cliquez sur Suivant pour continuer',
+      action: 'Cliquez sur Suivant pour explorer',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        'Toutes les informations se mettent à jour en temps réel',
-        'Utilisez le bouton Actualiser (en haut à droite) pour forcer une mise à jour',
-        'Mettez cette page en favori pour y accéder rapidement',
+        '🔄 Les 3 onglets sont accessibles en haut du tableau de bord',
+        '⏱️ Données mises à jour en temps réel (cliquez sur Actualiser si besoin)',
+        '📱 Interface optimisée pour mobile et desktop',
       ],
     },
 
+    // ONGLET 1 : SYNTHÈSE DU JOUR
     {
       id: 'step-2',
       emoji: '💰',
-      title: 'Votre Chiffre d\'Affaires du Jour',
+      title: 'Onglet 1 : Synthèse du Jour - Les 6 Métriques Clés',
       description:
-        'Le widget en haut à gauche affiche votre chiffre d\'affaires net pour la journée commerciale actuelle. Autres informations du tableau de bord : Nombre de Ventes, Alertes, Retours, Consignations.',
-      elementSelector: '[data-guide="revenue-widget"]',
+        'Cet onglet affiche 6 métriques importantes pour la journée commerciale : **Revenus** (CA Net), **Ventes** (compteur), **Articles** vendus, **Alertes** stock, **Retours**, et **Consignations** actives. Ces chiffres se mettent à jour en temps réel.',
+      elementSelector: '[data-guide="revenue-stats"]',
       position: 'bottom',
-      action: 'Consultez votre CA net',
+      action: 'Examinez les 6 métriques',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '**CA Net** = Ventes - Retours remboursés - Réductions promotions',
-        'Les métriques Ventes, Articles, Alertes et Retours concernent uniquement la journée commerciale en cours.',
-        'La métrique **Consignations** inclut toutes les consignations actives',
-        'Les données se mettent à jour en temps réel',
+        '💚 **CA Net** = Ventes validées - Retours remboursés - Réductions appliquées',
+        '📊 **Ventes** = nombre de ventes validées + ventes en attente',
+        '📦 **Articles** = nombre total d\'articles vendus',
+        '⚠️ **Alertes** = produits proches de la rupture stock',
+        '↩️ **Retours** = retours traités aujourd\'hui',
+        '🥃 **Consignations** = produits mis de côté en attente de récupération',
       ],
     },
 
     {
       id: 'step-3',
-      emoji: '⏳',
-      title: 'Ventes en Attente de Validation',
+      emoji: '📈',
+      title: 'Top Produits & Alertes Stock',
       description:
-        'En mode complet uniquement : cette section affiche les ventes initiées par vos serveurs en attente de votre approbation. Les serveurs initient les commandes, vous consultez les détails, préparez les produits, puis validez après remise au serveur.',
-      elementSelector: '[data-guide="pending-sales"]',
+        'Sous les 6 métriques, vous trouvez **vos 5 meilleurs produits du jour** (les plus vendus) et **les produits en alerte stock** (proches de la rupture). Ces informations vous aident à optimiser vos commandes et à anticiper les réapprovisionnements.',
       position: 'bottom',
-      action: 'Cliquez sur ✓ pour valider ou ✗ pour rejeter',
+      action: 'Consultez vos top produits et alertes',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        'Validation en masse: cochez plusieurs ventes et cliquez sur Valider',
-        'Vous pouvez rejeter pour diverses raisons (erreur produit, quantité, etc.)',
-        'Les ventes rejetées peuvent être modifiées par le serveur',
-        'Expiration automatique à la fin de la journée commerciale',
+        '🏆 Top 5 : Produits les plus vendus avec quantités',
+        '⚠️ Alertes : Produits proches de rupture (< seuil défini)',
+        '✅ Stocks OK : Message si aucune alerte',
+        '🔍 Utilisez ces données pour anticiper votre réapprovisionnement',
       ],
     },
 
     {
       id: 'step-4',
-      emoji: '👥',
-      title: 'Performance de l\'Équipe',
+      emoji: '📱',
+      title: 'Actions : Exporter WhatsApp & Fermer Caisse',
       description:
-        'Voyez la performance de chaque membre de votre équipe pour la journée commerciale actuelle. Suivez les ventes validées et le chiffre d\'affaires généré par chacun.',
-      elementSelector: '[data-guide="team-performance"]',
+        'En bas de cet onglet, deux actions importantes : **Bouton WhatsApp** pour exporter un rapport journalier complet, et **Bouton Fermer caisse** pour marquer la fin de votre journée commerciale (managers uniquement).',
       position: 'top',
-      action: 'Consultez les performances de l\'équipe',
+      action: 'Découvrez ces actions',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        'Les statistiques se mettent à jour en temps réel',
-        'Seules les ventes validées sont comptabilisées',
-        'Utilisez ces données pour faire le point journalier par serveur et pour motiver/récompenser vos meilleurs éléments',
+        '📱 **WhatsApp** : Envoie CA, ventes, articles, retours, top 5 produits',
+        '🔒 **Fermer caisse** : Marque fin de journée (managers/promoteurs uniquement)',
+        '⚡ Vous pouvez exporter plusieurs fois sans fermer la caisse',
+        '✅ Caisse fermée = journée commerciale terminée',
       ],
     },
 
+    // ONGLET 2 : GESTION COMMANDES
     {
       id: 'step-5',
-      emoji: '👁️',
-      title: 'Détails Avancés',
+      emoji: '⏳',
+      title: 'Onglet 2 : Gestion Commandes - Les Ventes en Attente',
       description:
-        'Cliquez sur "Voir les détails" pour afficher des informations supplémentaires : vos top produits du jour et les produits en alerte stock. Ces données vous aident à optimiser vos commandes et à anticiper les ruptures.',
+        '**Mode Complet uniquement** : Cet onglet affiche toutes les ventes initiées par vos serveurs en attente de votre validation. Pour chaque vente : heure de création, montant total, nombre d\'articles. Vous pouvez développer pour voir le détail des produits commandés.',
+      elementSelector: '[data-guide="pending-sales"]',
       position: 'bottom',
-      action: 'Cliquez sur le bouton pour voir les détails',
-      visibleFor: ['promoteur'],
+      action: 'Explorez une vente en attente',
+      visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '🏆 Top produits: Les 3 produits les plus vendus avec leurs quantités',
-        '⚠️ Alertes stock: Les produits proches de la rupture (max 5 affichés)',
-        'Message ✅ Stocks OK si aucune alerte',
-        'Utilisez ces données pour anticiper votre prochain réapprovisionnement',
+        '📋 Chaque vente = initiée par un serveur, en attente de validation',
+        '⏱️ Heure = moment où la vente a été créée',
+        '📊 Montant = total TTC des articles',
+        '🔢 Nombre d\'articles = total des produits commandés',
+        '⬇️ Cliquez pour développer et voir les articles détaillés',
       ],
     },
 
     {
       id: 'step-6',
-      emoji: '📱',
-      title: 'Exporter & Fermer la Caisse',
+      emoji: '✅',
+      title: 'Valider ou Rejeter les Ventes',
       description:
-        'En bas du tableau de bord, deux actions importantes : exporter votre rapport journalier sur WhatsApp et fermer votre caisse. Le rapport inclut votre CA, vos ventes, vos retours et vos top produits.',
-      position: 'top',
-      action: 'Découvrez ces actions essentielles',
+        'Pour chaque vente en attente, vous avez **2 actions** : **✓ Valider** (la vente devient définitive, stock sorti) ou **✗ Rejeter** (le serveur peut la modifier et renvoyer). Vous pouvez aussi **valider en masse** en cochant plusieurs ventes.',
+      position: 'bottom',
+      action: 'Cliquez sur ✓ ou ✗ pour agir',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '📱 Bouton **WhatsApp** : Envoie un rapport journalier formaté (CA, ventes, articles, retours, top produits)',
-        '🔒 Bouton **Fermer caisse** : Marque la fin de votre journée commerciale (managers/promoteurs uniquement)',
-        'La caisse fermée déclenche automatiquement l\'export WhatsApp',
-        'Vous pouvez exporter plusieurs fois sans fermer la caisse',
+        '✅ **Valider** = vente définitive, stock déduit, plus modifiable',
+        '❌ **Rejeter** = retour au serveur (erreur produit, quantité, etc.)',
+        '📋 **Validation en masse** : Cochez plusieurs + cliquez Valider',
+        '⏱️ Ventes expirées = fin de journée commerciale automatiquement',
+        '⚡ Mode Simplifié = vous créez les ventes (pas cet onglet)',
       ],
     },
 
+    // ONGLET 3 : PERFORMANCE ÉQUIPE
     {
       id: 'step-7',
-      emoji: '✅',
-      title: 'Vous Êtes Prêt !',
+      emoji: '👥',
+      title: 'Onglet 3 : Performance Équipe',
       description:
-        'Félicitations ! Vous maîtrisez maintenant tous les éléments du tableau de bord. Pour explorer d\'autres fonctionnalités, ouvrez le menu hamburger (☰) en haut à droite : Inventaire, Historique, Équipe, Paramètres, etc. Chaque section a son propre guide.',
+        'Cet onglet affiche la performance de chaque serveur pour la journée : nombre de ventes validées et chiffre d\'affaires net généré. Suivez en temps réel qui sont vos meilleurs éléments et utilisez ces données pour faire votre bilan journalier.',
+      elementSelector: '[data-guide="team-performance"]',
+      position: 'bottom',
+      action: 'Consultez les performances individuelles',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '📈 **CA Net** = Ventes validées - Retours remboursés',
+        '📊 **Ventes** = nombre de ventes validées par serveur',
+        '🏆 Seules les ventes validées sont comptabilisées',
+        '🎯 Utilisez pour motiver/récompenser vos meilleurs éléments',
+        '🔄 Données mises à jour en temps réel',
+      ],
+    },
+
+    // CONCLUSION
+    {
+      id: 'step-8',
+      emoji: '✅',
+      title: 'Vous Maîtrisez Maintenant votre Tableau de Bord !',
+      description:
+        'Félicitations ! Vous connaissez les 3 onglets du tableau de bord : **Synthèse du jour** (chiffres clés), **Gestion Commandes** (validation), **Performance équipe** (statistiques). Pour explorer d\'autres fonctionnalités (Inventaire, Historique, Équipe, Paramètres), ouvrez le menu hamburger (☰) en haut à droite.',
       position: 'center',
       action: 'Cliquez sur Fermer pour commencer',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '☰ Menu hamburger en haut à droite pour naviguer vers autres sections',
-        'Guides spécifiques disponibles pour chaque section',
-        'Vos retours nous aident à améliorer l\'application',
-        'Bonne gestion de votre bar ! 🎉',
+        '☰ Menu hamburger → Inventaire, Historique, Équipe, Paramètres',
+        '📦 Guide Inventaire : gérer stocks et produits',
+        '📊 Guide Historique : analyser vos ventes passées',
+        '👥 Guide Équipe : gérer collaborateurs et permissions',
+        '⚙️ Guide Paramètres : configurer votre bar (mode, horaires, etc.)',
       ],
     },
   ],
@@ -168,10 +196,10 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
 
   targetRoles: ['promoteur', 'gerant'],
 
-  estimatedDuration: 3,
+  estimatedDuration: 6,
   difficulty: 'beginner',
   emoji: '📦',
-  version: 1,
+  version: 2,
 
   triggers: [
     {
@@ -183,172 +211,169 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
   ],
 
   steps: [
+    // ==================== INTRODUCTION ====================
     {
       id: 'step-1',
       emoji: '👋',
-      title: 'Bienvenue à la Gestion des Produits !',
+      title: 'Bienvenue à la Gestion de votre Inventaire !',
       description:
-        'Cette page vous permet de gérer tous les produits de votre bar. Maîtrisez la différence entre votre **Stock Physique** (quantité réelle au bar) et votre **Stock Vendable** (disponible à la vente, hors consignations).',
+        'Votre **Inventaire** se divise en **3 onglets** pour gérer tous les aspects : **Produits** (catalogue), **Opérations** (alertes, approvisionnement, import), **Statistiques** (vue d\'ensemble). Comprenez la différence entre **Stock Physique** (réel au bar) et **Stock Vendable** (disponible à la vente, moins les consignations actives).',
       position: 'center',
-      action: 'Cliquez sur Suivant',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        'Organisez vos produits par catégorie',
-        'Surveillez vos **Marges Commerciales** en temps réel',
-        'Les alertes stock vous avertissent du réapprovisionnement nécessaire',
+        '🔄 Basculez entre les 3 onglets en haut pour différentes tâches',
+        '💼 Stock Physique = Quantité réelle au bar',
+        '📊 Stock Vendable = Physique - Consignations en attente',
+        '💰 Analysez vos marges pour optimiser vos prix',
       ],
     },
 
+    // ==================== ONGLET 1: PRODUITS ====================
     {
       id: 'step-2',
-      emoji: '🔍',
-      title: 'Rechercher et Trier',
+      emoji: '📋',
+      title: 'Onglet 1: Produits - Votre Catalogue',
       description:
-        'Utilisez la barre de recherche pour trouver rapidement un produit. Vous pouvez aussi trier par catégorie, ordre alphabétique ou niveau de stock.',
-      elementSelector: '[data-guide="inventory-search"]',
+        'L\'**Onglet Produits** affiche tous vos produits en liste détaillée. Vous pouvez **rechercher** rapidement, **trier** par catégorie/stock, **ajouter** de nouveaux produits, ou **modifier** les existants.',
+      elementSelector: '[data-guide="inventory-products"]',
       position: 'bottom',
-      action: 'Tapez le nom d\'un produit pour le trouver',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        'La recherche est instantanée et en temps réel',
-        'Triez par stock pour voir les produits en alerte en premier',
-        'Les tris se combinent avec la recherche',
+        '🔍 Recherche instantanée par nom de produit',
+        '📂 Trier par : Catégorie, Alphabétique, ou Niveau de stock',
+        '✅ Les filtres se combinent pour des résultats précis',
       ],
     },
 
     {
       id: 'step-3',
-      emoji: '⚠️',
-      title: 'Surveiller les Alertes Stock',
+      emoji: '💰',
+      title: 'Analyser les Marges de vos Produits',
       description:
-        'La section "Alertes Stock" affiche tous les produits dont le stock est en dessous du seuil d\'alerte. Vous devez les approvisionner rapidement.',
-      elementSelector: '[data-guide="inventory-alerts"]',
-      position: 'bottom',
-      action: 'Cliquez sur la section pour voir les détails',
-      visibleFor: ['promoteur', 'gerant'],
+        'Chaque produit affiche **Prix de vente**, **Coût moyen**, et **Marge commerciale**. Une marge saine est généralement **> 30%**. Identifiez les produits non rentables et optimisez vos prix.',
+      elementSelector: '[data-guide="inventory-table"]',
+      position: 'top',
+      visibleFor: ['promoteur'],
       tips: [
-        'Chaque produit a un seuil d\'alerte configurable',
-        'Une alerte verte signifie que tous les stocks vont bien',
-        'Approvisionner rapidement pour éviter les ruptures',
+        '📊 Coût moyen = moyenne pondérée de tous vos approvisionnements',
+        '🔴 Marge rouge (< 30%) = produit non rentable → Augmentez le prix ou réduisez le coût',
+        '📈 Stock Vendable = Stock Physique - Consignations actives (les réservations temporaires)',
       ],
     },
 
     {
       id: 'step-4',
-      emoji: '📊',
-      title: 'Tableau des Catégories',
+      emoji: '➕',
+      title: 'Ajouter de Nouveaux Produits',
       description:
-        'Consultez le nombre total de produits par catégorie. Cela vous aide à équilibrer votre offre et à identifier les catégories en manque de produits.',
-      elementSelector: '[data-guide="inventory-categories"]',
+        'Créez rapidement de nouveaux produits : **Manuel** (saisie manuelle) ou **Catalogue** (sélection parmi produits pré-enregistrés). Définissez prix, catégorie, stock initial et seuil d\'alerte.',
+      elementSelector: '[data-guide="inventory-add-btn"]',
       position: 'bottom',
-      action: 'Cliquez pour développer le tableau détaillé',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        'Chaque catégorie a son nombre de produits et d\'alertes',
-        'Assurez-vous d\'avoir une bonne diversité par catégorie',
-        'Équilibrez l\'offre selon la demande',
+        '🎨 Mode Produit Personnalisé : Création libre avec tous les paramètres',
+        '📚 Mode Catalogue : Sélectionnez parmi produits pré-enregistrés (plus rapide)',
+        '⚠️ Seuil d\'alerte = quantité minimum avant réapprovisionnement nécessaire',
       ],
     },
 
     {
       id: 'step-5',
-      emoji: '➕',
-      title: 'Ajouter un Nouveau Produit',
+      emoji: '✏️',
+      title: 'Modifier & Supprimer des Produits',
       description:
-        'Bouton Ajouter → Choix (Manuel ou Catalogue) → Saisie des prix/stocks → Validation.',
-      elementSelector: '[data-guide="inventory-add-btn"]',
-      position: 'bottom',
-      action: 'Cliquez pour ouvrir le formulaire d\'ajout',
+        'Éditez les détails d\'un produit : prix, catégorie, seuil d\'alerte (mais pas le stock initial). Vous pouvez aussi supprimer un produit si nécessaire. Les modifications ne sont pas rétroactives.',
+      elementSelector: '[data-guide="inventory-edit-btn"]',
+      position: 'top',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '🎨 Produit personnalisé : Créez un produit unique avec nom, prix, catégorie et stock initial',
-        '📚 Catalogue global : Sélectionnez parmi les produits pré-enregistrés dans l\'application',
-        'Définissez le seuil d\'alerte basé sur votre cycle de commande',
+        '✏️ Modifiable : Prix, Catégorie, Seuil d\'alerte, Description',
+        '🚫 Non modifiable : Stock initial (à la création)',
+        '📅 Les modifications de prix n\'affectent pas les ventes passées',
       ],
     },
 
+    // ==================== ONGLET 2: OPÉRATIONS ====================
     {
       id: 'step-6',
-      emoji: '🚚',
-      title: 'Approvisionner Rapidement',
+      emoji: '⚠️',
+      title: 'Onglet 2: Opérations - Alertes Stock',
       description:
-        'Bouton Approvisionnement → Sélection produit → Qté par lot (ex: carton) → Validation.',
-      elementSelector: '[data-guide="inventory-supply-btn"]',
+        'L\'**Onglet Opérations** centralise vos actions opérationnelles. La section **Alertes Stock** affiche tous les produits sous seuil. Approvisionner rapidement pour éviter les ruptures.',
+      elementSelector: '[data-guide="inventory-alerts"]',
       position: 'bottom',
-      action: 'Cliquez pour ouvrir le formulaire d\'approvisionnement',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '📦 Quantité par lot : Nombre d\'unités dans un lot (ex: 1 carton = 24 bouteilles)',
-        '🔢 Quantité totale : Nombre de lots × quantité par lot (ex: 5 cartons × 24 = 120 bouteilles ajoutées)',
-        'Enregistrez toujours le fournisseur et le coût pour suivre vos dépenses',
+        '🔴 Alerte rouge = stock critique (sous seuil)',
+        '🟢 Alerte verte = tous les stocks vont bien',
+        '⚡ Les alertes se mettent à jour en temps réel après chaque vente',
       ],
     },
 
     {
       id: 'step-7',
-      emoji: '💰',
-      title: 'Analyser les Marges',
+      emoji: '🚚',
+      title: 'Approvisionner Rapidement votre Stock',
       description:
-        'Chaque produit affiche son prix de vente, son **Coût moyen** et sa **Marge commerciale**. Une marge saine est généralement **> 30%**.',
-      elementSelector: '[data-guide="inventory-table"]',
-      position: 'top',
-      action: 'Consultez les colonnes Coût moyen et Marge',
-      visibleFor: ['promoteur'],
+        'Ajoutez rapidement du stock : Sélectionnez produit → Saisissez quantité par lot (ex: 1 carton = 24 unités) → Nombre de lots → Fournisseur & Coût → Validation. Le coût alimente le calcul de **Coût moyen**.',
+      elementSelector: '[data-guide="inventory-supply-btn"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '📊 **Coût moyen** = moyenne pondérée des approvisionnements (somme des coûts / quantité totale achetée)',
-        '📈 **Stock Physique** = quantité réelle en magasin | **Stock Vendable** = Physique - Consignations actives',
-        'Une marge rouge (< 30%) signifie que le produit n\'est pas rentable. Augmentez le prix ou réduisez le coût',
+        '📦 Quantité par lot = Unités dans 1 lot (ex: 1 carton = 24 bouteilles)',
+        '🔢 Quantité totale = Nombre de lots × Quantité par lot',
+        '💰 Enregistrez fournisseur & coût pour suivi d\'inventaire précis',
       ],
     },
 
     {
       id: 'step-8',
-      emoji: '✏️',
-      title: 'Modifier un Produit',
-      description:
-        'Cliquez sur l\'icône de modification pour éditer les informations d\'un produit : prix, catégorie, seuil d\'alerte, etc.',
-      elementSelector: '[data-guide="inventory-edit-btn"]',
-      position: 'top',
-      action: 'Cliquez sur l\'icône stylo pour modifier',
-      visibleFor: ['promoteur', 'gerant'],
-      tips: [
-        '✏️ Les managers peuvent modifier prix, catégorie, seuil d\'alerte (mais pas le stock initial)',
-        'Les managers peuvent également supprimer un produit si nécessaire',
-        'Les modifications de prix ne sont pas rétroactives (ventes passées inchangées)',
-      ],
-    },
-
-    {
-      id: 'step-9',
       emoji: '📥',
       title: 'Importer des Produits en Masse',
       description:
-        'Si vous avez beaucoup de produits à ajouter, utilisez le bouton "Importer" pour charger un fichier Excel avec tous vos produits. (Disponible si activé dans paramètres)',
+        'Pour l\'initialisation rapide : préparez un fichier **Excel** (.xlsx) avec colonnes (nom, prix, catégorie, stock) et importez 50+ produits en une opération. Les doublons sont détectés automatiquement.',
       elementSelector: '[data-guide="inventory-import-btn"]',
       position: 'bottom',
-      action: 'Cliquez pour importer des produits',
       visibleFor: ['promoteur'],
       tips: [
-        '📊 Préparez un fichier Excel (.xlsx) avec les colonnes : nom, prix, catégorie, stock',
-        'Vous économisez du temps si vous avez 50+ produits à ajouter',
-        'Les données en doublon sont détectées automatiquement',
+        '📊 Format Excel : 4 colonnes minimum (nom, prix, catégorie, stock)',
+        '⚡ Gain temps énorme pour initialisation de 50+ produits',
+        '✅ Détection automatique des doublons et erreurs',
       ],
     },
 
+    // ==================== ONGLET 3: STATISTIQUES ====================
+    {
+      id: 'step-9',
+      emoji: '📊',
+      title: 'Onglet 3: Statistiques - Vue d\'Ensemble',
+      description:
+        'L\'**Onglet Statistiques** synthétise votre inventaire : **Tableau des catégories** (nombre produits/alertes par catégorie), **Santé du stock** (visual overview), et **Analytics inventaire** (insights détaillés).',
+      elementSelector: '[data-guide="inventory-stats"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '📂 Chaque catégorie affiche : Nombre produits | Nombre d\'alertes',
+        '🎯 Utilisez pour équilibrer votre offre par catégorie',
+        '📈 Identifiez catégories en manque de diversité',
+      ],
+    },
+
+    // ==================== CONCLUSION ====================
     {
       id: 'step-10',
       emoji: '✅',
-      title: 'Vous Êtes Prêt à Gérer votre Inventaire !',
+      title: 'Vous Maîtrisez votre Inventaire !',
       description:
-        'Vous avez maintenant tous les outils pour gérer efficacement votre inventaire. Commencez à ajouter des produits et à surveiller vos stocks.',
+        'Vous connaissez maintenant les **3 onglets** (Produits, Opérations, Statistiques), la gestion des produits, le suivi des alertes, les marges commerciales, et l\'approvisionnement. Vous êtes prêt à gérer efficacement votre stock!',
       position: 'center',
-      action: 'Cliquez sur Terminer pour commencer',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        'Vérifiez régulièrement les alertes stock',
-        'Analysez les marges pour optimiser vos prix',
-        'Utilisez les données pour prendre des décisions d\'achat éclairées',
+        '📅 Vérifiez régulièrement les alertes stock pour éviter les ruptures',
+        '💰 Analysez les marges mensuellement pour optimiser rentabilité',
+        '📊 Utilisez les statistiques pour décisions d\'achat stratégiques',
       ],
+      action: '→ Commencez par ajouter vos premiers produits !',
     },
   ],
 };
@@ -365,10 +390,10 @@ export const MANAGE_RETURNS_GUIDE: GuideTour = {
 
   targetRoles: ['promoteur', 'gerant'],
 
-  estimatedDuration: 3,
+  estimatedDuration: 5,
   difficulty: 'intermediate',
   emoji: '↩️',
-  version: 1,
+  version: 2,
 
   triggers: [
     {
@@ -380,140 +405,162 @@ export const MANAGE_RETURNS_GUIDE: GuideTour = {
   ],
 
   steps: [
+    // ==================== INTRODUCTION ====================
     {
       id: 'step-1',
       emoji: '👋',
       title: 'Bienvenue à la Gestion des Retours !',
       description:
-        'Cette page vous permet de traiter les retours de produits : défectueux, erreur de commande, produits non consommés, etc.',
+        'Votre système de **Retours** se divise en **3 onglets** pour gérer complètement les remboursements et stock. Les retours sont **créés AVANT fermeture caisse** (défaut: 6h matin) et doivent être **approuvés pour être finalisés**.',
       position: 'center',
-      action: 'Cliquez sur Suivant pour continuer',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '⏰ Retours autorisés UNIQUEMENT avant fermeture caisse (défaut: 6h du matin)',
+        '🔄 Basculez entre les 3 onglets pour différentes étapes',
+        '⏰ Retours autorisés UNIQUEMENT avant fermeture caisse',
         '📅 Seules les ventes de la journée commerciale actuelle peuvent être retournées',
-        'Chaque type de retour a des règles automatiques (remboursement, remise en stock)',
+        '✅ Chaque retour doit être **approuvé** pour être finalisé',
       ],
     },
 
+    // ==================== ONGLET 1: NOUVEAU RETOUR ====================
     {
       id: 'step-2',
-      emoji: '⚙️',
-      title: 'Types de Retours',
+      emoji: '➕',
+      title: 'Onglet 1: Créer un Nouveau Retour',
       description:
-        '5 types de retours disponibles : Défectueux (remboursé seulement), Erreur article (remboursé + remis en stock), Non consommé (remis en stock seulement), Périmé (remboursé seulement), Autre (manuel).',
-      elementSelector: '[data-guide="returns-reasons"]',
+        'L\'**Onglet Nouveau Retour** vous permet de créer rapidement un retour : sélectionnez une vente du jour → choisissez le produit → indiquez la quantité → sélectionnez le motif → vérifiez les impacts (remboursement, remise en stock).',
+      elementSelector: '[data-guide="returns-create-btn"]',
       position: 'bottom',
-      action: 'Consultez les différents types',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        'Défectueux: le produit est détruit, pas remis en stock',
-        'Erreur article: compensé au client et restocké',
-        'Non consommé: pas de remboursement, mais remis en stock',
-        'Périmé: remboursement sans restockage',
-        'Autre: vous décidez manuellement',
+        '⏰ Les ventes affichées sont UNIQUEMENT celles d\'aujourd\'hui (journée commerciale)',
+        '🔍 Filtrez par serveur pour retrouver rapidement la vente concernée',
+        '3️⃣ Processus : Sélect vente → Sélect produit → Saisie quantité → Choix motif → Vérif → Créer',
       ],
     },
 
     {
       id: 'step-3',
-      emoji: '🔍',
-      title: 'Chercher une Vente à Retourner',
+      emoji: '⚙️',
+      title: 'Comprendre les Types de Retours',
       description:
-        'Utilisez le filtre par serveur et la recherche produit pour trouver rapidement la vente à retourner. Les ventes du jour uniquement sont retournables.',
-      elementSelector: '[data-guide="returns-search"]',
+        '**5 types de retours** disponibles, chacun avec des règles automatiques : **Défectueux** (remboursé, pas restocké) | **Erreur article** (remboursé + restocké) | **Non consommé** (pas remboursé, restocké) | **Périmé** (remboursé, pas restocké) | **Autre** (manuel - vous décidez).',
+      elementSelector: '[data-guide="returns-reasons"]',
       position: 'bottom',
-      action: 'Sélectionnez un serveur, puis cherchez le produit',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '👤 Filtre Serveur: Choisissez le serveur qui a vendu (si plusieurs serveurs)',
-        '🔍 Recherche Produit: Tapez le nom du produit à retourner (ex: Guinness)',
-        'Les ventes sont triées par heure (plus récentes d\'abord)',
+        '🔴 **Défectueux**: Produit détruit → Remboursement OUI | Restock NON',
+        '🟡 **Erreur article**: Mauvais produit servi → Remboursement OUI | Restock OUI',
+        '🔵 **Non consommé**: Client a changé d\'avis → Remboursement NON | Restock OUI',
+        '🟣 **Périmé**: Produit expiré → Remboursement OUI | Restock NON',
+        '⚪ **Autre**: Cas spéciaux → Vous décidez remboursement ET restock',
       ],
     },
 
     {
       id: 'step-4',
-      emoji: '📋',
-      title: 'Créer un Retour',
+      emoji: '📝',
+      title: 'Vérifier avant de Créer le Retour',
       description:
-        'Sélection de la vente → Choix du produit → Saisie quantité → Motif → Confirmation.',
-      elementSelector: '[data-guide="returns-create-btn"]',
+        'Avant de créer le retour, vérifiez : le **montant remboursé** (calculé auto selon motif), la **remise en stock** (certains motifs seulement), et le **statut EN ATTENTE** (créé mais pas encore approuvé = remboursement pas débité).',
+      elementSelector: '[data-guide="returns-summary"]',
       position: 'bottom',
-      action: 'Cliquez pour créer un nouveau retour',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '1️⃣ Vente: Sélectionnez la vente du jour (affiche serveur, heure, total)',
-        '2️⃣ Produit: Choisissez LE produit à retourner dans la vente',
-        '3️⃣ Quantité: Indiquez combien (max = quantité vendue - retours/consignations)',
-        '4️⃣ Motif: Choisissez le type (Défectueux, Erreur, Non consommé, Périmé, Autre)',
+        '💰 Montant = Quantité retour × Prix unitaire (calculé automatiquement)',
+        '📦 Remise en stock = Dépend du motif (voir Types de Retours)',
+        '⏳ Statut EN ATTENTE = Retour créé mais PAS finalisé encore',
+        '✅ Après création, allez à l\'Onglet Liste pour APPROUVER',
       ],
     },
 
+    // ==================== ONGLET 2: LISTE DES RETOURS ====================
     {
       id: 'step-5',
-      emoji: '📝',
-      title: 'Vérifier et Créer le Retour',
+      emoji: '📋',
+      title: 'Onglet 2: Liste des Retours & Approbations',
       description:
-        'Avant de confirmer, vérifiez le montant remboursé et si le stock sera remis en stock selon le motif. ⚠️ Le retour créé n\'est qu\'un retour EN ATTENTE - vous devez l\'approuver ensuite pour que le remboursement soit effectif.',
-      elementSelector: '[data-guide="returns-create-btn"]',
+        'L\'**Onglet Liste** affiche tous les retours créés. Vous voyez le **statut de chaque retour** (EN ATTENTE, APPROUVÉ, REJETÉ), le **produit**, la **raison**, et le **montant remboursé**. Ici vous **approuvez ou rejetez** les retours.',
+      elementSelector: '[data-guide="returns-list"]',
       position: 'bottom',
-      action: 'Vérifiez les détails et créez le retour',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '💰 Montant remboursé: Calculé automatiquement selon le motif (quantité × prix unitaire)',
-        '📦 Remise en stock: Certains motifs remettent en stock (Erreur, Non consommé), d\'autres non (Défectueux, Périmé)',
-        '⏳ Statut EN ATTENTE: Le retour est créé mais pas encore approuvé (remboursement pas débité)',
+        '⏳ EN ATTENTE = Retour créé mais pas finalisé (remboursement pas débité)',
+        '✅ APPROUVÉ = Retour finalisé (remboursement débité, stock MAJ si nécessaire)',
+        '❌ REJETÉ = Retour annulé (aucun impact financier/stock)',
+        '🔍 Filtrez par période et statut pour retrouver rapidement',
       ],
     },
 
     {
       id: 'step-6',
-      emoji: '⏳',
-      title: 'Consulter et Filtrer les Retours',
+      emoji: '✅',
+      title: '⚠️ APPROBATION: L\'Étape Cruciale !',
       description:
-        'Après création, le retour est **EN ATTENTE**. Utilisez les filtres de **Période** et de **Statut** (En attente, Approuvé, Rejeté) pour retrouver vos retours.',
-      elementSelector: '[data-guide="returns-search"]',
+        'C\'est là que le retour devient **EFFECTIF**. Cliquez sur **APPROUVER** pour finaliser : le remboursement est débité du CA, et le stock est mis à jour selon le motif (restauré ou perdu). ❌ **REJETER** annule le retour sans impact.',
+      elementSelector: '[data-guide="returns-actions"]',
       position: 'bottom',
-      action: 'Consultez vos retours par période et statut',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '📅 Filtres: Périodes prédéfinies (Aujourd\'hui, 7 jours, 30 jours)',
-        '🔍 Statuts: Filtrez pour voir uniquement ce qu\'il reste à approuver',
-        '⏳ Statut **EN ATTENTE**: Le retour est créé mais pas encore finalisé',
+        '✅ APPROUVER = Remboursement débité MAINTENANT + Stock MAJ (restauré ou perdu)',
+        '❌ REJETER = Retour annulé, zéro impact financier/stock',
+        '⏳ Vous pouvez approver/rejeter à tout moment avant fermeture caisse',
+        '📊 Après approbation, statut = APPROUVÉ ou REJETÉ (terminal)',
       ],
     },
 
     {
       id: 'step-7',
-      emoji: '✅',
-      title: '⚠️ ÉTAPE CRUCIALE : Approuver le Retour',
+      emoji: '🔍',
+      title: 'Filtrer & Rechercher les Retours',
       description:
-        'C\'EST ICI QUE LE RETOUR EST FINALISÉ. Cliquez sur **APPROUVER** pour que le remboursement soit effectif et le stock mis à jour selon le motif.',
-      elementSelector: '[data-guide="returns-status"]',
+        'Utilisez les **filtres de période** (Aujourd\'hui, 7j, 30j, personnalisé) et **filtres de statut** (EN ATTENTE, APPROUVÉ, REJETÉ) pour retrouver rapidement un retour. La **recherche texte** retrouve par ID vente ou nom produit.',
+      elementSelector: '[data-guide="returns-filters"]',
       position: 'bottom',
-      action: 'Cliquez sur APPROUVER pour finaliser',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '✅ **APPROUVER**: Le remboursement est débité, le stock **Restauré** (si Erreur/Non consommé) ou **Perdu** (si Défectueux/Périmé)',
-        '❌ **REJETER**: Le retour est annulé, aucune modification financière ou de stock',
+        '📅 Filtres période : Aujourd\'hui, 7 derniers jours, 30 derniers jours, personnalisé',
+        '🔍 Statut : Voir uniquement EN ATTENTE (à approuver) ou APPROUVÉS (terminés)',
+        '🔎 Recherche texte : Tapez ID de vente ou nom du produit retourné',
       ],
     },
 
+    // ==================== ONGLET 3: STATISTIQUES ====================
     {
       id: 'step-8',
-      emoji: '✅',
-      title: 'Vous Êtes Prêt a Gérer les Retours !',
+      emoji: '📊',
+      title: 'Onglet 3: Statistiques & Analytics',
       description:
-        'Vous pouvez maintenant traiter efficacement les retours de produits. Créez des retours avant fermeture caisse, consultez-les par période.',
-      position: 'center',
-      action: 'Cliquez sur Terminer pour commencer',
+        'L\'**Onglet Statistiques** synthétise vos retours en **KPIs clés** : À traiter (count), Remboursements (total €), Retours validés (count), Remis en stock (units), Pertes produits (units), Taux de rejet (%). Visualisez aussi la **distribution par motif** (pie chart).',
+      elementSelector: '[data-guide="returns-stats"]',
+      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '⏰ Les retours ne peuvent être créés que AVANT la fermeture caisse',
-        '📅 Consultez les retours par période pour audit et analyse',
-        '💰 Les retours affectent le stock et les finances du bar',
+        '🔴 À traiter = Nombre de retours EN ATTENTE (non approuvés)',
+        '💰 Remboursements = Montant total remboursé (approuvés seulement)',
+        '✅ Retours validés = Nombre de retours APPROUVÉS',
+        '📦 Remis en stock = Total units restaurées (Erreur, Non consommé)',
+        '💥 Pertes = Total units perdues (Défectueux, Périmé)',
+        '📉 Taux rejet = % de retours rejetés vs créés',
       ],
+    },
+
+    // ==================== CONCLUSION ====================
+    {
+      id: 'step-9',
+      emoji: '✅',
+      title: 'Vous Maîtrisez la Gestion des Retours !',
+      description:
+        'Vous connaissez maintenant les **3 onglets** (Créer, Liste, Statistiques), les **5 types de retours** avec leurs règles automatiques, et surtout l\'**approbation** qui finalise les retours. Vous êtes prêt à gérer efficacement remboursements et stock !',
+      position: 'center',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '⏰ Créez retours AVANT fermeture caisse, approuvez tant que possible avant clôture',
+        '⚙️ Comprenez les motifs pour choisir le bon (impacte remboursement + stock)',
+        '📊 Consultez Statistiques pour analyser patterns de retours',
+        '💡 Taux rejet élevé? Analysez motifs pour améliorer service/qualité',
+      ],
+      action: '→ Vous pouvez créer et approuver vos retours !',
     },
   ],
 };
@@ -530,10 +577,10 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
 
   targetRoles: ['promoteur', 'gerant'],
 
-  estimatedDuration: 3,
+  estimatedDuration: 5,
   difficulty: 'intermediate',
   emoji: '📦',
-  version: 2,
+  version: 3,
 
   triggers: [
     {
@@ -545,102 +592,178 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
   ],
 
   steps: [
+    // ==================== INTRODUCTION ====================
     {
       id: 'step-1',
       emoji: '👋',
       title: 'Bienvenue à la Gestion des Consignations !',
       description:
-        'La consignation est un système où le client **PAIE ET CONSOMME** un produit, mais **LAISSE L\'EMBALLAGE** (bouteille vide, casier) au bar avec un **DÉPÔT/CAUTION**. Le client peut revenir récupérer sa caution en rapportant l\'emballage. Les produits consignés restent dans votre **Stock Physique** mais sont retirés du **Stock Vendable** (réservés pour le client).',
+        'Votre système de **Gestion des Consignations** se divise en **3 onglets** pour gérer complètement les produits payés mais non consommés : **Nouvelle Consignation** (création), **Consignations Actives** (gestion), **Historique** (traçabilité). **Important** : Consignation = Client paie → laisse produits au bar → **SANS REMBOURSEMENT** → reviendra plus tard.',
       position: 'center',
-      action: 'Suivant',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '💰 Caution = Montant temporaire payé par le client pour l\'emballage',
-        '📦 Stock Physique : Quantité totale réellement présente dans le bar',
-        '🔒 Stock Vendable : Stock Physique - Consignations actives (produits réservés)',
-        '⏳ Délai : Paramétrable (7j par défaut). Après ce délai, le gérant peut confisquer la caution',
-        '🔄 Récupération : Client rapporte l\'emballage et récupère sa caution',
+        '✅ Consignation = Mise de côté (PAS remboursement)',
+        '📦 Client paie 5 bières → consomme 2 → consigne les 3',
+        '📊 À CRÉATION : Stock Physique ↑ (produits reviennent) | Stock Vendable invariant (déjà vendus)',
+        '⏳ Délai paramétrable (7j défaut). Après: décision manuelle confisquer ou récupérer',
       ],
     },
 
+    // ==================== ONGLET 1: NOUVELLE CONSIGNATION ====================
     {
       id: 'step-2',
       emoji: '➕',
-      title: 'Créer une Consignation',
+      title: 'Onglet 1: Nouvelle Consignation - Créer',
       description:
-        'Sélectionnez la vente du jour → Choisissez le produit à consigner → Indiquez la quantité → Remplissez les infos client.',
+        'L\'**Onglet Nouvelle Consignation** vous permet de créer une consignation rapidement : **Sélectionnez la vente du jour** → **Choisissez le produit** → **Indiquez la quantité** → **Remplissez infos client**. À la création, Stock Physique augmente (produits reviennent au bar).',
       elementSelector: '[data-guide="consignments-create-tab"]',
       position: 'bottom',
-      action: 'Suivant',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '⚠️ Seules les ventes payées de la journée peuvent être consignées',
-        '📋 Le nom du client est obligatoire pour le suivi',
+        '⚠️ Seules ventes **payées du jour** peuvent être consignées',
+        '👤 Nom client **obligatoire** pour suivi et récupération',
+        '📊 Impact à la création : Stock Physique ↑ (produits reviennent) | Stock Vendable invariant',
+        '🔢 Quantité: Nombre d\'unités que client laisse (peut être partiel)',
       ],
     },
 
     {
       id: 'step-3',
-      emoji: '⏳',
-      title: 'Consignations Actives',
+      emoji: '📝',
+      title: 'Processus de Création - Étapes',
       description:
-        'Consultez les produits mis de côté. Chaque ligne propose deux actions cruciales : **Récupérer** ou **Confisquer**. L\'expiration du délai affiche une alerte, mais l\'action (décision) reste manuelle.',
-      elementSelector: '[data-guide="consignments-active-tab"]',
+        '**Étape 1** : Sélectionnez la **vente du jour** (affiche serveur, heure, total). **Étape 2** : Choisissez le **produit à consigner** de cette vente. **Étape 3** : Indiquez la **quantité exacte** laissée au bar. **Étape 4** : Remplissez **infos client** (nom, téléphone) pour contact ultérieur récupération.',
+      elementSelector: '[data-guide="consignments-create-form"]',
       position: 'bottom',
-      action: 'Suivant',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '✅ RÉCUPÉRER : Le client vient chercher ses bouteilles',
-        '❌ CONFISQUER : Le client a dépassé le délai, le bar réintègre le produit dans son stock à vendre',
+        '1️⃣ Vente = Historique de la vente aujourd\'hui',
+        '2️⃣ Produit = Quel article client a laissé',
+        '3️⃣ Quantité = Combien d\'unités (ex: 3 bières sur 5)',
+        '4️⃣ Client = Nom/téléphone essentiels pour rappel retrait',
       ],
     },
 
+    // ==================== ONGLET 2: CONSIGNATIONS ACTIVES ====================
     {
       id: 'step-4',
-      emoji: '🥃',
-      title: 'Action : Récupérer',
+      emoji: '⏳',
+      title: 'Onglet 2: Consignations Actives - Vue & Actions',
       description:
-        'Quand le client vient réclamer son produit, cliquez sur **RÉCUPÉRER**. Cela diminue votre **Stock Physique** (le produit quitte le bar). Le **Stock Vendable** n\'est pas impacté car il y était déjà déduit à la création.',
+        'L\'**Onglet Consignations Actives** affiche tous les produits actuellement mis de côté. Pour chaque consignation, vous voyez : **client**, **produit**, **quantité**, **date expiration**, et **urgence badge** (vert/jaune/rouge). Vous pouvez effectuer 2 actions cruciales : **Récupérer** ou **Confisquer**.',
       elementSelector: '[data-guide="consignments-active-tab"]',
       position: 'bottom',
-      action: 'Suivant',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '� Le produit sort physiquement de l\'établissement',
-        '📋 L\'action est enregistrée dans l\'historique',
+        '🟢 Vert = Beaucoup de temps avant expiration',
+        '🟡 Jaune = Expiration proche (avertir client)',
+        '🔴 Rouge = Délai très court ou expiré',
+        '📋 Chaque ligne a boutons **Récupérer** et **Confisquer**',
       ],
     },
 
     {
       id: 'step-5',
-      emoji: '🔒',
-      title: 'Action : Confisquer',
+      emoji: '📤',
+      title: 'Action: Récupérer (Client vient chercher)',
       description:
-        'Si le délai est expiré ou si le client renonce, cliquez sur **CONFISQUER**. Le produit est réintégré dans votre **Stock Vendable** (il redevient disponible à la vente). Le **Stock Physique** reste inchangé car le produit est toujours là.',
+        'Quand le **client vient récupérer** ses produits consignés, cliquez sur le bouton **RÉCUPÉRER**. Cela marque la consignation comme complétée. Le **Stock Physique diminue** (produits quittent le bar). Le **Stock Vendable reste invariant** (il n\'a jamais changé car produits déjà vendus).',
       elementSelector: '[data-guide="consignments-active-tab"]',
       position: 'bottom',
-      action: 'Suivant',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '� Réintégration : Le produit redevient disponible pour de nouveaux clients',
-        '⚠️ Cette action n\'est pas automatique après expiration du délai de consignation, elle requiert votre validation',
+        '📤 Produit sort **physiquement** du bar (client l\'emporte)',
+        '📊 Impact stocks à récupération : Stock Physique ↓ | Stock Vendable invariant (jamais changé)',
+        '✅ Action enregistrée dans historique pour traçabilité',
+        '💡 Client repart avec ses produits déjà payés, zéro remboursement',
       ],
     },
 
     {
       id: 'step-6',
-      emoji: '📊',
-      title: 'Historique et Traçabilité',
+      emoji: '🔒',
+      title: 'Action: Confisquer (Délai expiré ou renoncement)',
       description:
-        'L\'onglet Historique permet d\'auditer toutes les actions passées. Vous pouvez filtrer par **nature d\'action** : récupérés, expirés ou confisqués.',
-      elementSelector: '[data-guide="consignments-history-tab"]',
+        'Si le **délai d\'expiration est dépassé** ou le **client renonce**, cliquez sur **CONFISQUER**. Le produit est **réintégré à votre Stock Vendable** (redevient disponible à la vente). Le **Stock Physique reste stable** car produit est toujours au bar. Vous récupérez le droit de vente.',
+      elementSelector: '[data-guide="consignments-active-tab"]',
       position: 'bottom',
-      action: 'Terminer',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '📅 Filtrez pour vos bilans stocks par statut de consignation',
-        '🔍 Utile pour vérifier les litiges clients',
+        '⏰ **Pas automatique** : L\'expiration du délai n\'auto-confisque PAS, action manuelle requise',
+        '📊 Impact stocks à confiscation : Stock Physique invariant (produit reste) | Stock Vendable ↑ (réintégré)',
+        '💡 Exemple: Consignation 5 bières expirent → vous confisquez → redevient 5 bières à vendre',
+        '🔄 Réintégration = Produit redevient disponible vente (comme si jamais consigné)',
       ],
+    },
+
+    {
+      id: 'step-7',
+      emoji: '🚨',
+      title: 'Gérer Expiration & Urgence',
+      description:
+        'Les **consignations expirées** sont marquées en **rouge**. Vous devez manuellement décider : **Récupérer** (si client la redemande) ou **Confisquer** (si délai dépassé et client silencieux). Bouton "Vérifier expirations" vous rappelle les actions pending.',
+      elementSelector: '[data-guide="consignments-active-tab"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '⚠️ Expiration = **Alerte seulement** (pas action automatique)',
+        '📞 Avertissez client AVANT expiration pour lui rappeler récupérer',
+        '⏰ Délai = Paramétrable en Paramètres (onglet Opérationnel)',
+        '✅ "Vérifier expirations" = Scan consignations dépassées pour action',
+      ],
+    },
+
+    // ==================== ONGLET 3: HISTORIQUE ====================
+    {
+      id: 'step-8',
+      emoji: '📚',
+      title: 'Onglet 3: Historique - Audit & Traçabilité',
+      description:
+        'L\'**Onglet Historique** affiche **toutes les consignations complétées** (non actives). Vous voyez le **statut final** : Récupérée (client a pris) ou Confisquée (bar a réintégré). Filtrez par **statut** ou **période** pour auditer votre historique consignations.',
+      elementSelector: '[data-guide="consignments-history-tab"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '✅ Récupérée = Client est venu chercher ses produits',
+        '🔐 Confisquée = Délai expiré ou rejet, réintégré à vente',
+        '📅 Filtrez par statut (Tout/Récupérées/Confisquées) ou période',
+        '🔍 Utile pour litiges clients, bilans stocks, traçabilité',
+      ],
+    },
+
+    {
+      id: 'step-9',
+      emoji: '🔍',
+      title: 'Recherche & Filtrage Historique',
+      description:
+        'Utilisez les **filtres** pour analyser : **Filtre Statut** (voir uniquement Récupérées ou Confisquées) pour comprendre patterns. **Filtre Période** pour bilans mensuels/annuels. Cherchez par **client** ou **produit** pour enquêtes litiges ou stock reconciliation.',
+      elementSelector: '[data-guide="consignments-history-filters"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '🔄 Statuts: Tout, Récupérées, Confisquées',
+        '📅 Périodes: Aujourd\'hui, 7j, 30j, custom',
+        '🔎 Recherche par nom client ou produit',
+        '📊 Utilisez pour: Bilan stocks, litiges clients, audit traçabilité',
+      ],
+    },
+
+    // ==================== CONCLUSION ====================
+    {
+      id: 'step-10',
+      emoji: '✅',
+      title: 'Vous Maîtrisez les Consignations !',
+      description:
+        'Vous connaissez maintenant les **3 onglets** (Création, Actives, Historique), comment **créer consignations**, **récupérer** (client) **ou confisquer** (délai expiré), et **tracer historique** pour audit. Vous comprenez aussi les **impacts stocks** : création ↑ Physique, récupération ↓ Physique, confiscation ↑ Vendable.',
+      position: 'center',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '📦 Consignation = **Mise de côté** (PAS remboursement jamais)',
+        '📊 Stock impact = Physique change (produits là physiquement), Vendable change à confiscation (réintégration)',
+        '⏰ Urgence badges = Rappels (not automatic action)',
+        '📚 Historique = Audit trail pour litiges/reconciliation',
+      ],
+      action: '→ Gérez vos consignations efficacement !',
     },
   ],
 };
@@ -652,15 +775,15 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
 export const HISTORIQUE_GUIDE: GuideTour = {
   id: 'analytics-overview', // Keeping ID same for trigger consistency
   title: 'Historique et Analytics',
-  subtitle: 'Analysez vos performances en détail',
-  description: 'Apprenez à naviguer entre les vues et à interpréter vos graphiques de vente.',
+  subtitle: 'Analysez vos performances en 3 vues',
+  description: 'Découvrez les 3 vues (Liste, Cartes, Analytics) pour analyser vos ventes en détail.',
 
   targetRoles: ['promoteur', 'gerant'],
 
-  estimatedDuration: 5,
+  estimatedDuration: 6,
   difficulty: 'intermediate',
   emoji: '📊',
-  version: 2,
+  version: 3,
 
   triggers: [
     {
@@ -672,74 +795,195 @@ export const HISTORIQUE_GUIDE: GuideTour = {
   ],
 
   steps: [
+    // ==================== INTRODUCTION ====================
     {
       id: 'step-1',
-      emoji: '📊',
-      title: 'Trois Vues, Un Objectif',
-      description: 'Basculez entre les modes **Liste** (détail), **Carte** (visuel rapide) et **Analytics** (analyse globale) pour une vision complète.',
+      emoji: '👋',
+      title: 'Bienvenue dans Historique et Analytics',
+      description: 'Votre **Historique** se divise en **3 vues** pour analyser vos ventes sous différents angles. Vous pouvez filtrer par période, chercher des ventes spécifiques, et exporter vos données pour vos analyses externes.',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
-      tips: ['Utilisez les icônes en haut à droite pour changer de vue'],
+      tips: [
+        '🔄 Basculez entre les 3 vues avec les onglets en haut',
+        '📋 Les filtres s\'appliquent à toutes les vues instantanément',
+        '💾 Vous pouvez exporter vos données en Excel ou CSV',
+      ],
     },
+
+    // ==================== VUE 1: LISTE ====================
     {
       id: 'step-2',
-      emoji: '🔍',
-      title: 'Maîtrisez les Filtres',
-      description: 'Affinez vos résultats par **Période** (aujourd\'hui, hier, 7 derniers jours, 30 derniers jours, personnalisé) → **Vendeur** → ou via la **Recherche** par ID de la vente ou du produit.',
-      elementSelector: '[data-guide="sales-filters"]',
+      emoji: '📋',
+      title: 'Vue 1: Tableau Complet des Ventes',
+      description: 'La **Vue Liste** affiche chaque vente en **tableau détaillé** avec tous les paramètres : ID, date/heure, vendeur, nombre d\'articles, total original, retours et **revenu net final**.',
+      elementSelector: '[data-guide="sales-list"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
-      tips: ['Les filtres s\'appliquent instantanément à toutes les vues'],
+      tips: [
+        '📌 La colonne Revenu Net déduit automatiquement les retours approuvés',
+        '🔴 Les ventes avec retours sont mises en évidence en rouge',
+        '👁️ Cliquez sur une vente pour voir le détail complet du ticket',
+      ],
     },
+
+    // ==================== VUE 2: CARTES ====================
     {
       id: 'step-3',
-      emoji: '📈',
-      title: 'Évolution du CA',
-      description: 'Suivez vos pics d\'activité. Le graphique s\'adapte automatiquement : **Par heure** pour la journée → **Par jour** pour la semaine → **Par semaine** pour le mois.',
-      elementSelector: '[data-guide="analytics-charts"]',
+      emoji: '📇',
+      title: 'Vue 2: Cartes Visuelles (Mini-tickets)',
+      description: 'La **Vue Cartes** affiche vos ventes sous format **mini-ticket**. Parfait pour un aperçu rapide : ID, date, vendeur, premiers produits, total avec retours et revenu net.',
+      elementSelector: '[data-guide="sales-cards"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
-      tips: ['Pratique pour identifier vos heures et vos joursde forte affluence'],
+      tips: [
+        '✨ Format visuel idéal pour scanner rapidement vos ventes',
+        '🎴 Chaque carte affiche un résumé avec les 2 premiers produits + "+X autres"',
+        '⌚ Parfait pour les écrans mobiles et les analyses en déplacement',
+      ],
     },
+
+    // ==================== VUE 3: ANALYTICS - INTRODUCTION ====================
     {
       id: 'step-4',
-      emoji: '🍰',
-      title: 'Répartition par Catégorie',
-      description: 'Visualisez d\'un coup d\'œil quel catégorie de produit (Bières, Sucreries, etc.) génère le plus de **Revenu Net**.',
-      elementSelector: '[data-guide="analytics-charts"]',
-      position: 'top',
+      emoji: '📊',
+      title: 'Vue 3: Analytics - Vos Statistiques en Détail',
+      description: 'La **Vue Analytics** synthétise vos données avec **4 KPIs clés** (Revenu, Ventes, Articles, KPI custom) et des **graphiques avancés** pour une analyse complète de vos performances.',
+      elementSelector: '[data-guide="analytics-kpis"]',
+      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
-      tips: ['Le calcul déduit automatiquement les retours pour plus de justesse'],
+      tips: [
+        '📈 Les 4 KPIs incluent la comparaison avec la période précédente (%)',
+        '🔢 "Articles" = nombre total d\'articles vendus',
+        '⚡ Tous les calculs incluent les ajustements de retours',
+      ],
     },
+
+    // ==================== VUE 3: ÉVOLUTION DU CA ====================
     {
       id: 'step-5',
+      emoji: '📈',
+      title: 'Analyse: Évolution de Votre CA',
+      description: 'Le **graphique CA** suit votre **revenu net** et s\'adapte automatiquement selon la période : **Par heure** (≤2j) → **Par jour** (≤14j) → **Par jour/semaine** (>14j) pour une analyse granulaire de vos pics d\'activité.',
+      elementSelector: '[data-guide="analytics-revenue-chart"]',
+      position: 'top',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '⏰ Granularité automatique basée sur votre sélection de période',
+        '🌙 Respecte vos horaires fermeture (pas de CA après fermeture)',
+        '💡 Utilisez-le pour optimiser vos heures d\'ouverture et staffing',
+      ],
+    },
+
+    // ==================== VUE 3: RÉPARTITION PAR CATÉGORIE ====================
+    {
+      id: 'step-6',
+      emoji: '🍰',
+      title: 'Analyse: Répartition par Catégorie',
+      description: 'Le **graphique Catégories** (Donut) montre le **revenu net généré par chaque catégorie de produits** (Bières, Sucreries, etc.). Les retours sont déjà déduits automatiquement.',
+      elementSelector: '[data-guide="analytics-category-chart"]',
+      position: 'top',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '🎯 Identifiez vos catégories les plus rentables',
+        '🏆 Optimisez votre stock en fonction des %',
+        '💰 Revenu Net = Total ventes - Retours approuvés',
+      ],
+    },
+
+    // ==================== VUE 3: CONSIGNATIONS ====================
+    {
+      id: 'step-7',
       emoji: '📦',
-      title: 'Suivi des Consignations',
-      description: 'Surveillez votre **Taux de récupération**. Identifiez les articles consignés en attente → expirés → ou confisqués pour optimiser votre stock.',
+      title: 'Analyse: Suivi des Consignations',
+      description: 'Le **widget Consignations** affiche vos stats : Total d\'articles consignés, **Actifs** (en attente de récupération), **Récupérés** (clients sont revenus), **Expirés** et **Confisqués**. Suivez aussi votre **Taux de Récupération** en %.',
       elementSelector: '[data-guide="analytics-consignments"]',
       position: 'top',
       visibleFor: ['promoteur', 'gerant'],
-      tips: ['Un taux élevé signifie que vos clients reviennent consommer leurs consignations'],
+      tips: [
+        '✅ Taux de récupération élevé = clients fidèles qui reviennent',
+        '🔴 Articles expirés/confisqués = stock réintégré à la vente',
+        '💡 Optimisez votre délai de consignation en fonction du taux',
+      ],
     },
+
+    // ==================== VUE 3: TOP PRODUITS ====================
     {
-      id: 'step-6',
+      id: 'step-8',
       emoji: '🏆',
-      title: 'Le Top Produits',
-      description: 'Découvrez vos champions ! Filtrez par **Unités** (volume) → **Revenus** (CA) → ou **Profit** (marge nette).',
+      title: 'Analyse: Vos Top Produits',
+      description: 'Découvrez vos **champions** avec 3 filtres de vue : **Unités vendues** (volume) → **Revenus générés** (CA) → ou **Profit** (marge nette). Ajustez le nombre de produits (Top 5, 10, 20).',
       elementSelector: '[data-guide="analytics-top-products"]',
       position: 'top',
       visibleFor: ['promoteur', 'gerant'],
-      tips: ['Ajustez la limite (Top 5, 10, 20) pour une analyse plus fine'],
+      tips: [
+        '⭐ Comparez volume vs revenu pour identifier les articles stratégiques',
+        '💹 Top en Profit = articles à pousser auprès des vendeurs',
+        '📊 Chaque vue inclut le volume et l\'analyse financière',
+      ],
     },
+
+    // ==================== VUE 3: PERFORMANCE ÉQUIPE ====================
     {
-      id: 'step-7',
+      id: 'step-9',
       emoji: '👥',
-      title: 'Performance de l\'Équipe',
-      description: 'Comparez l\'efficacité de vos serveurs. Analysez leur **CA généré** → et leur **Nombre de ventes**.',
+      title: 'Analyse: Performance de Votre Équipe',
+      description: 'Comparez l\'**efficacité de vos serveurs/bartenders** : affichage du **CA généré** par personne et leur **nombre de transactions**. Parfait pour identifier vos top performers et optimiser formations/motivations.',
       elementSelector: '[data-guide="analytics-team"]',
       position: 'top',
       visibleFor: ['promoteur', 'gerant'],
-      tips: ['Utilisez ces données pour motiver ou former votre équipe'],
+      tips: [
+        '🌟 CA généré = revenu net attribué au serveur',
+        '📞 Nombre de ventes = activité/charge travail',
+        '💪 Utilisez ces données pour reconnaître et motiver votre équipe',
+      ],
+    },
+
+    // ==================== FILTRES & RECHERCHE ====================
+    {
+      id: 'step-10',
+      emoji: '🔍',
+      title: 'Filtres Puissants & Recherche',
+      description: '**Affinez vos analyses** avec 3 filtres : **Période** (Aujourd\'hui, Hier, 7j, 30j, Personnalisé) → **Vendeur** (un ou plusieurs) → **Recherche** (ID de vente ou nom de produit). Les filtres s\'appliquent à toutes les 3 vues instantanément.',
+      elementSelector: '[data-guide="sales-filters"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '⚡ Les filtres se mettent à jour instantanément',
+        '🔎 Recherche par ID de vente = 6 derniers chiffres du numéro',
+        '👤 Sélectionnez plusieurs vendeurs pour une analyse comparative',
+      ],
+    },
+
+    // ==================== EXPORT ====================
+    {
+      id: 'step-11',
+      emoji: '💾',
+      title: 'Exporter Vos Données',
+      description: 'Exportez vos analyses complètes en **Excel** ou **CSV** pour des traitements externes (analyse poussée, rapports détaillés, intégration comptabilité). Les données exportées incluent tous les ajustements (retours, consignations).',
+      elementSelector: '[data-guide="sales-export"]',
+      position: 'top',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '📊 Excel = avec mise en forme, parfait pour les rapports',
+        '📋 CSV = format brut, idéal pour l\'import en comptabilité',
+        '✅ Les données exportées correspondent toujours aux filtres actifs',
+      ],
+    },
+
+    // ==================== CONCLUSION ====================
+    {
+      id: 'step-12',
+      emoji: '✅',
+      title: 'Vous Maîtrisez Votre Historique !',
+      description: 'Vous connaissez maintenant les **3 vues** (Liste, Cartes, Analytics), les **filtres puissants**, les **4 KPIs clés**, les **graphiques avancés** (CA, Catégories), et l\'**export données**. Vous êtes prêt à analyser vos performances en profondeur !',
+      position: 'center',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '🎯 Consultez régulièrement vos analytics pour optimiser votre bar',
+        '📈 Suivez votre équipe et identifiez vos champions',
+        '💡 Les données = meilleur outil pour prendre les bonnes décisions',
+      ],
+      action: '→ Vous pouvez maintenant explorer chaque vue en détail !',
     },
   ],
 };
@@ -756,10 +1000,10 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
 
   targetRoles: ['promoteur', 'gerant'],
 
-  estimatedDuration: 3,
+  estimatedDuration: 5,
   difficulty: 'beginner',
   emoji: '👥',
-  version: 2,
+  version: 3,
 
   triggers: [
     {
@@ -771,62 +1015,175 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
   ],
 
   steps: [
+    // ==================== INTRODUCTION ====================
     {
       id: 'step-1',
-      emoji: '👷',
-      title: 'Votre Équipe au Complet',
-      description: 'Gérez ici les accès de vos collaborateurs. Un bar bien organisé commence par une équipe bien définie.',
+      emoji: '👋',
+      title: 'Bienvenue à la Gestion de l\'Équipe !',
+      description:
+        'Votre système de **Gestion de l\'Équipe** se divise en **3 onglets** pour gérer complètement votre équipe : **Mon Équipe** (visualiser et retirer membres), **Recrutement** (ajouter nouveaux ou importer existants), et **Assignation Caisses** (mode simplifié). Un bar bien organisé commence par une équipe bien définie !',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '🔄 Basculez entre les 3 onglets pour différentes tâches',
+        '⚖️ Permissions = **Promoteur** peut tout faire | **Gérant** peut gérer serveurs seulement',
+        '🔐 Vous contrôlez l\'accès des membres (création, retrait)',
+      ],
     },
+
+    // ==================== ONGLET 1: MON ÉQUIPE ====================
     {
       id: 'step-2',
-      emoji: '📊',
-      title: 'Statistiques de l\'Équipe',
-      description: 'Gardez un œil sur la répartition de votre effectif entre **Gérants** (managers) et **Serveurs** (vente).',
-      elementSelector: '[data-guide="team-stats"]',
+      emoji: '👥',
+      title: 'Onglet 1: Mon Équipe - Vue d\'Ensemble',
+      description:
+        'L\'**Onglet Mon Équipe** affiche tous vos collaborateurs actuels avec leurs **rôles** (Gérant/Serveur), **contacts** (téléphone, email), **dernière connexion** et **statut actif/inactif**. Vous voyez aussi les **statistiques** : nombre de gérants et serveurs.',
+      elementSelector: '[data-guide="team-members"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '🟢 Indicateur vert = Actif récemment (< 24h)',
+        '⚫ Indicateur gris = Hors ligne',
+        '🔴 Indicateur rouge = Inactif',
+        '📊 Statistiques en haut affichent répartition gérants vs serveurs',
+      ],
     },
+
     {
       id: 'step-3',
-      emoji: '📋',
-      title: 'Liste des Membres',
-      description: 'Consultez ici les noms, rôles et **dernières connexions**. Vous pouvez voir qui est actif ou inactif d\'un coup d\'œil.',
-      elementSelector: '[data-guide="team-list"]',
-      position: 'top',
-      visibleFor: ['promoteur', 'gerant'],
-      tips: ['Utilisez le bouton "Voir inactifs" en haut pour l\'historique complète'],
-    },
-    {
-      id: 'step-4',
-      emoji: '👤',
-      title: 'Ajout de Collaborateurs',
-      description: 'Créez un **Nouveau Compte** ou utilisez **Membre Existant** pour importer un employé travaillant déjà dans un autre de vos bars.\n\n**Note de rôles** :\n- **Promoteur** : Peut créer de nouveaux **Gérants** et **Serveurs**\n- **Gérant** : Peut créer uniquement des **Serveurs** (mais pas de gérants supplémentaires)',
-      elementSelector: '[data-guide="team-add-btn"]',
+      emoji: '🔍',
+      title: 'Rechercher & Filtrer les Membres',
+      description:
+        'Cherchez rapidement un membre par **nom**, **email** ou **username** via la barre de recherche. Utilisez le bouton **"Voir inactifs"** pour afficher/masquer les membres inactifs. Les filtres s\'appliquent instantanément.',
+      elementSelector: '[data-guide="team-search"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
-      tips: ['L\'import évite les doublons de comptes pour les employés multi-bars ou précédemment membre d\'un autre bar'],
+      tips: [
+        '🔎 Recherche temps réel : Tapez nom, email ou identifiant',
+        '👁️ Toggle inactifs = Voir complet historique (actifs + inactifs)',
+        '📋 Tableau triable pour scanner rapidement',
+      ],
     },
+
+    {
+      id: 'step-4',
+      emoji: '🚫',
+      title: 'Retirer un Membre',
+      description:
+        'Cliquez sur l\'**icône Poubelle** (trash) à droite du membre pour le retirer. Le retrait est **immédiat** et **bloque toute nouvelle connexion**. Une confirmation vous demande avant suppression. ⚠️ Vous ne pouvez retirer que les rôles que vous pouvez créer.',
+      elementSelector: '[data-guide="team-delete"]',
+      position: 'top',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '✅ **Promoteur** : Peut retirer Gérants ET Serveurs',
+        '⚙️ **Gérant** : Peut retirer SEULEMENT les Serveurs (pas de gérants)',
+        '⚠️ Confirmation requise pour éviter accidents',
+        '🔐 Retrait = Compte bloqué (pas de connexion future)',
+      ],
+    },
+
+    // ==================== ONGLET 2: RECRUTEMENT ====================
     {
       id: 'step-5',
-      emoji: '🔗',
-      title: 'Configuration des Mappings',
-      description: 'En **Mode Simplifié**, vous devez lier des noms courts (ex: "Afi") à des comptes serveurs réels pour attribuer les ventes. Cette section est **repliée par défaut** : cliquez sur le bandeau **Mappings Serveurs** pour la déplier et configurer vos raccourcis.',
-      elementSelector: '[data-guide="team-mappings"]',
-      position: 'top',
+      emoji: '➕',
+      title: 'Onglet 2: Recrutement - Ajouter Membres',
+      description:
+        'L\'**Onglet Recrutement** vous permet d\'ajouter rapidement de nouveaux collaborateurs. Vous avez **2 options** : **Nouveau Compte** (créer identifiants from scratch) ou **Membre Existant** (importer quelqu\'un qui travaille déjà dans un autre de vos bars).',
+      elementSelector: '[data-guide="team-recruitment"]',
+      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
-      tips: ['Indispensable pour que les noms s\'affichent correctement lors de la création d\'une vente en mode simplifié'],
+      tips: [
+        '🆕 Nouveau Compte = Créer identifiants (username/password) + email auto-généré',
+        '📥 Membre Existant = Importer quelqu\'un d\'un autre bar (évite doublons)',
+        '⚙️ Choisissez le rôle : Gérant ou Serveur (selon permissions)',
+      ],
     },
+
     {
       id: 'step-6',
-      emoji: '🚫',
-      title: 'Retrait de Membre',
-      description: 'Besoin de retirer quelqu\'un ? Utilisez l\'icône "Poubelle" sur la ligne du membre pour révoquer son accès instantanément.\n\n**Note de rôles** :\n- **Promoteur** : Peut retirer n\'importe quel **Gérant** ou **Serveur**\n- **Gérant** : Peut retirer uniquement les **Serveurs** (mais pas de retrait de gérants)',
-      elementSelector: '[data-guide="team-list"]',
-      position: 'top',
+      emoji: '🆕',
+      title: 'Option 1: Créer un Nouveau Compte',
+      description:
+        'Créez rapidement un nouveau collaborateur : saisissez **Identifiant de connexion** (username, lowercase automatique) → **Mot de passe temporaire** (min 8 caractères) → **Nom complet** → **Téléphone**. L\'email est auto-généré (@bartender.app). Sélectionnez son **Rôle** (Gérant ou Serveur) et créez !',
+      elementSelector: '[data-guide="team-create-form"]',
+      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
-      tips: ['Le retrait est immédiat et bloque toute nouvelle connexion'],
+      tips: [
+        '👤 Identifiant = Login unique (converti lowercase, espaces enlevés)',
+        '🔐 Mot de passe temporaire = Min 8 caractères, à communiquer au nouvel employé',
+        '📧 Email auto-généré = {username}@bartender.app',
+        '⚙️ Rôle limité par permissions (Promoteur = tout, Gérant = serveurs seulement)',
+      ],
+    },
+
+    {
+      id: 'step-7',
+      emoji: '📥',
+      title: 'Option 2: Importer un Membre Existant',
+      description:
+        'Importez quelqu\'un qui travaille **déjà dans un autre de vos bars** : Sélectionnez le candidat dans la **dropdown liste** (affiche nom, rôle actuel, bar source) ou recherchez par **email/username**. Sélectionnez son nouveau **Rôle** dans ce bar et importez !',
+      elementSelector: '[data-guide="team-import-form"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '🔄 Évite doublons = Un compte pour multiple bars',
+        '📋 Dropdown affiche candidats disponibles dans vos autres bars',
+        '🔎 Recherche par email ou identifiant si candidate pas visible',
+        '⚙️ Rôle peut être différent dans chaque bar (ex: Serveur ici, Gérant ailleurs)',
+      ],
+    },
+
+    // ==================== ONGLET 3: ASSIGNATION CAISSES ====================
+    {
+      id: 'step-8',
+      emoji: '🔗',
+      title: 'Onglet 3: Assignation Caisses (Mode Simplifié)',
+      description:
+        'L\'**Onglet Assignation Caisses** configure les **mappings** entre noms courts de registres POS (ex: "Afi", "Fifi") et comptes serveurs réels. **Uniquement nécessaire en Mode Simplifié** (1 compte manager au comptoir, création manuelle ventes). Cette section peut être repliée par défaut.',
+      elementSelector: '[data-guide="team-mappings"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '⚙️ **Mode Simplifié** = 1 compte manager crée ventes + sélectionne serveur manuellement',
+        '🔗 Mappings = Lier noms (ex:"Afi") à vraies serveurs pour affichage correct',
+        '📍 Auto-populate = Bouton pour créer mappings auto depuis membres actifs',
+        '🚫 Pas nécessaire en Mode Complet (chaque serveur a son compte)',
+      ],
+    },
+
+    {
+      id: 'step-9',
+      emoji: '⚙️',
+      title: 'Configurer les Mappings Serveurs',
+      description:
+        '**Ajouter un mapping** : Saisissez le nom court du register (ex: "Afi") → Sélectionnez le serveur correspondant (dropdown) → Validez. **Supprimer** : Icône trash pour retirer mapping. **Auto-populate** : Bouton pour générer automatiquement mappings depuis vos membres actifs.',
+      elementSelector: '[data-guide="team-mappings-add"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '📝 Nom court = Identifiant simple (ex: "Afi", "Fifi", "Ali")',
+        '👤 Sélectionnez le vrai compte serveur associé',
+        '⚡ Auto-populate = Économise temps, crée mappings auto',
+        '🔐 Indispensable pour Mode Simplifié (sinon ventes non attribuées correctement)',
+      ],
+    },
+
+    // ==================== CONCLUSION ====================
+    {
+      id: 'step-10',
+      emoji: '✅',
+      title: 'Vous Maîtrisez Votre Équipe !',
+      description:
+        'Vous connaissez maintenant les **3 onglets** (Mon Équipe, Recrutement, Assignation Caisses), comment **ajouter/retirer membres**, **créer nouveaux comptes ou importer existants**, et configurer **mappings pour mode simplifié**. Vous êtes prêt à gérer votre équipe complètement !',
+      position: 'center',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '📊 Consultez Mon Équipe régulièrement pour vérifier statuts',
+        '👥 Recrutement = Continuer grandir équipe',
+        '🔗 Mappings = Essentiel en Mode Simplifié (sinon sales attribution problems)',
+        '⚙️ Vérifiez permissions = Ce que vous pouvez faire vs ce que vous ne pouvez pas',
+      ],
+      action: '→ Commencez à gérer votre équipe !',
     },
   ],
 };
@@ -843,10 +1200,10 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
 
   targetRoles: ['promoteur', 'gerant'],
 
-  estimatedDuration: 4,
+  estimatedDuration: 6,
   difficulty: 'intermediate',
   emoji: '⚙️',
-  version: 3,
+  version: 4,
 
   triggers: [
     {
@@ -858,63 +1215,211 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
   ],
 
   steps: [
+    // ==================== INTRODUCTION ====================
     {
       id: 'step-1',
-      emoji: '🛠️',
-      title: 'Configuration Globale',
-      description: 'Ajustez les réglages fondamentaux qui impactent votre comptabilité et votre sécurité au quotidien.',
+      emoji: '👋',
+      title: 'Bienvenue aux Paramètres !',
+      description:
+        'Votre système de **Paramètres** se divise en **3 onglets** pour configurer tous les aspects de votre bar : **Bar** (infos établissement), **Operational** (gestion: fermeture, consignations, devise, mode), **Security** (2FA). Tous ces réglages impactent votre comptabilité et sécurité quotidienne.',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '🔄 Basculez entre les 3 onglets pour configurer différents aspects',
+        '💾 Cliquez "Enregistrer" en bas pour sauvegarder vos modifications',
+        '❌ Cliquez "Annuler" pour abandonner sans sauvegarder',
+      ],
     },
+
+    // ==================== ONGLET 1: BAR ====================
     {
       id: 'step-2',
-      emoji: '📑',
-      title: 'Navigation par Onglets',
-      description: 'Tout est organisé en 4 sections : **Bar**, **Opérationnel**, **Général** et **Sécurité**.',
-      elementSelector: '[data-guide="settings-tabs"]',
+      emoji: '🏢',
+      title: 'Onglet 1: Infos Bar - Identification',
+      description:
+        'L\'**Onglet Bar** contient les informations d\'identification de votre établissement : **Nom du bar**, **Adresse**, **Téléphone**, **Email**. Ces infos apparaissent sur vos factures, rapports d\'export et communications officielles.',
+      elementSelector: '[data-guide="settings-bar"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
-      tips: ['Cliquez sur un onglet pour voir ses réglages spécifiques'],
+      tips: [
+        '📝 **Nom du bar** : Ex: "Le Privilège", "Le Spot", etc.',
+        '📍 **Adresse** : Complète pour factures (ex: Cotonou, Bénin)',
+        '📞 **Téléphone** : Contact principal (ex: +229 97 00 00 00)',
+        '📧 **Email** : Contact email official',
+      ],
     },
+
+    // ==================== ONGLET 2: OPERATIONAL ====================
     {
       id: 'step-3',
-      emoji: '🏢',
-      title: 'Infos de l\'Établissement',
-      description: 'Mettez à jour le **Nom**, l\'**Adresse** et les **Contacts** dans l\'onglet Bar pour vos factures et exports.',
-      elementSelector: '[data-guide="settings-content"]',
-      position: 'top',
+      emoji: '⚙️',
+      title: 'Onglet 2: Opérationnel - Gestion Globale',
+      description:
+        'L\'**Onglet Operational** centralise tous les réglages de gestion : **Heure de clôture** (journée commerciale), **Consignation expiration**, **Fréquence approvisionnement**, **Devise**, **Mode opérationnel** (Complet/Simplifié), et optionnellement **Switching mode**.',
+      elementSelector: '[data-guide="settings-operational"]',
+      position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
-      tips: ['Ces informations apparaissent sur vos rapports'],
+      tips: [
+        '🔧 Cet onglet = Cœur opérationnel de votre bar',
+        '💾 Modifications ici affectent journées commerciales + comptabilité',
+        '⏰ Closing hour très important = définit limite retours/ventes',
+      ],
     },
+
     {
       id: 'step-4',
       emoji: '🌙',
-      title: 'Heure de Clôture & Journée Commerciale',
-      description: 'Définissez l\'heure de fin de votre journée de travail (ex: 06h). C\'est ce qui définit votre **Journée Commerciale**.\n\n**Exemple** : Avec une clôture à 06h00, une vente faite à **02h00 du matin** le mardi sera comptabilisée dans la journée du **lundi**. Cela permet de garder une comptabilité cohérente pour vos soirées !',
-      elementSelector: '[data-guide="settings-content"]',
-      position: 'top',
-      visibleFor: ['promoteur'],
-      tips: ['Configurez ceci dans l\'onglet "Opérationnel"'],
+      title: 'Closing Hour (Heure de Clôture)',
+      description:
+        '**Heure de clôture** = fin de votre **Journée Commerciale** (ex: 06h matin pour bar de nuit). Toute vente **avant** cette heure appartient à la journée d\'hier, toute vente **après** appartient à aujourd\'hui.\n\n**Exemple clé** : Avec fermeture à 06h00, une vente à **02h00 du matin mardi** est comptabilisée en **lundi** (garder comptabilité cohérente nuits).',
+      elementSelector: '[data-guide="settings-closing-hour"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '⏰ Gamme: 0h (minuit) à 23h',
+        '🌙 Bars de nuit = généralement 6h, 7h, ou 8h',
+        '📊 Affecte: Retours (avant fermeture seulement), Analytics, Rapports',
+        '⚠️ Changement = réorganise dates ventes historiques!',
+      ],
     },
+
     {
       id: 'step-5',
-      emoji: '⚙️',
-      title: 'Mode Complet vs Simplifié',
-      description: 'Choisissez la méthode d\'attribution des ventes :\n\n• **Mode Complet** : Chaque serveur utilise son propre compte (ex: sur son téléphone) et crée ses propres ventes (à valider par un compte manager dans le menu tableau de bord).\n• **Mode Simplifié** : Un seul compte manager (ex:gérant au comptoir). Le gérant crée la vente et sélectionne manuellement le serveur (ex: "Afi", "Fifi") à l\'origine lors de la validation.',
-      elementSelector: '[data-guide="settings-content"]',
-      position: 'top',
-      visibleFor: ['promoteur'],
-      tips: ['Le mode Simplifié nécessite de déplier et configurer les "Mappings Serveurs"'],
+      emoji: '📦',
+      title: 'Consignation Expiration & Supply Frequency',
+      description:
+        '**Consignation Expiration** : Combien de jours avant qu\'une consignation expire? (1-30 jours, défaut 7j). Passé cette date, gérant peut confisquer.\n\n**Supply Frequency** : Intervalle moyen entre approvisionnements (1-30 jours). Utilisé pour alertes stock prédictives.',
+      elementSelector: '[data-guide="settings-expiration"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '📦 Consignation = Produits payés mais laissés au bar (mise de côté)',
+        '⏳ Expiration = Délai avant confiscation (réintégration stock)',
+        '🚚 Supply Frequency = Aider prédire quand approvisionnement nécessaire',
+        '🔢 Valeurs typiques: Consignation 5-14j, Supply 3-7j',
+      ],
     },
+
     {
       id: 'step-6',
+      emoji: '💱',
+      title: 'Devise (Currency)',
+      description:
+        '**Devise** = Monnaie de votre établissement. Choix de **4 devises ouest-africaines** : **FCFA (XOF)**, **XAF**, **NGN (Naira)**, **GHS (Cedi)**. Sélectionnez la devise qui s\'affiche partout (prix, CA, rapports).',
+      elementSelector: '[data-guide="settings-currency"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '💰 FCFA (XOF) = Bénin, Sénégal, Côte d\'Ivoire',
+        '💴 XAF = Cameroun, Gabon, Congo',
+        '₦ NGN = Nigeria',
+        '₵ GHS = Ghana',
+        '🔄 Changement = Affecte TOUS les affichages prix/CA',
+      ],
+    },
+
+    {
+      id: 'step-7',
+      emoji: '🔄',
+      title: 'Mode Opérationnel: Complet vs Simplifié',
+      description:
+        '**Mode Complet** : Chaque serveur a son **compte personnel** (téléphone), crée ses propres ventes (validées par manager dans dashboard).\n\n**Mode Simplifié** : **1 compte manager** (comptoir), crée TOUTES les ventes et sélectionne manuellement qui (Afi, Fifi) à chaque vente. Nécessite **Mappings Serveurs**.',
+      elementSelector: '[data-guide="settings-operating-mode"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '👤 **Complet** = Chaque serveur: compte + création vente',
+        '🔒 **Simplifié** = Manager centralisé + attribution manuelle',
+        '🔗 **Simplifié** = Nécessite configurer Mappings (noms courts → vraies serveurs)',
+        '⚡ Changement de mode = Réfléchissez bien (affecte workflow)',
+      ],
+    },
+
+    {
+      id: 'step-8',
+      emoji: '🔗',
+      title: 'Switching Mode Configuration (Mode Simplifié)',
+      description:
+        'Si vous choisissez **Mode Simplifié**, une section **Assignation Caisses** apparaît pour configurer **Mappings Serveurs** : lier noms courts (ex: "Afi") à vrais comptes serveurs pour attribution correcte ventes.',
+      elementSelector: '[data-guide="settings-switching-mode"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '🔗 Mappings = Lier noms courts → serveurs réels',
+        '📝 Exemple: "Afi" → Afiwa, "Fifi" → Félicitée',
+        '⚡ Auto-populate = Bouton pour générer auto depuis membres actifs',
+        '🚫 Sans mappings = Ventes mode simplifié ne sont pas attribuées!',
+      ],
+    },
+
+    // ==================== ONGLET 3: SECURITY ====================
+    {
+      id: 'step-9',
       emoji: '🛡️',
-      title: 'Sécurité (2FA)',
-      description: 'Activez la **Double Authentification (2FA)** dans l\'onglet Sécurité pour protéger vos revenus et données sensibles.',
-      elementSelector: '[data-guide="settings-content"]',
-      position: 'top',
-      visibleFor: ['promoteur'],
-      tips: ['Utilisez Google Authenticator ou Authy pour scanner le QR Code'],
+      title: 'Onglet 3: Sécurité - Protection 2FA',
+      description:
+        'L\'**Onglet Sécurité** protège votre compte avec **Double Authentification (2FA)**. Activez 2FA pour ajouter une couche de sécurité : même si quelqu\'un a votre password, il ne peut se connecter sans votre téléphone.',
+      elementSelector: '[data-guide="settings-security"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '🔐 2FA = Sécurité critique pour protection données/finances',
+        '📱 Fonctionne avec: Google Authenticator, Authy, Microsoft Authenticator',
+        '✅ Fortement recommandé pour comptes manager/promoteur',
+      ],
+    },
+
+    {
+      id: 'step-10',
+      emoji: '🔐',
+      title: 'Activer 2FA (Double Authentification)',
+      description:
+        '**Pour activer 2FA** : Cliquez "Activer la 2FA" → Scannez le **QR Code** avec votre app Authenticator (Google Authenticator, Authy) → Saisissez le **code 6 chiffres** généré → "Vérifier et Activer". Votre compte est maintenant **doublement protégé**.',
+      elementSelector: '[data-guide="settings-2fa"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '1️⃣ Cliquez "Activer 2FA"',
+        '2️⃣ Installez app si pas déjà: Google Authenticator (iOS/Android)',
+        '3️⃣ Scannez QR Code affiché',
+        '4️⃣ Entrez code 6 chiffres de l\'app',
+        '5️⃣ 2FA activée! Chaque connexion demande le code',
+      ],
+    },
+
+    {
+      id: 'step-11',
+      emoji: '⚠️',
+      title: 'Sauvegarder & Désactiver 2FA',
+      description:
+        '**Sauvegarder** : N\'oubliez pas de cliquer "Enregistrer" en bas pour valider vos modifications (bar infos, paramètres operationnels). **Désactiver 2FA** : Si vous avez perdu accès à votre app Authenticator, cliquez "Désactiver 2FA" (nécessite vérification identité).',
+      elementSelector: '[data-guide="settings-actions"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '💾 Cliquez "Enregistrer" APRÈS modifications',
+        '❌ Cliquez "Annuler" pour abandonner',
+        '⚠️ Désactiver 2FA = Vérification sécurité requise',
+        '🔐 Garde une sauvegarde du code secret en lieu sûr!',
+      ],
+    },
+
+    // ==================== CONCLUSION ====================
+    {
+      id: 'step-12',
+      emoji: '✅',
+      title: 'Vous Maîtrisez la Configuration !',
+      description:
+        'Vous connaissez maintenant les **3 onglets** (Bar, Operational, Security), comment configurer **infos bar**, **heure de clôture**, **consignations**, **devise**, **mode opérationnel**, et protéger votre compte avec **2FA**. Votre bar est maintenant correctement configuré et sécurisé!',
+      position: 'center',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '⚙️ Vérifiez Closing Hour = Impacte TOUT (retours, journées, comptabilité)',
+        '🔄 Mode Opérationnel = Choix important (affecte workflow serveurs)',
+        '🔗 Mode Simplifié = Configurez Mappings sinon attribution cassée',
+        '🛡️ Activez 2FA = Protection critique pour votre sécurité',
+      ],
+      action: '→ Vérifiez et sauvegardez vos paramètres !',
     },
   ],
 };
@@ -931,10 +1436,10 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
 
   targetRoles: ['promoteur', 'gerant'],
 
-  estimatedDuration: 4,
+  estimatedDuration: 7,
   difficulty: 'intermediate',
   emoji: '🎁',
-  version: 1,
+  version: 2,
 
   triggers: [
     {
@@ -948,128 +1453,543 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
   steps: [
     {
       id: 'step-1',
-      emoji: '🎯',
-      title: 'Bienvenue aux Promotions !',
+      emoji: '🎁',
+      title: 'Bienvenue à la Gestion des Promotions !',
       description:
-        'Les promotions sont un outil puissant pour augmenter vos ventes et fidéliser votre clientèle. Happy hours, offres spéciales, lots... tout est possible !',
+        'Les promotions sont votre outil principal pour augmenter les ventes et fidéliser les clients. Cet espace est organisé en **3 onglets** :\n\n• **Catalogue d\'Offres** : Gérez vos promotions existantes (liste, recherche, création, activation, suppression)\n• **Analyses** : Suivez les performances (CA, Utilisations, Profit, ROI) par promotion\n• **Nouvelle Promotion** : Créez ou modifiez une promotion avec ses 6 types possibles',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
+        '6 types de promotions possibles : Unitaire, Pourcentage, Offre Groupée, Prix Fixe, Sur Vente, Majoration',
+        '3 niveaux de ciblage : Tout le menu, Par catégorie, Par produit',
         'Le système calcule automatiquement le meilleur prix pour le client',
-        'Les majorations (ex: tarifs de nuit) sont aussi gérées ici',
-        'Suivez les performances (ROI, Marge) dans l\'onglet Analytics',
       ],
     },
 
+    // ============= ONGLET 1: CATALOGUE D'OFFRES =============
     {
       id: 'step-2',
-      emoji: '🔍',
-      title: 'Recherche et Filtres',
+      emoji: '📋',
+      title: 'Onglet 1 : Catalogue d\'Offres',
       description:
-        'Utilisez la barre de recherche et les filtres pour trouver rapidement vos promotions : actives, programmées, expirées ou en brouillon.',
-      elementSelector: '[data-guide="promotions-search"]',
+        'Cet onglet affiche la **liste de toutes vos promotions** sous forme de cartes. Chaque carte montre le statut, les détails clés et les actions disponibles.',
+      elementSelector: '[data-guide="promo-catalog"]',
       position: 'bottom',
-      action: 'Recherchez ou filtrez vos promotions',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        'Filtrez par statut pour voir uniquement les promotions actives',
-        'Recherchez par nom pour retrouver une promotion spécifique',
+        '📌 Les promotions sont triées par statut : Actives, Programmées, En pause, Expirées, Brouillon',
+        '🔄 Les statuts peuvent être : Actif (bande verte), Programmé (bande grise), En pause (symbole pause), Expiré (grisé)',
       ],
     },
 
     {
       id: 'step-3',
-      emoji: '➕',
-      title: 'Types d\'offres et Création',
+      emoji: '🔍',
+      title: 'Rechercher et Filtrer',
       description:
-        'Choisissez parmi 6 types d\'offres :\n\n• **Lôts (Offre groupée)** : ex: "3 bières pour 1000 FCFA au lieu de 1050".\n• **Réduction par unité** : ex: "-50 FCFA sur chaque bouteille".\n• **Pourcentage** : ex: "-10% le Happy Hour".\n• **Prix spécial** : ex: "Heineken à 300 FCFA".\n• **Majoration** : ex: "+100 FCFA par unité (Tarif de nuit)".',
-      elementSelector: '[data-guide="promo-types"]',
+        'Utilisez la **barre de recherche** pour trouver rapidement une promotion par nom, ou les **filtres** pour afficher uniquement celles qui vous intéressent.',
+      elementSelector: '[data-guide="promotions-search"]',
       position: 'bottom',
+      action: 'Essayez de rechercher ou filtrer',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        'Pour les lôts (3 pour 1000), le système gère automatiquement le prix des unités supplémentaires (ex: si j\'en prends 4)',
-        'Les majorations permettent d\'augmenter le prix unitaire temporairement',
+        '🔎 Recherchez par nom de promotion (ex: "Happy Hour Lundi")',
+        '⏱️ Filtrez par statut : Actives, Programmées, En pause, Expirées, Brouillon',
+        '📊 Combinez recherche et filtres pour affiner votre sélection',
       ],
     },
 
     {
       id: 'step-4',
-      emoji: '📅',
-      title: 'Programmation et Validité',
+      emoji: '➕',
+      title: 'Créer une Nouvelle Promotion',
       description:
-        'Définissez les dates de début et de fin de votre promotion. Programmez vos happy hours ou vos offres saisonnières à l\'avance.',
-      elementSelector: '[data-guide="promotions-dates"]',
+        'Le **bouton "Nouvelle Promotion"** accède à l\'onglet 3 (formulaire). Chaque promotion créée apparaît dans ce catalogue. Les actions de chaque carte permettent de **modifier, prévisualiser, mettre en pause ou supprimer** une promotion existante.',
+      elementSelector: '[data-guide="promo-create-button"]',
       position: 'bottom',
-      action: 'Configurez les dates de validité',
+      action: 'Repérez le bouton Nouvelle Promotion',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        'Happy hour : tous les jours de 17h à 19h',
-        'Week-end promo : du vendredi 18h au dimanche 23h',
-        'Offre limitée : valable uniquement le 31 décembre',
+        '✏️ Au survol d\'une carte, les actions s\'affichent : Modifier, Aperçu, Pause/Jouer, Supprimer',
+        '🗑️ La suppression d\'une promotion n\'affecte pas les ventes déjà effectuées',
+        '⏸️ Mettre en pause vous permet de tester différentes offres',
       ],
     },
 
+    // ============= ONGLET 2: ANALYSES =============
     {
       id: 'step-5',
-      emoji: '🎯',
-      title: 'Précision du Ciblage',
+      emoji: '📊',
+      title: 'Onglet 2 : Analyses',
       description:
-        'Soyez sélectif pour protéger vos marges :\n\n• **Tout le menu** : Offre globale sur le bar.\n• **Par catégorie** : ex: promo uniquement sur les "Bières".\n• **Par produit** : ex: promo spécifique sur la "Flag 33cl".',
-      elementSelector: '[data-guide="promo-targeting"]',
+        'Cet onglet vous montre les **performances de vos promotions** en temps réel. Vous y trouvez les KPIs clés (CA, Utilisations, Profit, ROI) et un classement des meilleures offres.',
+      elementSelector: '[data-guide="promo-analytics"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        'Ciblez par catégorie pour écouler un type de stock spécifique',
-        'Combinez avec les horaires pour créer des Happy Hours ciblés',
+        '📈 Les données s\'actualisent en temps réel',
+        '🎯 Identifiez rapidement vos meilleures et pires promotions',
       ],
     },
 
     {
       id: 'step-6',
-      emoji: '▶️',
-      title: 'Activer / Mettre en Pause',
+      emoji: '📉',
+      title: 'KPIs : Métriques Clés',
       description:
-        'Vous pouvez activer, mettre en pause ou arrêter une promotion à tout moment. Utile pour tester ou ajuster vos offres en temps réel.',
-      elementSelector: '[data-guide="promotions-status"]',
+        'Quatre **cartes de synthèse** en haut de l\'onglet Analyses :\n\n• **Chiffre d\'Affaires (CA)** : Montant total généré par les promotions\n• **Utilisations** : Nombre de fois où vos promotions ont été appliquées\n• **Profit Net** : Gain réel après coût des produits\n• **ROI (Retour sur Investissement)** : Performance comparée à l\'investissement',
+      elementSelector: '[data-guide="promo-kpis"]',
       position: 'top',
-      action: 'Gérez le statut de vos promotions',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        'Mettez en pause une promo qui ne performe pas',
-        'Réactivez une promo pour un événement spécial',
-        'Les promotions expirées restent visibles dans l\'historique',
+        '💰 Le Profit Net dépend de vos marges produit (défini dans Inventaire)',
+        '📊 Un ROI > 100% signifie votre promo est très rentable',
+        '🎯 Ciblez les promotions avec ROI élevé et marge stable',
       ],
     },
 
     {
       id: 'step-7',
-      emoji: '📈',
-      title: 'Profitabilité & ROI',
+      emoji: '🏆',
+      title: 'Classement des Meilleures Promotions',
       description:
-        'Ne naviguez pas à vue ! Suivez la rentabilité réelle :\n\n• **Profit Net** : Gain réel après déduction du coût des produits.\n• **ROI (Retour sur Investissement)** : Performance de l\'offre par rapport à son coût.\n• **Marge %** : Santé financière de votre promotion.',
-      elementSelector: '[data-guide="promo-kpis"]',
+        'Un **tableau de performance** classe vos promotions par score composite (0-99). Les meilleures en haut : celles qui génèrent le plus de profit et d\'utilisation avec un bon ROI.',
+      elementSelector: '[data-guide="promo-ranking"]',
+      position: 'top',
+      action: 'Consultez le classement',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '⭐ Score composite = combinaison de profit, utilisations et ROI',
+        '📅 Comparez les périodes (jour, semaine, mois) avec les filtres',
+        '🔄 Les promotions avec bons scores méritent d\'être réactivées',
+      ],
+    },
+
+    // ============= ONGLET 3: NOUVELLE PROMOTION (FORMULAIRE) =============
+    {
+      id: 'step-8',
+      emoji: '🎨',
+      title: 'Onglet 3 : Nouvelle Promotion (Formulaire)',
+      description:
+        'Cet onglet contient le **formulaire de création/modification**. Organisé en **4 sections** :\n\n• **Identité** : Nom, Description\n• **Mécanisme** : Type d\'offre (6 choix possibles)\n• **Ciblage** : Quoi promouvoir (Tout, Catégories, Produits)\n• **Période** : Quand appliquer la promotion (Dates, Horaires)',
+      elementSelector: '[data-guide="promo-form"]',
       position: 'top',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        'Une promotion réussie doit avoir un ROI élevé et une marge stable',
-        'Vérifiez le tableau "Top Performance" pour voir quelle offre génère le plus de profit net',
+        '📋 Remplissez les sections dans l\'ordre proposé',
+        '💾 Les brouillons se sauvegardent automatiquement',
+        '👁️ Une prévisualisation apparaît en bas du formulaire',
       ],
     },
 
     {
-      id: 'step-8',
-      emoji: '✅',
-      title: 'Prêt à Booster Vos Ventes !',
+      id: 'step-9',
+      emoji: '🏷️',
+      title: 'Section 1 - Identité',
       description:
-        'Vous maîtrisez maintenant les promotions. Créez des offres attractives, programmez vos happy hours et suivez leur impact sur votre chiffre d\'affaires !',
+        'Commencez par **identifier votre promotion** :\n\n• **Nom** : ex: "Happy Hour Lundi", "Offre Noël", "Bières en Promotion"\n• **Description** : Contexte interne, raison de l\'offre, cible client',
+      elementSelector: '[data-guide="promo-identity"]',
+      position: 'bottom',
+      action: 'Donnez un nom clair à votre promotion',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '📝 Un nom clair aide à retrouver votre promo rapidement',
+        '💡 Exemple : au lieu de "Promo 1", écrivez "Heineken -50 FCFA Week-end"',
+      ],
+    },
+
+    {
+      id: 'step-10',
+      emoji: '⚙️',
+      title: 'Section 2 - Mécanisme (6 Types)',
+      description:
+        'Choisissez le **type d\'offre** parmi 6 options :\n\n1. **Unitaire** : ex: "-50 FCFA par bouteille" (prix réduit = prix fixe - montant)\n2. **Pourcentage** : ex: "-10%" (prix réduit = prix fixe × (100% - pourcentage))\n3. **Offre Groupée (Lôts)** : ex: "3 pour 1000 FCFA" (prix fixe pour un lot complet)\n4. **Prix Fixe** : ex: "Heineken à 300 FCFA" (remplace le prix d\'origine)\n5. **Sur Vente** : ex: "-5% si achat > 5000 FCFA" (reduction appliquée sur montant total)\n6. **Majoration** : ex: "+100 FCFA de nuit" (augmentation temporaire du prix)',
+      elementSelector: '[data-guide="promo-mechanism"]',
+      position: 'bottom',
+      action: 'Sélectionnez un type d\'offre',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '🎯 **Unitaire** est le plus courant (ex: réduction fixe par article)',
+        '📦 **Lôts** pour écouler du stock groupé (ex: 3 bières pour une price spéciale)',
+        '🌙 **Majoration** pour tarifs dynamiques (tarif de nuit, tarif événement)',
+        '💰 Le système gère automatiquement les cas limites (ex: 3 lôts = 9 articles)',
+      ],
+    },
+
+    {
+      id: 'step-11',
+      emoji: '🎯',
+      title: 'Section 3 - Ciblage (3 Niveaux)',
+      description:
+        'Définissez **quoi promouvoir** pour protéger vos marges :\n\n• **Tout le menu** : Promo globale sur toutes les ventes\n• **Par catégorie** : Ex: Promo uniquement sur "Bières" ou "Sodas"\n• **Par produit** : Ex: Promo spécifique sur "Heineken 50cl" ou "Coca-Cola"',
+      elementSelector: '[data-guide="promo-targeting"]',
+      position: 'bottom',
+      action: 'Choisissez un niveau de ciblage',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '🔒 Cibler par catégorie = meilleur compromis marge/volume',
+        '📊 Cibler par produit = écouler un stock spécifique',
+        '🌍 "Tout le menu" = promo globale (Happy Hour general)',
+      ],
+    },
+
+    {
+      id: 'step-12',
+      emoji: '📅',
+      title: 'Section 4 - Période',
+      description:
+        'Programmez **quand appliquer** la promotion :\n\n• **Date début/fin** : Ex: "1 déc - 31 déc" (période fixe) ou "Sans limite" (permanent)\n• **Horaires** : Ex: "17:00-19:00" (Happy Hour spécifique) ou "00:00-23:59" (toute la journée)\n• **Jours de la semaine** : Lundi à dimanche (cochez les jours concernés)',
+      elementSelector: '[data-guide="promo-period"]',
+      position: 'bottom',
+      action: 'Configurez la validité',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '⏰ Programmez à l\'avance : Happy Hours quotidiens, promos saisonnières, offres limitées',
+        '📆 "Sans limite" pour une promotion permanente (mais vérifiable en Analyses)',
+        '🕐 Horaires = utile pour Happy Hours (17:00-19:00 chaque jour)',
+        '🔄 Vous pouvez programmer et mettre en pause à tout moment',
+      ],
+    },
+
+    {
+      id: 'step-13',
+      emoji: '✅',
+      title: 'Créer & Optimiser vos Promotions !',
+      description:
+        'Vous maîtrisez maintenant la création de promotions. Créez des offres attractives, programmez vos happy hours, et **consultez régulièrement l\'onglet Analyses** pour optimiser vos meilleures offres.',
       position: 'center',
       action: 'Cliquez sur Terminer pour commencer',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        'Testez différentes offres pour voir ce qui fonctionne',
-        'Communiquez vos promotions à vos clients (réseaux sociaux, affichage)',
-        'Analysez régulièrement les performances pour optimiser vos offres',
-        'N\'hésitez pas à ajuster ou arrêter les promos qui ne marchent pas',
+        '🚀 Commencez par des promotions simples (Unitaire ou Lôts)',
+        '📊 Testez et ajustez rapidement en fonction des Analyses',
+        '💡 Communiquez vos offres aux clients (réseaux, affichage, serveurs)',
+        '🎯 Concentrez-vous sur les offres avec ROI > 100% et marge stable',
+      ],
+    },
+  ],
+};
+
+/**
+ * Guide 9: My Profile (All Roles)
+ * Universal guide for all account types
+ */
+export const PROFILE_GUIDE: GuideTour = {
+  id: 'my-profile',
+  title: 'Mon Profil Utilisateur',
+  subtitle: 'Gérez vos informations et votre sécurité',
+  description: 'Accédez à vos informations personnelles, changez votre mot de passe et consultez votre statut de certification.',
+
+  targetRoles: ['serveur', 'gerant', 'promoteur'],
+
+  estimatedDuration: 5,
+  difficulty: 'beginner',
+  emoji: '👤',
+  version: 1,
+
+  triggers: [
+    {
+      type: 'onMount',
+      condition: 'isProfilePage',
+      delay: 1500,
+      showOnce: false,
+    },
+  ],
+
+  steps: [
+    {
+      id: 'step-1',
+      emoji: '👤',
+      title: 'Bienvenue sur Mon Profil !',
+      description:
+        'Cet espace est accessible à **tous les comptes** (serveurs, gérants, promoteurs). Vous y gérez vos **informations personnelles**, votre **sécurité** (mot de passe) et consultez votre **statut de formation**. Le profil est organisé en **3 onglets** plus une **carte d\'identification** à droite.',
+      position: 'center',
+      visibleFor: ['serveur', 'gerant', 'promoteur'],
+      tips: [
+        '👤 **3 onglets** : Informations, Sécurité, Formation',
+        '🎫 **Carte d\'ID** : Affiche vos données clés (username, rôle, dates, certification)',
+        '🔒 Vos données sont sécurisées et privées',
+      ],
+    },
+
+    // ============= ONGLET 1: INFORMATIONS =============
+    {
+      id: 'step-2',
+      emoji: '👤',
+      title: 'Onglet 1 : Informations Personnelles',
+      description:
+        'Cet onglet permet de **mettre à jour vos informations** : **Nom Complet** (requis), **Email** (optionnel) et **Téléphone** (optionnel). Tous les champs se sauvegardent en cliquant sur "Sauvegarder les modifications".',
+      elementSelector: '[data-guide="profile-info"]',
+      position: 'bottom',
+      visibleFor: ['serveur', 'gerant', 'promoteur'],
+      tips: [
+        '✏️ **Nom Complet** : Champ obligatoire (utilisé sur la carte d\'ID)',
+        '📧 **Email** : Optionnel (laissez vide si vous n\'en avez pas)',
+        '📞 **Téléphone** : Optionnel (format : ex "01 02 03 04 05")',
+      ],
+    },
+
+    {
+      id: 'step-3',
+      emoji: '💾',
+      title: 'Sauvegarder vos Modifications',
+      description:
+        'Une fois vos informations mises à jour (au minimum le Nom), cliquez sur le **bouton "Sauvegarder les modifications"**. Un message de succès s\'affichera et vos données seront mises à jour partout dans l\'application.',
+      elementSelector: '[data-guide="save-info-btn"]',
+      position: 'top',
+      action: 'Modifiez et sauvegardez',
+      visibleFor: ['serveur', 'gerant', 'promoteur'],
+      tips: [
+        '✅ Message vert = sauvegarde réussie',
+        '❌ Erreur en rouge = une modification n\'a pas pu être sauvegardée',
+        '⏱️ Données mises à jour en temps réel partout dans l\'app',
+      ],
+    },
+
+    // ============= ONGLET 2: SÉCURITÉ =============
+    {
+      id: 'step-4',
+      emoji: '🔒',
+      title: 'Onglet 2 : Sécurité - Changer votre Mot de Passe',
+      description:
+        'Cet onglet est dédié à la **sécurité de votre compte**. Vous devez entrer votre **mot de passe actuel** (vérification), puis définir un **nouveau mot de passe** et le **confirmer**. Les deux nouveaux mots de passe doivent correspondre.',
+      elementSelector: '[data-guide="profile-security"]',
+      position: 'bottom',
+      visibleFor: ['serveur', 'gerant', 'promoteur'],
+      tips: [
+        '🔐 Le mot de passe actuel est demandé pour la sécurité',
+        '👁️ Utilisez les **yeux** pour afficher/masquer les mots de passe',
+        '✅ Bouton activé uniquement si les deux nouveaux mots de passe correspondent',
+      ],
+    },
+
+    {
+      id: 'step-5',
+      emoji: '🛡️',
+      title: 'Conseils de Sécurité pour votre Mot de Passe',
+      description:
+        'Un encadré bleu affiche les **4 critères minimums** pour un mot de passe sûr :\n\n• **Minimum 8 caractères**\n• **Majuscules & Minuscules** (ex: AaBbCc)\n• **Chiffres & Signes** (ex: 123 !@#)\n• **Différent du précédent** (sécurité renforcée)',
+      elementSelector: '[data-guide="password-tips"]',
+      position: 'top',
+      visibleFor: ['serveur', 'gerant', 'promoteur'],
+      tips: [
+        '💪 Suivez ces 4 critères pour un mot de passe vraiment sûr',
+        '🚫 Ne réutilisez PAS d\'anciens mots de passe',
+        '🔄 Changez votre mot de passe régulièrement (tous les 3 mois)',
+        '⚠️ Ne partagez jamais votre mot de passe avec quiconque',
+      ],
+    },
+
+    {
+      id: 'step-6',
+      emoji: '✅',
+      title: 'Valider le Changement de Mot de Passe',
+      description:
+        'Une fois les 3 champs remplis et les critères respectés, cliquez sur **"Mettre à jour le mot de passe"**. Un message de succès confirme que votre mot de passe a été changé. Vous pouvez vous reconnecter avec le nouveau mot de passe.',
+      elementSelector: '[data-guide="update-password-btn"]',
+      position: 'top',
+      action: 'Changez votre mot de passe',
+      visibleFor: ['serveur', 'gerant', 'promoteur'],
+      tips: [
+        '✅ Succès = mot de passe accepté et changé',
+        '❌ Erreur = vérifiez que les 2 nouveaux mots de passe correspondent',
+        '🔄 Après changement, gardez le nouveau mot de passe en sécurité',
+      ],
+    },
+
+    // ============= ONGLET 3: FORMATION =============
+    {
+      id: 'step-7',
+      emoji: '🎓',
+      title: 'Onglet 3 : Formation',
+      description:
+        'Cet onglet affiche votre **statut de certification et de formation**. Vous y trouvez les modules d\'apprentissage disponibles pour maîtriser l\'application. La certification est requise pour accéder à certaines fonctionnalités avancées.',
+      elementSelector: '[data-guide="profile-training"]',
+      position: 'bottom',
+      visibleFor: ['serveur', 'gerant', 'promoteur'],
+      tips: [
+        '📚 Consultez et complétez les modules de formation',
+        '✅ Statut "Certifié" = vous avez terminé la formation requise',
+        '⏳ Statut "En attente" = complétez la formation pour avancer',
+      ],
+    },
+
+    // ============= CARTE D'ID =============
+    {
+      id: 'step-8',
+      emoji: '🎫',
+      title: 'Votre Carte d\'Identification BarTender',
+      description:
+        'À **droite du formulaire**, votre **carte d\'ID personnalisée** affiche :\n\n• **Avatar** avec vos initiales\n• **Rôle** (Serveur, Gérant, Promoteur)\n• **Identifiant Système** (@username unique)\n• **Membre depuis** : Date de création de votre compte\n• **Dernier accès** : Quand vous vous êtes connecté la dernière fois\n• **Certification Formation** : ✓ Certifié ou ⏳ En attente',
+      elementSelector: '[data-guide="profile-id-card"]',
+      position: 'left',
+      visibleFor: ['serveur', 'gerant', 'promoteur'],
+      tips: [
+        '👤 Initiales = extraites de votre nom (ex: Jean Dupont = JD)',
+        '🔐 @username = identifiant unique immuable',
+        '📅 Dates = utiles pour archivage ou sécurité',
+        '🎓 Certification = validation que vous maîtrisez l\'app',
+      ],
+    },
+
+    {
+      id: 'step-9',
+      emoji: '✅',
+      title: 'Votre Profil est Maintenant Sécurisé !',
+      description:
+        'Vous connaissez maintenant votre espace Mon Profil. Vous pouvez : **mettre à jour vos infos personnelles**, **sécuriser votre compte** avec un nouveau mot de passe, **consulter votre formation** et **vérifier votre carte d\'ID**. Votre compte est entre vos mains !',
+      position: 'center',
+      action: 'Cliquez sur Terminer',
+      visibleFor: ['serveur', 'gerant', 'promoteur'],
+      tips: [
+        '🔒 Gardez votre mot de passe en sécurité',
+        '✏️ Mettez à jour votre profil si vos infos changent',
+        '📚 Complétez la formation pour rester à jour',
+        '💡 Mon Profil est accessible en cliquant sur votre avatar en haut',
+      ],
+    },
+  ],
+};
+
+/**
+ * Guide 10: Forecasting & AI (Managers/Promoters only)
+ * Informational guide for placeholder features (in development)
+ */
+export const FORECASTING_AI_GUIDE: GuideTour = {
+  id: 'forecasting-guide',
+  title: 'Prévisions et IA',
+  subtitle: 'Analyses prédictives et assistant intelligent',
+  description: 'Découvrez les fonctionnalités de prévisions et d\'assistant IA en cours de développement pour optimiser vos opérations.',
+
+  targetRoles: ['promoteur', 'gerant'],
+
+  estimatedDuration: 3,
+  difficulty: 'beginner',
+  emoji: '📈',
+  version: 1,
+
+  triggers: [
+    {
+      type: 'onMount',
+      condition: 'isForecastingPage',
+      delay: 1500,
+      showOnce: false,
+    },
+  ],
+
+  steps: [
+    {
+      id: 'step-1',
+      emoji: '📈',
+      title: 'Bienvenue aux Prévisions et IA !',
+      description:
+        'Cet espace est dédié aux **analyses prédictives** et aux **fonctionnalités d\'IA** pour vous aider à optimiser votre bar. Actuellement, vous trouvez **2 onglets** : **Prévisions de Ventes** (en construction) et **Assistant Intelligent IA** (à venir). Ces fonctionnalités arrivent prochainement !',
+      position: 'center',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '📊 **Prévisions de Ventes** : Analyses prédictives basées sur vos données historiques',
+        '🤖 **Assistant IA** : Coach personnel pour répondre à vos questions sur la rentabilité',
+        '⏳ Fonctionnalités en cours de développement - restez connecté pour les mises à jour',
+      ],
+    },
+
+    // ============= ONGLET 1: PRÉVISIONS DE VENTES =============
+    {
+      id: 'step-2',
+      emoji: '📊',
+      title: 'Onglet 1 : Prévisions de Ventes',
+      description:
+        'Cet onglet affichera bientôt vos **analyses prédictives basées sur vos données de ventes**. Une vision stratégique listant **4 points clés** :\n\n• **CA estimé sur le mois prochain** : Projection de chiffre d\'affaires futur\n• **Optimisation des heures de pointe** : Identifiez quand vos clients achètent le plus\n• **Tendance de consommation hebdomadaire** : Patterns et variations par jour/semaine\n• **Ajustement dynamique des marges** : Recommandations pour optimiser vos marges',
+      elementSelector: '[data-guide="sales-forecast"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '💰 **CA estimé** = Chiffre d\'affaires prévu (vous aide à budgétiser)',
+        '📈 **Heures de pointe** = Optimisez votre staffing et stock',
+        '📅 **Tendance hebdo** = Adaptez vos promotions selon les jours',
+        '💵 **Marges dynamiques** = Prix variables pour maximiser profit',
+      ],
+    },
+
+    {
+      id: 'step-3',
+      emoji: '💡',
+      title: 'Vision Stratégique Future',
+      description:
+        'La vision stratégique à venir inclura des **recommandations intelligentes** basées sur l\'analyse de vos tendances de ventes. Ces analyses vous permettront de :\n\n• Anticiper la demande et ajuster votre stock\n• Programmer vos promotions au moment optimal\n• Maximiser vos profits grâce à des marges variables\n• Prendre des décisions basées sur des données fiables',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '🎯 Ces analyses vous aident à **décider** plutôt que de suivre l\'intuition',
+        '📦 Connexion avec Inventaire : Suggestions d\'approvisionnement intelligentes',
+        '💹 Impact direct sur votre rentabilité et croissance',
+      ],
+    },
+
+    // ============= ONGLET 2: ASSISTANT IA =============
+    {
+      id: 'step-4',
+      emoji: '🤖',
+      title: 'Onglet 2 : Assistant Intelligent IA',
+      description:
+        'Cet onglet accueillera bientôt votre **coach personnel entraîné sur vos données**. Un assistant conversationnel capable de :\n\n• Répondre à vos questions sur la **rentabilité**\n• Analyser vos **performances de ventes**\n• Proposer des **stratégies d\'optimisation**\n• Fouiller vos données pour des **insights actionnables**',
+      elementSelector: '[data-guide="ai-assistant"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '💬 Assistant conversationnel = Posez vos questions en langage naturel',
+        '🧠 Entraîné sur **vos données** = Recommandations personnalisées',
+        '🔍 Analyse en profondeur = Pourquoi vos meilleures/pires jours ?',
+        '⏳ Intégration d\'un modèle d\'IA en cours (choix optimisé en développement)',
+      ],
+    },
+
+    {
+      id: 'step-5',
+      emoji: '✨',
+      title: 'Comment Fonctionne l\'Assistant IA',
+      description:
+        'L\'assistant IA (en développement) sera capable de :\n\n1. **Comprendre vos questions** en français naturel\n2. **Accéder vos données** (ventes, stock, retours, consignations)\n3. **Analyser les patterns** (jours forts, produits populaires, marges)\n4. **Générer des recommandations** basées sur les insights découverts\n5. **Vous aider à décider** rapidement avec des données fiables',
+      position: 'top',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '📊 Exemples de questions : "Quel est mon meilleur produit ?" "Quand dois-je faire une promo ?"',
+        '🎯 Réponses basées sur les données réelles de votre bar',
+        '⚡ Gain de temps : Plus besoin de fouiller dans les stats manuellement',
+        '🔐 Vos données restent privées - analysées sur vos serveurs',
+      ],
+    },
+
+    {
+      id: 'step-6',
+      emoji: '🚀',
+      title: 'Prochaines Étapes & Calendrier',
+      description:
+        'Ces fonctionnalités arrivent très bientôt ! Le développement inclut :\n\n• **Phase 1 (En cours)** : Collecte et analyse de vos données historiques\n• **Phase 2** : Implémentation du graphique de projection linéaire (Prévisions)\n• **Phase 3** : Intégration du modèle de langage sélectionné (Assistant IA)\n• **Phase 4** : Tests et optimisation\n\nVous serez notifié dès que ces fonctionnalités seront disponibles !',
+      position: 'top',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '📬 Restez connecté pour les mises à jour',
+        '💌 Vous recevrez une notification quand c\'est live',
+        '🎁 Ces fonctionnalités seront incluses dans votre forfait',
+        '💬 Feedback ? Partagez vos idées pour les améliorer',
+      ],
+    },
+
+    {
+      id: 'step-7',
+      emoji: '✅',
+      title: 'Utilisez Ces Données Quand Elles Arriveront !',
+      description:
+        'Quand les Prévisions et l\'IA seront **disponibles**, vous pourrez :\n\n• **Décider** en confiance avec des données prédictives\n• **Automatiser** vos approvisionnements via OrderPreparation\n• **Optimiser** vos prix et promotions dynamiquement\n• **Grossir** votre business en suivant ce qui marche vraiment',
+      position: 'center',
+      action: 'Cliquez sur Terminer',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '🎯 Prévisions = Anticipez la demande',
+        '🤖 IA = Conseils personnalisés 24/7',
+        '📈 Impact = Croissance mesurable',
+        '⏰ Bientôt disponible - Merci de votre patience !',
       ],
     },
   ],
@@ -1087,4 +2007,6 @@ export const OWNER_GUIDES: GuideTour[] = [
   MANAGE_TEAM_GUIDE,
   MANAGE_SETTINGS_GUIDE,
   MANAGE_PROMOTIONS_GUIDE,
+  PROFILE_GUIDE,
+  FORECASTING_AI_GUIDE,
 ];
