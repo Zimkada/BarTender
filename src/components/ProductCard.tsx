@@ -62,10 +62,11 @@ export function ProductCard({ product, onAddToCart, availableStock }: ProductCar
       className={`
         relative flex flex-col h-full
         bg-white rounded-2xl
-        border ${showFeedback ? 'border-amber-400' : 'border-gray-100'}
-        shadow-sm hover:shadow-md
+        border ${showFeedback ? 'border-amber-400' : 'border-amber-100'}
+        shadow-md shadow-amber-500/5 hover:shadow-xl hover:shadow-amber-500/15
         overflow-hidden cursor-pointer select-none
         touch-manipulation
+        transition-all duration-200
         ${isStockEmpty ? 'opacity-60 grayscale' : ''}
       `}
     >
@@ -132,10 +133,10 @@ export function ProductCard({ product, onAddToCart, availableStock }: ProductCar
               mais utile pour l'affordance */}
           <div className={`
             w-8 h-8 rounded-full flex items-center justify-center
-            transition-colors duration-200
+            transition-all duration-200
             ${isStockEmpty
               ? 'bg-gray-100 text-gray-400'
-              : 'bg-amber-100 text-amber-600'
+              : 'bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-sm shadow-amber-500/30'
             }
           `}>
             <Plus size={18} strokeWidth={3} />

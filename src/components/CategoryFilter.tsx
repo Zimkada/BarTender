@@ -1,5 +1,4 @@
 // src/components/CategoryFilter.tsx
-import React from 'react';
 import { cva } from 'class-variance-authority';
 import { cn } from '../lib/utils';
 import { Category } from '../types';
@@ -11,12 +10,12 @@ import { useCategoryContextMenu } from '../hooks/useCategoryContextMenu';
 import { CategoryContextMenu } from './CategoryContextMenu';
 
 const categoryButtonVariants = cva(
-    'px-4 py-2 rounded-lg font-medium transition-colors',
+    'px-4 py-2 rounded-lg font-semibold transition-all duration-200',
     {
         variants: {
             isSelected: {
-                true: 'bg-amber-500 text-white',
-                false: 'bg-gray-100 text-gray-700 hover:bg-gray-200',
+                true: 'bg-gradient-to-br from-amber-500 to-amber-700 text-white shadow-lg shadow-amber-500/30',
+                false: 'bg-white/80 text-amber-800 border border-amber-200/50 hover:bg-amber-50 hover:border-amber-300/50 shadow-sm shadow-amber-500/5',
             },
         },
         defaultVariants: {
@@ -98,7 +97,7 @@ export function CategoryFilter({
                                 onClick={onAddCategory}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                className="block sm:hidden flex items-center justify-center w-10 h-10 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
+                                className="block sm:hidden flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-amber-700 text-white shadow-md shadow-amber-500/30 transition-all"
                                 title="Ajouter une catégorie"
                             >
                                 <Plus size={20} />
@@ -109,7 +108,7 @@ export function CategoryFilter({
                                 onClick={onAddCategory}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                className="hidden sm:flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-700 rounded-lg font-medium hover:bg-amber-200 transition-colors"
+                                className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-amber-500 to-amber-700 text-white rounded-lg font-semibold shadow-md shadow-amber-500/30 hover:shadow-lg transition-all"
                             >
                                 <Plus size={16} />
                                 Ajouter

@@ -98,10 +98,14 @@ export function Cart({
         <button
           onClick={onToggle}
           className={`
-            fixed z-50 rounded-full shadow-2xl active:scale-95 transition-transform flex items-center justify-center
+            fixed z-50 rounded-full active:scale-95 transition-all duration-200 flex items-center justify-center
+            bg-gradient-to-br from-amber-500 to-amber-700
+            text-white
+            shadow-xl shadow-amber-600/40
+            hover:shadow-2xl hover:shadow-amber-600/50 hover:scale-105
             ${isMobile
-              ? 'bottom-20 right-4 w-14 h-14 bg-amber-500 text-white'
-              : 'bottom-8 right-8 w-16 h-16 bg-amber-600 text-white hover:bg-amber-700 hover:scale-110'
+              ? 'bottom-20 right-4 w-14 h-14'
+              : 'bottom-8 right-8 w-16 h-16'
             }
           `}
           aria-label="Panier"
@@ -109,7 +113,7 @@ export function Cart({
           <div className="relative">
             <ShoppingCart size={isMobile ? 24 : 28} strokeWidth={2.5} />
             {totalItems > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white">
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center border-2 border-white shadow-sm">
                 {totalItems}
               </span>
             )}
