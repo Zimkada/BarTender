@@ -1,0 +1,58 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   🎯 BRAND UTILITY CLASSES
+   Classes CSS pour theming dynamique via var(--brand-gradient)
+   Importer ce fichier dans index.css ou App.tsx
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Bouton Brand - Gradient Premium */
+.btn-brand {
+    background: var(--brand-gradient);
+    color: white;
+    box-shadow: 0 8px 20px -4px var(--brand-shadow);
+    border: none;
+    transition: all 0.2s ease;
+}
+
+.btn-brand:hover {
+    box-shadow: 0 12px 28px -4px var(--brand-shadow);
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+}
+
+.btn-brand:active {
+    transform: scale(0.98);
+}
+
+/* Bouton Brand Large - Pour CTAs majeurs */
+.btn-brand-lg {
+    background: var(--brand-gradient);
+    color: white;
+    box-shadow: 0 10px 30px -5px var(--brand-shadow);
+    border: none;
+    transition: all 0.2s ease;
+}
+
+.btn-brand-lg:hover {
+    box-shadow: 0 15px 40px -5px var(--brand-shadow);
+    transform: translateY(-2px);
+}
+
+/* Card Header Brand - Pour cartes avec header coloré */
+.card-header-brand {
+    background: var(--brand-gradient);
+    color: white;
+}
+
+/* Texte Brand */
+.text-brand-primary {
+    color: var(--brand-primary);
+}
+
+.text-brand-dark {
+    color: var(--brand-primary-dark);
+}
+
+/* Backgrounds Brand */
+.bg-brand-subtle {
+    background-color: var(--brand-bg-subtle);
+}
