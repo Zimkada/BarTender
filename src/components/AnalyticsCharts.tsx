@@ -16,14 +16,14 @@ import {
   ResponsiveContainer,
 } from './charts/RechartsWrapper';
 
-// Palette BarTender (cohérente avec l'application)
+// Palette brand (Vision 2026)
 const COLORS = [
-  '#10b981', // Vert emerald-500 (Approvisionnements)
-  '#3b82f6', // Bleu blue-500 (Eau)
-  '#eab308', // Jaune yellow-500 (Électricité)
-  '#6b7280', // Gris gray-500 (Entretien)
-  '#a855f7', // Violet purple-500 (Custom)
-  '#f97316', // Orange amber-500
+  'var(--brand-primary)', // Brand Primary
+  '#3b82f6', // Bleu (Services/Eau)
+  'var(--brand-dark)',    // Brand Dark
+  '#6b7280', // Gris
+  '#a855f7', // Violet
+  '#10b981', // Emeraude
 ];
 
 const AnalyticsCharts = ({ data, expensesByCategory }) => {
@@ -64,18 +64,18 @@ const AnalyticsCharts = ({ data, expensesByCategory }) => {
             <Line
               type="monotone"
               dataKey="Revenus"
-              stroke="#10b981"
+              stroke="var(--brand-primary)"
               strokeWidth={3}
-              dot={{ fill: '#10b981', r: 5, strokeWidth: 0 }}
+              dot={{ fill: 'var(--brand-primary)', r: 5, strokeWidth: 0 }}
               activeDot={{ r: 7 }}
               isAnimationActive={false}
             />
             <Line
               type="monotone"
               dataKey="Coûts Opérationnels"
-              stroke="#f97316"
+              stroke="var(--brand-dark)"
               strokeWidth={3}
-              dot={{ fill: '#f97316', r: 5, strokeWidth: 0 }}
+              dot={{ fill: 'var(--brand-dark)', r: 5, strokeWidth: 0 }}
               activeDot={{ r: 7 }}
               isAnimationActive={false}
             />
@@ -121,8 +121,8 @@ const AnalyticsCharts = ({ data, expensesByCategory }) => {
               <YAxis stroke="#6b7280" />
               <Tooltip />
               <Legend />
-              <Bar dataKey="Revenus" fill="#10b981" isAnimationActive={false} />
-              <Bar dataKey="Coûts Opérationnels" fill="#f97316" isAnimationActive={false} />
+              <Bar dataKey="Revenus" fill="var(--brand-primary)" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+              <Bar dataKey="Coûts Opérationnels" fill="var(--brand-dark)" radius={[4, 4, 0, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </div>

@@ -67,7 +67,7 @@ export function SupplyModal({ isOpen, onClose, onSave, products, inline = false,
       {!inline && (
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-            <Package size={20} className="text-amber-500" />
+            <Package size={20} className="text-brand-primary" />
             Approvisionnement
           </h2>
           <motion.button
@@ -114,7 +114,7 @@ export function SupplyModal({ isOpen, onClose, onSave, products, inline = false,
               min="1"
               value={formData.quantity}
               onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-              className="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-gray-800 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
+              className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-gray-800 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-subtle"
               placeholder="48"
             />
           </div>
@@ -129,7 +129,7 @@ export function SupplyModal({ isOpen, onClose, onSave, products, inline = false,
               min="1"
               value={formData.lotSize}
               onChange={(e) => setFormData({ ...formData, lotSize: e.target.value })}
-              className="w-full px-3 py-2 bg-white border border-amber-200 rounded-xl text-gray-800 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-100"
+              className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-gray-800 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-subtle"
               placeholder="24"
             />
             <p className="text-xs text-gray-500 mt-1">Casier, pack, caisse...</p>
@@ -146,7 +146,7 @@ export function SupplyModal({ isOpen, onClose, onSave, products, inline = false,
             min="0"
             value={formData.lotPrice}
             onChange={(e) => setFormData({ ...formData, lotPrice: e.target.value })}
-            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-800 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-800 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-subtle"
             placeholder="12000"
           />
         </div>
@@ -160,7 +160,7 @@ export function SupplyModal({ isOpen, onClose, onSave, products, inline = false,
             required
             value={formData.supplier}
             onChange={(e) => setFormData({ ...formData, supplier: e.target.value })}
-            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-800 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-800 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-subtle"
             placeholder="SOBEBRA"
           />
         </div>
@@ -169,12 +169,12 @@ export function SupplyModal({ isOpen, onClose, onSave, products, inline = false,
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-amber-50 border border-amber-200 rounded-xl p-3"
+            className="bg-brand-subtle border border-brand-subtle rounded-xl p-3"
           >
             <h4 className="text-gray-800 font-medium mb-2">Résumé de l'approvisionnement</h4>
             <div className="space-y-1 text-sm">
               <p className="text-gray-700">Nombre de lots: <span className="text-gray-800 font-medium">{totalLots}</span></p>
-              <p className="text-gray-700">Coût total: <span className="text-amber-600 font-semibold">{formatPrice(totalCost)}</span></p>
+              <p className="text-gray-700">Coût total: <span className="text-brand-primary font-semibold">{formatPrice(totalCost)}</span></p>
               <p className="text-gray-700">Coût par unité: <span className="text-gray-800 font-medium">{formatPrice(totalCost / parseInt(formData.quantity))}</span></p>
             </div>
           </motion.div>
@@ -194,7 +194,7 @@ export function SupplyModal({ isOpen, onClose, onSave, products, inline = false,
             type="submit"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="flex-1 py-2.5 px-4 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 transition-colors"
+            className="flex-1 py-2.5 px-4 btn-brand rounded-xl font-medium"
           >
             Enregistrer
           </motion.button>

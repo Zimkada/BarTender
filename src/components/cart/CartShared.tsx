@@ -1,6 +1,7 @@
-import { Plus, Minus, Trash2, Tag } from 'lucide-react';
+import { Plus, Minus, Trash2, Tag, Package } from 'lucide-react';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { CalculatedItem } from '../../hooks/useCartLogic';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface CartSharedProps {
     items: CalculatedItem[];
@@ -10,21 +11,13 @@ interface CartSharedProps {
     showTotalReductions?: boolean;
 }
 
-/**
- * Map des types de promotion vers labels courts et descriptifs
- */
 const PROMO_TYPE_LABELS: Record<string, string> = {
-    'bundle': '🎁 Lot',
-    'fixed_discount': '💰 -Montant',
-    'percentage': '📊 -%',
-    'special_price': '⏰ Spécial',
+    'bundle': 'Lot',
+    'fixed_discount': '-Montant',
+    'percentage': '-%',
+    'special_price': 'Spécial',
 };
 
-/**
- * Composant partagé pour afficher la liste des produits dans le panier
- * Utilisé par Cart.tsx et QuickSaleFlow.tsx
- * Gère l'affichage des promotions, contrôles de quantité, suppression
- */
 export function CartShared({
     items,
     onUpdateQuantity,
@@ -35,151 +28,104 @@ export function CartShared({
     const { formatPrice } = useCurrencyFormatter();
     const isMobile = variant === 'mobile';
 
-    // ✅ Calculer total réductions
     const totalReductions = items.reduce((sum, item) => sum + item.discount_amount, 0);
 
-    if (items.length === 0) {
-        return null;
-    }
-
-    // ✅ Classes statiques pré-compilées pour performances optimales
-    // Mobile: Grands boutons tactiles (48x48px min), espacements généreux
-    // Desktop: Compact, hover states
-    const styles = {
-        container: isMobile ? 'space-y-3' : 'space-y-2',
-
-        card: isMobile
-            ? 'bg-amber-50 rounded-2xl p-4 border border-amber-200'
-            : 'bg-amber-50 rounded-xl p-3 border border-amber-100',
-
-        header: isMobile ? 'flex items-start justify-between mb-3' : 'flex items-start justify-between mb-2',
-
-        productName: isMobile
-            ? 'font-bold text-gray-900 text-base'
-            : 'font-medium text-gray-800 text-sm',
-
-        deleteButton: isMobile
-            ? 'p-2 text-red-500 active:bg-red-100 rounded-lg transition-colors'
-            : 'p-2 text-red-400 hover:bg-red-100 rounded-lg transition-colors',
-
-        quantityContainer: isMobile ? 'flex items-center gap-3' : 'flex items-center gap-2',
-
-        quantityButton: isMobile
-            ? 'w-12 h-12 bg-amber-200 text-amber-700 rounded-xl active:bg-amber-300 transition-colors flex items-center justify-center'
-            : 'w-8 h-8 bg-amber-200 text-amber-700 rounded-lg hover:bg-amber-300 transition-colors flex items-center justify-center',
-
-        quantityText: isMobile
-            ? 'text-gray-900 font-bold text-xl min-w-[40px] text-center'
-            : 'text-gray-800 font-medium text-base min-w-[32px] text-center',
-
-        priceText: isMobile
-            ? 'text-amber-600 font-bold text-xl font-mono'
-            : 'text-amber-600 font-bold text-base font-mono',
-    };
+    if (items.length === 0) return null;
 
     return (
-        <>
-            <div className={styles.container}>
-                {items.map((item) => {
-                    return (
-                        <div
-                            key={item.product.id}
-                            className={styles.card}
-                        >
-                            {/* Nom + bouton supprimer */}
-                            <div className={styles.header}>
-                                <div className="flex-1 min-w-0">
-                                    <h3 className={styles.productName}>
-                                        {item.product.name}
-                                    </h3>
-                                    <p className="text-sm text-gray-600">{item.product.volume}</p>
+        <div className="space-y-2 pb-2">
+            <AnimatePresence mode="popLayout">
+                {items.map((item) => (
+                    <motion.div
+                        key={item.product.id}
+                        layout
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95, x: 20 }}
+                        className="relative group bg-white rounded-2xl border-2 border-brand-primary shadow-sm overflow-hidden"
+                    >
+                        <div className="p-1.5 flex items-center gap-2">
+                            {/* 1. Thumbnail (Small) */}
+                            <div className="w-9 h-9 rounded-xl bg-brand-subtle/50 flex items-center justify-center flex-shrink-0 border border-brand-primary/10">
+                                {item.product.image ? (
+                                    <img
+                                        src={item.product.image}
+                                        className="w-6 h-6 object-contain mix-blend-multiply"
+                                        alt=""
+                                    />
+                                ) : (
+                                    <Package size={14} className="text-brand-primary/30" />
+                                )}
+                            </div>
+
+                            {/* 2. Info (Middle) */}
+                            <div className="flex-1 min-w-0 pr-1">
+                                <h3 className="font-black text-[10px] text-gray-900 uppercase tracking-tight truncate leading-tight">
+                                    {item.product.name}
+                                </h3>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-[8px] font-black text-gray-900 font-mono leading-none">
+                                        {formatPrice(item.total_price)}
+                                    </span>
+                                    <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest leading-none">
+                                        {item.product.volume}
+                                    </span>
                                 </div>
+                            </div>
+
+                            {/* 3. Controls (Compact Right) */}
+                            <div className="flex items-center bg-gray-50 rounded-lg p-0.5 gap-1.5 border border-gray-100">
                                 <button
-                                    onClick={() => onRemoveItem(item.product.id)}
-                                    className={styles.deleteButton}
-                                    aria-label="Supprimer"
+                                    onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
+                                    className="w-6 h-6 rounded-md bg-white border border-brand-subtle flex items-center justify-center text-brand-primary active:scale-90 transition-transform"
                                 >
-                                    <Trash2 size={isMobile ? 20 : 16} />
+                                    <Minus size={12} strokeWidth={3} />
+                                </button>
+
+                                <span className="text-[11px] font-black text-gray-900 font-mono w-4 text-center">
+                                    {item.quantity}
+                                </span>
+
+                                <button
+                                    onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
+                                    className="w-6 h-6 rounded-md bg-brand-primary flex items-center justify-center text-white active:scale-90 transition-transform shadow-sm"
+                                    style={{ background: 'var(--brand-gradient)' }}
+                                >
+                                    <Plus size={12} strokeWidth={3} />
                                 </button>
                             </div>
 
-                            {/* Quantité + Prix */}
-                            <div className="flex items-center justify-between">
-                                {/* Contrôles quantité */}
-                                <div className={styles.quantityContainer}>
-                                    <button
-                                        onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
-                                        className={styles.quantityButton}
-                                        aria-label="Diminuer quantité"
-                                    >
-                                        <Minus size={isMobile ? 20 : 14} strokeWidth={3} />
-                                    </button>
-                                    <span className={styles.quantityText}>
-                                        {item.quantity}
-                                    </span>
-                                    <button
-                                        onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                                        className={styles.quantityButton}
-                                        aria-label="Augmenter quantité"
-                                    >
-                                        <Plus size={isMobile ? 20 : 14} strokeWidth={3} />
-                                    </button>
-                                </div>
-
-                                {/* Prix avec promotion */}
-                                <div className="text-right">
-                                    {item.hasPromotion ? (
-                                        <>
-                                            <div className="flex items-center gap-1.5 justify-end mb-0.5">
-                                                <Tag size={16} className="text-green-600" />
-                                                <span className="text-sm text-green-600 font-semibold">
-                                                    {item.promotion_type
-                                                        ? PROMO_TYPE_LABELS[item.promotion_type] || 'PROMO'
-                                                        : 'PROMO'}
-                                                </span>
-                                            </div>
-                                            <div className="text-base text-gray-400 line-through">
-                                                {formatPrice(item.original_unit_price * item.quantity)}
-                                            </div>
-                                            <div className="text-green-600 font-bold text-xl font-mono">
-                                                {formatPrice(item.total_price)}
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <span className={styles.priceText}>
-                                            {formatPrice(item.total_price)}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
+                            {/* 4. Tiny Delete */}
+                            <button
+                                onClick={() => onRemoveItem(item.product.id)}
+                                className="w-5 h-8 flex items-center justify-center text-gray-200 hover:text-red-400 transition-colors"
+                                aria-label="Supprimer"
+                            >
+                                <Trash2 size={12} />
+                            </button>
                         </div>
-                    );
-                })}
-            </div>
+                    </motion.div>
+                ))}
+            </AnimatePresence>
 
-            {/* ✅ Affichage total réductions (optionnel) */}
-            {showTotalReductions && totalReductions > 0 && (
-                <div className={isMobile
-                    ? 'bg-green-50 rounded-2xl p-4 border border-green-200 mt-3'
-                    : 'bg-green-50 rounded-xl p-3 border border-green-100 mt-2'
-                }>
-                    <div className="flex items-center justify-between">
-                        <span className={isMobile
-                            ? 'font-semibold text-gray-700 text-base flex items-center gap-2'
-                            : 'font-medium text-gray-700 text-sm flex items-center gap-2'
-                        }>
-                            <Tag size={isMobile ? 20 : 16} className="text-green-600" />
-                            Réduction totale
+            {/* Total Reductions Badge */}
+            <AnimatePresence>
+                {showTotalReductions && totalReductions > 0 && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-emerald-50 rounded-lg p-1.5 border border-emerald-100 flex items-center justify-between"
+                    >
+                        <span className="font-black text-[8px] text-emerald-700 uppercase tracking-wider flex items-center gap-1">
+                            <Tag size={10} />
+                            ÉCO
                         </span>
-                        <span className={isMobile
-                            ? 'text-green-600 font-bold text-lg font-mono'
-                            : 'text-green-600 font-bold text-base font-mono'
-                        }>
+                        <span className="text-emerald-600 font-black text-[10px] font-mono">
                             -{formatPrice(totalReductions)}
                         </span>
-                    </div>
-                </div>
-            )}
-        </>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
 }

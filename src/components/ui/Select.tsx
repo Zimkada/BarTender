@@ -8,7 +8,7 @@ const selectVariants = cva(
   {
     variants: {
       variant: {
-        default: 'border-gray-300 focus-visible:border-amber-500 focus-visible:ring-2 focus-visible:ring-amber-500/20',
+        default: 'border-gray-300 focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/20',
         error: 'border-red-500 focus-visible:border-red-500 focus-visible:ring-2 focus-visible:ring-red-500/20',
         success: 'border-green-500 focus-visible:border-green-500 focus-visible:ring-2 focus-visible:ring-green-500/20',
       },
@@ -33,7 +33,7 @@ export interface SelectOption {
 
 export interface SelectProps
   extends Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'size'>,
-    VariantProps<typeof selectVariants> {
+  VariantProps<typeof selectVariants> {
   options: SelectOption[];
   error?: string;
   helperText?: string;

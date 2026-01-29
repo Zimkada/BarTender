@@ -30,7 +30,7 @@ export function InventoryStats({
             {/* Répartition Catégories */}
             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
                 <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <LayoutGrid size={18} className="text-amber-500" />
+                    <LayoutGrid size={18} className="text-brand-primary" />
                     Répartition par catégorie
                 </h3>
                 <div className="space-y-4">
@@ -39,13 +39,13 @@ export function InventoryStats({
             </div>
 
             {/* Indicateurs additionnels */}
-            <div className="bg-orange-50 p-6 rounded-2xl border border-orange-100 text-center">
-                <AlertTriangle className="mx-auto text-orange-500 mb-2" size={32} />
+            <div className="bg-brand-subtle p-6 rounded-2xl border border-brand-subtle text-center">
+                <AlertTriangle className="mx-auto text-brand-primary mb-2" size={32} />
                 <h4 className="font-bold text-gray-900">{lowStockProducts.length} produits nécessitent votre attention</h4>
                 <p className="text-sm text-gray-600 mt-1">Consultez l'onglet Opérations pour réapprovisionner</p>
                 <Button
                     onClick={onNavigateToOperations}
-                    className="mt-4 bg-orange-500 hover:bg-orange-600 text-white font-bold"
+                    className="mt-4 btn-brand font-bold px-8"
                 >
                     Aller aux opérations
                 </Button>
@@ -92,8 +92,8 @@ function InventorySummaryCards({ products, formatPrice }: { products: Product[],
             label: "Valeur Vente Stock Actuel",
             value: formatPrice(stats.saleValue),
             icon: TrendingUp,
-            color: "bg-amber-50 text-amber-600",
-            iconColor: "text-amber-500",
+            color: "bg-brand-subtle text-brand-dark",
+            iconColor: "text-brand-primary",
             delay: 0.3
         }
     ];

@@ -1,8 +1,10 @@
-import { Trash2, Users, Check, CreditCard } from 'lucide-react';
+import { Trash2, Users, Check, CreditCard, ChevronDown, ChevronUp, Wallet } from 'lucide-react';
+import { useState } from 'react';
 import { EnhancedButton } from '../EnhancedButton';
 import { Select, SelectOption } from '../ui/Select';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { PaymentMethodSelector, PaymentMethod } from './PaymentMethodSelector';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface CartFooterProps {
     total: number;
@@ -36,48 +38,90 @@ export function CartFooter({
     isMobile = false
 }: CartFooterProps) {
     const { formatPrice } = useCurrencyFormatter();
+    const [showPaymentOptions, setShowPaymentOptions] = useState(false);
+
+    const paymentLabels: Record<PaymentMethod, string> = {
+        cash: 'Espèces',
+        mobile_money: 'MoMo',
+        card: 'Carte',
+        credit: 'Crédit'
+    };
 
     return (
-        <div className={`space-y-3 ${isMobile ? '' : 'bg-gray-50/50'}`}>
-            {/* Server Selection (Simplified Mode) */}
+        <div className={`space-y-1.5 ${isMobile ? '' : 'p-1'}`}>
+            {/* Server Selection - Extra Compact */}
             {isSimplifiedMode && (
-                <Select
-                    label="Serveur"
-                    options={serverOptions}
-                    value={selectedServer}
-                    onChange={(e) => onServerChange(e.target.value)}
-                    size={isMobile ? 'lg' : 'default'}
-                    leftIcon={<Users size={16} className="text-amber-500" />}
-                />
+                <div className="bg-gray-50/30 rounded-lg overflow-hidden border border-brand-subtle/20">
+                    <Select
+                        label=""
+                        options={serverOptions}
+                        value={selectedServer}
+                        onChange={(e) => onServerChange(e.target.value)}
+                        size="sm"
+                        className="border-none bg-transparent shadow-none h-7 text-[9px] font-black uppercase"
+                        leftIcon={<Users size={10} className="text-brand-primary" />}
+                    />
+                </div>
             )}
 
-            {/* Payment Method */}
-            <PaymentMethodSelector
-                value={paymentMethod}
-                onChange={onPaymentMethodChange}
-            />
+            <div className="flex gap-2 items-center">
+                {/* Payment Method - Compact Toggle */}
+                <div className="flex-1 bg-white rounded-lg border border-brand-primary/20 overflow-hidden">
+                    <button
+                        onClick={() => setShowPaymentOptions(!showPaymentOptions)}
+                        className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-gray-50 transition-colors"
+                    >
+                        <div className="flex items-center gap-1.5">
+                            <Wallet size={12} className="text-brand-primary" />
+                            <span className="text-[9px] font-black text-brand-dark uppercase tracking-tighter">{paymentLabels[paymentMethod]}</span>
+                        </div>
+                        {showPaymentOptions ? <ChevronUp size={12} className="text-brand-primary" /> : <ChevronDown size={12} className="text-brand-primary" />}
+                    </button>
 
-            {/* Total Row */}
-            <div className="flex justify-between items-end pt-1">
-                <span className="text-gray-500 font-medium">Total à payer</span>
-                <span className="text-3xl font-black text-amber-600 font-mono tracking-tight">
-                    {formatPrice(total)}
-                </span>
+                    <AnimatePresence>
+                        {showPaymentOptions && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="bg-white border-t border-brand-subtle/20 p-2"
+                            >
+                                <PaymentMethodSelector
+                                    value={paymentMethod}
+                                    onChange={(val) => {
+                                        onPaymentMethodChange(val);
+                                        setShowPaymentOptions(false);
+                                    }}
+                                />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {/* Total Column - Minimalist */}
+                <div className="text-right leading-none">
+                    <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest block mb-1">NET À PAYER</span>
+                    <span className="text-xl font-black text-brand-dark font-mono">
+                        {formatPrice(total)}
+                    </span>
+                </div>
             </div>
 
-            {/* Buttons */}
-            <div className="flex gap-3">
+            {/* Buttons Row - Final Compactness */}
+            <div className="flex gap-1.5">
                 <EnhancedButton
                     onClick={onCheckout}
                     loading={isLoading}
                     success={showSuccess}
                     disabled={!hasItems}
-                    size="xl"
+                    size="lg"
                     variant="primary"
-                    className="flex-1 shadow-lg shadow-amber-200"
-                    icon={showSuccess ? <Check size={20} /> : <CreditCard size={20} />}
+                    className="flex-1 rounded-xl shadow-md border-none h-11 bg-gradient-brand shadow-brand-shadow-light"
+                    icon={showSuccess ? <Check size={16} /> : <CreditCard size={16} />}
                 >
-                    {showSuccess ? 'Validé !' : 'Valider la vente'}
+                    <span className="font-black uppercase tracking-widest text-[10px]">
+                        {showSuccess ? 'OK' : 'Lancer la vente'}
+                    </span>
                 </EnhancedButton>
 
                 <button
@@ -85,10 +129,9 @@ export function CartFooter({
                         if (confirm('Vider le panier ?')) onClear();
                     }}
                     disabled={!hasItems}
-                    className="w-14 h-14 flex items-center justify-center bg-white border-2 border-gray-200 text-gray-400 rounded-2xl hover:bg-red-50 hover:border-red-100 hover:text-red-500 transition-colors disabled:opacity-50"
-                    title="Vider le panier"
+                    className="w-11 h-11 flex items-center justify-center bg-white border border-red-50 text-red-300 hover:text-red-500 rounded-xl hover:bg-red-50 active:scale-95 disabled:opacity-20 transition-all"
                 >
-                    <Trash2 size={24} />
+                    <Trash2 size={16} />
                 </button>
             </div>
         </div>

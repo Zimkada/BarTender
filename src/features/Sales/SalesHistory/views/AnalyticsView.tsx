@@ -42,8 +42,8 @@ type Stats = {
   };
 };
 
-// Couleurs thème orange/ambre
-const CHART_COLORS = ['#f97316', '#fb923c', '#fdba74', '#fed7aa', '#ffedd5', '#ea580c', '#c2410c'];
+// Couleurs thème brand (Vision 2026)
+const CHART_COLORS = ['var(--brand-primary)', '#fb923c', '#fdba74', '#fed7aa', '#ffedd5', 'var(--brand-dark)', '#c2410c'];
 
 interface AnalyticsViewProps {
   sales: Sale[];
@@ -323,43 +323,43 @@ export function AnalyticsView({
     <div className="space-y-4">
       {/* KPIs principaux */}
       <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-4'} gap-3`}>
-        <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 border border-amber-200">
-          <h4 className="text-xs font-medium text-amber-700 mb-1">Chiffre d'affaires</h4>
-          <p className="text-xl font-bold text-amber-900">{formatPrice(kpis.revenue.value)}</p>
+        <div className="bg-brand-subtle rounded-xl p-4 border border-brand-subtle">
+          <h4 className="text-xs font-bold text-brand-primary opacity-80 mb-1">Chiffre d'affaires</h4>
+          <p className="text-xl font-black text-brand-dark">{formatPrice(kpis.revenue.value)}</p>
           <div className="flex items-center gap-1 mt-1">
             <TrendIcon change={kpis.revenue.change} />
-            <span className={`text-xs font-medium ${kpis.revenue.change > 0 ? 'text-green-600' : kpis.revenue.change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+            <span className={`text-xs font-bold ${kpis.revenue.change > 0 ? 'text-green-600' : kpis.revenue.change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
               {kpis.revenue.change > 0 ? '+' : ''}{kpis.revenue.change.toFixed(1)}%
             </span>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 border border-amber-200">
-          <h4 className="text-xs font-medium text-amber-700 mb-1">Ventes totales</h4>
-          <p className="text-xl font-bold text-amber-900">{kpis.salesCount.value}</p>
+        <div className="bg-brand-subtle rounded-xl p-4 border border-brand-subtle">
+          <h4 className="text-xs font-bold text-brand-primary opacity-80 mb-1">Ventes totales</h4>
+          <p className="text-xl font-black text-brand-dark">{kpis.salesCount.value}</p>
           <div className="flex items-center gap-1 mt-1">
             <TrendIcon change={kpis.salesCount.change} />
-            <span className={`text-xs font-medium ${kpis.salesCount.change > 0 ? 'text-green-600' : kpis.salesCount.change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+            <span className={`text-xs font-bold ${kpis.salesCount.change > 0 ? 'text-green-600' : kpis.salesCount.change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
               {kpis.salesCount.change > 0 ? '+' : ''}{kpis.salesCount.change.toFixed(1)}%
             </span>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 border border-amber-200">
-          <h4 className="text-xs font-medium text-amber-700 mb-1">{kpis.kpi.label}</h4>
-          <p className="text-xl font-bold text-amber-900">{formatPrice(kpis.kpi.value)}</p>
+        <div className="bg-brand-subtle rounded-xl p-4 border border-brand-subtle">
+          <h4 className="text-xs font-bold text-brand-primary opacity-80 mb-1">{kpis.kpi.label}</h4>
+          <p className="text-xl font-black text-brand-dark">{formatPrice(kpis.kpi.value)}</p>
           <div className="flex items-center gap-1 mt-1">
-            <Clock className="w-4 h-4 text-amber-600" />
-            <span className="text-xs font-medium text-amber-600">Période actuelle</span>
+            <Clock className="w-4 h-4 text-brand-primary" />
+            <span className="text-xs font-bold text-brand-primary">Période actuelle</span>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 border border-amber-200">
-          <h4 className="text-xs font-medium text-amber-700 mb-1">Articles vendus</h4>
-          <p className="text-xl font-bold text-amber-900">{kpis.items.value}</p>
+        <div className="bg-brand-subtle rounded-xl p-4 border border-brand-subtle">
+          <h4 className="text-xs font-bold text-brand-primary opacity-80 mb-1">Articles vendus</h4>
+          <p className="text-xl font-black text-brand-dark">{kpis.items.value}</p>
           <div className="flex items-center gap-1 mt-1">
             <TrendIcon change={kpis.items.change} />
-            <span className={`text-xs font-medium ${kpis.items.change > 0 ? 'text-green-600' : kpis.items.change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+            <span className={`text-xs font-bold ${kpis.items.change > 0 ? 'text-green-600' : kpis.items.change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
               {kpis.items.change > 0 ? '+' : ''}{kpis.items.change.toFixed(1)}%
             </span>
           </div>
@@ -369,7 +369,7 @@ export function AnalyticsView({
       {/* Graphiques principaux */}
       <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-4`} data-guide="analytics-charts">
         {/* Évolution CA - granularité adaptative */}
-        <div className="bg-white rounded-xl p-4 border border-amber-100">
+        <div className="bg-white rounded-xl p-4 border border-brand-subtle shadow-sm">
           <h4 className="text-sm font-semibold text-gray-800 mb-3">
             Évolution du CA
             <span className="text-xs text-gray-500 ml-2">
@@ -379,21 +379,21 @@ export function AnalyticsView({
           <div style={{ width: '100%', height: isMobile ? 200 : 250 }}>
             <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
               <LineChart data={evolutionChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--brand-bg-subtle)" vertical={false} />
                 <XAxis dataKey="label" tick={{ fill: '#9ca3af', fontSize: 12 }} />
                 <YAxis tick={{ fill: '#9ca3af', fontSize: 12 }} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #fdba74', borderRadius: '8px' }}
+                  contentStyle={{ backgroundColor: '#fff', border: '1px solid var(--brand-primary)', borderRadius: '12px', boxShadow: '0 4px 12px var(--brand-shadow)' }}
                   formatter={(value: any) => formatPrice(Number(value))}
                 />
-                <Line type="monotone" dataKey="revenue" stroke="#f97316" strokeWidth={2} dot={{ fill: '#f97316', r: 4 }} isAnimationActive={false} />
+                <Line type="monotone" dataKey="revenue" stroke="var(--brand-primary)" strokeWidth={3} dot={{ fill: 'var(--brand-primary)', r: 4 }} activeDot={{ r: 6, strokeWidth: 0 }} isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Répartition par catégorie */}
-        <div className="bg-white rounded-xl p-4 border border-amber-100">
+        <div className="bg-white rounded-xl p-4 border border-brand-subtle shadow-sm">
           <h4 className="text-sm font-semibold text-gray-800 mb-3">Répartition par catégorie</h4>
           <div style={{ width: '100%', height: isMobile ? 200 : 250 }}>
             <ResponsiveContainer width="100%" height="100%" minWidth={0} debounce={50}>
@@ -428,10 +428,10 @@ export function AnalyticsView({
 
       {/* Section Consignations */}
       {consignmentStats.total > 0 && (
-        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200" data-guide="analytics-consignments">
+        <div className="bg-brand-subtle rounded-xl p-4 border border-brand-subtle" data-guide="analytics-consignments">
           <div className="flex items-center gap-2 mb-3">
-            <Archive className="w-5 h-5 text-amber-600" />
-            <h4 className="text-sm font-semibold text-gray-800">Consignations</h4>
+            <Archive className="w-5 h-5 text-brand-primary" />
+            <h4 className="text-sm font-bold text-brand-dark">Consignations</h4>
           </div>
 
           {/* Stats grid */}
@@ -473,7 +473,7 @@ export function AnalyticsView({
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
-                className="bg-gradient-to-r from-amber-500 to-orange-500 h-2 rounded-full transition-all duration-300"
+                className="bg-[var(--brand-gradient)] h-2 rounded-full transition-all duration-300"
                 style={{ width: `${Math.min(consignmentStats.claimRate, 100)}%` }}
               />
             </div>

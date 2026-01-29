@@ -42,7 +42,7 @@ export default function ConsignmentPage() {
       <TabbedPageHeader
         title={isMobile ? 'Consignations' : 'Gestion des Consignations'}
         subtitle="Gérer les produits consignés et récupérations"
-        icon={<Package className="w-6 h-6 text-amber-600" />}
+        icon={<Package size={24} />}
         hideSubtitleOnMobile
         tabs={tabs}
         activeTab={activeTab}
@@ -215,18 +215,18 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-50/50 p-4 rounded-2xl border border-gray-100">
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="bg-amber-100 rounded-xl px-4 py-2 border border-amber-200">
-            <span className="text-2xl font-black text-amber-600 font-mono leading-none">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white/60 backdrop-blur-md p-3 sm:p-4 rounded-2xl border border-brand-subtle shadow-sm">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="bg-brand-subtle rounded-xl px-4 py-2 border border-brand-subtle flex items-center shadow-sm">
+            <span className="text-2xl font-black text-brand-primary font-mono leading-none">
               {activeConsignments.length}
             </span>
-            <span className="text-[10px] uppercase font-black text-amber-700 ml-2 tracking-wider">
+            <span className="text-[10px] uppercase font-black text-brand-dark ml-2 tracking-wider">
               Actives
             </span>
           </div>
 
-          <div className="flex bg-white rounded-lg p-1 border border-gray-200">
+          <div className="flex bg-white/40 backdrop-blur-md rounded-2xl p-1.5 gap-1.5 border border-brand-subtle shadow-sm overflow-x-auto scrollbar-hide">
             {[
               { id: "all", label: "Tout" },
               { id: "soon", label: "Bientôt" },
@@ -235,9 +235,9 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
               <button
                 key={f.id}
                 onClick={() => setUrgencyFilter(f.id as any)}
-                className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-tight transition-all ${urgencyFilter === f.id
-                  ? "bg-amber-500 text-white shadow-md"
-                  : "text-gray-400 hover:text-gray-600"
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${urgencyFilter === f.id
+                  ? "glass-action-button-active-2026 shadow-md shadow-brand-subtle"
+                  : "glass-action-button-2026"
                   }`}
               >
                 {f.label}
@@ -253,7 +253,7 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Nom, produit, ID..."
-            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all"
+            className="w-full pl-9 pr-4 py-2.5 bg-white/80 border border-brand-subtle rounded-xl text-sm focus:ring-2 focus:ring-brand-primary focus:border-transparent transition-all shadow-sm"
           />
         </div>
       </div>
@@ -267,7 +267,7 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
               setSearchTerm("");
               setUrgencyFilter("all");
             }}
-            className="mt-2 text-amber-600 font-bold hover:underline text-sm"
+            className="mt-2 text-brand-primary font-bold hover:underline text-sm"
           >
             Réinitialiser les filtres
           </button>
@@ -332,7 +332,7 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-2 flex-wrap bg-gray-50 p-2 rounded-lg w-fit">
+      <div className="flex gap-2 flex-wrap bg-white/40 backdrop-blur-md p-1.5 rounded-2xl border border-brand-subtle w-fit shadow-sm">
         {[
           { value: "all", label: "Tout" },
           { value: "claimed", label: "Récupérés" },
@@ -342,9 +342,9 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
           <button
             key={filter.value}
             onClick={() => setFilterStatus(filter.value as any)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterStatus === filter.value
-              ? "bg-amber-500 text-white shadow-sm"
-              : "bg-transparent text-gray-700 hover:bg-gray-200"
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${filterStatus === filter.value
+              ? "glass-action-button-active-2026 shadow-md shadow-brand-subtle"
+              : "glass-action-button-2026 text-gray-400"
               }`}
           >
             {filter.label}

@@ -149,11 +149,11 @@ export function ProfileSettings() {
 
   const roleColors = currentSession?.role === 'super_admin'
     ? { primary: 'from-indigo-600 to-purple-600', secondary: 'bg-indigo-50 text-indigo-700 border-indigo-200' }
-    : { primary: 'from-amber-500 to-orange-600', secondary: 'bg-amber-50 text-amber-700 border-amber-200' };
+    : { primary: 'btn-brand', secondary: 'bg-brand-subtle text-brand-primary border-brand-subtle' };
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-      <div className={`animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${currentSession?.role === 'super_admin' ? 'border-indigo-600' : 'border-amber-600'}`}></div>
+      <div className={`animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${currentSession?.role === 'super_admin' ? 'border-indigo-600' : 'border-brand-primary'}`}></div>
       <p className="text-gray-500 font-medium animate-pulse">Chargement de votre profil...</p>
     </div>
   );
@@ -163,7 +163,7 @@ export function ProfileSettings() {
       <TabbedPageHeader
         title={isMobile ? "Profil" : "Mon Profil Utilisateur"}
         subtitle="Gérez vos informations et votre sécurité"
-        icon={<UserIcon className={`w-6 h-6 ${currentSession?.role === 'super_admin' ? 'text-indigo-600' : 'text-amber-600'}`} />}
+        icon={<UserIcon />}
         tabs={[
           { id: 'info', label: 'Informations', icon: UserIcon },
           { id: 'password', label: 'Sécurité', icon: Lock },
@@ -240,7 +240,7 @@ export function ProfileSettings() {
                     <button
                       onClick={handleSaveInfo}
                       disabled={loading}
-                      className={`w-full h-14 bg-gradient-to-r ${roleColors.primary} text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-gray-200 transition-all active:scale-[0.98] hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-3`}
+                      className={`w-full h-14 ${currentSession?.role === 'super_admin' ? 'bg-gradient-to-r ' + roleColors.primary : 'btn-brand'} text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-brand-subtle transition-all active:scale-[0.98] hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-3`}
                     >
                       <Save size={20} />
                       Sauvegarder les modifications
@@ -315,7 +315,7 @@ export function ProfileSettings() {
                     <button
                       onClick={handleChangePassword}
                       disabled={!newPassword || newPassword !== confirmPassword}
-                      className={`w-full h-14 bg-gradient-to-r ${roleColors.primary} text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-gray-200 transition-all active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-3`}
+                      className={`w-full h-14 ${currentSession?.role === 'super_admin' ? 'bg-gradient-to-r ' + roleColors.primary : 'btn-brand'} text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-brand-subtle transition-all active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-3`}
                     >
                       <Lock size={20} />
                       Mettre à jour le mot de passe
@@ -338,7 +338,7 @@ export function ProfileSettings() {
 
             {/* Avatar Section */}
             <div className="text-center mb-10 relative z-10">
-              <div className={`w-28 h-28 mx-auto rounded-3xl bg-gradient-to-br ${roleColors.primary} p-1 mb-6 rotate-3 shadow-2xl transition-transform hover:rotate-0`}>
+              <div className={`w-28 h-28 mx-auto rounded-3xl ${currentSession?.role === 'super_admin' ? 'bg-gradient-to-br ' + roleColors.primary : 'bg-brand-primary'} p-1 mb-6 rotate-3 shadow-2xl transition-transform hover:rotate-0`}>
                 <div className="w-full h-full bg-slate-800 rounded-[1.4rem] flex items-center justify-center border border-white/10 group overflow-hidden shadow-inner">
                   <span className="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-t from-white to-white/50 group-hover:scale-110 transition-transform">
                     {name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '??'}
@@ -389,7 +389,7 @@ export function ProfileSettings() {
                   </div>
                   <div>
                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Certification Formation</p>
-                    <p className={`text-sm font-bold ${currentUser?.hasCompletedOnboarding ? 'text-green-400' : 'text-amber-400'}`}>
+                    <p className={`text-sm font-bold ${currentUser?.hasCompletedOnboarding ? 'text-green-400' : 'text-brand-primary'}`}>
                       {currentUser?.hasCompletedOnboarding ? (
                         <>
                           ✓ Certifié
@@ -412,7 +412,7 @@ export function ProfileSettings() {
             <div className="mt-10 pt-6 border-t border-white/10 text-center relative z-10">
               <p className="text-[9px] font-bold text-slate-600 uppercase tracking-[0.3em]">BarTender Digital ID</p>
               <div className="flex justify-center gap-1 mt-3">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <div key={i} className={`h-1 rounded-full ${i % 3 === 0 ? 'w-4 bg-amber-500' : 'w-2 bg-slate-700'}`} />)}
+                {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <div key={i} className={`h-1 rounded-full ${i % 3 === 0 ? 'w-4 bg-brand-primary' : 'w-2 bg-slate-700'}`} />)}
               </div>
             </div>
           </div>

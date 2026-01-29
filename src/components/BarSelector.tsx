@@ -36,7 +36,7 @@ export function BarSelector({ onCreateNew }: BarSelectorProps) {
   // Utiliser allBarIds (depuis auth session) comme source de vérité pour le multi-bar
   // Fallback: utiliser userBars si allBarIds n'est pas disponible (transition period)
   const hasMultipleBars = currentSession && (
-    (currentSession.allBarIds?.length && currentSession.allBarIds.length > 1) ||
+    (currentSession.allbarIds?.length && currentSession.allbarIds.length > 1) ||
     userBars.length > 1
   );
 
@@ -50,73 +50,87 @@ export function BarSelector({ onCreateNew }: BarSelectorProps) {
   };
 
   return (
-    <div ref={dropdownRef} className="relative">
+    <div ref={dropdownRef} className="relative z-[110]">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center font-bold bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition-colors"
+        className="flex items-center gap-2.5 px-3 py-2 glass-button-2026 rounded-xl transition-all active:scale-95 group"
         aria-label="Sélectionner un bar"
         aria-expanded={isOpen}
       >
-        <img
-          src="/icons/icon-48x48.png"
-          alt="BarTender"
-          className="w-5 h-5 mr-2 flex-shrink-0 rounded"
-        />
-        <AnimatedBarName text={currentBar?.name || 'Sélectionner un bar'} className="text-white" />
+        <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
+          <img
+            src="/icons/icon-48x48.png"
+            alt="Bar"
+            className="w-4 h-4 rounded-sm"
+          />
+        </div>
+        <div className="flex flex-col items-start leading-none">
+          <span className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-0.5">Votre Bar</span>
+          <AnimatedBarName text={currentBar?.name || 'Sélectionner'} className="text-sm font-black text-white uppercase tracking-tight" />
+        </div>
         <ChevronDown
           size={16}
-          className={`text-white transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          className={`text-white/80 transition-transform duration-300 ml-1 ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
 
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.15 }}
-            className="absolute top-full mt-2 left-0 bg-white rounded-lg shadow-xl py-2 min-w-[250px] max-w-[350px] z-50"
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="absolute top-full mt-3 left-0 bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl py-2 min-w-[280px] border border-brand-primary/20 overflow-hidden z-[120]"
           >
-            {userBars.map((bar, index) => (
-              <button
-                key={bar.id}
-                onClick={() => handleSwitch(bar.id)}
-                className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3 ${currentBar?.id === bar.id ? 'bg-amber-50 hover:bg-amber-100' : ''
-                  } ${index !== 0 ? 'border-t border-gray-100' : ''}`}
-              >
-                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${currentBar?.id === bar.id ? 'bg-amber-500' : 'bg-gray-300'
-                  }`} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className={`font-medium truncate ${currentBar?.id === bar.id ? 'text-amber-600' : 'text-gray-800'
-                      }`}>
-                      {bar.name}
-                    </p>
-                    {/* Setup status indicator - only show when complete */}
-                    {bar.isSetupComplete && (
-                      <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" title="Setup completed" />
+            <div className="px-4 py-2 border-b border-gray-100/50 mb-1">
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Passer à un autre bar</p>
+            </div>
+
+            <div className="max-h-[60vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200">
+              {userBars.map((bar) => (
+                <button
+                  key={bar.id}
+                  onClick={() => handleSwitch(bar.id)}
+                  className={`w-full text-left px-4 py-3 hover:bg-brand-primary/5 transition-all flex items-center gap-3 relative group ${currentBar?.id === bar.id ? 'bg-brand-primary/10' : ''}`}
+                >
+                  <div className={`w-1.5 h-6 rounded-full transition-all ${currentBar?.id === bar.id ? 'bg-brand-primary scale-y-100' : 'bg-transparent scale-y-0'}`} />
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className={`font-black text-sm uppercase tracking-tight truncate ${currentBar?.id === bar.id ? 'text-brand-primary' : 'text-gray-900'}`}>
+                        {bar.name}
+                      </p>
+                      {bar.isSetupComplete && (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                      )}
+                    </div>
+                    {bar.address && (
+                      <p className="text-[10px] text-gray-500 truncate font-medium mt-0.5">{bar.address}</p>
                     )}
                   </div>
-                  {bar.address && (
-                    <p className="text-sm text-gray-500 truncate">{bar.address}</p>
+
+                  {currentBar?.id === bar.id && (
+                    <div className="w-2 h-2 rounded-full bg-brand-primary animate-pulse" />
                   )}
-                </div>
-              </button>
-            ))}
+                </button>
+              ))}
+            </div>
 
             {hasPermission('canCreateBars') && onCreateNew && (
               <>
-                <div className="border-t my-2" />
+                <div className="border-t border-gray-100/50 my-1" />
                 <button
                   onClick={() => {
                     onCreateNew();
                     setIsOpen(false);
                   }}
-                  className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3 text-amber-600"
+                  className="w-full text-left px-4 py-3 hover:bg-emerald-50 transition-colors flex items-center gap-3 text-emerald-600 group"
                 >
-                  <Plus size={20} />
-                  <span className="font-medium">Créer un nouveau bar</span>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Plus size={18} />
+                  </div>
+                  <span className="font-black text-xs uppercase tracking-wider">Créer un nouveau bar</span>
                 </button>
               </>
             )}

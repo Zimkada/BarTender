@@ -203,7 +203,7 @@ function LoginScreen() {
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-amber-500 to-amber-500 text-white py-3 rounded-lg font-semibold hover:from-amber-600 hover:to-amber-600 transition-all duration-200 transform hover:scale-[1.02]"
+              className="btn-brand w-full py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-[1.02]"
             >
               Vérifier le code
             </button>
@@ -269,7 +269,7 @@ function LoginScreen() {
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-amber-500 to-amber-500 text-white py-3 rounded-lg font-semibold hover:from-amber-600 hover:to-amber-600 transition-all duration-200 transform hover:scale-[1.02]"
+              className="btn-brand w-full py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-[1.02]"
             >
               Changer le mot de passe
             </button>
@@ -295,7 +295,7 @@ function LoginScreen() {
               className="w-20 h-20"
             />
           </div>
-          <h1 className="text-3xl font-bold text-amber-700">BarTender Pro</h1>
+          <h1 className="text-3xl font-bold text-brand-primary">BarTender Pro</h1>
           <p className="text-gray-600 mt-2">Connectez-vous à votre espace</p>
         </div>
 
@@ -325,7 +325,7 @@ function LoginScreen() {
 
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-amber-500 to-amber-500 text-white py-3 rounded-lg font-semibold hover:from-amber-600 hover:to-amber-600 transition-all duration-200 transform hover:scale-[1.02]"
+            className="btn-brand w-full py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-[1.02]"
           >
             Se connecter
           </button>

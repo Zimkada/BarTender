@@ -108,24 +108,24 @@ export function ReturnsStats({ returns, returnReasons }: ReturnsStatsProps) {
                     initial="hidden"
                     animate="visible"
                     variants={cardVariants}
-                    className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex flex-col gap-1 ring-2 ring-amber-500/10"
+                    className="bg-brand-subtle p-4 rounded-2xl border border-brand-subtle flex flex-col gap-1 ring-2 ring-brand-primary/10"
                 >
                     <div className="flex items-center justify-between mb-1">
-                        <div className="w-8 h-8 rounded-full bg-amber-200 flex items-center justify-center text-amber-700">
+                        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-brand-primary shadow-sm">
                             <RotateCcw size={16} />
                         </div>
                         {stats.pendingCount > 0 && (
-                            <span className="flex h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                            <span className="flex h-2 w-2 rounded-full bg-brand-primary animate-pulse" />
                         )}
                     </div>
-                    <span className="text-[10px] font-bold text-amber-700 uppercase tracking-tighter">
+                    <span className="text-[10px] font-bold text-brand-dark uppercase tracking-tighter">
                         À Traiter
                     </span>
-                    <div className="text-2xl font-black text-amber-900 leading-none">
+                    <div className="text-2xl font-black text-brand-primary leading-none">
                         <AnimatedCounter value={stats.pendingCount} />
                     </div>
-                    <span className="text-[9px] text-amber-600 font-medium">
-                        Potentiel: {stats.pendingRefundAmount} FCFA
+                    <span className="text-[9px] text-brand-primary/60 font-medium font-mono uppercase">
+                        Potentiel: {stats.pendingRefundAmount} F
                     </span>
                 </motion.div>
 
@@ -267,8 +267,8 @@ export function ReturnsStats({ returns, returnReasons }: ReturnsStatsProps) {
                                         transition={{ duration: 1, ease: "easeOut" }}
                                         className={`h-full rounded-full ${item.color === "red"
                                             ? "bg-red-500"
-                                            : item.color === "amber"
-                                                ? "bg-amber-500"
+                                            : item.color === "amber" || item.color === "orange"
+                                                ? "bg-brand-primary"
                                                 : item.color === "blue"
                                                     ? "bg-blue-500"
                                                     : "bg-purple-500"
@@ -298,7 +298,7 @@ export function ReturnsStats({ returns, returnReasons }: ReturnsStatsProps) {
                         {stats.validatedCount > 0 ? (
                             <>
                                 <p className="text-xl font-black mb-2 leading-tight">
-                                    Motif Dominant : <span className="text-amber-400">{stats.topReason?.label}</span>
+                                    Motif Dominant : <span className="text-brand-primary">{stats.topReason?.label}</span>
                                 </p>
                                 <p className="text-xs text-gray-400 leading-relaxed mb-6">
                                     {stats.topReason?.reason === 'defective'
@@ -327,7 +327,7 @@ export function ReturnsStats({ returns, returnReasons }: ReturnsStatsProps) {
                     </div>
 
                     <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/10 blur-3xl rounded-full translate-x-10 -translate-y-10" />
-                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-amber-500/10 blur-3xl rounded-full -translate-x-10 translate-y-10" />
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-brand-primary/10 blur-3xl rounded-full -translate-x-10 translate-y-10" />
                 </div>
             </div>
         </div>

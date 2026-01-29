@@ -21,12 +21,12 @@ function getStatusBadgeColor(status: Return["status"]): string {
     case "restocked":
       return "bg-green-500";
     case "approved":
-      return "bg-blue-500";
+      return "bg-brand-primary";
     case "rejected":
       return "bg-red-500";
     case "pending":
     default:
-      return "bg-yellow-500";
+      return "bg-brand-secondary";
   }
 }
 
@@ -36,7 +36,8 @@ function getReasonBadgeClass(color: string): string {
     case "red":
       return "bg-red-50 text-red-700 border-red-100";
     case "orange":
-      return "bg-amber-50 text-amber-700 border-amber-100";
+    case "amber":
+      return "bg-brand-subtle text-brand-dark border-brand-subtle";
     case "blue":
       return "bg-blue-50 text-blue-700 border-blue-100";
     case "purple":
@@ -67,7 +68,7 @@ export function ReturnCard({
       key={returnItem.id}
       id={`return-${returnItem.id}`}
       {...cardProps}
-      className="bg-white rounded-xl p-4 border border-gray-200 hover:border-amber-300 transition-colors shadow-sm"
+      className="bg-white rounded-xl p-4 border border-gray-200 hover:border-brand-primary transition-colors shadow-sm"
     >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">
         <div className="flex items-start gap-4">

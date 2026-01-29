@@ -61,7 +61,7 @@ export function SaleCard({
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'validated': return 'bg-green-100 text-green-700';
-            case 'pending': return 'bg-amber-100 text-amber-700';
+            case 'pending': return 'bg-brand-subtle text-brand-primary';
             case 'rejected': return 'bg-red-100 text-red-700';
             default: return 'bg-gray-100 text-gray-700';
         }
@@ -78,7 +78,7 @@ export function SaleCard({
             onClick={onViewDetails}
         >
             {/* Top Border "Receipt" accent */}
-            <div className="h-1.5 w-full bg-amber-400/80" />
+            <div className="h-1.5 w-full bg-brand-primary opacity-80" />
 
             <div className="p-4 cursor-pointer">
                 {/* Header: ID + Time + User */}

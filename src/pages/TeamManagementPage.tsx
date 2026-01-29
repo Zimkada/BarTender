@@ -300,18 +300,18 @@ export default function TeamManagementPage() {
                   placeholder="Rechercher un membre..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 pr-3 py-2 text-sm rounded-md border border-gray-300 focus:ring-amber-500 focus:border-amber-500 w-full"
+                  className="pl-9 pr-3 py-2 text-sm rounded-md border border-gray-300 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)] w-full"
                 />
               </div>
 
               {/* Compact Stats Strip */}
               <div className="flex items-center gap-4 text-sm font-medium text-gray-600 w-full md:w-auto justify-between md:justify-start">
                 <div className="flex items-center gap-1">
-                  <UserIcon className="h-4 w-4 text-amber-500" />
+                  <UserIcon className="h-4 w-4 text-brand-primary" />
                   <span>Gérants: <span className="font-bold text-gray-800">{managersCount}</span></span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Users className="h-4 w-4 text-amber-500" />
+                  <Users className="h-4 w-4 text-brand-primary" />
                   <span>Serveurs: <span className="font-bold text-gray-800">{serversCount}</span></span>
                 </div>
                 {inactiveCount > 0 && (
@@ -319,10 +319,10 @@ export default function TeamManagementPage() {
                     onClick={() => setShowInactive(!showInactive)}
                     variant="ghost"
                     size="sm"
-                    className={`flex items-center gap-2 text-gray-600 hover:bg-gray-100 ${showInactive ? 'bg-gray-100 text-amber-600' : ''}`}
+                    className={`flex items-center gap-2 text-gray-600 hover:bg-gray-100 ${showInactive ? 'bg-gray-100 text-brand-dark' : ''}`}
                     title={showInactive ? "Masquer les inactifs" : "Inclure les inactifs"}
                   >
-                    {showInactive ? <Eye size={16} className="text-amber-600" /> : <EyeOff size={16} className="text-gray-400" />}
+                    {showInactive ? <Eye size={16} className="text-brand-dark" /> : <EyeOff size={16} className="text-gray-400" />}
                     <span className="text-xs font-medium">
                       {showInactive ? 'Masquer inactifs' : `Inactifs (${inactiveCount})`}
                     </span>
@@ -334,7 +334,7 @@ export default function TeamManagementPage() {
               <div className="w-full md:w-auto mt-4 md:mt-0">
                 <Button
                   onClick={() => setPageTab('add')}
-                  className="w-full md:w-auto flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-md shadow-amber-100 transition-all active:scale-95"
+                  className="w-full md:w-auto flex items-center justify-center gap-2 btn-brand shadow-md shadow-brand-subtle transition-all active:scale-95"
                 >
                   <UserPlus size={16} />
                   <span className="font-medium">Ajouter</span>
@@ -363,7 +363,7 @@ export default function TeamManagementPage() {
                       transition={{ duration: 0.2, delay: index * 0.05 }}
                       className={`group relative bg-white rounded-3xl p-6 border-2 transition-all hover:-translate-y-1 hover:shadow-xl ${!member.isActive
                         ? 'border-gray-100 bg-gray-50/50 opacity-75'
-                        : 'border-gray-100 hover:border-amber-200 shadow-sm'
+                        : 'border-gray-100 hover:border-brand-subtle shadow-sm'
                         }`}
                     >
                       {/* Status Dot */}
@@ -392,7 +392,7 @@ export default function TeamManagementPage() {
                       {/* Avatar Section */}
                       <div className="mt-8 mb-6 flex flex-col items-center">
                         <div className={`w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-black mb-4 shadow-lg rotate-3 transition-transform group-hover:rotate-0 ${member.role === 'promoteur' ? 'bg-purple-100 text-purple-600' :
-                          member.role === 'gerant' ? 'bg-amber-100 text-amber-600' :
+                          member.role === 'gerant' ? 'bg-brand-subtle text-brand-dark' :
                             'bg-blue-100 text-blue-600'
                           }`}>
                           {initials}
@@ -402,7 +402,7 @@ export default function TeamManagementPage() {
 
                         {/* Role Badge */}
                         <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${member.role === 'promoteur' ? 'bg-purple-100 text-purple-700' :
-                          member.role === 'gerant' ? 'bg-amber-100 text-amber-800' :
+                          member.role === 'gerant' ? 'bg-brand-subtle text-brand-dark' :
                             'bg-gray-100 text-gray-600'
                           }`}>
                           {getRoleLabel(member.role)}
@@ -451,7 +451,7 @@ export default function TeamManagementPage() {
 
         {/* ✨ NOUVEAU: Mappings de serveurs (Mode Simplifié) */}
         {pageTab === 'mappings' && FEATURES.ENABLE_SWITCHING_MODE && (
-          <div className="bg-white rounded-xl shadow-sm border border-amber-100 overflow-hidden" data-guide="team-mappings">
+          <div className="bg-white rounded-xl shadow-sm border border-brand-subtle overflow-hidden" data-guide="team-mappings">
             <div className="p-6">
               <ServerMappingsManager
                 barId={currentBar.id}
@@ -479,21 +479,21 @@ export default function TeamManagementPage() {
             className="space-y-6"
           >
             {/* 📘 ONBOARDING / HELP PANEL */}
-            <div className="bg-amber-50 border border-amber-200 rounded-xl overflow-hidden shadow-sm">
+            <div className="bg-[var(--brand-bg-subtle)] border border-brand-subtle rounded-xl overflow-hidden shadow-sm">
               <button
                 onClick={() => setIsInfoExpanded(!isInfoExpanded)}
                 className="w-full px-5 py-4 flex items-center justify-between hover:bg-amber-100/50 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="bg-amber-100 p-2 rounded-lg">
-                    <AlertTriangle className="w-5 h-5 text-amber-600" />
+                  <div className="bg-brand-subtle p-2 rounded-lg">
+                    <AlertTriangle className="w-5 h-5 text-brand-dark" />
                   </div>
-                  <p className="font-bold text-amber-900">Processus de recrutement</p>
+                  <p className="font-bold text-[var(--brand-text)]">Processus de recrutement</p>
                 </div>
                 {isInfoExpanded ? (
-                  <ChevronDown className="w-5 h-5 text-amber-600" />
+                  <ChevronDown className="w-5 h-5 text-brand-primary" />
                 ) : (
-                  <ChevronUp className="w-5 h-5 text-amber-600" />
+                  <ChevronUp className="w-5 h-5 text-brand-primary" />
                 )}
               </button>
               <AnimatePresence>
@@ -504,19 +504,19 @@ export default function TeamManagementPage() {
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <div className="px-5 pb-5 pt-1 border-t border-amber-200">
+                    <div className="px-5 pb-5 pt-1 border-t border-brand-subtle">
                       <div className="space-y-3">
                         <div className="flex items-start gap-3">
-                          <span className="bg-amber-100 text-amber-700 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</span>
-                          <p className="text-sm text-amber-800">Choisissez si vous créez un nouveau compte ou si vous réutilisez un membre existant.</p>
+                          <span className="bg-brand-subtle text-brand-dark w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</span>
+                          <p className="text-sm text-[var(--brand-text)]">Choisissez si vous créez un nouveau compte ou si vous réutilisez un membre existant.</p>
                         </div>
                         <div className="flex items-start gap-3">
-                          <span className="bg-amber-100 text-amber-700 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</span>
-                          <p className="text-sm text-amber-800">Attribuez le rôle (Gérant ou Serveur) selon les besoins du bar.</p>
+                          <span className="bg-brand-subtle text-brand-dark w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</span>
+                          <p className="text-sm text-[var(--brand-text)]">Attribuez le rôle (Gérant ou Serveur) selon les besoins du bar.</p>
                         </div>
                         <div className="flex items-start gap-3">
-                          <span className="bg-amber-100 text-amber-700 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</span>
-                          <p className="text-sm text-amber-800">Partagez les identifiants générés en toute sécurité avec le nouveau membre.</p>
+                          <span className="bg-brand-subtle text-brand-dark w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</span>
+                          <p className="text-sm text-[var(--brand-text)]">Partagez les identifiants générés en toute sécurité avec le nouveau membre.</p>
                         </div>
                       </div>
                     </div>
@@ -539,10 +539,10 @@ export default function TeamManagementPage() {
                       <button
                         onClick={() => setActiveTab('new')}
                         className={`p-6 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 text-center ${activeTab === 'new'
-                          ? 'bg-amber-50 border-amber-500 shadow-lg shadow-amber-100'
-                          : 'bg-white border-gray-100 hover:border-amber-200'}`}
+                          ? 'bg-brand-subtle border-brand-primary shadow-lg shadow-brand-subtle'
+                          : 'bg-white border-gray-100 hover:border-brand-subtle'}`}
                       >
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${activeTab === 'new' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${activeTab === 'new' ? 'bg-brand-primary text-white' : 'bg-gray-100 text-gray-400'}`}>
                           <UserIcon size={24} />
                         </div>
                         <div>
@@ -554,10 +554,10 @@ export default function TeamManagementPage() {
                       <button
                         onClick={() => setActiveTab('existing')}
                         className={`p-6 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 text-center ${activeTab === 'existing'
-                          ? 'bg-amber-50 border-amber-500 shadow-lg shadow-amber-100'
-                          : 'bg-white border-gray-100 hover:border-amber-200'}`}
+                          ? 'bg-brand-subtle border-brand-primary shadow-lg shadow-brand-subtle'
+                          : 'bg-white border-gray-100 hover:border-brand-subtle'}`}
                       >
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${activeTab === 'existing' ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${activeTab === 'existing' ? 'bg-brand-primary text-white' : 'bg-gray-100 text-gray-400'}`}>
                           <UserPlus size={24} />
                         </div>
                         <div>
@@ -580,7 +580,7 @@ export default function TeamManagementPage() {
                             <button
                               onClick={() => setSelectedRole('gerant')}
                               className={`flex-1 py-3 px-4 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${selectedRole === 'gerant'
-                                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-200'
+                                ? 'btn-brand shadow-lg shadow-brand-subtle'
                                 : 'text-gray-500 hover:bg-gray-100'}`}
                             >
                               Gérant
@@ -590,7 +590,7 @@ export default function TeamManagementPage() {
                             <button
                               onClick={() => setSelectedRole('serveur')}
                               className={`flex-1 py-3 px-4 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${selectedRole === 'serveur'
-                                ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-200'
+                                ? 'btn-brand shadow-lg shadow-brand-subtle'
                                 : 'text-gray-500 hover:bg-gray-100'}`}
                             >
                               Serveur
@@ -660,7 +660,7 @@ export default function TeamManagementPage() {
                             <div className="pt-2">
                               <Button
                                 type="submit"
-                                className="w-full h-14 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-amber-200"
+                                className="w-full h-14 btn-brand rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-brand-subtle"
                               >
                                 Créer le compte
                               </Button>
@@ -681,7 +681,7 @@ export default function TeamManagementPage() {
                                 <div className="h-12 animate-pulse bg-gray-100 rounded-xl" />
                               ) : (
                                 <select
-                                  className="w-full h-12 bg-gray-50 border-gray-200 rounded-xl px-4 font-medium focus:ring-2 focus:ring-amber-500 transition-all cursor-pointer"
+                                  className="w-full h-12 bg-gray-50 border-gray-200 rounded-xl px-4 font-medium focus:ring-2 focus:ring-[var(--brand-primary)] transition-all cursor-pointer"
                                   value={selectedCandidateId}
                                   onChange={(e) => {
                                     setSelectedCandidateId(e.target.value);
@@ -723,7 +723,7 @@ export default function TeamManagementPage() {
                               <Button
                                 type="submit"
                                 disabled={!selectedCandidateId && !existingEmail}
-                                className="w-full h-14 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-amber-200"
+                                className="w-full h-14 btn-brand rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-brand-subtle"
                               >
                                 Ajouter à l'équipe
                               </Button>
@@ -748,42 +748,42 @@ export default function TeamManagementPage() {
 
               {/* Right Column: Profile Preview Ticket */}
               <div className="lg:col-span-1">
-                <div className="bg-amber-100 rounded-3xl p-6 border-2 border-dashed border-amber-300 relative overflow-hidden h-full flex flex-col min-h-[400px]">
+                <div className="bg-brand-subtle rounded-3xl p-6 border-2 border-dashed border-brand-subtle relative overflow-hidden h-full flex flex-col min-h-[400px]">
                   {/* Cutouts */}
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-gray-50 rounded-full" />
                   <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-gray-50 rounded-full" />
 
                   <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4 border border-amber-200">
-                      <UserIcon size={32} className="text-amber-600" />
+                    <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4 border border-brand-subtle">
+                      <UserIcon size={32} className="text-brand-primary" />
                     </div>
-                    <h4 className="font-black text-amber-900 uppercase tracking-widest text-sm">Aperçu Profil</h4>
+                    <h4 className="font-black text-brand-dark uppercase tracking-widest text-sm">Aperçu Profil</h4>
                   </div>
 
                   <div className="space-y-5 flex-1">
                     <div className="bg-white/50 p-4 rounded-2xl">
-                      <p className="text-[10px] font-black text-amber-700 uppercase mb-1">Nom Complet</p>
-                      <p className="font-black text-amber-950 text-lg leading-tight">{name || (selectedCandidateId ? candidates.find(c => c.id === selectedCandidateId)?.name : 'Nouveau Membre')}</p>
+                      <p className="text-[10px] font-black text-brand-primary uppercase mb-1">Nom Complet</p>
+                      <p className="font-black text-brand-dark text-lg leading-tight">{name || (selectedCandidateId ? candidates.find(c => c.id === selectedCandidateId)?.name : 'Nouveau Membre')}</p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-white/50 p-4 rounded-2xl">
-                        <p className="text-[10px] font-black text-amber-700 uppercase mb-1">Rôle</p>
-                        <p className="font-black text-amber-950 uppercase text-xs">{selectedRole}</p>
+                        <p className="text-[10px] font-black text-brand-primary uppercase mb-1">Rôle</p>
+                        <p className="font-black text-brand-dark uppercase text-xs">{selectedRole}</p>
                       </div>
                       <div className="bg-white/50 p-4 rounded-2xl">
-                        <p className="text-[10px] font-black text-amber-700 uppercase mb-1">Identifiant</p>
-                        <p className="font-black text-amber-950 text-xs truncate">{username || (existingEmail ? existingEmail.split('@')[0] : '---')}</p>
+                        <p className="text-[10px] font-black text-brand-primary uppercase mb-1">Identifiant</p>
+                        <p className="font-black text-brand-dark text-xs truncate">{username || (existingEmail ? existingEmail.split('@')[0] : '---')}</p>
                       </div>
                     </div>
 
-                    <div className="bg-amber-950 text-amber-100 p-5 rounded-2xl shadow-xl text-center">
+                    <div className="bg-brand-dark text-white p-5 rounded-2xl shadow-xl text-center">
                       <p className="text-[10px] font-black uppercase opacity-60 mb-2 tracking-widest leading-none">Accès Bar</p>
-                      <p className="font-black text-base text-amber-50">{currentBar.name}</p>
+                      <p className="font-black text-base text-[var(--brand-bg-subtle)]">{currentBar.name}</p>
                     </div>
 
                     <div className="px-2 text-center pt-4">
-                      <div className="flex items-center justify-center gap-2 text-amber-800/60 text-xs font-medium italic">
+                      <div className="flex items-center justify-center gap-2 text-[var(--brand-text)] opacity-60 text-xs font-medium italic">
                         <Info size={14} />
                         <span>L'employé pourra se connecter dès validation</span>
                       </div>

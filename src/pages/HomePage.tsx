@@ -59,7 +59,7 @@ export default function HomePage() {
   if (!currentBar) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-100px)] text-gray-800 p-4">
-        <h1 className="text-3xl font-bold text-amber-700 mb-4">Bienvenue sur BarTender !</h1>
+        <h1 className="text-3xl font-bold text-brand-dark mb-4">Bienvenue sur BarTender !</h1>
         <p className="text-lg text-gray-600">Sélectionnez un bar pour commencer.</p>
       </div>
     );
@@ -72,26 +72,40 @@ export default function HomePage() {
   // 3. Le reste du rendu du composant
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-4">
-      {/* Header */}
-      <Card variant="elevated" padding="default" className="border-amber-100">
-        <div className="flex items-center justify-between mb-4">
+      {/* Header Premium */}
+      <Card variant="elevated" padding="default" className="border-brand-subtle bg-white/40 backdrop-blur-md overflow-hidden relative">
+        {/* Subtle background glow */}
+        <div className="absolute -top-10 -right-10 w-32 h-32 bg-brand-primary/10 blur-3xl rounded-full"></div>
+
+        <div className="flex items-center justify-between mb-6 relative z-10">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">Vente Rapide</h2>
-            <p className="text-sm text-gray-500">{currentBar.name}</p>
+            <div className="flex flex-col">
+              <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter leading-none">Vente</h2>
+              <h3 className="text-2xl font-black text-brand-primary uppercase tracking-tighter leading-tight">Rapide</h3>
+            </div>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1.5">{currentBar.name}</p>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-100 to-amber-50 rounded-xl border border-amber-200/50">
-            <ShoppingCart size={18} className="text-amber-600" />
-            <span className="text-sm font-bold text-amber-700">{allProducts.length}</span>
-            <span className="text-xs text-amber-600/70">produits</span>
+
+          <div className="flex items-center gap-2.5 px-4 py-2 bg-brand-subtle rounded-2xl border border-brand-subtle shadow-sm hover:shadow-md transition-all group">
+            <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-brand-primary shadow-sm group-hover:scale-110 transition-transform">
+              <ShoppingCart size={18} />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-lg font-black text-brand-dark leading-none">{allProducts.length}</span>
+              <span className="text-[9px] font-black text-brand-primary uppercase tracking-wider">produits</span>
+            </div>
           </div>
         </div>
 
-        {/* Search */}
-        <SearchBar
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder="Rechercher un produit..."
-        />
+        {/* Search Premium */}
+        <div className="relative z-10">
+          <SearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Rechercher un produit..."
+            className="w-full bg-white/60 focus-within:bg-white transition-all border-brand-subtle shadow-inner"
+          />
+        </div>
       </Card>
 
       {/* Category Filter */}
@@ -109,7 +123,7 @@ export default function HomePage() {
       />
 
       {/* Product Grid */}
-      <Card variant="elevated" padding="default" className="border-amber-100 min-h-[600px]">
+      <Card variant="elevated" padding="default" className="border-brand-subtle min-h-[600px]">
         {allProducts.length === 0 ? (
           <ProductGridSkeleton count={12} />
         ) : (

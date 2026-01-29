@@ -147,14 +147,14 @@ export default function SalesHistoryPage() {
     ] as { id: string; label: string; icon: any }[];
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-50 pb-16 md:pb-0">
+        <div className="min-h-screen bg-transparent pb-16 md:pb-0">
             <div className={`w-full flex flex-col ${isMobile ? 'h-full' : 'max-w-7xl mx-auto'}`}>
                 <TabbedPageHeader
                     title={isMobile ? 'Historique' : 'Historique des ventes'}
                     subtitle={
                         <span>
                             Consultez et analysez votre historique
-                            {!isMobile && <span className="ml-2 text-amber-900 font-medium">• {filteredSales.length} ventes</span>}
+                            {!isMobile && <span className="ml-2 text-brand-primary font-bold">• {filteredSales.length} ventes</span>}
                         </span>
                     }
                     icon={<TrendingUp size={24} />}

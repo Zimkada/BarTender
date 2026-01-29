@@ -86,8 +86,8 @@ function ResetPasswordScreen() {
         className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
-            <Lock className="w-8 h-8 text-amber-600" />
+          <div className="mx-auto w-16 h-16 bg-brand-subtle rounded-full flex items-center justify-center mb-4">
+            <Lock className="w-8 h-8 text-brand-primary" />
           </div>
           <h2 className="text-2xl font-bold text-gray-800">Réinitialiser le mot de passe</h2>
           <p className="text-gray-600 mt-2">Choisissez un nouveau mot de passe sécurisé.</p>
@@ -102,7 +102,7 @@ function ResetPasswordScreen() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent outline-none"
               placeholder="Minimum 6 caractères"
               disabled={!!success}
               autoFocus
@@ -116,7 +116,7 @@ function ResetPasswordScreen() {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent outline-none"
               placeholder="Retapez le mot de passe"
               disabled={!!success}
             />
@@ -137,7 +137,7 @@ function ResetPasswordScreen() {
           <button
             type="submit"
             disabled={isLoading || !!success}
-            className="w-full bg-gradient-to-r from-amber-500 to-amber-500 text-white py-3 rounded-lg font-semibold hover:from-amber-600 hover:to-amber-600 transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-brand w-full py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? 'Mise à jour...' : 'Mettre à jour le mot de passe'}
           </button>

@@ -183,7 +183,7 @@ export function ServerMappingsManager({
 
       {loading ? (
         <div className="flex items-center justify-center py-8">
-          <Loader size={20} className="animate-spin text-amber-500" />
+          <Loader size={20} className="animate-spin text-brand-primary" />
           <span className="ml-2 text-gray-600">Chargement des mappings...</span>
         </div>
       ) : (
@@ -233,7 +233,7 @@ export function ServerMappingsManager({
           )}
 
           {/* Add new mapping */}
-          <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
+          <div className="bg-brand-subtle rounded-lg p-4 border border-brand-subtle">
             <h4 className="font-medium text-gray-800 mb-3">Ajouter un nouveau mapping</h4>
             <div className="space-y-3">
               <Input
@@ -257,7 +257,7 @@ export function ServerMappingsManager({
               <button
                 onClick={handleAddMapping}
                 disabled={saving || !newServerName.trim() || !newServerId}
-                className="w-full h-10 bg-amber-500 text-white font-medium rounded-lg hover:bg-amber-600 transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2"
+                className="w-full h-10 bg-brand-primary text-white font-medium rounded-lg hover:brightness-110 transition-all disabled:bg-gray-400 flex items-center justify-center gap-2 shadow-sm"
               >
                 {saving && <Loader size={16} className="animate-spin" />}
                 <Plus size={16} />

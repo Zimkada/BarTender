@@ -428,7 +428,7 @@ export default function ReturnsPage() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-bold border border-amber-200"
+                className="flex items-center gap-1 bg-brand-subtle text-brand-primary px-2 py-0.5 rounded-full text-[10px] font-bold border border-brand-subtle"
               >
                 <DollarSign size={10} />
                 Aujourd'hui: <AnimatedCounter value={todayRefundedAmount} /> FCFA
@@ -436,7 +436,7 @@ export default function ReturnsPage() {
             )}
           </div>
         }
-        icon={<RotateCcw size={24} className="text-amber-600" />}
+        icon={<RotateCcw size={24} />}
         hideSubtitleOnMobile
         tabs={tabsConfig}
         activeTab={activeTab}
@@ -475,7 +475,7 @@ export default function ReturnsPage() {
                 className="flex-1 min-w-0 h-10"
               />
               <div className="flex items-center gap-2 shrink-0">
-                {!isMobile && <Filter size={18} className="text-gray-600" />}
+                {!isMobile && <Filter size={18} />}
                 <Select
                   options={[
                     {
@@ -508,7 +508,7 @@ export default function ReturnsPage() {
       )}
 
       {/* Main Content Area */}
-      <div className="bg-white rounded-xl shadow-sm border border-amber-100 p-6 min-h-[60vh]">
+      <div className="bg-white rounded-xl shadow-sm border border-brand-subtle p-6 min-h-[60vh]">
         {/* Disable AnimatePresence on mobile to reduce TBT (expensive animation calculations) */}
         {isMobile ? (
           <>

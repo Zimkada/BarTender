@@ -171,8 +171,8 @@ export function ProductModal({ isOpen, onClose, onSave, product, inline = false 
                 variant="ghost"
                 onClick={() => setMode('global')}
                 className={`flex-1 min-w-fit text-sm sm:text-base font-medium transition-all ${mode === 'global'
-                  ? 'bg-blue-50 text-blue-700 shadow-md border-2 border-blue-400'
-                  : 'text-gray-600 border-2 border-transparent hover:bg-blue-50/50'
+                  ? 'bg-brand-subtle text-brand-dark shadow-md border-2 border-brand-primary'
+                  : 'text-gray-600 border-2 border-transparent hover:bg-brand-subtle/50'
                   }`}
               >
                 <Globe size={16} className="mr-1 sm:mr-2 shrink-0" />
@@ -185,8 +185,8 @@ export function ProductModal({ isOpen, onClose, onSave, product, inline = false 
                 onClick={() => setMode('custom')} // Just change tab styling
                 onMouseDown={handleCustomProductStart} // Action on click
                 className={`flex-1 min-w-fit text-sm sm:text-base font-medium transition-all ${mode === 'custom'
-                  ? 'bg-amber-50 text-amber-700 shadow-md border-2 border-amber-400'
-                  : 'text-gray-600 border-2 border-transparent hover:bg-amber-50/50'
+                  ? 'bg-brand-subtle text-brand-dark shadow-md border-2 border-brand-primary'
+                  : 'text-gray-600 border-2 border-transparent hover:bg-brand-subtle/50'
                   }`}
               >
                 <PenTool size={16} className="mr-1 sm:mr-2 shrink-0" />
@@ -337,7 +337,7 @@ export function ProductModal({ isOpen, onClose, onSave, product, inline = false 
                       className={product ? 'opacity-60 cursor-not-allowed' : ''}
                     />
                     {product && (
-                      <p className="text-xs text-amber-600 mt-1">
+                      <p className="text-xs text-brand-primary mt-1">
                         ⚠️ Le stock ne peut être modifié que via: ventes, approvisionnements, ou ajustements spécifiques
                       </p>
                     )}

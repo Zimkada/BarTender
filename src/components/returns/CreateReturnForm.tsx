@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Minus, Plus, Info, ChevronRight, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Minus, Plus, Info, ChevronRight, AlertTriangle, ChevronDown, ChevronUp, User as UserIcon, RotateCcw } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
 import { useBarContext } from "../../context/BarContext";
 import { useCurrencyFormatter } from "../../hooks/useBeninCurrency";
@@ -201,18 +201,18 @@ export function CreateReturnForm({
               >
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-bold text-gray-800 whitespace-nowrap">
-                    1. Sélectionner la vente
+                    1. Choisir la vente
                   </h3>
                 </div>
                 {/* Info Accordion "Processus de retour" - Fidèle à la capture */}
                 <div className="mb-4">
                   <button
                     onClick={() => setIsInfoExpanded(!isInfoExpanded)}
-                    className="flex items-center gap-2 w-full p-3 bg-blue-50 text-blue-800 rounded-xl border border-blue-200/50 hover:bg-blue-100 transition-colors group"
+                    className="flex items-center gap-2 w-full p-3 bg-gray-50 text-gray-700 rounded-xl border border-gray-200 hover:border-brand-primary/30 transition-all group"
                   >
-                    <AlertTriangle size={18} className="text-blue-600" />
-                    <span className="text-sm font-bold flex-1 text-left">Processus de retour</span>
-                    {isInfoExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    <AlertTriangle size={18} className="text-brand-primary" />
+                    <span className="text-sm font-bold flex-1 text-left uppercase tracking-tight">Processus de retour</span>
+                    {isInfoExpanded ? <ChevronUp size={16} className="text-brand-primary" /> : <ChevronDown size={16} className="text-gray-400" />}
                   </button>
 
                   <AnimatePresence>
@@ -223,32 +223,32 @@ export function CreateReturnForm({
                         exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden"
                       >
-                        <div className="p-4 mt-2 bg-white border border-blue-100 rounded-xl space-y-4 shadow-sm">
-                          <div className="space-y-2 text-sm text-blue-900/80">
+                        <div className="p-4 mt-2 bg-white border border-brand-primary/10 rounded-xl space-y-4 shadow-sm">
+                          <div className="space-y-2 text-sm text-gray-600">
                             <p className="flex items-start gap-3">
-                              <span className="font-bold text-blue-600">1.</span>
+                              <span className="font-black text-brand-primary">1.</span>
                               Sélectionnez la vente de la journée commerciale actuelle
                             </p>
                             <p className="flex items-start gap-3">
-                              <span className="font-bold text-blue-600">2.</span>
+                              <span className="font-black text-brand-primary">2.</span>
                               Choisissez le produit à retourner et la quantité
                             </p>
                             <p className="flex items-start gap-3">
-                              <span className="font-bold text-blue-600">3.</span>
+                              <span className="font-black text-brand-primary">3.</span>
                               Indiquez le motif du retour (défectueux, erreur, etc.)
                             </p>
                             <p className="flex items-start gap-3">
-                              <span className="font-bold text-blue-600">4.</span>
+                              <span className="font-black text-brand-primary">4.</span>
                               Le stock sera automatiquement réapprovisionné selon le motif
                             </p>
                           </div>
 
-                          <div className="pt-3 border-t border-blue-100 space-y-2">
-                            <div className="flex items-center gap-2 text-blue-700 font-bold text-xs uppercase tracking-tight">
-                              <AlertTriangle size={14} />
+                          <div className="pt-3 border-t border-gray-100 space-y-2">
+                            <div className="flex items-center gap-2 text-gray-800 font-black text-[10px] uppercase tracking-wider">
+                              <AlertTriangle size={14} className="text-brand-primary" />
                               Retours autorisés uniquement AVANT clôture caisse ({closeHour}h)
                             </div>
-                            <p className="text-xs text-blue-600/70 leading-relaxed">
+                            <p className="text-[11px] text-gray-500 leading-relaxed italic">
                               Votre bar ferme à {closeHour}h. Les retours ne peuvent être créés qu'avant cette heure.
                             </p>
                           </div>
@@ -281,7 +281,7 @@ export function CreateReturnForm({
 
                   <div className="relative mb-3">
                     <Search
-                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600"
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                       size={16}
                     />
                     <input
@@ -289,7 +289,7 @@ export function CreateReturnForm({
                       placeholder="Rechercher un produit (ex: Guinness)..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2 border border-amber-200 rounded-lg bg-white text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                      className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl bg-white text-sm focus:ring-4 focus:ring-brand-primary/10 focus:border-brand-primary transition-all outline-none"
                     />
                   </div>
 
@@ -319,18 +319,35 @@ export function CreateReturnForm({
                           <motion.button
                             key={sale.id}
                             onClick={() => returnCheck.allowed && onSelectSale(sale)}
-                            whileHover={returnCheck.allowed ? { scale: 1.01 } : {}}
+                            whileHover={returnCheck.allowed ? { y: -2, scale: 1.01 } : {}}
                             disabled={!returnCheck.allowed}
-                            className={`p-3 text-left rounded-lg border transition-colors ${returnCheck.allowed
-                              ? "border-gray-200 bg-white hover:border-gray-300 shadow-sm"
-                              : "border-red-200 bg-red-50 opacity-50 cursor-not-allowed"
+                            className={`p-4 text-left rounded-2xl border-2 transition-all ${returnCheck.allowed
+                              ? "border-brand-primary/10 bg-white hover:border-brand-primary/60 shadow-md hover:shadow-brand-subtle/20"
+                              : "border-red-100 bg-red-50/50 opacity-50 cursor-not-allowed"
                               }`}
                           >
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="font-medium text-gray-800 text-sm">
-                                #{sale.id.slice(-4)}
-                              </span>
-                              <span className="text-[10px] text-gray-500">
+                            {/* Top Row: Server (Liquid Gold Gradient Text) and Time */}
+                            <div className="flex items-center justify-between mb-3">
+                              {serverUser ? (
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded-full bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20">
+                                    <UserIcon size={12} className="text-brand-primary" />
+                                  </div>
+                                  <span
+                                    className="font-black text-xs uppercase tracking-tight"
+                                    style={{
+                                      background: 'var(--brand-gradient)',
+                                      WebkitBackgroundClip: 'text',
+                                      WebkitTextFillColor: 'transparent'
+                                    }}
+                                  >
+                                    {serverUser.name}
+                                  </span>
+                                </div>
+                              ) : (
+                                <div className="text-xs font-bold text-gray-400">Vendeur inconnu</div>
+                              )}
+                              <span className="text-[10px] font-bold text-gray-400">
                                 {new Date(
                                   sale.validatedAt || sale.createdAt,
                                 ).toLocaleTimeString("fr-FR", {
@@ -339,33 +356,41 @@ export function CreateReturnForm({
                                 })}
                               </span>
                             </div>
+
+                            {/* Middle: Products (The Hero of this card for returns) */}
                             <div
-                              className="text-[11px] text-gray-600 truncate mb-1"
+                              className="text-sm text-gray-900 font-black line-clamp-2 mb-4 leading-relaxed bg-gray-50/30 p-2.5 rounded-lg border border-gray-100"
                               title={productPreview}
                             >
                               {productPreview}
-                              {moreCount > 0 ? ` +${moreCount}` : ""}
+                              {moreCount > 0 ? (
+                                <span className="text-brand-primary/60 ml-1 font-bold">+{moreCount} articles</span>
+                              ) : ""}
                             </div>
 
-                            <div className="flex items-center justify-between mt-2">
-                              {serverUser ? (
-                                <span className="text-[10px] text-purple-600 font-medium">
-                                  👤 {serverUser.name}
-                                </span>
-                              ) : (
-                                <span />
-                              )}
+                            {/* Bottom: ID and Price + Prominent Gradient Arrow */}
+                            <div className="flex items-center justify-between pt-1">
+                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                #{sale.id.slice(-4).toUpperCase()}
+                              </span>
+
                               {returnCheck.allowed ? (
-                                <div className="flex items-center gap-1">
-                                  <span className="text-xs font-bold text-gray-700">
+                                <div className="flex items-center gap-3">
+                                  <span className="text-[11px] font-bold text-gray-500">
                                     {formatPrice(sale.total)}
                                   </span>
-                                  <ChevronRight size={14} className="text-gray-400" />
+                                  <div
+                                    className="w-7 h-7 rounded-full flex items-center justify-center shadow-lg shadow-brand-primary/20 transform group-hover:translate-x-1 transition-transform"
+                                    style={{ background: 'var(--brand-gradient)' }}
+                                  >
+                                    <ChevronRight size={18} className="text-white" />
+                                  </div>
                                 </div>
                               ) : (
-                                <span className="text-[10px] text-red-600 font-medium italic">
+                                <div className="flex items-center gap-1 text-[9px] text-red-500 font-black uppercase tracking-tighter italic">
+                                  <AlertTriangle size={10} />
                                   {returnCheck.reason}
-                                </span>
+                                </div>
                               )}
                             </div>
                           </motion.button>
@@ -390,20 +415,27 @@ export function CreateReturnForm({
                       onSelectSale(null);
                       setSelectedProduct(null);
                     }}
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-600 border-none px-2"
+                    showLabel={false}
+                    className="glass-action-button-2026 w-11 h-11 rounded-xl shadow-sm hover:shadow-brand-subtle/40 transition-all border-none"
                   />
                   <h3 className="text-lg font-bold text-gray-800 whitespace-nowrap">2. Choisir le produit</h3>
                 </div>
 
-                {/* Selected Sale Recap - Premium Dark Style */}
-                <div className="bg-gradient-to-br from-amber-900 to-amber-950 text-white rounded-2xl p-5 shadow-lg flex justify-between items-center border border-amber-800/50">
-                  <div>
-                    <p className="text-[10px] uppercase font-black text-amber-200/60 tracking-widest mb-1">Vente sélectionnée</p>
-                    <p className="text-sm font-bold text-amber-50">#{selectedSale.id.slice(-6).toUpperCase()}</p>
+                {/* Selected Sale Recap - Liquid Gold Brand Style (Ancrage visuel) */}
+                <div
+                  className="text-white rounded-3xl p-6 shadow-xl shadow-brand-primary/20 flex justify-between items-center border border-white/20 relative overflow-hidden"
+                  style={{ background: 'var(--brand-gradient)' }}
+                >
+                  {/* Subtle shine effect */}
+                  <div className="absolute top-0 left-0 w-full h-full bg-white/10 opacity-50 blur-xl -translate-y-1/2 pointer-events-none" />
+
+                  <div className="relative z-10">
+                    <p className="text-[10px] uppercase font-black text-white/70 tracking-widest mb-1.5">Vente sélectionnée</p>
+                    <p className="text-sm font-black text-white uppercase tracking-tight">#{selectedSale.id.slice(-6).toUpperCase()}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] uppercase font-black text-amber-200/60 tracking-widest mb-1">Total Payé</p>
-                    <p className="text-xl font-black text-white font-mono tracking-tighter">{formatPrice(selectedSale.total)}</p>
+                  <div className="text-right relative z-10">
+                    <p className="text-[10px] uppercase font-black text-white/70 tracking-widest mb-1.5">Total Payé</p>
+                    <p className="text-2xl font-black text-white font-mono tracking-tighter">{formatPrice(selectedSale.total)}</p>
                   </div>
                 </div>
 
@@ -431,42 +463,64 @@ export function CreateReturnForm({
                           onClick={() =>
                             !isFullyUnavailable && setSelectedProduct(item)
                           }
-                          whileHover={!isFullyUnavailable ? { x: 4 } : {}}
+                          whileHover={!isFullyUnavailable ? { y: -2, scale: 1.01 } : {}}
                           disabled={isFullyUnavailable}
-                          className={`w-full p-4 text-left rounded-xl border transition-all ${isFullyUnavailable
+                          className={`w-full p-4 text-left rounded-2xl border-2 transition-all ${isFullyUnavailable
                             ? "border-gray-100 bg-gray-50/30 opacity-50 cursor-not-allowed"
-                            : "border-gray-200 bg-white hover:border-blue-200 hover:shadow-sm"
+                            : "border-brand-primary/10 bg-white hover:border-brand-primary shadow-md hover:shadow-brand-subtle/20"
                             }`}
                         >
                           <div className="flex justify-between items-center">
                             <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <p className="font-bold text-gray-800 text-sm">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-black text-gray-900 text-sm tracking-tight uppercase">
                                   {productName}
-                                </p>
-                                <span className="text-[10px] font-medium text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-md">
-                                  {productVolume}
+                                </span>
+                                {productVolume && (
+                                  <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
+                                    {productVolume}
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Dispo:</span>
+                                  <span
+                                    className="text-xs font-black"
+                                    style={{
+                                      background: 'var(--brand-gradient)',
+                                      WebkitBackgroundClip: 'text',
+                                      WebkitTextFillColor: 'transparent'
+                                    }}
+                                  >
+                                    {available}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-gray-300 font-medium">|</span>
+                                <span className="text-[10px] text-gray-400 font-bold uppercase">
+                                  Vendu: {item.quantity}
                                 </span>
                               </div>
-                              <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                                <div className="flex items-center gap-1 text-[10px] text-gray-500">
-                                  Vendu: <span className="font-bold">{item.quantity}</span>
-                                </div>
-                                {alreadyReturned > 0 && (
-                                  <div className="flex items-center gap-1 text-[10px] text-amber-600">
-                                    Retourné: <span className="font-bold">{alreadyReturned}</span>
-                                  </div>
-                                )}
-                                <div className={`flex items-center gap-1 text-[10px] ${isFullyUnavailable ? "text-red-500" : "text-green-600"}`}>
-                                  Dispo: <span className="font-bold">{available}</span>
-                                </div>
-                              </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-blue-600 font-bold text-xs">
-                                {formatPrice(productPrice)}
-                              </span>
-                              {!isFullyUnavailable && <ChevronRight size={16} className="text-gray-300" />}
+
+                            <div className="text-right flex items-center gap-3">
+                              <div className="flex flex-col items-end">
+                                <span className="text-sm font-black text-gray-900 font-mono">
+                                  {formatPrice(productPrice)}
+                                </span>
+                                {isFullyUnavailable && (
+                                  <span className="text-[9px] text-red-500 font-black uppercase tracking-tighter italic">
+                                    Déjà retourné
+                                  </span>
+                                )}
+                              </div>
+                              <div
+                                className={`w-7 h-7 rounded-full flex items-center justify-center shadow-lg transition-all ${isFullyUnavailable ? 'bg-gray-100 opacity-50' : 'shadow-brand-primary/20'}`}
+                                style={!isFullyUnavailable ? { background: 'var(--brand-gradient)' } : {}}
+                              >
+                                <ChevronRight size={18} className={isFullyUnavailable ? 'text-gray-300' : 'text-white'} />
+                              </div>
                             </div>
                           </div>
                         </motion.button>
@@ -487,61 +541,80 @@ export function CreateReturnForm({
                 <div className="flex items-center gap-3">
                   <BackButton
                     onClick={() => setSelectedProduct(null)}
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-600 border-none px-2"
+                    showLabel={false}
+                    className="glass-action-button-2026 w-11 h-11 rounded-xl shadow-sm hover:shadow-brand-subtle/40 transition-all border-none"
                   />
                   <h3 className="text-lg font-bold text-gray-800 whitespace-nowrap">3. Détails du retour</h3>
                 </div>
 
-                <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-100/50">
-                  <div className="flex items-start justify-between gap-3 mb-4 pb-3 border-b border-blue-200/30">
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[9px] uppercase font-black text-blue-600 tracking-widest leading-none mb-1">Produit sélectionné</span>
-                      <h3 className="text-xs font-black text-gray-800 leading-tight">
-                        {selectedProduct.product_name}
-                      </h3>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Left Column: Form */}
-                    <div className="lg:col-span-2 space-y-6 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                      <div className="grid grid-cols-1 gap-6">
+                <div className="bg-white p-2 rounded-3xl border border-brand-primary/10 shadow-sm overflow-hidden">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 divide-y lg:divide-y-0 lg:divide-x divide-gray-100">
+                    {/* Left Column: Form Controls */}
+                    <div className="lg:col-span-2 space-y-8 p-6 sm:p-8">
+                      {/* Product Header in Form */}
+                      <div className="flex items-center gap-4 mb-2">
+                        <div className="w-12 h-12 rounded-2xl bg-brand-primary/5 flex items-center justify-center border border-brand-primary/10">
+                          <span className="text-2xl">📦</span>
+                        </div>
                         <div>
-                          <Label className="text-xs uppercase font-bold text-gray-400 mb-3 block tracking-wider">
+                          <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest leading-none mb-1">Article à traiter</p>
+                          <h4 className="text-sm font-black text-gray-900 uppercase tracking-tight">
+                            {selectedProduct.product_name}
+                          </h4>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-8">
+                        {/* 1. Quantity Selector */}
+                        <div>
+                          <Label className="text-[10px] uppercase font-black text-gray-400 mb-4 block tracking-[0.2em]">
                             1. Quantité à retourner
                           </Label>
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                            <div className="flex items-center gap-1 bg-gray-50 p-1.5 rounded-2xl border border-gray-200 shadow-inner w-fit">
+                          <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-3 bg-white p-2 rounded-[2.5rem] border-2 border-brand-primary/10 shadow-xl shadow-brand-primary/5">
                               <button
                                 type="button"
                                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                                className="w-10 h-10 flex items-center justify-center bg-white rounded-xl shadow-sm text-gray-600 hover:text-blue-600 disabled:opacity-30 transition-all active:scale-95"
+                                className="w-12 h-12 flex items-center justify-center bg-black rounded-full text-white hover:bg-brand-primary transition-all active:scale-90 shadow-lg disabled:opacity-20 border-none"
                                 disabled={quantity <= 1}
                               >
-                                <Minus size={18} />
+                                <Minus size={22} strokeWidth={4} />
                               </button>
-                              <div className="w-14 text-center font-black text-xl text-gray-800 select-none">
-                                {quantity}
+
+                              <div className="w-20 text-center select-none">
+                                <span
+                                  className="text-4xl font-black font-mono tracking-tighter block"
+                                  style={{
+                                    background: 'var(--brand-gradient)',
+                                    WebkitBackgroundClip: 'text',
+                                    WebkitTextFillColor: 'transparent',
+                                    filter: 'drop-shadow(0 2px 4px rgba(var(--brand-rgb), 0.15))'
+                                  }}
+                                >
+                                  {quantity}
+                                </span>
                               </div>
+
                               <button
                                 type="button"
                                 onClick={() => setQuantity(Math.min(availableQty, quantity + 1))}
-                                className="w-10 h-10 flex items-center justify-center bg-white rounded-xl shadow-sm text-gray-600 hover:text-blue-600 disabled:opacity-30 transition-all active:scale-95"
+                                className="w-12 h-12 flex items-center justify-center bg-black rounded-full text-white hover:bg-brand-primary transition-all active:scale-90 shadow-lg disabled:opacity-20 border-none"
                                 disabled={quantity >= availableQty}
                               >
-                                <Plus size={18} />
+                                <Plus size={22} strokeWidth={4} />
                               </button>
                             </div>
 
-                            <div className="flex flex-col">
-                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Maximum sur cette vente</span>
-                              <span className="text-sm font-black text-gray-700">{availableQty} unités</span>
+                            <div className="hidden sm:flex flex-col">
+                              <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Capacité</span>
+                              <span className="text-xs font-black text-gray-500 uppercase">{availableQty} unités</span>
                             </div>
                           </div>
                         </div>
 
+                        {/* 2. Reason Selector */}
                         <div>
-                          <Label className="text-xs uppercase font-bold text-gray-400 mb-3 block tracking-wider">
+                          <Label className="text-[10px] uppercase font-black text-gray-400 mb-4 block tracking-[0.2em]">
                             2. Motif du retour
                           </Label>
                           <ReturnReasonSelector
@@ -550,83 +623,109 @@ export function CreateReturnForm({
                             onSelect={(r) => setReason(r)}
                           />
                         </div>
-                      </div>
 
-                      <div>
-                        <Label htmlFor="returnNotes" className="text-xs uppercase font-bold text-gray-400 mb-2 block tracking-wider">
-                          3. Notes (Optionnel)
-                        </Label>
-                        <Textarea
-                          id="returnNotes"
-                          value={notes}
-                          onChange={(e) => setNotes(e.target.value)}
-                          rows={3}
-                          className="rounded-xl border-gray-200 focus:ring-blue-500/20 text-sm bg-gray-50 focus:bg-white"
-                          placeholder="Précisez la raison si nécessaire..."
-                        />
+                        {/* 3. Notes */}
+                        <div>
+                          <Label htmlFor="returnNotes" className="text-[10px] uppercase font-black text-gray-400 mb-3 block tracking-[0.2em]">
+                            3. Précisions (Optionnel)
+                          </Label>
+                          <Textarea
+                            id="returnNotes"
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            rows={3}
+                            className="rounded-2xl border-brand-primary/10 focus:border-brand-primary focus:ring-4 focus:ring-brand-primary/5 text-sm bg-gray-50/50 focus:bg-white transition-all resize-none shadow-none outline-none"
+                            placeholder="Ex: Bouteille cassée, erreur de saisie..."
+                          />
+                        </div>
                       </div>
                     </div>
 
-                    {/* Right Column: Ticket Recap */}
-                    <div className="lg:col-span-1">
-                      <div className="bg-blue-100 rounded-3xl p-6 border-2 border-dashed border-blue-300 relative overflow-hidden h-full flex flex-col">
-                        {/* Top Cutout */}
-                        <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-gray-50 rounded-full sm:bg-transparent" />
-
-                        <div className="text-center mb-6">
-                          <Info className="w-10 h-10 text-blue-600 mx-auto mb-2 opacity-50" />
-                          <h4 className="font-black text-blue-900 uppercase tracking-widest text-sm">Récapitulatif</h4>
+                    {/* Right Column: Premium 'Receipt' Ticket */}
+                    <div className="lg:col-span-1 p-6 sm:p-8 bg-gray-50/30">
+                      <div className="bg-white rounded-none relative shadow-2xl shadow-gray-200/50 flex flex-col min-h-[450px] border-x border-gray-100 pb-10">
+                        {/* Serrated Top Edge (Visual trick) */}
+                        <div className="absolute -top-1.5 left-0 w-full flex justify-around overflow-hidden px-1">
+                          {[...Array(15)].map((_, i) => (
+                            <div key={i} className="w-3 h-3 bg-white rotate-45 transform origin-bottom-left -translate-y-2 border-l border-t border-gray-100" />
+                          ))}
                         </div>
 
-                        <div className="space-y-4 flex-1">
-                          <div className="bg-white/50 p-3 rounded-xl">
-                            <p className="text-[10px] font-black text-blue-700 uppercase mb-1">Impact auto</p>
-                            <p className="text-[11px] text-blue-900 leading-snug">
-                              {reason === 'defective' && "Défectueux: Remboursé, non restocké."}
-                              {reason === 'wrong_item' && "Erreur: Remboursé et restocké."}
-                              {reason === 'customer_change' && "Changement: Restocké, non remboursé."}
-                              {reason === 'expired' && "Périmé: Remboursé, non restocké."}
-                              {reason === 'other' && "Décision manuelle requise."}
-                            </p>
+                        <div className="p-6 pt-10 text-center border-b border-dashed border-gray-100 mx-4">
+                          <div className="w-14 h-14 bg-brand-primary/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-brand-primary/10">
+                            <RotateCcw className="w-6 h-6 text-brand-primary" />
+                          </div>
+                          <h4 className="font-black text-gray-400 uppercase tracking-[0.3em] text-[9px] mb-1">Récapitulatif</h4>
+                          <h3 className="text-xl font-black text-gray-900 uppercase">Validation</h3>
+                        </div>
+
+                        <div className="p-6 space-y-6 flex-1">
+                          {/* Stock Logic Highlight */}
+                          <div className="space-y-3">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Conséquence Stock</p>
+                            <div className="bg-brand-primary/5 p-4 rounded-xl border border-brand-primary/10 text-center">
+                              <p className="text-[11px] text-brand-dark font-black uppercase leading-tight italic">
+                                {reason === 'defective' && "Perte Sèche: Non restocké"}
+                                {reason === 'wrong_item' && "Correction: Restokage Auto"}
+                                {reason === 'customer_change' && "Retour Client: Restokage Auto"}
+                                {reason === 'expired' && "Périmé: Perte Sèche"}
+                                {reason === 'other' && "Audit Manuel Requis"}
+                              </p>
+                            </div>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-white/50 p-3 rounded-xl">
-                              <p className="text-[10px] font-black text-blue-700 uppercase mb-1">Quantité</p>
-                              <p className="font-black text-blue-950 text-xl">{quantity}</p>
+                          {/* Key Data */}
+                          <div className="space-y-4 pt-4 divider-y divide-gray-50 border-t border-gray-50">
+                            <div className="flex justify-between items-center text-[11px] font-bold text-gray-500 uppercase tracking-tight">
+                              <span>Quantité</span>
+                              <span className="text-gray-900 font-black">{quantity}x</span>
                             </div>
-                            <div className="bg-white/50 p-3 rounded-xl">
-                              <p className="text-[10px] font-black text-blue-700 uppercase mb-1">Unitaire</p>
-                              <p className="font-black text-blue-950 text-base">{formatPrice(selectedProduct.unit_price)}</p>
+                            <div className="flex justify-between items-center text-[11px] font-bold text-gray-500 uppercase tracking-tight">
+                              <span>Unitaire</span>
+                              <span className="text-gray-900 font-mono font-black">{formatPrice(selectedProduct.unit_price)}</span>
                             </div>
                           </div>
 
-                          <div className="bg-blue-900 text-blue-50 p-4 rounded-xl shadow-inner text-center">
-                            <p className="text-[10px] font-black uppercase opacity-60 mb-1">Montant Retour</p>
-                            <p className="font-black text-2xl font-mono tracking-tighter">
-                              {formatPrice(selectedProduct.unit_price * quantity)}
-                            </p>
+                          {/* Final Amount Block */}
+                          <div className="mt-auto pt-6 border-t-2 border-brand-primary/10 text-center">
+                            <p className="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em] mb-2">Montant remboursé</p>
+                            <div className="flex flex-col">
+                              <span className="text-3xl font-black text-gray-900 font-mono tracking-tighter">
+                                {formatPrice(quantity * selectedProduct.unit_price)}
+                              </span>
+                              <span className="text-[9px] font-bold text-gray-400 uppercase mt-1">Total Net Final</span>
+                            </div>
                           </div>
                         </div>
 
-                        <div className="mt-8">
-                          <EnhancedButton
+                        {/* Confirm Button */}
+                        <div className="px-6 space-y-4 shadow-[0_-20px_20px_-10px_rgba(255,255,255,0.8)] pt-4">
+                          <motion.button
+                            whileHover={{ scale: 1.02, y: -2 }}
+                            whileTap={{ scale: 0.98 }}
                             onClick={handleSubmit}
-                            variant="primary"
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl font-black uppercase tracking-wide shadow-lg shadow-blue-200 transition-all active:scale-95"
+                            disabled={!reason}
+                            className="w-full py-4 rounded-2xl font-black text-white shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider text-xs overflow-hidden relative"
+                            style={{ background: 'var(--brand-gradient)' }}
                           >
+                            <RotateCcw size={18} />
                             Confirmer retour
-                          </EnhancedButton>
+                          </motion.button>
+
                           <button
                             onClick={onCancel}
-                            className="w-full mt-3 text-blue-800/50 font-bold text-xs uppercase hover:text-blue-800 transition-colors"
+                            className="w-full py-2 text-gray-400 font-black text-[9px] uppercase tracking-[0.3em] hover:text-red-500 transition-colors"
                           >
                             Abandonner
                           </button>
                         </div>
 
-                        {/* Bottom Cutout */}
-                        <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-gray-50 rounded-full sm:bg-transparent" />
+                        {/* Serrated Bottom Edge (Visual trick) shadow-inner-inverted */}
+                        <div className="absolute -bottom-1.5 left-0 w-full flex justify-around overflow-hidden px-1">
+                          {[...Array(15)].map((_, i) => (
+                            <div key={i} className="w-3 h-3 bg-white rotate-45 transform origin-top-left translate-y-2 border-r border-b border-gray-100" />
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>

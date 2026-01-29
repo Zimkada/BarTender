@@ -53,6 +53,33 @@
 }
 
 /* Backgrounds Brand */
+.bg-brand-primary {
+    background-color: var(--brand-primary);
+}
+
 .bg-brand-subtle {
     background-color: var(--brand-bg-subtle);
+}
+
+/* Borders Brand */
+.border-brand-primary {
+    border-color: var(--brand-primary);
+}
+
+.border-brand-subtle {
+    border-color: var(--brand-border);
+}
+
+/* Shadows Brand */
+.shadow-brand-subtle {
+    box-shadow: 0 4px 12px var(--brand-shadow-light);
+}
+
+.shadow-brand {
+    box-shadow: 0 10px 25px -5px var(--brand-shadow);
+}
+
+/* Accents Brand (pour sliders, radios natifs, etc) */
+.accent-brand {
+    accent-color: var(--brand-primary);
 }

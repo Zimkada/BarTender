@@ -27,7 +27,7 @@ const PageHeader: PageHeaderComponent = ({
     className
 }: PageHeaderProps) => {
     return (
-        <div className={`glass-page-header rounded-2xl shadow-xl mb-4 sm:mb-6 overflow-hidden p-4 sm:p-6 transition-all duration-500 ${className || ''}`}>
+        <div className={`glass-page-header mb-4 sm:mb-6 overflow-hidden p-4 sm:p-6 transition-all duration-500 ${className || ''}`}>
             <div className="flex flex-col gap-3 sm:gap-4">
                 {children}
             </div>
@@ -59,16 +59,16 @@ const Title: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 /** Icon container - typically for page context icon */
 const Icon: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => (
-    <div className={`flex items-center justify-center glass-page-icon text-amber-700 w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex-shrink-0 ${className || ''}`}>
+    <div className={`flex items-center justify-center glass-page-icon w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex-shrink-0 ${className || ''}`}>
         {children}
     </div>
 );
 
 /** Subtitle/description text - hidden on mobile by default */
 const Description: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => (
-    <p className={`text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1 font-medium ${className || ''}`}>
+    <div className={`text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1 font-medium ${className || ''}`}>
         {children}
-    </p>
+    </div>
 );
 
 /** Desktop-only actions container (hidden on mobile) */

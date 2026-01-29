@@ -73,8 +73,8 @@ export function Header({
     switch (currentSession?.role) {
       case 'super_admin': return <ShieldCheck size={16} className="text-purple-600" />;
       case 'promoteur': return <Crown size={16} className="text-purple-600" />;
-      case 'gerant': return <Settings size={16} className="text-amber-600" />;
-      case 'serveur': return <Users size={16} className="text-amber-600" />;
+      case 'gerant': return <Settings size={16} className="text-brand-dark" />;
+      case 'serveur': return <Users size={16} className="text-brand-dark" />;
       default: return null;
     }
   };

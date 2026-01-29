@@ -48,9 +48,9 @@ export function TopProductsChart({
   // Loading State
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl p-4 border border-amber-100">
+      <div className="bg-white rounded-xl p-4 border border-brand-subtle">
         <div className="flex flex-col items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mb-4"></div>
           <p className="text-sm text-gray-600">Chargement des top produits...</p>
         </div>
       </div>
@@ -65,7 +65,7 @@ export function TopProductsChart({
   // Empty State
   if (!chartData || chartData.length === 0) {
     return (
-      <div className="bg-white rounded-xl p-4 border border-amber-100">
+      <div className="bg-white rounded-xl p-4 border border-brand-subtle">
         <div className="flex flex-col items-center justify-center py-12">
           <BarChart3 size={48} className="text-gray-300 mb-4" />
           <h4 className="text-sm font-semibold text-gray-700 mb-2">
@@ -85,7 +85,7 @@ export function TopProductsChart({
   const needsScroll = isMobile && chartData.length > 5;
 
   return (
-    <div className="bg-white rounded-xl p-4 border border-amber-100">
+    <div className="bg-white rounded-xl p-4 border border-brand-subtle shadow-sm">
       {/* Header avec contrôles */}
       <div className="flex flex-col gap-3 mb-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
@@ -102,7 +102,7 @@ export function TopProductsChart({
               value={limit.toString()}
               onChange={(e) => onLimitChange(Number(e.target.value))}
               size="sm"
-              className="w-20 bg-amber-500 border-amber-600 text-white font-semibold"
+              className="w-20 btn-brand h-8 text-[11px] font-bold"
             />
             <h4 className="text-sm font-semibold text-gray-800">produits</h4>
           </div>
@@ -114,28 +114,28 @@ export function TopProductsChart({
             )}
             <button
               onClick={() => onMetricChange('units')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all
               ${metric === 'units'
-                  ? 'bg-amber-500 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  ? 'btn-brand shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
-              📦 Unités vendues
+              📦 Unités
             </button>
             <button
               onClick={() => onMetricChange('revenue')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all
               ${metric === 'revenue'
-                  ? 'bg-amber-500 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  ? 'btn-brand shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
-              💰 Chiffre d'affaires
+              💰 Revenu
             </button>
             <button
               onClick={() => onMetricChange('profit')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all
               ${metric === 'profit'
-                  ? 'bg-amber-500 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  ? 'btn-brand shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
               📈 Marge
             </button>
@@ -148,13 +148,13 @@ export function TopProductsChart({
         className={needsScroll ? "overflow-x-auto -mx-4 px-4" : ""}
         style={needsScroll ? {
           scrollbarWidth: 'thin',
-          scrollbarColor: '#f59e0b #fef3c7'
+          scrollbarColor: 'var(--brand-primary) var(--brand-bg-subtle)'
         } : {}}
       >
         <div style={needsScroll ? { minWidth: `${minChartWidth}px` } : { width: '100%' }}>
           <ResponsiveContainer width="100%" height={isMobile ? 300 : 250} minWidth={0} debounce={50}>
             <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#fed7aa" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--brand-bg-subtle)" vertical={false} />
               <XAxis
                 dataKey="displayName"
                 tick={{ fill: '#9ca3af', fontSize: isMobile ? 11 : 10 }}
@@ -169,7 +169,7 @@ export function TopProductsChart({
                 }
                 return formatPrice(Number(value));
               }} />
-              <Bar dataKey={metric} fill="#f97316" radius={[8, 8, 0, 0]} isAnimationActive={false} />
+              <Bar dataKey={metric} fill="var(--brand-primary)" radius={[6, 6, 0, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </div>

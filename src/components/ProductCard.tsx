@@ -21,34 +21,27 @@ export function ProductCard({ product, onAddToCart, availableStock }: ProductCar
   const isStockEmpty = displayStock <= 0;
 
   const [showFeedback, setShowFeedback] = useState(false);
-  const { itemAddedToCart, isLoading } = useFeedback();
+  const { itemAddedToCart } = useFeedback();
 
   const handleAddToCart = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Stop propagation pour éviter d'autres events
-    e.preventDefault(); // Empêcher le focus/sélection natif sur mobile
+    e.stopPropagation();
+    e.preventDefault();
 
     if (isStockEmpty) return;
 
-    // Feedback haptique simulé et visuel
-    if (navigator.vibrate) navigator.vibrate(10); // Vibration légère (5-10ms)
+    if (navigator.vibrate) navigator.vibrate(10);
 
-    // Optimistic UI: Feedback immédiat
     setShowFeedback(true);
-    setTimeout(() => setShowFeedback(false), 800); // 800ms pour l'anim
+    setTimeout(() => setShowFeedback(false), 800);
 
-    // Action réelle (async ou sync)
-    // On ne bloque pas l'UI pour l'ajout panier, c'est instantané ressenti
     onAddToCart(product);
     itemAddedToCart(product.name);
   };
 
-  /**
-   * Helper pour la couleur du badge de stock
-   */
   const getStockStatus = () => {
     if (isStockEmpty) return { color: 'bg-red-500', label: 'Épuisé' };
-    if (isLowStock) return { color: 'bg-amber-500', label: displayStock };
-    return { color: 'bg-emerald-500', label: displayStock }; // Emerald est plus "Premium" que Green
+    if (isLowStock) return { color: 'bg-brand-primary', label: displayStock };
+    return { color: 'bg-emerald-500', label: displayStock };
   };
 
   const status = getStockStatus();
@@ -56,49 +49,53 @@ export function ProductCard({ product, onAddToCart, availableStock }: ProductCar
   return (
     <motion.div
       whileTap={{ scale: 0.96 }}
-      animate={showFeedback ? { scale: [1, 1.05, 1], borderColor: '#f59e0b' } : {}}
+      animate={showFeedback ? { scale: [1, 1.05, 1], borderColor: 'var(--brand-primary)' } : {}}
       transition={{ duration: 0.2 }}
       onClick={handleAddToCart}
       className={`
         relative flex flex-col h-full
-        bg-white rounded-2xl
-        border ${showFeedback ? 'border-brand-400' : 'border-brand-100'}
-        shadow-md shadow-brand-500/5 hover:shadow-xl hover:shadow-brand-500/15
+        bg-white/60 backdrop-blur-md rounded-3xl
+        border-2 ${showFeedback ? 'border-brand-primary shadow-xl shadow-brand-subtle' : 'border-brand-primary'}
+        shadow-sm hover:shadow-xl hover:shadow-brand-subtle/20
         overflow-hidden cursor-pointer select-none
         touch-manipulation
-        transition-all duration-200
+        transition-all duration-300
         ${isStockEmpty ? 'opacity-60 grayscale' : ''}
       `}
     >
-      {/* --- STOCK BADGE --- */}
+      {/* --- STOCK BADGE HAUTE LISIBILITÉ --- */}
       <div className={`
         absolute top-2 right-2 z-10
         ${status.color} text-white
-        text-[10px] font-bold px-2 py-0.5 rounded-full
-        shadow-sm backdrop-blur-sm bg-opacity-90
+        text-[10px] font-black px-2.5 py-1 rounded-full
+        shadow-md bg-opacity-100 border border-white/20 active:scale-95 transition-transform
       `}>
         {status.label}
       </div>
 
-      {/* --- IMAGE AREA (Aspect Ratio 1:1 pour cohérence) --- */}
-      <div className="aspect-square bg-gray-50 p-3 flex items-center justify-center relative">
+      {/* --- IMAGE AREA --- */}
+      <div className="aspect-square bg-gradient-to-b from-gray-50/10 to-white p-3 flex items-center justify-center relative group">
         {isLowStock && !isStockEmpty && (
-          <div className="absolute top-2 left-2 text-amber-500 animate-pulse">
+          <div className="absolute top-2 left-2 text-brand-primary animate-pulse">
             <AlertTriangle size={14} />
           </div>
         )}
 
-        {product.image ? (
-          <OptimizedImage
-            src={product.image}
-            alt={product.name}
-            width={200}
-            height={200}
-            className="w-full h-full object-contain mix-blend-multiply transition-transform duration-300 group-hover:scale-105"
-          />
-        ) : (
-          <Package className="text-gray-300 w-1/2 h-1/2" strokeWidth={1.5} />
-        )}
+        <div className="w-full h-full flex items-center justify-center transition-transform duration-500 group-hover:scale-105">
+          {product.image ? (
+            <OptimizedImage
+              src={product.image}
+              alt={product.name}
+              width={150}
+              height={150}
+              className="w-full h-full object-contain mix-blend-multiply"
+            />
+          ) : (
+            <div className="w-10 h-10 bg-brand-subtle rounded-2xl flex items-center justify-center text-brand-primary/30">
+              <Package size={20} strokeWidth={1.5} />
+            </div>
+          )}
+        </div>
 
         {/* --- ADD SUCCESS OVERLAY --- */}
         <AnimatePresence>
@@ -107,43 +104,54 @@ export function ProductCard({ product, onAddToCart, availableStock }: ProductCar
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-amber-500/80 flex items-center justify-center z-20"
+              className="absolute inset-0 bg-brand-primary/80 flex items-center justify-center z-20 backdrop-blur-sm"
             >
-              <Check className="text-white w-12 h-12 drop-shadow-md" strokeWidth={3} />
+              <div className="bg-white rounded-full p-2 shadow-xl">
+                <Check className="text-brand-primary w-5 h-5" strokeWidth={4} />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
       {/* --- CONTENT AREA --- */}
-      <div className="p-3 flex flex-col flex-1 justify-between">
-        <div>
-          <h3 className="font-bold text-gray-800 text-sm leading-snug line-clamp-2 min-h-[2.5em]">
+      <div className="p-3 flex flex-col flex-1 justify-between bg-white relative">
+        <div className="absolute top-0 left-3 right-3 h-[1px] bg-gray-50"></div>
+
+        <div className="pt-1">
+          <h3 className="font-black text-gray-900 text-[10px] sm:text-[11px] leading-tight line-clamp-2 min-h-[2.4em] uppercase tracking-tight">
             {product.name}
           </h3>
-          <p className="text-[11px] text-gray-500 mt-0.5 font-medium">{product.volume}</p>
+          <p className="text-[8px] text-gray-400 mt-0.5 font-black uppercase tracking-widest leading-none">{product.volume}</p>
         </div>
 
-        <div className="mt-2 flex items-center justify-between">
-          <span className="text-amber-600 font-bold text-base font-mono">
-            {formatPrice(product.price)}
-          </span>
-
-          {/* Bouton "+" visuel (décoratif car toute la carte est cliquable) 
-              mais utile pour l'affordance */}
-          <div className={`
-            w-8 h-8 rounded-full flex items-center justify-center
-            transition-all duration-200
-            ${isStockEmpty
-              ? 'bg-gray-100 text-gray-400'
-              : 'bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-sm shadow-amber-500/30'
-            }
-          `}>
-            <Plus size={18} strokeWidth={3} />
+        <div className="mt-3 flex items-center justify-between">
+          <div className="flex flex-col">
+            <span className="text-[8px] font-black text-brand-primary/60 uppercase tracking-widest leading-none mb-1">Prix</span>
+            <span className="text-brand-dark font-black text-xs sm:text-sm font-mono tracking-tighter">
+              {formatPrice(product.price)}
+            </span>
           </div>
+
+          <motion.div
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className={`
+              w-8 h-8 rounded-xl flex items-center justify-center
+              transition-all duration-300
+              ${isStockEmpty
+                ? 'bg-gray-100 text-gray-300'
+                : 'text-white shadow-md shadow-brand-subtle'
+              }
+            `}
+            style={{
+              background: !isStockEmpty ? 'var(--brand-gradient)' : undefined
+            }}
+          >
+            <Plus size={16} strokeWidth={3} />
+          </motion.div>
         </div>
       </div>
     </motion.div>
   );
 }
-

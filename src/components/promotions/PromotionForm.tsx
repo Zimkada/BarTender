@@ -193,7 +193,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                         <ArrowLeft size={24} />
                     </button>
                     <h2 className="font-bold text-gray-800">Promotion Studio</h2>
-                    <Button onClick={() => handleSubmit()} size="sm" className="bg-amber-500 text-white font-bold">
+                    <Button onClick={() => handleSubmit()} size="sm" className="btn-brand font-bold">
                         OK
                     </Button>
                 </div>
@@ -204,13 +204,13 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                         {/* Title Section */}
                         <div className="hidden md:flex items-center justify-between mb-8">
                             <div className="flex items-center gap-4">
-                                <button onClick={onClose} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-gray-400 hover:bg-amber-50 hover:text-amber-500 transition-all">
+                                <button onClick={onClose} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-gray-400 hover:bg-brand-subtle hover:text-brand-primary transition-all">
                                     <ArrowLeft size={20} />
                                 </button>
                                 <div>
                                     <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight flex items-center gap-3">
                                         Promotion Studio
-                                        <Wand2 className="text-amber-500" />
+                                        <Wand2 className="text-brand-primary" />
                                     </h1>
                                     <p className="text-gray-500 font-medium">Configurez votre offre marketing irrésistible</p>
                                 </div>
@@ -219,7 +219,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
 
                         {/* step 1: Basics */}
                         <section className="space-y-6">
-                            <div className="flex items-center gap-3 border-l-4 border-amber-500 pl-4 py-1">
+                            <div className="flex items-center gap-3 border-l-4 border-brand-primary pl-4 py-1">
                                 <h2 className="text-lg font-black text-gray-900 uppercase tracking-wider">L'Identité</h2>
                             </div>
                             <div className="space-y-4">
@@ -231,7 +231,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
                                         placeholder="ex: HAPPY HOUR CHILL..."
-                                        className="h-14 text-lg font-bold bg-slate-50 border-transparent focus:bg-white focus:border-amber-500 transition-all rounded-2xl"
+                                        className="h-14 text-lg font-bold bg-slate-50 border-transparent focus:bg-white focus:border-brand-primary transition-all rounded-2xl"
                                         required
                                     />
                                 </div>
@@ -243,7 +243,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                                         onChange={(e) => setDescription(e.target.value)}
                                         placeholder="Décrivez l'avantage client..."
                                         rows={2}
-                                        className="bg-slate-50 border-transparent focus:bg-white focus:border-amber-500 transition-all rounded-2xl p-4"
+                                        className="bg-slate-50 border-transparent focus:bg-white focus:border-brand-primary transition-all rounded-2xl p-4"
                                     />
                                 </div>
                             </div>
@@ -251,7 +251,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
 
                         {/* step 2: Type Selection */}
                         <section className="space-y-6">
-                            <div className="flex items-center gap-3 border-l-4 border-amber-500 pl-4 py-1">
+                            <div className="flex items-center gap-3 border-l-4 border-brand-primary pl-4 py-1">
                                 <h2 className="text-lg font-black text-gray-900 uppercase tracking-wider">Le Mécanisme</h2>
                             </div>
                             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
@@ -261,14 +261,14 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                                         type="button"
                                         onClick={() => setType(t.id as PromotionType)}
                                         className={`p-4 rounded-2xl border-2 text-left transition-all group ${type === t.id
-                                            ? 'border-amber-500 bg-amber-50/50 shadow-lg shadow-amber-500/10'
-                                            : 'border-gray-100 hover:border-amber-200 bg-slate-50/50'
+                                            ? 'border-brand-primary bg-brand-subtle shadow-lg shadow-brand-subtle/40'
+                                            : 'border-gray-100 hover:border-brand-subtle bg-slate-50/50'
                                             }`}
                                     >
-                                        <div className={`w-10 h-10 rounded-xl mb-3 flex items-center justify-center transition-all ${type === t.id ? 'bg-amber-500 text-white shadow-lg' : 'bg-white text-gray-400'}`}>
+                                        <div className={`w-10 h-10 rounded-xl mb-3 flex items-center justify-center transition-all ${type === t.id ? 'btn-brand shadow-lg' : 'bg-white text-gray-400'}`}>
                                             {t.icon}
                                         </div>
-                                        <div className={`font-bold text-sm ${type === t.id ? 'text-amber-900' : 'text-gray-700'}`}>{t.label}</div>
+                                        <div className={`font-bold text-sm ${type === t.id ? 'text-brand-dark' : 'text-gray-700'}`}>{t.label}</div>
                                         <div className="text-[10px] text-gray-400 font-medium truncate italic">{t.description}</div>
                                     </button>
                                 ))}
@@ -277,13 +277,13 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                             {/* Dynamic Value Input */}
                             <motion.div
                                 layout
-                                className="bg-amber-50/30 p-6 rounded-3xl border border-amber-100 flex flex-col sm:flex-row items-center gap-6"
+                                className="bg-brand-subtle p-6 rounded-3xl border border-brand-subtle flex flex-col sm:flex-row items-center gap-6"
                             >
-                                <div className="hidden sm:flex w-16 h-16 rounded-full bg-white items-center justify-center text-amber-500 shadow-inner">
+                                <div className="hidden sm:flex w-16 h-16 rounded-full bg-white items-center justify-center text-brand-primary shadow-inner">
                                     <Tag size={32} />
                                 </div>
                                 <div className="flex-1 w-full space-y-2">
-                                    <div className="text-xs font-black text-amber-900/40 uppercase tracking-[0.15em]">Valeur de la remise</div>
+                                    <div className="text-xs font-black text-brand-primary opacity-40 uppercase tracking-[0.15em]">Valeur de la remise</div>
 
                                     {(type === 'pourcentage' || type === 'percentage') && (
                                         <div className="flex items-center gap-4">
@@ -293,9 +293,9 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                                                 max="100"
                                                 value={discountPercentage}
                                                 onChange={(e) => setDiscountPercentage(Number(e.target.value))}
-                                                className="w-full bg-transparent text-4xl font-black text-amber-600 outline-none"
+                                                className="w-full bg-transparent text-4xl font-black text-brand-primary outline-none"
                                             />
-                                            <span className="text-4xl font-black text-amber-200">%</span>
+                                            <span className="text-4xl font-black text-brand-primary opacity-20">%</span>
                                         </div>
                                     )}
 
@@ -306,9 +306,9 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                                                 min="0"
                                                 value={discountAmount}
                                                 onChange={(e) => setDiscountAmount(Number(e.target.value))}
-                                                className="w-full bg-transparent text-4xl font-black text-amber-600 outline-none"
+                                                className="w-full bg-transparent text-4xl font-black text-brand-primary outline-none"
                                             />
-                                            <span className="text-2xl font-black text-amber-200">FCFA</span>
+                                            <span className="text-2xl font-black text-brand-primary opacity-20">FCFA</span>
                                         </div>
                                     )}
 
@@ -319,9 +319,9 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                                                 min="0"
                                                 value={specialPrice}
                                                 onChange={(e) => setSpecialPrice(Number(e.target.value))}
-                                                className="w-full bg-transparent text-4xl font-black text-amber-600 outline-none"
+                                                className="w-full bg-transparent text-4xl font-black text-brand-primary outline-none"
                                             />
-                                            <span className="text-2xl font-black text-amber-200">FCFA</span>
+                                            <span className="text-2xl font-black text-brand-primary opacity-20">FCFA</span>
                                         </div>
                                     )}
 
@@ -332,18 +332,18 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                                                 min="2"
                                                 value={bundleQuantity}
                                                 onChange={(e) => setBundleQuantity(Number(e.target.value))}
-                                                className="w-16 bg-white rounded-xl p-2 text-2xl font-black text-amber-600 text-center shadow-sm"
+                                                className="w-16 bg-white rounded-xl p-2 text-2xl font-black text-brand-primary text-center shadow-sm"
                                             />
-                                            <span className="font-bold text-amber-900/40 uppercase">Articles pour</span>
+                                            <span className="font-bold text-brand-primary opacity-40 uppercase">Articles pour</span>
                                             <div className="flex items-center gap-2">
                                                 <input
                                                     type="number"
                                                     min="0"
                                                     value={bundlePrice}
                                                     onChange={(e) => setBundlePrice(Number(e.target.value))}
-                                                    className="w-32 bg-transparent text-2xl font-black text-amber-600 outline-none"
+                                                    className="w-32 bg-transparent text-2xl font-black text-brand-primary outline-none"
                                                 />
-                                                <span className="text-lg font-black text-amber-200">FCFA</span>
+                                                <span className="text-lg font-black text-brand-primary opacity-20">FCFA</span>
                                             </div>
                                         </div>
                                     )}
@@ -353,7 +353,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
 
                         {/* step 3: Targeting */}
                         <section className="space-y-6">
-                            <div className="flex items-center gap-3 border-l-4 border-amber-500 pl-4 py-1">
+                            <div className="flex items-center gap-3 border-l-4 border-brand-primary pl-4 py-1">
                                 <h2 className="text-lg font-black text-gray-900 uppercase tracking-wider">Le Ciblage</h2>
                             </div>
 
@@ -371,14 +371,14 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                                     <div
                                         key={t.id}
                                         onClick={() => setTargetType(t.id as any)}
-                                        className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer h-full ${targetType === t.id ? 'border-amber-500 bg-amber-50/50' : 'border-slate-100 bg-slate-50 hover:border-amber-200'}`}
+                                        className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer h-full ${targetType === t.id ? 'border-brand-primary bg-brand-subtle' : 'border-slate-100 bg-slate-50 hover:border-brand-subtle'}`}
                                     >
-                                        <RadioGroupItem value={t.id} id={`targetType-${t.id}`} className="text-amber-500 border-amber-200 shrink-0" />
+                                        <RadioGroupItem value={t.id} id={`targetType-${t.id}`} className="text-brand-primary border-brand-subtle shrink-0" />
                                         <div className="flex items-center gap-2 flex-1 min-w-0">
-                                            <span className={`p-1.5 rounded-md shrink-0 ${targetType === t.id ? 'bg-amber-500 text-white' : 'bg-white text-gray-400'}`}>
+                                            <span className={`p-1.5 rounded-md shrink-0 ${targetType === t.id ? 'bg-brand-primary text-white' : 'bg-white text-gray-400'}`}>
                                                 {t.icon}
                                             </span>
-                                            <span className={`text-sm font-bold break-words leading-tight ${targetType === t.id ? 'text-amber-900' : 'text-gray-600'}`}>
+                                            <span className={`text-sm font-bold break-words leading-tight ${targetType === t.id ? 'text-brand-dark' : 'text-gray-600'}`}>
                                                 {t.label}
                                             </span>
                                         </div>
@@ -399,7 +399,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                                                 <div
                                                     key={cat.id}
                                                     onClick={() => toggleCategory(cat.id)}
-                                                    className={`flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer ${selectedCategoryIds.includes(cat.id) ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20 scale-[1.02]' : 'bg-white hover:bg-amber-50 text-gray-700'}`}
+                                                    className={`flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer ${selectedCategoryIds.includes(cat.id) ? 'bg-brand-primary text-white shadow-lg shadow-brand-subtle/40 scale-[1.02]' : 'bg-white hover:bg-brand-subtle text-gray-700'}`}
                                                 >
                                                     <Checkbox
                                                         id={`category-${cat.id}`}
@@ -427,7 +427,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                                                 placeholder="Rechercher un produit..."
                                                 value={productSearch}
                                                 onChange={(e) => setProductSearch(e.target.value)}
-                                                className="w-full bg-white rounded-xl pl-12 pr-4 h-12 text-sm font-semibold outline-none focus:ring-2 ring-amber-500/20"
+                                                className="w-full bg-white rounded-xl pl-12 pr-4 h-12 text-sm font-semibold outline-none focus:ring-2 ring-brand-primary/20"
                                             />
                                         </div>
                                         <div className="max-h-64 overflow-y-auto space-y-2 pr-2">
@@ -435,7 +435,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                                                 <div
                                                     key={product.id}
                                                     onClick={() => toggleProduct(product.id)}
-                                                    className={`flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer ${selectedProductIds.includes(product.id) ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-white hover:bg-amber-50 text-gray-700'}`}
+                                                    className={`flex items-center gap-3 p-3 rounded-xl transition-all cursor-pointer ${selectedProductIds.includes(product.id) ? 'bg-brand-primary text-white shadow-lg shadow-brand-subtle/40' : 'bg-white hover:bg-brand-subtle text-gray-700'}`}
                                                 >
                                                     <Checkbox
                                                         id={`product-${product.id}`}
@@ -457,20 +457,20 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
 
                         {/* step 4: Dates */}
                         <section className="space-y-6">
-                            <div className="flex items-center gap-3 border-l-4 border-amber-500 pl-4 py-1">
+                            <div className="flex items-center gap-3 border-l-4 border-brand-primary pl-4 py-1">
                                 <h2 className="text-lg font-black text-gray-900 uppercase tracking-wider">La Période</h2>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="space-y-2">
                                     <Label htmlFor="startDate" className="text-xs font-black text-gray-400 uppercase tracking-widest pl-1">Date de lancement</Label>
                                     <div className="relative group">
-                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-500" size={18} />
+                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-primary" size={18} />
                                         <input
                                             id="startDate"
                                             type="date"
                                             value={startDate}
                                             onChange={(e) => setStartDate(e.target.value)}
-                                            className="w-full h-14 bg-slate-50 border-none rounded-2xl pl-12 pr-4 font-bold text-gray-800 focus:ring-2 ring-amber-500/20"
+                                            className="w-full h-14 bg-slate-50 border-none rounded-2xl pl-12 pr-4 font-bold text-gray-800 focus:ring-2 ring-brand-primary/20"
                                             required
                                         />
                                     </div>
@@ -478,14 +478,14 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                                 <div className="space-y-2">
                                     <Label htmlFor="endDate" className="text-xs font-black text-gray-400 uppercase tracking-widest pl-1">Fin (Illimité si vide)</Label>
                                     <div className="relative group">
-                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-hover:text-amber-500" size={18} />
+                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-hover:text-brand-primary" size={18} />
                                         <input
                                             id="endDate"
                                             type="date"
                                             value={endDate}
                                             onChange={(e) => setEndDate(e.target.value)}
                                             min={startDate}
-                                            className="w-full h-14 bg-slate-50 border-none rounded-2xl pl-12 pr-4 font-bold text-gray-800 focus:ring-2 ring-amber-500/20"
+                                            className="w-full h-14 bg-slate-50 border-none rounded-2xl pl-12 pr-4 font-bold text-gray-800 focus:ring-2 ring-brand-primary/20"
                                         />
                                     </div>
                                 </div>
@@ -503,7 +503,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                             </Button>
                             <Button
                                 onClick={() => handleSubmit()}
-                                className="h-14 px-12 rounded-2xl font-black uppercase tracking-widest bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-xl shadow-amber-500/25 hover:scale-[1.02] flex-[2]"
+                                className="h-14 px-12 rounded-2xl font-black uppercase tracking-widest btn-brand shadow-xl shadow-brand-subtle/50 hover:scale-[1.02] flex-[2]"
                             >
                                 <Save className="mr-2" size={20} />
                                 Activer la Promotion
@@ -515,12 +515,12 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                 {/* Right Column: Live Preview Card */}
                 <div className="hidden md:flex flex-1 bg-slate-100 items-center justify-center p-12 relative overflow-hidden">
                     {/* Background decoration */}
-                    <div className="absolute top-0 right-0 w-96 h-96 bg-amber-200/20 blur-[100px] rounded-full translate-x-1/2 -translate-y-1/2 animate-pulse"></div>
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-amber-500/10 blur-[80px] rounded-full -translate-x-1/2 translate-y-1/2"></div>
+                    <div className="absolute top-0 right-0 w-96 h-96 bg-brand-primary opacity-20 blur-[100px] rounded-full translate-x-1/2 -translate-y-1/2 animate-pulse"></div>
+                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-brand-primary opacity-10 blur-[80px] rounded-full -translate-x-1/2 translate-y-1/2"></div>
 
                     <div className="max-w-md w-full perspective-1000">
                         <div className="mb-8 text-center">
-                            <span className="px-5 py-2 rounded-full bg-amber-500/10 text-amber-600 font-black text-xs uppercase tracking-widest border border-amber-500/10">
+                            <span className="px-5 py-2 rounded-full bg-brand-subtle text-brand-primary font-black text-xs uppercase tracking-widest border border-brand-subtle">
                                 Prévisualisation en direct
                             </span>
                         </div>
@@ -535,10 +535,10 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                             {/* Card Body */}
                             <div className="p-10 text-center relative overflow-hidden">
                                 {/* Gradient Circle behind icon */}
-                                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-gradient-to-b from-amber-500 to-transparent opacity-10 rounded-full"></div>
+                                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-gradient-to-b from-brand-primary to-transparent opacity-10 rounded-full"></div>
 
                                 <div className="relative mb-8 pt-4">
-                                    <div className="w-20 h-20 bg-gradient-to-br from-amber-500 to-orange-600 text-white rounded-3xl mx-auto flex items-center justify-center shadow-xl shadow-amber-500/30 transform -rotate-3 group-hover:rotate-0 transition-transform">
+                                    <div className="w-20 h-20 btn-brand rounded-3xl mx-auto flex items-center justify-center shadow-xl shadow-brand-subtle transform -rotate-3 group-hover:rotate-0 transition-transform">
                                         {promotionTypes.find(t => t.id === type)?.icon || <Percent size={32} />}
                                     </div>
                                 </div>
@@ -552,7 +552,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
 
                                 <div className="space-y-6">
                                     <div className="py-6 border-y border-dashed border-gray-100">
-                                        <div className="text-[10px] font-black text-amber-500 uppercase tracking-[0.3em] mb-2">Offre Exclusive</div>
+                                        <div className="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] mb-2">Offre Exclusive</div>
                                         <div className="text-5xl font-black text-gray-900 leading-tight">
                                             {(type === 'pourcentage' || type === 'percentage') && `-${discountPercentage}%`}
                                             {(type === 'reduction_vente' || type === 'fixed_discount') && `-${discountAmount} F`}

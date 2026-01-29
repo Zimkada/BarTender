@@ -4,6 +4,9 @@
 /* Responsive utilities for African mobile market */
 @import './styles/responsive-utilities.css';
 
+/* Brand Dynamic Utilities - Vision 2026 */
+@import './styles/brand-utilities.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -103,7 +106,9 @@
 .liquid-gold-header {
   background: var(--brand-gradient);
   position: relative;
-  overflow: hidden;
+  /* Correction: Permettre le débordement des menus (BarSelector) tout en contenant le shimmer */
+  overflow: visible;
+  clip-path: inset(-100px -100px -500px -100px);
   border-bottom: 3px solid hsl(var(--brand-hue), var(--brand-saturation), 22%);
   box-shadow:
     0 20px 50px -10px hsla(var(--brand-hue), var(--brand-saturation), 25%, 0.55),

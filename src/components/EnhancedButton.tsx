@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Loader2, 
-  Check, 
-  X, 
+import {
+  Loader2,
+  Check,
+  X,
   //AlertCircle,
   Zap,
   Star,
@@ -50,7 +50,7 @@ const buttonAnimations = {
     whileTap: { scale: 0.95 }
   },
   glow: {
-    whileHover: { 
+    whileHover: {
       boxShadow: "0 0 20px rgba(59, 130, 246, 0.5)",
       scale: 1.02
     },
@@ -63,18 +63,19 @@ const buttonAnimations = {
   none: {}
 };
 
-// Styles des variantes
+// Styles des variantes - primary et warning utilisent btn-brand pour theming dynamique
 const getVariantStyles = (variant: ButtonVariant) => {
   const styles = {
-    primary: 'bg-gradient-to-r from-amber-500 to-amber-500 text-white hover:from-amber-600 hover:to-amber-600',
+    primary: 'btn-brand', // Uses var(--brand-gradient) for dynamic theming
     secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300',
     success: 'bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600',
     danger: 'bg-gradient-to-r from-red-500 to-pink-500 text-white hover:from-red-600 hover:to-pink-600',
-    warning: 'bg-gradient-to-r from-yellow-500 to-amber-500 text-white hover:from-yellow-600 hover:to-amber-600',
+    warning: 'btn-brand', // Uses var(--brand-gradient) for dynamic theming
     info: 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-600 hover:to-cyan-600'
   };
   return styles[variant];
 };
+
 
 // Styles des tailles (touch-optimized 44px minimum)
 const getSizeStyles = (size: ButtonSize) => {
@@ -141,7 +142,7 @@ export function EnhancedButton({
     const rect = button.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
+
     const newRipple = {
       id: Date.now(),
       x,
@@ -149,7 +150,7 @@ export function EnhancedButton({
     };
 
     setRipples(prev => [...prev, newRipple]);
-    
+
     setTimeout(() => {
       setRipples(prev => prev.filter(ripple => ripple.id !== newRipple.id));
     }, 600);
@@ -159,7 +160,7 @@ export function EnhancedButton({
   const playClickSound = () => {
     const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeAgiR1/LNeSsFJHfH8N2QQAoUXrTp66hVFApGn+DyvmYeAgjE6N2QQAoUXrTp66hVFApGn+DyvmYeAgiR1/LNeSsFJH/');
     audio.volume = 0.1;
-    audio.play().catch(() => {}); // Ignore si impossible
+    audio.play().catch(() => { }); // Ignore si impossible
   };
 
   // Détermine l'état visuel
@@ -194,19 +195,19 @@ export function EnhancedButton({
           <motion.span
             key={ripple.id}
             className="absolute bg-white/30 rounded-full pointer-events-none"
-            initial={{ 
-              width: 0, 
-              height: 0, 
-              x: ripple.x, 
+            initial={{
+              width: 0,
+              height: 0,
+              x: ripple.x,
               y: ripple.y,
-              opacity: 1 
+              opacity: 1
             }}
-            animate={{ 
-              width: 100, 
-              height: 100, 
-              x: ripple.x - 50, 
+            animate={{
+              width: 100,
+              height: 100,
+              x: ripple.x - 50,
               y: ripple.y - 50,
-              opacity: 0 
+              opacity: 0
             }}
             transition={{ duration: 0.6 }}
           />
@@ -328,7 +329,7 @@ export function ButtonShowcase() {
     <div className="p-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
       <div className="max-w-4xl mx-auto space-y-8">
         <h1 className="text-3xl font-bold text-gray-800 mb-8">Système de boutons amélioré</h1>
-        
+
         {/* Variantes */}
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-gray-700">Variantes</h2>
@@ -369,8 +370,8 @@ export function ButtonShowcase() {
         <section className="space-y-4">
           <h2 className="text-xl font-semibold text-gray-700">États</h2>
           <div className="flex flex-wrap gap-4">
-            <EnhancedButton 
-              loading={loading} 
+            <EnhancedButton
+              loading={loading}
               onClick={handleAsyncAction}
             >
               {loading ? 'Chargement...' : 'Action async'}
@@ -387,17 +388,17 @@ export function ButtonShowcase() {
           <h2 className="text-xl font-semibold text-gray-700">Boutons spécialisés</h2>
           <div className="flex flex-wrap gap-4">
             <QuickActionButton icon={<Zap size={16} />}>Action rapide</QuickActionButton>
-            <FavoriteButton 
-              isFavorite={isFavorite} 
-              onToggle={() => setIsFavorite(!isFavorite)} 
+            <FavoriteButton
+              isFavorite={isFavorite}
+              onToggle={() => setIsFavorite(!isFavorite)}
             />
             <PowerButton onActivate={() => alert('Activé!')} />
           </div>
         </section>
 
         {/* Panier flottant */}
-        <CartButton 
-          itemCount={cartItems} 
+        <CartButton
+          itemCount={cartItems}
           onClick={() => setCartItems(prev => prev + 1)}
         />
       </div>

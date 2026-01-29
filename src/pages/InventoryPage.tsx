@@ -102,7 +102,7 @@ export default function InventoryPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-50">
+        <div className="min-h-screen bg-[var(--brand-bg-subtle)]">
             {isOnboardingMode && (
                 <OnboardingBreadcrumb
                     currentStep={
@@ -153,7 +153,7 @@ export default function InventoryPage() {
                                             key={mode}
                                             onClick={() => setSortMode(mode)}
                                             className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-xs font-semibold transition-all border flex items-center gap-1.5 ${sortMode === mode
-                                                ? 'bg-amber-500 text-white border-amber-500 shadow-sm'
+                                                ? 'glass-action-button-active-2026 shadow-sm'
                                                 : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
                                                 }`}
                                         >

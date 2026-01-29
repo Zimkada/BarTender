@@ -21,24 +21,24 @@ export function ReturnReasonSelector({
         switch (color) {
             case "red":
                 return isSelected
-                    ? "bg-red-50 border-red-500 ring-4 ring-red-500/10 text-red-900"
+                    ? "bg-red-50 border-red-500 ring-2 ring-red-500/20 text-red-900"
                     : "hover:border-red-200 border-gray-100";
             case "orange":
             case "amber":
                 return isSelected
-                    ? "bg-amber-50 border-amber-500 ring-4 ring-amber-500/10 text-amber-900"
+                    ? "bg-amber-50/50 border-amber-500 ring-2 ring-amber-500/20 text-amber-900"
                     : "hover:border-amber-200 border-gray-100";
             case "blue":
                 return isSelected
-                    ? "bg-blue-50 border-blue-500 ring-4 ring-blue-500/10 text-blue-900"
+                    ? "bg-blue-50 border-blue-500 ring-2 ring-blue-500/20 text-blue-900"
                     : "hover:border-blue-200 border-gray-100";
             case "purple":
                 return isSelected
-                    ? "bg-purple-50 border-purple-500 ring-4 ring-purple-500/10 text-purple-900"
+                    ? "bg-purple-50 border-purple-500 ring-2 ring-purple-500/20 text-purple-900"
                     : "hover:border-purple-200 border-gray-100";
             default:
                 return isSelected
-                    ? "bg-gray-50 border-gray-500 ring-4 ring-gray-500/10 text-gray-900"
+                    ? "bg-gray-50 border-gray-500 ring-2 ring-gray-500/20 text-gray-900"
                     : "hover:border-gray-200 border-gray-100";
         }
     };
@@ -47,7 +47,7 @@ export function ReturnReasonSelector({
         switch (color) {
             case "red": return "bg-red-500";
             case "orange":
-            case "amber": return "bg-amber-500";
+            case "amber": return "bg-brand-primary";
             case "blue": return "bg-blue-500";
             case "purple": return "bg-purple-500";
             default: return "bg-gray-500";
@@ -55,7 +55,7 @@ export function ReturnReasonSelector({
     };
 
     return (
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {Object.entries(reasons).map(([key, config]) => {
                 const isSelected = selectedReason === key;
                 const reasonKey = key as ReturnReason;
@@ -65,40 +65,59 @@ export function ReturnReasonSelector({
                     <motion.button
                         key={key}
                         type="button"
-                        whileHover={{ scale: 1.02 }}
+                        whileHover={{ scale: 1.01 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => onSelect(reasonKey)}
                         className={`
-              relative p-3 rounded-xl border-2 transition-all text-left flex flex-col gap-2 h-full shadow-sm
+              relative p-2.5 sm:p-3 rounded-xl border-2 transition-all text-left flex flex-row sm:flex-col gap-3 sm:gap-2 h-auto sm:h-full shadow-sm items-center sm:items-start outline-none focus:outline-none
               ${colorClass}
               ${isSelected ? "z-10" : "bg-white"}
             `}
                     >
-                        <div className="flex items-center justify-between">
-                            <span className="text-2xl" role="img" aria-label={config.label}>
+                        {/* Icon - Smaller on mobile list mode */}
+                        <div className="flex-shrink-0 w-10 h-10 sm:w-auto sm:h-auto flex items-center justify-center bg-gray-50 sm:bg-transparent rounded-lg sm:rounded-none">
+                            <span className="text-xl sm:text-2xl" role="img" aria-label={config.label}>
                                 {config.icon}
                             </span>
-                            {isSelected && (
-                                <motion.div
-                                    layoutId="active-indicator"
-                                    className={`w-4 h-4 rounded-full ${getActiveDotColor(config.color)} flex items-center justify-center`}
-                                >
-                                    <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                                </motion.div>
-                            )}
                         </div>
 
-                        <div className="flex-grow">
-                            <h4 className={`font-bold text-sm leading-tight ${isSelected ? "" : "text-gray-800"}`}>
-                                {config.label}
-                            </h4>
-                            <p className="text-[10px] text-gray-500 mt-1 leading-tight line-clamp-2">
+                        <div className="flex-grow min-w-0">
+                            <div className="flex items-center justify-between mb-0.5 sm:mb-1">
+                                <h4 className={`font-black text-xs sm:text-sm leading-tight uppercase tracking-tight ${isSelected ? "" : "text-gray-800"}`}>
+                                    {config.label}
+                                </h4>
+                                {isSelected && (
+                                    <motion.div
+                                        layoutId="active-indicator"
+                                        className={`w-3.5 h-3.5 rounded-full ${getActiveDotColor(config.color)} flex items-center justify-center shrink-0 ml-2`}
+                                    >
+                                        <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                    </motion.div>
+                                )}
+                            </div>
+
+                            {/* Hide description on mobile to keep 'Menu' feel */}
+                            <p className="hidden sm:block text-[10px] text-gray-500 leading-tight line-clamp-2">
                                 {config.description}
                             </p>
+
+                            {/* Mobile Impact Badges - Compact */}
+                            <div className="flex flex-wrap gap-1 mt-1 sm:hidden">
+                                {config.autoRestock && (
+                                    <span className="text-[8px] bg-green-100/50 text-green-700 px-1 py-0.5 rounded font-bold">
+                                        +STOCK
+                                    </span>
+                                )}
+                                {config.autoRefund && (
+                                    <span className="text-[8px] bg-sky-100/50 text-sky-700 px-1 py-0.5 rounded font-bold">
+                                        💰REMBOURSE
+                                    </span>
+                                )}
+                            </div>
                         </div>
 
-                        {/* Impact Badges */}
-                        <div className="flex flex-wrap gap-1 mt-auto pt-1">
+                        {/* Desktop Impact Badges */}
+                        <div className="hidden sm:flex flex-wrap gap-1 mt-auto pt-1">
                             {config.autoRestock && (
                                 <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider">
                                     + STOCK

@@ -94,7 +94,7 @@ export function TrainingTab() {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-600"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-primary"></div>
             </div>
         );
     }
@@ -103,7 +103,7 @@ export function TrainingTab() {
         <div className="space-y-8">
             {/* Header Section */}
             <div className="text-center">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-amber-500 to-orange-600 mb-6 shadow-lg shadow-amber-200 rotate-3 hover:rotate-0 transition-transform">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl btn-brand mb-6 shadow-lg shadow-brand-subtle rotate-3 hover:rotate-0 transition-transform">
                     <GraduationCap className="w-10 h-10 text-white" />
                 </div>
                 <h2 className="text-3xl font-black text-gray-900 mb-2">Formation BarTender</h2>
@@ -117,21 +117,21 @@ export function TrainingTab() {
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-3xl p-6 relative overflow-hidden"
+                    className="bg-brand-subtle border-2 border-brand-primary/20 rounded-3xl p-6 relative overflow-hidden"
                 >
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-amber-200/20 rounded-full -translate-y-1/2 translate-x-1/2" />
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-brand-primary/5 rounded-full -translate-y-1/2 translate-x-1/2" />
                     <div className="relative z-10 flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-amber-500 flex items-center justify-center flex-shrink-0">
+                        <div className="w-12 h-12 rounded-2xl bg-brand-primary flex items-center justify-center flex-shrink-0">
                             <Sparkles className="w-6 h-6 text-white" />
                         </div>
                         <div className="flex-1">
-                            <h3 className="text-lg font-black text-amber-900 mb-1">🆕 Nouveautés disponibles !</h3>
-                            <p className="text-sm text-amber-800 font-medium mb-3">
+                            <h3 className="text-lg font-black text-brand-dark mb-1">🆕 Nouveautés disponibles !</h3>
+                            <p className="text-sm text-brand-primary font-medium mb-3">
                                 Version {latestVersion?.version} : {latestVersion?.changelog}
                             </p>
                             <button
                                 onClick={handleStartTraining}
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-xl font-bold text-sm hover:bg-amber-700 transition-colors"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-xl font-bold text-sm hover:brightness-110 transition-all"
                             >
                                 Découvrir les nouveautés
                                 <ArrowRight className="w-4 h-4" />
@@ -163,7 +163,7 @@ export function TrainingTab() {
                         initial={{ width: 0 }}
                         animate={{ width: `${completionPercentage}%` }}
                         transition={{ duration: 1, ease: 'easeOut' }}
-                        className="absolute inset-y-0 left-0 bg-gradient-to-r from-amber-500 to-orange-600 rounded-full"
+                        className="absolute inset-y-0 left-0 bg-brand-primary rounded-full"
                     />
                 </div>
 
@@ -181,7 +181,7 @@ export function TrainingTab() {
                 {/* CTA Button */}
                 <button
                     onClick={handleStartTraining}
-                    className="w-full h-14 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-amber-200 transition-all active:scale-[0.98] hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-3"
+                    className="w-full h-14 btn-brand text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-brand-subtle transition-all active:scale-[0.98] hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-3"
                 >
                     <Play size={20} />
                     {completionPercentage === 100 ? 'Revoir la formation' : 'Commencer la formation'}

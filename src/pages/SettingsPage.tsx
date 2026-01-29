@@ -256,12 +256,12 @@ export default function SettingsPage() {
             />
 
             {/* Content */}
-            <div className="bg-white rounded-2xl shadow-sm border border-amber-100 p-6 space-y-6" data-guide="settings-content">
+            <div className="bg-white rounded-2xl shadow-sm border border-brand-subtle p-6 space-y-6" data-guide="settings-content">
                 {/* Onglet Sécurité */}
                 {activeTab === 'security' && (
                     <div className="space-y-6">
                         <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                            <ShieldCheck size={20} className="text-amber-500" />
+                            <ShieldCheck size={20} className="text-brand-primary" />
                             Authentification à deux facteurs (2FA)
                         </h3>
                         <p className="text-sm text-gray-600">
@@ -284,10 +284,10 @@ export default function SettingsPage() {
                                 </Button>
                             </div>
                         ) : (
-                            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
+                            <div className="bg-brand-subtle border border-brand-subtle rounded-lg p-4 space-y-3">
                                 {mfaStep === 'idle' && (
                                     <>
-                                        <div className="flex items-center gap-2 text-amber-700 font-medium">
+                                        <div className="flex items-center gap-2 text-brand-dark font-medium">
                                             <AlertCircle size={20} />
                                             <span>2FA est désactivée</span>
                                         </div>
@@ -363,7 +363,7 @@ export default function SettingsPage() {
                         <div>
                             <Input
                                 label="Adresse"
-                                leftIcon={<MapPin size={16} className="text-amber-500" />}
+                                leftIcon={<MapPin size={16} className="text-brand-primary" />}
                                 type="text"
                                 value={barAddress}
                                 onChange={(e) => setBarAddress(e.target.value)}
@@ -373,7 +373,7 @@ export default function SettingsPage() {
                         <div>
                             <Input
                                 label="Téléphone"
-                                leftIcon={<Phone size={16} className="text-amber-500" />}
+                                leftIcon={<Phone size={16} className="text-brand-primary" />}
                                 type="tel"
                                 value={barPhone}
                                 onChange={(e) => setBarPhone(e.target.value)}
@@ -383,7 +383,7 @@ export default function SettingsPage() {
                         <div>
                             <Input
                                 label="Email"
-                                leftIcon={<Mail size={16} className="text-amber-500" />}
+                                leftIcon={<Mail size={16} className="text-brand-primary" />}
                                 type="email"
                                 value={barEmail}
                                 onChange={(e) => setBarEmail(e.target.value)}
@@ -398,19 +398,19 @@ export default function SettingsPage() {
                     <>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                <Clock size={16} className="text-amber-500" /> Heure de clôture
+                                <Clock size={16} className="text-brand-primary" /> Heure de clôture
                             </label>
                             <p className="text-xs text-gray-600 mb-3">
                                 Heure de fin de journée commerciale (ex: 06h pour bars de nuit).
                             </p>
-                            <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl">
+                            <div className="flex items-center gap-3 p-4 bg-brand-subtle rounded-xl">
                                 <input
                                     type="range"
                                     min="0"
                                     max="23"
                                     value={tempCloseHour}
                                     onChange={(e) => setTempCloseHour(Number(e.target.value))}
-                                    className="flex-1 accent-amber-500"
+                                    className="flex-1 accent-brand"
                                 />
                                 <span className="text-lg font-bold bg-white px-4 py-2 rounded-lg border">
                                     {tempCloseHour.toString().padStart(2, '0')}h
@@ -420,14 +420,14 @@ export default function SettingsPage() {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Expiration consignations</label>
-                            <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl">
+                            <div className="flex items-center gap-3 p-4 bg-brand-subtle rounded-xl">
                                 <input
                                     type="range"
                                     min="1"
                                     max="30"
                                     value={tempConsignmentExpirationDays}
                                     onChange={(e) => setTempConsignmentExpirationDays(Number(e.target.value))}
-                                    className="flex-1 accent-amber-500"
+                                    className="flex-1 accent-brand"
                                 />
                                 <span className="text-lg font-bold bg-white px-4 py-2 rounded-lg border">
                                     {tempConsignmentExpirationDays} jour(s)
@@ -437,14 +437,14 @@ export default function SettingsPage() {
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">Fréquence approvisionnement</label>
-                            <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl">
+                            <div className="flex items-center gap-3 p-4 bg-brand-subtle rounded-xl">
                                 <input
                                     type="range"
                                     min="1"
                                     max="30"
                                     value={tempSupplyFrequency}
                                     onChange={(e) => setTempSupplyFrequency(Number(e.target.value))}
-                                    className="flex-1 accent-amber-500"
+                                    className="flex-1 accent-brand"
                                 />
                                 <span className="text-lg font-bold bg-white px-4 py-2 rounded-lg border">
                                     {tempSupplyFrequency} jour(s)
@@ -454,29 +454,34 @@ export default function SettingsPage() {
 
                         <div className="border-t border-gray-100 pt-6 pb-6">
                             <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-                                <DollarSign size={16} className="text-amber-500" /> Devise Principale
+                                <DollarSign size={16} className="text-brand-primary" /> Devise Principale
                             </label>
-                            <div className="grid grid-cols-2 gap-3">
+                            <RadioGroup
+                                value={tempSettings.currency}
+                                onValueChange={(value) => {
+                                    const currency = currencyOptions.find(c => c.code === value);
+                                    if (currency) {
+                                        setTempSettings({
+                                            ...tempSettings,
+                                            currency: currency.code,
+                                            currencySymbol: currency.symbol,
+                                        });
+                                    }
+                                }}
+                                className="grid grid-cols-2 gap-3"
+                            >
                                 {currencyOptions.map((currency) => (
                                     <label
                                         key={currency.code}
+                                        htmlFor={`currency-${currency.code}`}
                                         className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer border transition-all ${tempSettings.currency === currency.code
-                                            ? 'bg-amber-50 border-amber-500 shadow-sm'
+                                            ? 'bg-brand-subtle border-brand-primary shadow-sm'
                                             : 'bg-white border-gray-200 hover:bg-gray-50'
                                             }`}
                                     >
-                                        <input
-                                            type="radio"
-                                            name="currency"
-                                            className="accent-amber-500 w-4 h-4"
-                                            checked={tempSettings.currency === currency.code}
-                                            onChange={() => {
-                                                setTempSettings({
-                                                    ...tempSettings,
-                                                    currency: currency.code,
-                                                    currencySymbol: currency.symbol,
-                                                });
-                                            }}
+                                        <RadioGroupItem
+                                            value={currency.code}
+                                            id={`currency-${currency.code}`}
                                         />
                                         <div>
                                             <div className="font-bold text-sm text-gray-800">{currency.code}</div>
@@ -484,7 +489,7 @@ export default function SettingsPage() {
                                         </div>
                                     </label>
                                 ))}
-                            </div>
+                            </RadioGroup>
                         </div>
 
                         <div>
@@ -494,25 +499,37 @@ export default function SettingsPage() {
                                 onValueChange={(value: 'full' | 'simplified') => setTempOperatingMode(value)}
                                 className="space-y-3"
                             >
-                                <label htmlFor="operatingModeFull" className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl cursor-pointer hover:bg-amber-100 border">
+                                <label
+                                    htmlFor="operatingModeFull"
+                                    className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer border transition-all ${tempOperatingMode === 'full'
+                                        ? 'bg-brand-subtle border-brand-primary shadow-sm'
+                                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                                        }`}
+                                >
                                     <RadioGroupItem
                                         value="full"
                                         id="operatingModeFull"
                                         className="mt-1"
                                     />
                                     <div>
-                                        <div className="font-medium">Mode Complet</div>
+                                        <div className="font-bold text-sm text-gray-800">Mode Complet</div>
                                         <div className="text-xs text-gray-600">Chaque serveur a son propre compte.</div>
                                     </div>
                                 </label>
-                                <label htmlFor="operatingModeSimplified" className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl cursor-pointer hover:bg-amber-100 border">
+                                <label
+                                    htmlFor="operatingModeSimplified"
+                                    className={`flex items-start gap-3 p-3 rounded-xl cursor-pointer border transition-all ${tempOperatingMode === 'simplified'
+                                        ? 'bg-brand-subtle border-brand-primary shadow-sm'
+                                        : 'bg-white border-gray-200 hover:bg-gray-50'
+                                        }`}
+                                >
                                     <RadioGroupItem
                                         value="simplified"
                                         id="operatingModeSimplified"
                                         className="mt-1"
                                     />
                                     <div>
-                                        <div className="font-medium">Mode Simplifié</div>
+                                        <div className="font-bold text-sm text-gray-800">Mode Simplifié</div>
                                         <div className="text-xs text-gray-600">Le gérant sélectionne le serveur.</div>
                                     </div>
                                 </label>
@@ -525,7 +542,7 @@ export default function SettingsPage() {
                                 {FEATURES.ENABLE_SWITCHING_MODE && (
                                     <div className="border-t pt-6">
                                         <div className="flex items-center gap-2 mb-2">
-                                            <GitBranch size={16} className="text-amber-500" />
+                                            <GitBranch size={16} className="text-brand-primary" />
                                             <h4 className="text-sm font-medium text-gray-700">Configuration du Mode Switching</h4>
                                         </div>
                                         <ServerMappingsManager

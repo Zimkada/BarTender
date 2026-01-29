@@ -11,10 +11,9 @@ import { CategoryContextMenu } from './CategoryContextMenu';
 // Utilise la classe CSS glass-action-button-active-2026 qui utilise var(--brand-gradient)
 const getButtonClasses = (isSelected: boolean) => {
     if (isSelected) {
-        // Bouton actif : utilise le gradient brand via CSS
-        return 'glass-action-button-active-2026 px-4 py-2 rounded-lg font-semibold transition-all duration-200';
+        return 'glass-action-button-active-2026 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all duration-200';
     }
-    return 'glass-action-button-2026 px-4 py-2 rounded-lg font-semibold transition-all duration-200';
+    return 'glass-action-button-2026 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all duration-200 opacity-70';
 };
 
 interface CategoryFilterProps {
@@ -54,8 +53,12 @@ export function CategoryFilter({
 
     return (
         <>
-            <Card variant="elevated" padding="sm" className="border-amber-100">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Catégories</h3>
+            <Card variant="elevated" padding="sm" className="border-brand-subtle bg-white/40 backdrop-blur-md overflow-hidden relative">
+                <div className="absolute -top-10 -left-10 w-24 h-24 bg-brand-primary/5 blur-3xl rounded-full"></div>
+                <div className="flex flex-col mb-4 relative z-10">
+                    <h3 className="text-sm font-black text-gray-900 uppercase tracking-tighter leading-none">Nos</h3>
+                    <h4 className="text-sm font-black text-brand-primary uppercase tracking-tighter leading-tight">Catégories</h4>
+                </div>
                 <div className="flex flex-wrap gap-2">
                     {/* All categories button */}
                     <button
@@ -100,10 +103,10 @@ export function CategoryFilter({
                                 onClick={onAddCategory}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                className="glass-action-button-active-2026 hidden sm:flex items-center gap-2 px-4 py-2 rounded-lg font-semibold"
+                                className="glass-action-button-active-2026 hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight"
                             >
                                 <Plus size={16} />
-                                Ajouter
+                                Nouveau
                             </motion.button>
                         </>
                     )}

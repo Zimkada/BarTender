@@ -70,8 +70,8 @@ function ForgotPasswordScreen() {
         className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
-            <Mail className="w-8 h-8 text-amber-600" />
+          <div className="mx-auto w-16 h-16 bg-brand-subtle rounded-full flex items-center justify-center mb-4">
+            <Mail className="w-8 h-8 text-brand-primary" />
           </div>
           <h2 className="text-2xl font-bold text-gray-800">Mot de passe oublié</h2>
           <p className="text-gray-600 mt-2">Entrez votre email pour recevoir un lien de réinitialisation.</p>
@@ -105,7 +105,7 @@ function ForgotPasswordScreen() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--brand-primary)] focus:border-transparent outline-none"
                 placeholder="votre.email@example.com"
                 autoComplete="email"
                 disabled={!!success}
@@ -129,7 +129,7 @@ function ForgotPasswordScreen() {
           <button
             type="submit"
             disabled={isLoading || !!success}
-            className="w-full bg-gradient-to-r from-amber-500 to-amber-500 text-white py-3 rounded-lg font-semibold hover:from-amber-600 hover:to-amber-600 transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-brand w-full py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? 'Envoi en cours...' : 'Envoyer le lien'}
           </button>
@@ -139,7 +139,7 @@ function ForgotPasswordScreen() {
           <button
             type="button"
             onClick={navigateToLogin}
-            className="font-medium text-amber-600 hover:text-amber-500 bg-transparent border-none cursor-pointer"
+            className="font-medium text-brand-primary hover:opacity-80 bg-transparent border-none cursor-pointer"
           >
             Retour à la connexion
           </button>

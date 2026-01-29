@@ -121,9 +121,9 @@ export function PromotionsAnalytics() {
             value: formatPrice(stats?.netProfit || 0),
             subValue: `Marge: ${stats?.marginPercentage || 0}%`,
             icon: <TrendingUp size={24} />,
-            color: 'text-amber-600',
-            bg: 'bg-amber-50',
-            gradient: 'from-amber-500 to-orange-600'
+            color: 'text-brand-primary',
+            bg: 'bg-brand-subtle',
+            gradient: 'var(--brand-gradient)'
         },
         {
             label: 'Retour sur Invest.',
@@ -140,22 +140,32 @@ export function PromotionsAnalytics() {
         <div className="space-y-8 p-6 sm:p-10 bg-slate-50/30">
             {/* Header & Filter Section */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-                <div>
-                    <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight flex items-center gap-3">
-                        <BarChart3 className="text-amber-500" />
-                        Intelligence Promotions
-                    </h3>
-                    <p className="text-gray-500 font-medium mt-1">Analyse des performances pour la période : <span className="text-amber-600 font-bold">{periodLabel}</span></p>
+                <div className="flex flex-col gap-4">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-brand-subtle rounded-2xl text-brand-primary border border-brand-subtle shadow-sm">
+                            <BarChart3 size={28} />
+                        </div>
+                        <div>
+                            <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tighter leading-none">Intelligence</h3>
+                            <h4 className="text-2xl font-black text-brand-primary uppercase tracking-tighter leading-tight">Promotions</h4>
+                        </div>
+                    </div>
+                    <p className="text-gray-500 font-medium flex items-center flex-wrap gap-2">
+                        Analyse des performances pour la période :
+                        <span className="px-3 py-1 bg-brand-subtle text-brand-primary rounded-full font-bold text-xs border border-brand-subtle shadow-sm">
+                            {periodLabel}
+                        </span>
+                    </p>
                 </div>
 
-                <div className="w-full lg:w-auto bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
+                <div className="w-full lg:w-auto bg-white/40 backdrop-blur-md p-1.5 rounded-2xl shadow-sm border border-brand-subtle" data-guide="promotions-filters">
                     <PeriodFilter
                         timeRange={timeRange}
                         setTimeRange={setTimeRange}
                         availableFilters={PROMOTIONS_FILTERS}
                         customRange={customRange}
                         updateCustomRange={updateCustomRange}
-                        className="w-full lg:w-auto border-none shadow-none"
+                        className="w-full lg:w-auto border-none shadow-none space-y-0"
                     />
                 </div>
             </div>
@@ -186,7 +196,7 @@ export function PromotionsAnalytics() {
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">{kpi.label}</p>
                             <h4 className="text-2xl font-black text-gray-900 leading-none mb-2">{kpi.value}</h4>
                             {kpi.subValue && (
-                                <p className="text-xs font-bold text-amber-600/60 uppercase">{kpi.subValue}</p>
+                                <p className="text-xs font-bold text-brand-primary/60 uppercase">{kpi.subValue}</p>
                             )}
                         </div>
                     </motion.div>
@@ -196,12 +206,12 @@ export function PromotionsAnalytics() {
             {/* Performance Details Card */}
             <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl overflow-hidden relative">
                 {/* Header Decoration */}
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500"></div>
+                <div className="absolute top-0 left-0 right-0 h-1 bg-[var(--brand-gradient)]"></div>
 
                 <div className="p-8 sm:p-10 border-b border-gray-50 flex justify-between items-center">
                     <div>
                         <h4 className="text-xl font-black text-gray-900 uppercase tracking-tight flex items-center gap-3">
-                            <Zap className="text-amber-500" size={20} />
+                            <Zap className="text-brand-primary" size={20} />
                             Classement des Offres
                         </h4>
                         <p className="text-sm text-gray-400 font-medium mt-1">Comparaison détaillée par rentabilité directe</p>
@@ -227,10 +237,10 @@ export function PromotionsAnalytics() {
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
                                     {stats.topPromotions.map((promo: any, index: number) => (
-                                        <tr key={index} className="hover:bg-amber-50/30 transition-colors group">
+                                        <tr key={index} className="hover:bg-brand-subtle transition-colors group">
                                             <td className="p-5">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-bold text-gray-400 group-hover:bg-amber-500 group-hover:text-white transition-all">
+                                                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-bold text-gray-400 group-hover:bg-brand-primary group-hover:text-white transition-all">
                                                         {index + 1}
                                                     </div>
                                                     <div>
@@ -240,7 +250,7 @@ export function PromotionsAnalytics() {
                                                 </div>
                                             </td>
                                             <td className="p-5 text-center">
-                                                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full border-4 border-slate-50 font-black text-gray-900 group-hover:border-amber-100 group-hover:text-amber-600 transition-all">
+                                                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full border-4 border-slate-50 font-black text-gray-900 group-hover:border-brand-subtle group-hover:text-brand-primary transition-all">
                                                     {Math.min(99, Math.round((promo.marginPercentage + (promo.uses / 10)) * 1.5))}
                                                 </div>
                                             </td>
@@ -250,7 +260,7 @@ export function PromotionsAnalytics() {
                                             </td>
                                             <td className="p-5">
                                                 <div className="font-black text-gray-900 tracking-tight">{formatPrice(promo.netProfit || 0)}</div>
-                                                <div className="flex items-center gap-1 text-[10px] font-black text-orange-500/60 uppercase">
+                                                <div className="flex items-center gap-1 text-[10px] font-black text-brand-primary/60 uppercase">
                                                     ROI {Math.round((promo.netProfit / (promo.costOfGoods || 1)) * 100)}%
                                                 </div>
                                             </td>
@@ -259,7 +269,7 @@ export function PromotionsAnalytics() {
                                                     <motion.div
                                                         initial={{ width: 0 }}
                                                         animate={{ width: `${promo.marginPercentage}%` }}
-                                                        className={`h-full bg-gradient-to-r ${promo.marginPercentage >= 30 ? 'from-green-500 to-emerald-600' : 'from-amber-400 to-orange-500'} rounded-full`}
+                                                        className={`h-full bg-gradient-to-r ${promo.marginPercentage >= 30 ? 'from-green-500 to-emerald-600' : 'from-brand-primary to-brand-primary-dark'} rounded-full`}
                                                     ></motion.div>
                                                 </div>
                                                 <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1.5">{promo.marginPercentage}% Marge</div>

@@ -44,7 +44,7 @@ export default function AnalyticsPage() {
     sales
       .filter(s => s.status === 'validated')
       .forEach(sale => {
-        const date = new Date(sale.date || sale.created_at);
+        const date = new Date(sale.businessDate || sale.createdAt);
         const key = date.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
         if (months[key]) {
           months[key].revenue += sale.total;
@@ -87,7 +87,7 @@ export default function AnalyticsPage() {
     });
 
     return categories;
-  }, [expenses, sales, chartData]);
+  }, [expenses]); // Removed sales, chartData from dependencies as they are not used here
 
   if (!currentBar) {
     return (
@@ -100,8 +100,8 @@ export default function AnalyticsPage() {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
-      <div className="bg-white rounded-2xl shadow-sm border border-amber-100 mb-6 overflow-hidden" data-guide="analytics-header">
-        <div className="bg-gradient-to-r from-amber-500 to-amber-500 text-white p-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-brand-subtle mb-6 overflow-hidden" data-guide="analytics-header">
+        <div className="bg-brand-primary text-white p-6" style={{ background: 'var(--brand-gradient)' }}>
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -115,7 +115,7 @@ export default function AnalyticsPage() {
               <BarChart3 size={28} />
               <div>
                 <h1 className="text-xl font-bold">Analytics</h1>
-                <p className="text-amber-100 text-sm">Statistiques de {currentBar.name}</p>
+                <p className="opacity-80 text-sm">Statistiques de {currentBar.name}</p>
               </div>
             </div>
           </div>
@@ -123,7 +123,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Charts */}
-      <div className="bg-white rounded-2xl shadow-sm border border-amber-100 p-6" data-guide="analytics-charts">
+      <div className="bg-white rounded-2xl shadow-sm border border-brand-subtle p-6" data-guide="analytics-charts">
         <AnalyticsCharts
           data={chartData}
           expensesByCategory={expensesByCategory}
