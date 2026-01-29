@@ -23,7 +23,6 @@ import {
   ArrowUp,
   ArrowDown,
   Minus,
-  Archive,
   BarChart3,
   Clock
 } from 'lucide-react';
@@ -57,7 +56,6 @@ interface AnalyticsViewProps {
   isMobile: boolean;
   returns: Return[];
   closeHour: number;
-  filteredConsignments: any[];
   startDate: Date;
   endDate: Date;
   topProductMetric: 'units' | 'revenue' | 'profit';
@@ -80,7 +78,6 @@ export function AnalyticsView({
   isMobile,
   returns,
   closeHour,
-  filteredConsignments,
   startDate,
   endDate,
   topProductMetric,
@@ -152,38 +149,6 @@ export function AnalyticsView({
       items: { value: stats.totalItems, change: itemsChange }
     };
   }, [sales, stats, previousPeriodSales, returns]);
-
-  // Statistiques consignations
-  const consignmentStats = useMemo(() => {
-    const activeConsignments = filteredConsignments.filter(c => c.status === 'active');
-    const claimedConsignments = filteredConsignments.filter(c => c.status === 'claimed');
-    const expiredConsignments = filteredConsignments.filter(c => c.status === 'expired');
-    const forfeitedConsignments = filteredConsignments.filter(c => c.status === 'forfeited');
-
-    const activeValue = activeConsignments.reduce((sum, c) => sum + c.totalAmount, 0);
-    const claimedValue = claimedConsignments.reduce((sum, c) => sum + c.totalAmount, 0);
-    const totalValue = filteredConsignments.reduce((sum, c) => sum + c.totalAmount, 0);
-
-    const totalQuantity = filteredConsignments.reduce((sum, c) => sum + c.quantity, 0);
-    const claimedQuantity = claimedConsignments.reduce((sum, c) => sum + c.quantity, 0);
-    const claimRate = filteredConsignments.length > 0
-      ? (claimedConsignments.length / filteredConsignments.length) * 100
-      : 0;
-
-    return {
-      total: filteredConsignments.length,
-      active: activeConsignments.length,
-      claimed: claimedConsignments.length,
-      expired: expiredConsignments.length,
-      forfeited: forfeitedConsignments.length,
-      activeValue,
-      claimedValue,
-      totalValue,
-      totalQuantity,
-      claimedQuantity,
-      claimRate
-    };
-  }, [filteredConsignments]);
 
   // Données pour graphique d'évolution - granularité adaptative
   const evolutionChartData = useMemo(() => {
@@ -286,7 +251,6 @@ export function AnalyticsView({
   }, [sales, categories, _products, returns]);
 
   // Performance par utilisateur
-
   const userPerformance = useTeamPerformance({
     sales,
     returns,
@@ -297,15 +261,11 @@ export function AnalyticsView({
     closeHour
   });
 
-
-
   const TrendIcon = ({ change }: { change: number }) => {
     if (change > 0) return <ArrowUp className="w-4 h-4 text-green-600" />;
     if (change < 0) return <ArrowDown className="w-4 h-4 text-red-600" />;
     return <Minus className="w-4 h-4 text-gray-400" />;
   };
-
-
 
   // Message si pas de données
   if (sales.length === 0) {
@@ -317,7 +277,6 @@ export function AnalyticsView({
       </div>
     );
   }
-
 
   return (
     <div className="space-y-4">
@@ -425,64 +384,6 @@ export function AnalyticsView({
           </div>
         </div>
       </div>
-
-      {/* Section Consignations */}
-      {consignmentStats.total > 0 && (
-        <div className="bg-brand-subtle rounded-xl p-4 border border-brand-subtle" data-guide="analytics-consignments">
-          <div className="flex items-center gap-2 mb-3">
-            <Archive className="w-5 h-5 text-brand-primary" />
-            <h4 className="text-sm font-bold text-brand-dark">Consignations</h4>
-          </div>
-
-          {/* Stats grid */}
-          <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-5'} gap-3 mb-3`}>
-            <div className="bg-white rounded-lg p-3 border border-amber-100">
-              <p className="text-xs text-gray-600 mb-1">Total</p>
-              <p className="text-lg font-bold text-amber-900">{consignmentStats.total}</p>
-              <p className="text-xs text-gray-500 mt-1">{formatPrice(consignmentStats.totalValue)}</p>
-            </div>
-
-            <div className="bg-white rounded-lg p-3 border border-blue-100">
-              <p className="text-xs text-gray-600 mb-1">Actives</p>
-              <p className="text-lg font-bold text-blue-900">{consignmentStats.active}</p>
-              <p className="text-xs text-gray-500 mt-1">{formatPrice(consignmentStats.activeValue)}</p>
-            </div>
-
-            <div className="bg-white rounded-lg p-3 border border-green-100">
-              <p className="text-xs text-gray-600 mb-1">Récupérées</p>
-              <p className="text-lg font-bold text-green-900">{consignmentStats.claimed}</p>
-              <p className="text-xs text-gray-500 mt-1">{formatPrice(consignmentStats.claimedValue)}</p>
-            </div>
-
-            <div className="bg-white rounded-lg p-3 border border-amber-100">
-              <p className="text-xs text-gray-600 mb-1">Expirées</p>
-              <p className="text-lg font-bold text-amber-900">{consignmentStats.expired}</p>
-            </div>
-
-            <div className="bg-white rounded-lg p-3 border border-red-100">
-              <p className="text-xs text-gray-600 mb-1">Confisquées</p>
-              <p className="text-lg font-bold text-red-900">{consignmentStats.forfeited}</p>
-            </div>
-          </div>
-
-          {/* Taux de récupération */}
-          <div className="bg-white rounded-lg p-3 border border-amber-100">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-gray-700">Taux de récupération</span>
-              <span className="text-sm font-bold text-amber-900">{consignmentStats.claimRate.toFixed(1)}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-[var(--brand-gradient)] h-2 rounded-full transition-all duration-300"
-                style={{ width: `${Math.min(consignmentStats.claimRate, 100)}%` }}
-              />
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              {consignmentStats.claimedQuantity} articles sur {consignmentStats.totalQuantity} récupérés
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Performance équipe - Graphique */}
       <div data-guide="analytics-team">

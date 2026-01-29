@@ -12,7 +12,7 @@ export interface BackButtonProps extends ButtonProps {
     label?: string;
     /** Le type d'icône à utiliser (par défaut: "arrow") */
     iconType?: 'arrow' | 'chevron';
-    /** Si faux, n'affiche que l'icône (par défaut: true) */
+    /** Si faux, n'affiche que l'icône (par défaut: false) */
     showLabel?: boolean;
 }
 
@@ -24,9 +24,9 @@ export const BackButton = React.forwardRef<HTMLButtonElement, BackButtonProps>(
     ({
         label = "Retour",
         iconType = "arrow",
-        showLabel = true,
+        showLabel = false,
         className,
-        variant = "ghost",
+        variant = "glass",
         size,
         ...props
     }, ref) => {
@@ -37,8 +37,8 @@ export const BackButton = React.forwardRef<HTMLButtonElement, BackButtonProps>(
                 variant={variant}
                 size={size || (showLabel ? "sm" : "icon")}
                 className={cn(
-                    "text-gray-500 hover:text-gray-900 transition-colors font-semibold",
-                    !showLabel && "rounded-full",
+                    "transition-colors font-semibold flex-shrink-0",
+                    !showLabel && "w-10 h-10 sm:w-11 sm:h-11 rounded-xl", // Match PageHeader default size & shape (rounded-xl comes from glass class usually, but let's ensure)
                     className
                 )}
                 ref={ref}

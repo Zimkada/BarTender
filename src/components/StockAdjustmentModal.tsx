@@ -106,9 +106,9 @@ export function StockAdjustmentModal({
             className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-amber-50 to-amber-50">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50/50 to-blue-50/50">
               <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                <BarChart3 size={20} className="text-amber-500" />
+                <BarChart3 size={20} className="text-blue-600" />
                 Ajuster le stock
               </h2>
               <motion.button
@@ -167,7 +167,7 @@ export function StockAdjustmentModal({
                     required
                     value={formData.delta}
                     onChange={(e) => setFormData({ ...formData, delta: e.target.value })}
-                    className="w-full px-4 py-3 bg-white border-2 border-amber-200 rounded-xl text-gray-800 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200 text-lg font-semibold"
+                    className="w-full px-4 py-3 bg-white border-2 border-blue-200 rounded-xl text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 text-lg font-semibold"
                     placeholder="Ex: -50 ou +25"
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 flex gap-1">
@@ -196,7 +196,7 @@ export function StockAdjustmentModal({
                 <select
                   value={formData.reason}
                   onChange={(e) => setFormData({ ...formData, reason: e.target.value as AdjustmentReason })}
-                  className="w-full px-4 py-2.5 bg-white border-2 border-gray-300 rounded-xl text-gray-800 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                  className="w-full px-4 py-2.5 bg-white border-2 border-gray-300 rounded-xl text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
                 >
                   {Object.entries(ADJUSTMENT_REASONS).map(([key, config]) => (
                     <option key={key} value={key}>
@@ -223,11 +223,11 @@ export function StockAdjustmentModal({
                     required={formData.reason === 'other'}
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-white border-2 border-amber-200 rounded-xl text-gray-800 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200 resize-none"
+                    className="w-full px-4 py-2.5 bg-white border-2 border-blue-200 rounded-xl text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
                     rows={3}
                     placeholder="Expliquez la raison de cet ajustement..."
                   />
-                  <p className="text-xs text-amber-600 mt-1">
+                  <p className="text-xs text-blue-600 mt-1">
                     Les notes sont obligatoires pour la raison "Autre"
                   </p>
                 </motion.div>
@@ -238,21 +238,19 @@ export function StockAdjustmentModal({
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`rounded-xl p-4 border-2 ${
-                    newStock < 0
-                      ? 'bg-red-50 border-red-300'
-                      : isDeltaPositive
+                  className={`rounded-xl p-4 border-2 ${newStock < 0
+                    ? 'bg-red-50 border-red-300'
+                    : isDeltaPositive
                       ? 'bg-green-50 border-green-300'
                       : 'bg-orange-50 border-orange-300'
-                  }`}
+                    }`}
                 >
-                  <h4 className={`text-sm font-semibold mb-2 ${
-                    newStock < 0
-                      ? 'text-red-700'
-                      : isDeltaPositive
+                  <h4 className={`text-sm font-semibold mb-2 ${newStock < 0
+                    ? 'text-red-700'
+                    : isDeltaPositive
                       ? 'text-green-700'
                       : 'text-orange-700'
-                  }`}>
+                    }`}>
                     ⚠️ APERÇU DU NOUVEAU STOCK
                   </h4>
                   <div className="space-y-1">
@@ -264,13 +262,12 @@ export function StockAdjustmentModal({
                         {isDeltaPositive ? '+' : ''}{delta}
                       </span>
                     </p>
-                    <p className={`text-lg font-bold ${
-                      newStock < 0
-                        ? 'text-red-700'
-                        : isDeltaPositive
+                    <p className={`text-lg font-bold ${newStock < 0
+                      ? 'text-red-700'
+                      : isDeltaPositive
                         ? 'text-green-700'
                         : 'text-orange-700'
-                    }`}>
+                      }`}>
                       Nouveau stock: {newStock}
                     </p>
                   </div>
@@ -314,7 +311,7 @@ export function StockAdjustmentModal({
                   disabled={!isValidDelta || newStock < 0 || isSubmitting}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="flex-1 py-2.5 px-4 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? (
                     <>

@@ -116,9 +116,10 @@ export default function InventoryPage() {
             {/* Header */}
             <TabbedPageHeader
                 title="Inventaire"
-                subtitle={isMobile ? undefined : "Gestion du catalogue et des stocks"}
+                subtitle="Gestion globale du catalogue, suivi des stocks en temps réel et alertes de réapprovisionnement."
                 icon={<Package size={24} />}
                 tabs={tabsConfig}
+                hideSubtitleOnMobile={true}
                 activeTab={viewMode}
                 onTabChange={(id) => setViewMode(id as ViewMode)}
                 guideId={inventoryGuideId}

@@ -246,7 +246,7 @@ export default function SettingsPage() {
             {/* Header Standardisé */}
             <TabbedPageHeader
                 title="Paramètres"
-                subtitle="Configuration du bar"
+                subtitle="Personnalisez votre établissement, configurez le mode de fonctionnement et sécurisez votre compte."
                 icon={<SettingsIcon size={24} />}
                 tabs={tabs}
                 activeTab={activeTab}

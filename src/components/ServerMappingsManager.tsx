@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Trash2, Plus, AlertCircle, CheckCircle, Loader } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Trash2, Plus, AlertCircle, CheckCircle, Loader, User, MousePointerClick, Zap } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ServerMappingsService } from '../services/supabase/server-mappings.service';
 import { Input } from './ui/Input';
 import { Select, SelectOption } from './ui/Select';
 import { Alert } from './ui/Alert';
+import { Button } from './ui/Button';
 
 interface ServerMapping {
   serverName: string;
@@ -18,9 +20,8 @@ interface ServerMappingsManagerProps {
 }
 
 /**
- * ServerMappingsManager
- * Manages mappings between server names (simplified mode) and user UUIDs (full mode)
- * Used in SettingsPage to configure mode switching
+ * ServerMappingsManager - Refonte Vision 2026
+ * Gère l'association entre les noms simplifiés et les comptes réels.
  */
 export function ServerMappingsManager({
   barId,
@@ -103,7 +104,6 @@ export function ServerMappingsManager({
       setNewServerId('');
       await loadMappings();
 
-      // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur lors de la création du mapping';
@@ -128,7 +128,6 @@ export function ServerMappingsManager({
       setSuccess(`Mapping supprimé: ${serverName}`);
       await loadMappings();
 
-      // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erreur lors de la suppression du mapping';
@@ -139,139 +138,197 @@ export function ServerMappingsManager({
     }
   };
 
-  if (!enabled) {
-    return null;
-  }
-
-  // Member options for select dropdown
-  const memberOptions: SelectOption[] = [
-    { value: '', label: 'Sélectionner un serveur...' },
+  const memberOptions: SelectOption[] = useMemo(() => [
+    { value: '', label: 'Sélectionner un compte de l\'équipe...' },
     ...barMembers.map(member => ({
       value: member.userId,
-      label: `${member.name} (${member.role})`
+      label: `${member.name} (${member.role === 'gerant' ? 'Gérant' : 'Serveur'})`
     }))
-  ];
+  ], [barMembers]);
+
+  if (!enabled) return null;
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          Mappings Serveur (Mode Switching)
-        </h3>
-        <p className="text-sm text-gray-600">
-          Associez les noms de serveurs du mode simplifié aux comptes du mode complet
-        </p>
+    <div className="space-y-8">
+      {/* Header Info */}
+      <div className="bg-brand-bg-subtle border border-brand-border rounded-2xl p-6 relative overflow-hidden">
+        <div className="absolute -right-8 -top-8 w-32 h-32 bg-brand-primary/5 rounded-full blur-3xl" />
+        <div className="relative z-10">
+          <h3 className="text-xl font-bold text-brand-text mb-2 flex items-center gap-2">
+            <Zap className="text-brand-primary" size={20} />
+            Assignation des Caisses
+          </h3>
+          <p className="text-sm text-gray-600 max-w-2xl leading-relaxed">
+            Reliez les noms utilisés en <strong>Mode Simplifié</strong> (Caisses, Noms courts) aux comptes utilisateurs du <strong>Mode Complet</strong> pour garantir un suivi précis des ventes et des stocks.
+          </p>
+        </div>
       </div>
 
       {error && (
         <Alert
-          variant="error"
-          icon={<AlertCircle size={16} />}
-          title="Erreur"
-          message={error}
-        />
+          variant="destructive"
+          icon={<AlertCircle size={18} />}
+          className="rounded-xl border-red-100 shadow-sm"
+        >
+          {error}
+        </Alert>
       )}
 
       {success && (
         <Alert
           variant="success"
-          icon={<CheckCircle size={16} />}
-          title="Succès"
-          message={success}
-        />
+          icon={<CheckCircle size={18} />}
+          className="rounded-xl border-green-100 shadow-lg shadow-green-50 animate-in fade-in slide-in-from-top-2"
+        >
+          {success}
+        </Alert>
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-8">
-          <Loader size={20} className="animate-spin text-brand-primary" />
-          <span className="ml-2 text-gray-600">Chargement des mappings...</span>
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <Loader size={32} className="animate-spin text-brand-primary" />
+          <p className="text-sm font-medium text-gray-500 uppercase tracking-widest">Initialisation des configurations...</p>
         </div>
       ) : (
-        <>
-          {/* Auto-populate button */}
-          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-            <h4 className="font-medium text-gray-800 mb-2">Création automatique</h4>
-            <p className="text-sm text-gray-600 mb-3">
-              Créez automatiquement les mappings à partir de vos serveurs actifs (membres avec le rôle "serveur")
-            </p>
-            <button
-              onClick={handleAutoPopulate}
-              disabled={saving}
-              className="w-full h-10 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2"
-            >
-              {saving && <Loader size={16} className="animate-spin" />}
-              Auto-populer les mappings
-            </button>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+          {/* Main List */}
+          <div className="lg:col-span-3 space-y-4">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                Mappings Actifs
+                <span className="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full">{mappings.length}</span>
+              </h4>
+              {mappings.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleAutoPopulate}
+                  disabled={saving}
+                  className="text-xs text-brand-primary hover:bg-brand-subtle font-bold uppercase tracking-widest"
+                >
+                  {saving ? <Loader size={14} className="animate-spin mr-2" /> : <Zap size={14} className="mr-2" />}
+                  Auto-Synchroniser
+                </Button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              <AnimatePresence mode="popLayout">
+                {mappings.length > 0 ? (
+                  mappings.map((mapping, index) => (
+                    <motion.div
+                      key={mapping.serverName}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="group flex items-center justify-between bg-white rounded-2xl p-4 border border-gray-100 hover:border-brand-subtle hover:shadow-xl hover:shadow-brand-subtle/10 transition-all"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-brand-gradient flex items-center justify-center text-white font-black text-lg shadow-lg group-hover:scale-110 transition-transform">
+                          {mapping.serverName[0].toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h5 className="font-black text-gray-900 text-base">{mapping.serverName}</h5>
+                            <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+                          </div>
+                          <p className="text-xs font-semibold text-gray-400 flex items-center gap-1">
+                            <User size={10} />
+                            Lié à : <span className="text-brand-primary">{mapping.userName}</span>
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveMapping(mapping.serverName)}
+                        disabled={saving}
+                        className="p-3 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                        title="Supprimer l'assignation"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </motion.div>
+                  ))
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex flex-col items-center justify-center py-12 px-6 bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-200 text-center"
+                  >
+                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-4">
+                      <MousePointerClick className="text-gray-300" size={32} />
+                    </div>
+                    <h5 className="font-bold text-gray-900 mb-1">Aucune caisse assignée</h5>
+                    <p className="text-xs text-gray-500 max-w-xs mb-6">
+                      Commencez par utiliser l'auto-synchronisation ou ajoutez manuellement vos noms de caisses.
+                    </p>
+                    <Button
+                      onClick={handleAutoPopulate}
+                      disabled={saving}
+                      className="btn-brand shadow-lg shadow-brand-subtle btn-sm uppercase tracking-widest font-black"
+                    >
+                      {saving ? <Loader size={16} className="animate-spin mr-2" /> : <Zap size={16} className="mr-2" />}
+                      Générer Automatiquement
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
-          {/* Existing mappings */}
-          {mappings.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="font-medium text-gray-800">Mappings existants</h4>
-              <div className="space-y-2">
-                {mappings.map(mapping => (
-                  <div
-                    key={mapping.serverName}
-                    className="flex items-center justify-between bg-gray-50 rounded-lg p-3 border border-gray-200"
+          {/* Sidebar: Add Form */}
+          <div className="lg:col-span-2 space-y-4">
+            <h4 className="font-bold text-gray-900 mb-2 px-1 text-sm uppercase tracking-widest opacity-60">Nouvel Ajout</h4>
+            <div className="bg-white rounded-3xl p-6 border-2 border-dashed border-brand-border relative overflow-hidden flex flex-col shadow-inner">
+              {/* Ticket Cutouts */}
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-gray-50 rounded-full border-b border-gray-100" />
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-gray-50 rounded-full border-t border-gray-100" />
+
+              <div className="space-y-6 flex-1 py-2">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-brand-primary uppercase tracking-widest pl-1">Nom de la Caisse / Serveur</label>
+                  <Input
+                    type="text"
+                    placeholder="ex: Ahmed ou Caisse 1"
+                    value={newServerName}
+                    onChange={(e) => setNewServerName(e.target.value)}
+                    className="h-12 bg-gray-50 border-gray-200 focus:bg-white rounded-xl text-sm font-bold"
+                    disabled={saving}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-brand-primary uppercase tracking-widest pl-1">Compte Utilisateur Associé</label>
+                  <Select
+                    options={memberOptions}
+                    value={newServerId}
+                    onChange={(e) => setNewServerId(e.target.value)}
+                    className="h-12 bg-gray-50 border-gray-200 rounded-xl text-sm font-bold"
+                    disabled={saving}
+                  />
+                </div>
+
+                <div className="pt-4">
+                  <Button
+                    onClick={handleAddMapping}
+                    disabled={saving || !newServerName.trim() || !newServerId}
+                    className="w-full h-14 btn-brand rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-brand-subtle flex items-center justify-center gap-2"
                   >
-                    <div className="flex-1">
-                      <div className="font-medium text-gray-900">{mapping.serverName}</div>
-                      <div className="text-sm text-gray-600">{mapping.userName}</div>
-                    </div>
-                    <button
-                      onClick={() => handleRemoveMapping(mapping.serverName)}
-                      disabled={saving}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                      aria-label="Supprimer"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
+                    {saving ? <Loader size={20} className="animate-spin" /> : <Plus size={20} />}
+                    Valider l'Assignation
+                  </Button>
+                </div>
+
+                <div className="mt-6 flex items-start gap-3 bg-brand-primary/5 p-4 rounded-2xl border border-brand-primary/10">
+                  <AlertCircle size={16} className="text-brand-primary mt-0.5 shrink-0" />
+                  <p className="text-[10px] font-medium text-brand-text leading-relaxed">
+                    <strong>Note :</strong> Lors du changement de mode, le système utilisera ces mappings pour attribuer automatiquement les ventes aux bons membres de l'équipe.
+                  </p>
+                </div>
               </div>
             </div>
-          )}
-
-          {/* Add new mapping */}
-          <div className="bg-brand-subtle rounded-lg p-4 border border-brand-subtle">
-            <h4 className="font-medium text-gray-800 mb-3">Ajouter un nouveau mapping</h4>
-            <div className="space-y-3">
-              <Input
-                type="text"
-                placeholder="Nom du serveur (ex: Ahmed)"
-                value={newServerName}
-                onChange={(e) => setNewServerName(e.target.value)}
-                size="lg"
-                disabled={saving}
-              />
-
-              <Select
-                label="Associer à"
-                options={memberOptions}
-                value={newServerId}
-                onChange={(e) => setNewServerId(e.target.value)}
-                size="lg"
-                disabled={saving}
-              />
-
-              <button
-                onClick={handleAddMapping}
-                disabled={saving || !newServerName.trim() || !newServerId}
-                className="w-full h-10 bg-brand-primary text-white font-medium rounded-lg hover:brightness-110 transition-all disabled:bg-gray-400 flex items-center justify-center gap-2 shadow-sm"
-              >
-                {saving && <Loader size={16} className="animate-spin" />}
-                <Plus size={16} />
-                Ajouter le mapping
-              </button>
-            </div>
           </div>
-
-          {mappings.length === 0 && (
-            <div className="text-center py-6 text-gray-500">
-              <p>Aucun mapping créé pour le moment</p>
-            </div>
-          )}
-        </>
+        </div>
       )}
     </div>
   );

@@ -16,6 +16,8 @@ export interface ModalProps {
   closeOnOverlayClick?: boolean;
   closeOnEsc?: boolean;
   footer?: React.ReactNode;
+  icon?: React.ReactNode;
+  headerClassName?: string;
 }
 
 const sizeClasses = {
@@ -37,6 +39,8 @@ export const Modal: React.FC<ModalProps> = ({
   closeOnOverlayClick = true,
   closeOnEsc = true,
   footer,
+  icon,
+  headerClassName,
 }) => {
   const modalRef = React.useRef<HTMLDivElement>(null);
 
@@ -135,24 +139,30 @@ export const Modal: React.FC<ModalProps> = ({
           >
             {/* Header */}
             {(title || showCloseButton) && (
-              <div className="flex items-start justify-between p-6 border-b border-gray-200 flex-shrink-0">
-                <div className="flex-1">
-                  {title && (
-                    <h2
-                      id="modal-title"
-                      className="text-lg font-semibold text-gray-900"
-                    >
-                      {title}
-                    </h2>
-                  )}
-                  {description && (
-                    <p
-                      id="modal-description"
-                      className="mt-1 text-sm text-gray-500"
-                    >
-                      {description}
-                    </p>
-                  )}
+              <div className={cn(
+                "flex items-start justify-between p-6 border-b border-gray-200 flex-shrink-0",
+                headerClassName
+              )}>
+                <div className="flex-1 flex items-center gap-3">
+                  {icon && <div className="flex-shrink-0 mt-0.5">{icon}</div>}
+                  <div>
+                    {title && (
+                      <h2
+                        id="modal-title"
+                        className="text-lg font-semibold text-gray-900"
+                      >
+                        {title}
+                      </h2>
+                    )}
+                    {description && (
+                      <p
+                        id="modal-description"
+                        className="mt-1 text-sm text-gray-500"
+                      >
+                        {description}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 {showCloseButton && (
                   <button

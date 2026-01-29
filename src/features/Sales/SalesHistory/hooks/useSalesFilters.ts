@@ -1,17 +1,16 @@
 import { useState, useMemo } from 'react';
 import { useDateRangeFilter } from '../../../../hooks/useDateRangeFilter';
 import { dateToYYYYMMDD, filterByBusinessDateRange } from '../../../../utils/businessDateHelpers';
-import type { Sale, SaleItem, Consignment, Return } from '../../../../types';
+import type { Sale, SaleItem, Return } from '../../../../types';
 
 interface UseSalesFiltersProps {
     sales: Sale[];
-    consignments: Consignment[];
     returns?: Return[]; // Optional: for returns filtering
     currentSession: any; // UserSession type would be better if available
     closeHour: number;
 }
 
-export function useSalesFilters({ sales, consignments, returns = [], currentSession, closeHour }: UseSalesFiltersProps) {
+export function useSalesFilters({ sales, returns = [], currentSession, closeHour }: UseSalesFiltersProps) {
     const [searchTerm, setSearchTerm] = useState('');
 
     // 1. Hook de filtrage temporel
@@ -63,31 +62,7 @@ export function useSalesFilters({ sales, consignments, returns = [], currentSess
         });
     }, [sales, startDate, endDate, searchTerm, currentSession, closeHour]);
 
-    // 3. Filtrage des consignations
-    const filteredConsignments = useMemo(() => {
-        const isServer = currentSession?.role === 'serveur';
-
-        // A. Filtrage initial basé sur le rôle et le mode opérationnel
-        const baseConsignments = consignments.filter(consignment => {
-            if (isServer) {
-                // ✨ MODE SWITCHING FIX: A server should see ALL their consignments regardless of mode
-                // Check BOTH serverId (simplified mode) AND originalSeller (full mode)
-                // This ensures data visibility persists across mode switches
-                return consignment.serverId === currentSession.userId || consignment.originalSeller === currentSession.userId;
-            }
-            return true;
-        });
-
-        // B. Appliquer le filtre de date (logique business day unifiée)
-        const startDateStr = dateToYYYYMMDD(startDate);
-        const endDateStr = dateToYYYYMMDD(endDate);
-        const filtered = filterByBusinessDateRange(baseConsignments, startDateStr, endDateStr, closeHour);
-
-        // C. Tri final
-        return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    }, [consignments, startDate, endDate, currentSession, closeHour]);
-
-    // 4. Filtrage des retours
+    // 3. Filtrage des retours
     const filteredReturns = useMemo(() => {
         const isServer = currentSession?.role === 'serveur';
 
@@ -116,7 +91,6 @@ export function useSalesFilters({ sales, consignments, returns = [], currentSess
         searchTerm,
         setSearchTerm,
         filteredSales,
-        filteredConsignments,
         filteredReturns
     };
 }

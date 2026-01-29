@@ -13,6 +13,7 @@ import { Textarea } from '../ui/Textarea';
 import { Checkbox } from '../ui/Checkbox';
 import { RadioGroup, RadioGroupItem } from '../ui/Radio';
 import { Button } from '../ui/Button';
+import { BackButton } from '../ui/BackButton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -189,9 +190,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
             >
                 {/* Header (Mobile-Friendly) */}
                 <div className="md:hidden bg-white border-b border-gray-100 p-4 flex items-center justify-between">
-                    <button onClick={onClose} className="p-2 text-gray-400">
-                        <ArrowLeft size={24} />
-                    </button>
+                    <BackButton onClick={onClose} className="mr-2" />
                     <h2 className="font-bold text-gray-800">Promotion Studio</h2>
                     <Button onClick={() => handleSubmit()} size="sm" className="btn-brand font-bold">
                         OK
@@ -204,9 +203,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                         {/* Title Section */}
                         <div className="hidden md:flex items-center justify-between mb-8">
                             <div className="flex items-center gap-4">
-                                <button onClick={onClose} className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-gray-400 hover:bg-brand-subtle hover:text-brand-primary transition-all">
-                                    <ArrowLeft size={20} />
-                                </button>
+                                <BackButton onClick={onClose} />
                                 <div>
                                     <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight flex items-center gap-3">
                                         Promotion Studio

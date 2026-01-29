@@ -9,7 +9,6 @@ import { OrderPreparation } from './operations/OrderPreparation';
 import { BackButton } from '../ui/BackButton';
 
 // Lazy load
-// Lazy load
 const ProductImport = lazy(() => import('../ProductImport').then(m => ({ default: m.ProductImport })));
 
 interface InventoryOperationsProps {
@@ -26,7 +25,6 @@ type OperationMode = 'menu' | 'add' | 'supply' | 'import' | 'order-prep';
 
 export function InventoryOperations({
     lowStockProducts,
-    getProductStockInfo,
     categories,
     products,
     onSaveProduct,
@@ -154,8 +152,6 @@ export function InventoryOperations({
                                 <div className="flex items-center gap-3 mb-6 border-b border-gray-50 pb-4">
                                     <BackButton
                                         onClick={handleBack}
-                                        iconType="chevron"
-                                        className="text-gray-500 hover:text-gray-900"
                                     />
                                     <h2 className="text-lg font-bold text-gray-900">Importation Massive</h2>
                                 </div>

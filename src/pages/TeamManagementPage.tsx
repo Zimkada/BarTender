@@ -269,9 +269,10 @@ export default function TeamManagementPage() {
       {/* Header avec Onglets */}
       <TabbedPageHeader
         title={isMobile ? 'Équipe' : "Gestion d'équipe"}
-        subtitle="Gérez les accès et les rôles de votre personnel"
+        subtitle="Configurez les accès, recrutez de nouveaux membres et organisez votre équipe de service."
         icon={<Users size={24} />}
         guideId={teamGuideId}
+        hideSubtitleOnMobile={true}
         tabs={[
           { id: 'members', label: isMobile ? 'Équipe' : 'Mon Équipe', icon: Users },
           { id: 'add', label: isMobile ? 'Ajouter' : 'Recrutement', icon: UserPlus },

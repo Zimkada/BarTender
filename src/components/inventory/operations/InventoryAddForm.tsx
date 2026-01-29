@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { Category, Product } from '../../../types';
+import { Category } from '../../../types';
 import { BackButton } from '../../ui/BackButton';
 
 // Lazy load
@@ -17,8 +17,6 @@ export function InventoryAddForm({ onClose, onSave, categories }: InventoryAddFo
             <div className="flex items-center gap-3 mb-6 border-b border-gray-50 pb-4">
                 <BackButton
                     onClick={onClose}
-                    iconType="chevron"
-                    className="text-gray-500 hover:text-gray-900"
                 />
                 <h2 className="text-lg font-bold text-gray-900">Nouveau Produit</h2>
             </div>

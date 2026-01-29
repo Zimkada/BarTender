@@ -24,13 +24,14 @@ export function ForecastingAISystem() {
   return (
     <div className="flex flex-col gap-4">
       <TabbedPageHeader
-        title="📈 Prévisions et IA"
-        subtitle="Analyses prédictives et assistant intelligent"
+        title="Prévisions et IA"
+        subtitle="Anticipez vos besoins en stock et optimisez vos revenus grâce à nos algorithmes prédictifs et notre assistant IA."
         tabs={tabsConfig}
         activeTab={activeTab}
         onTabChange={(id) => setActiveTab(id as ForecastView)}
         guideId="forecasting-guide"
         onBack={() => navigate(-1)}
+        hideSubtitleOnMobile={true}
       />
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">

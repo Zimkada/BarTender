@@ -353,8 +353,6 @@ export function CreateReturnForm({
                       onSelectSale(null);
                       setSelectedProduct(null);
                     }}
-                    showLabel={false}
-                    className="glass-action-button-2026 w-11 h-11 rounded-xl shadow-sm hover:shadow-brand-subtle/40 transition-all border-none"
                   />
                   <h3 className="text-lg font-bold text-gray-800 whitespace-nowrap">2. Choisir le produit</h3>
                 </div>
@@ -443,8 +441,6 @@ export function CreateReturnForm({
                 <div className="flex items-center gap-3">
                   <BackButton
                     onClick={() => setSelectedProduct(null)}
-                    showLabel={false}
-                    className="glass-action-button-2026 w-11 h-11 rounded-xl shadow-sm hover:shadow-brand-subtle/40 transition-all border-none"
                   />
                   <h3 className="text-lg font-bold text-gray-800 whitespace-nowrap">3. Détails du retour</h3>
                 </div>

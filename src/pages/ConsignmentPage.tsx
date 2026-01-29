@@ -14,7 +14,7 @@ import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { useViewport } from '../hooks/useViewport';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
-import { Button } from '../components/ui/Button';
+
 import { CreateConsignmentForm } from '../components/consignments/CreateConsignmentForm';
 import { ConsignmentCard as PremiumConsignmentCard } from '../components/consignments/ConsignmentCard';
 import { Consignment, User as UserType } from '../types';
@@ -41,6 +41,7 @@ export default function ConsignmentPage() {
     <div className="max-w-7xl mx-auto space-y-4">
       <TabbedPageHeader
         title={isMobile ? 'Consignations' : 'Gestion des Consignations'}
+        subtitle="Suivez les bouteilles déposées par vos clients et gérez les délais de récupération."
         hideSubtitleOnMobile={true}
         tabs={tabs}
         activeTab={activeTab}

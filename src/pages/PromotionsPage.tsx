@@ -169,8 +169,9 @@ export default function PromotionsPage() {
                         </span>
                     </div>
                 }
-                subtitle="Optimisez vos ventes avec des offres stratégiques"
+                subtitle="Créez des offres stratégiques et analysez l'impact de vos campagnes sur votre chiffre d'affaires."
                 icon={<Gift size={24} />}
+                hideSubtitleOnMobile={true}
                 tabs={[
                     { id: 'list', label: isMobile ? 'Catalogue' : 'Catalogue d\'Offres', icon: List },
                     { id: 'analytics', label: 'Analyses', icon: BarChart3 },

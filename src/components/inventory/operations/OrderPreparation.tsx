@@ -5,11 +5,9 @@ import {
     Package,
     ShoppingCart,
     TrendingDown,
-    Calendar,
-    X,
     Check,
     Download,
-    Eye
+    X
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useCurrencyFormatter } from '../../../hooks/useBeninCurrency';
@@ -45,7 +43,7 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
     const { formatPrice } = useCurrencyFormatter();
     const { isMobile } = useViewport();
     const { currentBar } = useBarContext();
-    const { showError, showSuccess } = useFeedback();
+    const { showError } = useFeedback();
     const { products, allProductsStockInfo } = useStockManagement();
 
     const [alerts, setAlerts] = useState<StockAlert[]>([]);
@@ -188,8 +186,6 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
                 <div className="flex items-center gap-3">
                     <BackButton
                         onClick={onBack}
-                        iconType="chevron"
-                        className="text-gray-500 hover:text-gray-900"
                     />
                     <div>
                         <h2 className="text-lg font-bold text-gray-900">Préparation Commandes</h2>

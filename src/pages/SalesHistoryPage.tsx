@@ -14,7 +14,6 @@ import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 import { useFeedback } from '../hooks/useFeedback';
-import { useStockManagement } from '../hooks/useStockManagement';
 import { DataFreshnessIndicatorCompact } from '../components/DataFreshnessIndicator';
 import { useRealtimeSales } from '../hooks/useRealtimeSales';
 import { Sale, User } from '../types';
@@ -46,23 +45,9 @@ export default function SalesHistoryPage() {
     const { currentSession } = useAuth();
     const { isMobile } = useViewport();
     const { showSuccess } = useFeedback();
-    const { consignments } = useStockManagement();
 
     // Guide ID for sales history - using header button instead of auto-trigger
     const historyGuideId = currentSession?.role === 'serveur' ? 'serveur-history' : 'analytics-overview';
-
-    // Auto-guides disabled - using GuideHeaderButton in page header instead
-    // useAutoGuide(
-    //     'bartender-stats',
-    //     onboardingComplete && currentSession?.role === 'serveur' && !hasCompletedGuide('bartender-stats'),
-    //     { delay: 2000 }
-    // );
-
-    // useAutoGuide(
-    //     'analytics-overview',
-    //     onboardingComplete && currentSession?.role === 'promoteur' && !hasCompletedGuide('analytics-overview'),
-    //     { delay: 2500 }
-    // );
 
     // Enable real-time sales updates
     useRealtimeSales({ barId: currentBar?.id || '' });
@@ -83,7 +68,7 @@ export default function SalesHistoryPage() {
     const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
     const [exportFormat, setExportFormat] = useState<'csv' | 'excel'>('excel');
 
-    // HOOK: Filtrage (Ventes & Consignations & Retours)
+    // HOOK: Filtrage (Ventes & Retours)
     const {
         timeRange,
         setTimeRange,
@@ -94,11 +79,9 @@ export default function SalesHistoryPage() {
         searchTerm,
         setSearchTerm,
         filteredSales,
-        filteredConsignments,
         filteredReturns // ✨ MODE SWITCHING FIX: Get filtered returns from hook
     } = useSalesFilters({
         sales,
-        consignments,
         returns, // Pass returns to filter them by server
         currentSession,
         closeHour
@@ -129,7 +112,6 @@ export default function SalesHistoryPage() {
     // HOOK: Export Logic
     const { exportSales } = useSalesExport({
         filteredSales,
-        filteredConsignments,
         filteredReturns,
         sales,
         returns,
@@ -153,11 +135,12 @@ export default function SalesHistoryPage() {
                     title={isMobile ? 'Historique' : 'Historique des ventes'}
                     subtitle={
                         <span>
-                            Consultez et analysez votre historique
+                            Consultez l'historique détaillé de vos transactions et analysez la performance de votre établissement.
                             {!isMobile && <span className="ml-2 text-brand-primary font-bold">• {filteredSales.length} ventes</span>}
                         </span>
                     }
                     icon={<TrendingUp size={24} />}
+                    hideSubtitleOnMobile={true}
                     tabs={tabsConfig}
                     activeTab={viewMode}
                     onTabChange={(id) => setViewMode(id as ViewMode)}
@@ -311,7 +294,6 @@ export default function SalesHistoryPage() {
                                     isMobile={isMobile}
                                     returns={returns}
                                     closeHour={closeHour}
-                                    filteredConsignments={filteredConsignments}
                                     startDate={startDate}
                                     endDate={endDate}
                                     topProductMetric={topProductMetric}

@@ -15,6 +15,7 @@ const buttonVariants = cva(
         ghost: 'hover:bg-accent hover:text-accent-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
         info: 'bg-gradient-to-br from-blue-500 to-blue-700 text-white border border-white/40 shadow-lg shadow-blue-500/40 hover:shadow-xl hover:shadow-blue-500/50 hover:scale-105 transition-all duration-300 backdrop-blur-sm',
+        glass: 'glass-action-button-2026',
       },
       size: {
         default: 'h-10 px-4 py-2',

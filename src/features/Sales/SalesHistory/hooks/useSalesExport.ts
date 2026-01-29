@@ -1,11 +1,10 @@
 import { useCallback } from 'react';
-import { Sale, SaleItem, Consignment, Return, User, BarMember, Category, Product } from '../../../../types';
+import { Sale, SaleItem, Return, User, BarMember, Category, Product } from '../../../../types';
 import { getSaleDate } from '../../../../utils/saleHelpers';
 import { useNotifications } from '../../../../components/Notifications';
 
 interface UseSalesExportProps {
     filteredSales: Sale[];
-    filteredConsignments: Consignment[];
     filteredReturns: Return[];
     sales: Sale[]; // Needed to find original sale for returns/consignments
     returns: Return[]; // Needed to find all returns related to sales
@@ -17,7 +16,6 @@ interface UseSalesExportProps {
 
 export function useSalesExport({
     filteredSales,
-    filteredConsignments,
     filteredReturns,
     sales,
     returns,
@@ -29,7 +27,7 @@ export function useSalesExport({
     const { showNotification } = useNotifications();
 
     const exportSales = useCallback(async (format: 'csv' | 'excel') => {
-        if (filteredSales.length === 0 && filteredConsignments.length === 0 && filteredReturns.length === 0) {
+        if (filteredSales.length === 0 && filteredReturns.length === 0) {
             showNotification('error', "Aucune donnée à exporter");
             return;
         }
@@ -138,73 +136,6 @@ export function useSalesExport({
             });
         });
 
-        // 3. Ajouter toutes les consignations filtrées
-        filteredConsignments.forEach(consignment => {
-            const product = products.find(p => p.id === consignment.productId);
-            if (!product) {
-                console.warn('⚠️ Consignation sans produit ignoré:', consignment.id);
-                return;
-            }
-
-            // ✨ MODE SWITCHING FIX: Always deduce seller from the sale, not from consignment.createdBy
-            // This matches the logic in ConsignmentPage: prioritize serverId (assigned server) over createdBy
-            let utilisateur = 'Inconnu';
-            let role = 'serveur';
-            let operationMode = 'Complet';
-
-            const originalSale = sales.find(s => s.id === consignment.saleId);
-            if (originalSale) {
-                // Source of truth: soldBy is the business attribution
-                const serverUserId = originalSale.soldBy;
-                const user = users.find(u => u.id === serverUserId);
-                const member = barMembers.find(m => m.userId === user?.id);
-                utilisateur = user?.name || 'Inconnu';
-                role = member?.role || 'serveur';
-                operationMode = originalSale.serverId ? 'Simplifié' : 'Complet';
-            }
-
-            const category = categories.find(c => c.id === product.categoryId);
-
-            // Déterminer le statut pour affichage
-            let statusLabel = '';
-            switch (consignment.status) {
-                case 'active':
-                    statusLabel = 'Active';
-                    break;
-                case 'claimed':
-                    statusLabel = 'Récupérée';
-                    break;
-                case 'expired':
-                    statusLabel = 'Expirée';
-                    break;
-                case 'forfeited':
-                    statusLabel = 'Confisquée';
-                    break;
-            }
-
-            exportData.push({
-                'Type': 'Consignation',
-                'Mode': operationMode,
-                'Date': new Date(consignment.createdAt).toLocaleDateString('fr-FR'),
-                'Heure': new Date(consignment.createdAt).toLocaleTimeString('fr-FR'),
-                'ID Transaction': consignment.id.slice(-6),
-                'Produit': product.name,
-                'Catégorie': category?.name || 'Non classé',
-                'Volume': product.volume || '',
-                'Quantité': consignment.quantity,
-                'Prix unitaire': product.price,
-                'Coût unitaire': 0, // Les produits n'ont pas de coût dans le modèle actuel
-                'Total': consignment.totalAmount,
-                'Bénéfice': 0, // Consignations = pas de bénéfice immédiat
-                'Utilisateur': utilisateur,
-                'Rôle': role,
-                'Devise': 'XOF',
-                'Statut': statusLabel,
-                'Client': consignment.customerName || '',
-                'Expiration': new Date(consignment.expiresAt).toLocaleDateString('fr-FR')
-            });
-        });
-
         // Trier par date/heure décroissante
         exportData.sort((a, b) => {
             const dateA = new Date(`${a.Date} ${a.Heure}`);
@@ -278,7 +209,7 @@ export function useSalesExport({
             URL.revokeObjectURL(url);
             showNotification('success', 'Export CSV généré avec succès');
         }
-    }, [filteredSales, filteredConsignments, filteredReturns, sales, returns, products, categories, users, barMembers, showNotification]);
+    }, [filteredSales, filteredReturns, sales, returns, products, categories, users, barMembers, showNotification]);
 
     return { exportSales };
 }

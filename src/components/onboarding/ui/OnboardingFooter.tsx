@@ -1,6 +1,7 @@
 import React from 'react';
-import { ArrowRight, ChevronLeft, Clock } from 'lucide-react';
+import { ArrowRight, Clock } from 'lucide-react';
 import { LoadingButton } from '../../ui/LoadingButton';
+import { BackButton } from '../../ui/BackButton';
 
 interface OnboardingFooterProps {
     // Ligne 1 : Action Principale (Centre)
@@ -56,14 +57,13 @@ export const OnboardingFooter: React.FC<OnboardingFooterProps> = ({
                 {/* Gauche : Retour */}
                 <div>
                     {onBack && (
-                        <button
-                            type="button"
+                        <BackButton
                             onClick={onBack}
-                            className="text-gray-500 hover:text-gray-700 font-medium text-sm px-3 py-2 rounded-lg hover:bg-gray-50 transition flex items-center gap-1"
-                        >
-                            <ChevronLeft className="w-4 h-4" />
-                            Retour
-                        </button>
+                            showLabel={true}
+                            label="Retour"
+                            variant="ghost"
+                            size="sm"
+                        />
                     )}
                 </div>
 

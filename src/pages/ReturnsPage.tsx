@@ -423,7 +423,7 @@ export default function ReturnsPage() {
         title={isMobile ? "Retours" : "Système de Retours"}
         subtitle={
           <div className="flex items-center gap-2">
-            <span>Gérer les retours clients</span>
+            <span>Gérez les réclamations, annulations et retours produits en toute sécurité.</span>
             {todayRefundedAmount > 0 && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -437,7 +437,7 @@ export default function ReturnsPage() {
           </div>
         }
         icon={<RotateCcw size={24} />}
-        hideSubtitleOnMobile
+        hideSubtitleOnMobile={true}
         tabs={tabsConfig}
         activeTab={activeTab}
         onTabChange={(id) => setActiveTab(id as "list" | "create" | "stats")}

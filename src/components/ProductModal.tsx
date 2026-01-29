@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Globe, PenTool, Search, Check, ChevronRight } from 'lucide-react';
+import { Globe, PenTool, Search, ChevronRight, PlusCircle, Edit } from 'lucide-react';
 import { Product, Category, GlobalProduct } from '../types';
 import { useAppContext } from '../context/AppContext';
 import { ImageUpload } from './ImageUpload';
@@ -249,7 +249,13 @@ export function ProductModal({ isOpen, onClose, onSave, product, inline = false 
             {/* Header with back button only if we came from selection (not direct edit) */}
             {!product && (
               <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2 bg-gray-50/50">
-                <BackButton onClick={handleBackToSelection} label={mode === 'global' ? "Retour au catalogue" : "Annuler"} className='text-xs h-8' />
+                <BackButton
+                  onClick={handleBackToSelection}
+                  showLabel={true}
+                  label={mode === 'global' ? "Retour au catalogue" : "Annuler"}
+                  size="sm"
+                  className='h-8'
+                />
                 {mode === 'global' && selectedGlobalId && (
                   <span className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-auto">Produit sélectionné</span>
                 )}
@@ -395,6 +401,8 @@ export function ProductModal({ isOpen, onClose, onSave, product, inline = false 
       onClose={onClose}
       title={product ? 'Modifier le produit' : 'Ajouter un produit'}
       size="xl"
+      icon={product ? <Edit className="text-amber-600" size={20} /> : <PlusCircle className="text-brand-primary" size={20} />}
+      headerClassName={product ? "bg-amber-50/50" : "bg-brand-subtle/30"}
     >
       {content}
     </Modal>

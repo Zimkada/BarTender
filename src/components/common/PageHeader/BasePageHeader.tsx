@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import { Button } from '../../ui/Button';
+import { BackButton } from '../../ui/BackButton';
 import { GuideHeaderButton } from '../../guide/GuideHeaderButton';
 
 export interface PageHeaderProps {
@@ -91,16 +90,12 @@ const MobileActions: React.FC<{ children: React.ReactNode }> = ({ children }) =>
  */
 const Back: React.FC<{ onClick?: () => void }> = ({ onClick }) => {
     const navigate = useNavigate();
+    // Utilisation du BackButton unifié qui porte maintenant le style "Glass" par défaut
     return (
-        <Button
-            variant="ghost"
-            size="icon"
+        <BackButton
             onClick={onClick || (() => navigate(-1))}
-            className="glass-action-button-2026 w-10 h-10 sm:w-11 sm:h-11 flex-shrink-0"
-        >
-            <ArrowLeft size={20} className="sm:hidden" />
-            <ArrowLeft size={22} className="hidden sm:block" />
-        </Button>
+            className="sm:mr-0" // Reset margin if needed
+        />
     );
 };
 

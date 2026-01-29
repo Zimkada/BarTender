@@ -19,8 +19,6 @@ export function InventorySupplyForm({ onClose, onSave, products, initialProductI
             <div className="flex items-center gap-3 mb-6 border-b border-gray-50 pb-4">
                 <BackButton
                     onClick={onClose}
-                    iconType="chevron"
-                    className="text-gray-500 hover:text-gray-900"
                 />
                 <h2 className="text-lg font-bold text-gray-900">Approvisionnement Manuel</h2>
             </div>

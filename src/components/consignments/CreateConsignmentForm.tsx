@@ -344,8 +344,6 @@ export function CreateConsignmentForm({
                             <div className="flex items-center gap-3 mb-2">
                                 <BackButton
                                     onClick={() => setStep(1)}
-                                    showLabel={false}
-                                    className="glass-action-button-2026 w-11 h-11 rounded-xl shadow-sm hover:shadow-brand-subtle/40 transition-all border-none"
                                 />
                                 <h3 className="text-lg font-bold text-gray-800 whitespace-nowrap">2. Choisir le produit</h3>
                             </div>
@@ -436,8 +434,6 @@ export function CreateConsignmentForm({
                             <div className="flex items-center gap-3 mb-2">
                                 <BackButton
                                     onClick={() => setStep(2)}
-                                    showLabel={false}
-                                    className="glass-action-button-2026 w-11 h-11 rounded-xl shadow-sm hover:shadow-brand-subtle/40 transition-all border-none"
                                 />
                                 <h3 className="text-lg font-bold text-gray-800 whitespace-nowrap">3. Finalisation</h3>
                             </div>
