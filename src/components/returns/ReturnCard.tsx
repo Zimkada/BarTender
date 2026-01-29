@@ -1,7 +1,6 @@
 import { Package, X } from "lucide-react";
 import { motion } from "framer-motion";
 import { Return, ReturnReason, ReturnReasonConfig, User } from "../../types";
-import { EnhancedButton } from "../EnhancedButton";
 
 interface ReturnCardProps {
   returnItem: Return;
@@ -68,147 +67,162 @@ export function ReturnCard({
       key={returnItem.id}
       id={`return-${returnItem.id}`}
       {...cardProps}
-      className="bg-white rounded-xl p-4 border border-gray-200 hover:border-brand-primary transition-colors shadow-sm"
+      className="bg-white rounded-[1.5rem] p-5 border border-gray-100 hover:border-brand-primary/30 transition-all shadow-md hover:shadow-xl hover:shadow-brand-primary/5 group relative overflow-hidden"
     >
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">
-        <div className="flex items-start gap-4">
-          <div
-            className={`mt-1 w-3 h-3 rounded-full flex-shrink-0 ${getStatusBadgeColor(returnItem.status)}`}
-          />
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h4 className="font-semibold text-gray-800 text-lg">
+      {/* Barre d'accentuation latérale (Code Status Elite) */}
+      <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${getStatusBadgeColor(returnItem.status)} opacity-80`} />
+
+      <div className="pl-3">
+        {/* Section Principale: Produit + Montants */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-6">
+          {/* Gauche: Info Produit */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 flex-wrap mb-2">
+              <h4 className="font-black text-gray-900 uppercase tracking-tight text-lg leading-tight">
                 {returnItem.productName}
               </h4>
-              <span className="text-sm font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-black text-gray-400 bg-gray-50 px-2 py-1 rounded-md uppercase tracking-widest border border-gray-100">
                 {returnItem.productVolume}
               </span>
             </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 mt-1">
-              <span>ID: #{returnItem.id.slice(-6)}</span>
-              <span>•</span>
-              <span>
-                {new Date(returnItem.returnedAt).toLocaleDateString("fr-FR")} à{" "}
-                {new Date(returnItem.returnedAt).toLocaleTimeString("fr-FR", {
+
+            <div className="flex flex-wrap gap-x-3 gap-y-2 items-center">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">#{returnItem.id.slice(-6).toUpperCase()}</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-200" />
+              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                {new Date(returnItem.returnedAt).toLocaleDateString("fr-FR", { day: '2-digit', month: 'short' })} • {new Date(returnItem.returnedAt).toLocaleTimeString("fr-FR", {
                   hour: "2-digit",
                   minute: "2-digit",
                 })}
               </span>
               {serverUser && (
-                <>
-                  <span>•</span>
-                  <span className="text-purple-600 font-medium">
+                <div className="flex items-center gap-1.5 bg-purple-50 px-2 py-1 rounded-full border border-purple-100/50 shrink-0">
+                  <span className="text-[9px] font-black text-purple-600 uppercase tracking-tighter">
                     Serveur: {serverUser.name}
                   </span>
-                </>
+                </div>
               )}
+            </div>
+          </div>
+
+          {/* Droite: Chiffres Clés (Remboursement & Qté) */}
+          <div className="flex items-center justify-between lg:justify-end gap-10 pt-5 lg:pt-0 border-t lg:border-t-0 lg:border-l border-dashed border-gray-100 lg:pl-8 shrink-0">
+            <div className="text-left lg:text-right">
+              <span className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">
+                Remboursement
+              </span>
+              <span
+                className="block font-black text-2xl font-mono tracking-tighter"
+                style={{
+                  background: 'var(--brand-gradient)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent'
+                }}
+              >
+                {formatPrice(returnItem.refundAmount)}
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Qté</span>
+              <div className="flex items-baseline justify-end gap-1">
+                <span className="font-black text-gray-900 text-2xl tracking-tighter">
+                  {returnItem.quantityReturned}
+                </span>
+                <span className="text-gray-300 font-bold text-sm">/ {returnItem.quantitySold}</span>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between md:justify-end gap-6 pl-7 md:pl-0">
-          <div className="text-right">
-            <span className="block text-sm text-gray-500">
-              Montant remboursé
+        {/* Pied de Carte: Badges & Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 pt-5 border-t border-gray-50">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border shadow-sm ${getReasonBadgeClass(returnReasons[returnItem.reason].color)}`}
+            >
+              {returnReasons[returnItem.reason].icon}{" "}
+              {returnReasons[returnItem.reason].label}
             </span>
-            <span className="block font-bold text-gray-800 text-lg">
-              {formatPrice(returnItem.refundAmount)}
-            </span>
-          </div>
-          <div className="text-right border-l border-gray-100 pl-6">
-            <span className="block text-sm text-gray-500">Quantité</span>
-            <span className="block font-bold text-gray-800 text-lg">
-              {returnItem.quantityReturned} / {returnItem.quantitySold}
-            </span>
-          </div>
-        </div>
-      </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-3 border-t border-gray-50 pl-7 md:pl-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${getReasonBadgeClass(returnReasons[returnItem.reason].color)}`}
-          >
-            {returnReasons[returnItem.reason].icon}{" "}
-            {returnReasons[returnItem.reason].label}
-          </span>
-
-          {returnItem.autoRestock && (
-            <span className="text-xs bg-green-50 text-green-700 border border-green-100 px-2.5 py-1 rounded-full font-medium">
-              📦 Stock auto
-            </span>
-          )}
-
-          {returnItem.isRefunded && (
-            <span className="text-xs bg-blue-50 text-blue-700 border border-blue-100 px-2.5 py-1 rounded-full font-medium">
-              💰 Remboursé
-            </span>
-          )}
-
-          {!returnItem.isRefunded && returnItem.refundAmount === 0 && (
-            <span className="text-xs bg-gray-50 text-gray-600 border border-gray-100 px-2.5 py-1 rounded-full font-medium">
-              Sans remboursement
-            </span>
-          )}
-        </div>
-
-        <div
-          className="flex items-center gap-2 self-end sm:self-auto"
-          data-guide="returns-status"
-        >
-          {!isReadOnly && returnItem.status === "pending" && (
-            <>
-              <EnhancedButton
-                variant="danger"
-                size="sm"
-                onClick={() => onReject(returnItem.id)}
-              >
-                Rejeter
-              </EnhancedButton>
-              <EnhancedButton
-                variant="success"
-                size="sm"
-                onClick={() => onApprove(returnItem.id)}
-              >
-                Approuver
-              </EnhancedButton>
-            </>
-          )}
-
-          {!isReadOnly &&
-            returnItem.status === "approved" &&
-            returnItem.manualRestockRequired && (
-              <EnhancedButton
-                variant="info"
-                size="sm"
-                onClick={() => onManualRestock(returnItem.id)}
-                icon={<Package size={14} />}
-              >
-                Remettre en stock
-              </EnhancedButton>
+            {returnItem.autoRestock && (
+              <span className="text-[9px] font-black bg-green-50 text-green-700 border border-green-100/50 px-2.5 py-1.5 rounded-lg uppercase tracking-wider">
+                📦 Restock Auto
+              </span>
             )}
 
-          {returnItem.status === "restocked" && (
-            <span className="text-sm text-green-600 font-medium flex items-center gap-1 bg-green-50 px-3 py-1 rounded-lg">
-              <Package size={14} />
-              En stock (
-              {returnItem.restockedAt &&
-                new Date(returnItem.restockedAt).toLocaleDateString("fr-FR")}
-              )
-            </span>
-          )}
-          {returnItem.status === "rejected" && (
-            <span className="text-sm text-red-600 font-medium flex items-center gap-1 bg-red-50 px-3 py-1 rounded-lg">
-              <X size={14} />
-              Rejeté
-            </span>
-          )}
+            {returnItem.isRefunded && (
+              <span className="text-[9px] font-black bg-blue-50 text-blue-700 border border-blue-100/50 px-2.5 py-1.5 rounded-lg uppercase tracking-wider">
+                💰 Crédité
+              </span>
+            )}
+
+            {!returnItem.isRefunded && returnItem.refundAmount === 0 && (
+              <span className="text-[9px] font-black bg-gray-50 text-gray-500 border border-gray-100 px-2.5 py-1.5 rounded-lg uppercase tracking-wider italic">
+                Sans flux financier
+              </span>
+            )}
+          </div>
+
+          <div
+            className="flex items-center gap-2 shrink-0 sm:self-auto self-end"
+            data-guide="returns-status"
+          >
+            {!isReadOnly && returnItem.status === "pending" && (
+              <>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => onReject(returnItem.id)}
+                  className="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-red-500 bg-red-50 hover:bg-red-100 transition-colors border border-red-100"
+                >
+                  Rejeter
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => onApprove(returnItem.id)}
+                  className="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-brand-primary/20"
+                  style={{ background: 'var(--brand-gradient)' }}
+                >
+                  Approuver
+                </motion.button>
+              </>
+            )}
+
+            {!isReadOnly &&
+              returnItem.status === "approved" &&
+              returnItem.manualRestockRequired && (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => onManualRestock(returnItem.id)}
+                  className="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-blue-500/20 flex items-center gap-2 bg-blue-600"
+                >
+                  <Package size={14} />
+                  Remettre en stock
+                </motion.button>
+              )}
+
+            {returnItem.status === "restocked" && (
+              <span className="text-[10px] font-black text-green-600 uppercase tracking-widest flex items-center gap-2 bg-green-50 px-3 py-2 rounded-xl border border-green-100">
+                <Package size={14} />
+                En stock ({new Date(returnItem.restockedAt!).toLocaleDateString("fr-FR")})
+              </span>
+            )}
+            {returnItem.status === "rejected" && (
+              <span className="text-[10px] font-black text-red-600 uppercase tracking-widest flex items-center gap-2 bg-red-50 px-3 py-2 rounded-xl border border-red-100">
+                <X size={14} />
+                Rejeté
+              </span>
+            )}
+          </div>
         </div>
       </div>
       {returnItem.notes && (
-        <div className="mt-3 ml-7 md:ml-0 bg-gray-50 p-3 rounded-lg border border-gray-100">
-          <p className="text-sm text-gray-600 italic">
-            Note: "{returnItem.notes}"
+        <div className="mt-5 ml-3 bg-gray-50/50 p-4 rounded-xl border border-dashed border-gray-200">
+          <p className="text-[11px] text-gray-500 italic leading-relaxed">
+            <span className="font-black text-gray-400 uppercase tracking-tighter not-italic mr-2">Note:</span>
+            "{returnItem.notes}"
           </p>
         </div>
       )}

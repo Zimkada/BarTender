@@ -32,7 +32,7 @@ export default function ConsignmentPage() {
 
   // Configuration des onglets pour TabbedPageHeader
   const tabs = [
-    ...(!isReadOnly ? [{ id: 'create', label: isMobile ? 'Nouveau' : 'Nouvelle Consignation', icon: Package }] : []),
+    { id: 'create', label: isMobile ? 'Nouveau' : 'Nouvelle Consignation', icon: Package },
     { id: 'active', label: isMobile ? 'En cours' : 'Consignations Actives', icon: Clock },
     { id: 'history', label: isMobile ? 'Historique' : 'Historique des Consignations', icon: Archive },
   ];
@@ -41,68 +41,37 @@ export default function ConsignmentPage() {
     <div className="max-w-7xl mx-auto space-y-4">
       <TabbedPageHeader
         title={isMobile ? 'Consignations' : 'Gestion des Consignations'}
-        subtitle="Gérer les produits consignés et récupérations"
-        icon={<Package size={24} />}
-        hideSubtitleOnMobile
+        hideSubtitleOnMobile={true}
         tabs={tabs}
         activeTab={activeTab}
         onTabChange={(id) => setActiveTab(id as TabType)}
         guideId={currentSession?.role === 'serveur' ? 'serveur-consignments' : 'manage-consignments'}
-        mobileTopRightContent={
-          activeTab === 'active' && (
-            <Button
-              onClick={stockManager.checkAndExpireConsignments}
-              variant="ghost"
-              size="icon"
-              className="rounded-lg transition-colors hover:bg-white/20 text-amber-900"
-              title="Vérifier les expirations"
-            >
-              <Clock size={20} />
-            </Button>
-          )
-        }
-        actions={
-          !isMobile && activeTab === 'active' && (
-            <Button
-              onClick={stockManager.checkAndExpireConsignments}
-              variant="ghost"
-              className="text-amber-900 hover:bg-white/20 flex items-center gap-2"
-              title="Vérifier les expirations"
-            >
-              <Clock className="w-4 h-4" />
-              <span className="hidden sm:inline">Vérifier expirations</span>
-            </Button>
-          )
-        }
       />
 
-      {/* Content Container */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        {/* Content */}
-        <div className="p-6 min-h-[60vh]">
-          <AnimatePresence mode="wait">
-            {activeTab === 'create' && (
-              <motion.div key="create" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} data-guide="consignments-create-tab">
-                <CreateConsignmentForm
-                  consignments={stockManager.consignments}
-                  onCreate={(data) => stockManager.createConsignment(data)}
-                  onCancel={() => setActiveTab('active')}
-                  onSuccess={() => setActiveTab('active')}
-                />
-              </motion.div>
-            )}
-            {activeTab === 'active' && (
-              <motion.div key="active" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} data-guide="consignments-active-tab">
-                <ActiveConsignmentsTab stockManager={stockManager} isReadOnly={isReadOnly} />
-              </motion.div>
-            )}
-            {activeTab === 'history' && (
-              <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} data-guide="consignments-history-tab">
-                <HistoryTab stockManager={stockManager} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+      {/* Content Container - Elite Style */}
+      <div className="bg-gray-50/50 rounded-3xl shadow-inner border border-gray-100 p-4 sm:p-8 min-h-[60vh]">
+        <AnimatePresence mode="wait">
+          {activeTab === 'create' && (
+            <motion.div key="create" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} data-guide="consignments-create-tab">
+              <CreateConsignmentForm
+                consignments={stockManager.consignments}
+                onCreate={(data) => stockManager.createConsignment(data)}
+                onCancel={() => setActiveTab('active')}
+                onSuccess={() => setActiveTab('active')}
+              />
+            </motion.div>
+          )}
+          {activeTab === 'active' && (
+            <motion.div key="active" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} data-guide="consignments-active-tab">
+              <ActiveConsignmentsTab stockManager={stockManager} isReadOnly={isReadOnly} />
+            </motion.div>
+          )}
+          {activeTab === 'history' && (
+            <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} data-guide="consignments-history-tab">
+              <HistoryTab stockManager={stockManager} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -149,6 +118,9 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
 
     return consignments as Consignment[];
   }, [stockManager.consignments, isServerRole, currentSession?.userId]);
+
+  const { formatPrice } = useCurrencyFormatter();
+  const activeConsignmentsTotalValue = useMemo(() => activeConsignments.reduce((acc, c) => acc + c.totalAmount, 0), [activeConsignments]);
 
   const filteredConsignments = useMemo(() => {
     let filtered = activeConsignments;
@@ -223,6 +195,15 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
             </span>
             <span className="text-[10px] uppercase font-black text-brand-dark ml-2 tracking-wider">
               Actives
+            </span>
+          </div>
+
+          <div className="bg-brand-subtle rounded-xl px-4 py-2 border border-brand-subtle flex items-center shadow-sm">
+            <span className="text-[10px] uppercase font-black text-brand-dark mr-2 tracking-wider">
+              Valeur
+            </span>
+            <span className="text-lg font-black text-brand-primary font-mono tracking-tighter leading-none">
+              {formatPrice(activeConsignmentsTotalValue)}
             </span>
           </div>
 

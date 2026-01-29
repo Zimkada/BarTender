@@ -418,7 +418,7 @@ export default function ReturnsPage() {
   ] as { id: string; label: string; icon: any }[];
 
   return (
-    <div className="max-w-7xl mx-auto p-4 space-y-4">
+    <div className="max-w-7xl mx-auto space-y-4">
       <TabbedPageHeader
         title={isMobile ? "Retours" : "Système de Retours"}
         subtitle={
@@ -508,7 +508,7 @@ export default function ReturnsPage() {
       )}
 
       {/* Main Content Area */}
-      <div className="bg-white rounded-xl shadow-sm border border-brand-subtle p-6 min-h-[60vh]">
+      <div className="bg-gray-50/50 rounded-3xl shadow-inner border border-gray-100 p-4 sm:p-8 min-h-[60vh]">
         {/* Disable AnimatePresence on mobile to reduce TBT (expensive animation calculations) */}
         {isMobile ? (
           <>

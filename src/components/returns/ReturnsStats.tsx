@@ -108,25 +108,23 @@ export function ReturnsStats({ returns, returnReasons }: ReturnsStatsProps) {
                     initial="hidden"
                     animate="visible"
                     variants={cardVariants}
-                    className="bg-brand-subtle p-4 rounded-2xl border border-brand-subtle flex flex-col gap-1 ring-2 ring-brand-primary/10"
+                    className="bg-white rounded-[2rem] p-4 shadow-sm border-2 border-brand-primary/60 hover:shadow-md transition-shadow relative overflow-hidden"
                 >
-                    <div className="flex items-center justify-between mb-1">
-                        <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-brand-primary shadow-sm">
-                            <RotateCcw size={16} />
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="p-2 bg-brand-primary/10 rounded-lg text-brand-primary">
+                            <RotateCcw size={20} />
                         </div>
+                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">À Traiter</span>
+                    </div>
+                    <div className="flex items-baseline gap-1">
+                        <AnimatedCounter value={stats.pendingCount} className="text-xl font-black text-gray-900" />
                         {stats.pendingCount > 0 && (
-                            <span className="flex h-2 w-2 rounded-full bg-brand-primary animate-pulse" />
+                            <span className="flex h-1.5 w-1.5 rounded-full bg-brand-primary animate-pulse" />
                         )}
                     </div>
-                    <span className="text-[10px] font-bold text-brand-dark uppercase tracking-tighter">
-                        À Traiter
-                    </span>
-                    <div className="text-2xl font-black text-brand-primary leading-none">
-                        <AnimatedCounter value={stats.pendingCount} />
-                    </div>
-                    <span className="text-[9px] text-brand-primary/60 font-medium font-mono uppercase">
+                    <p className="text-[10px] text-gray-500 font-medium truncate mt-1 uppercase tracking-tighter">
                         Potentiel: {stats.pendingRefundAmount} F
-                    </span>
+                    </p>
                 </motion.div>
 
                 {/* KPI 2: Total Refunded (Effectués) */}
@@ -135,21 +133,19 @@ export function ReturnsStats({ returns, returnReasons }: ReturnsStatsProps) {
                     initial="hidden"
                     animate="visible"
                     variants={cardVariants}
-                    className="bg-sky-50 p-4 rounded-2xl border border-sky-100 flex flex-col gap-1"
+                    className="bg-white rounded-[2rem] p-4 shadow-sm border-2 border-brand-primary/60 hover:shadow-md transition-shadow"
                 >
-                    <div className="flex items-center justify-between mb-1">
-                        <div className="w-8 h-8 rounded-full bg-sky-200 flex items-center justify-center text-sky-700">
-                            <DollarSign size={16} />
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                            <DollarSign size={20} />
                         </div>
+                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Remboursés</span>
                     </div>
-                    <span className="text-[10px] font-bold text-sky-700 uppercase tracking-tighter">
-                        Remboursements
-                    </span>
-                    <div className="text-xl font-black text-sky-900 leading-none">
-                        <AnimatedCounter value={stats.totalRefunded} />
-                        <span className="text-[10px] ml-1">FCFA</span>
+                    <div className="flex items-baseline gap-1">
+                        <AnimatedCounter value={stats.totalRefunded} className="text-xl font-black text-gray-900" />
+                        <span className="text-[10px] font-black text-gray-400 uppercase">FCFA</span>
                     </div>
-                    <span className="text-[9px] text-sky-600 font-medium">Effectués</span>
+                    <p className="text-[10px] text-gray-500 font-medium mt-1">Total effectués</p>
                 </motion.div>
 
                 {/* KPI 3: Validated Returns */}
@@ -158,20 +154,16 @@ export function ReturnsStats({ returns, returnReasons }: ReturnsStatsProps) {
                     initial="hidden"
                     animate="visible"
                     variants={cardVariants}
-                    className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 flex flex-col gap-1"
+                    className="bg-white rounded-[2rem] p-4 shadow-sm border-2 border-brand-primary/60 hover:shadow-md transition-shadow"
                 >
-                    <div className="flex items-center justify-between mb-1">
-                        <div className="w-8 h-8 rounded-full bg-emerald-200 flex items-center justify-center text-emerald-700">
-                            <CheckCircle2 size={16} />
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="p-2 bg-green-50 rounded-lg text-green-600">
+                            <CheckCircle2 size={20} />
                         </div>
+                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Validés</span>
                     </div>
-                    <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-tighter">
-                        Retours Validés
-                    </span>
-                    <div className="text-2xl font-black text-emerald-900 leading-none">
-                        <AnimatedCounter value={stats.validatedCount} />
-                    </div>
-                    <span className="text-[9px] text-emerald-600 font-medium">Approuvés</span>
+                    <AnimatedCounter value={stats.validatedCount} className="text-xl font-black text-gray-900" />
+                    <p className="text-[10px] text-gray-500 font-medium mt-1">Retours approuvés</p>
                 </motion.div>
 
                 {/* KPI 4: Items Restocked (Articles Remis en Stock) */}
@@ -180,21 +172,19 @@ export function ReturnsStats({ returns, returnReasons }: ReturnsStatsProps) {
                     initial="hidden"
                     animate="visible"
                     variants={cardVariants}
-                    className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex flex-col gap-1"
+                    className="bg-white rounded-[2rem] p-4 shadow-sm border-2 border-brand-primary/60 hover:shadow-md transition-shadow"
                 >
-                    <div className="flex items-center justify-between mb-1">
-                        <div className="w-8 h-8 rounded-full bg-blue-200 flex items-center justify-center text-blue-700">
-                            <Package size={16} />
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
+                            <Package size={20} />
                         </div>
+                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">En Stock</span>
                     </div>
-                    <span className="text-[10px] font-bold text-blue-700 uppercase tracking-tighter">
-                        Remis en Stock
-                    </span>
-                    <div className="text-2xl font-black text-blue-900 leading-none">
-                        <AnimatedCounter value={stats.itemsRestocked} />
-                        <span className="text-[10px] ml-1 font-bold text-blue-600">UNITES</span>
+                    <div className="flex items-baseline gap-1">
+                        <AnimatedCounter value={stats.itemsRestocked} className="text-xl font-black text-gray-900" />
+                        <span className="text-[10px] font-black text-indigo-400 uppercase">UNITÉS</span>
                     </div>
-                    <span className="text-[9px] text-blue-600 font-medium">Remis en stock</span>
+                    <p className="text-[10px] text-gray-500 font-medium mt-1">Réintégrés</p>
                 </motion.div>
 
                 {/* KPI 5: Product Loss (Pertes Produits) */}
@@ -203,21 +193,21 @@ export function ReturnsStats({ returns, returnReasons }: ReturnsStatsProps) {
                     initial="hidden"
                     animate="visible"
                     variants={cardVariants}
-                    className="bg-rose-50 p-4 rounded-2xl border border-rose-100 flex flex-col gap-1"
+                    className="bg-white rounded-[2rem] p-4 shadow-sm border-2 border-red-500/60 hover:shadow-md transition-shadow"
                 >
-                    <div className="flex items-center justify-between mb-1">
-                        <div className="w-8 h-8 rounded-full bg-rose-200 flex items-center justify-center text-rose-700">
-                            <AlertTriangle size={16} />
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="p-2 bg-red-50 rounded-lg text-red-600">
+                            <AlertTriangle size={20} />
                         </div>
+                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Pertes</span>
                     </div>
-                    <span className="text-[10px] font-bold text-rose-700 uppercase tracking-tighter">
-                        Pertes Produits
-                    </span>
-                    <div className="text-2xl font-black text-rose-900 leading-none">
-                        <AnimatedCounter value={stats.lostProductCount} />
-                        <span className="text-[10px] ml-1 font-bold text-rose-600">UNITES</span>
+                    <div className="flex items-baseline gap-1">
+                        <div className="text-xl font-black text-red-600">
+                            <AnimatedCounter value={stats.lostProductCount} />
+                        </div>
+                        <span className="text-[10px] font-black text-red-400 uppercase">UNITÉS</span>
                     </div>
-                    <span className="text-[9px] text-rose-600 font-medium">Détruits / Perdus</span>
+                    <p className="text-[10px] text-gray-500 font-medium mt-1">Détruits / Perdus</p>
                 </motion.div>
 
                 {/* KPI 6: Rejection Rate */}
@@ -226,52 +216,54 @@ export function ReturnsStats({ returns, returnReasons }: ReturnsStatsProps) {
                     initial="hidden"
                     animate="visible"
                     variants={cardVariants}
-                    className="bg-gray-50 p-4 rounded-2xl border border-gray-100 flex flex-col gap-1"
+                    className="bg-white rounded-[2rem] p-4 shadow-sm border-2 border-brand-primary/60 hover:shadow-md transition-shadow"
                 >
-                    <div className="flex items-center justify-between mb-1">
-                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700">
-                            <TrendingDown size={16} />
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="p-2 bg-slate-50 rounded-lg text-slate-600">
+                            <TrendingDown size={20} />
                         </div>
+                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Refus</span>
                     </div>
-                    <span className="text-[10px] font-bold text-gray-700 uppercase tracking-tighter">
-                        Taux de Rejet
-                    </span>
-                    <div className="text-2xl font-black text-gray-900 leading-none">
-                        <AnimatedCounter value={Math.round(stats.rejectionRate)} />
-                        <span className="text-sm ml-1">%</span>
+                    <div className="flex items-baseline gap-1">
+                        <AnimatedCounter value={Math.round(stats.rejectionRate)} className="text-xl font-black text-gray-900" />
+                        <span className="text-sm font-black text-gray-400">%</span>
                     </div>
-                    <span className="text-[9px] text-gray-500 font-medium">Global</span>
+                    <p className="text-[10px] text-gray-500 font-medium mt-1">Taux de rejet</p>
                 </motion.div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Breakdown by Reason */}
-                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <RotateCcw size={14} />
+                {/* Breakdown by Reason - Design Elite */}
+                <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-xl shadow-brand-subtle/5 relative overflow-hidden">
+                    <h3 className="text-[10px] font-black text-gray-900 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-brand-primary" />
                         Répartition par Motif
                     </h3>
-                    <div className="space-y-4">
+                    <div className="space-y-5">
                         {stats.reasonStats.map((item) => (
-                            <div key={item.reason} className="space-y-1">
-                                <div className="flex justify-between text-[11px] font-bold">
-                                    <span className="text-gray-600">
-                                        {item.icon} {item.label}
+                            <div key={item.reason} className="space-y-2">
+                                <div className="flex justify-between items-end mb-1">
+                                    <span className="text-[11px] font-black text-gray-600 flex items-center gap-2">
+                                        <span className="text-base leading-none">{item.icon}</span>
+                                        <span className="uppercase tracking-tight">{item.label}</span>
                                     </span>
-                                    <span className="text-gray-400">{item.count} retours</span>
+                                    <span className="text-[10px] font-bold">
+                                        <span className="text-gray-900 font-black text-xs mr-1">{item.count}</span>
+                                        <span className="text-gray-400 uppercase tracking-tighter">retour{item.count > 1 ? 's' : ''}</span>
+                                    </span>
                                 </div>
-                                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-1.5 bg-gray-50 rounded-full overflow-hidden border border-gray-100/50">
                                     <motion.div
                                         initial={{ width: 0 }}
                                         animate={{ width: `${item.percentage}%` }}
-                                        transition={{ duration: 1, ease: "easeOut" }}
+                                        transition={{ duration: 1.2, ease: "circOut" }}
                                         className={`h-full rounded-full ${item.color === "red"
-                                            ? "bg-red-500"
-                                            : item.color === "amber" || item.color === "orange"
-                                                ? "bg-brand-primary"
-                                                : item.color === "blue"
-                                                    ? "bg-blue-500"
-                                                    : "bg-purple-500"
+                                                ? "bg-gradient-to-r from-red-600 to-red-400 shadow-sm shadow-red-200"
+                                                : item.color === "amber" || item.color === "orange"
+                                                    ? "bg-gradient-to-r from-brand-primary to-amber-300 shadow-sm shadow-brand-subtle"
+                                                    : item.color === "blue"
+                                                        ? "bg-gradient-to-r from-blue-600 to-blue-400 shadow-sm shadow-blue-200"
+                                                        : "bg-gradient-to-r from-purple-600 to-purple-400 shadow-sm shadow-purple-200"
                                             }`}
                                     />
                                 </div>
@@ -280,54 +272,69 @@ export function ReturnsStats({ returns, returnReasons }: ReturnsStatsProps) {
                     </div>
                 </div>
 
-                {/* Insights / Operational Recommendation */}
-                <div className="bg-slate-900 p-6 rounded-2xl text-white relative overflow-hidden flex flex-col justify-center border border-slate-800 shadow-xl">
+                {/* Insights / Operational Recommendation - Design Dark Intel */}
+                <div className="bg-[#0c121e] p-7 rounded-[2.5rem] text-white relative overflow-hidden flex flex-col justify-center border border-white/5 shadow-2xl shadow-blue-900/20">
+                    {/* Background Glow Effect */}
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-blue-600/10 blur-[80px] rounded-full -mr-24 -mt-24" />
+                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-brand-primary/5 blur-[60px] rounded-full -ml-16 -mb-16" />
+
                     <div className="relative z-10">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 border border-blue-500/20 backdrop-blur-sm">
-                                <TrendingDown size={20} />
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-white/10 backdrop-blur-xl shadow-inner">
+                                <TrendingDown size={22} strokeWidth={2.5} />
                             </div>
                             <div>
-                                <h4 className="font-black text-sm uppercase tracking-tighter text-blue-400">
+                                <h4 className="font-black text-sm uppercase tracking-[0.1em] text-blue-400 mb-0.5">
                                     Analyse & Conseil
                                 </h4>
-                                <p className="text-[10px] text-gray-400 font-medium tracking-wide uppercase">Insight Opérationnel</p>
+                                <p className="text-[10px] text-gray-500 font-black tracking-[0.2em] uppercase opacity-60">Intelligence Opérationnelle</p>
                             </div>
                         </div>
 
                         {stats.validatedCount > 0 ? (
                             <>
-                                <p className="text-xl font-black mb-2 leading-tight">
-                                    Motif Dominant : <span className="text-brand-primary">{stats.topReason?.label}</span>
+                                <p className="text-xl font-black mb-3 leading-tight tracking-tight uppercase">
+                                    Motif Dominant : <span
+                                        style={{ background: 'var(--brand-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
+                                    >{stats.topReason?.label}</span>
                                 </p>
-                                <p className="text-xs text-gray-400 leading-relaxed mb-6">
+                                <p className="text-[13px] text-gray-400 leading-relaxed mb-8 font-medium">
                                     {stats.topReason?.reason === 'defective'
-                                        ? "Un taux élevé de produits défectueux suggère un problème de stockage ou de manipulation des bouteilles."
+                                        ? "Un taux élevé de produits défectueux suggère un problème de stockage ou de manipulation. Un audit de la chaîne froide est conseillé."
                                         : stats.topReason?.reason === 'wrong_item'
-                                            ? "Les erreurs de saisie impactent votre inventaire. Un rappel sur l'utilisation du scan pourrait aider."
-                                            : "Surveillez la fréquence des retours pour identifier d'éventuels écarts de service."}
+                                            ? "Les erreurs de saisie impactent votre inventaire. Un rappel sur le scan systématique réduirait ces écarts."
+                                            : "La fréquence des retours est stable. Veillez à maintenir la rigueur actuelle sur les contrôles de caisse."}
                                 </p>
                             </>
                         ) : (
-                            <p className="text-xs text-gray-400 italic mb-6">En attente de données validées pour générer une recommandation.</p>
+                            <div className="py-10 text-center bg-white/5 rounded-3xl border border-dashed border-white/10 mb-8">
+                                <p className="text-xs text-gray-500 italic font-medium px-4">
+                                    Protocoles analytiques en attente de données validées pour générer une recommandation stratégique.
+                                </p>
+                            </div>
                         )}
 
-                        <div className="flex gap-2">
-                            <div className="flex-1 p-3 rounded-xl bg-white/5 border border-white/10">
-                                <p className="text-[9px] font-bold text-gray-500 uppercase mb-1">Impact Ventes</p>
-                                <p className="text-xs font-black">{Math.round((stats.validatedCount / (stats.validatedCount + stats.pendingCount || 1)) * 100)}% traités</p>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="p-4 rounded-[1.5rem] bg-white/5 border border-white/10 backdrop-blur-sm group hover:bg-white/10 transition-all">
+                                <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Impact Ventes</p>
+                                <p
+                                    className="text-lg font-black tracking-tighter"
+                                    style={{ background: 'linear-gradient(135deg, #fff 0%, #94a3b8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
+                                >
+                                    {Math.round((stats.validatedCount / (stats.validatedCount + stats.pendingCount || 1)) * 100)}% <span className="text-[10px] uppercase font-bold tracking-tighter text-gray-600">traités</span>
+                                </p>
                             </div>
-                            <div className="flex-1 p-3 rounded-xl bg-white/5 border border-white/10">
-                                <p className="text-[9px] font-bold text-gray-500 uppercase mb-1">Qualité Stock</p>
-                                <p className="text-xs font-black">
-                                    {stats.itemsRestocked > stats.lostProductCount ? "Stable" : "À surveiller"}
+                            <div className="p-4 rounded-[1.5rem] bg-white/5 border border-white/10 backdrop-blur-sm group hover:bg-white/10 transition-all">
+                                <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Qualité Stock</p>
+                                <p
+                                    className="text-lg font-black tracking-tighter uppercase"
+                                    style={{ background: 'var(--brand-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
+                                >
+                                    {stats.itemsRestocked > stats.lostProductCount ? "Stable" : "Alerte"}
                                 </p>
                             </div>
                         </div>
                     </div>
-
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/10 blur-3xl rounded-full translate-x-10 -translate-y-10" />
-                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-brand-primary/10 blur-3xl rounded-full -translate-x-10 translate-y-10" />
                 </div>
             </div>
         </div>

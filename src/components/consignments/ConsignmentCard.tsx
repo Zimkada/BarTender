@@ -3,9 +3,9 @@ import {
     Phone,
     Clock,
     CheckCircle,
-    XCircle,
     User,
     AlertTriangle,
+    Package
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Consignment, Sale, User as UserType } from '../../types';
@@ -31,7 +31,7 @@ export function ConsignmentCard({
 }: ConsignmentCardProps) {
     const { formatPrice } = useCurrencyFormatter();
 
-    // Attribution logic: soldBy is the single source of truth
+    // Attribution logic
     const originalSeller = React.useMemo(() => {
         const originalSale = sales.find(s => s.id === consignment.saleId);
         if (originalSale) {
@@ -48,127 +48,151 @@ export function ConsignmentCard({
     const isExpired = hoursLeft < 0;
     const isExpiringSoon = hoursLeft >= 0 && hoursLeft <= 24;
 
+    // Helper for visual status
+    const getStatusParams = () => {
+        if (isExpired) return { color: "bg-red-500", border: "border-red-500/20", bg: "bg-red-50" };
+        if (isExpiringSoon) return { color: "bg-amber-500", border: "border-amber-500/20", bg: "bg-amber-50" };
+        return { color: "bg-brand-primary", border: "border-brand-primary/20", bg: "bg-white" };
+    };
+
+    const status = getStatusParams();
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className={cn(
-                "group relative bg-white rounded-3xl border-2 transition-all p-5 hover:shadow-xl",
-                isExpired
-                    ? "border-red-100 bg-red-50/30"
-                    : isExpiringSoon
-                        ? "border-amber-100 bg-amber-50/30"
-                        : "border-gray-100 hover:border-amber-200"
+                "group relative bg-white rounded-[1.5rem] p-5 border shadow-md hover:shadow-xl transition-all overflow-hidden",
+                "border-gray-100 hover:border-brand-primary/30 hover:shadow-brand-primary/5"
             )}
         >
-            {/* Header section with Badge */}
-            <div className="flex justify-between items-start mb-4">
-                <div className="flex-1 min-w-0">
-                    <h4 className="font-black text-gray-900 text-lg flex items-center gap-2 truncate">
-                        {consignment.customerName}
-                    </h4>
-                    {consignment.customerPhone && (
-                        <a
-                            href={`tel:${consignment.customerPhone}`}
-                            className="text-xs font-bold text-gray-400 hover:text-amber-600 flex items-center gap-1.5 transition-colors mt-0.5"
-                        >
-                            <Phone size={12} strokeWidth={3} />
-                            {consignment.customerPhone}
-                        </a>
-                    )}
-                </div>
+            {/* Elite Left Accent Bar */}
+            <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${status.color} opacity-80`} />
 
-                <div className={cn(
-                    "flex items-center gap-2 px-3 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-wider shadow-sm text-white",
-                    isExpired
-                        ? "bg-red-600"
-                        : isExpiringSoon
-                            ? "bg-amber-500 text-amber-950"
-                            : "bg-gray-900"
-                )}>
-                    {isExpired ? (
-                        <>
-                            <AlertTriangle size={12} strokeWidth={3} />
-                            <span>Expiré</span>
-                        </>
-                    ) : (
-                        <>
-                            <Clock size={12} strokeWidth={3} />
-                            <span>{Math.floor(hoursLeft / 24)}j {hoursLeft % 24}h</span>
-                        </>
-                    )}
-                </div>
-            </div>
+            <div className="pl-3">
+                {/* Header: Customer & Badge */}
+                <div className="flex justify-between items-start mb-5">
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-black text-gray-900 text-lg truncate leading-none">
+                                {consignment.customerName}
+                            </h4>
+                            {isExpiringSoon && !isExpired && (
+                                <span className="animate-pulse w-2 h-2 rounded-full bg-amber-500" />
+                            )}
+                        </div>
+                        {consignment.customerPhone ? (
+                            <a
+                                href={`tel:${consignment.customerPhone}`}
+                                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-gray-400 hover:text-brand-primary transition-colors bg-gray-50 px-2 py-1 rounded-md border border-gray-100"
+                            >
+                                <Phone size={10} strokeWidth={3} />
+                                {consignment.customerPhone}
+                            </a>
+                        ) : (
+                            <span className="text-[10px] text-gray-300 italic">Sans contact</span>
+                        )}
+                    </div>
 
-            {/* Product Details Area (Ticket-like background) */}
-            <div className="bg-white rounded-2xl p-4 border border-gray-100 border-dashed space-y-3 mb-5">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center font-black text-gray-600">
-                        {consignment.quantity}
-                    </div>
-                    <div className="flex-1">
-                        <p className="text-xs font-black text-gray-400 uppercase leading-none mb-1">Produit</p>
-                        <p className="font-bold text-gray-900 text-sm">{consignment.productName}</p>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-50 border-dashed">
-                    <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase mb-0.5">Valeur</p>
-                        <p className="font-bold text-amber-600 font-mono">{formatPrice(consignment.totalAmount)}</p>
-                    </div>
-                    <div className="text-right">
-                        <p className="text-[10px] font-black text-gray-400 uppercase mb-0.5">Date limite</p>
-                        <p className="text-xs font-bold text-gray-700">{expiresAt.toLocaleDateString('fr-FR')}</p>
+                    <div className={cn(
+                        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border shadow-sm",
+                        isExpired ? "bg-red-50 border-red-100 text-red-600" :
+                            isExpiringSoon ? "bg-amber-50 border-amber-100 text-amber-700" :
+                                "bg-gray-50 border-gray-100 text-gray-500"
+                    )}>
+                        {isExpired ? (
+                            <>
+                                <AlertTriangle size={12} strokeWidth={2.5} />
+                                <span className="text-[9px] font-black uppercase tracking-wider">Expiré</span>
+                            </>
+                        ) : (
+                            <>
+                                <Clock size={12} strokeWidth={2.5} />
+                                <span className="text-[9px] font-black uppercase tracking-wider">
+                                    {Math.floor(hoursLeft / 24)}j {hoursLeft % 24}h
+                                </span>
+                            </>
+                        )}
                     </div>
                 </div>
-            </div>
 
-            {/* Footer Meta */}
-            <div className="flex items-center justify-between px-1 mb-5">
-                <div className="flex items-center gap-1">
-                    {originalSeller && (
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-5 h-5 bg-purple-100 rounded-lg flex items-center justify-center">
-                                <User size={12} className="text-purple-600" />
+                {/* Ticket Zone: Product Details */}
+                <div className="bg-gray-50/50 rounded-xl p-4 border border-dashed border-gray-200 mb-5 relative group-hover:border-brand-primary/20 transition-colors">
+                    <div className="flex items-start gap-4 mb-4">
+                        <div className="w-12 h-12 rounded-xl bg-white border border-gray-100 shadow-sm flex items-center justify-center shrink-0">
+                            <span className="font-black text-xl text-gray-900">{consignment.quantity}</span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Produit</p>
+                            <p className="font-bold text-gray-900 leading-tight">{consignment.productName}</p>
+                            <p className="text-[10px] text-gray-500 mt-0.5">{consignment.productVolume || 'Standard'}</p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-100/50 border-dashed">
+                        <div>
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-0.5">Valeur Stockée</p>
+                            <p
+                                className="font-black text-sm font-mono tracking-tighter"
+                                style={{ background: 'var(--brand-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
+                            >
+                                {formatPrice(consignment.totalAmount)}
+                            </p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-wider mb-0.5">Limite</p>
+                            <p className={`text-xs font-bold ${isExpiringSoon ? 'text-amber-600' : 'text-gray-600'}`}>
+                                {expiresAt.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Footer Actions */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                    {/* Meta Info (Seller & ID) */}
+                    <div className="flex items-center justify-between sm:justify-start gap-3 mb-2 sm:mb-0 sm:mr-auto">
+                        <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+                            #{consignment.id.slice(-4).toUpperCase()}
+                        </span>
+                        {originalSeller && (
+                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-purple-50 border border-purple-100/50">
+                                <User size={10} className="text-purple-600" />
+                                <span className="text-[9px] font-black text-purple-600 uppercase tracking-tight">
+                                    {originalSeller.name}
+                                </span>
                             </div>
-                            <span className="text-[10px] font-black text-purple-600 uppercase tracking-tighter">{originalSeller.name}</span>
+                        )}
+                    </div>
+
+                    {!isReadOnly && (
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={onClaim}
+                                className="flex-1 sm:flex-none px-4 py-2.5 text-white rounded-xl shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-2"
+                                style={{ background: 'var(--brand-gradient)' }}
+                                title="Client récupère le produit"
+                            >
+                                <CheckCircle size={14} strokeWidth={3} />
+                                <span className="text-[10px] font-black uppercase tracking-wider">Récupérer</span>
+                            </motion.button>
+
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={onForfeit}
+                                className="flex-1 sm:flex-none px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-xl flex items-center justify-center gap-2 transition-colors"
+                                title="Confisquer (Remise en stock)"
+                            >
+                                <Package size={14} strokeWidth={2.5} />
+                                <span className="text-[10px] font-black uppercase tracking-wider">Confisquer</span>
+                            </motion.button>
                         </div>
                     )}
                 </div>
-                <span className="text-[10px] font-bold text-gray-400 uppercase">#{consignment.id.slice(-6).toUpperCase()}</span>
             </div>
-
-            {/* Actions */}
-            {!isReadOnly && (
-                <div className="flex gap-3">
-                    <button
-                        onClick={onClaim}
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-white h-12 rounded-2xl font-black uppercase text-xs flex items-center justify-center gap-2 shadow-lg shadow-green-100 transition-all active:scale-95"
-                    >
-                        <CheckCircle size={16} strokeWidth={3} />
-                        Récupérer
-                    </button>
-                    <button
-                        onClick={onForfeit}
-                        className="flex-1 bg-sky-500 hover:bg-sky-600 text-white h-12 rounded-2xl font-black uppercase text-xs flex items-center justify-center gap-2 shadow-lg shadow-sky-200 transition-all active:scale-95"
-                    >
-                        <XCircle size={16} strokeWidth={3} />
-                        Confisquer
-                    </button>
-                </div>
-            )}
-
-            {/* Urgency Indicator Bar */}
-            {isExpiringSoon && !isExpired && (
-                <motion.div
-                    animate={{ opacity: [0.4, 1.0, 0.4] }}
-                    transition={{ repeat: Infinity, duration: 2 }}
-                    className="absolute -top-1 -right-1"
-                >
-                    <div className="w-3 h-3 bg-amber-500 rounded-full border-2 border-white shadow-sm shadow-amber-200" />
-                </motion.div>
-            )}
         </motion.div>
     );
 }
