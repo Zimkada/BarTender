@@ -335,7 +335,7 @@ export default function TeamManagementPage() {
               <div className="w-full md:w-auto mt-4 md:mt-0">
                 <Button
                   onClick={() => setPageTab('add')}
-                  className="w-full md:w-auto flex items-center justify-center gap-2 btn-brand shadow-md shadow-brand-subtle transition-all active:scale-95"
+                  className="w-full md:w-auto flex items-center justify-center gap-2 shadow-md shadow-brand-subtle transition-all active:scale-95"
                 >
                   <UserPlus size={16} />
                   <span className="font-medium">Ajouter</span>
@@ -661,7 +661,7 @@ export default function TeamManagementPage() {
                             <div className="pt-2">
                               <Button
                                 type="submit"
-                                className="w-full h-14 btn-brand rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-brand-subtle"
+                                className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-brand-subtle"
                               >
                                 Créer le compte
                               </Button>
@@ -724,7 +724,7 @@ export default function TeamManagementPage() {
                               <Button
                                 type="submit"
                                 disabled={!selectedCandidateId && !existingEmail}
-                                className="w-full h-14 btn-brand rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-brand-subtle"
+                                className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-brand-subtle"
                               >
                                 Ajouter à l'équipe
                               </Button>

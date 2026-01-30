@@ -45,7 +45,7 @@ export function InventoryStats({
                 <p className="text-sm text-gray-600 mt-1">Consultez l'onglet Opérations pour réapprovisionner</p>
                 <Button
                     onClick={onNavigateToOperations}
-                    className="mt-4 btn-brand font-bold px-8"
+                    className="mt-4 font-bold px-8"
                 >
                     Aller aux opérations
                 </Button>

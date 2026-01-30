@@ -216,7 +216,7 @@ export default function PromotionsPage() {
                             </div>
                             <Button
                                 onClick={() => { setSelectedPromotion(null); setActiveTab('new'); }}
-                                className="flex w-full sm:w-auto items-center justify-center btn-brand shadow-lg shadow-brand-subtle hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 font-bold px-6 h-12 rounded-xl"
+                                className="flex w-full sm:w-auto items-center justify-center shadow-lg shadow-brand-subtle hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 font-bold px-6 h-12 rounded-xl"
                             >
                                 <Plus size={20} className="mr-2" />
                                 Créer
@@ -244,7 +244,7 @@ export default function PromotionsPage() {
                             <p className="text-gray-500 mb-10 max-w-md mx-auto">Boostez vos ventes aujourd'hui ! Créez une offre attractive pour vos clients en quelques secondes.</p>
                             <Button
                                 onClick={() => { setSelectedPromotion(null); setActiveTab('new'); }}
-                                className="btn-brand px-8 py-6 h-auto rounded-2xl font-bold transition-all shadow-lg shadow-brand-subtle"
+                                className="px-8 py-6 h-auto rounded-2xl font-bold transition-all shadow-lg shadow-brand-subtle"
                             >
                                 <Plus size={24} className="mr-2" />
                                 Créer ma première promotion

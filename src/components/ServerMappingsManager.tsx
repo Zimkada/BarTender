@@ -265,7 +265,7 @@ export function ServerMappingsManager({
                     <Button
                       onClick={handleAutoPopulate}
                       disabled={saving}
-                      className="btn-brand shadow-lg shadow-brand-subtle btn-sm uppercase tracking-widest font-black"
+                      className="shadow-lg shadow-brand-subtle btn-sm uppercase tracking-widest font-black"
                     >
                       {saving ? <Loader size={16} className="animate-spin mr-2" /> : <Zap size={16} className="mr-2" />}
                       Générer Automatiquement
@@ -312,7 +312,7 @@ export function ServerMappingsManager({
                   <Button
                     onClick={handleAddMapping}
                     disabled={saving || !newServerName.trim() || !newServerId}
-                    className="w-full h-14 btn-brand rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-brand-subtle flex items-center justify-center gap-2"
+                    className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-brand-subtle flex items-center justify-center gap-2"
                   >
                     {saving ? <Loader size={20} className="animate-spin" /> : <Plus size={20} />}
                     Valider l'Assignation
