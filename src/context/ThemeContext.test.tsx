@@ -9,7 +9,6 @@ import { ThemeService } from '../services/theme.service';
 // Mocks
 vi.mock('./BarContext');
 vi.mock('./AuthContext');
-vi.mock('../services/theme.service');
 
 // Wrapper utile pour les tests
 const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -19,10 +18,22 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 describe('ThemeContext', () => {
     const updateBarMock = vi.fn();
     const updateThemeServiceMock = vi.spyOn(ThemeService, 'updateBarTheme');
+    const getColorsServiceMock = vi.spyOn(ThemeService, 'getColors');
 
     beforeEach(() => {
         vi.clearAllMocks();
         document.documentElement.style.cssText = ''; // Reset CSS
+
+        // Mock ThemeService.getColors to return colors based on preset
+        getColorsServiceMock.mockImplementation((config) => {
+            if (config.preset === 'custom' && config.customColors) {
+                return config.customColors;
+            }
+            return THEME_PRESETS[config.preset] || THEME_PRESETS.amber;
+        });
+
+        // Mock ThemeService.updateBarTheme to avoid real database calls
+        updateThemeServiceMock.mockResolvedValue(undefined);
 
         // Default mocks
         (BarContext.useBarContext as any).mockReturnValue({
