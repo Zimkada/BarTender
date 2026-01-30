@@ -63,13 +63,17 @@ Composant de sélection natif stylisé pour s'intégrer au design system.
 ```
 
 ## 5. Utilitaires CSS "Vision 2026"
-Ces classes sont disponibles globalement via `src/styles/brand-utilities.css`.
+> [!NOTE]
+> Ces classes sont définies dans [`src/styles/brand-utilities.css`](file:///c:/Users/HP%20ELITEBOOK/DEV/BarTender/src/styles/brand-utilities.css).
+> Pour ajouter une nouvelle classe, modifiez ce fichier CSS puis ajoutez la référence dans `src/theme/constants.ts` pour l'autocomplétion.
 
+Les noms de classes sont sémantiques :
+- `.btn-brand` : Bouton principal (Gradient Ambre).
 - `.liquid-gold-header` : En-tête principal avec effet de chatoiement.
 - `.glass-page-header` : En-tête de page contextuel (Glassmorphism).
 - `.scrollbar-bottom` : Barre de défilement horizontale stylisée.
 
-## 7. Exceptions Autorisées & Contextuelles
+## 6. Exceptions Autorisées & Contextuelles
 Certaines zones de l'application dérogent volontairement au Brand Theme pour des raisons sémantiques.
 
 ### Zone Administration (Violet vs Or)

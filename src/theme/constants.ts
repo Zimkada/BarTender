@@ -48,6 +48,12 @@ export const BRAND_CLASSES = {
     },
 } as const;
 
-// Type dérivé pour autocomplétion
+// Types dérivés pour l'autocomplétion
 export type BrandClassCategory = keyof typeof BRAND_CLASSES;
+
 export type BrandButtonClass = keyof typeof BRAND_CLASSES.button;
+export type BrandHeaderClass = keyof typeof BRAND_CLASSES.header;
+export type BrandTextClass = keyof typeof BRAND_CLASSES.text;
+export type BrandBgClass = keyof typeof BRAND_CLASSES.bg;
+export type BrandBorderClass = keyof typeof BRAND_CLASSES.border;
+export type BrandShadowClass = keyof typeof BRAND_CLASSES.shadow;
