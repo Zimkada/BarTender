@@ -24,6 +24,7 @@ import { Input } from './ui/Input';
 import { TabbedPageHeader } from './common/PageHeader/patterns/TabbedPageHeader';
 import { useViewport } from '../hooks/useViewport';
 import { TrainingTab } from './TrainingTab';
+import { getRoleTheme } from '../theme/themeHelpers';
 
 export function ProfileSettings() {
   const { currentSession, changePassword, refreshSession } = useAuth();
@@ -147,13 +148,11 @@ export function ProfileSettings() {
     }
   };
 
-  const roleColors = currentSession?.role === 'super_admin'
-    ? { primary: 'from-indigo-600 to-purple-600', secondary: 'bg-indigo-50 text-indigo-700 border-indigo-200' }
-    : { primary: 'btn-brand', secondary: 'bg-brand-subtle text-brand-primary border-brand-subtle' };
+  const theme = getRoleTheme(currentSession?.role);
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-      <div className={`animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${currentSession?.role === 'super_admin' ? 'border-indigo-600' : 'border-brand-primary'}`}></div>
+      <div className={`animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${theme.border}`}></div>
       <p className="text-gray-500 font-medium animate-pulse">Chargement de votre profil...</p>
     </div>
   );
@@ -240,7 +239,7 @@ export function ProfileSettings() {
                     <button
                       onClick={handleSaveInfo}
                       disabled={loading}
-                      className={`w-full h-14 ${currentSession?.role === 'super_admin' ? 'bg-gradient-to-r ' + roleColors.primary : 'btn-brand'} text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-brand-subtle transition-all active:scale-[0.98] hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-3`}
+                      className={`w-full h-14 ${theme.button} text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-brand-subtle transition-all active:scale-[0.98] hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-3`}
                     >
                       <Save size={20} />
                       Sauvegarder les modifications
@@ -315,7 +314,7 @@ export function ProfileSettings() {
                     <button
                       onClick={handleChangePassword}
                       disabled={!newPassword || newPassword !== confirmPassword}
-                      className={`w-full h-14 ${currentSession?.role === 'super_admin' ? 'bg-gradient-to-r ' + roleColors.primary : 'btn-brand'} text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-brand-subtle transition-all active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-3`}
+                      className={`w-full h-14 ${theme.button} text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-brand-subtle transition-all active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-3`}
                     >
                       <Lock size={20} />
                       Mettre à jour le mot de passe
@@ -338,14 +337,14 @@ export function ProfileSettings() {
 
             {/* Avatar Section */}
             <div className="text-center mb-10 relative z-10">
-              <div className={`w-28 h-28 mx-auto rounded-3xl ${currentSession?.role === 'super_admin' ? 'bg-gradient-to-br ' + roleColors.primary : 'bg-brand-primary'} p-1 mb-6 rotate-3 shadow-2xl transition-transform hover:rotate-0`}>
+              <div className={`w-28 h-28 mx-auto rounded-3xl ${theme.avatar} p-1 mb-6 rotate-3 shadow-2xl transition-transform hover:rotate-0`}>
                 <div className="w-full h-full bg-slate-800 rounded-[1.4rem] flex items-center justify-center border border-white/10 group overflow-hidden shadow-inner">
                   <span className="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-t from-white to-white/50 group-hover:scale-110 transition-transform">
                     {name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '??'}
                   </span>
                 </div>
               </div>
-              <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full ${roleColors.secondary} text-[10px] font-black uppercase tracking-[0.2em] shadow-lg border border-slate-700/50`}>
+              <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full ${theme.badge} text-[10px] font-black uppercase tracking-[0.2em] shadow-lg border border-slate-700/50`}>
                 <Shield size={12} />
                 {currentSession?.role?.replace('_', ' ')}
               </div>
@@ -389,7 +388,7 @@ export function ProfileSettings() {
                   </div>
                   <div>
                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Certification Formation</p>
-                    <p className={`text-sm font-bold ${currentUser?.hasCompletedOnboarding ? 'text-green-400' : 'text-brand-primary'}`}>
+                    <p className={`text-sm font-bold ${currentUser?.hasCompletedOnboarding ? 'text-green-400' : theme.text}`}>
                       {currentUser?.hasCompletedOnboarding ? (
                         <>
                           ✓ Certifié
