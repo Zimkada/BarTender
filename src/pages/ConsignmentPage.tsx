@@ -15,6 +15,7 @@ import { useFeedback } from '../hooks/useFeedback';
 import { useViewport } from '../hooks/useViewport';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
 
+import { Input } from '../components/ui/Input';
 import { CreateConsignmentForm } from '../components/consignments/CreateConsignmentForm';
 import { ConsignmentCard as PremiumConsignmentCard } from '../components/consignments/ConsignmentCard';
 import { Consignment, User as UserType } from '../types';
@@ -228,14 +229,13 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
           </div>
         </div>
 
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
+        <div className="w-full sm:w-64">
+          <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Nom, produit, ID..."
-            className="w-full pl-9 pr-4 py-2.5 bg-white/80 border border-brand-subtle rounded-xl text-sm focus:ring-2 focus:ring-brand-primary focus:border-transparent transition-all shadow-sm"
+            leftIcon={<Search className="w-4 h-4" />}
+            className="bg-white/80 border-brand-subtle rounded-xl focus:border-[var(--brand-primary)]"
           />
         </div>
       </div>

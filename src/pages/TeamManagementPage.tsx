@@ -9,6 +9,7 @@ import { AuthService } from '../services/supabase/auth.service';
 import { useViewport } from '../hooks/useViewport';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { Select } from '../components/ui/Select';
 import { Label } from '../components/ui/Label';
 import { Alert } from '../components/ui/Alert';
 import { ServerMappingsManager } from '../components/ServerMappingsManager';
@@ -681,21 +682,19 @@ export default function TeamManagementPage() {
                               {loadingCandidates ? (
                                 <div className="h-12 animate-pulse bg-gray-100 rounded-xl" />
                               ) : (
-                                <select
-                                  className="w-full h-12 bg-gray-50 border-gray-200 rounded-xl px-4 font-medium focus:ring-2 focus:ring-[var(--brand-primary)] transition-all cursor-pointer"
+                                <Select
                                   value={selectedCandidateId}
                                   onChange={(e) => {
                                     setSelectedCandidateId(e.target.value);
                                     if (e.target.value) setExistingEmail('');
                                   }}
-                                >
-                                  <option value="">-- Sélectionnez un employé --</option>
-                                  {candidates.map(c => (
-                                    <option key={c.id} value={c.id}>
-                                      {c.name} ({c.role} chez {c.sourceBarName})
-                                    </option>
-                                  ))}
-                                </select>
+                                  placeholder="-- Sélectionnez un employé --"
+                                  options={candidates.map(c => ({
+                                    value: c.id,
+                                    label: `${c.name} (${c.role} chez ${c.sourceBarName})`
+                                  }))}
+                                  className="h-12 border-gray-200 focus:border-[var(--brand-primary)]"
+                                />
                               )}
                             </div>
 
