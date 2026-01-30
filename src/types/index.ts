@@ -301,12 +301,12 @@ export interface Sale {
   // Optionnel, pour le mode simplifié ou pour référence
   assignedTo?: string;    // En mode simplifié : nom du serveur qui a servi (ex: "Marie")
   tableNumber?: string;   // Numéro de la table si applicable
-
   // Informations complémentaires
   paymentMethod?: 'cash' | 'mobile_money' | 'card' | 'credit';
   customerName?: string;
   customerPhone?: string;
-  notes?: string;
+  onboarding_step?: string;
+  theme_config?: string; // JSON stringifié
 }
 
 // ===== AJUSTEMENTS DE STOCK =====
