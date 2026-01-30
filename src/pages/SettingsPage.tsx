@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, DollarSign, Clock, Building2, Mail, Phone, MapPin, ShieldCheck, CheckCircle, AlertCircle, GitBranch } from 'lucide-react';
+import { Settings as SettingsIcon, DollarSign, Clock, Building2, Mail, Phone, MapPin, ShieldCheck, CheckCircle, AlertCircle, GitBranch, Palette } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useNotifications } from '../components/Notifications';
 import { Factor } from '@supabase/supabase-js';
@@ -17,6 +17,11 @@ import { ServerMappingsManager } from '../components/ServerMappingsManager';
 import { FEATURES } from '../config/features';
 import { useViewport } from '../hooks/useViewport';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
+import { ThemeSelector } from '../components/ThemeSelector';
+import { motion } from 'framer-motion';
+
+// Feature Flag
+const ENABLE_DYNAMIC_THEMING = import.meta.env.VITE_ENABLE_THEMING === 'true';
 
 const currencyOptions = [
     { code: 'FCFA', symbol: 'FCFA', name: 'Franc CFA (XOF)' },
@@ -243,7 +248,7 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="max-w-3xl mx-auto space-y-6 pb-20">
+        <div className="max-w-3xl mx-auto space-y-6 pb-20 px-4">
             {/* Header Standardisé */}
             <TabbedPageHeader
                 title="Paramètres"
@@ -407,6 +412,18 @@ export default function SettingsPage() {
                             placeholder="Ex: Quartier Haie Vice, Cotonou"
                             leftIcon={<MapPin size={18} />}
                         />
+
+                        {/* THEME SELECTOR SECTION (Feature Flagged) */}
+                        {ENABLE_DYNAMIC_THEMING && (
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="pt-2"
+                            >
+                                <hr className="border-gray-100 mb-6" />
+                                <ThemeSelector />
+                            </motion.div>
+                        )}
                     </div>
                 )}
 

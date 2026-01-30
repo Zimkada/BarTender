@@ -45,8 +45,8 @@ export function ThemeSelector() {
     };
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
+        <div className="space-y-6">
+            <div className="flex items-center gap-3">
                 <div className="p-2 bg-brand-primary/10 rounded-lg text-brand-primary">
                     <Palette size={24} />
                 </div>
