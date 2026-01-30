@@ -12,7 +12,7 @@ const meta = {
   argTypes: {
     variant: {
       control: 'select',
-      options: ['default', 'destructive', 'outline', 'secondary', 'ghost', 'link'],
+      options: ['default', 'destructive', 'outline', 'secondary', 'ghost', 'link', 'glass', 'info'],
       description: 'Visual style variant',
     },
     size: {
@@ -69,6 +69,19 @@ export const Ghost: Story = {
   },
 };
 
+
+export const Glass: Story = {
+  args: {
+    variant: 'glass',
+    children: 'Glass Button (Vision 2026)',
+  },
+};
+export const Info: Story = {
+  args: {
+    variant: 'info',
+    children: 'Info Button',
+  },
+};
 export const Link: Story = {
   args: {
     variant: 'link',
@@ -176,7 +189,10 @@ export const AllVariants: Story = {
         <Button variant="destructive">Destructive</Button>
         <Button variant="outline">Outline</Button>
         <Button variant="secondary">Secondary</Button>
+        <Button variant="secondary">Secondary</Button>
         <Button variant="ghost">Ghost</Button>
+        <Button variant="glass">Glass</Button>
+        <Button variant="info">Info</Button>
         <Button variant="link">Link</Button>
       </div>
       <div className="flex gap-2 flex-wrap items-center">
