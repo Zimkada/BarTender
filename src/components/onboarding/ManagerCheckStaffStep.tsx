@@ -85,7 +85,7 @@ export const ManagerCheckStaffStep: React.FC = () => {
             <h3 className="font-medium text-blue-900 mb-2">À propos des serveurs :</h3>
             <ul className="text-sm text-blue-800 space-y-1">
               <li>✓ Chaque vente est attribuée à un serveur précis</li>
-              <li>✓ Permet le suivi individuel du Chiffre d'Affaires</li>
+              <li>✓ Permet le suivi individuel du Chiffre d'Affaires (de chaque serveur)</li>
               <li>✓ Indispensable pour un reporting fiable</li>
             </ul>
           </div>
