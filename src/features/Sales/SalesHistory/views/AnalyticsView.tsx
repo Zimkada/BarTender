@@ -41,8 +41,11 @@ type Stats = {
   };
 };
 
-// Couleurs thème brand (Vision 2026)
-const CHART_COLORS = ['var(--brand-primary)', '#fb923c', '#fdba74', '#fed7aa', '#ffedd5', 'var(--brand-dark)', '#c2410c'];
+import { useTheme } from '../../../../context/ThemeContext';
+import { ThemeService } from '../../../../services/theme.service';
+
+// NOTE: Chart colors are now dynamic inside the component
+
 
 interface AnalyticsViewProps {
   sales: Sale[];
@@ -93,6 +96,21 @@ export function AnalyticsView({
   const safeBarMembers = barMembers || [];
 
   const { sales: allSales } = useAppContext();
+  const { themeConfig } = useTheme();
+
+  // Génération dynamique des couleurs du graphique basée sur le thème actif
+  const chartColors = useMemo(() => {
+    const colors = ThemeService.getColors(themeConfig);
+    return [
+      colors.primary,      // Dominant
+      colors.secondary,    // Secondaire
+      colors.accent,       // Accent
+      `${colors.primary}80`, // Primary 50% opacity
+      `${colors.secondary}80`, // Secondary 50% opacity
+      `${colors.primary}40`, // Primary 25% opacity
+      '#64748b'            // Neutral slate-500 for "Others"
+    ];
+  }, [themeConfig]);
 
   // Helper pour calculer le CA NET d'une vente (après déduction des retours remboursés)
   const getSaleNetRevenue = (sale: Sale): number => {
@@ -243,11 +261,30 @@ export function AnalyticsView({
       });
     });
 
-    return Object.entries(catRevenue).map(([name, value]) => ({
-      name,
-      value,
-      percentage: totalNet > 0 ? (value / totalNet) * 100 : 0
-    }));
+    const sortedData = Object.entries(catRevenue)
+      .map(([name, value]) => ({
+        name,
+        value,
+        percentage: totalNet > 0 ? (value / totalNet) * 100 : 0
+      }))
+      .sort((a, b) => b.value - a.value);
+
+    // Si moins de 7 catégories, on retourne tout
+    if (sortedData.length <= 6) return sortedData;
+
+    // Sinon, on garde le TOP 6 et on groupe le reste en "Autres"
+    const top6 = sortedData.slice(0, 6);
+    const others = sortedData.slice(6);
+    const othersValue = others.reduce((sum, item) => sum + item.value, 0);
+
+    return [
+      ...top6,
+      {
+        name: 'Autres',
+        value: othersValue,
+        percentage: totalNet > 0 ? (othersValue / totalNet) * 100 : 0
+      }
+    ];
   }, [sales, categories, _products, returns]);
 
   // Performance par utilisateur
@@ -369,7 +406,7 @@ export function AnalyticsView({
                   label={(entry: any) => `${entry.percentage.toFixed(0)}%`}
                 >
                   {categoryData.map((_entry, index) => (
-                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
                   ))}
                 </Pie>
                 <Tooltip formatter={(value: any) => formatPrice(Number(value))} />
