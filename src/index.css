@@ -58,13 +58,13 @@
        Modifier --brand-hue pour changer toute l'identité visuelle
        ═══════════════════════════════════════════════════════════ */
 
-    /* Teinte de base (0-360) - Ambre/Caramel par défaut */
-    --brand-hue: 38;
-    --brand-saturation: 92%;
+    /* Teinte de base (0-360) - Ambre Nocturne (Cognac/Rhum) */
+    --brand-hue: 28;
+    --brand-saturation: 65%;
 
-    /* Luminosités pour le gradient premium */
-    --brand-light: 55%;
-    --brand-dark: 38%;
+    /* Luminosités pour le gradient premium (Plus sombre pour éviter la fatigue) */
+    --brand-light: 45%;
+    --brand-dark: 30%;
 
     /* Couleurs calculées */
     --brand-primary: hsl(var(--brand-hue), var(--brand-saturation), var(--brand-light));

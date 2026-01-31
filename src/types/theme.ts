@@ -1,4 +1,4 @@
-export type ThemePreset = 'amber' | 'blue' | 'emerald' | 'rose' | 'purple' | 'custom';
+export type ThemePreset = 'amber' | 'blue' | 'emerald' | 'rose' | 'purple' | 'slate' | 'custom';
 
 export interface ThemeColors {
     primary: string;
@@ -13,9 +13,9 @@ export interface ThemeConfig {
 
 export const THEME_PRESETS: Record<Exclude<ThemePreset, 'custom'>, ThemeColors> = {
     amber: {
-        primary: '#f59e0b', // amber-500
-        secondary: '#fb923c', // orange-400
-        accent: '#fbbf24' // amber-400
+        primary: '#bc6d2a', // HSL(28, 65, 45) - Ambre Nocturne
+        secondary: '#d98d4a', // HSL(28, 65, 55)
+        accent: '#f1dec8' // HSL(28, 65, 85)
     },
     blue: {
         primary: '#3b82f6', // blue-500
@@ -36,15 +36,21 @@ export const THEME_PRESETS: Record<Exclude<ThemePreset, 'custom'>, ThemeColors> 
         primary: '#a855f7', // purple-500
         secondary: '#c084fc', // purple-400
         accent: '#e9d5ff' // purple-300
+    },
+    slate: {
+        primary: '#475569', // slate-600
+        secondary: '#64748b', // slate-500
+        accent: '#94a3b8' // slate-400
     }
 };
 
 export const PRESET_LABELS: Record<ThemePreset, string> = {
-    amber: 'Or & Ambre',
-    blue: 'Bleu Océan',
+    amber: 'Ambre Nocturne',
+    blue: 'Bleu Prestige',
     emerald: 'Vert Émeraude',
     rose: 'Rose Passion',
     purple: 'Violet Royal',
+    slate: 'Ardoise Premium',
     custom: 'Personnalisé'
 };
 
