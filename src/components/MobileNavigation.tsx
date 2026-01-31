@@ -40,7 +40,7 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
       icon: <Zap size={24} />,
       label: 'Vente',
       onClick: onShowQuickSale,
-      color: 'text-amber-600',
+      color: 'text-brand-primary',
       roles: ['promoteur', 'gerant', 'serveur']
     },
     {
@@ -100,7 +100,7 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
           <button
             key={index}
             onClick={item.path ? () => navigate(item.path!) : item.onClick}
-            className="flex-1 flex flex-col items-center justify-center gap-1 h-full active:bg-amber-50 transition-colors"
+            className="flex-1 flex flex-col items-center justify-center gap-1 h-full active:bg-brand-primary/5 transition-colors"
             aria-label={item.label}
             {...(index === 0 ? { 'data-guide': 'quick-sale-btn' } : {})}
           >
