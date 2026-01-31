@@ -95,13 +95,13 @@ export function CartShared({
                                 </button>
                             </div>
 
-                            {/* 4. Tiny Delete */}
+                            {/* 4. Delete Button - Touch Friendly */}
                             <button
                                 onClick={() => onRemoveItem(item.product.id)}
-                                className="w-5 h-8 flex items-center justify-center text-gray-200 hover:text-red-400 transition-colors"
+                                className="w-8 h-8 flex items-center justify-center bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg text-red-500 active:scale-90 transition-all flex-shrink-0"
                                 aria-label="Supprimer"
                             >
-                                <Trash2 size={12} />
+                                <Trash2 size={14} strokeWidth={2.5} />
                             </button>
                         </div>
                     </motion.div>

@@ -3,6 +3,7 @@ import { useBarContext } from './BarContext';
 import { useAuth } from './AuthContext';
 import { ThemeConfig, DEFAULT_THEME_CONFIG, THEME_PRESETS } from '../types/theme';
 import { ThemeService } from '../services/theme.service';
+import { hexToHSL } from '../utils/colorUtils';
 
 interface ThemeContextValue {
     themeConfig: ThemeConfig;
@@ -45,21 +46,30 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         const isSuperAdmin = currentSession?.role === 'super_admin';
 
         let colors;
+        let primaryColor: string;
 
         if (isSuperAdmin) {
             // Force Indigo
             colors = THEME_PRESETS.purple; // Using purple/indigo preset logic for admin
-            // Overrides spécifiques pour Admin si nécessaire
-            document.documentElement.style.setProperty('--brand-primary', '#6366f1'); // Indigo-500 specific
+            primaryColor = '#6366f1'; // Indigo-500 specific
+            // Overrides spécifiques pour Admin
+            document.documentElement.style.setProperty('--brand-primary', primaryColor);
             document.documentElement.style.setProperty('--brand-secondary', '#818cf8');
             document.documentElement.style.setProperty('--brand-accent', '#c7d2fe');
         } else {
             // Logique normale
             colors = ThemeService.getColors(activeThemeConfig);
+            primaryColor = colors.primary;
             document.documentElement.style.setProperty('--brand-primary', colors.primary);
             document.documentElement.style.setProperty('--brand-secondary', colors.secondary);
             document.documentElement.style.setProperty('--brand-accent', colors.accent);
         }
+
+        // 🎨 Injecter les variables HSL pour le design system CSS
+        // Cela permet aux bordures, gradients, ombres de s'adapter dynamiquement
+        const { hue, saturation } = hexToHSL(primaryColor);
+        document.documentElement.style.setProperty('--brand-hue', hue.toString());
+        document.documentElement.style.setProperty('--brand-saturation', `${saturation}%`);
 
         // Variables dérivées (communes)
         // Shadow: Primary color with 25% opacity

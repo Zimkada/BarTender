@@ -29,12 +29,12 @@ export function PaymentMethodSelector({ value, onChange, className = '' }: Payme
                         className={`
                             flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-200
                             ${isSelected
-                                ? 'bg-amber-50 border-amber-500 text-amber-700 shadow-sm'
-                                : 'bg-white border-gray-200 text-gray-500 hover:border-amber-200 hover:bg-gray-50'
+                                ? 'bg-brand-primary/10 border-brand-primary text-brand-primary shadow-sm shadow-brand-subtle/20'
+                                : 'bg-white border-gray-200 text-gray-500 hover:border-brand-primary/30 hover:bg-gray-50'
                             }
                         `}
                     >
-                        <div className={`mb-1.5 ${isSelected ? 'text-amber-500' : 'text-gray-400'}`}>
+                        <div className={`mb-1.5 ${isSelected ? 'text-brand-primary' : 'text-gray-400'}`}>
                             <Icon size={20} strokeWidth={2.5} />
                         </div>
                         <span className="text-[10px] font-bold uppercase tracking-tight leading-none text-center">

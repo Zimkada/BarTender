@@ -1,4 +1,44 @@
 /**
+ * Convertit une couleur hexadécimale en HSL.
+ * Retourne { hue (0-360), saturation (0-100), lightness (0-100) }
+ */
+export function hexToHSL(hex: string): { hue: number; saturation: number; lightness: number } {
+    // Convertir hex en RGB
+    const r = parseInt(hex.slice(1, 3), 16) / 255;
+    const g = parseInt(hex.slice(3, 5), 16) / 255;
+    const b = parseInt(hex.slice(5, 7), 16) / 255;
+
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let hue = 0;
+    let saturation = 0;
+    const lightness = (max + min) / 2;
+
+    if (max !== min) {
+        const d = max - min;
+        saturation = lightness > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+        switch (max) {
+            case r:
+                hue = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+                break;
+            case g:
+                hue = ((b - r) / d + 2) / 6;
+                break;
+            case b:
+                hue = ((r - g) / d + 4) / 6;
+                break;
+        }
+    }
+
+    return {
+        hue: Math.round(hue * 360),
+        saturation: Math.round(saturation * 100),
+        lightness: Math.round(lightness * 100),
+    };
+}
+
+/**
  * Calcule la luminance relative d'une couleur hexadécimale.
  * Basé sur la spécification WCAG 2.0.
  */

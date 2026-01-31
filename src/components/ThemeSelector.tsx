@@ -141,14 +141,19 @@ export function ThemeSelector() {
                                 <button
                                     onClick={handleSave}
                                     disabled={isLoading}
-                                    className="flex-1 sm:flex-none px-4 py-2 rounded-lg bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex-1 sm:flex-none px-4 py-2 rounded-lg bg-brand-gradient hover:brightness-110 text-white text-sm font-medium flex items-center justify-center gap-2 shadow-brand transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isLoading ? (
                                         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                     ) : (
                                         <Save size={16} />
                                     )}
-                                    {isLoading ? 'Sauvegarde...' : 'Appliquer ce thème'}
+                                    {isLoading ? 'Sauvegarde...' : (
+                                        <>
+                                            <span className="sm:hidden">Appliquer</span>
+                                            <span className="hidden sm:inline">Appliquer ce thème</span>
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>

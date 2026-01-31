@@ -99,7 +99,7 @@ export function MobileSidebar({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110]"
           />
 
           {/* Barre latérale */}
@@ -108,15 +108,15 @@ export function MobileSidebar({
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className={`fixed top-0 left-0 bottom-0 w-72 shadow-2xl z-50 flex flex-col ${currentSession?.role === 'super_admin'
+            className={`fixed top-0 left-0 bottom-0 w-72 shadow-2xl z-[120] flex flex-col ${currentSession?.role === 'super_admin'
               ? 'bg-gradient-to-br from-purple-50 to-indigo-50'
-              : 'bg-gradient-to-br from-amber-50 to-amber-50'
+              : 'bg-brand-subtle'
               }`}
           >
             {/* Header */}
             <div className={`flex items-center justify-between p-4 border-b ${currentSession?.role === 'super_admin'
               ? 'border-purple-200 bg-gradient-to-r from-purple-600 to-indigo-600'
-              : 'border-amber-200 bg-gradient-to-r from-amber-500 to-amber-500'
+              : 'border-brand-subtle bg-brand-gradient'
               }`}>
               <div className="flex items-center gap-2">
                 {currentSession?.role === 'super_admin' && (
@@ -131,7 +131,7 @@ export function MobileSidebar({
                 </h2>
               </div>
               <div>
-                <p className={currentSession?.role === 'super_admin' ? 'text-purple-100 text-xs' : 'text-amber-100 text-xs'}>
+                <p className={currentSession?.role === 'super_admin' ? 'text-purple-100 text-xs' : 'text-white/90 text-xs'}>
                   {currentSession?.userName} • {currentSession?.role}
                 </p>
               </div>
@@ -162,11 +162,11 @@ export function MobileSidebar({
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-2 transition-all ${currentMenu === item.id
                     ? currentSession?.role === 'super_admin'
                       ? 'bg-purple-600 text-white shadow-md'
-                      : 'bg-amber-500 text-white shadow-md'
+                      : 'bg-brand-primary text-white shadow-md'
                     : 'bg-white/60 text-gray-700 hover:bg-white hover:shadow-sm'
                     }`}
                 >
-                  <span className={currentMenu === item.id ? 'text-white' : (currentSession?.role === 'super_admin' ? 'text-purple-600' : 'text-amber-500')}>
+                  <span className={currentMenu === item.id ? 'text-white' : (currentSession?.role === 'super_admin' ? 'text-purple-600' : 'text-brand-primary')}>
                     {item.icon}
                   </span>
                   <span className="font-medium">{item.label}</span>
@@ -175,7 +175,7 @@ export function MobileSidebar({
             </div>
 
             {/* Footer - Actions */}
-            <div className="p-4 border-t border-amber-200 space-y-2">
+            <div className={`p-4 border-t space-y-2 ${currentSession?.role === 'super_admin' ? 'border-purple-200' : 'border-brand-subtle'}`}>
               {/* Bouton déconnexion */}
               <motion.button
                 onClick={handleLogout}
