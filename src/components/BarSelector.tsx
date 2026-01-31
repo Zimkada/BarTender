@@ -7,9 +7,10 @@ import AnimatedBarName from './AnimatedBarName';
 
 interface BarSelectorProps {
   onCreateNew?: () => void;
+  variant?: 'default' | 'transparent';
 }
 
-export function BarSelector({ onCreateNew }: BarSelectorProps) {
+export function BarSelector({ onCreateNew, variant = 'default' }: BarSelectorProps) {
   const { currentSession, hasPermission } = useAuth();
   const { currentBar, userBars, switchBar } = useBarContext();
   const [isOpen, setIsOpen] = React.useState(false);
@@ -49,11 +50,15 @@ export function BarSelector({ onCreateNew }: BarSelectorProps) {
     setIsOpen(false);
   };
 
+  const buttonClasses = variant === 'default'
+    ? "flex items-center gap-2.5 px-3 py-2 glass-button-2026 rounded-xl transition-all active:scale-95 group"
+    : "flex items-center gap-2 px-1 py-1 rounded-xl transition-all active:scale-95 group hover:bg-white/10";
+
   return (
-    <div ref={dropdownRef} className="relative z-[110]">
+    <div ref={dropdownRef} className="relative z-[110] h-full">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2.5 px-3 py-2 glass-button-2026 rounded-xl transition-all active:scale-95 group"
+        className={buttonClasses}
         aria-label="Sélectionner un bar"
         aria-expanded={isOpen}
       >
@@ -64,9 +69,8 @@ export function BarSelector({ onCreateNew }: BarSelectorProps) {
             className="w-4 h-4 rounded-sm"
           />
         </div>
-        <div className="flex flex-col items-start leading-none">
-          <span className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-0.5">Votre Bar</span>
-          <AnimatedBarName text={currentBar?.name || 'Sélectionner'} className="text-sm font-black text-white uppercase tracking-tight" />
+        <div className="flex flex-col items-start leading-none justify-center h-full">
+          <AnimatedBarName text={currentBar?.name || 'Sélectionner'} className="text-lg font-black text-white uppercase tracking-tight truncate" />
         </div>
         <ChevronDown
           size={16}

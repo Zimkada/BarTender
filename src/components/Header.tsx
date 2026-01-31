@@ -164,56 +164,64 @@ export function Header({
                 </div>
               </div>
 
-              {/* Ligne 2: Nom du bar + Ventes du jour (même enveloppe) */}
-              <div className="glass-button-2026 rounded-2xl px-3 py-2.5 mb-2 shadow-xl border-white/40">
-                <div className="flex items-center justify-between gap-2">
-                  {/* Nom du bar ou sélecteur - LEFT */}
-                  {currentSession?.role === 'promoteur' ? (
-                    <BarSelector onCreateNew={onShowCreateBar} />
-                  ) : (
-                    <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                      <img
-                        src="/icons/icon-48x48.png"
-                        alt="BarTender"
-                        className="w-5 h-5 flex-shrink-0 rounded"
-                      />
-                      <span className="text-sm font-medium text-white truncate">
-                        <AnimatedBarName text={currentBar?.name || 'BarTender'} />
-                      </span>
-                    </div>
-                  )}
+              {/* Ligne 2: Nom du bar + Ventes du jour (conteneurs séparés) */}
+              {/* Unified Pill: Selector + Sales */}
+              {currentSession?.role === 'promoteur' ? (
+                <div className="glass-button-2026 rounded-xl flex items-center shadow-xl border-white/40 flex-1 min-w-0 pr-1">
+                  {/* Partie Gauche: Bar Selector (Transparent) */}
+                  <div className="flex-[1.5] border-r border-white/20">
+                    <BarSelector onCreateNew={onShowCreateBar} variant="transparent" />
+                  </div>
 
-                  {/* Ventes du jour - RIGHT (seulement pour non super admin) */}
+                  {/* Partie Droite: Sales */}
+                  <div className="flex-1 flex flex-col items-center justify-center py-1">
+                    <p className="text-white/80 text-[9px] font-bold uppercase tracking-wider mb-0.5">Ventes jour</p>
+                    <AnimatedCounter
+                      value={todayTotal}
+                      className="text-white text-sm font-black"
+                      suffix=" FCFA"
+                    />
+                  </div>
+                </div>
+              ) : (
+                // Layout NON-Promoteur (Reste inchangé ou adapté si besoin, ici on garde séparé pour l'instant sauf demande)
+                // Mais pour cohérence, on peut aussi unifier. Pour l'instant on garde le comportement 'promoteur' ciblé.
+                <div className="flex items-center gap-2 mb-2 w-full">
+                  <div className="glass-button-2026 rounded-xl px-3 py-2.5 shadow-xl border-white/40 flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <img src="/icons/icon-48x48.png" alt="BarTender" className="w-5 h-5 flex-shrink-0 rounded" />
+                      <span className="text-sm font-medium text-white truncate"><AnimatedBarName text={currentBar?.name || 'BarTender'} /></span>
+                    </div>
+                  </div>
                   {currentSession?.role !== 'super_admin' && (
-                    <div className="flex flex-col items-center flex-shrink-0">
-                      <p className="text-white/80 text-xs font-medium">Ventes jour</p>
-                      <AnimatedCounter
-                        value={todayTotal}
-                        className="text-white text-sm font-medium"
-                        suffix=" FCFA"
-                      />
+                    <div className="glass-button-2026 rounded-xl px-2 py-2 shadow-xl border-white/40 flex-shrink-0 flex flex-col items-center justify-center min-w-[30%]">
+                      <p className="text-white/80 text-[9px] font-bold uppercase tracking-wider mb-0.5">Ventes jour</p>
+                      <AnimatedCounter value={todayTotal} className="text-white text-sm font-black" suffix=" FCFA" />
                     </div>
                   )}
                 </div>
-              </div>
+              )}
 
               {/* Ligne 3: Rôle + Nom utilisateur (centré) */}
-              <div className="flex items-center justify-center gap-2 mb-1 w-full">
-                <div className="flex items-center gap-1 bg-black/10 backdrop-blur-sm rounded-full px-2.5 py-1 border border-white/10">
+              <div className="flex items-center justify-center gap-2 mb-1 w-full opacity-90">
+                <div className="flex items-center gap-1.5">
                   {getRoleIcon()}
                   <span className="text-white text-[10px] uppercase tracking-wider font-bold">{getRoleLabel()}</span>
                 </div>
                 {currentSession?.userName && (
-                  <span className="text-white/90 text-xs font-medium">
-                    {currentSession.userName}
-                  </span>
+                  <>
+                    <span className="text-white/40 text-[10px]">•</span>
+                    <span className="text-white text-xs font-medium">
+                      {currentSession.userName}
+                    </span>
+                  </>
                 )}
               </div>
             </>
           )}
         </div>
 
-      </header>
+      </header >
     );
   }
 
