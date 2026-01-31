@@ -40,7 +40,7 @@ export function ProductCard({ product, onAddToCart, availableStock }: ProductCar
 
   const getStockStatus = () => {
     if (isStockEmpty) return { color: 'bg-red-500', label: 'Épuisé' };
-    if (isLowStock) return { color: 'bg-brand-primary', label: displayStock };
+    if (isLowStock) return { color: 'bg-orange-400', label: displayStock };
     return { color: 'bg-emerald-500', label: displayStock };
   };
 
@@ -55,7 +55,10 @@ export function ProductCard({ product, onAddToCart, availableStock }: ProductCar
       className={`
         relative flex flex-col h-full
         bg-white/60 backdrop-blur-md rounded-3xl
-        border-2 ${showFeedback ? 'border-brand-primary shadow-xl shadow-brand-subtle' : 'border-brand-primary'}
+        ${showFeedback
+          ? 'border-2 border-brand-primary shadow-xl shadow-brand-subtle'
+          : 'border border-gray-200 hover:border-brand-primary/30'
+        }
         shadow-sm hover:shadow-xl hover:shadow-brand-subtle/20
         overflow-hidden cursor-pointer select-none
         touch-manipulation
@@ -76,7 +79,7 @@ export function ProductCard({ product, onAddToCart, availableStock }: ProductCar
       {/* --- IMAGE AREA --- */}
       <div className="aspect-square bg-gradient-to-b from-gray-50/10 to-white p-3 flex items-center justify-center relative group">
         {isLowStock && !isStockEmpty && (
-          <div className="absolute top-2 left-2 text-brand-primary animate-pulse">
+          <div className="absolute top-2 left-2 text-orange-500 animate-pulse">
             <AlertTriangle size={14} />
           </div>
         )}
