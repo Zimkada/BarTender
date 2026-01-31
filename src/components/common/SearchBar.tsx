@@ -52,7 +52,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
-                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-amber-200 bg-white focus:ring-2 focus:ring-amber-500 focus:border-transparent transition-all outline-none text-gray-800 placeholder-gray-400"
+                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-brand-primary/20 bg-white focus:ring-2 focus:ring-brand-primary/50 focus:border-brand-primary transition-all outline-none text-gray-800 placeholder-gray-400 font-medium"
             />
 
             {/* Bouton clear (visible seulement si valeur non vide) */}

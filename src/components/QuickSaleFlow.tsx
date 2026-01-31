@@ -223,7 +223,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
             {/* --- HEADER --- */}
             <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm z-10 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="bg-amber-100 p-2 rounded-lg text-amber-600">
+                <div className="bg-brand-primary/10 p-2 rounded-lg text-brand-primary">
                   <Zap size={20} fill="currentColor" />
                 </div>
                 <div>
@@ -302,9 +302,9 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                   {/* Header */}
                   <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                     <h3 className="font-bold text-gray-700 flex items-center gap-2">
-                      <ShoppingCart className="text-amber-500" size={20} />
+                      <ShoppingCart className="text-brand-primary" size={20} />
                       Panier
-                      <span className="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full">{totalItems}</span>
+                      <span className="bg-brand-primary/10 text-brand-primary text-xs px-2 py-0.5 rounded-full">{totalItems}</span>
                     </h3>
                     {cart.length > 0 && (
                       <button onClick={() => { if (confirm('Vider ?')) clearCart() }} className="text-red-400 hover:text-red-600 p-1">
@@ -364,7 +364,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                     >
                       <button
                         onClick={() => setIsCartDrawerOpen(true)}
-                        className="w-full bg-amber-500 text-white h-14 rounded-xl font-bold flex justify-between px-6 items-center shadow-lg shadow-amber-200 active:scale-95 transition-transform"
+                        className="w-full bg-brand-gradient text-white h-14 rounded-xl font-bold flex justify-between px-6 items-center shadow-lg shadow-brand/30 active:scale-95 transition-transform"
                       >
                         <div className="flex items-center gap-3">
                           <div className="bg-white/20 px-3 py-1 rounded text-sm font-mono">{totalItems}</div>
