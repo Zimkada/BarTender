@@ -555,9 +555,8 @@ export default function SettingsPage() {
                             </RadioGroup>
                         </div>
 
-                        {/* Configuration Switching Mode (Si Simplifié) */}
                         {tempOperatingMode === 'simplified' && FEATURES.ENABLE_SWITCHING_MODE && (
-                            <div className="bg-gray-50 rounded-xl p-6 border border-gray-200 animate-in fade-in zoom-in-95 duration-300">
+                            <div className="bg-gray-50 rounded-xl p-3 md:p-6 border border-gray-200 animate-in fade-in zoom-in-95 duration-300">
                                 <div className="flex items-center gap-2 mb-4">
                                     <GitBranch size={20} className="text-brand-primary" />
                                     <h4 className="font-bold text-gray-900">Configuration du Mode Switching</h4>

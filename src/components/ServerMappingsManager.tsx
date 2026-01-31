@@ -139,7 +139,7 @@ export function ServerMappingsManager({
   };
 
   const memberOptions: SelectOption[] = useMemo(() => [
-    { value: '', label: 'Sélectionner un compte de l\'équipe...' },
+    { value: '', label: 'Choisir un membre...' },
     ...barMembers.map(member => ({
       value: member.userId,
       label: `${member.name} (${member.role === 'gerant' ? 'Gérant' : 'Serveur'})`
@@ -193,7 +193,7 @@ export function ServerMappingsManager({
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           {/* Main List */}
           <div className="lg:col-span-3 space-y-4">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
               <h4 className="font-bold text-gray-900 flex items-center gap-2">
                 Mappings Actifs
                 <span className="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full">{mappings.length}</span>
@@ -233,10 +233,10 @@ export function ServerMappingsManager({
                             <h5 className="font-black text-gray-900 text-base">{mapping.serverName}</h5>
                             <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
                           </div>
-                          <p className="text-xs font-semibold text-gray-400 flex items-center gap-1">
-                            <User size={10} />
-                            Lié à : <span className="text-brand-primary">{mapping.userName}</span>
-                          </p>
+                          <div className="text-xs font-semibold text-gray-400 flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1">
+                            <span className="flex items-center gap-1"><User size={10} /> Lié à :</span>
+                            <span className="text-brand-primary truncate max-w-[100px] sm:max-w-none">{mapping.userName}</span>
+                          </div>
                         </div>
                       </div>
                       <button
@@ -279,7 +279,7 @@ export function ServerMappingsManager({
           {/* Sidebar: Add Form */}
           <div className="lg:col-span-2 space-y-4">
             <h4 className="font-bold text-gray-900 mb-2 px-1 text-sm uppercase tracking-widest opacity-60">Nouvel Ajout</h4>
-            <div className="bg-white rounded-3xl p-6 border-2 border-dashed border-brand-border relative overflow-hidden flex flex-col shadow-inner">
+            <div className="bg-white rounded-3xl p-4 sm:p-6 border-2 border-dashed border-brand-border relative overflow-hidden flex flex-col shadow-inner">
               {/* Ticket Cutouts */}
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-gray-50 rounded-full border-b border-gray-100" />
               <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-gray-50 rounded-full border-t border-gray-100" />
@@ -312,10 +312,10 @@ export function ServerMappingsManager({
                   <Button
                     onClick={handleAddMapping}
                     disabled={saving || !newServerName.trim() || !newServerId}
-                    className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-brand-subtle flex items-center justify-center gap-2"
+                    className="w-full h-14 rounded-2xl font-black uppercase tracking-wide sm:tracking-widest shadow-xl shadow-brand-subtle flex items-center justify-center gap-2 text-xs sm:text-sm"
                   >
                     {saving ? <Loader size={20} className="animate-spin" /> : <Plus size={20} />}
-                    Valider l'Assignation
+                    {saving ? 'Validation...' : 'Valider l\'Assignation'}
                   </Button>
                 </div>
 
