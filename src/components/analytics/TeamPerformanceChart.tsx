@@ -14,11 +14,13 @@ import { UserPerformanceStat } from '../../hooks/useTeamPerformance';
 interface TeamPerformanceChartProps {
     data: UserPerformanceStat[];
     formatPrice: (value: number) => string;
+    colors?: string[];
 }
 
-const CHART_COLORS = ['var(--brand-primary)', '#fb923c', '#fdba74', '#fed7aa', '#ffedd5', 'var(--brand-dark)', '#c2410c'];
+const DEFAULT_COLORS = ['var(--brand-primary)', 'var(--brand-primary-dark)', 'var(--brand-accent)', 'var(--brand-border)', '#94a3b8'];
 
-export const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data, formatPrice }) => {
+export const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data, formatPrice, colors }) => {
+    const chartColors = colors || DEFAULT_COLORS;
     // Sort data strictly by revenue descending for better visualization
     const sortedData = [...data].sort((a, b) => b.revenue - a.revenue);
 
@@ -86,7 +88,7 @@ export const TeamPerformanceChart: React.FC<TeamPerformanceChartProps> = ({ data
                             animationDuration={1500}
                         >
                             {sortedData.map((_entry, index) => (
-                                <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
                             ))}
                         </Bar>
                     </BarChart>

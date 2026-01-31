@@ -105,9 +105,10 @@ export function AnalyticsView({
       colors.primary,      // Dominant
       colors.secondary,    // Secondaire
       colors.accent,       // Accent
-      `${colors.primary}80`, // Primary 50% opacity
-      `${colors.secondary}80`, // Secondary 50% opacity
-      `${colors.primary}40`, // Primary 25% opacity
+      `${colors.primary}B3`, // Primary 70% opacity
+      `${colors.secondary}B3`, // Secondary 70% opacity
+      `${colors.accent}B3`,   // Accent 70% opacity
+      `${colors.primary}66`, // Primary 40% opacity
       '#64748b'            // Neutral slate-500 for "Others"
     ];
   }, [themeConfig]);
@@ -427,6 +428,7 @@ export function AnalyticsView({
         <TeamPerformanceChart
           data={userPerformance}
           formatPrice={formatPrice}
+          colors={chartColors}
         />
       </div>
 
