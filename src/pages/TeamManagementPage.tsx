@@ -178,7 +178,7 @@ export default function TeamManagementPage() {
     try {
       const generatedEmail = username.includes('@')
         ? username
-        : `${username} @bartender.app`;
+        : `${username}@bartender.app`;
 
       await AuthService.signup(
         {
@@ -748,16 +748,16 @@ export default function TeamManagementPage() {
 
               {/* Right Column: Profile Preview Ticket */}
               <div className="lg:col-span-1">
-                <div className="bg-brand-subtle rounded-3xl p-6 border-2 border-dashed border-brand-subtle relative overflow-hidden h-full flex flex-col min-h-[400px]">
+                <div className="bg-[#FFF9E5] rounded-3xl p-6 border-2 border-dashed border-brand-primary/30 relative overflow-hidden h-full flex flex-col min-h-[400px]">
                   {/* Cutouts */}
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-gray-50 rounded-full" />
                   <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-gray-50 rounded-full" />
 
                   <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4 border border-brand-subtle">
+                    <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4 border border-brand-primary">
                       <UserIcon size={32} className="text-brand-primary" />
                     </div>
-                    <h4 className="font-black text-brand-dark uppercase tracking-widest text-sm">Aperçu Profil</h4>
+                    <h4 className="font-black text-brand-dark opacity-80 uppercase tracking-widest text-sm">Aperçu Profil</h4>
                   </div>
 
                   <div className="space-y-5 flex-1">
@@ -777,13 +777,13 @@ export default function TeamManagementPage() {
                       </div>
                     </div>
 
-                    <div className="bg-brand-dark text-white p-5 rounded-2xl shadow-xl text-center">
+                    <div className="bg-[var(--brand-primary-dark)] text-white p-5 rounded-2xl shadow-xl text-center transition-colors duration-300">
                       <p className="text-[10px] font-black uppercase opacity-60 mb-2 tracking-widest leading-none">Accès Bar</p>
-                      <p className="font-black text-base text-[var(--brand-bg-subtle)]">{currentBar.name}</p>
+                      <p className="font-black text-base text-white">{currentBar.name}</p>
                     </div>
 
                     <div className="px-2 text-center pt-4">
-                      <div className="flex items-center justify-center gap-2 text-[var(--brand-text)] opacity-60 text-xs font-medium italic">
+                      <div className="flex items-center justify-center gap-2 text-brand-dark opacity-60 text-xs font-medium italic">
                         <Info size={14} />
                         <span>L'employé pourra se connecter dès validation</span>
                       </div>
@@ -793,7 +793,7 @@ export default function TeamManagementPage() {
                   <div className="mt-8">
                     <button
                       onClick={() => setPageTab('members')}
-                      className="w-full py-3 text-amber-800/50 font-black text-xs uppercase hover:text-amber-800 transition-colors"
+                      className="w-full py-3 text-brand-dark opacity-50 font-black text-xs uppercase hover:opacity-100 transition-all font-black text-xs uppercase hover:opacity-100 transition-all"
                     >
                       Abandonner
                     </button>
