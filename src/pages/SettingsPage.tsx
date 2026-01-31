@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, DollarSign, Clock, Building2, Mail, Phone, MapPin, ShieldCheck, CheckCircle, AlertCircle, GitBranch, Palette } from 'lucide-react';
+import { Settings as SettingsIcon, DollarSign, Clock, Building2, Mail, Phone, MapPin, ShieldCheck, CheckCircle, AlertCircle, GitBranch } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useNotifications } from '../components/Notifications';
 import { Factor } from '@supabase/supabase-js';
@@ -248,7 +248,7 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="max-w-3xl mx-auto space-y-6 pb-20 px-4">
+        <div className="max-w-7xl mx-auto space-y-6 pb-20 px-4">
             {/* Header Standardisé */}
             <TabbedPageHeader
                 title="Paramètres"
@@ -574,7 +574,7 @@ export default function SettingsPage() {
 
             {/* Footer Actions */}
             <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 md:static md:bg-transparent md:border-0 md:p-0 z-20">
-                <div className="max-w-3xl mx-auto flex gap-3">
+                <div className="max-w-7xl mx-auto flex gap-3">
                     <Button
                         onClick={() => navigate(-1)}
                         variant="secondary"
