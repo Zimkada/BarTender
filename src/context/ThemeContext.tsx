@@ -86,11 +86,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const updateTheme = async (config: ThemeConfig) => {
         if (!currentBar) throw new Error('No bar selected');
 
-        // Validation et Sauvegarde
-        await ThemeService.updateBarTheme(currentBar.id, config);
+        // 1. Validation stricte avant sauvegarde
+        const validatedConfig = ThemeService.validate(config);
 
-        // Mise à jour optimiste du context Bar (pour éviter un reload)
-        // Note: updateBar fait déjà un refresh normalement, mais ici on s'assure de l'UI instantanée
+        // 2. Utiliser updateBar() pour synchroniser automatiquement:
+        //    - Base de données (via BarsService)
+        //    - État local (currentBar dans BarContext)
+        //    - Cache offline (OfflineStorage)
+        // Cela évite la désynchronisation et le "flash" visuel à l'actualisation
+        await updateBar(currentBar.id, {
+            theme_config: JSON.stringify(validatedConfig)
+        });
+
+        // 3. Désactiver le mode preview après sauvegarde réussie
         setPreviewConfig(null);
     };
 
