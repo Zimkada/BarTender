@@ -169,15 +169,15 @@ function LoginScreen() {
   // Écran de défi MFA
   if (mfaRequired) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-brand-subtle to-brand-subtle flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md"
         >
           <div className="text-center mb-8">
-            <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
-              <Lock className="w-8 h-8 text-amber-600" />
+            <div className="mx-auto w-16 h-16 bg-brand-subtle rounded-full flex items-center justify-center mb-4">
+              <Lock className="w-8 h-8 text-brand-primary" />
             </div>
             <h2 className="text-2xl font-bold text-gray-800">Vérification 2FA</h2>
             <p className="text-gray-600 mt-2">Veuillez entrer le code de votre application d'authentification.</p>
@@ -229,15 +229,15 @@ function LoginScreen() {
   // Écran de changement de mot de passe (première connexion)
   if (isFirstLogin) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-brand-subtle to-brand-subtle flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md"
         >
           <div className="text-center mb-8">
-            <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-4">
-              <Lock className="w-8 h-8 text-amber-600" />
+            <div className="mx-auto w-16 h-16 bg-brand-subtle rounded-full flex items-center justify-center mb-4">
+              <Lock className="w-8 h-8 text-brand-primary" />
             </div>
             <h2 className="text-2xl font-bold text-gray-800">Première connexion</h2>
             <p className="text-gray-600 mt-2">Veuillez changer votre mot de passe</p>
@@ -281,7 +281,7 @@ function LoginScreen() {
 
   // Écran de connexion principal
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-brand-subtle to-brand-subtle flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -335,7 +335,7 @@ function LoginScreen() {
           <button
             type="button"
             onClick={navigateToForgotPassword}
-            className="font-medium text-amber-600 hover:text-amber-500 bg-transparent border-none cursor-pointer"
+            className="font-medium text-brand-primary hover:text-brand-primary/80 bg-transparent border-none cursor-pointer"
           >
             Mot de passe oublié ?
           </button>

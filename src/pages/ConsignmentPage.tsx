@@ -362,7 +362,7 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
                       {consignment.productVolume}
                     </p>
                     {originalSeller && (
-                      <p className="text-xs text-amber-600 mt-1">👤 Vendeur: {originalSeller.name}</p>
+                      <p className="text-xs text-brand-primary mt-1">👤 Vendeur: {originalSeller.name}</p>
                     )}
                   </div>
                   <StatusBadge status={consignment.status} />

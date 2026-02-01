@@ -197,18 +197,18 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
             <div className="flex-1 overflow-y-auto pr-1">
                 {isLoading ? (
                     <div className="flex items-center justify-center py-20">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary"></div>
                     </div>
                 ) : (
                     <div className="flex flex-col h-full">
                         {isMobile ? (
                             <div className="flex flex-col gap-4">
-                                <div className="bg-amber-50 p-3 rounded-xl">
+                                <div className="bg-brand-subtle p-3 rounded-xl">
                                     <button
                                         onClick={() => setShowOrderSuggestions(!showOrderSuggestions)}
                                         className={`w-full px-4 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors mb-3 ${showOrderSuggestions
-                                            ? 'bg-white text-amber-600 border-2 border-amber-600'
-                                            : 'bg-amber-500 text-white'
+                                            ? 'bg-white text-brand-primary border-2 border-brand-primary'
+                                            : 'bg-brand-primary text-white'
                                             }`}
                                     >
                                         <ShoppingCart size={18} />
@@ -226,7 +226,7 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
                                                     key={filter.value}
                                                     onClick={() => setFilterStatus(filter.value as any)}
                                                     className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium transition-colors ${filterStatus === filter.value
-                                                        ? 'bg-amber-500 text-white'
+                                                        ? 'bg-brand-primary text-white'
                                                         : 'bg-white text-gray-700'
                                                         }`}
                                                 >
@@ -295,7 +295,7 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
                                             </div>
                                             <div className="flex justify-between items-center bg-white p-2.5 rounded-xl border border-gray-100">
                                                 <span className="text-xs font-medium text-gray-500">Investissement</span>
-                                                <span className="font-black text-amber-600">{formatPrice(statsCount.totalOrderValue)}</span>
+                                                <span className="font-black text-brand-primary">{formatPrice(statsCount.totalOrderValue)}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -305,14 +305,14 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
                                         <div className="space-y-2">
                                             <button
                                                 onClick={() => setShowOrderSuggestions(false)}
-                                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-bold transition-all ${!showOrderSuggestions ? 'bg-amber-500 text-white shadow-md shadow-amber-200' : 'text-gray-500 hover:bg-white hover:text-gray-700'}`}
+                                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-bold transition-all ${!showOrderSuggestions ? 'bg-brand-primary text-white shadow-md shadow-brand-subtle' : 'text-gray-500 hover:bg-white hover:text-gray-700'}`}
                                             >
                                                 <AlertTriangle size={18} />
                                                 Alertes Stock
                                             </button>
                                             <button
                                                 onClick={() => setShowOrderSuggestions(true)}
-                                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-bold transition-all ${showOrderSuggestions ? 'bg-amber-500 text-white shadow-md shadow-amber-200' : 'text-gray-500 hover:bg-white hover:text-gray-700'}`}
+                                                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-bold transition-all ${showOrderSuggestions ? 'bg-brand-primary text-white shadow-md shadow-brand-subtle' : 'text-gray-500 hover:bg-white hover:text-gray-700'}`}
                                             >
                                                 <ShoppingCart size={18} />
                                                 Suggestions d'achat
@@ -325,7 +325,7 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
                                             variant="primary"
                                             onClick={exportOrderList}
                                             icon={<Download size={18} />}
-                                            className="w-full py-6 rounded-2xl font-black shadow-lg shadow-amber-100"
+                                            className="w-full py-6 rounded-2xl font-black shadow-lg shadow-brand-subtle"
                                         >
                                             Export Excel
                                         </EnhancedButton>
@@ -454,7 +454,7 @@ function AlertCard({
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`rounded-2xl p-5 border shadow-sm transition-all ${getSeverityStyle(alert.severity)} ${alert.status === 'new' ? 'border-l-4 border-l-amber-500' : 'opacity-80'}`}
+            className={`rounded-2xl p-5 border shadow-sm transition-all ${getSeverityStyle(alert.severity)} ${alert.status === 'new' ? 'border-l-4 border-l-brand-primary' : 'opacity-80'}`}
         >
             <div className="flex items-start gap-4">
                 <div className="p-2 bg-gray-50 rounded-xl shrink-0">
@@ -476,7 +476,7 @@ function AlertCard({
                         </div>
                         <div className="flex flex-col">
                             <span className="text-gray-400 text-[10px] uppercase tracking-wider font-bold">Préd. Rupture</span>
-                            <span className="text-amber-600 font-bold">
+                            <span className="text-brand-primary font-bold">
                                 {alert.predictedRunout ? alert.predictedRunout.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : 'Indéterminé'}
                             </span>
                         </div>
@@ -489,7 +489,7 @@ function AlertCard({
                     variant="ghost"
                     size="sm"
                     onClick={onViewSuggestion}
-                    className="h-8 px-3 text-amber-600 hover:bg-amber-50 flex items-center gap-1.5 font-bold text-xs"
+                    className="h-8 px-3 text-brand-primary hover:bg-brand-subtle flex items-center gap-1.5 font-bold text-xs"
                 >
                     <ShoppingCart size={14} /> Voir suggestion
                 </Button>
@@ -538,7 +538,7 @@ function OrderSuggestionCard({
                     {onBackToAlert && (
                         <button
                             onClick={onBackToAlert}
-                            className="text-[10px] font-bold text-gray-400 hover:text-amber-600 underline decoration-gray-300 hover:decoration-amber-500 transition-colors whitespace-nowrap pt-1"
+                            className="text-[10px] font-bold text-gray-400 hover:text-brand-primary underline decoration-gray-300 hover:decoration-brand-primary transition-colors whitespace-nowrap pt-1"
                         >
                             Voir alerte
                         </button>
@@ -558,9 +558,9 @@ function OrderSuggestionCard({
                     <span className="block text-gray-400 text-[9px] uppercase font-black mb-0.5">Stock</span>
                     <span className="text-base font-bold text-gray-800">{suggestion.currentStock}</span>
                 </div>
-                <div className="bg-amber-50 p-2.5 rounded-xl border border-amber-100 text-center">
-                    <span className="block text-amber-500 text-[9px] uppercase font-black mb-0.5">Besoin</span>
-                    <span className="text-xl font-black text-amber-600">+{suggestion.suggestedQuantity}</span>
+                <div className="bg-brand-subtle p-2.5 rounded-xl border border-brand-subtle text-center">
+                    <span className="block text-brand-primary text-[9px] uppercase font-black mb-0.5">Besoin</span>
+                    <span className="text-xl font-black text-brand-primary">+{suggestion.suggestedQuantity}</span>
                 </div>
             </div>
 
@@ -575,7 +575,7 @@ function OrderSuggestionCard({
                         variant="primary"
                         onClick={onSupply}
                         size="sm"
-                        className="text-xs px-4 py-1.5 h-8 bg-amber-500 hover:bg-amber-600 text-white shadow-sm font-bold w-full sm:w-auto"
+                        className="text-xs px-4 py-1.5 h-8 bg-brand-primary hover:bg-brand-primary/90 text-white shadow-sm font-bold w-full sm:w-auto"
                     >
                         Approvisionner
                     </EnhancedButton>
