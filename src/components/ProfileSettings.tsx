@@ -207,7 +207,7 @@ export function ProfileSettings() {
                         type="text"
                         value={name}
                         onChange={e => setName(e.target.value)}
-                        placeholder="Jean Dupont"
+                        placeholder="Sandra KOFFI"
                         className="h-12 text-lg font-bold bg-gray-50 border-gray-100 focus:bg-white transition-all"
                       />
                     </div>

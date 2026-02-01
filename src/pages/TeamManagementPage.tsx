@@ -642,7 +642,7 @@ export default function TeamManagementPage() {
                                   type="text"
                                   value={name}
                                   onChange={(e) => setName(e.target.value)}
-                                  placeholder="Jean Dupont"
+                                  placeholder="Sandra KOFFI"
                                   className="h-12 bg-gray-50 border-gray-200 focus:bg-white text-lg font-medium"
                                 />
                               </div>

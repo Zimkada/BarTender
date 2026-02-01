@@ -129,7 +129,8 @@ export function CategoryModal({ isOpen, onClose, onSave, onLinkGlobal, category 
                 }`}
             >
                 <Globe size={16} className="mr-2" />
-                Catalogue Global
+                <span className="hidden sm:inline">Catalogue Global</span>
+                <span className="sm:hidden">Catalogue</span>
             </Button>
             <Button
                 onClick={() => setMode('custom')}
@@ -190,7 +191,7 @@ export function CategoryModal({ isOpen, onClose, onSave, onLinkGlobal, category 
                     required
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="ex: Sodas, Spiritueux"
+                    placeholder="ex: Bières, Jus de fruits"
                 />
               </div>
 
