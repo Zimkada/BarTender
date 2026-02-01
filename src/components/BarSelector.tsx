@@ -34,16 +34,11 @@ export function BarSelector({ onCreateNew, variant = 'default' }: BarSelectorPro
   }, [isOpen]);
 
   // Utiliser allBarIds (depuis auth session) comme source de vérité pour le multi-bar
+  // Fallback: utiliser userBars si allBarIds n'est pas disponible (transition period)
   const hasMultipleBars = currentSession && (
     (currentSession.allbarIds?.length && currentSession.allbarIds.length > 1) ||
     userBars.length > 1
   );
-
-  const canOpenDropdown = hasMultipleBars || (hasPermission('canCreateBars') && !!onCreateNew);
-
-  if (!currentBar) {
-    return null;
-  }
 
   const handleSwitch = async (barId: string) => {
     await switchBar(barId);
@@ -57,11 +52,10 @@ export function BarSelector({ onCreateNew, variant = 'default' }: BarSelectorPro
   return (
     <div ref={dropdownRef} className="relative z-[110] h-full">
       <button
-        onClick={() => canOpenDropdown && setIsOpen(!isOpen)}
-        className={`${buttonClasses} ${!canOpenDropdown ? 'cursor-default pointer-events-none' : ''}`}
-        aria-label="Sélectionner un bar"
-        aria-expanded={isOpen}
-        disabled={!canOpenDropdown}
+        onClick={() => hasMultipleBars && setIsOpen(!isOpen)}
+        className={`${buttonClasses} ${!hasMultipleBars ? 'cursor-default' : ''}`}
+        aria-label={hasMultipleBars ? "Sélectionner un bar" : "Nom du bar"}
+        aria-expanded={hasMultipleBars ? isOpen : undefined}
       >
         <div className="w-6 h-6 rounded-lg bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
           <img
@@ -76,7 +70,7 @@ export function BarSelector({ onCreateNew, variant = 'default' }: BarSelectorPro
             className={`${variant === 'default' ? 'text-lg' : 'text-sm'} font-black text-white uppercase tracking-tight truncate`}
           />
         </div>
-        {canOpenDropdown && (
+        {hasMultipleBars && (
           <ChevronDown
             size={16}
             className={`text-white/80 transition-transform duration-300 ml-1 ${isOpen ? 'rotate-180' : ''}`}

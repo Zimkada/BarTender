@@ -8,7 +8,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 // Contexts
 import { AuthProvider } from './context/AuthContext';
 import { BarProvider } from './context/BarContext';
-import { ThemeProvider } from './context/ThemeContext'; // Import ThemeProvider
+import { ThemeProvider } from './context/ThemeContext';
 import { OnboardingProvider } from './context/OnboardingContext';
 import { GuideProvider } from './context/GuideContext';
 import { StockProvider } from './context/StockContext';
@@ -30,25 +30,14 @@ import './index.css';
 // Dev helpers
 import './utils/devHelpers';
 
-// Feature Flag: Enable dynamic theming only if env var is true
-const ENABLE_DYNAMIC_THEMING = import.meta.env.VITE_ENABLE_THEMING === 'true';
-
-// Helper component for conditional wrapping
-const ThemeWrapper = ({ children }: { children: React.ReactNode }) => {
-  if (ENABLE_DYNAMIC_THEMING) {
-    return <ThemeProvider>{children}</ThemeProvider>;
-  }
-  return <>{children}</>;
-};
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <NotificationsProvider>
         <AuthProvider>
           <BarProvider>
-            {/* Wrap ThemeProvider inside BarProvider but outside others */}
-            <ThemeWrapper>
+            {/* ThemeProvider always loaded - provides theme context to all components */}
+            <ThemeProvider>
               <OnboardingProvider>
                 <GuideProvider>
                   <StockProvider>
@@ -67,7 +56,7 @@ createRoot(document.getElementById('root')!).render(
                   </StockProvider>
                 </GuideProvider>
               </OnboardingProvider>
-            </ThemeWrapper>
+            </ThemeProvider>
           </BarProvider>
         </AuthProvider>
       </NotificationsProvider>
