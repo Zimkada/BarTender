@@ -198,7 +198,7 @@ function ExpenseManagerContent() {
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className={`bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors flex items-center gap-2 ${isMobile ? 'px-3 py-2 text-sm' : 'px-4 py-2'
+          className={`bg-brand-primary text-white rounded-lg hover:bg-brand-primary/90 transition-colors flex items-center gap-2 ${isMobile ? 'px-3 py-2 text-sm' : 'px-4 py-2'
             }`}
         >
           <Plus size={isMobile ? 16 : 20} />
@@ -213,7 +213,7 @@ function ExpenseManagerContent() {
             key={type}
             onClick={() => setPeriodType(type)}
             className={`px-3 py-1.5 rounded-md transition-colors ${isMobile ? 'text-xs' : 'text-sm'} ${periodType === type
-              ? 'bg-amber-500 text-white'
+              ? 'bg-brand-primary text-white'
               : 'text-gray-600 hover:bg-gray-200'
               }`}
           >
@@ -324,7 +324,7 @@ function ExpenseManagerContent() {
       {/* Custom categories button */}
       <button
         onClick={() => setShowCategoryForm(true)}
-        className={`w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-amber-500 hover:text-amber-500 transition-colors flex items-center justify-center gap-2 ${isMobile ? 'text-sm' : ''
+        className={`w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-600 hover:border-brand-primary hover:text-brand-primary transition-colors flex items-center justify-center gap-2 ${isMobile ? 'text-sm' : ''
           }`}
       >
         <Plus size={isMobile ? 16 : 20} />
@@ -372,7 +372,7 @@ function ExpenseManagerContent() {
                     value={amount}
                     onChange={e => setAmount(e.target.value)}
                     placeholder="5000"
-                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${isMobile ? 'text-sm' : ''
+                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-brand-primary focus:outline-none ${isMobile ? 'text-sm' : ''
                       }`}
                   />
                 </div>
@@ -413,7 +413,7 @@ function ExpenseManagerContent() {
                     type="date"
                     value={date}
                     onChange={e => setDate(e.target.value)}
-                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${isMobile ? 'text-sm' : ''
+                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-brand-primary focus:outline-none ${isMobile ? 'text-sm' : ''
                       }`}
                   />
                 </div>
@@ -429,7 +429,7 @@ function ExpenseManagerContent() {
                     onChange={e => setNotes(e.target.value)}
                     placeholder="Détails de la dépense..."
                     rows={3}
-                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none resize-none ${isMobile ? 'text-sm' : ''
+                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-brand-primary focus:outline-none resize-none ${isMobile ? 'text-sm' : ''
                       }`}
                   />
                 </div>
@@ -497,7 +497,7 @@ function ExpenseManagerContent() {
                     value={newCategoryName}
                     onChange={e => setNewCategoryName(e.target.value)}
                     placeholder="Ex: Loyer, Internet, etc."
-                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${isMobile ? 'text-sm' : ''
+                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-brand-primary focus:outline-none ${isMobile ? 'text-sm' : ''
                       }`}
                   />
                 </div>
@@ -511,7 +511,7 @@ function ExpenseManagerContent() {
                     value={newCategoryIcon}
                     onChange={e => setNewCategoryIcon(e.target.value)}
                     placeholder="📝"
-                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-amber-500 focus:outline-none ${isMobile ? 'text-sm' : ''
+                    className={`w-full border-2 border-gray-300 rounded-lg px-4 py-2 focus:border-brand-primary focus:outline-none ${isMobile ? 'text-sm' : ''
                       }`}
                   />
                 </div>

@@ -119,19 +119,25 @@ export function CategoryModal({ isOpen, onClose, onSave, onLinkGlobal, category 
     >
       <div className="flex flex-col gap-4">
         {!category && (
-          <div className="flex p-1 gap-1 border-b border-amber-50 shrink-0 bg-gray-100 rounded-lg">
+          <div className="flex p-1 gap-1 bg-gray-50 border border-gray-100 shrink-0 rounded-lg">
             <Button
                 onClick={() => setMode('global')}
-                variant={mode === 'global' ? 'secondary' : 'ghost'}
-                className="flex-1"
+                variant="ghost"
+                className={`flex-1 font-medium transition-all ${mode === 'global'
+                  ? 'bg-brand-subtle text-brand-dark shadow-md border-2 border-brand-primary'
+                  : 'text-gray-600 border-2 border-transparent hover:bg-brand-subtle/50'
+                }`}
             >
                 <Globe size={16} className="mr-2" />
                 Catalogue Global
             </Button>
             <Button
                 onClick={() => setMode('custom')}
-                variant={mode === 'custom' ? 'secondary' : 'ghost'}
-                className="flex-1"
+                variant="ghost"
+                className={`flex-1 font-medium transition-all ${mode === 'custom'
+                  ? 'bg-brand-subtle text-brand-dark shadow-md border-2 border-brand-primary'
+                  : 'text-gray-600 border-2 border-transparent hover:bg-brand-subtle/50'
+                }`}
             >
                 <PenTool size={16} className="mr-2" />
                 Personnalisé
@@ -154,8 +160,8 @@ export function CategoryModal({ isOpen, onClose, onSave, onLinkGlobal, category 
                       type="button"
                       onClick={() => setSelectedGlobalId(cat.id)}
                       className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${selectedGlobalId === cat.id
-                        ? 'border-amber-500 bg-amber-50 ring-1 ring-amber-500'
-                        : 'border-gray-200 hover:border-amber-200 hover:bg-gray-50'
+                        ? 'border-brand-primary bg-brand-subtle ring-1 ring-brand-primary'
+                        : 'border-gray-200 hover:border-brand-primary/40 hover:bg-gray-50'
                         }`}
                     >
                       <div
@@ -164,7 +170,7 @@ export function CategoryModal({ isOpen, onClose, onSave, onLinkGlobal, category 
                       />
                       <span className="font-medium text-gray-700">{cat.name}</span>
                       {selectedGlobalId === cat.id && (
-                        <Check className="ml-auto text-amber-500" size={20} />
+                        <Check className="ml-auto text-brand-primary" size={20} />
                       )}
                     </button>
                   ))}
