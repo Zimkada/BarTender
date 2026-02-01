@@ -95,7 +95,7 @@ export function Header({
     const isAdminView = currentSession?.role === 'super_admin';
 
     return (
-      <header className="liquid-gold-header sticky top-0 z-[100] transition-all duration-500">
+      <header className="liquid-gold-header sticky top-0 z-[100] transition-all duration-500 border-b border-brand-accent/30">
         <div className="px-3 py-2">
           {/* Layout ADMIN: Indicateurs (LEFT) + Titre (CENTER) + Hamburger (RIGHT) */}
           {isAdminView ? (

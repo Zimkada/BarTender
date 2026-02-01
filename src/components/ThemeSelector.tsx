@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Palette, Check, RotateCcw, Save, AlertCircle } from 'lucide-react';
+import { Palette, Check, RotateCcw, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { THEME_PRESETS, ThemePreset, PRESET_LABELS } from '../types/theme';
@@ -71,8 +71,8 @@ export function ThemeSelector() {
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => handlePresetClick(preset)}
                                 className={`relative group flex flex-col items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary ${isActive
-                                        ? 'border-gray-900 bg-gray-50 shadow-md'
-                                        : 'border-gray-100 hover:border-gray-300 bg-white hover:shadow-sm'
+                                    ? 'border-gray-900 bg-gray-50 shadow-md'
+                                    : 'border-gray-100 hover:border-gray-300 bg-white hover:shadow-sm'
                                     }`}
                             >
                                 {/* Aperçu des couleurs */}
@@ -120,12 +120,13 @@ export function ThemeSelector() {
                         exit={{ opacity: 0, y: 10, height: 0 }}
                         className="overflow-hidden"
                     >
-                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                            <div className="flex items-center gap-3 text-amber-800">
-                                <AlertCircle size={20} className="text-amber-600" />
+                        {/* BANNER DYNAMIQUE : Fond dynamique, Icône dynamique, Texte sobre */}
+                        <div className="bg-brand-subtle border border-brand-primary/20 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                            <div className="flex items-center gap-3 text-gray-900">
+                                <Palette size={20} className="text-brand-primary" />
                                 <div>
-                                    <p className="font-semibold text-sm">Mode Aperçu Actif</p>
-                                    <p className="text-xs text-amber-700">Ces changements ne sont pas encore sauvegardés.</p>
+                                    <p className="font-bold text-sm">Mode Aperçu Actif - {PRESET_LABELS[themeConfig.preset]}</p>
+                                    <p className="text-xs text-gray-600">Ces changements ne sont pas encore sauvegardés.</p>
                                 </div>
                             </div>
 
