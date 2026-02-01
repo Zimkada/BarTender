@@ -1,4 +1,4 @@
-export type ThemePreset = 'amber' | 'blue' | 'emerald' | 'rose' | 'purple' | 'slate' | 'custom';
+export type ThemePreset = 'amber' | 'blue' | 'emerald' | 'rose' | 'purple' | 'slate' | 'sunset' | 'sky' | 'mojito' | 'midnight' | 'custom';
 
 export interface ThemeColors {
     primary: string;
@@ -16,6 +16,26 @@ export const THEME_PRESETS: Record<Exclude<ThemePreset, 'custom'>, ThemeColors> 
         primary: '#bc6d2a', // HSL(28, 65, 45) - Ambre Nocturne
         secondary: '#d98d4a', // HSL(28, 65, 55)
         accent: '#f1dec8' // HSL(28, 65, 85)
+    },
+    sunset: {
+        primary: '#f97316', // Orange-500 (Vif et Solaire)
+        secondary: '#ea580c', // Orange-600 (Profond mais pas rouge)
+        accent: '#fbbf24' // Amber-400 (Or Doré)
+    },
+    sky: {
+        primary: '#0ea5e9', // Sky-500 (Azur Vif)
+        secondary: '#0284c7', // Sky-600 (Océan Clair)
+        accent: '#7dd3fc' // Sky-300 (Nuage)
+    },
+    mojito: {
+        primary: '#65a30d', // Lime-600 (Citron Vert)
+        secondary: '#3f6212', // Lime-800 (Menthe Sombre)
+        accent: '#bef264' // Lime-300 (Zest)
+    },
+    midnight: {
+        primary: '#4f46e5', // Indigo-600 (Électrique)
+        secondary: '#312e81', // Indigo-900 (Nuit Profonde)
+        accent: '#a5b4fc' // Indigo-300 (Lune)
     },
     blue: {
         primary: '#3b82f6', // blue-500
@@ -46,6 +66,10 @@ export const THEME_PRESETS: Record<Exclude<ThemePreset, 'custom'>, ThemeColors> 
 
 export const PRESET_LABELS: Record<ThemePreset, string> = {
     amber: 'Ambre Nocturne',
+    sunset: 'Coucher de Soleil',
+    sky: 'Ciel d\'Été',
+    mojito: 'Mojito Frais',
+    midnight: 'Minuit Élégant',
     blue: 'Bleu Prestige',
     emerald: 'Vert Émeraude',
     rose: 'Rose Passion',

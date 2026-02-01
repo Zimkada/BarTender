@@ -45,6 +45,7 @@ export interface Bar {
   closingHour: number;
   settings: BarSettings;
   isSetupComplete?: boolean;
+  theme_config?: any; // Configuration du thème (jsonb)
 }
 
 export interface BarSettings {
