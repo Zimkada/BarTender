@@ -4,7 +4,7 @@ import { ThemeConfig, THEME_PRESETS, DEFAULT_THEME_CONFIG } from '../types/theme
 
 // Validation Schema
 export const ThemeConfigSchema = z.object({
-    preset: z.enum(['amber', 'blue', 'emerald', 'rose', 'purple', 'custom']),
+    preset: z.enum(['amber', 'blue', 'emerald', 'rose', 'purple', 'slate', 'sunset', 'sky', 'mojito', 'midnight', 'custom']),
     customColors: z.object({
         primary: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid hex color'),
         secondary: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid hex color'),
@@ -36,10 +36,10 @@ export const ThemeService = {
         // 1. Validation stricte avant d'appeler Supabase
         const validatedConfig = this.validate(config);
 
-        // 2. Update DB
+        // 2. Update DB - Envoyer l'objet JSON pur, Supabase va le sérialiser pour jsonb
         const { error } = await supabase
             .from('bars')
-            .update({ theme_config: JSON.stringify(validatedConfig) })
+            .update({ theme_config: validatedConfig })
             .eq('id', barId);
 
         if (error) throw error;

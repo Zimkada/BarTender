@@ -307,8 +307,30 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (updates.settings) supabaseUpdates.settings = updates.settings;
       if (updates.isActive !== undefined) supabaseUpdates.is_active = updates.isActive;
       if (updates.closingHour !== undefined) supabaseUpdates.closing_hour = updates.closingHour;
+      if (updates.theme_config !== undefined) supabaseUpdates.theme_config = updates.theme_config;
 
-      await BarsService.updateBar(barId, supabaseUpdates);
+      // 1. Appel Service qui retourne l'objet À JOUR (Source de vérité)
+      const updatedBar = await BarsService.updateBar(barId, supabaseUpdates);
+
+      // 2. Mise à jour de l'état local REACT (Immédiat et Autoritaire)
+      setBars(prev => prev.map(b => b.id === barId ? updatedBar : b));
+      setUserBars(prev => prev.map(b => b.id === barId ? updatedBar : b));
+
+      // Si c'est le bar courant, on le met à jour aussi pour répercuter le thème tout de suite
+      if (currentBar?.id === barId) {
+        setCurrentBar(updatedBar);
+      }
+
+      // 3. Mise à jour du Cache Offline (Pour le prochain rechargement)
+      // On utilise updatedBar qui est confirmé par la DB
+      const currentCachedBars = OfflineStorage.getBars() || [];
+      const updatedCachedBars = currentCachedBars.map(b => b.id === barId ? updatedBar : b);
+      if (updatedCachedBars.length === 0 && currentCachedBars.length === 0) {
+        // Si le cache était vide (cas rare), on essaie de le remplir avec le state
+        OfflineStorage.saveBars(bars.map(b => b.id === barId ? updatedBar : b));
+      } else {
+        OfflineStorage.saveBars(updatedCachedBars);
+      }
 
       // Log mise à jour bar
       if (oldBar) {
@@ -330,8 +352,10 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         });
       }
 
-      // Rafraîchir la liste
-      await refreshBars();
+      // ❌ SUPPRESSION DE refreshBars()
+      // On ne recharge PAS depuis le serveur pour éviter la Race Condition (stale read)
+      // On fait confiance à updatedBar retourné par l'écriture.
+      // await refreshBars();
 
     } catch (error) {
       console.error('[BarContext] Error updating bar:', error);

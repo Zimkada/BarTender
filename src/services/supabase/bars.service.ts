@@ -43,6 +43,7 @@ export class BarsService {
       isActive: row.is_active || false,
       closingHour: row.closing_hour ?? 6, // ✅ Mappage explicite
       settings: row.settings as any,
+      theme_config: row.theme_config, // ✅ Mappage du thème (Crucial pour le fix)
       isSetupComplete: row.is_setup_complete === true, // ✅ Mappage strict pour boolean
     };
   }
@@ -284,7 +285,7 @@ export class BarsService {
   /**
    * Mettre à jour un bar
    */
-  static async updateBar(barId: string, updates: BarUpdate & { closingHour?: number }): Promise<Bar> {
+  static async updateBar(barId: string, updates: BarUpdate & { closingHour?: number; theme_config?: any }): Promise<Bar> {
     try {
       // Mapper closingHour vers closing_hour si présent
       const dbUpdates: any = { ...updates };
@@ -293,15 +294,25 @@ export class BarsService {
         delete dbUpdates.closingHour;
       }
 
-      const { data, error } = await supabase
+      // 1. Faire l'UPDATE sans .select() pour éviter l'erreur 406 avec jsonb
+      const { error: updateError } = await supabase
         .from('bars')
         .update(dbUpdates)
+        .eq('id', barId);
+
+      if (updateError) {
+        throw new Error('Erreur lors de la mise à jour du bar');
+      }
+
+      // 2. Récupérer le bar mis à jour directement depuis la table bars (pas la vue)
+      const { data, error: selectError } = await supabase
+        .from('bars')
+        .select('*')
         .eq('id', barId)
-        .select()
         .single();
 
-      if (error || !data) {
-        throw new Error('Erreur lors de la mise à jour du bar');
+      if (selectError || !data) {
+        throw new Error('Bar non trouvé après mise à jour');
       }
 
       return this.mapToBar(data);

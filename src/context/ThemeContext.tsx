@@ -29,7 +29,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         // B. Récupération depuis le Bar actuel
         if (currentBar?.theme_config) {
             try {
-                return JSON.parse(currentBar.theme_config) as ThemeConfig;
+                // theme_config est déjà un objet (jsonb) ou une string (legacy)
+                const config = typeof currentBar.theme_config === 'string'
+                    ? JSON.parse(currentBar.theme_config)
+                    : currentBar.theme_config;
+                return config as ThemeConfig;
             } catch (e) {
                 console.error('Invalid theme_config JSON, falling back to default:', e);
                 return DEFAULT_THEME_CONFIG;
@@ -95,11 +99,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         //    - Cache offline (OfflineStorage)
         // Cela évite la désynchronisation et le "flash" visuel à l'actualisation
         await updateBar(currentBar.id, {
-            theme_config: JSON.stringify(validatedConfig)
+            theme_config: validatedConfig
         });
 
-        // 3. Désactiver le mode preview après sauvegarde réussie
-        setPreviewConfig(null);
+        // 3. Désactiver le mode preview après un court délai pour laisser le temps à React de mettre à jour currentBar
+        setTimeout(() => {
+            setPreviewConfig(null);
+        }, 100);
     };
 
     const previewTheme = (config: ThemeConfig) => {
