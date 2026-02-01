@@ -212,7 +212,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-0 sm:p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-0 sm:p-4"
         >
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}

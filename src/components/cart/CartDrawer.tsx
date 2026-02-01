@@ -116,7 +116,7 @@ export function CartDrawer({
                             </div>
                             <button
                                 onClick={onClose}
-                                className="w-10 h-10 flex items-center justify-center bg-gray-50 text-gray-400 hover:text-gray-900 rounded-full transition-all hover:rotate-90"
+                                className="w-10 h-10 flex items-center justify-center bg-gray-50 text-gray-600 hover:text-gray-900 rounded-full transition-all hover:rotate-90"
                             >
                                 <X size={24} />
                             </button>

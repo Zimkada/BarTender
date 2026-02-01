@@ -500,7 +500,7 @@ function AlertCard({
                             Ignorer
                         </Button>
                     )}
-                    <Button variant="ghost" size="sm" onClick={onDelete} className="h-8 w-8 p-0 text-gray-400 hover:text-red-500 hover:bg-red-50">
+                    <Button variant="ghost" size="sm" onClick={onDelete} className="h-8 w-8 p-0 text-gray-600 hover:text-red-500 hover:bg-red-50">
                         <X size={16} />
                     </Button>
                 </div>
