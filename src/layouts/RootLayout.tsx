@@ -114,7 +114,7 @@ function RootLayoutContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-50 pb-16 md:pb-0">
+    <div className="min-h-screen bg-gradient-to-br from-brand-subtle to-brand-subtle pb-16 md:pb-0">
       <UpdateNotification />
       <OnboardingBanner /> {/* UX Improvement 1: Show setup banner */}
       <Header

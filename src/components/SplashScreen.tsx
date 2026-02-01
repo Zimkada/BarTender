@@ -23,7 +23,7 @@ export function SplashScreen({
                 : message;
 
     return (
-        <div className="fixed inset-0 bg-gradient-to-br from-amber-50 to-amber-50 flex flex-col items-center justify-center z-[9999]">
+        <div className="fixed inset-0 bg-gradient-to-br from-brand-subtle to-brand-subtle flex flex-col items-center justify-center z-[9999]">
             {/* Halo pulsant ambré */}
             <motion.div
                 className="absolute inset-0 bg-amber-200/20 blur-3xl"

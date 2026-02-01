@@ -70,7 +70,7 @@ export function AuthLayout() {
   };
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-amber-50">
+    <div className="min-h-screen bg-gradient-to-br from-brand-subtle to-brand-subtle">
       {/* 4. Fournir le contexte aux composants enfants (Outlet) */}
       <AuthNavContext.Provider value={navValue}>
         <LazyLoadErrorBoundary maxRetries={3}>
