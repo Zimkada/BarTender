@@ -46,7 +46,18 @@ export default function SettingsPage() {
     // Guide ID for settings
     const settingsGuideId = 'manage-settings';
 
-    const [activeTab, setActiveTab] = useState<'bar' | 'operational' | 'security'>('bar');
+    // Rôles
+    const isPromoteur = currentSession?.role === 'promoteur' || currentSession?.role === 'super_admin';
+    const isGerant = currentSession?.role === 'gerant';
+
+    // Redirection automatique pour les non-promoteurs (qui n'ont pas accès à l'onglet par défaut 'bar')
+    const [activeTab, setActiveTab] = useState<'bar' | 'operational' | 'security'>(() => {
+        // Si employé (Gérant/Serveur), forcer 'operational' car 'bar' est masqué
+        if (currentSession?.role && ['gerant', 'serveur'].includes(currentSession.role)) {
+            return 'operational';
+        }
+        return 'bar';
+    });
 
     // États 2FA
     const [isMfaEnabled, setIsMfaEnabled] = useState(false);
@@ -134,22 +145,28 @@ export default function SettingsPage() {
     const [tempOperatingMode, setTempOperatingMode] = useState<'full' | 'simplified'>(currentBar?.settings?.operatingMode ?? 'simplified');
 
     // Tabs configuration
+    // Tabs configuration - Filtrage par rôle pour sécurité robustesse
     const tabs = [
-        {
+        // 1. Infos Bar: Réservé au Promoteur (Propriétaire)
+        ...(isPromoteur ? [{
             id: 'bar' as const,
             label: isMobile ? 'Infos Bar' : 'Informations Bar',
             icon: Building2
-        },
+        }] : []),
+
+        // 2. Opérationnel: Visible par Gérants et Promoteurs
         {
             id: 'operational' as const,
             label: isMobile ? 'Gestion' : 'Configuration de gestion',
             icon: Clock
         },
-        {
+
+        // 3. Sécurité: Réservé au Promoteur (car 2FA risque de lockout sur emails fictifs des employés)
+        ...(isPromoteur ? [{
             id: 'security' as const,
             label: 'Sécurité',
             icon: ShieldCheck
-        }
+        }] : [])
     ];
 
     // Fonctions MFA
@@ -247,6 +264,25 @@ export default function SettingsPage() {
         );
     }
 
+    // SCURITÉ : Interdire l'accès aux serveurs même avec URL directe
+    if (currentSession.role === 'serveur') {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4 px-4">
+                <div className="p-4 bg-red-50 rounded-full">
+                    <ShieldCheck size={48} className="text-red-500" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">Accès non autorisé</h2>
+                <p className="text-gray-500 max-w-md">
+                    L'accès aux paramètres est réservé aux gérants et aux propriétaires.
+                    Veuillez contacter votre administrateur si nécessaire.
+                </p>
+                <Button onClick={() => navigate('/')} variant="outline" className="mt-4">
+                    Retour à l'accueil
+                </Button>
+            </div>
+        );
+    }
+
     return (
         <div className="max-w-7xl mx-auto space-y-6 pb-20 px-4">
             {/* Header Standardisé */}
@@ -264,8 +300,8 @@ export default function SettingsPage() {
             {/* Contenu - Utilisation de Card pour l'encapsulation */}
             <Card className="p-6 space-y-8" data-guide="settings-content">
 
-                {/* Onglet Sécurité */}
-                {activeTab === 'security' && (
+                {/* Onglet Sécurité (Protégé : Promoteur uniquement) */}
+                {activeTab === 'security' && isPromoteur && (
                     <div className="space-y-6">
                         <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
                             <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
@@ -375,8 +411,8 @@ export default function SettingsPage() {
                     </div>
                 )}
 
-                {/* Onglet Bar */}
-                {activeTab === 'bar' && (
+                {/* Onglet Bar (Protégé : Promoteur uniquement) */}
+                {activeTab === 'bar' && isPromoteur && (
                     <div className="grid gap-6">
                         <Input
                             label="Nom de l'établissement"

@@ -516,6 +516,7 @@ export interface RolePermissions {
   // Analytics
   canViewAnalytics: boolean;
   canExportData: boolean;
+  canViewForecasting: boolean; // ✨ NEW: Permission pour voir les prévisions IA
 
   // Comptabilité
   canViewAccounting: boolean;
@@ -563,6 +564,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewOwnSales: true,
     canViewAnalytics: true,
     canExportData: true,
+    canViewForecasting: true,
     canViewAccounting: true,
     canManageExpenses: true,
     canManageSalaries: true,
@@ -596,6 +598,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewOwnSales: true,
     canViewAnalytics: true,
     canExportData: true,
+    canViewForecasting: true,
     canViewAccounting: true,
     canManageExpenses: true,
     canManageSalaries: true,
@@ -623,6 +626,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewOwnSales: true,
     canViewAnalytics: true,
     canExportData: true,
+    canViewForecasting: true,
     canViewAccounting: false,
     canManageExpenses: false,
     canManageSalaries: false,
@@ -650,6 +654,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canViewOwnSales: true,
     canViewAnalytics: false,
     canExportData: false,
+    canViewForecasting: false,
     canViewAccounting: false,
     canManageExpenses: false,
     canManageSalaries: false,

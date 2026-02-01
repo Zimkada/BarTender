@@ -97,13 +97,37 @@ export const router = createBrowserRouter([
           { index: true, element: <AccountingPage /> },
         ],
       },
-      { path: 'settings', element: <SettingsPage /> },
+      {
+        path: 'settings',
+        element: <ProtectedRoute permission="canManageSettings" />,
+        children: [
+          { index: true, element: <SettingsPage /> },
+        ],
+      },
       { path: 'profil', element: <ProfilePage /> },
-      { path: 'forecasting', element: <ForecastingAIPage /> },
+      {
+        path: 'forecasting',
+        element: <ProtectedRoute permission="canViewForecasting" />,
+        children: [
+          { index: true, element: <ForecastingAIPage /> },
+        ],
+      },
       { path: 'returns', element: <ReturnsPage /> },
       { path: 'consignments', element: <ConsignmentPage /> },
-      { path: 'team', element: <TeamPage /> },
-      { path: 'promotions', element: <PromotionsPage /> },
+      {
+        path: 'team',
+        element: <ProtectedRoute permission="canCreateServers" />,
+        children: [
+          { index: true, element: <TeamPage /> },
+        ],
+      },
+      {
+        path: 'promotions',
+        element: <ProtectedRoute permission="canManagePromotions" />,
+        children: [
+          { index: true, element: <PromotionsPage /> },
+        ],
+      },
       { path: 'onboarding', element: <OnboardingPage /> },
     ],
   },
