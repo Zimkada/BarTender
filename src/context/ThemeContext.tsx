@@ -22,14 +22,15 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     // 1. Calculer la configuration active
     // Priorité : Preview > SuperAdmin(Force Indigo) > DB > Default
+    // 1. Calculer la configuration active
+    // Priorité : Preview > SuperAdmin(Force Indigo) > DB (currentBar) > Cache Offline (Initial Load) > Default
     const activeThemeConfig = useMemo(() => {
         // A. Mode Preview actif (sauf si SuperAdmin, voir effet ci-dessous)
         if (previewConfig) return previewConfig;
 
-        // B. Récupération depuis le Bar actuel
+        // B. Récupération depuis le Bar actuel (État React Live)
         if (currentBar?.theme_config) {
             try {
-                // theme_config est déjà un objet (jsonb) ou une string (legacy)
                 const config = typeof currentBar.theme_config === 'string'
                     ? JSON.parse(currentBar.theme_config)
                     : currentBar.theme_config;
@@ -40,7 +41,42 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             }
         }
 
-        // C. Fallback par défaut
+        // C. Fallback Optimiste : Cache Offline (Pour éviter le FOUC au chargement)
+        // Stratégie "Device-First" : On regarde le cache dédié V2 en premier car il survit au logout
+        if (typeof window !== 'undefined') {
+            try {
+                // 1. Essayer le cache léger dédié (V2) - Le plus fiable pour login/logout
+                const simpleCache = localStorage.getItem('bartender_theme_cache');
+                if (simpleCache) {
+                    const cacheData = JSON.parse(simpleCache);
+                    // Si on a le nom du preset, on peut reconstruire une config valide
+                    // Fix TS error: explicit cast or check key existence safely
+                    const presetKey = cacheData.preset as string;
+                    if (presetKey && Object.keys(THEME_PRESETS).includes(presetKey)) {
+                        return { preset: presetKey as any } as ThemeConfig;
+                    }
+                }
+
+                // 2. Fallback Legacy : Essayer de parser le gros cache (V1)
+                // (Ce cache est souvent vidé au logout, donc moins fiable pour la page login)
+                const rawBars = localStorage.getItem('bartender_bars');
+                const rawCurrentBarId = localStorage.getItem('bartender_current_bar_id');
+
+                if (rawBars && rawCurrentBarId) {
+                    const bars = JSON.parse(rawBars);
+                    const cachedBar = bars.find((b: any) => b.id === rawCurrentBarId);
+                    if (cachedBar?.theme_config) {
+                        return (typeof cachedBar.theme_config === 'string'
+                            ? JSON.parse(cachedBar.theme_config)
+                            : cachedBar.theme_config) as ThemeConfig;
+                    }
+                }
+            } catch (e) {
+                // Ignore silent parsing errors
+            }
+        }
+
+        // D. Fallback Ultime
         return DEFAULT_THEME_CONFIG;
     }, [currentBar?.theme_config, previewConfig]);
 
@@ -75,6 +111,24 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         document.documentElement.style.setProperty('--brand-hue', hue.toString());
         document.documentElement.style.setProperty('--brand-saturation', `${saturation}%`);
 
+        // 🧠 SAUVEGARDE CACHE SIMPLE POUR LE SCRIPT DE BLOCAGE (Index.html)
+        // Permet au "Theme Loader" de connaître la couleur AVANT le chargement de React
+        try {
+            // FIX: Ne jamais écraser le cache si on est en train de se déconnecter (currentBar devient null)
+            // On ne sauvegarde que si on a un bar actif ou une preview explicite.
+            if (currentBar || previewConfig) {
+                // On sauvegarde aussi le 'preset' pour permettre la reconstruction complète dans le Fallback C
+                const simpleCache = {
+                    hue: hue.toString(),
+                    saturation: `${saturation}%`,
+                    preset: activeThemeConfig.preset // Ajout crucial pour le contexte React
+                };
+                localStorage.setItem('bartender_theme_cache', JSON.stringify(simpleCache));
+            }
+        } catch (e) {
+            console.error('Failed to save theme cache', e);
+        }
+
         // Variables dérivées (communes)
         // Shadow: Primary color with 25% opacity
         document.documentElement.style.setProperty('--brand-shadow', `${colors.primary}40`);
@@ -84,7 +138,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
             '--brand-gradient',
             `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`
         );
-
     }, [activeThemeConfig, currentSession?.role]);
 
     const updateTheme = async (config: ThemeConfig) => {

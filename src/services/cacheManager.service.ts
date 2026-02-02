@@ -48,7 +48,7 @@ export class CacheManagerService {
    * Purger le localStorage en gardant certaines clés essentielles
    */
   private static purgeLocalStorage(): void {
-    const keysToKeep = ['theme', 'locale']; // Clés à conserver
+    const keysToKeep = ['theme', 'locale', 'bartender_theme_cache']; // Clés à conserver (dont le cache thème V2)
 
     Object.keys(localStorage).forEach(key => {
       if (!keysToKeep.includes(key)) {

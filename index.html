@@ -1,115 +1,190 @@
 <!doctype html>
 <html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
 
-    <!-- PWA Meta Tags -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-    <meta name="theme-color" content="#f59e0b" />
-    <meta name="color-scheme" content="light" />
+<head>
+  <meta charset="UTF-8" />
 
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json" />
+  <!-- PWA Meta Tags -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+  <meta name="theme-color" content="#f59e0b" />
+  <meta name="color-scheme" content="light" />
 
-    <!-- Icons (PNG favicon) -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png" />
-    <link rel="apple-touch-icon" href="/icons/icon-180x180.png" />
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="/manifest.json" />
 
-    <!-- App Meta -->
-    <title>BarTender Pro - Gestion de Bar Bénin</title>
-    <meta name="description" content="Application de gestion pour bars et restaurants au Bénin. Offline-first, mobile-optimisé." />
-    <meta name="keywords" content="bar, restaurant, gestion, Bénin, Afrique, POS, offline" />
-    <meta name="author" content="BarTender Pro" />
+  <!-- Icons (PNG favicon) -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png" />
+  <link rel="apple-touch-icon" href="/icons/icon-180x180.png" />
 
-    <!-- PWA iOS -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="BarTender Pro" />
+  <!-- App Meta -->
+  <title>BarTender Pro - Gestion de Bar Bénin</title>
+  <meta name="description"
+    content="Application de gestion pour bars et restaurants au Bénin. Offline-first, mobile-optimisé." />
+  <meta name="keywords" content="bar, restaurant, gestion, Bénin, Afrique, POS, offline" />
+  <meta name="author" content="BarTender Pro" />
 
-    <!-- PWA Android -->
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="application-name" content="BarTender Pro" />
+  <!-- PWA iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="BarTender Pro" />
 
-    <!-- Performance: Font Optimization -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'" />
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" /></noscript>
+  <!-- PWA Android -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="application-name" content="BarTender Pro" />
 
-    <!-- Supabase: preconnect for DNS + TLS + TCP handshake (full optimization) -->
-    <link rel="preconnect" href="https://yekomwjdznvtnialpdcz.supabase.co" />
-    <link rel="dns-prefetch" href="https://api.supabase.co" />
+  <!-- Performance: Font Optimization -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    media="print" onload="this.media='all'" />
+  <noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  </noscript>
 
-    <!-- Splash Screens iOS -->
-    <link rel="apple-touch-startup-image" href="/splash-640x1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" />
-    <link rel="apple-touch-startup-image" href="/splash-750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" />
-    <link rel="apple-touch-startup-image" href="/splash-1242x2208.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" />
+  <!-- Supabase: preconnect for DNS + TLS + TCP handshake (full optimization) -->
+  <link rel="preconnect" href="https://yekomwjdznvtnialpdcz.supabase.co" />
+  <link rel="dns-prefetch" href="https://api.supabase.co" />
 
-    <!-- Critical CSS (for performance) -->
-    <link rel="stylesheet" href="/src/critical.css" />
-  </head>
-  <body>
-    <!-- App Loading -->
-    <div id="root">
-      <div class="app-loader">
-        <div class="spinner"></div>
-        <div>Chargement BarTender...</div>
-      </div>
-    </div>
+  <!-- Splash Screens iOS -->
+  <link rel="apple-touch-startup-image" href="/splash-640x1136.png"
+    media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" />
+  <link rel="apple-touch-startup-image" href="/splash-750x1334.png"
+    media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" />
+  <link rel="apple-touch-startup-image" href="/splash-1242x2208.png"
+    media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" />
 
-    <!-- Service Worker Registration (Critical for PWA score) -->
-    <script>
-      // Register Service Worker immediately for Lighthouse detection
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js', { scope: '/' })
-            .then(registration => {
-              console.log('[PWA] Service Worker registered:', registration.scope);
-            })
-            .catch(error => {
-              console.error('[PWA] Service Worker registration failed:', error);
-            });
-        });
-      }
-    </script>
+  <!-- Critical CSS (for performance) -->
+  <link rel="stylesheet" href="/src/critical.css" />
 
-    <!-- Performance and Connection Monitoring -->
-    <script>
-      // Performance monitoring
-      window.addEventListener('load', () => {
-        // Basic performance metrics
-        if ('performance' in window) {
-          const perfData = performance.getEntriesByType('navigation')[0];
-          if (perfData) {
-            console.log('Page load time:', perfData.loadEventEnd - perfData.fetchStart, 'ms');
+  <!-- 🎨 THEME LOADER CRITIQUE (BLOCKING SCRIPT) -->
+  <!-- Doit être le dernier élément du <head> pour garantir l'exécution avant le rendu du <body> -->
+  <!-- Lit le cache 'bartender_theme_cache' (plus light que 'bartender_bars') pour injecter les couleurs AVANT le paint -->
+  <script>
+    (function () {
+      try {
+        // 1. Essayer le cache léger dédié (V2)
+        let hue, saturation;
+        const simpleCache = localStorage.getItem('bartender_theme_cache');
+
+        if (simpleCache) {
+          const theme = JSON.parse(simpleCache);
+          hue = theme.hue;
+          saturation = theme.saturation;
+        } else {
+          // 2. Fallback: Essayer de parser le gros cache (V1) si le cache léger n'existe pas encore
+          const rawBars = localStorage.getItem('bartender_bars');
+          const currentBarId = localStorage.getItem('bartender_current_bar_id');
+          if (rawBars && currentBarId) {
+            const bars = JSON.parse(rawBars);
+            const bar = bars.find(b => b.id === currentBarId);
+            if (bar && bar.theme_config && bar.theme_config.preset) {
+              // Map presets to values (hardcoded fallback mapping for script speed)
+              const presets = {
+                'sunset': { h: 28, s: '65%' },
+                'sky': { h: 200, s: '90%' },
+                'mojito': { h: 150, s: '60%' },
+                'midnight': { h: 245, s: '70%' },
+                'lavender': { h: 270, s: '70%' },
+                'ocean': { h: 220, s: '80%' },
+                'forest': { h: 145, s: '65%' },
+                'minimal': { h: 220, s: '10%' }
+              };
+              const preset = presets[bar.theme_config.preset] || presets['sunset']; // Default to Sunset
+              hue = preset.h;
+              saturation = preset.s;
+            }
           }
         }
+
+        // 3. Injection immédiate dans le DOM
+        if (hue !== undefined) {
+          const root = document.documentElement;
+          root.style.setProperty('--brand-hue', hue);
+          root.style.setProperty('--brand-saturation', saturation);
+
+          // 4. Mettre à jour la meta theme-color pour la barre d'état du navigateur
+          try {
+            const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+            if (metaThemeColor) {
+              // Conversion simple HSL -> CSS String (Supporté par tous les navigateurs modernes)
+              // Note: Pour une conversion parfaite en Hex (si vieux Android), il faudrait une fonction JS plus grosse.
+              // On tente le format HSL direct qui est valide dans content=""
+              metaThemeColor.setAttribute('content', `hsl(${hue}, ${saturation}, 45%)`);
+            }
+          } catch (e) { }
+        }
+
+      } catch (e) {
+        // Silent fail - browser default (index.css) will take over
+      }
+    })();
+  </script>
+</head>
+
+<body>
+  <!-- App Loading -->
+  <div id="root">
+    <div class="app-loader">
+      <div class="spinner"></div>
+      <div>Chargement BarTender...</div>
+    </div>
+  </div>
+
+  <!-- Service Worker Registration (Critical for PWA score) -->
+  <script>
+    // Register Service Worker immediately for Lighthouse detection
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+          .then(registration => {
+            console.log('[PWA] Service Worker registered:', registration.scope);
+          })
+          .catch(error => {
+            console.error('[PWA] Service Worker registration failed:', error);
+          });
       });
+    }
+  </script>
 
-      // Connection status
-      window.addEventListener('online', () => {
-        console.log('Connection restored');
-        document.body.classList.remove('offline');
-      });
+  <!-- Performance and Connection Monitoring -->
+  <script>
+    // Performance monitoring
+    window.addEventListener('load', () => {
+      // Basic performance metrics
+      if ('performance' in window) {
+        const perfData = performance.getEntriesByType('navigation')[0];
+        if (perfData) {
+          console.log('Page load time:', perfData.loadEventEnd - perfData.fetchStart, 'ms');
+        }
+      }
+    });
 
-      window.addEventListener('offline', () => {
-        console.log('Connection lost - offline mode active');
-        document.body.classList.add('offline');
-      });
-    </script>
+    // Connection status
+    window.addEventListener('online', () => {
+      console.log('Connection restored');
+      document.body.classList.remove('offline');
+    });
 
-    <!-- App Script -->
-    <script type="module" src="/src/main.tsx"></script>
+    window.addEventListener('offline', () => {
+      console.log('Connection lost - offline mode active');
+      document.body.classList.add('offline');
+    });
+  </script>
 
-    <!-- Fallback for no-JS -->
-    <noscript>
-      <div style="text-align: center; padding: 2rem; background: white; margin: 2rem; border-radius: 1rem;">
-        <h1>JavaScript Requis</h1>
-        <p>BarTender Pro nécessite JavaScript pour fonctionner.</p>
-        <p>Veuillez activer JavaScript dans votre navigateur.</p>
-      </div>
-    </noscript>
-  </body>
+  <!-- App Script -->
+  <script type="module" src="/src/main.tsx"></script>
+
+  <!-- Fallback for no-JS -->
+  <noscript>
+    <div style="text-align: center; padding: 2rem; background: white; margin: 2rem; border-radius: 1rem;">
+      <h1>JavaScript Requis</h1>
+      <p>BarTender Pro nécessite JavaScript pour fonctionner.</p>
+      <p>Veuillez activer JavaScript dans votre navigateur.</p>
+    </div>
+  </noscript>
+</body>
+
 </html>

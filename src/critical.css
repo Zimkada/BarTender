@@ -1,11 +1,13 @@
 /* Critical loading styles - Palette harmonisée avec page d'authentification */
 :root {
-  --beer-bg: #FFFBEB;
-  /* Amber-50 - fond clair comme page auth */
-  --beer-primary: #F59E0B;
-  /* Amber-500 - texte/spinner (couleur header) */
-  --beer-highlight: #FBBF24;
-  /* Amber-400 - accent */
+  /* DYNAMIC LOADER THEME
+     Ces variables utilisent les valeurs injectées par le script bloquant dans index.html.
+     Fallback sur Amber (28, 65%) si le script échoue. */
+  --beer-bg: hsl(var(--brand-hue, 28), var(--brand-saturation, 65%), 98%);
+
+  --beer-primary: hsl(var(--brand-hue, 28), var(--brand-saturation, 65%), 50%);
+
+  --beer-highlight: hsl(var(--brand-hue, 28), var(--brand-saturation, 65%), 60%);
 }
 
 html,

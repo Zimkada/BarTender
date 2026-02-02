@@ -58,9 +58,10 @@
        Modifier --brand-hue pour changer toute l'identité visuelle
        ═══════════════════════════════════════════════════════════ */
 
-    /* Teinte de base (0-360) - Ambre Nocturne (Cognac/Rhum) */
-    --brand-hue: 28;
-    --brand-saturation: 65%;
+    /* Teinte de base (0-360) - Valeurs Initiales Neutres (Gris) */
+    /* Ces valeurs sont OVERRIDÉES par le script dans index.html avant le paint */
+    --brand-hue: 220;
+    --brand-saturation: 10%;
 
     /* Luminosités pour le gradient premium (Plus sombre pour éviter la fatigue) */
     --brand-light: 45%;
