@@ -3,7 +3,7 @@ import { useDebounce } from 'use-debounce';
 import {
   Users, Search, Filter, ChevronLeft, ChevronRight, UserPlus, Key, Building2
 } from 'lucide-react';
-import type { User, UserRole } from '../../types';
+import type { User } from '../../types';
 import { Select } from '../../components/ui/Select';
 import { Alert } from '../../components/ui/Alert';
 import { AdminService } from '../../services/supabase/admin.service';
@@ -16,6 +16,7 @@ import { AdminSetPasswordModal } from '../../components/AdminSetPasswordModal';
 import { ResetPasswordConfirmationModal } from '../../components/ResetPasswordConfirmationModal';
 import { useFeedback } from '../../hooks/useFeedback';
 import { supabase } from '../../lib/supabase';
+import { UserCard } from '../../components/admin/UserCard';
 
 export default function UsersManagementPage() {
   const { showSuccess, showError } = useFeedback(); // Destructure useFeedback hooks
@@ -27,7 +28,7 @@ export default function UsersManagementPage() {
   const [limit] = useState(10);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'promoteur' | 'gerant' | 'serveur'>('all');
   const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
   const [error, setError] = useState<string | null>(null);
 
@@ -156,7 +157,7 @@ export default function UsersManagementPage() {
                     { value: 'serveur', label: 'Serveurs' },
                   ]}
                   value={roleFilter}
-                  onChange={(e) => setRoleFilter(e.target.value as UserRole | 'all')}
+                  onChange={(e) => setRoleFilter(e.target.value as 'all' | 'promoteur' | 'gerant' | 'serveur')}
                   className="pl-10 min-w-0"
                 />
               </div>
@@ -182,8 +183,38 @@ export default function UsersManagementPage() {
           </div>
         )}
 
-        {/* Users List */}
-        <div className="bg-gray-50 overflow-x-auto scrollbar-bottom max-w-none sm:w-screen lg:w-auto">
+        {/* Users List - Cards View (Mobile & Tablet < 1280px) */}
+        <div className="xl:hidden bg-gray-50 p-4">
+          {loading && users.length === 0 ? (
+            <AdminPanelSkeleton count={5} type="table" />
+          ) : users.length === 0 ? (
+            <div className="text-center py-12">
+              <p>Aucun utilisateur trouvé.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {users.map((user) => (
+                <UserCard
+                  key={user.id}
+                  user={user}
+                  onEdit={setEditingUser}
+                  onAddBar={user.roles.includes('promoteur') ? handleAddBar : undefined}
+                  onPasswordAction={(u) => {
+                    if (isFictionalEmail(u.email)) {
+                      setSettingPasswordForUser(u);
+                    } else {
+                      setResetingPasswordForUser(u);
+                    }
+                  }}
+                  isFictionalEmail={isFictionalEmail}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Users List - Table View (Desktop >= 1280px) */}
+        <div className="hidden xl:block bg-gray-50 overflow-x-auto scrollbar-bottom max-w-none">
           {loading && users.length === 0 ? (
             <AdminPanelSkeleton count={5} type="table" />
           ) : users.length === 0 ? (
