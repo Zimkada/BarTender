@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Receipt, Clock, User, CheckCircle2 } from 'lucide-react';
+import { X, Receipt, Clock, User, CheckCircle2, AlertTriangle, Ban } from 'lucide-react';
 import { Sale } from '../../types';
 import { Button } from '../ui/Button';
 
@@ -7,9 +8,17 @@ interface SaleDetailModalProps {
     sale: Sale | null;
     formatPrice: (price: number) => string;
     onClose: () => void;
+    canCancel?: boolean;
+    hasReturns?: boolean; // ✨ NEW
+    hasConsignments?: boolean; // ✨ NEW
+    onCancelSale?: (saleId: string, reason: string) => Promise<void>;
 }
 
-export function SaleDetailModal({ sale, formatPrice, onClose }: SaleDetailModalProps) {
+export function SaleDetailModal({ sale, formatPrice, onClose, canCancel, hasReturns, hasConsignments, onCancelSale }: SaleDetailModalProps) {
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
+    const [isCancelling, setIsCancelling] = useState(false);
+
     if (!sale) return null;
 
     // Calculer le total des items
@@ -120,6 +129,89 @@ export function SaleDetailModal({ sale, formatPrice, onClose }: SaleDetailModalP
                                     </span>
                                 </div>
                             </div>
+
+                            {/* Zone annulation — bouton */}
+                            {canCancel && sale.status === 'validated' && !showCancelConfirm && (
+                                <div className="pt-4 border-t border-gray-200 space-y-2">
+                                    {(hasReturns || hasConsignments) && (
+                                        <div className="flex gap-2 p-2 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-800">
+                                            <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                                            <p>
+                                                Impossible d'annuler cette vente car elle contient
+                                                {hasReturns && ' des retours'}
+                                                {hasReturns && hasConsignments && ' et'}
+                                                {hasConsignments && ' des consignations'}.
+                                                Veuillez gérer cela manuellement.
+                                            </p>
+                                        </div>
+                                    )}
+                                    <Button
+                                        variant="destructive"
+                                        onClick={() => setShowCancelConfirm(true)}
+                                        className="w-full"
+                                        disabled={hasReturns || hasConsignments} // 🔒 UI Guard
+                                    >
+                                        Annuler cette vente
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* Zone annulation — formulaire confirmation avec raison */}
+                            {canCancel && sale.status === 'validated' && showCancelConfirm && (
+                                <div className="pt-4 border-t border-gray-200 space-y-3">
+                                    <div className="flex gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                        <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                                        <p className="text-sm text-red-800">
+                                            Cette action restaurera le stock et ne pourra pas être annulée.
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                                            Raison de l'annulation
+                                        </label>
+                                        <textarea
+                                            value={cancelReason}
+                                            onChange={(e) => setCancelReason(e.target.value)}
+                                            placeholder="Décrivez pourquoi cette vente est annulée..."
+                                            rows={3}
+                                            className="w-full text-sm border border-gray-300 rounded-lg p-2.5 resize-none focus:ring-2 focus:ring-red-200 focus:border-red-400 outline-none"
+                                            disabled={isCancelling}
+                                            autoFocus
+                                        />
+                                        <p className="text-[10px] text-gray-400 mt-1">
+                                            {cancelReason.length < 10
+                                                ? `Minimum 10 caractères (${cancelReason.length}/10)`
+                                                : '✓ OK'}
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            onClick={() => { setShowCancelConfirm(false); setCancelReason(''); }}
+                                            disabled={isCancelling}
+                                            className="flex-1"
+                                        >
+                                            Retour
+                                        </Button>
+                                        <Button
+                                            variant="destructive"
+                                            disabled={cancelReason.length < 10 || isCancelling}
+                                            onClick={async () => {
+                                                setIsCancelling(true);
+                                                try {
+                                                    await onCancelSale?.(sale.id, cancelReason);
+                                                    onClose();
+                                                } finally {
+                                                    setIsCancelling(false);
+                                                }
+                                            }}
+                                            className="flex-1"
+                                        >
+                                            {isCancelling ? 'En cours...' : 'Confirmer annulation'}
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Footer Ticket - Papier déchiré */}
@@ -152,6 +244,12 @@ export function SaleDetailModal({ sale, formatPrice, onClose }: SaleDetailModalP
                             {sale.status === 'rejected' && (
                                 <>
                                     <X size={16} className="text-red-400" />
+                                    <span>Vente Rejetée</span>
+                                </>
+                            )}
+                            {sale.status === 'cancelled' && (
+                                <>
+                                    <Ban size={16} className="text-purple-400" />
                                     <span>Vente Annulée</span>
                                 </>
                             )}

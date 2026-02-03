@@ -114,7 +114,8 @@ export function SalesListView({
                         const statusBadge = {
                             pending: { label: '⏳ En attente', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
                             validated: { label: '✅ Validée', color: 'bg-green-100 text-green-700 border-green-200' },
-                            rejected: { label: '❌ Rejetée', color: 'bg-red-100 text-red-700 border-red-200' }
+                            rejected: { label: '❌ Rejetée', color: 'bg-red-100 text-red-700 border-red-200' },
+                            cancelled: { label: '🚫 Annulée', color: 'bg-purple-100 text-purple-700 border-purple-200' }
                         }[sale.status] || { label: 'Inconnu', color: 'bg-gray-100 text-gray-700 border-gray-200' };
 
                         // Infos utilisateurs

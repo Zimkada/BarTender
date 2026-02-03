@@ -8,9 +8,10 @@ interface UseSalesFiltersProps {
     returns?: Return[]; // Optional: for returns filtering
     currentSession: any; // UserSession type would be better if available
     closeHour: number;
+    statusFilter?: 'validated' | 'rejected' | 'cancelled';
 }
 
-export function useSalesFilters({ sales, returns = [], currentSession, closeHour }: UseSalesFiltersProps) {
+export function useSalesFilters({ sales, returns = [], currentSession, closeHour, statusFilter }: UseSalesFiltersProps) {
     const [searchTerm, setSearchTerm] = useState('');
 
     // 1. Hook de filtrage temporel
@@ -26,14 +27,15 @@ export function useSalesFilters({ sales, returns = [], currentSession, closeHour
     const filteredSales = useMemo(() => {
         const isServer = currentSession?.role === 'serveur';
 
-        // A. Filtrage initial basé sur le rôle et le mode opérationnel
+        // A. Filtrage initial basé sur le rôle et le statut actif
+        const activeStatus = statusFilter || 'validated';
         const baseSales = sales.filter(sale => {
             if (isServer) {
-                // Source of truth: soldBy is the business attribution
+                // Serveurs : toujours leurs propres ventes validées (pills non visibles pour eux)
                 return sale.status === 'validated' && sale.soldBy === currentSession.userId;
             } else {
-                // Gérant/Promoteur/Admin: voir uniquement les ventes validées
-                return sale.status === 'validated';
+                // Gérant/Promoteur/Admin: filtrer par le statut sélectionné via les pills
+                return sale.status === activeStatus;
             }
         });
 
@@ -54,13 +56,17 @@ export function useSalesFilters({ sales, returns = [], currentSession, closeHour
             );
         }
 
-        // D. Tri final par date de transaction réelle (plus récent en premier)
+        // D. Tri final par date pertinente selon le statut (plus récent en premier)
         return finalFiltered.sort((a, b) => {
-            const dateA = new Date(a.validatedAt || a.createdAt);
-            const dateB = new Date(b.validatedAt || b.createdAt);
-            return dateB.getTime() - dateA.getTime();
+            const getDate = (s: Sale) =>
+                new Date(
+                    (s.status === 'cancelled' && s.cancelledAt) ? s.cancelledAt :
+                    (s.status === 'rejected'  && s.rejectedAt)  ? s.rejectedAt  :
+                    s.validatedAt || s.createdAt
+                );
+            return getDate(b).getTime() - getDate(a).getTime();
         });
-    }, [sales, startDate, endDate, searchTerm, currentSession, closeHour]);
+    }, [sales, startDate, endDate, searchTerm, currentSession, closeHour, statusFilter]);
 
     // 3. Filtrage des retours
     const filteredReturns = useMemo(() => {

@@ -63,6 +63,7 @@ export function SaleCard({
             case 'validated': return 'bg-green-100 text-green-700';
             case 'pending': return 'bg-brand-subtle text-brand-primary';
             case 'rejected': return 'bg-red-100 text-red-700';
+            case 'cancelled': return 'bg-purple-100 text-purple-700';
             default: return 'bg-gray-100 text-gray-700';
         }
     };
@@ -91,7 +92,7 @@ export function SaleCard({
                         </span>
                     </div>
                     <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${getStatusColor(sale.status)}`}>
-                        {sale.status === 'validated' ? 'Payé' : sale.status}
+                        {sale.status === 'validated' ? 'Payé' : sale.status === 'cancelled' ? 'Annulée' : sale.status}
                     </div>
                 </div>
 

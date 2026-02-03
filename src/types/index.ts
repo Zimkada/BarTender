@@ -283,7 +283,7 @@ export interface Sale {
   currency: string;
 
   // Le cycle de vie de la vente pour la validation par le gérant
-  status: 'pending' | 'validated' | 'rejected';
+  status: 'pending' | 'validated' | 'rejected' | 'cancelled';
 
   // Traçabilité des actions
   createdBy: string;      // ID de qui a créé la vente (audit technique)
@@ -296,6 +296,9 @@ export interface Sale {
   createdAt: Date;        // Date de création par le serveur
   validatedAt?: Date;     // Date de validation par le gérant
   rejectedAt?: Date;      // Date de rejet par le gérant
+  cancelledBy?: string;   // ID de qui a annulé la vente validée
+  cancelledAt?: Date;     // Timestamp de l'annulation
+  cancelReason?: string;  // Raison libre fournie par l'annuleur
 
   // ✅ NOUVEAU : Date commerciale (synchronisée avec DB)
   businessDate: Date;
@@ -623,7 +626,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     canManageInventory: true,
     canViewInventory: true,
     canSell: true,
-    canCancelSales: true,
+    canCancelSales: false,
     canViewAllSales: true,
     canViewOwnSales: true,
     canViewAnalytics: true,

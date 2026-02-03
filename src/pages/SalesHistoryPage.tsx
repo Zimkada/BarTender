@@ -16,7 +16,9 @@ import { useViewport } from '../hooks/useViewport';
 import { useFeedback } from '../hooks/useFeedback';
 import { DataFreshnessIndicatorCompact } from '../components/DataFreshnessIndicator';
 import { useRealtimeSales } from '../hooks/useRealtimeSales';
-import { Sale, User } from '../types';
+import { Sale, User, getPermissionsByRole } from '../types';
+import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
+import { useStockManagement } from '../hooks/useStockManagement'; // ✨ NEW: For consignments check
 import { SALES_HISTORY_FILTERS } from '../config/dateFilters';
 import { useSalesFilters } from '../features/Sales/SalesHistory/hooks/useSalesFilters';
 import { useSalesStats } from '../features/Sales/SalesHistory/hooks/useSalesStats';
@@ -44,13 +46,19 @@ export default function SalesHistoryPage() {
     const { formatPrice } = useCurrencyFormatter();
     const { currentSession } = useAuth();
     const { isMobile } = useViewport();
-    const { showSuccess } = useFeedback();
+    const { showSuccess, showError } = useFeedback();
 
     // Guide ID for sales history - using header button instead of auto-trigger
     const historyGuideId = currentSession?.role === 'serveur' ? 'serveur-history' : 'analytics-overview';
 
     // Enable real-time sales updates
     useRealtimeSales({ barId: currentBar?.id || '' });
+
+    // Mutations avec invalidation cache + broadcast
+    const { cancelSale } = useSalesMutations(currentBar?.id || '');
+
+    // ✨ NEW: Récupérer les consignations pour le UI Guard
+    const { consignments } = useStockManagement();
 
     // Récupérer l'heure de clôture (défaut: 6h)
     const closeHour = currentBar?.closingHour ?? 6;
@@ -68,6 +76,12 @@ export default function SalesHistoryPage() {
     const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
     const [exportFormat, setExportFormat] = useState<'csv' | 'excel'>('excel');
 
+    // Permission: annulation de ventes
+    const canCancelSales = currentSession
+        ? getPermissionsByRole(currentSession.role).canCancelSales
+        : false;
+    const [statusFilter, setStatusFilter] = useState<'validated' | 'rejected' | 'cancelled'>('validated');
+
     // HOOK: Filtrage (Ventes & Retours)
     const {
         timeRange,
@@ -84,7 +98,8 @@ export default function SalesHistoryPage() {
         sales,
         returns, // Pass returns to filter them by server
         currentSession,
-        closeHour
+        closeHour,
+        statusFilter
     });
 
     // ✨ Filter metrics for servers
@@ -121,6 +136,16 @@ export default function SalesHistoryPage() {
         barMembers: safeBarMembers
     });
 
+
+    // Handler: annulation de vente
+    const handleCancelSale = async (saleId: string, reason: string) => {
+        try {
+            await cancelSale.mutateAsync({ id: saleId, reason });
+            setSelectedSale(null);
+        } catch (error: any) {
+            showError(error.message || 'Erreur lors de l\'annulation');
+        }
+    };
 
     const tabsConfig = [
         { id: 'list', label: isMobile ? 'Tableau' : 'Tableau des ventes', icon: ListIcon },
@@ -205,6 +230,27 @@ export default function SalesHistoryPage() {
                                 updateCustomRange={updateCustomRange}
                                 buttonClassName="Ring-0 shadow-none border-0"
                             />
+
+                            {/* Pills de statut — visible uniquement pour les rôles avec canCancelSales */}
+                            {canCancelSales && (
+                                <div className="flex bg-white/40 backdrop-blur-md rounded-2xl p-1 gap-1.5 border border-brand-subtle shadow-sm">
+                                    {(['validated', 'rejected', 'cancelled'] as const).map((status) => {
+                                        const labels = { validated: 'Validées', rejected: 'Rejetées', cancelled: 'Annulées' };
+                                        return (
+                                            <button
+                                                key={status}
+                                                onClick={() => setStatusFilter(status)}
+                                                className={`px-3 py-2 h-10 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all flex-1 min-w-[80px] ${statusFilter === status
+                                                    ? 'glass-action-button-active-2026 shadow-md shadow-brand-subtle'
+                                                    : 'glass-action-button-2026 text-gray-400 hover:text-brand-primary'
+                                                    }`}
+                                            >
+                                                {labels[status]}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
 
                         {/* Export format toggle & Action (Mobile only) */}
@@ -256,8 +302,16 @@ export default function SalesHistoryPage() {
                     {filteredSales.length === 0 ? (
                         <div className="text-center py-20 bg-white rounded-xl border border-gray-200 shadow-sm">
                             <ShoppingCart size={48} className="text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-600 mb-2">Aucune vente trouvée</h3>
-                            <p className="text-gray-500">Ajustez vos filtres ou changez la période</p>
+                            <h3 className="text-lg font-medium text-gray-600 mb-2">
+                                {statusFilter === 'cancelled' ? 'Aucune vente annulée'
+                                    : statusFilter === 'rejected' ? 'Aucune vente rejetée'
+                                        : 'Aucune vente trouvée'}
+                            </h3>
+                            <p className="text-gray-500">
+                                {statusFilter === 'validated'
+                                    ? 'Ajustez vos filtres ou changez la période'
+                                    : `Aucune vente ${statusFilter === 'cancelled' ? 'annulée' : 'rejetée'} sur cette période`}
+                            </p>
                         </div>
                     ) : (
                         <div className="mt-2">
@@ -314,6 +368,10 @@ export default function SalesHistoryPage() {
                 sale={selectedSale}
                 formatPrice={formatPrice}
                 onClose={() => setSelectedSale(null)}
+                canCancel={canCancelSales}
+                onCancelSale={handleCancelSale}
+                hasReturns={selectedSale ? (getReturnsBySale(selectedSale.id).length > 0) : false}
+                hasConsignments={selectedSale ? consignments.some(c => c.saleId === selectedSale.id && ['active', 'claimed'].includes(c.status)) : false}
             />
 
             <GuideTourModal />

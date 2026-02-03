@@ -165,12 +165,86 @@ export class SalesService {
   }
 
   /**
+   * Annuler une vente validée (gérant/promoteur uniquement)
+   * Restaure le stock et marque comme annulée avec raison
+   */
+  static async cancelSale(saleId: string, cancelledBy: string, reason: string): Promise<Sale> {
+    try {
+      // 1. Récupérer la vente pour restaurer le stock
+      const { data: sale } = await supabase
+        .from('sales')
+        .select('items')
+        .eq('id', saleId)
+        .single();
+
+      if (!sale) {
+        throw new Error('Vente introuvable');
+      }
+
+      // 1b. SECURITÉ : Vérifier s'il existe des mouvements liés (Retours ou Consignations)
+      // On ne peut pas annuler une vente qui a déjà eu des mouvements de stock partiels
+      const { count: returnCount } = await supabase
+        .from('returns')
+        .select('id', { count: 'exact', head: true })
+        .eq('sale_id', saleId);
+
+      if (returnCount && returnCount > 0) {
+        throw new Error('Impossible d\'annuler cette vente car elle contient des retours produits.');
+      }
+
+      const { count: consignmentCount } = await supabase
+        .from('consignments')
+        .select('id', { count: 'exact', head: true })
+        .eq('sale_id', saleId)
+        .in('status', ['active', 'claimed']);
+
+      if (consignmentCount && consignmentCount > 0) {
+        throw new Error('Impossible d\'annuler cette vente car elle contient des consignations actives ou récupérées.');
+      }
+
+      // 2. Restaurer le stock (même pattern que rejectSale)
+      const items = sale.items as SaleItem[];
+      for (const item of items) {
+        await ProductsService.incrementStock(item.product_id, item.quantity);
+      }
+
+      // 3. Marquer la vente comme annulée
+      const { data, error } = await supabase
+        .from('sales')
+        .update({
+          status: 'cancelled',
+          cancelled_by: cancelledBy,
+          cancelled_at: new Date().toISOString(),
+          cancel_reason: reason,
+        })
+        .eq('id', saleId)
+        .eq('status', 'validated') // SÉCURITÉ: On ne peut annuler QUE ce qui est validated
+        .select()
+        .maybeSingle();
+
+      if (error) {
+        console.error('❌ cancelSale UPDATE error:', error);
+        throw new Error(`Erreur lors de l'annulation de la vente: ${error.message || error.code}`);
+      }
+
+      if (!data) {
+        throw new Error('Impossible d\'annuler cette vente : elle n\'est plus en statut validée.');
+      }
+
+      return data;
+    } catch (error: any) {
+      console.error('❌ cancelSale exception:', error);
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
    * Récupérer toutes les ventes d'un bar
    */
   static async getBarSales(
     barId: string,
     options?: {
-      status?: 'pending' | 'validated' | 'rejected';
+      status?: 'pending' | 'validated' | 'rejected' | 'cancelled';
       startDate?: string;
       endDate?: string;
       limit?: number;
@@ -231,7 +305,7 @@ export class SalesService {
    */
   static async getAllSales(
     options?: {
-      status?: 'pending' | 'validated' | 'rejected';
+      status?: 'pending' | 'validated' | 'rejected' | 'cancelled';
       startDate?: string;
       endDate?: string;
       limit?: number;

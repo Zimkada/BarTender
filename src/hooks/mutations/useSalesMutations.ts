@@ -235,6 +235,36 @@ export const useSalesMutations = (barId: string) => {
         },
     });
 
+    // Removed duplicate cancelSale declaration
+
+    const cancelSale = useMutation({
+        mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+            SalesService.cancelSale(id, currentSession?.userId || '', reason),
+        onSuccess: (_data, variables) => {
+            import('react-hot-toast').then(({ default: toast }) => {
+                toast.success('Vente annulée (Stock restauré)');
+            });
+
+            if (broadcastService.isSupported()) {
+                broadcastService.broadcast({
+                    event: 'UPDATE',
+                    table: 'sales',
+                    barId,
+                    data: { id: variables.id, status: 'cancelled' },
+                });
+                broadcastService.broadcast({
+                    event: 'UPDATE',
+                    table: 'bar_products',
+                    barId,
+                });
+            }
+
+            queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
+            queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+            queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
+        },
+    });
+
     const deleteSale = useMutation({
         mutationFn: SalesService.deleteSale,
         onSuccess: (_data, saleId) => {
@@ -262,6 +292,7 @@ export const useSalesMutations = (barId: string) => {
         createSale,
         validateSale,
         rejectSale,
+        cancelSale,
         deleteSale,
     };
 };
@@ -274,7 +305,7 @@ const mapSaleRowToSale = (savedSaleRow: SaleRow): Sale => {
         items: savedSaleRow.items as SaleItem[],
         total: savedSaleRow.total,
         currency: 'XOF',
-        status: savedSaleRow.status as 'pending' | 'validated' | 'rejected',
+        status: savedSaleRow.status as 'pending' | 'validated' | 'rejected' | 'cancelled',
         createdBy: savedSaleRow.created_by || savedSaleRow.sold_by, // Fallback
         soldBy: savedSaleRow.sold_by || undefined,  // ✨ CRUCIAL: Include soldBy from DB (attribution métier)
         serverId: savedSaleRow.server_id || undefined,  // ✨ NOUVEAU: Include serverId from DB
