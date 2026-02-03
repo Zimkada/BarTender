@@ -11,7 +11,6 @@ import {
   DollarSign,
   Sparkles,
   BarChart3,
-  UserCog,
   CheckCircle,
   Bell,
 } from 'lucide-react';
@@ -72,12 +71,6 @@ export default function AdminNotificationsPage() {
   // Gérer actions
   const handleAction = (notification: AdminNotification, actionId: string) => {
     switch (actionId) {
-      case 'impersonate':
-        // Impersonate feature has been removed for security reasons
-        // Super admins should use normal authentication instead
-        alert(`⚠️ Impersonate feature has been removed. Please log in directly as the promoter.`);
-        break;
-
       case 'view_stats':
         alert(`Voir stats de ${notification.barName}`);
         break;
@@ -114,31 +107,28 @@ export default function AdminNotificationsPage() {
           <div className="flex gap-2 flex-wrap">
             <button
               onClick={() => setFilter('all')}
-              className={`px-3 py-1.5 rounded-lg font-semibold text-sm transition-all ${
-                filter === 'all'
-                  ? 'bg-white text-purple-700'
-                  : 'bg-purple-500/30 hover:bg-purple-500/50'
-              }`}
+              className={`px-3 py-1.5 rounded-lg font-semibold text-sm transition-all ${filter === 'all'
+                ? 'bg-white text-purple-700'
+                : 'bg-purple-500/30 hover:bg-purple-500/50'
+                }`}
             >
               Toutes ({notifications.length})
             </button>
             <button
               onClick={() => setFilter('high')}
-              className={`px-3 py-1.5 rounded-lg font-semibold text-sm transition-all ${
-                filter === 'high'
-                  ? 'bg-white text-red-700'
-                  : 'bg-purple-500/30 hover:bg-purple-500/50'
-              }`}
+              className={`px-3 py-1.5 rounded-lg font-semibold text-sm transition-all ${filter === 'high'
+                ? 'bg-white text-red-700'
+                : 'bg-purple-500/30 hover:bg-purple-500/50'
+                }`}
             >
               🔴 Urgentes ({notifications.filter(n => n.priority === 'high').length})
             </button>
             <button
               onClick={() => setFilter('medium')}
-              className={`px-3 py-1.5 rounded-lg font-semibold text-sm transition-all ${
-                filter === 'medium'
-                  ? 'bg-white text-amber-700'
-                  : 'bg-purple-500/30 hover:bg-purple-500/50'
-              }`}
+              className={`px-3 py-1.5 rounded-lg font-semibold text-sm transition-all ${filter === 'medium'
+                ? 'bg-white text-amber-700'
+                : 'bg-purple-500/30 hover:bg-purple-500/50'
+                }`}
             >
               🟠 Importantes ({notifications.filter(n => n.priority === 'medium').length})
             </button>
@@ -183,9 +173,8 @@ export default function AdminNotificationsPage() {
               return (
                 <div
                   key={notification.id}
-                  className={`bg-gradient-to-r ${gradientClass} rounded-lg p-4 border-2 ${
-                    notification.isRead ? 'opacity-60' : ''
-                  }`}
+                  className={`bg-gradient-to-r ${gradientClass} rounded-lg p-4 border-2 ${notification.isRead ? 'opacity-60' : ''
+                    }`}
                 >
                   {/* Header */}
                   <div className="flex items-start justify-between mb-2">
@@ -225,15 +214,6 @@ export default function AdminNotificationsPage() {
 
                   {/* Actions */}
                   <div className="flex flex-wrap gap-2">
-                    {notification.actions?.includes('impersonate') && (
-                      <button
-                        onClick={() => handleAction(notification, 'impersonate')}
-                        className="px-3 py-1.5 bg-amber-100 text-amber-700 rounded-lg font-semibold text-xs hover:bg-amber-200 flex items-center gap-1"
-                      >
-                        <UserCog className="w-3.5 h-3.5" />
-                        Impersonate
-                      </button>
-                    )}
                     {notification.actions?.includes('view_stats') && (
                       <button
                         onClick={() => handleAction(notification, 'view_stats')}

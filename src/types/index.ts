@@ -547,7 +547,6 @@ export interface RolePermissions {
   // Super Admin (permissions spéciales)
   canAccessAdminDashboard?: boolean;
   canManagePromoteurs?: boolean;
-  canImpersonateUsers?: boolean;
   canViewGlobalStats?: boolean;
   canSuspendBars?: boolean;
 }
@@ -584,7 +583,6 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
     // Permissions spéciales Super Admin
     canAccessAdminDashboard: true,
     canManagePromoteurs: true,
-    canImpersonateUsers: true,
     canViewGlobalStats: true,
     canSuspendBars: true,
   },
@@ -747,8 +745,6 @@ export type AuditLogEvent =
   | 'LOGIN_SUCCESS'
   | 'LOGIN_FAILED'
   | 'LOGOUT'
-  | 'IMPERSONATE_START'
-  | 'IMPERSONATE_STOP'
   // Products & Inventory
   | 'PRODUCT_CREATED'
   | 'PRODUCT_UPDATED'

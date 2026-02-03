@@ -71,7 +71,7 @@ export function useAdminNotifications() {
             productName: product.name,
             currentStock: product.stock,
           },
-          actions: ['fix_stock', 'view_stats', 'impersonate'],
+          actions: ['fix_stock', 'view_stats'],
         }));
       }
     });
@@ -112,7 +112,7 @@ export function useAdminNotifications() {
             totalSales: recentSales.length,
             totalReturns: recentReturns.length,
           },
-          actions: ['view_stats', 'impersonate'],
+          actions: ['view_stats'],
         }));
       }
     }
@@ -141,7 +141,7 @@ export function useAdminNotifications() {
         metadata: {
           daysSinceCreation,
         },
-        actions: ['impersonate', 'contact_promoter'],
+        actions: ['contact_promoter'],
       }));
     }
 
@@ -173,7 +173,7 @@ export function useAdminNotifications() {
         metadata: {
           daysSinceLastSale: 7,
         },
-        actions: ['view_stats', 'impersonate', 'contact_promoter'],
+        actions: ['view_stats', 'contact_promoter'],
       }));
     }
 
@@ -199,7 +199,7 @@ export function useAdminNotifications() {
         metadata: {
           expiredCount: expired.length,
         },
-        actions: ['view_stats', 'impersonate'],
+        actions: ['view_stats'],
       }));
     }
 
@@ -232,7 +232,7 @@ export function useAdminNotifications() {
             daysSinceCreation,
             membersCount: 1,
           },
-          actions: ['impersonate', 'contact_promoter'],
+          actions: ['contact_promoter'],
         }));
       }
     }
@@ -265,7 +265,7 @@ export function useAdminNotifications() {
             calculatedTotal: itemsTotal,
             diff,
           },
-          actions: ['view_stats', 'impersonate'],
+          actions: ['view_stats'],
         }));
       }
 
@@ -284,7 +284,7 @@ export function useAdminNotifications() {
               saleId: sale.id,
               productId: item.productId,
             },
-            actions: ['impersonate'],
+            actions: [],
           }));
         }
       });
