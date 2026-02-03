@@ -43,45 +43,20 @@ SECURITY DEFINER
 AS $$
 DECLARE
     v_user_id UUID := auth.uid();
-    v_user_role TEXT := 'user';
-    v_bar_name TEXT;
-    v_user_name TEXT;
+    -- v_user_name resolved internally by internal_log_audit_event
+    -- v_bar_name resolved internally by internal_log_audit_event
 BEGIN
     -- 1. Security Check: Must be authenticated
     IF v_user_id IS NULL THEN
         RAISE EXCEPTION 'Not authenticated';
     END IF;
 
-    -- 2. Resolve User Name (Server-side source of truth)
-    SELECT name INTO v_user_name FROM users WHERE id = v_user_id;
-    
-    -- 3. Resolve Role & Bar Context
-    IF p_bar_id IS NOT NULL THEN
-        -- Check if user is member of this bar
-        v_user_role := internal_get_user_role_for_bar(v_user_id, p_bar_id);
-        
-        -- Special case: Super Admin or Owner might not be in bar_members in some legacy setups,
-        -- but usually they should be. If null, we might want to check ownership.
-        IF v_user_role IS NULL THEN
-           IF EXISTS (SELECT 1 FROM bars WHERE id = p_bar_id AND owner_id = v_user_id) THEN
-               v_user_role := 'promoteur';
-           ELSE
-               -- If not member and not owner, maybe allow logging but as 'visitor'?
-               -- Or strict reject? Strict reject is safer for data integrity.
-               -- But for 'LOGIN_FAILED' etc, user might not have role yet.
-               -- However, this RPC is for AUTHENTICATED users.
-               -- So if they claim to act on a bar they are not part of, it's suspicious.
-               -- Let's fallback to 'user' but keep bar_id.
-               v_user_role := 'user'; 
-           END IF;
-        END IF;
-
-        -- Get Bar Name
-        SELECT name INTO v_bar_name FROM bars WHERE id = p_bar_id;
+    -- 2. Input Validation
+    IF p_severity NOT IN ('info', 'warning', 'critical') THEN
+        p_severity := 'info'; -- Fallback instead of crash
     END IF;
 
-    -- 4. Call Internal Logger
-    -- This reuses the existing internal_log_audit_event logic which handles insertion
+    -- 3. Call Internal Logger (which handles name/role resolution)
     PERFORM internal_log_audit_event(
         p_event,
         p_severity,
@@ -94,3 +69,6 @@ BEGIN
     );
 END;
 $$;
+
+-- Grant permissions to authenticated users
+GRANT EXECUTE ON FUNCTION log_audit_event(TEXT, TEXT, UUID, TEXT, JSONB, UUID, TEXT) TO authenticated;
