@@ -74,10 +74,7 @@ export function useInventoryActions() {
                 reason: adjustmentData.reason,
                 notes: adjustmentData.notes,
                 barId: currentBar.id,
-                barName: currentBar.name,
-                userId: currentSession.userId,
-                userName: currentSession.userName,
-                userRole: currentSession.role
+                // userId, userName, userRole, barName are now resolved server-side
             });
             showSuccess('Stock ajusté avec succès');
             setShowStockAdjustmentModal(false);
