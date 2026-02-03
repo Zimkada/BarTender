@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDebounce } from 'use-debounce';
 import {
-  Search, Filter, Download, Calendar, AlertTriangle, Info, AlertCircle, ChevronDown, ChevronUp, FileText, Package
+  Search, Filter, Download, Calendar, AlertTriangle, Info, AlertCircle, ChevronDown, ChevronUp, FileText, Package, RefreshCw
 } from 'lucide-react';
 import { AdminService } from '../services/supabase/admin.service';
 import type { AuditLog, AuditLogEvent, AuditLogSeverity, Bar, GlobalCatalogAuditLog } from '../types';
@@ -185,8 +185,8 @@ export default function AuditLogsPage() {
           <button
             onClick={() => setActiveTab('system')}
             className={`flex items-center gap-2 px-4 md:px-6 py-3 font-medium text-sm md:text-base transition-colors border-b-2 ${activeTab === 'system'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
           >
             <FileText className="w-4 h-4" />
@@ -195,8 +195,8 @@ export default function AuditLogsPage() {
           <button
             onClick={() => setActiveTab('catalog')}
             className={`flex items-center gap-2 px-4 md:px-6 py-3 font-medium text-sm md:text-base transition-colors border-b-2 ${activeTab === 'catalog'
-                ? 'border-indigo-600 text-indigo-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
           >
             <Package className="w-4 h-4" />
@@ -345,6 +345,17 @@ export default function AuditLogsPage() {
 
             <div className="hidden md:block flex-1"></div>
 
+            {/* Refresh Button */}
+            <button
+              onClick={() => activeTab === 'system' ? loadLogs() : loadCatalogLogs()}
+              disabled={loading || catalogLoading}
+              className="flex-1 md:flex-none px-3 md:px-4 py-1.5 md:py-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-lg hover:from-emerald-600 hover:to-teal-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              title="Actualiser les logs"
+            >
+              <RefreshCw className={`w-4 h-4 ${(loading || catalogLoading) ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Actualiser</span>
+            </button>
+
             {/* Export Button */}
             {activeTab === 'system' && (
               <button
@@ -356,6 +367,7 @@ export default function AuditLogsPage() {
                 <span className="hidden sm:inline">Export</span> CSV
               </button>
             )}
+
           </div>
 
           <div className="mt-2 md:mt-3 text-xs md:text-sm text-gray-600">
