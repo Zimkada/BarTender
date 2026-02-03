@@ -98,7 +98,7 @@ export const RedirectStep: React.FC<RedirectStepProps> = ({
                 {/* Status */}
                 <div className={`p-6 rounded-lg mb-6 transition-all ${isComplete
                     ? 'bg-green-50 border border-green-200'
-                    : 'bg-blue-50 border border-blue-200 shadow-sm'
+                    : 'bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] border border-[hsl(var(--brand-hue),var(--brand-saturation),85%)] shadow-sm'
                     }`}>
                     <div className="flex items-center gap-3">
                         {isComplete ? (
@@ -113,12 +113,12 @@ export const RedirectStep: React.FC<RedirectStepProps> = ({
                             </>
                         ) : (
                             <>
-                                <Clock className="w-8 h-8 text-blue-600 animate-pulse" />
+                                <Clock className="w-8 h-8 text-[hsl(var(--brand-hue),var(--brand-saturation),50%)] animate-pulse" />
                                 <div>
-                                    <p className="font-bold text-blue-900">
+                                    <p className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),30%)]">
                                         {config.isMandatory ? '⚠️ Action obligatoire' : 'Action optionnelle'}
                                     </p>
-                                    <p className="text-sm text-blue-700">
+                                    <p className="text-sm text-[hsl(var(--brand-hue),var(--brand-saturation),40%)]">
                                         Cliquez ci-dessous pour effectuer cette tâche.
                                     </p>
                                 </div>
@@ -129,8 +129,8 @@ export const RedirectStep: React.FC<RedirectStepProps> = ({
 
                 {/* Delegation Hint (Propriétaire uniquement) */}
                 {config.delegationHint && !isComplete && (
-                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg mb-6">
-                        <p className="text-sm text-amber-900">
+                    <div className="p-4 bg-[hsl(var(--brand-hue),var(--brand-saturation),94%)] border border-[hsl(var(--brand-hue),var(--brand-saturation),85%)] rounded-lg mb-6">
+                        <p className="text-sm text-[hsl(var(--brand-hue),var(--brand-saturation),30%)]">
                             💡 <strong>Délégation :</strong> {config.delegationHint}
                         </p>
                     </div>

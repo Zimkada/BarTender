@@ -215,14 +215,16 @@ export const OnboardingFlow: React.FC = () => {
       // Default
       case OnboardingStep.COMPLETE:
         return (
-          <div className="w-full max-w-2xl mx-auto px-4">
-            <div className="bg-white rounded-lg shadow-md p-8 text-center">
-              <div className="text-5xl mb-4">🎉</div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Configuration terminée !</h1>
-              <p className="text-gray-600 mb-6">Votre bar est prêt à être utilisé.</p>
+          <div className="w-full max-w-3xl mx-auto px-4">
+            <div className="backdrop-blur-xl bg-white/80 border border-white/40 shadow-2xl rounded-2xl p-6 md:p-10 text-center ring-1 ring-black/5">
+              <div className="text-6xl mb-6 animate-bounce">🎉</div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-3 bg-clip-text text-transparent bg-[image:var(--brand-gradient)]">
+                Configuration terminée !
+              </h1>
+              <p className="text-gray-600 mb-8 text-lg">Votre bar est prêt à être utilisé.</p>
               <button
                 onClick={() => navigate('/dashboard', { replace: true })}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                className="px-8 py-3 bg-[image:var(--brand-gradient)] text-white font-semibold rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
               >
                 Aller au Dashboard
               </button>
@@ -241,12 +243,16 @@ export const OnboardingFlow: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-[hsl(var(--brand-hue),var(--brand-saturation),98%)] relative overflow-hidden transition-colors duration-500">
+      {/* Decorative Background Elements */}
+      <div className="absolute top-[-20%] right-[-10%] w-[50vh] h-[50vh] rounded-full bg-[image:var(--brand-gradient)] opacity-5 blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] left-[-10%] w-[50vh] h-[50vh] rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),50%)] opacity-5 blur-[100px] pointer-events-none" />
+
       {/* Progress indicator - sticky at top */}
       <OnboardingProgressBar />
 
       {/* Step content */}
-      <div className="py-12">
+      <div className="py-12 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
         {renderStep()}
       </div>
     </div>

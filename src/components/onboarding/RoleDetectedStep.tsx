@@ -93,42 +93,51 @@ export const RoleDetectedStep: React.FC = () => {
   const roleInfo = getRoleInfo();
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4">
-      <div className="bg-white rounded-lg shadow-md p-8">
+    <div className="w-full max-w-4xl mx-auto px-4">
+      <div className="backdrop-blur-xl bg-white/80 border border-white/40 shadow-2xl rounded-2xl p-6 md:p-10 ring-1 ring-black/5 relative overflow-hidden">
+
+        {/* Decorative Top Gradient */}
+        <div className="absolute top-0 left-0 w-full h-1.5 bg-[image:var(--brand-gradient)]" />
+
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="text-6xl mb-4">{roleInfo.icon}</div>
-          <h1 className="text-3xl font-bold text-gray-900">Vous êtes configuré en tant que {roleInfo.title}</h1>
-          <p className="mt-2 text-gray-600 text-lg">{roleInfo.description}</p>
+        <div className="text-center mb-10">
+          <div className="inline-block p-6 rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] shadow-inner mb-6">
+            <div className="text-6xl animate-bounce-slow">{roleInfo.icon}</div>
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),10%)] mb-3">
+            Vous êtes configuré en tant que <span className="bg-clip-text text-transparent bg-[image:var(--brand-gradient)]">{roleInfo.title}</span>
+          </h1>
+          <p className="mt-2 text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] text-lg font-medium max-w-2xl mx-auto">
+            {roleInfo.description}
+          </p>
         </div>
 
         {/* Responsibilities */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Vos permissions :</h2>
-          <div className="space-y-2">
+        <div className="mb-10">
+          <h2 className="text-sm uppercase tracking-wider font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] mb-4 text-center">Vos responsabilités principales</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {roleInfo.responsibilities.map((responsibility, index) => (
-              <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                <span className="text-gray-700">{responsibility}</span>
+              <div key={index} className="flex items-center gap-4 p-4 bg-white/50 border border-white/60 rounded-xl hover:bg-white/80 transition-colors shadow-sm group">
+                <div className="w-8 h-8 rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),90%)] flex items-center justify-center text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] font-bold text-sm group-hover:scale-110 transition-transform">
+                  {index + 1}
+                </div>
+                <span className="text-[hsl(var(--brand-hue),var(--brand-saturation),20%)] font-medium">{responsibility}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Info Box */}
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-8">
-          <p className="text-sm text-blue-900">
-            <strong>Note :</strong> Votre rôle a été assigné par le propriétaire du bar. Si vous pensez que c'est incorrect, veuillez le contacter.
+        <div className="p-5 bg-[hsl(var(--brand-hue),var(--brand-saturation),94%)] border border-[hsl(var(--brand-hue),var(--brand-saturation),85%)] rounded-xl mb-8 flex items-start gap-3">
+          <span className="text-xl">ℹ️</span>
+          <p className="text-sm text-[hsl(var(--brand-hue),var(--brand-saturation),30%)] leading-relaxed">
+            <strong>Note :</strong> Votre rôle a été assigné par le propriétaire du bar. Si vous pensez que c'est incorrect, veuillez le contacter avant de commencer votre service.
           </p>
         </div>
 
         {/* CTA Button */}
         {/* Footer Actions Standardisé */}
-        <div className="flex flex-col sm:flex-row gap-3 mt-8 pt-6 border-t border-gray-100 items-center justify-between">
-          {/* Bouton Retour (onboarding context ne fournit pas prevStep ici, mais on peut simuler ou cacher) 
-              Sur RoleDetected, le retour est Welcome
-          */}
-          <div className="w-20"></div>
-
+        <div className="flex flex-col sm:flex-row gap-4 mt-8 pt-6 border-t border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] items-center justify-between">
           <button
             onClick={() => window.location.href = '/dashboard'}
             className="text-gray-400 hover:text-gray-600 font-medium text-sm underline decoration-gray-300 underline-offset-4 px-4 py-2"
@@ -138,7 +147,7 @@ export const RoleDetectedStep: React.FC = () => {
 
           <button
             onClick={nextStep}
-            className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold shadow-md"
+            className="px-8 py-3 bg-[image:var(--brand-gradient)] text-white rounded-xl hover:brightness-110 transition font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transform duration-200"
           >
             Continuer
           </button>

@@ -15,67 +15,68 @@ export const WelcomeStep: React.FC = () => {
 
   if (isTrainingMode) {
     return (
-      <div className="w-full max-w-2xl mx-auto px-4">
-        <div className="bg-white rounded-lg shadow-md p-8">
+      <div className="w-full max-w-4xl mx-auto px-4">
+        <div className="backdrop-blur-xl bg-white/80 border border-white/40 shadow-2xl rounded-2xl p-6 md:p-10 ring-1 ring-black/5 relative overflow-hidden text-center">
+          {/* Decorative Top Gradient */}
+          <div className="absolute top-0 left-0 w-full h-2 bg-[image:var(--brand-gradient)]" />
+
           {/* Logo/Header */}
-          <div className="text-center mb-8">
-            <div className="inline-block mb-4">
-              <div className="text-5xl">🎓</div>
+          <div className="mb-6 md:mb-8">
+            <div className="inline-block mb-4 md:mb-6 p-4 rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] shadow-inner">
+              <div className="text-4xl md:text-5xl">🎓</div>
             </div>
-            <h1 className="text-4xl font-bold text-gray-900">Bienvenue dans l'Académie BarTender</h1>
-            <p className="mt-2 text-gray-600 text-lg">
+            <h1 className="text-3xl md:text-4xl font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),10%)] mb-2">Bienvenue dans l'Académie</h1>
+            <p className="text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] text-base md:text-lg font-medium">
               Formation rapide pour maîtriser l'application
             </p>
           </div>
 
           {/* Intro Text */}
-          <div className="mb-8 text-center">
-            <p className="text-gray-700 mb-4">
+          <div className="mb-6 md:mb-8">
+            <p className="text-gray-600 mb-4 leading-relaxed text-sm md:text-base">
               Le bar est déjà configuré ! Nous allons vous montrer comment utiliser l'application efficacement dans votre rôle quotidien.
             </p>
           </div>
 
           {/* Features Preview */}
-          <div className="mb-8 space-y-3">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Ce que vous allez apprendre :</h2>
-            <div className="grid gap-3">
-              <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <span className="text-2xl">🎯</span>
-                <div>
-                  <p className="font-medium text-gray-900">Votre rôle</p>
-                  <p className="text-sm text-gray-600">Comprendre vos responsabilités</p>
+          <div className="mb-8 space-y-3 text-left">
+            <h2 className="text-sm uppercase tracking-wider font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] mb-4 text-center">Ce que vous allez apprendre</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="flex md:flex-col items-center md:text-center gap-4 p-4 bg-white/50 border border-white/60 rounded-xl hover:bg-white/80 transition-colors shadow-sm">
+                <span className="text-2xl filter drop-shadow-sm">🎯</span>
+                <div className="flex-1">
+                  <p className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),20%)]">Votre rôle</p>
+                  <p className="text-sm text-gray-500">Comprendre vos responsabilités</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                <span className="text-2xl">🖥️</span>
-                <div>
-                  <p className="font-medium text-gray-900">Interface</p>
-                  <p className="text-sm text-gray-600">Navigation et fonctionnalités clés</p>
+              <div className="flex md:flex-col items-center md:text-center gap-4 p-4 bg-white/50 border border-white/60 rounded-xl hover:bg-white/80 transition-colors shadow-sm">
+                <span className="text-2xl filter drop-shadow-sm">🖥️</span>
+                <div className="flex-1">
+                  <p className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),20%)]">Interface</p>
+                  <p className="text-sm text-gray-500">Navigation et fonctionnalités clés</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-                <span className="text-2xl">⚡</span>
-                <div>
-                  <p className="font-medium text-gray-900">Simulation pratique</p>
-                  <p className="text-sm text-gray-600">Exercices interactifs pour vous entraîner</p>
+              <div className="flex md:flex-col items-center md:text-center gap-4 p-4 bg-white/50 border border-white/60 rounded-xl hover:bg-white/80 transition-colors shadow-sm">
+                <span className="text-2xl filter drop-shadow-sm">⚡</span>
+                <div className="flex-1">
+                  <p className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),20%)]">Simulation</p>
+                  <p className="text-sm text-gray-500">Exercices interactifs</p>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Duration */}
-          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center mb-8">
-            <p className="text-sm text-gray-700">
+          <div className="p-3 md:p-4 bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] border border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] rounded-xl text-center mb-6 md:mb-8">
+            <p className="text-sm text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] font-medium">
               <strong>⏱️ Formation rapide : 2-3 minutes</strong>
             </p>
           </div>
 
           {/* CTA Button */}
-          <div className="flex flex-col sm:flex-row gap-3 mt-8 pt-6 border-t border-gray-100 items-center justify-between">
-            <div className="w-20"></div>
-
+          <div className="flex flex-col sm:flex-row gap-4 mt-6 pt-6 border-t border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] items-center justify-between">
             <button
               onClick={() => {
                 window.location.href = '/dashboard';
@@ -87,7 +88,7 @@ export const WelcomeStep: React.FC = () => {
 
             <button
               onClick={nextStep}
-              className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold text-lg shadow-md"
+              className="px-8 py-3 bg-[image:var(--brand-gradient)] text-white w-full sm:w-auto rounded-xl hover:brightness-110 transition font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transform duration-200"
             >
               Commencer la formation
             </button>
@@ -99,75 +100,76 @@ export const WelcomeStep: React.FC = () => {
 
   // Configuration mode: Original welcome for new bar setup
   return (
-    <div className="w-full max-w-2xl mx-auto px-4">
-      <div className="bg-white rounded-lg shadow-md p-8">
+    <div className="w-full max-w-4xl mx-auto px-4">
+      <div className="backdrop-blur-xl bg-white/80 border border-white/40 shadow-2xl rounded-2xl p-6 md:p-10 ring-1 ring-black/5 relative overflow-hidden text-center">
+        {/* Decorative Top Gradient */}
+        <div className="absolute top-0 left-0 w-full h-2 bg-[image:var(--brand-gradient)]" />
+
         {/* Logo/Header */}
-        <div className="text-center mb-8">
-          <div className="inline-block mb-4">
-            <div className="text-5xl">🍹</div>
+        <div className="mb-6 md:mb-8">
+          <div className="inline-block mb-4 md:mb-6 p-4 rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] shadow-inner">
+            <div className="text-4xl md:text-5xl">🍹</div>
           </div>
-          <h1 className="text-4xl font-bold text-gray-900">Bienvenue sur BarTender</h1>
-          <p className="mt-2 text-gray-600 text-lg">
+          <h1 className="text-3xl md:text-4xl font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),10%)] mb-2">Bienvenue sur BarTender</h1>
+          <p className="text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] text-base md:text-lg font-medium">
             Votre solution de gestion de bar, simplifiée
           </p>
         </div>
 
         {/* Intro Text */}
-        <div className="mb-8 text-center">
-          <p className="text-gray-700 mb-4">
+        <div className="mb-6 md:mb-8">
+          <p className="text-gray-600 mb-4 leading-relaxed text-sm md:text-base">
             Configurons votre bar en quelques minutes. Nous vous guiderons à travers les étapes essentielles pour être prêt pour votre première vente.
           </p>
         </div>
 
         {/* Features Preview */}
-        <div className="mb-8 space-y-3">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Ce que vous allez configurer :</h2>
-          <div className="grid gap-3">
-            <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <span className="text-2xl">📍</span>
-              <div>
-                <p className="font-medium text-gray-900">Détails du bar</p>
-                <p className="text-sm text-gray-600">Nom, localisation et horaires</p>
+        <div className="mb-8 space-y-3 text-left">
+          <h2 className="text-sm uppercase tracking-wider font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] mb-4 text-center">Ce que vous allez configurer</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="flex md:flex-col items-center md:text-center gap-4 p-4 bg-white/50 border border-white/60 rounded-xl hover:bg-white/80 transition-colors shadow-sm">
+              <span className="text-2xl filter drop-shadow-sm">📍</span>
+              <div className="flex-1">
+                <p className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),20%)]">Détails</p>
+                <p className="text-sm text-gray-500">Nom, localisation</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <span className="text-2xl">👥</span>
-              <div>
-                <p className="font-medium text-gray-900">Équipe</p>
-                <p className="text-sm text-gray-600">Gérants et serveurs</p>
+            <div className="flex md:flex-col items-center md:text-center gap-4 p-4 bg-white/50 border border-white/60 rounded-xl hover:bg-white/80 transition-colors shadow-sm">
+              <span className="text-2xl filter drop-shadow-sm">👥</span>
+              <div className="flex-1">
+                <p className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),20%)]">Équipe</p>
+                <p className="text-sm text-gray-500">Gérants et serveurs</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
-              <span className="text-2xl">🍻</span>
-              <div>
-                <p className="font-medium text-gray-900">Produits</p>
-                <p className="text-sm text-gray-600">Votre catalogue de boissons et tarification</p>
+            <div className="flex md:flex-col items-center md:text-center gap-4 p-4 bg-white/50 border border-white/60 rounded-xl hover:bg-white/80 transition-colors shadow-sm">
+              <span className="text-2xl filter drop-shadow-sm">🍻</span>
+              <div className="flex-1">
+                <p className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),20%)]">Produits</p>
+                <p className="text-sm text-gray-500">Votre carte</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-              <span className="text-2xl">📦</span>
-              <div>
-                <p className="font-medium text-gray-900">Inventaire</p>
-                <p className="text-sm text-gray-600">Niveaux de stock initial</p>
+            <div className="flex md:flex-col items-center md:text-center gap-4 p-4 bg-white/50 border border-white/60 rounded-xl hover:bg-white/80 transition-colors shadow-sm">
+              <span className="text-2xl filter drop-shadow-sm">📦</span>
+              <div className="flex-1">
+                <p className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),20%)]">Inventaire</p>
+                <p className="text-sm text-gray-500">Stock initial</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Duration */}
-        <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center mb-8">
-          <p className="text-sm text-gray-700">
+        <div className="p-3 md:p-4 bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] border border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] rounded-xl text-center mb-6 md:mb-8">
+          <p className="text-sm text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] font-medium">
             <strong>⏱️ Cela prend environ 3-5 minutes</strong>
           </p>
         </div>
 
         {/* CTA Button */}
-        <div className="flex flex-col sm:flex-row gap-3 mt-8 pt-6 border-t border-gray-100 items-center justify-between">
-          <div className="w-20"></div>
-
+        <div className="flex flex-col sm:flex-row gap-4 mt-6 pt-6 border-t border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] items-center justify-between">
           <button
             onClick={() => {
               window.location.href = '/dashboard';
@@ -179,7 +181,7 @@ export const WelcomeStep: React.FC = () => {
 
           <button
             onClick={nextStep}
-            className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold text-lg shadow-md"
+            className="px-8 py-3 bg-[image:var(--brand-gradient)] text-white w-full sm:w-auto rounded-xl hover:brightness-110 transition font-bold text-lg shadow-lg hover:shadow-xl hover:scale-105 transform duration-200"
           >
             Commencer
           </button>

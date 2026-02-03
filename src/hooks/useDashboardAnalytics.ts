@@ -3,7 +3,6 @@ import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { useRevenueStats } from '../hooks/useRevenueStats';
-import { useTopProducts } from '../hooks/queries/useTopProductsQuery';
 import { useTeamPerformance } from '../hooks/useTeamPerformance';
 import { getCurrentBusinessDateString } from '../utils/businessDateHelpers';
 import { AnalyticsService, DailySalesSummary } from '../services/supabase/analytics.service';
@@ -96,15 +95,6 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
         enabled: true
     });
 
-    const { data: topProductsData = [] } = useTopProducts({
-        barId: currentBarId || '',
-        startDate: todayDateStr,
-        endDate: todayDateStr,
-        limit: 5,
-        serverId: isServerRole ? currentUserId : undefined,
-        enabled: !!currentBarId,
-    });
-
     const teamPerformanceData = useTeamPerformance({
         sales: isServerRole ? serverFilteredSales : todayValidatedSales,
         returns: todayReturns,
@@ -120,10 +110,44 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
         sum + sale.items.reduce((s: number, i: any) => s + i.quantity, 0), 0
     );
 
-    const topProductsList = topProductsData.map(p => ({
-        name: p.product_volume ? `${p.product_name} (${p.product_volume})` : p.product_name,
-        qty: p.total_quantity
-    }));
+    // Top produits : agrégation locale depuis les ventes du jour (même pattern que totalItems / teamPerformance)
+    const topProductsList = useMemo(() => {
+        // 1. Agréger les quantités brutes par produit
+        const productMap = new Map<string, { name: string; qty: number }>();
+
+        serverFilteredSales.forEach(sale => {
+            sale.items.forEach(item => {
+                const existing = productMap.get(item.product_id);
+                if (existing) {
+                    existing.qty += item.quantity;
+                } else {
+                    const displayName = item.product_volume
+                        ? `${item.product_name} (${item.product_volume})`
+                        : item.product_name;
+                    productMap.set(item.product_id, { name: displayName, qty: item.quantity });
+                }
+            });
+        });
+
+        // 2. Déduire les retours remboursés associés aux ventes du jour
+        const todaySaleIds = new Set(serverFilteredSales.map(s => s.id));
+
+        serverFilteredReturns.forEach(ret => {
+            if (!ret.isRefunded || (ret.status !== 'approved' && ret.status !== 'restocked')) return;
+            if (!todaySaleIds.has(ret.saleId)) return;
+
+            const product = productMap.get(ret.productId);
+            if (product) {
+                product.qty -= ret.quantityReturned;
+            }
+        });
+
+        // 3. Filtrer (qty > 0), trier par quantité décroissante, limiter à 5
+        return Array.from(productMap.values())
+            .filter(p => p.qty > 0)
+            .sort((a, b) => b.qty - a.qty)
+            .slice(0, 5);
+    }, [serverFilteredSales, serverFilteredReturns]);
 
     return {
         // Raw Data

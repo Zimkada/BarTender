@@ -143,13 +143,13 @@ export const BarDetailsStep: React.FC = () => {
               value={formData.barName}
               onChange={handleChange}
               placeholder="ex : Chez Ali"
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:outline-none ${errors.barName
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[hsl(var(--brand-hue),var(--brand-saturation),80%)] focus:border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] focus:outline-none transition-all duration-200 ${errors.barName
                 ? 'border-red-500 focus:ring-red-200'
-                : 'border-gray-300 focus:ring-blue-200'
+                : 'border-gray-200'
                 }`}
             />
             {!errors.barName && formData.barName && (
-              <p className="mt-1 text-xs text-gray-500">✓ Valeur actuelle: {formData.barName}</p>
+              <p className="mt-1 text-xs text-[hsl(var(--brand-hue),var(--brand-saturation),40%)]">✓ Valeur actuelle: {formData.barName}</p>
             )}
             {errors.barName && (
               <p className="mt-1 text-sm text-red-600">{errors.barName}</p>
@@ -168,13 +168,13 @@ export const BarDetailsStep: React.FC = () => {
               value={formData.location}
               onChange={handleChange}
               placeholder="ex : Cotonou, Bénin"
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:outline-none ${errors.location
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[hsl(var(--brand-hue),var(--brand-saturation),80%)] focus:border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] focus:outline-none transition-all duration-200 ${errors.location
                 ? 'border-red-500 focus:ring-red-200'
-                : 'border-gray-300 focus:ring-blue-200'
+                : 'border-gray-200'
                 }`}
             />
             {!errors.location && formData.location && (
-              <p className="mt-1 text-xs text-gray-500">✓ Valeur actuelle: {formData.location}</p>
+              <p className="mt-1 text-xs text-[hsl(var(--brand-hue),var(--brand-saturation),40%)]">✓ Valeur actuelle: {formData.location}</p>
             )}
             {errors.location && (
               <p className="mt-1 text-sm text-red-600">{errors.location}</p>
@@ -193,13 +193,13 @@ export const BarDetailsStep: React.FC = () => {
               value={formData.contact}
               onChange={handleChange}
               placeholder="votre@email.com"
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:outline-none ${errors.contact
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[hsl(var(--brand-hue),var(--brand-saturation),80%)] focus:border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] focus:outline-none transition-all duration-200 ${errors.contact
                 ? 'border-red-500 focus:ring-red-200'
-                : 'border-gray-300 focus:ring-blue-200'
+                : 'border-gray-200'
                 }`}
             />
             {!errors.contact && formData.contact && (
-              <p className="mt-1 text-xs text-gray-500">✓ Valeur actuelle: {formData.contact}</p>
+              <p className="mt-1 text-xs text-[hsl(var(--brand-hue),var(--brand-saturation),40%)]">✓ Valeur actuelle: {formData.contact}</p>
             )}
             {errors.contact && (
               <p className="mt-1 text-sm text-red-600">{errors.contact}</p>
@@ -216,9 +216,9 @@ export const BarDetailsStep: React.FC = () => {
               name="closingHour"
               value={formData.closingHour}
               onChange={handleChange}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:outline-none ${errors.closingHour
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[hsl(var(--brand-hue),var(--brand-saturation),80%)] focus:border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] focus:outline-none transition-all duration-200 ${errors.closingHour
                 ? 'border-red-500 focus:ring-red-200'
-                : 'border-gray-300 focus:ring-blue-200'
+                : 'border-gray-200'
                 }`}
             >
               {Array.from({ length: 24 }, (_, i) => (
@@ -245,9 +245,9 @@ export const BarDetailsStep: React.FC = () => {
               name="operatingMode"
               value={formData.operatingMode}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-200 focus:outline-none"
+              className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[hsl(var(--brand-hue),var(--brand-saturation),80%)] focus:border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] focus:outline-none transition-all duration-200"
             >
-              <option value="simplifié">Simplifié (pas de comptes utilisateur, noms seulement)</option>
+              <option value="simplifié">Simplifié (pas de comptes utilisateurs, noms seulement)</option>
               <option value="full">Complet (comptes utilisateur pour chaque serveur)</option>
             </select>
             <p className="mt-2 text-sm text-gray-500">
@@ -269,7 +269,7 @@ export const BarDetailsStep: React.FC = () => {
               <button
                 type="button"
                 onClick={() => previousStep()}
-                className="flex-1 sm:flex-none px-4 sm:px-6 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                className="flex-1 sm:flex-none px-4 sm:px-6 py-2 text-[hsl(var(--brand-hue),var(--brand-saturation),20%)] bg-white border border-[hsl(var(--brand-hue),var(--brand-saturation),85%)] rounded-xl hover:bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] transition-colors duration-200"
               >
                 Retour
               </button>
@@ -277,7 +277,7 @@ export const BarDetailsStep: React.FC = () => {
                 type="submit"
                 isLoading={loading}
                 loadingText="Enregistrement..."
-                className="flex-1 sm:flex-none sm:ml-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                className="flex-1 sm:flex-none sm:ml-auto px-4 sm:px-6 py-2 bg-[image:var(--brand-gradient)] text-white font-semibold rounded-xl shadow-md hover:shadow-lg hover:brightness-110 transition-all duration-200"
               >
                 Étape Suivante
               </LoadingButton>
@@ -318,7 +318,7 @@ export const BarDetailsStep: React.FC = () => {
                     setLoading(false);
                   }
                 }}
-                className="w-full sm:w-auto px-4 sm:px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                className="w-full sm:w-auto px-4 sm:px-6 py-2 text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] hover:text-[hsl(var(--brand-hue),var(--brand-saturation),20%)] font-medium text-sm transition-colors duration-200"
               >
                 Compléter Plus Tard
               </LoadingButton>

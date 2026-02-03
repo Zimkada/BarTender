@@ -5,6 +5,7 @@ import { useBarContext } from '../context/BarContext';
 import { useAppContext } from '../context/AppContext';
 import { ModalProvider, useModal } from '../context/ModalContext';
 import { useStockMutations } from '../hooks/mutations/useStockMutations';
+import { useNotifications } from '../components/Notifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { realtimeService } from '../services/realtime/RealtimeService';
 import { broadcastService } from '../services/broadcast/BroadcastService';
@@ -22,7 +23,6 @@ import { OnboardingBanner } from '../components/onboarding/OnboardingBanner'; //
 import { LoadingFallback } from '../components/LoadingFallback';
 import { LazyLoadErrorBoundary } from '../components/LazyLoadErrorBoundary';
 // import { UserManagement } from '../components/UserManagement'; // Removed
-import { Category } from '../types';
 import { UpdateNotification } from '../components/UpdateNotification';
 
 // Lazy load all modals to reduce initial bundle size (~60-80 KB savings)
@@ -34,8 +34,9 @@ const LazySupplyModal = lazy(() => import('../components/SupplyModal').then(m =>
 function RootLayoutContent() {
   const { isAuthenticated, currentSession } = useAuth();
   const { currentBar } = useBarContext();
-  const { categories, products, addProduct, addCategory, updateCategory, linkCategory, showNotification } = useAppContext();
-  const { addSupply } = useStockMutations(currentBar?.id || '');
+  const { categories, products, addCategory, updateCategory, linkCategory } = useAppContext();
+  const { addSupply, createProduct } = useStockMutations(currentBar?.id || '');
+  const { showNotification } = useNotifications();
   const queryClient = useQueryClient();
 
   const { modalState, openModal, closeModal } = useModal();
@@ -68,6 +69,9 @@ function RootLayoutContent() {
       // La navigation sera gérée par le Navigate ci-dessous
     }
   }, [isAuthenticated, currentSession, queryClient]);
+
+  // 🎓 Redirection vers l'Onboarding / Formation : SUPPRIMÉE (Remplacée par WelcomeCard)
+  // L'utilisateur n'est plus forcé, il est invité via le Dashboard.
 
   // 🔄 Heartbeat: Vérifier la validité du token toutes les 30 secondes
   useEffect(() => {
@@ -160,7 +164,7 @@ function RootLayoutContent() {
                 showNotification('error', 'Aucun bar sélectionné');
                 return;
               }
-              addProduct({ ...productData, barId: currentBar.id });
+              createProduct.mutate({ ...productData, barId: currentBar.id });
               closeModal();
               showNotification('success', `Produit "${productData.name}" ajouté`);
             }}

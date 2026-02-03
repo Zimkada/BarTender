@@ -29,6 +29,7 @@ export interface UserSession {
   loginTime: Date;
   permissions: RolePermissions;
   firstLogin?: boolean;
+  hasCompletedOnboarding?: boolean; // New: Track if user has completed training
   allbarIds?: string[]; // Ajout de la propriété (optionnelle ou obligatoire)
 }
 

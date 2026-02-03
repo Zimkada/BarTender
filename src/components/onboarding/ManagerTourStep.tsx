@@ -51,7 +51,7 @@ export const ManagerTourStep: React.FC = () => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-white/80 backdrop-blur-md border border-white/40 shadow-xl rounded-2xl ${className}`}
+      className={`backdrop-blur-md bg-white/60 border border-white/40 shadow-xl rounded-2xl ${className}`}
     >
       {children}
     </motion.div>
@@ -60,48 +60,42 @@ export const ManagerTourStep: React.FC = () => {
   const renderHeader = () => {
     let title = "Académie BarTender";
     let subtitle = "Maîtrisez votre établissement avec élégance.";
-    let gradient = "from-slate-900 via-slate-800 to-slate-900";
 
     switch (phase) {
       case 'intro':
         title = "🚀 Académie BarTender";
         subtitle = "Devenez un Gérant Pro en moins de 2 minutes.";
-        gradient = "from-amber-500 via-amber-600 to-amber-700";
         break;
       case 'sim_intro':
       case 'sim_mapping':
       case 'sim_action':
         title = "Mission : La Vente Directe";
         subtitle = "Le mode simplifié pour une gestion centralisée.";
-        gradient = "from-amber-500 via-amber-600 to-amber-700";
         break;
       case 'sim_success':
         title = "Vente Réussie !";
         subtitle = "Mapping parfait, Afi peut être fière.";
-        gradient = "from-amber-500 via-amber-600 to-amber-700";
         break;
       case 'full_intro':
       case 'full_validate':
       case 'full_reject':
         title = "Mission : Le Contrôle";
         subtitle = "Le mode complet pour déléguer en toute sécurité.";
-        gradient = "from-amber-500 via-amber-600 to-amber-700";
         break;
       case 'full_success':
       case 'complete':
         title = "Certification Obtenue !";
         subtitle = "Vous êtes officiellement un Gérant Certifié.";
-        gradient = "from-amber-500 via-amber-600 to-amber-700";
         break;
     }
 
     return (
-      <div className={`p-8 text-center transition-all duration-700 bg-gradient-to-br ${gradient} relative overflow-hidden`}>
+      <div className={`p-8 text-center transition-all duration-700 bg-[image:var(--brand-gradient)] relative overflow-hidden`}>
         {/* Animated background element */}
         <motion.div
           animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
           transition={{ duration: 20, repeat: Infinity }}
-          className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl"
+          className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"
         />
         <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-3 tracking-tight drop-shadow-sm">{title}</h1>
         <p className="text-white/90 text-lg font-medium max-w-lg mx-auto leading-relaxed">{subtitle}</p>
@@ -122,8 +116,8 @@ export const ManagerTourStep: React.FC = () => {
               exit={{ opacity: 0, scale: 1.1 }}
               className="space-y-6"
             >
-              <div className="w-20 h-20 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto shadow-inner transform rotate-3">
-                <ShoppingCart className="text-amber-600 w-10 h-10" />
+              <div className="w-20 h-20 bg-[hsl(var(--brand-hue),var(--brand-saturation),95%)] rounded-2xl flex items-center justify-center mx-auto shadow-inner transform rotate-3">
+                <ShoppingCart className="text-[hsl(var(--brand-hue),var(--brand-saturation),60%)] w-10 h-10" />
               </div>
               <div className="space-y-2">
                 <h3 className="text-2xl font-bold text-gray-900">Le Mode Simplifié</h3>
@@ -131,15 +125,15 @@ export const ManagerTourStep: React.FC = () => {
                   Centralisez tout sur un seul appareil. Idéal si vos serveurs n'ont pas de smartphone ou pour un service rapide au comptoir.
                 </p>
               </div>
-              <div className="bg-white p-4 rounded-xl shadow-sm border border-amber-100 flex items-start gap-3 text-left max-w-sm mx-auto">
-                <ShieldCheck className="text-amber-500 shrink-0 mt-1" size={20} />
-                <p className="text-sm text-amber-800">
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] flex items-start gap-3 text-left max-w-sm mx-auto">
+                <ShieldCheck className="text-[hsl(var(--brand-hue),var(--brand-saturation),50%)] shrink-0 mt-1" size={20} />
+                <p className="text-sm text-[hsl(var(--brand-hue),var(--brand-saturation),30%)]">
                   Le <strong>Mapping</strong> est le "pont" : il lie les noms de serveurs que vous sélectionnez au comptoir aux comptes réels des serveurs pour le calcul automatique du CA.
                 </p>
               </div>
               <button
                 onClick={() => setPhase('sim_mapping')}
-                className="group px-8 py-3 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition-all shadow-lg hover:shadow-amber-200/50 flex items-center gap-2 mx-auto"
+                className="group px-8 py-3 bg-[image:var(--brand-gradient)] text-white rounded-xl font-bold hover:brightness-110 transition-all shadow-lg hover:shadow-[hsl(var(--brand-hue),var(--brand-saturation),50%)]/40 flex items-center gap-2 mx-auto"
               >
                 Maîtriser le Mapping <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </button>
@@ -156,33 +150,33 @@ export const ManagerTourStep: React.FC = () => {
             >
               <GlassCard className="p-6 max-w-sm mx-auto">
                 <h4 className="font-bold text-gray-800 mb-2 text-sm uppercase tracking-widest flex items-center justify-center gap-2">
-                  <Zap size={14} className="text-amber-500" /> Le Mapping des Serveurs
+                  <Zap size={14} className="text-[hsl(var(--brand-hue),var(--brand-saturation),50%)]" /> Le Mapping des Serveurs
                 </h4>
-                <div className="mb-6 p-2 bg-blue-50 rounded-lg border border-blue-100 flex flex-col items-center gap-1">
+                <div className="mb-6 p-2 bg-[hsl(var(--brand-hue),var(--brand-saturation),95%)] rounded-lg border border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] flex flex-col items-center gap-1">
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                    <span className="text-[10px] font-bold text-blue-700 uppercase">Paramètres &gt; Onglet Gestion</span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),50%)] animate-pulse" />
+                    <span className="text-[10px] font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),60%)] uppercase">Paramètres &gt; Onglet Gestion</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                    <span className="text-[10px] font-bold text-blue-700 uppercase">Gestion Équipe &gt; Onglet Caisses</span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),50%)] animate-pulse" />
+                    <span className="text-[10px] font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),60%)] uppercase">Gestion Équipe &gt; Onglet Caisses</span>
                   </div>
                 </div>
                 <div className="space-y-3">
                   {[
-                    { from: "Afi", to: "Afi Denise" },
-                    { from: "Rose", to: "Rose Sandra" }
+                    { from: "Afi", to: "Afi KOFFI" },
+                    { from: "Rose", to: "Rose BIAOU" }
                   ].map((m, i) => (
                     <motion.div
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.1 }}
                       key={m.from}
-                      className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 shadow-sm group hover:border-amber-300 transition-colors"
+                      className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-100 shadow-sm group hover:border-[hsl(var(--brand-hue),var(--brand-saturation),40%)] transition-colors"
                     >
                       <span className="font-bold text-gray-700">{m.from}</span>
-                      <ArrowRight size={14} className="text-amber-300 group-hover:text-amber-500 transition-colors" />
-                      <span className="text-xs bg-amber-50 text-amber-700 font-bold px-3 py-1.5 rounded-lg border border-amber-100">
+                      <ArrowRight size={14} className="text-[hsl(var(--brand-hue),var(--brand-saturation),80%)] group-hover:text-[hsl(var(--brand-hue),var(--brand-saturation),50%)] transition-colors" />
+                      <span className="text-xs bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] font-bold px-3 py-1.5 rounded-lg border border-[hsl(var(--brand-hue),var(--brand-saturation),90%)]">
                         {m.to}
                       </span>
                     </motion.div>
@@ -194,7 +188,7 @@ export const ManagerTourStep: React.FC = () => {
               </GlassCard>
               <button
                 onClick={() => setPhase('sim_action')}
-                className="px-8 py-4 bg-amber-500 text-white rounded-xl font-bold shadow-xl hover:bg-amber-600 transition-all active:scale-95"
+                className="px-8 py-4 bg-[image:var(--brand-gradient)] text-white rounded-xl font-bold shadow-xl hover:brightness-110 transition-all active:scale-95"
               >
                 Enregistrer une vente pour Afi →
               </button>
@@ -208,14 +202,19 @@ export const ManagerTourStep: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               className="w-full max-w-sm mx-auto"
             >
-              <div className="bg-white border-2 border-amber-100 rounded-3xl shadow-2xl overflow-hidden">
-                <div className="bg-amber-50/50 p-4 border-b flex justify-between items-center">
+              <div className="bg-white border-2 border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] rounded-3xl shadow-2xl overflow-hidden">
+                <div className="bg-[hsl(var(--brand-hue),var(--brand-saturation),95%)]/50 p-4 border-b flex justify-between items-center">
                   <span className="font-black text-gray-800 tracking-tight">CAISSE PRO</span>
                   <div className="flex gap-1">
                     <div className="w-2 h-2 rounded-full bg-red-400" />
                     <div className="w-2 h-2 rounded-full bg-amber-400" />
                     <div className="w-2 h-2 rounded-full bg-green-400" />
                   </div>
+                </div>
+
+                {/* Instruction Banner */}
+                <div className="bg-[hsl(var(--brand-hue),var(--brand-saturation),10%)] text-white p-3 text-sm text-center">
+                  <span className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),60%)]">MISSION :</span> Enregistrez cette vente pour <strong className="text-white underline decoration-[hsl(var(--brand-hue),var(--brand-saturation),50%)] decoration-2 underline-offset-2">Afi</strong> en <strong className="text-white underline decoration-[hsl(var(--brand-hue),var(--brand-saturation),50%)] decoration-2 underline-offset-2">Espèces</strong>.
                 </div>
 
                 <div className="p-6 space-y-4">
@@ -230,33 +229,32 @@ export const ManagerTourStep: React.FC = () => {
                     </div>
                     <div className="pt-4 border-t-2 border-dashed border-gray-100 flex justify-between items-baseline">
                       <span className="text-lg font-bold text-gray-900">Total</span>
-                      <span className="text-2xl font-black text-amber-600">1 600 FCFA</span>
+                      <span className="text-2xl font-black text-[hsl(var(--brand-hue),var(--brand-saturation),50%)]">1 600 FCFA</span>
                     </div>
                   </div>
 
-                  <div className={`space-y-2 mt-6 p-1 rounded-2xl transition-all ${!selectedServer ? 'ring-4 ring-amber-400/20' : ''}`}>
+                  <div className={`space-y-2 mt-6 p-1 rounded-2xl transition-all ${!selectedServer ? 'ring-4 ring-[hsl(var(--brand-hue),var(--brand-saturation),80%)]/40' : ''}`}>
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">
                       Vendeur responsable
                     </label>
                     <select
-                      className="w-full p-4 bg-gray-50 border-none rounded-xl font-bold text-gray-800 transition-all focus:ring-2 focus:ring-amber-500 focus:bg-white"
+                      className="w-full p-4 bg-gray-50 border-none rounded-xl font-bold text-gray-800 transition-all focus:ring-2 focus:ring-[hsl(var(--brand-hue),var(--brand-saturation),50%)] focus:bg-white"
                       value={selectedServer}
                       onChange={(e) => setSelectedServer(e.target.value)}
                       disabled={phase === 'sim_success'}
                     >
                       <option value="">-- Qui a vendu ? --</option>
                       <option value="Afi">Afi</option>
-                      <option value="Sandra">Sandra</option>
                       <option value="Rose">Rose</option>
                     </select>
                   </div>
 
-                  <div className={`space-y-2 p-1 rounded-2xl transition-all ${selectedServer && !selectedPaymentMode ? 'ring-4 ring-amber-400/20' : ''}`}>
+                  <div className={`space-y-2 p-1 rounded-2xl transition-all ${selectedServer && !selectedPaymentMode ? 'ring-4 ring-[hsl(var(--brand-hue),var(--brand-saturation),80%)]/40' : ''}`}>
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2">
                       Mode de paiement
                     </label>
                     <select
-                      className="w-full p-4 bg-gray-50 border-none rounded-xl font-bold text-gray-800 transition-all focus:ring-2 focus:ring-amber-500 focus:bg-white"
+                      className="w-full p-4 bg-gray-50 border-none rounded-xl font-bold text-gray-800 transition-all focus:ring-2 focus:ring-[hsl(var(--brand-hue),var(--brand-saturation),50%)] focus:bg-white"
                       value={selectedPaymentMode}
                       onChange={(e) => setSelectedPaymentMode(e.target.value)}
                       disabled={phase === 'sim_success'}
@@ -276,7 +274,7 @@ export const ManagerTourStep: React.FC = () => {
                         ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
                         : phase === 'sim_success'
                           ? 'bg-emerald-500 text-white'
-                          : 'bg-amber-600 text-white hover:bg-amber-700 active:scale-95'
+                          : 'bg-[image:var(--brand-gradient)] text-white hover:brightness-110 active:scale-95'
                       }`}
                   >
                     {phase === 'sim_success' ? "Vente Encaissée ✓" : "Valider l'Encaissement"}
@@ -294,7 +292,7 @@ export const ManagerTourStep: React.FC = () => {
                           setPhase('full_intro');
                           setSelectedServer('');
                         }}
-                        className="px-8 py-3 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-xl font-bold shadow-lg hover:shadow-amber-200/50 transition-all flex items-center gap-2 mx-auto"
+                        className="px-8 py-3 bg-[image:var(--brand-gradient)] text-white rounded-xl font-bold shadow-lg hover:shadow-[hsl(var(--brand-hue),var(--brand-saturation),50%)]/40 transition-all flex items-center gap-2 mx-auto"
                       >
                         Mission Suivante <ArrowRight size={18} />
                       </button>
@@ -321,8 +319,8 @@ export const ManagerTourStep: React.FC = () => {
               animate={{ opacity: 1, scale: 1 }}
               className="space-y-6"
             >
-              <div className="w-20 h-20 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto shadow-inner transform -rotate-3">
-                <ShieldCheck className="text-amber-600 w-10 h-10" />
+              <div className="w-20 h-20 bg-[hsl(var(--brand-hue),var(--brand-saturation),95%)] rounded-2xl flex items-center justify-center mx-auto shadow-inner transform -rotate-3">
+                <ShieldCheck className="text-[hsl(var(--brand-hue),var(--brand-saturation),60%)] w-10 h-10" />
               </div>
               <div className="space-y-2">
                 <h3 className="text-2xl font-bold text-gray-900">Le Mode Complet</h3>
@@ -330,15 +328,15 @@ export const ManagerTourStep: React.FC = () => {
                   Déléguez en toute sérénité. Vos serveurs ont l'appli, mais vous gardez le dernier mot sur le stock et les ventes.
                 </p>
               </div>
-              <div className="bg-white p-4 rounded-xl shadow-sm border border-amber-100 flex items-start gap-3 text-left max-w-sm mx-auto">
-                <AlertCircle className="text-amber-500 shrink-0 mt-1" size={20} />
-                <p className="text-sm text-amber-800">
+              <div className="bg-white p-4 rounded-xl shadow-sm border border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] flex items-start gap-3 text-left max-w-sm mx-auto">
+                <AlertCircle className="text-[hsl(var(--brand-hue),var(--brand-saturation),50%)] shrink-0 mt-1" size={20} />
+                <p className="text-sm text-[hsl(var(--brand-hue),var(--brand-saturation),30%)]">
                   Validez les commandes sérieuses, rejetez les erreurs. Simple et sécurisé.
                 </p>
               </div>
               <button
                 onClick={() => setPhase('full_validate')}
-                className="px-8 py-4 bg-amber-600 text-white rounded-xl font-bold shadow-xl hover:bg-amber-700 transition"
+                className="px-8 py-4 bg-[image:var(--brand-gradient)] text-white rounded-xl font-bold shadow-xl hover:brightness-110 transition"
               >
                 Accéder au Poste de Contrôle →
               </button>
@@ -356,24 +354,34 @@ export const ManagerTourStep: React.FC = () => {
                 <Zap size={10} /> Tableau de Bord / Commandes
               </div>
 
+              {/* Instruction Banner */}
+              <div className="bg-[hsl(var(--brand-hue),var(--brand-saturation),10%)] text-white p-3 rounded-lg text-sm text-center shadow-lg">
+                <span className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),60%)]">MISSION :</span>
+                {phase === 'full_validate' ? (
+                  <> Validez la commande de <strong className="text-white">Rose</strong>.</>
+                ) : (
+                  <> Rejetez la commande incorrecte d'<strong className="text-white">Afi</strong>.</>
+                )}
+              </div>
+
               {/* Order 1: Rose */}
               <AnimatePresence>
                 {!validatedOrders.includes('order1') && (
                   <motion.div
                     exit={{ opacity: 0, scale: 0.9, x: 50 }}
-                    className={`bg-white p-5 rounded-2xl shadow-xl border-l-4 transition-all ${phase === 'full_validate' ? 'border-l-amber-500' : 'border-l-gray-300 opacity-50'
+                    className={`bg-white p-5 rounded-2xl shadow-xl border-l-4 transition-all ${phase === 'full_validate' ? 'border-l-[hsl(var(--brand-hue),var(--brand-saturation),50%)]' : 'border-l-gray-300 opacity-50'
                       }`}
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center font-black text-amber-600">R</div>
+                        <div className="w-10 h-10 bg-[hsl(var(--brand-hue),var(--brand-saturation),95%)] rounded-full flex items-center justify-center font-black text-[hsl(var(--brand-hue),var(--brand-saturation),60%)]">R</div>
                         <div className="text-left">
                           <div className="font-black text-gray-900">Rose</div>
                           <div className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">2x Flag • 1 000 FCFA</div>
                         </div>
                       </div>
                       {phase === 'full_validate' && (
-                        <div className="bg-amber-100 px-2 py-1 rounded text-[10px] font-black text-amber-600 animate-pulse">ACTION REQUISE</div>
+                        <div className="bg-[hsl(var(--brand-hue),var(--brand-saturation),90%)] px-2 py-1 rounded text-[10px] font-black text-[hsl(var(--brand-hue),var(--brand-saturation),50%)] animate-pulse">ACTION REQUISE</div>
                       )}
                     </div>
                     <div className="flex gap-2">
@@ -385,7 +393,7 @@ export const ManagerTourStep: React.FC = () => {
                           setPhase('full_reject');
                         }}
                         className={`flex-1 py-2 rounded-lg text-xs font-black shadow-md transition-all
-                            ${phase === 'full_validate' ? 'bg-amber-600 text-white hover:bg-amber-700' : 'bg-gray-100 text-gray-400'}
+                            ${phase === 'full_validate' ? 'bg-[image:var(--brand-gradient)] text-white hover:brightness-110' : 'bg-gray-100 text-gray-400'}
                          `}
                       >
                         VALIDER
@@ -395,20 +403,20 @@ export const ManagerTourStep: React.FC = () => {
                 )}
               </AnimatePresence>
 
-              {/* Order 2: Sandra */}
+              {/* Order 2: Afi (was Sandra) */}
               <AnimatePresence>
                 {!rejectedOrders.includes('order2') && (
                   <motion.div
                     exit={{ opacity: 0, scale: 0.9, x: -50 }}
-                    key="order-sandra"
+                    key="order-afi"
                     className={`bg-white p-5 rounded-2xl shadow-xl border-l-4 transition-all ${phase === 'full_reject' ? 'border-l-red-500' : 'border-l-gray-300 opacity-50'
                       }`}
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center font-black text-orange-600">S</div>
+                        <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center font-black text-orange-600">A</div>
                         <div className="text-left">
-                          <div className="font-black text-gray-900">Sandra</div>
+                          <div className="font-black text-gray-900">Afi</div>
                           <div className="text-[10px] text-red-500 font-black uppercase tracking-tight flex items-center gap-1">
                             <AlertCircle size={10} /> Erreur signalée
                           </div>
@@ -456,7 +464,7 @@ export const ManagerTourStep: React.FC = () => {
                   <LoadingButton
                     onClick={handleContinue}
                     isLoading={loading}
-                    className="w-full py-5 bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-white rounded-2xl font-black text-lg shadow-2xl hover:shadow-amber-500/40 transform hover:scale-[1.02] transition-all"
+                    className="w-full py-5 bg-[image:var(--brand-gradient)] text-white rounded-2xl font-black text-lg shadow-2xl hover:shadow-[hsl(var(--brand-hue),var(--brand-saturation),50%)]/40 transform hover:scale-[1.02] transition-all"
                   >
                     Commencer à Gérer
                   </LoadingButton>
@@ -471,35 +479,35 @@ export const ManagerTourStep: React.FC = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 pb-12">
-      <div className="bg-white rounded-3xl shadow-2xl overflow-hidden min-h-[650px] flex flex-col border border-gray-100">
+      <div className="backdrop-blur-xl bg-white/80 border border-white/40 shadow-2xl rounded-3xl overflow-hidden min-h-[650px] flex flex-col ring-1 ring-black/5">
         {renderHeader()}
 
-        <div className="p-6 md:p-10 bg-gray-50/50 flex-1 relative">
+        <div className="p-6 md:p-10 bg-[hsl(var(--brand-hue),var(--brand-saturation),99%)] flex-1 relative">
           {phase === 'intro' && (
             <div className="flex flex-col items-center justify-center h-full space-y-10">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl px-4">
-                <GlassCard className="p-8 group hover:border-amber-400 transition-all cursor-default relative overflow-hidden">
+                <GlassCard className="p-8 group border border-white/50 hover:border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] transition-all cursor-default relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                     <ShoppingCart size={80} />
                   </div>
-                  <div className="text-amber-600 mb-3 text-2xl font-black tracking-tighter">1. MODE SIMPLIFIÉ</div>
-                  <p className="text-gray-600 text-sm font-medium leading-relaxed">
+                  <div className="text-[hsl(var(--brand-hue),var(--brand-saturation),50%)] mb-3 text-2xl font-black tracking-tighter">1. MODE SIMPLIFIÉ</div>
+                  <p className="text-[hsl(var(--brand-hue),var(--brand-saturation),30%)] text-sm font-medium leading-relaxed">
                     Tout le monde utilise le même appareil (caisse centrale). Vous sélectionnez manuellement qui a vendu.
                   </p>
                 </GlassCard>
-                <GlassCard className="p-8 group hover:border-orange-400 transition-all cursor-default relative overflow-hidden">
+                <GlassCard className="p-8 group border border-white/50 hover:border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] transition-all cursor-default relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                     <ShieldCheck size={80} />
                   </div>
-                  <div className="text-orange-600 mb-3 text-2xl font-black tracking-tighter">2. MODE COMPLET</div>
-                  <p className="text-gray-600 text-sm font-medium leading-relaxed">
+                  <div className="text-[hsl(var(--brand-hue),var(--brand-saturation),50%)] mb-3 text-2xl font-black tracking-tighter">2. MODE COMPLET</div>
+                  <p className="text-[hsl(var(--brand-hue),var(--brand-saturation),30%)] text-sm font-medium leading-relaxed">
                     Chaque serveur a son propre accès. Vous recevez, validez ou rejetez leurs commandes depuis votre poste.
                   </p>
                 </GlassCard>
               </div>
               <button
                 onClick={() => setPhase('sim_intro')}
-                className="group px-12 py-5 bg-gradient-to-r from-amber-600 to-orange-600 text-white rounded-2xl font-black text-lg shadow-2xl hover:shadow-orange-500/40 transform hover:scale-105 transition-all flex items-center gap-3"
+                className="group px-12 py-5 bg-[image:var(--brand-gradient)] text-white rounded-2xl font-black text-lg shadow-2xl hover:shadow-[hsl(var(--brand-hue),var(--brand-saturation),50%)]/40 transform hover:scale-105 transition-all flex items-center gap-3"
               >
                 Lancer la Formation <ArrowRight size={24} className="group-hover:translate-x-2 transition-transform" />
               </button>
@@ -511,10 +519,10 @@ export const ManagerTourStep: React.FC = () => {
         </div>
 
         {/* Premium footer tracker */}
-        <div className="px-10 py-5 bg-white border-t border-gray-50 flex justify-between items-center">
+        <div className="px-10 py-5 bg-white/50 backdrop-blur-sm border-t border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Formation BarTender Pro : Gérant</span>
+            <div className="w-2 h-2 rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),50%)] animate-pulse" />
+            <span className="text-[10px] font-black text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] uppercase tracking-widest">Formation BarTender Pro : Gérant</span>
           </div>
           <div className="flex gap-2">
             {[1, 2, 3].map(i => (
@@ -523,7 +531,7 @@ export const ManagerTourStep: React.FC = () => {
                 className={`h-1.5 rounded-full transition-all duration-500 ${(i === 1 && phase === 'intro') ||
                   (i === 2 && phase.startsWith('sim')) ||
                   (i === 3 && phase.startsWith('full'))
-                  ? 'w-8 bg-amber-500' : 'w-2 bg-gray-200'
+                  ? 'w-8 bg-[hsl(var(--brand-hue),var(--brand-saturation),50%)]' : 'w-2 bg-[hsl(var(--brand-hue),var(--brand-saturation),80%)]'
                   }`}
               />
             ))}

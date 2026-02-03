@@ -67,7 +67,7 @@ export const BartenderDemoStep: React.FC = () => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-white/90 backdrop-blur-md border border-white/40 shadow-xl rounded-2xl ${className}`}
+      className={`backdrop-blur-md bg-white/60 border border-white/40 shadow-xl rounded-2xl ${className}`}
     >
       {children}
     </motion.div>
@@ -76,47 +76,40 @@ export const BartenderDemoStep: React.FC = () => {
   const renderHeader = () => {
     let title = "Académie Serveur";
     let subtitle = "Devenez le roi du comptoir BarTender.";
-    let gradient = "from-purple-600 via-indigo-600 to-purple-800";
 
     switch (phase) {
       case 'intro':
         title = "🚀 Académie Serveur";
         subtitle = "Apprenez à encaisser vos clients en 2 minutes.";
-        gradient = "from-purple-600 via-indigo-600 to-purple-800";
         break;
       case 'picking':
         title = "Mission : La Commande";
         subtitle = "Sélectionnez les produits demandés par le client.";
-        gradient = "from-indigo-500 to-indigo-700";
         break;
       case 'adjusting':
         title = "Mission : Précision";
         subtitle = "Maîtrisez les quantités et les erreurs.";
-        gradient = "from-indigo-600 to-indigo-800";
         break;
       case 'alert_stock':
         title = "Mission : Vigilance";
         subtitle = "Anticipez les ruptures de stock.";
-        gradient = "from-amber-500 to-amber-700";
         break;
       case 'payment':
         title = "Mission : Clôture";
         subtitle = "Finalisez la vente et encaissez le montant.";
-        gradient = "from-green-500 to-green-700";
         break;
       case 'success':
         title = "Serveur Certifié !";
         subtitle = "Vous êtes maintenant prêt à servir vos premiers clients.";
-        gradient = "from-emerald-500 to-teal-600";
         break;
     }
 
     return (
-      <div className={`p-8 text-center transition-all duration-700 bg-gradient-to-br ${gradient} relative overflow-hidden`}>
+      <div className={`p-8 text-center transition-all duration-700 bg-[image:var(--brand-gradient)] relative overflow-hidden`}>
         <motion.div
           animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
           transition={{ duration: 20, repeat: Infinity }}
-          className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl"
+          className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"
         />
         <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-3 tracking-tight drop-shadow-sm">{title}</h1>
         <p className="text-white/90 text-lg font-medium max-w-lg mx-auto leading-relaxed">{subtitle}</p>
@@ -126,10 +119,10 @@ export const BartenderDemoStep: React.FC = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4">
-      <div className="bg-slate-50 rounded-3xl overflow-hidden shadow-2xl border border-gray-200 flex flex-col min-h-[600px]">
+      <div className="backdrop-blur-xl bg-white/80 border border-white/40 shadow-2xl rounded-3xl overflow-hidden flex flex-col min-h-[600px] ring-1 ring-black/5">
         {renderHeader()}
 
-        <div className="flex-1 p-6 md:p-8 flex flex-col items-center justify-center relative bg-grid-slate-100">
+        <div className="flex-1 p-6 md:p-8 flex flex-col items-center justify-center relative bg-[hsl(var(--brand-hue),var(--brand-saturation),99%)]">
           <AnimatePresence mode="wait">
             {phase === 'intro' && (
               <motion.div
@@ -139,8 +132,8 @@ export const BartenderDemoStep: React.FC = () => {
                 exit={{ opacity: 0, scale: 1.1 }}
                 className="text-center space-y-8 max-w-md"
               >
-                <div className="w-24 h-24 bg-purple-100 rounded-3xl border-4 border-white shadow-xl flex items-center justify-center mx-auto transform rotate-6">
-                  <Zap className="text-purple-600 w-12 h-12" fill="currentColor" />
+                <div className="w-24 h-24 bg-[hsl(var(--brand-hue),var(--brand-saturation),95%)] rounded-3xl border-4 border-white shadow-xl flex items-center justify-center mx-auto transform rotate-6">
+                  <Zap className="text-[hsl(var(--brand-hue),var(--brand-saturation),60%)] w-12 h-12" fill="currentColor" />
                 </div>
                 <div className="space-y-3">
                   <h2 className="text-3xl font-black text-slate-800 tracking-tight">Vendez à la vitesse de l'éclair</h2>
@@ -150,7 +143,7 @@ export const BartenderDemoStep: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setPhase('picking')}
-                  className="group w-full py-4 bg-purple-600 text-white rounded-2xl font-bold hover:bg-purple-700 transition-all shadow-xl hover:shadow-purple-200 flex items-center justify-center gap-2"
+                  className="group w-full py-4 bg-[image:var(--brand-gradient)] text-white rounded-2xl font-bold hover:brightness-110 transition-all shadow-xl hover:shadow-[hsl(var(--brand-hue),var(--brand-saturation),50%)]/40 flex items-center justify-center gap-2"
                 >
                   Démarrer la formation <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
                 </button>
@@ -167,15 +160,19 @@ export const BartenderDemoStep: React.FC = () => {
               >
                 {/* Left: Product Selection Simulation */}
                 <div className="space-y-6">
+                  {/* Phase Instruction Banner */}
+                  <div className="bg-[hsl(var(--brand-hue),var(--brand-saturation),10%)] text-white p-3 rounded-lg text-sm shadow-md">
+                    <span className="font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),60%)]">MISSION :</span>
+                    {phase === 'picking' && <> Ajoutez une <strong className="text-white underline decoration-[hsl(var(--brand-hue),var(--brand-saturation),50%)]">Heineken</strong> à la commande.</>}
+                    {phase === 'adjusting' && <> Ajoutez un <strong className="text-white underline decoration-[hsl(var(--brand-hue),var(--brand-saturation),50%)]">Coca Cola</strong> (erreur) à la commande.</>}
+                    {phase === 'alert_stock' && <> Gérez l'alerte de stock sur le <strong className="text-white underline decoration-[hsl(var(--brand-hue),var(--brand-saturation),50%)]">Coca Cola</strong>.</>}
+                    {phase === 'payment' && <> Tout est prêt. <strong className="text-white">Encaissez</strong> la commande.</>}
+                  </div>
+
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
                       Produits <span className="w-6 h-1 bg-slate-200 rounded-full" />
                     </h3>
-                    {phase === 'picking' && (
-                      <span className="bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1 rounded-full animate-pulse border border-amber-200">
-                        Mission : Clic sur Heineken
-                      </span>
-                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -188,8 +185,8 @@ export const BartenderDemoStep: React.FC = () => {
                         if (phase === 'picking') setPhase('adjusting');
                       }}
                       className={`relative p-6 rounded-2xl border-2 text-left transition-all ${phase === 'picking'
-                          ? 'bg-white border-indigo-400 shadow-lg ring-4 ring-indigo-100 animate-float'
-                          : 'bg-white border-transparent shadow-sm'
+                        ? 'bg-white border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] shadow-lg ring-4 ring-[hsl(var(--brand-hue),var(--brand-saturation),80%)]/30 animate-float'
+                        : 'bg-white border-transparent shadow-sm'
                         }`}
                     >
                       <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-4 text-green-600">
@@ -264,10 +261,10 @@ export const BartenderDemoStep: React.FC = () => {
                   <GlassCard className="overflow-hidden flex flex-col min-h-[300px]">
                     <div className="p-4 bg-slate-900 text-white flex justify-between items-center">
                       <div className="flex items-center gap-2">
-                        <ShoppingBag size={18} className="text-purple-400" />
+                        <ShoppingBag size={18} className="text-[hsl(var(--brand-hue),var(--brand-saturation),70%)]" />
                         <span className="font-bold text-sm">Commande Actuelle</span>
                       </div>
-                      <span className="bg-purple-600 text-[10px] px-2 py-1 rounded-full font-bold">
+                      <span className="bg-[hsl(var(--brand-hue),var(--brand-saturation),60%)] text-[10px] px-2 py-1 rounded-full font-bold">
                         {totalItemsCount} ARTICLES
                       </span>
                     </div>
@@ -315,15 +312,15 @@ export const BartenderDemoStep: React.FC = () => {
                     <div className="p-5 bg-slate-50 border-t border-slate-200 space-y-4">
                       <div className="flex justify-between items-end">
                         <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Net</span>
-                        <span className="text-2xl font-black text-indigo-600 tracking-tighter">{cartTotal.toLocaleString()} FCFA</span>
+                        <span className="text-2xl font-black text-[hsl(var(--brand-hue),var(--brand-saturation),60%)] tracking-tighter">{cartTotal.toLocaleString()} FCFA</span>
                       </div>
 
                       <button
                         disabled={cartTotal === 0 || phase !== 'payment'}
                         onClick={() => setPhase('success')}
                         className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-2 transition-all shadow-lg ${phase === 'payment'
-                            ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:-translate-y-1 shadow-indigo-200'
-                            : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                          ? 'bg-[image:var(--brand-gradient)] text-white hover:brightness-110 hover:-translate-y-1 shadow-[hsl(var(--brand-hue),var(--brand-saturation),50%)]/40'
+                          : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                           }`}
                       >
                         <Banknote size={20} /> ENCAISSER LA VENTE
@@ -360,7 +357,7 @@ export const BartenderDemoStep: React.FC = () => {
                   <LoadingButton
                     onClick={handleContinue}
                     isLoading={loading}
-                    className="w-full max-w-xs py-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl font-bold shadow-xl hover:shadow-emerald-200/50 transition-all flex items-center justify-center gap-2"
+                    className="w-full max-w-xs py-4 bg-[image:var(--brand-gradient)] text-white rounded-2xl font-bold shadow-xl hover:shadow-[hsl(var(--brand-hue),var(--brand-saturation),50%)]/40 transition-all flex items-center justify-center gap-2"
                   >
                     Aller au Tableau de Bord
                   </LoadingButton>

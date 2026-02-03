@@ -51,7 +51,7 @@ export class AuthService {
   private static async fetchUserProfileAndMembership(userId: string): Promise<AuthUser> {
     const { data: profile, error: profileError } = await supabase
       .from('users')
-      .select('id, username, email, name, phone, avatar_url, is_active, first_login, created_at, updated_at, last_login_at')
+      .select('id, username, email, name, phone, avatar_url, is_active, first_login, has_completed_onboarding, created_at, updated_at, last_login_at')
       .eq('id', userId)
       .single();
 
@@ -107,6 +107,7 @@ export class AuthService {
       avatar_url: profileData.avatar_url,
       is_active: profileData.is_active ?? true,
       first_login: profileData.first_login ?? false,
+      has_completed_onboarding: profileData.has_completed_onboarding ?? false, // New field
       created_at: profileData.created_at,
       updated_at: profileData.updated_at,
       last_login_at: profileData.last_login_at,

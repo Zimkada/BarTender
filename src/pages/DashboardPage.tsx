@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { LayoutDashboard, ShoppingCart, BarChart3 } from 'lucide-react';
 import { DailyDashboard } from '../components/DailyDashboard';
 import { useAuth } from '../context/AuthContext';
+import { WelcomeTrainingCard } from '../components/dashboard/WelcomeTrainingCard';
+
+
 import { useViewport } from '../hooks/useViewport';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
 import { getCurrentBusinessDateString } from '../utils/businessDateHelpers';
@@ -54,7 +57,10 @@ export default function DashboardPage() {
         guideId={tourId}
       />
 
-      <main className="container mx-auto px-4 py-4 pb-24">
+      <main className="max-w-7xl mx-auto px-4 py-6">
+        <WelcomeTrainingCard />
+
+        {/* Metric Cards - 4 Columns */}
         <DailyDashboard activeView={viewMode} />
       </main>
     </div>
