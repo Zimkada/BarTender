@@ -196,17 +196,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
         setCurrentSession(session);
 
-        auditLogger.log({
-          event: 'LOGIN_SUCCESS',
-          severity: 'info',
-          userId: authUser.id,
-          userName: authUser.name,
-          userRole: authUser.role,
-          barId: session.barId !== 'admin_global' ? session.barId : undefined,
-          barName: session.barName !== 'Admin Dashboard' ? session.barName : undefined,
-          description: `Connexion réussie en tant que ${authUser.role}`,
-          metadata: { email },
-        });
+        // Audit log removed for optimization (LOGIN_SUCCESS generates too much noise)
+        // auditLogger.log({
+        //   event: 'LOGIN_SUCCESS',
+        //   severity: 'info',
+        //   userId: authUser.id,
+        //   userName: authUser.name,
+        //   userRole: authUser.role,
+        //   barId: session.barId !== 'admin_global' ? session.barId : undefined,
+        //   barName: session.barName !== 'Admin Dashboard' ? session.barName : undefined,
+        //   description: `Connexion réussie en tant que ${authUser.role}`,
+        //   metadata: { email },
+        // });
         return { user: authUser };
       } else if (result.mfaRequired) {
         // MFA est requis, retourner le résultat pour que le composant de login le gère
@@ -260,17 +261,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
         setCurrentSession(session);
 
-        auditLogger.log({
-          event: 'LOGIN_SUCCESS',
-          severity: 'info',
-          userId: authUser.id,
-          userName: authUser.name,
-          userRole: authUser.role,
-          barId: session.barId !== 'admin_global' ? session.barId : undefined,
-          barName: session.barName !== 'Admin Dashboard' ? session.barName : undefined,
-          description: `Connexion MFA réussie en tant que ${authUser.role}`,
-          metadata: { userId: authUser.id },
-        });
+        // Audit log removed for optimization (LOGIN_SUCCESS generates too much noise)
+        // auditLogger.log({
+        //   event: 'LOGIN_SUCCESS',
+        //   severity: 'info',
+        //   userId: authUser.id,
+        //   userName: authUser.name,
+        //   userRole: authUser.role,
+        //   barId: session.barId !== 'admin_global' ? session.barId : undefined,
+        //   barName: session.barName !== 'Admin Dashboard' ? session.barName : undefined,
+        //   description: `Connexion MFA réussie en tant que ${authUser.role}`,
+        //   metadata: { userId: authUser.id },
+        // });
         return { user: authUser };
       } else if (result.error) {
         auditLogger.log({
@@ -294,17 +296,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const logout = useCallback(async () => {
     if (currentSession) {
-      // Log déconnexion
-      auditLogger.log({
-        event: 'LOGOUT',
-        severity: 'info',
-        userId: currentSession.userId,
-        userName: currentSession.userName,
-        userRole: currentSession.role,
-        barId: currentSession.barId !== 'admin_global' ? currentSession.barId : undefined,
-        barName: currentSession.barName !== 'Admin Dashboard' ? currentSession.barName : undefined,
-        description: 'Déconnexion',
-      });
+      // Audit log removed for optimization (LOGOUT generates too much noise)
+      // auditLogger.log({
+      //   event: 'LOGOUT',
+      //   severity: 'info',
+      //   userId: currentSession.userId,
+      //   userName: currentSession.userName,
+      //   userRole: currentSession.role,
+      //   barId: currentSession.barId !== 'admin_global' ? currentSession.barId : undefined,
+      //   barName: currentSession.barName !== 'Admin Dashboard' ? currentSession.barName : undefined,
+      //   description: 'Déconnexion',
+      // });
     }
 
     try {
@@ -469,6 +471,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         event: 'PASSWORD_RESET_REQUESTED',
         severity: 'info',
         userId: email,
+        userName: email,
+        userRole: 'serveur' as UserRole,
         description: `Demande de réinitialisation de mot de passe pour ${email}.`,
         metadata: { email },
       });
@@ -478,6 +482,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         event: 'PASSWORD_RESET_REQUEST_FAILED',
         severity: 'warning',
         userId: email,
+        userName: email,
+        userRole: 'serveur' as UserRole,
         description: `Échec de la demande de réinitialisation pour ${email}.`,
         metadata: { email, error: error.message },
       });

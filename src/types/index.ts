@@ -733,6 +733,7 @@ export type AuditLogEvent =
   | 'BAR_ACTIVATED'
   | 'BAR_DELETED'
   | 'MEMBER_ADDED'
+  | 'BAR_SWITCHED'
   // User Management
   | 'USER_CREATED'
   | 'USER_UPDATED'
@@ -740,6 +741,8 @@ export type AuditLogEvent =
   | 'USER_SUSPENDED'
   | 'USER_ACTIVATED'
   | 'PASSWORD_RESET'
+  | 'PASSWORD_RESET_REQUESTED'
+  | 'PASSWORD_RESET_REQUEST_FAILED'
   // Authentication
   | 'LOGIN_SUCCESS'
   | 'LOGIN_FAILED'
