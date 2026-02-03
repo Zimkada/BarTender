@@ -170,7 +170,7 @@ export default function PromotionsPage() {
                     </div>
                 }
                 subtitle="Créez des offres stratégiques et analysez l'impact de vos campagnes sur votre chiffre d'affaires."
-                icon={<Gift size={24} />}
+                icon={<Gift size={24} aria-hidden="true" />}
                 hideSubtitleOnMobile={true}
                 tabs={[
                     { id: 'list', label: isMobile ? 'Catalogue' : 'Catalogue d\'Offres', icon: List },
@@ -230,7 +230,7 @@ export default function PromotionsPage() {
                             <div className="relative">
                                 <div className="animate-spin rounded-full h-16 w-16 border-4 border-brand-subtle border-t-brand-primary"></div>
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <Gift size={24} className="text-brand-primary animate-pulse" />
+                                    <Gift size={24} className="text-brand-primary animate-pulse" aria-hidden="true" />
                                 </div>
                             </div>
                             <p className="text-gray-400 font-medium animate-pulse">Chargement de vos offres...</p>
@@ -238,7 +238,7 @@ export default function PromotionsPage() {
                     ) : filteredPromotions.length === 0 ? (
                         <div className="bg-white/60 backdrop-blur-sm rounded-[2.5rem] border-2 border-dashed border-brand-subtle p-12 sm:p-20 text-center">
                             <div className="w-24 h-24 bg-brand-subtle rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner shadow-brand-subtle/50">
-                                <Gift size={48} className="text-brand-primary" />
+                                <Gift size={48} className="text-brand-primary" aria-hidden="true" />
                             </div>
                             <h2 className="text-2xl font-bold text-gray-800 mb-3">Aucune promotion trouvée</h2>
                             <p className="text-gray-500 mb-10 max-w-md mx-auto">Boostez vos ventes aujourd'hui ! Créez une offre attractive pour vos clients en quelques secondes.</p>
@@ -284,6 +284,7 @@ export default function PromotionsPage() {
                                                             variant="ghost"
                                                             size="icon"
                                                             className="w-10 h-10 text-gray-400 hover:text-brand-primary hover:bg-brand-subtle rounded-xl"
+                                                            aria-label={promo.status === 'active' ? 'Mettre en pause la promotion' : 'Activer la promotion'}
                                                         >
                                                             {promo.status === 'active' ? <Pause size={18} /> : <Play size={18} />}
                                                         </Button>
@@ -292,6 +293,7 @@ export default function PromotionsPage() {
                                                             variant="ghost"
                                                             size="icon"
                                                             className="w-10 h-10 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl"
+                                                            aria-label="Modifier la promotion"
                                                         >
                                                             <Edit size={18} />
                                                         </Button>
@@ -300,19 +302,20 @@ export default function PromotionsPage() {
                                                             variant="ghost"
                                                             size="icon"
                                                             className="w-10 h-10 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl"
+                                                            aria-label="Supprimer la promotion"
                                                         >
                                                             <Trash2 size={18} />
                                                         </Button>
                                                     </div>
                                                 </div>
 
-                                                <h3 className="text-xl font-black text-gray-800 mb-3 leading-tight group-hover:text-brand-primary transition-colors uppercase tracking-tight">{promo.name}</h3>
+                                                <h2 className="text-xl font-black text-gray-800 mb-3 leading-tight group-hover:text-brand-primary transition-colors uppercase tracking-tight">{promo.name}</h2>
                                                 <p className="text-gray-500 text-sm mb-8 line-clamp-2 leading-relaxed">{promo.description || 'Optimisez vos ventes avec cette offre exclusive.'}</p>
 
                                                 <div className="space-y-4">
                                                     {/* Type & Value */}
                                                     <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 group-hover:bg-brand-subtle group-hover:border-brand-subtle transition-colors">
-                                                        <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-brand-primary shadow-sm">
+                                                        <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center text-brand-primary shadow-sm" aria-hidden="true">
                                                             {getTypeIcon(promo.type)}
                                                         </div>
                                                         <div>
@@ -330,11 +333,11 @@ export default function PromotionsPage() {
 
                                                     {/* Validity */}
                                                     <div className="flex items-center gap-4 px-2">
-                                                        <div className="w-10 h-10 flex items-center justify-center text-gray-400">
+                                                        <div className="w-10 h-10 flex items-center justify-center text-gray-400" aria-hidden="true">
                                                             <Calendar size={20} />
                                                         </div>
                                                         <div>
-                                                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Validité</div>
+                                                            <div className="text-[10px] font-bold text-accessible-gray uppercase tracking-widest">Validité</div>
                                                             <div className="text-xs font-semibold text-gray-600">
                                                                 Du {format(new Date(promo.startDate), 'dd MMM yyyy', { locale: fr })}
                                                                 {promo.endDate ? ` au ${format(new Date(promo.endDate), 'dd MMM yyyy', { locale: fr })}` : ' (Illimité)'}

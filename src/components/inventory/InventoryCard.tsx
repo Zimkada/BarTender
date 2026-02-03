@@ -34,9 +34,9 @@ export function InventoryCard({
             <div className="p-4">
                 <div className="flex justify-between items-start mb-3">
                     <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-gray-900 truncate">{product.name}</h3>
+                        <h2 className="font-bold text-gray-900 truncate">{product.name}</h2>
                         <p className="text-sm text-gray-500">{product.volume || 'Format non spécifié'}</p>
-                        <span className="inline-block mt-2 px-2 py-0.5 bg-gray-100 text-gray-600 text-[10px] font-bold rounded uppercase tracking-wider">
+                        <span className="inline-block mt-2 px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-bold rounded uppercase tracking-wider">
                             {categoryName}
                         </span>
                     </div>
@@ -44,21 +44,21 @@ export function InventoryCard({
                         <div className={`text-lg font-black ${isLowStock ? 'text-red-500' : 'text-gray-900'}`}>
                             {currentStock}
                         </div>
-                        <div className="text-[10px] text-gray-400 font-bold uppercase">Stock</div>
+                        <div className="text-xs text-accessible-gray font-bold uppercase">Stock</div>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 py-3 border-y border-gray-50">
                     <div className="text-center">
-                        <div className="text-[10px] text-gray-400 font-bold uppercase mb-1">Prix</div>
+                        <div className="text-xs text-accessible-gray font-bold uppercase mb-1">Prix</div>
                         <div className="text-xs font-bold text-amber-600">{formatPrice(product.price)}</div>
                     </div>
                     <div className="text-center border-x border-gray-50">
-                        <div className="text-[10px] text-gray-400 font-bold uppercase mb-1">Coût</div>
+                        <div className="text-xs text-accessible-gray font-bold uppercase mb-1">Coût</div>
                         <div className="text-xs font-bold text-gray-700">{avgCost > 0 ? formatPrice(avgCost) : '-'}</div>
                     </div>
                     <div className="text-center">
-                        <div className="text-[10px] text-gray-400 font-bold uppercase mb-1">Marge</div>
+                        <div className="text-xs text-accessible-gray font-bold uppercase mb-1">Marge</div>
                         <div className={`text-xs font-bold ${margin > 40 ? 'text-green-600' : margin > 20 ? 'text-amber-600' : 'text-red-500'}`}>
                             {margin > 0 ? `${margin.toFixed(0)}%` : '-'}
                         </div>

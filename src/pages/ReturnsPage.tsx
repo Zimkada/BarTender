@@ -84,7 +84,6 @@ export default function ReturnsPage() {
     filteredReturns: filteredReturnsByFilters,
   } = useSalesFilters({
     sales,
-    consignments,
     returns,
     currentSession,
     closeHour,
@@ -430,13 +429,13 @@ export default function ReturnsPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 className="flex items-center gap-1 bg-brand-subtle text-brand-primary px-2 py-0.5 rounded-full text-[10px] font-bold border border-brand-subtle"
               >
-                <DollarSign size={10} />
+                <DollarSign size={10} aria-hidden="true" />
                 Aujourd'hui: <AnimatedCounter value={todayRefundedAmount} /> FCFA
               </motion.div>
             )}
           </div>
         }
-        icon={<RotateCcw size={24} />}
+        icon={<RotateCcw size={24} aria-hidden="true" />}
         hideSubtitleOnMobile={true}
         tabs={tabsConfig}
         activeTab={activeTab}
@@ -517,7 +516,7 @@ export default function ReturnsPage() {
                 {filteredReturns.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center">
                     <div className="bg-gray-50 p-6 rounded-full mb-4">
-                      <RotateCcw size={48} className="text-gray-300" />
+                      <RotateCcw size={48} className="text-gray-300" aria-hidden="true" />
                     </div>
                     <h2 className="text-lg font-medium text-gray-600 mb-2">
                       Aucun retour trouvé
@@ -585,7 +584,7 @@ export default function ReturnsPage() {
                 {filteredReturns.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center">
                     <div className="bg-gray-50 p-6 rounded-full mb-4">
-                      <RotateCcw size={48} className="text-gray-300" />
+                      <RotateCcw size={48} className="text-gray-300" aria-hidden="true" />
                     </div>
                     <h2 className="text-lg font-medium text-gray-600 mb-2">
                       Aucun retour trouvé

@@ -80,9 +80,9 @@ export function SalesListView({
     }
 
     return (
-        <div className="bg-white rounded-xl border border-amber-100 overflow-x-auto">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto shadow-sm">
             <table className="w-full min-w-[900px]">
-                <thead className="bg-amber-50">
+                <thead className="bg-gray-50 border-b border-gray-100">
                     <tr>
                         <th className="text-left p-4 font-medium text-gray-700">ID</th>
                         <th className="text-left p-4 font-medium text-gray-700">Statut</th>
@@ -125,7 +125,7 @@ export function SalesListView({
                         const validator = sale.validatedBy ? users?.find(u => u.id === sale.validatedBy) : null;
 
                         return (
-                            <tr key={sale.id} className="border-t border-amber-100 hover:bg-amber-50 group">
+                            <tr key={sale.id} className="border-t border-gray-100 hover:bg-gray-50 transition-colors group">
                                 <td className="p-4">
                                     <div className="flex items-center gap-2">
                                         <span className="font-mono text-gray-600">#{sale.id.slice(-6)}</span>
@@ -157,7 +157,7 @@ export function SalesListView({
                                 </td>
                                 <td className="p-4 text-sm text-gray-600">{itemCount} art.</td>
                                 <td className="p-4">
-                                    <span className={`font-mono font-medium ${hasReturns ? 'text-gray-500 line-through' : 'text-amber-600'}`}>
+                                    <span className={`font-mono font-medium ${hasReturns ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
                                         {formatPrice(sale.total)}
                                     </span>
                                 </td>

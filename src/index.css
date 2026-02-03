@@ -86,15 +86,19 @@
     --brand-text: hsl(var(--brand-hue), var(--brand-saturation), 20%);
   }
 
-  /* 🎨 Amélioration des contrastes pour accessibilité WCAG AA */
-  .text-gray-400 {
-    --tw-text-opacity: 1;
-    color: rgb(107 114 128 / var(--tw-text-opacity));
+  /* ♿ Design System accessible (Targeting specific content grays instead of global override) */
+  .text-accessible-gray {
+    color: #4b5563 !important;
   }
 
-  .text-gray-300 {
-    --tw-text-opacity: 1;
-    color: rgb(156 163 175 / var(--tw-text-opacity));
+  .text-accessible-dark-gray {
+    color: #374151 !important;
+  }
+
+  /* ♿ Font-size minimum for accessibility */
+  .text-\[10px\] {
+    font-size: 0.75rem !important;
+    /* 12px */
   }
 }
 

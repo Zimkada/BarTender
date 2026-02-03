@@ -12,13 +12,14 @@ import { CACHE_STRATEGY } from './cache-strategy';
  * 4. Persistance Offline (sauvegarde du cache)
  */
 
-// Fonction de retry personnalisée
+// ✨ CONFIGURATION DES RETRIES (Optimisée pour éviter le spam 401/403/404)
 const retryFn = (failureCount: number, error: any) => {
-  // Ne pas réessayer si erreur 404 (Not Found) ou 401 (Unauthorized) ou 403 (Forbidden)
+  // 1. Ne pas retry si erreur 404/401/403 (Statique/Auth)
   if (error?.status === 404 || error?.status === 401 || error?.status === 403) return false;
-
-  // Max 3 tentatives pour les autres erreurs
-  return failureCount < 3;
+  // 2. Ne pas retry si la requête a été annulée volontairement
+  if (error?.name === 'AbortError' || error?.message?.includes('aborted')) return false;
+  // 3. Max 2 tentatives (au lieu de 3 par défaut) pour réduire la latence perçue en cas d'erreur
+  return failureCount < 2;
 };
 
 // Gestionnaire d'erreur global pour les requêtes
@@ -41,14 +42,8 @@ export const queryClient = new QueryClient({
       staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
       gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
 
-      // Retry intelligent (max 2 fois au lieu de 3 pour éviter lenteur)
-      retry: (failureCount, error: any) => {
-        // Ne pas retry si erreur 404/401/403 OU erreur de timeout
-        if (error?.status === 404 || error?.status === 401 || error?.status === 403) return false;
-        if (error?.name === 'AbortError' || error?.message?.includes('aborted')) return false;
-        // Max 2 tentatives (au lieu de 3) pour réduire la latence perçue
-        return failureCount < 2;
-      },
+      // Retry intelligent via fonction dédiée
+      retry: retryFn,
       // Délai réduit entre retries (500ms, 1s) au lieu de (1s, 2s, 4s)
       retryDelay: (attemptIndex) => Math.min(500 * 2 ** attemptIndex, 2000),
       // Ne pas refetcher si on change de fenêtre (sauf si stale)
@@ -90,11 +85,11 @@ const asyncStoragePersister = createAsyncStoragePersister({
       window.localStorage.removeItem(key);
     },
   },
-  throttleTime: 1000, // Écrire max 1 fois par seconde (réduit la charge sur le thread principal)
+  throttleTime: 1000, // Sweet spot: réactivité vs charge (Vérifié par audit expert)
 });
 
 persistQueryClient({
-  queryClient,
+  queryClient: queryClient as any,
   persister: asyncStoragePersister,
   maxAge: CACHE_STRATEGY.salesAndStock.gcTime, // Harmonisé avec GC Time
   // Désactiver la restoration automatique au démarrage (lazy restore)

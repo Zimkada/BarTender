@@ -303,17 +303,18 @@ export default function TeamManagementPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-9 pr-3 py-2 text-sm rounded-md border border-gray-300 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)] w-full"
+                  aria-label="Rechercher un membre de l'équipe"
                 />
               </div>
 
               {/* Compact Stats Strip */}
               <div className="flex items-center gap-4 text-sm font-medium text-gray-600 w-full md:w-auto justify-between md:justify-start">
                 <div className="flex items-center gap-1">
-                  <UserIcon className="h-4 w-4 text-brand-primary" />
+                  <UserIcon className="h-4 w-4 text-brand-primary" aria-hidden="true" />
                   <span>Gérants: <span className="font-bold text-gray-800">{managersCount}</span></span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Users className="h-4 w-4 text-brand-primary" />
+                  <Users className="h-4 w-4 text-brand-primary" aria-hidden="true" />
                   <span>Serveurs: <span className="font-bold text-gray-800">{serversCount}</span></span>
                 </div>
                 {inactiveCount > 0 && (
@@ -323,6 +324,7 @@ export default function TeamManagementPage() {
                     size="sm"
                     className={`flex items-center gap-2 text-gray-600 hover:bg-gray-100 ${showInactive ? 'bg-gray-100 text-brand-dark' : ''}`}
                     title={showInactive ? "Masquer les inactifs" : "Inclure les inactifs"}
+                    aria-label={showInactive ? "Masquer les membres inactifs" : "Afficher les membres inactifs"}
                   >
                     {showInactive ? <Eye size={16} className="text-brand-dark" /> : <EyeOff size={16} className="text-gray-400" />}
                     <span className="text-xs font-medium">
@@ -385,6 +387,7 @@ export default function TeamManagementPage() {
                               onClick={() => member.user && handleRemoveMember(member.id, member.user.name)}
                               className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                               title="Retirer de l'équipe"
+                              aria-label={`Retirer ${member.user?.name || 'ce membre'} de l'équipe`}
                             >
                               <Trash2 size={18} />
                             </button>
@@ -396,10 +399,12 @@ export default function TeamManagementPage() {
                         <div className={`w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-black mb-4 shadow-lg rotate-3 transition-transform group-hover:rotate-0 ${member.role === 'promoteur' ? 'bg-purple-100 text-purple-600' :
                           member.role === 'gerant' ? 'bg-brand-subtle text-brand-dark' :
                             'bg-blue-100 text-blue-600'
-                          }`}>
+                          }`}
+                          aria-hidden="true"
+                        >
                           {initials}
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900 leading-tight text-center px-2">{user?.name || 'Inconnu'}</h3>
+                        <h2 className="text-lg font-bold text-gray-900 leading-tight text-center px-2">{user?.name || 'Inconnu'}</h2>
                         <p className="text-sm font-medium text-gray-400 mb-2">@{user?.username || 'unknown'}</p>
 
                         {/* Role Badge */}
@@ -431,7 +436,7 @@ export default function TeamManagementPage() {
 
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
-                            <Clock size={14} className="text-gray-400" />
+                            <Clock size={14} className="text-gray-400" aria-hidden="true" />
                           </div>
                           <div className="flex flex-col">
                             <span className="text-[10px] text-gray-400 uppercase font-bold">Dernière connexion</span>

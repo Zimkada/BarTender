@@ -81,14 +81,14 @@ export function ReturnCard({
               <h4 className="font-black text-gray-900 uppercase tracking-tight text-lg leading-tight">
                 {returnItem.productName}
               </h4>
-              <span className="text-[10px] font-black text-gray-400 bg-gray-50 px-2 py-1 rounded-md uppercase tracking-widest border border-gray-100">
+              <span className="text-[10px] font-black text-accessible-gray bg-gray-50 px-2 py-1 rounded-md uppercase tracking-widest border border-gray-100">
                 {returnItem.productVolume}
               </span>
             </div>
 
             <div className="flex flex-wrap gap-x-3 gap-y-2 items-center">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">#{returnItem.id.slice(-6).toUpperCase()}</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-gray-200" />
+              <span className="text-[10px] font-bold text-accessible-gray uppercase tracking-wider">#{returnItem.id.slice(-6).toUpperCase()}</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-gray-200" aria-hidden="true" />
               <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
                 {new Date(returnItem.returnedAt).toLocaleDateString("fr-FR", { day: '2-digit', month: 'short' })} • {new Date(returnItem.returnedAt).toLocaleTimeString("fr-FR", {
                   hour: "2-digit",
@@ -108,7 +108,7 @@ export function ReturnCard({
           {/* Droite: Chiffres Clés (Remboursement & Qté) */}
           <div className="flex items-center justify-between lg:justify-end gap-10 pt-5 lg:pt-0 border-t lg:border-t-0 lg:border-l border-dashed border-gray-100 lg:pl-8 shrink-0">
             <div className="text-left lg:text-right">
-              <span className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">
+              <span className="block text-[9px] font-black text-accessible-gray uppercase tracking-[0.2em] mb-1">
                 Remboursement
               </span>
               <span
@@ -123,7 +123,7 @@ export function ReturnCard({
               </span>
             </div>
             <div className="text-right">
-              <span className="block text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1">Qté</span>
+              <span className="block text-[9px] font-black text-accessible-gray uppercase tracking-[0.2em] mb-1">Qté</span>
               <div className="flex items-baseline justify-end gap-1">
                 <span className="font-black text-gray-900 text-2xl tracking-tighter">
                   {returnItem.quantityReturned}
@@ -181,8 +181,9 @@ export function ReturnCard({
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => onApprove(returnItem.id)}
-                  className="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-brand-primary/20"
+                  className="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-brand-primary/20 flex items-center justify-center min-w-[100px]"
                   style={{ background: 'var(--brand-gradient)' }}
+                  aria-label={`Approuver le retour de ${returnItem.productName}`}
                 >
                   Approuver
                 </motion.button>
@@ -198,20 +199,20 @@ export function ReturnCard({
                   onClick={() => onManualRestock(returnItem.id)}
                   className="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-blue-500/20 flex items-center gap-2 bg-blue-600"
                 >
-                  <Package size={14} />
+                  <Package size={14} aria-hidden="true" />
                   Remettre en stock
                 </motion.button>
               )}
 
             {returnItem.status === "restocked" && (
               <span className="text-[10px] font-black text-green-600 uppercase tracking-widest flex items-center gap-2 bg-green-50 px-3 py-2 rounded-xl border border-green-100">
-                <Package size={14} />
+                <Package size={14} aria-hidden="true" />
                 En stock ({new Date(returnItem.restockedAt!).toLocaleDateString("fr-FR")})
               </span>
             )}
             {returnItem.status === "rejected" && (
               <span className="text-[10px] font-black text-red-600 uppercase tracking-widest flex items-center gap-2 bg-red-50 px-3 py-2 rounded-xl border border-red-100">
-                <X size={14} />
+                <X size={14} aria-hidden="true" />
                 Rejeté
               </span>
             )}
