@@ -759,6 +759,7 @@ export type AuditLogEvent =
   // Sales & Returns
   | 'SALE_CREATED'
   | 'SALE_DELETED'
+  | 'SALE_CANCELLED'
   | 'RETURN_CREATED'
   | 'RETURN_PROCESSED'
   // Accounting

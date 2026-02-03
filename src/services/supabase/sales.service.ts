@@ -231,6 +231,40 @@ export class SalesService {
         throw new Error('Impossible d\'annuler cette vente : elle n\'est plus en statut validée.');
       }
 
+      // 4. Audit log pour traçabilité (CRITIQUE pour prévenir la fraude)
+      // Récupérer les infos utilisateur pour le log
+      const { data: user } = await supabase
+        .from('users')
+        .select('name')
+        .eq('id', cancelledBy)
+        .single();
+
+      const { data: barMember } = await supabase
+        .from('bar_members')
+        .select('role')
+        .eq('user_id', cancelledBy)
+        .eq('bar_id', data.bar_id)
+        .single();
+
+      const { auditLogger } = await import('../../services/AuditLogger');
+      await auditLogger.log({
+        event: 'SALE_CANCELLED',
+        severity: 'warning',
+        userId: cancelledBy,
+        userName: user?.name || 'Inconnu',
+        userRole: (barMember?.role as any) || 'unknown',
+        barId: data.bar_id,
+        description: `Vente annulée - Raison: ${reason}`,
+        relatedEntityId: saleId,
+        relatedEntityType: 'sale',
+        metadata: {
+          total: data.total,
+          items_count: (data.items as any[]).length,
+          cancel_reason: reason,
+          cancelled_at: data.cancelled_at
+        }
+      });
+
       return data;
     } catch (error: any) {
       console.error('❌ cancelSale exception:', error);
