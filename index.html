@@ -62,66 +62,7 @@
   <!-- 🎨 THEME LOADER CRITIQUE (BLOCKING SCRIPT) -->
   <!-- Doit être le dernier élément du <head> pour garantir l'exécution avant le rendu du <body> -->
   <!-- Lit le cache 'bartender_theme_cache' (plus light que 'bartender_bars') pour injecter les couleurs AVANT le paint -->
-  <script>
-    (function () {
-      try {
-        // 1. Essayer le cache léger dédié (V2)
-        let hue, saturation;
-        const simpleCache = localStorage.getItem('bartender_theme_cache');
-
-        if (simpleCache) {
-          const theme = JSON.parse(simpleCache);
-          hue = theme.hue;
-          saturation = theme.saturation;
-        } else {
-          // 2. Fallback: Essayer de parser le gros cache (V1) si le cache léger n'existe pas encore
-          const rawBars = localStorage.getItem('bartender_bars');
-          const currentBarId = localStorage.getItem('bartender_current_bar_id');
-          if (rawBars && currentBarId) {
-            const bars = JSON.parse(rawBars);
-            const bar = bars.find(b => b.id === currentBarId);
-            if (bar && bar.theme_config && bar.theme_config.preset) {
-              // Map presets to values (hardcoded fallback mapping for script speed)
-              const presets = {
-                'sunset': { h: 28, s: '65%' },
-                'sky': { h: 200, s: '90%' },
-                'mojito': { h: 150, s: '60%' },
-                'midnight': { h: 245, s: '70%' },
-                'lavender': { h: 270, s: '70%' },
-                'ocean': { h: 220, s: '80%' },
-                'forest': { h: 145, s: '65%' },
-                'minimal': { h: 220, s: '10%' }
-              };
-              const preset = presets[bar.theme_config.preset] || presets['sunset']; // Default to Sunset
-              hue = preset.h;
-              saturation = preset.s;
-            }
-          }
-        }
-
-        // 3. Injection immédiate dans le DOM
-        if (hue !== undefined) {
-          const root = document.documentElement;
-          root.style.setProperty('--brand-hue', hue);
-          root.style.setProperty('--brand-saturation', saturation);
-
-          // 4. Mettre à jour la meta theme-color pour la barre d'état du navigateur
-          try {
-            const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-            if (metaThemeColor) {
-              // Conversion simple HSL -> CSS String (Supporté par tous les navigateurs modernes)
-              // Note: Pour une conversion parfaite en Hex (si vieux Android), il faudrait une fonction JS plus grosse.
-              // On tente le format HSL direct qui est valide dans content=""
-              metaThemeColor.setAttribute('content', `hsl(${hue}, ${saturation}, 45%)`);
-            }
-          } catch (e) { }
-        }
-
-      } catch (e) {
-        // Silent fail - browser default (index.css) will take over
-      }
-    })();
-  </script>
+  <script>(function(){try{let h,s;const c=localStorage.getItem('bartender_theme_cache');if(c){const t=JSON.parse(c);h=t.hue;s=t.saturation}else{const r=localStorage.getItem('bartender_bars'),i=localStorage.getItem('bartender_current_bar_id');if(r&&i){const b=JSON.parse(r).find(x=>x.id===i);if(b&&b.theme_config&&b.theme_config.preset){const p={'sunset':{h:28,s:'65%'},'sky':{h:200,s:'90%'},'mojito':{h:150,s:'60%'},'midnight':{h:245,s:'70%'},'lavender':{h:270,s:'70%'},'ocean':{h:220,s:'80%'},'forest':{h:145,s:'65%'},'minimal':{h:220,s:'10%'}};const q=p[b.theme_config.preset]||p['sunset'];h=q.h;s=q.s}}}if(h!==undefined){const r=document.documentElement;r.style.setProperty('--brand-hue',h);r.style.setProperty('--brand-saturation',s);try{const m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',`hsl(${h},${s},45%)`)}catch(e){}}}catch(e){}})();</script>
 </head>
 
 <body>

@@ -1,11 +1,15 @@
 // src/routes/index.tsx
 import { createBrowserRouter } from 'react-router-dom';
+import { Suspense } from 'react';
 import { lazyWithRetry } from '../utils/lazyWithRetry';
-import { RootLayout } from '../layouts/RootLayout';
-import { AdminLayout } from '../layouts/AdminLayout';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { ErrorPage } from '../pages/ErrorPage';
 import { ProtectedRoute } from '../components/ProtectedRoute';
+import { LoadingFallback } from '../components/LoadingFallback';
+
+// Lazy load layouts to reduce initial bundle size
+const RootLayout = lazyWithRetry(() => import('../layouts/RootLayout').then(m => ({ default: m.RootLayout })));
+const AdminLayout = lazyWithRetry(() => import('../layouts/AdminLayout').then(m => ({ default: m.AdminLayout })));
 
 // Lazy load HomePage to reduce initial bundle (affects mobile performance)
 const HomePage = lazyWithRetry(() => import('../pages/HomePage'));
@@ -53,7 +57,11 @@ export const router = createBrowserRouter([
   // =====================
   {
     path: '/admin',
-    element: <AdminLayout />,
+    element: (
+      <Suspense fallback={<LoadingFallback />}>
+        <AdminLayout />
+      </Suspense>
+    ),
     errorElement: <ErrorPage />,
     children: [
       { index: true, element: <SuperAdminPage /> },
@@ -71,7 +79,11 @@ export const router = createBrowserRouter([
   // =====================
   {
     path: '/',
-    element: <RootLayout />,
+    element: (
+      <Suspense fallback={<LoadingFallback />}>
+        <RootLayout />
+      </Suspense>
+    ),
     errorElement: <ErrorPage />,
     children: [
       { index: true, element: <HomePage /> },

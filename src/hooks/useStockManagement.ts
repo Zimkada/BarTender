@@ -20,9 +20,9 @@ export const useStockManagement = () => {
   const barId = currentBar?.id || '';
 
   // 1. Queries (Lecture)
-  const { data: products = [] } = useProducts(barId);
-  const { data: supplies = [] } = useSupplies(barId);
-  const { data: consignments = [] } = useConsignments(barId);
+  const { data: products = [], isLoading: isLoadingProducts } = useProducts(barId);
+  const { data: supplies = [], isLoading: isLoadingSupplies } = useSupplies(barId);
+  const { data: consignments = [], isLoading: isLoadingConsignments } = useConsignments(barId);
 
   // 2. Mutations (Écriture)
   const mutations = useStockMutations();
@@ -322,5 +322,8 @@ export const useStockManagement = () => {
     getAverageCostPerUnit,
     getActiveConsignments,
     allProductsStockInfo, // ✨ New: Exposed for global usage
+    isLoadingProducts,
+    isLoadingSupplies,
+    isLoadingConsignments,
   };
 };

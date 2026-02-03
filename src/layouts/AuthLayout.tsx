@@ -68,9 +68,9 @@ export function AuthLayout() {
     navigateToForgotPassword: () => navigate('/auth/forgot-password'),
     navigateToLogin: () => navigate('/auth/login'),
   };
-  
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-subtle to-brand-subtle">
+    <main className="min-h-screen bg-gradient-to-br from-brand-subtle to-brand-subtle">
       {/* 4. Fournir le contexte aux composants enfants (Outlet) */}
       <AuthNavContext.Provider value={navValue}>
         <LazyLoadErrorBoundary maxRetries={3}>
@@ -79,6 +79,6 @@ export function AuthLayout() {
           </Suspense>
         </LazyLoadErrorBoundary>
       </AuthNavContext.Provider>
-    </div>
+    </main>
   );
 }

@@ -24,6 +24,7 @@ import { InventoryList } from '../components/inventory/InventoryList';
 import { InventoryOperations } from '../components/inventory/InventoryOperations';
 import { InventoryStats } from '../components/inventory/InventoryStats';
 import { OnboardingBreadcrumb } from '../components/onboarding/ui/OnboardingBreadcrumb';
+import { ProductGridSkeleton } from '../components/skeletons';
 
 // Lazy load
 const ProductModal = lazy(() => import('../components/ProductModal').then(m => ({ default: m.ProductModal })));
@@ -33,7 +34,7 @@ type SortMode = 'category' | 'alphabetical' | 'stock';
 
 export default function InventoryPage() {
     // 1. Core Data
-    const { products, getProductStockInfo, getAverageCostPerUnit } = useStockManagement();
+    const { products, getProductStockInfo, getAverageCostPerUnit, isLoadingProducts } = useStockManagement();
     const { categories } = useAppContext();
     const { currentSession } = useAuth();
     const { isMobile } = useViewport();
@@ -166,16 +167,20 @@ export default function InventoryPage() {
                             </div>
 
                             {/* Liste Produits */}
-                            <InventoryList
-                                products={sortedProducts}
-                                categories={categories}
-                                getProductStockInfo={getProductStockInfo}
-                                getAverageCostPerUnit={getAverageCostPerUnit}
-                                onEdit={handleEditProduct}
-                                onAdjust={handleAdjustStock}
-                                onDelete={handleDeleteClick}
-                                searchTerm={searchTerm}
-                            />
+                            {isLoadingProducts ? (
+                                <ProductGridSkeleton count={isMobile ? 4 : 8} />
+                            ) : (
+                                <InventoryList
+                                    products={sortedProducts}
+                                    categories={categories}
+                                    getProductStockInfo={getProductStockInfo}
+                                    getAverageCostPerUnit={getAverageCostPerUnit}
+                                    onEdit={handleEditProduct}
+                                    onAdjust={handleAdjustStock}
+                                    onDelete={handleDeleteClick}
+                                    searchTerm={searchTerm}
+                                />
+                            )}
                         </motion.div>
                     )}
 
