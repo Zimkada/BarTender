@@ -11,7 +11,6 @@ import {
   Users,
   Package,
   FileText,
-  Bell,
   LogOut,
   Menu,
   X,
@@ -25,7 +24,8 @@ const adminNavItems = [
   { path: '/admin/users', label: 'Utilisateurs', icon: Users },
   { path: '/admin/catalog', label: 'Catalogue Global', icon: Package },
   { path: '/admin/audit-logs', label: 'Audit Logs', icon: FileText },
-  { path: '/admin/notifications', label: 'Notifications', icon: Bell },
+  // DISABLED: Not relevant for Super Admin workflow (promoters handle their own issues)
+  // { path: '/admin/notifications', label: 'Notifications', icon: Bell },
   { path: '/admin/security', label: 'Sécurité & Monitoring', icon: Shield },
 ];
 
@@ -41,7 +41,7 @@ function AdminLayoutContent() {
     () => import('../pages/admin/UsersManagementPage'),
     () => import('../pages/GlobalCatalogPage'),
     () => import('../pages/AuditLogsPage'),
-    () => import('../pages/AdminNotificationsPage'),
+    // () => import('../pages/AdminNotificationsPage'), // DISABLED
     () => import('../pages/SecurityDashboardPage'),
   ], isSuperAdmin);
 
