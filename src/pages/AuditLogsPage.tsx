@@ -184,22 +184,20 @@ export default function AuditLogsPage() {
         <div className="flex border-b bg-white">
           <button
             onClick={() => setActiveTab('system')}
-            className={`flex items-center gap-2 px-4 md:px-6 py-3 font-medium text-sm md:text-base transition-colors border-b-2 ${
-              activeTab === 'system'
+            className={`flex items-center gap-2 px-4 md:px-6 py-3 font-medium text-sm md:text-base transition-colors border-b-2 ${activeTab === 'system'
                 ? 'border-indigo-600 text-indigo-600'
                 : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             <FileText className="w-4 h-4" />
             Logs Système
           </button>
           <button
             onClick={() => setActiveTab('catalog')}
-            className={`flex items-center gap-2 px-4 md:px-6 py-3 font-medium text-sm md:text-base transition-colors border-b-2 ${
-              activeTab === 'catalog'
+            className={`flex items-center gap-2 px-4 md:px-6 py-3 font-medium text-sm md:text-base transition-colors border-b-2 ${activeTab === 'catalog'
                 ? 'border-indigo-600 text-indigo-600'
                 : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             <Package className="w-4 h-4" />
             Catalogue Global
@@ -244,11 +242,11 @@ export default function AuditLogsPage() {
                   className="px-3 md:px-4 py-1.5 md:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="all">Tous les événements</option>
-                  <option value="login">Connexion</option>
-                  <option value="logout">Déconnexion</option>
-                  <option value="create">Création</option>
-                  <option value="update">Mise à jour</option>
-                  <option value="delete">Suppression</option>
+                  <option value="LOGIN_FAILED">Échec Connexion</option>
+                  <option value="SALE_CANCELLED">Annulation Vente</option>
+                  <option value="STOCK_ADJUSTED">Ajustement Stock</option>
+                  <option value="SALE_DELETED">Suppression Vente</option>
+                  <option value="BAR_SUSPENDED">Suspension Bar</option>
                 </select>
 
                 {/* Bar Filter */}
