@@ -248,6 +248,22 @@ export default function SecurityDashboardPage() {
         </p>
       </div>
 
+      {/* Warning Banner */}
+      <Alert show={true} variant="warning" className="mb-6">
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-semibold text-amber-900 mb-1">
+              ⚠️ Fonctionnalité en développement
+            </p>
+            <p className="text-sm text-amber-800">
+              Cette page nécessite une infrastructure backend avancée (tables de monitoring, triggers RLS, RPCs de refresh)
+              qui n'est pas encore déployée. Les métriques afficheront 0 jusqu'à l'implémentation complète du système de monitoring.
+            </p>
+          </div>
+        </div>
+      </Alert>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {/* RLS Violations Card */}
@@ -327,11 +343,10 @@ export default function SecurityDashboardPage() {
                         <Database className="w-4 h-4 text-red-600" />
                         <p className="font-semibold text-gray-900">{alert.view_name}</p>
                         <span
-                          className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                            alert.status === 'active'
+                          className={`px-2 py-0.5 rounded-full text-xs font-semibold ${alert.status === 'active'
                               ? 'bg-red-100 text-red-700'
                               : 'bg-yellow-100 text-yellow-700'
-                          }`}
+                            }`}
                         >
                           {alert.status}
                         </span>
@@ -389,11 +404,10 @@ export default function SecurityDashboardPage() {
               {/* Notifications Button */}
               <button
                 onClick={toggleNotifications}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${
-                  notificationsEnabled
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${notificationsEnabled
                     ? 'bg-green-100 text-green-700 hover:bg-green-200'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                  }`}
                 title="Activer/Désactiver les notifications"
               >
                 {notificationsEnabled ? (
@@ -511,18 +525,16 @@ export default function SecurityDashboardPage() {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span
-                          className={`text-sm font-semibold ${
-                            stat.failed_count > 0 ? 'text-red-600' : 'text-gray-600'
-                          }`}
+                          className={`text-sm font-semibold ${stat.failed_count > 0 ? 'text-red-600' : 'text-gray-600'
+                            }`}
                         >
                           {stat.failed_count}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <span
-                          className={`text-sm font-semibold ${
-                            stat.timeout_count > 0 ? 'text-amber-600' : 'text-gray-600'
-                          }`}
+                          className={`text-sm font-semibold ${stat.timeout_count > 0 ? 'text-amber-600' : 'text-gray-600'
+                            }`}
                         >
                           {stat.timeout_count}
                         </span>
@@ -612,9 +624,8 @@ export default function SecurityDashboardPage() {
                     <div>
                       <div className="text-xs text-gray-500 mb-1">Échecs</div>
                       <div
-                        className={`text-lg font-bold ${
-                          stat.failed_count > 0 ? 'text-red-600' : 'text-gray-600'
-                        }`}
+                        className={`text-lg font-bold ${stat.failed_count > 0 ? 'text-red-600' : 'text-gray-600'
+                          }`}
                       >
                         {stat.failed_count}
                       </div>
@@ -624,9 +635,8 @@ export default function SecurityDashboardPage() {
                     <div>
                       <div className="text-xs text-gray-500 mb-1">Timeouts</div>
                       <div
-                        className={`text-lg font-bold ${
-                          stat.timeout_count > 0 ? 'text-amber-600' : 'text-gray-600'
-                        }`}
+                        className={`text-lg font-bold ${stat.timeout_count > 0 ? 'text-amber-600' : 'text-gray-600'
+                          }`}
                       >
                         {stat.timeout_count}
                       </div>
@@ -871,8 +881,8 @@ export default function SecurityDashboardPage() {
                     refreshHistory
                       .filter((log) => log.duration_ms && log.status === 'success')
                       .reduce((sum, log) => sum + log.duration_ms!, 0) /
-                      refreshHistory.filter((log) => log.duration_ms && log.status === 'success')
-                        .length
+                    refreshHistory.filter((log) => log.duration_ms && log.status === 'success')
+                      .length
                   )}
                   ms
                 </p>
