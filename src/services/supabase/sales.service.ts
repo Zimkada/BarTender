@@ -233,27 +233,10 @@ export class SalesService {
       }
 
       // 4. Audit log pour traçabilité (CRITIQUE pour prévenir la fraude)
-      // Récupérer les infos utilisateur pour le log
-      const { data: user } = await supabase
-        .from('users')
-        .select('name')
-        .eq('id', cancelledBy)
-        .single();
-
-      const { data: barMember } = await supabase
-        .from('bar_members')
-        .select('role')
-        .eq('user_id', cancelledBy)
-        .eq('bar_id', data.bar_id)
-        .single();
-
-      // Log l'annulation (via import statique)
+      // Note: userId, userName, userRole sont résolus côté serveur par le RPC
       await auditLogger.log({
         event: 'SALE_CANCELLED',
         severity: 'warning',
-        userId: cancelledBy,
-        userName: user?.name || 'Inconnu',
-        userRole: (barMember?.role as any) || 'unknown',
         barId: data.bar_id,
         description: `Vente annulée - Raison: ${reason}`,
         relatedEntityId: saleId,

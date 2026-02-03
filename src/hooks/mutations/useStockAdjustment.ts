@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { StockAdjustmentsService } from '../../services/supabase/stock-adjustments.service';
 import { auditLogger } from '../../services/AuditLogger';
-import { UserSession, Bar } from '../../types';
 
 export function useStockAdjustment() {
   const queryClient = useQueryClient();
@@ -16,12 +15,9 @@ export function useStockAdjustment() {
       reason: string;
       notes?: string;
       barId: string;
-      barName: string;
-      userId: string;
-      userName: string;
-      userRole: string;
+      // userId, userName, userRole, barName are resolved server-side by RPC
     }) => {
-      if (!data.barId || !data.userId) throw new Error('Missing context: bar or user');
+      if (!data.barId) throw new Error('Missing context: barId');
 
       // Create adjustment via RPC
       const adjustment = await StockAdjustmentsService.createAdjustment({
@@ -32,15 +28,11 @@ export function useStockAdjustment() {
         notes: data.notes
       });
 
-      // Audit log
+      // Audit log (userId, userName, userRole,barName resolved server-side)
       await auditLogger.log({
         event: 'STOCK_ADJUSTED',
         severity: 'info',
-        userId: data.userId,
-        userName: data.userName,
-        userRole: data.userRole,
         barId: data.barId,
-        barName: data.barName,
         description: `Ajustement stock: ${data.productName} (${data.delta > 0 ? '+' : ''}${data.delta}), Raison: ${data.reason}`,
         relatedEntityId: data.productId,
         relatedEntityType: 'product',
