@@ -29,10 +29,10 @@ export function InventoryStats({
 
             {/* Répartition Catégories */}
             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                     <LayoutGrid size={18} className="text-brand-primary" />
                     Répartition par catégorie
-                </h3>
+                </h2>
                 <div className="space-y-4">
                     <CategoryStatsList stats={categoryStats} showAlerts={false} />
                 </div>
@@ -41,7 +41,7 @@ export function InventoryStats({
             {/* Indicateurs additionnels */}
             <div className="bg-brand-subtle p-6 rounded-2xl border border-brand-subtle text-center">
                 <AlertTriangle className="mx-auto text-brand-primary mb-2" size={32} />
-                <h4 className="font-bold text-gray-900">{lowStockProducts.length} produits nécessitent votre attention</h4>
+                <h3 className="font-bold text-gray-900">{lowStockProducts.length} produits nécessitent votre attention</h3>
                 <p className="text-sm text-gray-600 mt-1">Consultez l'onglet Opérations pour réapprovisionner</p>
                 <Button
                     onClick={onNavigateToOperations}
