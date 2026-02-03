@@ -1,6 +1,7 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
 import { ProductsService } from './products.service';
+import { auditLogger } from '../../services/AuditLogger'; // Audit log service
 
 type Sale = Database['public']['Tables']['sales']['Row'];
 type SaleInsert = Database['public']['Tables']['sales']['Insert'];
@@ -246,7 +247,7 @@ export class SalesService {
         .eq('bar_id', data.bar_id)
         .single();
 
-      const { auditLogger } = await import('../../services/AuditLogger');
+      // Log l'annulation (via import statique)
       await auditLogger.log({
         event: 'SALE_CANCELLED',
         severity: 'warning',
