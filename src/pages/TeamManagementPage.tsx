@@ -13,6 +13,7 @@ import { Select } from '../components/ui/Select';
 import { Label } from '../components/ui/Label';
 import { Alert } from '../components/ui/Alert';
 import { ServerMappingsManager } from '../components/ServerMappingsManager';
+import { ServerMappingsService } from '../services/supabase/server-mappings.service';
 import { BarsService } from '../services/supabase/bars.service';
 import { FEATURES } from '../config/features';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
@@ -180,7 +181,7 @@ export default function TeamManagementPage() {
         ? username
         : `${username}@bartender.app`;
 
-      await AuthService.signup(
+      const newUser = await AuthService.signup(
         {
           username,
           password,
@@ -191,6 +192,19 @@ export default function TeamManagementPage() {
         currentBar.id,
         selectedRole as 'gerant' | 'serveur'
       );
+
+      // ✨ AUTO-MAPPING: Si c'est un serveur, on crée/met à jour le mapping pour le Mode Simplifié
+      if (selectedRole === 'serveur' && newUser?.id) {
+        try {
+          // On utilise le nom saisi pour faire le lien.
+          // Si un mapping "Marc" existe déjà, il pointera désormais vers ce nouveau compte.
+          // Sinon, on crée un nouveau mapping "Marc".
+          await ServerMappingsService.upsertServerMapping(currentBar.id, name, newUser.id);
+          console.log(`[TeamManagement] Auto-mapped server "${name}" to user ${newUser.id}`);
+        } catch (mapErr) {
+          console.warn('[TeamManagement] Auto-mapping failed (non-blocking):', mapErr);
+        }
+      }
 
       await new Promise(resolve => setTimeout(resolve, 200));
       await refreshBars();
