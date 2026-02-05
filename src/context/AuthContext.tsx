@@ -515,6 +515,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Sauvegarder dans localStorage pour persistance
     localStorage.setItem('selectedBarId', barId);
 
+    // ✨ FIX CRITIQUE: Mettre à jour l'objet 'auth_user' en cache aussi
+    // Sinon au F5, AuthService.initializeSession() reprendra le VIEUX barId stocké dans 'auth_user'
+    const cachedUser = AuthService.getCurrentUser();
+    if (cachedUser) {
+      const updatedUser = {
+        ...cachedUser,
+        barId,
+        barName,
+        role: newRole
+      };
+      localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+    }
+
     auditLogger.log({
       event: 'BAR_SWITCHED',
       severity: 'info',
