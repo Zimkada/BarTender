@@ -13,11 +13,10 @@ export function PaymentMethodSelector({ value, onChange, className = '' }: Payme
         { id: 'cash', label: 'Espèces', icon: Banknote },
         { id: 'mobile_money', label: 'Mobile Money', icon: Smartphone },
         { id: 'card', label: 'Carte', icon: CreditCard },
-        // { id: 'credit', label: 'À crédit', icon: Users }, // Disabled for now as per previous logic implied
     ];
 
     return (
-        <div className={`grid grid-cols-3 gap-2 ${className}`}>
+        <div className={`flex items-center gap-2 ${className}`}>
             {methods.map((method) => {
                 const Icon = method.icon;
                 const isSelected = value === method.id;
@@ -27,17 +26,17 @@ export function PaymentMethodSelector({ value, onChange, className = '' }: Payme
                         key={method.id}
                         onClick={() => onChange(method.id)}
                         className={`
-                            flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-200
+                            flex-1 flex items-center justify-center gap-2 py-2 px-1 rounded-lg border transition-all duration-200
                             ${isSelected
-                                ? 'bg-brand-primary/10 border-brand-primary text-brand-primary shadow-sm shadow-brand-subtle/20'
+                                ? 'bg-brand-primary text-white border-brand-primary shadow-sm'
                                 : 'bg-white border-gray-200 text-gray-500 hover:border-brand-primary/30 hover:bg-gray-50'
                             }
                         `}
                     >
-                        <div className={`mb-1.5 ${isSelected ? 'text-brand-primary' : 'text-gray-400'}`}>
-                            <Icon size={20} strokeWidth={2.5} />
+                        <div className={`${isSelected ? 'text-white' : 'text-gray-400'}`}>
+                            <Icon size={16} strokeWidth={2.5} />
                         </div>
-                        <span className="text-[10px] font-bold uppercase tracking-tight leading-none text-center">
+                        <span className="text-[10px] font-black uppercase tracking-tight leading-none whitespace-nowrap">
                             {method.label}
                         </span>
                     </button>

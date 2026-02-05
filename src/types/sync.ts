@@ -17,7 +17,9 @@ export type MutationType =
   | 'ADD_SALARY'            // Nouveau paiement salaire
   | 'ADD_SUPPLY'            // Nouvel approvisionnement
   | 'CREATE_PRODUCT'        // Nouveau produit
-  | 'DELETE_PRODUCT';       // Suppression produit
+  | 'DELETE_PRODUCT'        // Suppression produit
+  | 'CREATE_TICKET'         // Nouveau bon (pas supporté offline en V1)
+  | 'PAY_TICKET';           // Paiement du bon (pas supporté offline en V1)
 
 /**
  * Statut d'une opération dans la queue de sync

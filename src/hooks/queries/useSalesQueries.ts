@@ -29,19 +29,11 @@ export const useSales = (barId: string | undefined) => {
         ]
     });
 
-    if (isEnabled) {
-        console.log('[useSales] Query ENABLED for barId:', barId);
-    } else {
-        console.log('[useSales] Query DISABLED - barId is empty:', { barId, isEnabled });
-    }
-
     return useQuery({
         queryKey: salesKeys.list(barId || '') as any,
         queryFn: async (): Promise<Sale[]> => {
             if (!barId) return [];
-            console.log('[useSales] Fetching sales for barId:', barId);
             const dbSales = await SalesService.getBarSales(barId);
-            console.log('[useSales] Fetched', dbSales.length, 'sales');
             return mapSalesData(dbSales);
         },
         enabled: isEnabled,
@@ -78,5 +70,6 @@ const mapSalesData = (dbSales: any[]): Sale[] => {
         // - Full mode: server_id = sold_by (same person)
         // - Simplified mode: server_id = assigned server, sold_by = serveur
         serverId: s.server_id ?? undefined,
+        ticketId: s.ticket_id ?? undefined,
     }));
 };

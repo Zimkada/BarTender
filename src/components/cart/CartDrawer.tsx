@@ -1,12 +1,17 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, X, ShoppingBag } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CalculatedItem } from '../../hooks/useCartLogic';
 import { CartShared } from './CartShared';
 import { useViewport } from '../../hooks/useViewport';
 import { SelectOption } from '../ui/Select';
 import { PaymentMethod } from './PaymentMethodSelector';
 import { CartFooter } from './CartFooter';
+import type { TicketWithSummary } from '../../hooks/queries/useTickets';
+import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
+import { useAuth } from '../../context/AuthContext';
+import { useBarContext } from '../../context/BarContext';
+import { ServerMappingsService } from '../../services/supabase/server-mappings.service';
 
 interface CartDrawerProps {
     isOpen: boolean;
@@ -16,10 +21,12 @@ interface CartDrawerProps {
     onUpdateQuantity: (productId: string, quantity: number) => void;
     onRemoveItem: (productId: string) => void;
     onClear: () => void;
-    onCheckout: (serverName?: string, paymentMethod?: PaymentMethod) => Promise<void>;
+    onCheckout: (serverName?: string, paymentMethod?: PaymentMethod, ticketId?: string) => Promise<void>;
     isSimplifiedMode?: boolean;
     serverNames?: string[];
     currentServerName?: string;
+    ticketsWithSummary?: TicketWithSummary[];
+    onCreateBon?: (serverId: string | null) => Promise<string | null>;
     isLoading?: boolean;
 }
 
@@ -35,12 +42,54 @@ export function CartDrawer({
     isSimplifiedMode = false,
     serverNames = [],
     currentServerName,
+    ticketsWithSummary = [],
+    onCreateBon,
     isLoading = false
 }: CartDrawerProps) {
     const { isMobile } = useViewport();
+    const { formatPrice } = useCurrencyFormatter();
+    const { currentSession } = useAuth();
+    const { currentBar } = useBarContext();
 
     const [selectedServer, setSelectedServer] = useState<string>('');
+    const [selectedBon, setSelectedBon] = useState<string>('');
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
+    const [effectiveServerId, setEffectiveServerId] = useState<string | null>(null);
+
+    // Résolution du serveur effectif : mode simplifié → résolution nom→UUID, mode complet → userId connecté
+    useEffect(() => {
+        if (!isSimplifiedMode) {
+            setEffectiveServerId(currentSession?.userId || null);
+            return;
+        }
+        if (!selectedServer) {
+            setEffectiveServerId(null);
+            return;
+        }
+        // "Moi (" = user connecté — court-circuit, pas de résolution via server_name_mappings
+        if (selectedServer.startsWith('Moi (')) {
+            setEffectiveServerId(currentSession?.userId || null);
+            return;
+        }
+        ServerMappingsService.getUserIdForServerName(currentBar?.id || '', selectedServer)
+            .then(id => setEffectiveServerId(id || null));
+    }, [selectedServer, isSimplifiedMode, currentSession?.userId, currentBar?.id]);
+
+    // Réinitialiser le bon sélectionné quand le serveur change
+    useEffect(() => {
+        setSelectedBon('');
+    }, [effectiveServerId]);
+
+    // Reset state when drawer closes to ensure clean slate on next open
+    useEffect(() => {
+        if (!isOpen) {
+            setSelectedBon('');
+            // Optional: reset selectedServer too if desired, but user specifically asked for bon reset.
+            // Keeping selectedServer might be useful for repeated fast entry by same server.
+            // But let's reset it to be safe and consistent with "clean slate".
+            setSelectedServer('');
+        }
+    }, [isOpen]);
 
     const serverOptions: SelectOption[] = [
         { value: '', label: 'Sélectionner un serveur...' },
@@ -48,13 +97,35 @@ export function CartDrawer({
         ...serverNames.map(name => ({ value: name, label: name }))
     ];
 
+    // Filtrer les bons par serveur effectif — bons sans server_id (legacy) sont visibles à tous
+    const filteredTickets = effectiveServerId
+        ? ticketsWithSummary.filter(t => !t.serverId || t.serverId === effectiveServerId)
+        : ticketsWithSummary;
+
+    const bonOptions: SelectOption[] = [
+        { value: '', label: 'Sans bon' },
+        ...filteredTickets.map(t => ({
+            value: t.id,
+            label: `${t.productSummary} • ${formatPrice(t.totalAmount)}`
+        }))
+    ];
+
+    const handleCreateBon = async () => {
+        if (!onCreateBon) return;
+        const newId = await onCreateBon(effectiveServerId);
+        if (newId) setSelectedBon(newId);
+    };
+
     const handleCheckout = async () => {
         if (isSimplifiedMode && !selectedServer) {
             alert('Veuillez sélectionner le serveur qui a effectué la vente');
             return;
         }
-        await onCheckout(isSimplifiedMode ? selectedServer : undefined, paymentMethod);
-        if (!isLoading) setSelectedServer('');
+        await onCheckout(isSimplifiedMode ? selectedServer : undefined, paymentMethod, selectedBon || undefined);
+        if (!isLoading) {
+            setSelectedServer('');
+            setSelectedBon('');
+        }
     };
 
     const drawerVariants = isMobile ? {
@@ -164,6 +235,10 @@ export function CartDrawer({
                                     serverOptions={serverOptions}
                                     selectedServer={selectedServer}
                                     onServerChange={setSelectedServer}
+                                    bonOptions={bonOptions}
+                                    selectedBon={selectedBon}
+                                    onBonChange={setSelectedBon}
+                                    onCreateBon={handleCreateBon}
                                     paymentMethod={paymentMethod}
                                     onPaymentMethodChange={setPaymentMethod}
                                     onCheckout={handleCheckout}

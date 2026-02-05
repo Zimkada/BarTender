@@ -130,6 +130,16 @@
     font-size: 12px;
     line-height: 1.2;
   }
+
+  /* Isoler le contenu à imprimer — cache tout sauf .print-target */
+  body.printing {
+    visibility: hidden;
+  }
+
+  body.printing .print-target,
+  body.printing .print-target * {
+    visibility: visible;
+  }
 }
 
 /* Network-aware optimizations */

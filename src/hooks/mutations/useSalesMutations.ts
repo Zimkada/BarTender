@@ -13,7 +13,7 @@ import { Database } from '../../lib/database.types';
 import { PaymentMethod } from '../../components/cart/PaymentMethodSelector';
 import { SaleItem } from '../../types';
 
-type OptimisticSale = Sale & { isOptimistic: true };
+// type OptimisticSale = Sale & { isOptimistic: true }; // Removed unused type
 type SaleRow = Database['public']['Tables']['sales']['Row'];
 
 export const useSalesMutations = (barId: string) => {
@@ -55,7 +55,7 @@ export const useSalesMutations = (barId: string) => {
             const formattedBusinessDate = dateToYYYYMMDD(businessDate);
 
             // Formatage des items commun
-            const itemsFormatted = saleData.items.map((item: SaleItem) => ({
+            const itemsFormatted = saleData.items.map((item: any) => ({ // Cast as any because incoming items might have different casing
                 product_id: item.product_id || item.productId,
                 product_name: item.product_name || item.productName,
                 quantity: item.quantity,
@@ -85,17 +85,16 @@ export const useSalesMutations = (barId: string) => {
             const salePayload: Database['public']['Tables']['sales']['Insert'] = {
                 bar_id: barId,
                 items: itemsFormatted,
-                payment_method: saleData.paymentMethod || 'cash',
+                payment_method: saleData.ticketId ? 'ticket' : (saleData.paymentMethod || 'cash'),
                 sold_by: soldByValue,
                 server_id: saleData.serverId || null,
+                ticket_id: saleData.ticketId || null,
                 validated_by: validatedByValue, // ✨ NOUVEAU: Gérant connecté en mode simplifié
                 status: saleData.status || 'pending', // Pending par défaut si offline
                 customer_name: saleData.customerName,
                 customer_phone: saleData.customerPhone,
                 notes: saleData.notes,
                 business_date: formattedBusinessDate,
-                // Metadata contextuelles pour la sync offline
-                created_at_local: new Date().toISOString()
             };
 
             if (!salePayload.sold_by) throw new Error('Utilisateur non connecté');
@@ -111,7 +110,6 @@ export const useSalesMutations = (barId: string) => {
             } catch (error: unknown) {
                 // 4. Fallback OFFLINE
                 if (isNetworkError(error)) {
-                    console.log('🌐 Mode Offline détecté, mise en queue...', error);
 
                     // Enqueue dans SyncQueue
                     syncQueue.enqueue(
@@ -309,6 +307,7 @@ const mapSaleRowToSale = (savedSaleRow: SaleRow): Sale => {
         createdBy: savedSaleRow.created_by || savedSaleRow.sold_by, // Fallback
         soldBy: savedSaleRow.sold_by || undefined,  // ✨ CRUCIAL: Include soldBy from DB (attribution métier)
         serverId: savedSaleRow.server_id || undefined,  // ✨ NOUVEAU: Include serverId from DB
+        ticketId: (savedSaleRow as any).ticket_id || undefined,
         validatedBy: savedSaleRow.validated_by || undefined,
         rejectedBy: savedSaleRow.rejected_by || undefined,
         createdAt: new Date(savedSaleRow.created_at || new Date().toISOString()),

@@ -31,6 +31,7 @@ export interface CreateSaleData {
   customer_phone?: string;
   notes?: string;
   business_date?: string; // Ajouté pour le mode offline-first
+  ticket_id?: string;     // FK vers tickets (bon)
 }
 
 export interface SaleWithDetails extends Sale {
@@ -66,7 +67,8 @@ export class SalesService {
           p_customer_name: data.customer_name || null,
           p_customer_phone: data.customer_phone || null,
           p_notes: data.notes || null,
-          p_business_date: data.business_date || null // ✅ Passage du paramètre
+          p_business_date: data.business_date || null,
+          p_ticket_id: data.ticket_id || null
         }
       ).single();
 
@@ -710,6 +712,38 @@ export class SalesService {
       if (error) {
         throw new Error('Erreur lors de la suppression de la vente');
       }
+    } catch (error: any) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  /**
+   * Récupérer toutes les ventes d'un ticket (bon)
+   * Utilisé par InvoiceModal — fetch direct, pas depuis le cache React Query,
+   * pour garantir qu'une facture ne sera jamais incomplète.
+   */
+  static async getSalesByTicketId(ticketId: string): Promise<SaleWithDetails[]> {
+    try {
+      const { data, error } = await supabase
+        .from('sales')
+        .select(`
+          *,
+          seller:users!sales_sold_by_fkey (name),
+          validator:users!sales_validated_by_fkey (name)
+        `)
+        .eq('ticket_id', ticketId)
+        .not('status', 'in', ['rejected', 'cancelled'])
+        .order('created_at', { ascending: true });
+
+      if (error) throw new Error('Erreur lors de la récupération des ventes du bon');
+
+      return (data || []).map((sale: any) => ({
+        ...sale,
+        items: sale.items || [],
+        seller_name: sale.seller?.name || 'Inconnu',
+        validator_name: sale.validator?.name || null,
+        items_count: (sale.items || []).length,
+      }));
     } catch (error: any) {
       throw new Error(handleSupabaseError(error));
     }

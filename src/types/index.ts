@@ -289,6 +289,7 @@ export interface Sale {
   createdBy: string;      // ID de qui a créé la vente (audit technique)
   soldBy: string;         // ID du vendeur (source de vérité métier)
   serverId?: string;      // ✨ NOUVEAU: UUID du serveur assigné (mode switching support)
+  ticketId?: string;      // FK vers tickets — null = "sans bon"
   validatedBy?: string;   // ID du gérant qui a validé et sorti le stock
   rejectedBy?: string;    // ID du gérant qui a rejeté la demande
 
@@ -307,11 +308,26 @@ export interface Sale {
   assignedTo?: string;    // En mode simplifié : nom du serveur qui a servi (ex: "Marie")
   tableNumber?: string;   // Numéro de la table si applicable
   // Informations complémentaires
-  paymentMethod?: 'cash' | 'mobile_money' | 'card' | 'credit';
+  paymentMethod?: 'cash' | 'mobile_money' | 'card' | 'credit' | 'ticket';
   customerName?: string;
   customerPhone?: string;
   onboarding_step?: string;
   theme_config?: string; // JSON stringifié
+}
+
+// ===== TICKETS (BONS) =====
+export interface Ticket {
+  id: string;
+  barId: string;
+  status: 'open' | 'paid';
+  createdBy: string;
+  serverId?: string;
+  createdAt: Date;
+  paidAt?: Date;
+  paidBy?: string;
+  notes?: string;
+  ticketNumber?: number; // ✨ NOUVEAU: Numéro séquentiel (1, 2, 3...)
+  paymentMethod?: string; // ✨ NOUVEAU: Moteur de paiement du bon
 }
 
 // ===== AJUSTEMENTS DE STOCK =====

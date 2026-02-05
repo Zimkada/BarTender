@@ -4,6 +4,7 @@ import { Bar, BarMember, User, UserRole } from '../types';
 import { auditLogger } from '../services/AuditLogger';
 import { BarsService } from '../services/supabase/bars.service';
 import { AuthService } from '../services/supabase/auth.service';
+import { ServerMappingsService } from '../services/supabase/server-mappings.service';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
 import { OfflineStorage } from '../utils/offlineStorage';
@@ -523,6 +524,18 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       // Rafraîchir les membres
       setBarMembers(prev => [...prev, newMember]);
+
+      // Auto-créer le mapping server_name pour les nouveaux serveurs (non-blocking)
+      if (role === 'serveur') {
+        supabase
+          .from('users').select('name').eq('id', userId).single()
+          .then(({ data: userData }) => {
+            if (userData?.name) {
+              return ServerMappingsService.upsertServerMapping(currentBar.id, userData.name, userId);
+            }
+          })
+          .catch(err => console.warn('[BarContext] Auto-mapping skipped for new server:', err));
+      }
 
       return newMember;
     } catch (error) {

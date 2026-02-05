@@ -2,7 +2,10 @@ import { useState } from 'react';
 import { LayoutDashboard, ShoppingCart, BarChart3 } from 'lucide-react';
 import { DailyDashboard } from '../components/DailyDashboard';
 import { useAuth } from '../context/AuthContext';
+import { useBarContext } from '../context/BarContext';
+import { useTickets } from '../hooks/queries/useTickets';
 import { WelcomeTrainingCard } from '../components/dashboard/WelcomeTrainingCard';
+import { BonStrip } from '../components/dashboard/BonStrip';
 
 
 import { useViewport } from '../hooks/useViewport';
@@ -17,6 +20,8 @@ export type DashboardViewMode = 'summary' | 'orders' | 'performance';
  */
 export default function DashboardPage() {
   const { currentSession } = useAuth();
+  const { currentBar } = useBarContext();
+  const { tickets: ticketsWithSummary } = useTickets(currentBar?.id);
   const { isMobile } = useViewport();
   const [viewMode, setViewMode] = useState<DashboardViewMode>('summary');
 
@@ -59,6 +64,7 @@ export default function DashboardPage() {
 
       <main className="max-w-7xl mx-auto px-4 py-6">
         <WelcomeTrainingCard />
+        <BonStrip tickets={ticketsWithSummary} />
 
         {/* Metric Cards - 4 Columns */}
         <DailyDashboard activeView={viewMode} />
