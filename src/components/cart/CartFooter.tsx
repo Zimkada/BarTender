@@ -15,7 +15,7 @@ interface CartFooterProps {
     bonOptions: SelectOption[];
     selectedBon: string;
     onBonChange: (value: string) => void;
-    onCreateBon: () => void;
+    onCreateBon: (notes?: string) => void;
     paymentMethod: PaymentMethod;
     onPaymentMethodChange: (value: PaymentMethod) => void;
     onCheckout: () => void;
@@ -54,7 +54,19 @@ export function CartFooter({
     const [showBonSelection, setShowBonSelection] = useState(false);
 
     // Fonction pour obtenir le label du bon sélectionné
+    // Fonction pour obtenir le label du bon sélectionné
     const selectedBonLabel = bonOptions.find(o => o.value === selectedBon)?.label;
+
+    // UI creation bon
+    const [isCreatingBon, setIsCreatingBon] = useState(false);
+    const [newBonNote, setNewBonNote] = useState('');
+
+    const handleConfirmCreateBon = () => {
+        onCreateBon(newBonNote);
+        setNewBonNote('');
+        setIsCreatingBon(false);
+        setShowBonSelection(false);
+    };
 
 
 
@@ -151,20 +163,52 @@ export function CartFooter({
                             </div>
 
                             <div className="flex-1 overflow-y-auto space-y-2 mb-4">
-                                <button
-                                    onClick={() => {
-                                        onCreateBon();
-                                        setShowBonSelection(false);
-                                    }}
-                                    className="w-full text-left p-3 rounded-xl border border-dashed border-brand-primary/50 bg-brand-primary/5 flex items-center gap-3 text-brand-primary hover:bg-brand-primary/10"
-                                >
-                                    <div className="w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center">
-                                        <Plus size={16} />
+                                {isCreatingBon ? (
+                                    <div className="p-3 bg-brand-primary/5 rounded-xl border border-brand-primary/20 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-black text-xs text-brand-primary uppercase">Nouveau Bon</span>
+                                            <button
+                                                onClick={() => setIsCreatingBon(false)}
+                                                className="text-[10px] font-bold text-gray-400 uppercase hover:text-gray-600"
+                                            >
+                                                Annuler
+                                            </button>
+                                        </div>
+                                        <div>
+                                            <label className="block text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">
+                                                Table / Client (Optionnel)
+                                            </label>
+                                            <input
+                                                autoFocus
+                                                type="text"
+                                                value={newBonNote}
+                                                onChange={(e) => setNewBonNote(e.target.value)}
+                                                placeholder="Ex: Table 5, Amina..."
+                                                onKeyDown={(e) => e.key === 'Enter' && handleConfirmCreateBon()}
+                                                className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary uppercase placeholder:normal-case"
+                                            />
+                                        </div>
+                                        <EnhancedButton
+                                            onClick={handleConfirmCreateBon}
+                                            variant="primary"
+                                            className="w-full rounded-lg h-9 text-[10px] font-black uppercase tracking-widest"
+                                        >
+                                            Créer le bon
+                                        </EnhancedButton>
                                     </div>
-                                    <span className="font-black text-xs uppercase">Créer un nouveau bon</span>
-                                </button>
+                                ) : (
+                                    <button
+                                        onClick={() => setIsCreatingBon(true)}
+                                        className="w-full text-left p-3 rounded-xl border border-dashed border-brand-primary/50 bg-brand-primary/5 flex items-center gap-3 text-brand-primary hover:bg-brand-primary/10"
+                                    >
+                                        <div className="w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center">
+                                            <Plus size={16} />
+                                        </div>
+                                        <span className="font-black text-xs uppercase">Créer un nouveau bon</span>
+                                    </button>
+                                )}
 
-                                {bonOptions.filter(o => o.value).map(opt => (
+                                {!isCreatingBon && bonOptions.filter(o => o.value).map(opt => (
                                     <button
                                         key={opt.value}
                                         onClick={() => {

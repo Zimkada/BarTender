@@ -46,10 +46,10 @@ export function Cart({
   });
 
   // --- CREATE BON ---
-  const handleCreateBon = async (serverId: string | null): Promise<string | null> => {
+  const handleCreateBon = async (serverId: string | null, notes?: string): Promise<string | null> => {
     if (!currentBar || !currentSession) return null;
     try {
-      const ticket = await TicketsService.createTicket(currentBar.id, currentSession.userId, undefined, serverId || undefined, currentBar.closingHour);
+      const ticket = await TicketsService.createTicket(currentBar.id, currentSession.userId, notes, serverId || undefined, currentBar.closingHour);
       refetchTickets();
       return ticket.id;
     } catch (e) {

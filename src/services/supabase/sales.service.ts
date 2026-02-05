@@ -732,7 +732,8 @@ export class SalesService {
           validator:users!sales_validated_by_fkey (name)
         `)
         .eq('ticket_id', ticketId)
-        .not('status', 'in', ['rejected', 'cancelled'])
+        .neq('status', 'rejected')
+        .neq('status', 'cancelled')
         .order('created_at', { ascending: true });
 
       if (error) throw new Error('Erreur lors de la récupération des ventes du bon');

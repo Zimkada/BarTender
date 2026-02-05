@@ -26,7 +26,7 @@ interface CartDrawerProps {
     serverNames?: string[];
     currentServerName?: string;
     ticketsWithSummary?: TicketWithSummary[];
-    onCreateBon?: (serverId: string | null) => Promise<string | null>;
+    onCreateBon?: (serverId: string | null, notes?: string) => Promise<string | null>;
     isLoading?: boolean;
 }
 
@@ -106,13 +106,13 @@ export function CartDrawer({
         { value: '', label: 'Sans bon' },
         ...filteredTickets.map(t => ({
             value: t.id,
-            label: `${t.productSummary} • ${formatPrice(t.totalAmount)}`
+            label: `BON #${t.ticketNumber || '?'}${t.notes ? ` (${t.notes})` : ''} • ${t.productSummary} • ${formatPrice(t.totalAmount)}`
         }))
     ];
 
-    const handleCreateBon = async () => {
+    const handleCreateBon = async (notes?: string) => {
         if (!onCreateBon) return;
-        const newId = await onCreateBon(effectiveServerId);
+        const newId = await onCreateBon(effectiveServerId, notes);
         if (newId) setSelectedBon(newId);
     };
 
@@ -161,7 +161,7 @@ export function CartDrawer({
                         className={`
                             fixed z-[110] bg-white/95 backdrop-blur-2xl shadow-[0_-20px_80px_-20px_rgba(0,0,0,0.3)] flex flex-col
                             ${isMobile
-                                ? 'bottom-0 left-0 right-0 h-[88vh] rounded-t-[3rem]' // Mobile
+                                ? 'bottom-0 left-0 right-0 h-[94vh] rounded-t-[3rem]' // Mobile
                                 : 'top-0 right-0 bottom-0 w-[420px] rounded-l-[3rem]' // Desktop
                             }
                             border-l border-white/20
@@ -169,27 +169,27 @@ export function CartDrawer({
                     >
                         {/* --- DRAG HANDLE (Mobile) --- */}
                         {isMobile && (
-                            <div className="w-full flex justify-center pt-4 pb-2" onClick={onClose}>
-                                <div className="w-16 h-1.5 bg-gray-200 rounded-full" />
+                            <div className="w-full flex justify-center pt-2 pb-1" onClick={onClose}>
+                                <div className="w-12 h-1 bg-gray-200 rounded-full" />
                             </div>
                         )}
 
                         {/* --- HEADER VISION 2026 --- */}
-                        <div className="flex items-center justify-between px-8 py-5">
-                            <div className="flex flex-col">
-                                <h2 className="text-2xl font-black text-gray-900 flex items-center gap-3 uppercase tracking-tighter">
-                                    <ShoppingBag className="text-brand-primary" size={28} strokeWidth={2.5} />
+                        <div className="flex items-center justify-between px-6 py-2 border-b border-gray-100/50">
+                            <div className="flex flex-row items-center gap-2">
+                                <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 uppercase tracking-tighter">
+                                    <ShoppingBag className="text-brand-primary" size={20} strokeWidth={2.5} />
                                     Panier
+                                    <span className="ml-2 bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded-md text-[10px] font-black tracking-wide uppercase">
+                                        ({items.length} {items.length > 1 ? 'articles' : 'article'})
+                                    </span>
                                 </h2>
-                                <p className="text-[10px] font-black text-brand-primary/60 uppercase tracking-[0.3em] mt-1 pl-1">
-                                    {items.length} Article{items.length > 1 ? 's' : ''} sélectionné{items.length > 1 ? 's' : ''}
-                                </p>
                             </div>
                             <button
                                 onClick={onClose}
-                                className="w-10 h-10 flex items-center justify-center bg-gray-50 text-gray-600 hover:text-gray-900 rounded-full transition-all hover:rotate-90"
+                                className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-600 hover:text-gray-900 rounded-full transition-all hover:rotate-90"
                             >
-                                <X size={24} />
+                                <X size={18} />
                             </button>
                         </div>
 

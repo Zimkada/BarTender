@@ -36,7 +36,7 @@ export function PaymentMethodSelector({ value, onChange, className = '' }: Payme
                         <div className={`${isSelected ? 'text-white' : 'text-gray-400'}`}>
                             <Icon size={16} strokeWidth={2.5} />
                         </div>
-                        <span className="text-[10px] font-black uppercase tracking-tight leading-none whitespace-nowrap">
+                        <span className="text-[9px] font-black uppercase tracking-tight leading-none text-center">
                             {method.label}
                         </span>
                     </button>
