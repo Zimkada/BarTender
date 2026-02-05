@@ -8,6 +8,8 @@ import { ServerMappingsService } from '../services/supabase/server-mappings.serv
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
 import { OfflineStorage } from '../utils/offlineStorage';
+import { offlineQueue } from '../services/offlineQueue';
+import { networkManager } from '../services/NetworkManager';
 
 type BarMemberRow = Database['public']['Tables']['bar_members']['Row'];
 type BarMemberInsert = Database['public']['Tables']['bar_members']['Insert'];
@@ -64,7 +66,8 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // État dérivé
   const [currentBar, setCurrentBar] = useState<Bar | null>(null);
   const [userBars, setUserBars] = useState<Bar[]>([]);
-  const [assignedRole, setAssignedRole] = useState<UserRole | null>(null);
+  // assignedRole is derived from currentSession normally, keeping state if needed for overrides but currently unused setter
+  const [assignedRole] = useState<UserRole | null>(null);
 
   // ✨ Centralized Operating Mode Logic
   const operatingMode = useMemo(() => {
@@ -291,7 +294,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [currentSession, hasPermission, refreshBars]);
 
   /* ------------------------------------------------------------------
-   * UPDATE BAR
+   * UPDATE BAR (OPTIMISTIC UI VERSION)
    * ------------------------------------------------------------------ */
   const updateBar = useCallback(async (barId: string, updates: Partial<Bar>) => {
     // Permission check
@@ -299,69 +302,88 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     try {
       const oldBar = bars.find(b => b.id === barId);
+      if (!oldBar) return;
 
-      // Mapper les updates au format Supabase
-      const supabaseUpdates: any = {};
-      if (updates.name) supabaseUpdates.name = updates.name;
-      if (updates.address) supabaseUpdates.address = updates.address;
-      if (updates.phone) supabaseUpdates.phone = updates.phone;
-      if (updates.settings) supabaseUpdates.settings = updates.settings;
-      if (updates.isActive !== undefined) supabaseUpdates.is_active = updates.isActive;
-      if (updates.closingHour !== undefined) supabaseUpdates.closing_hour = updates.closingHour;
-      if (updates.theme_config !== undefined) supabaseUpdates.theme_config = updates.theme_config;
+      // 1. Optimistic Update (Immediate Local State Change)
+      // On crée la nouvelle version de l'objet Bar en fusionnant les updates
+      const optimisticBar: Bar = {
+        ...oldBar,
+        ...updates,
+        settings: { ...oldBar.settings, ...updates.settings } // Deep merge settings
+      };
 
-      // 1. Appel Service qui retourne l'objet À JOUR (Source de vérité)
-      const updatedBar = await BarsService.updateBar(barId, supabaseUpdates);
-
-      // 2. Mise à jour de l'état local REACT (Immédiat et Autoritaire)
-      setBars(prev => prev.map(b => b.id === barId ? updatedBar : b));
-      setUserBars(prev => prev.map(b => b.id === barId ? updatedBar : b));
-
-      // Si c'est le bar courant, on le met à jour aussi pour répercuter le thème tout de suite
+      // Appliquer immédiatement au State React
+      setBars(prev => prev.map(b => b.id === barId ? optimisticBar : b));
+      setUserBars(prev => prev.map(b => b.id === barId ? optimisticBar : b));
       if (currentBar?.id === barId) {
-        setCurrentBar(updatedBar);
+        setCurrentBar(optimisticBar);
       }
 
-      // 3. Mise à jour du Cache Offline (Pour le prochain rechargement)
-      // On utilise updatedBar qui est confirmé par la DB
-      const currentCachedBars = OfflineStorage.getBars() || [];
-      const updatedCachedBars = currentCachedBars.map(b => b.id === barId ? updatedBar : b);
-      if (updatedCachedBars.length === 0 && currentCachedBars.length === 0) {
-        // Si le cache était vide (cas rare), on essaie de le remplir avec le state
-        OfflineStorage.saveBars(bars.map(b => b.id === barId ? updatedBar : b));
-      } else {
+      // 2. Persistance (Offline vs Online)
+      const isOffline = networkManager.isOffline();
+
+      if (isOffline) {
+        // Mode Hors Ligne : On met en file d'attente
+        console.log('[BarContext] Offline update - queuing changes');
+        await offlineQueue.addOperation(
+          'UPDATE_BAR', // Nouveau type à gérer ou utiliser un générique
+          { barId, updates },
+          barId,
+          currentSession.userId
+        );
+
+        // On sauvegarde aussi dans le cache local pour survivre au reload
+        const currentCachedBars = OfflineStorage.getBars() || [];
+        const updatedCachedBars = currentCachedBars.map(b => b.id === barId ? optimisticBar : b);
         OfflineStorage.saveBars(updatedCachedBars);
+
+        // Log local audit si possible ou différé
+      } else {
+        // Mode En Ligne : On envoie au serveur
+        console.log('[BarContext] Online update - sending to server');
+
+        // Mapper pour Supabase
+        const supabaseUpdates: any = {};
+        if (updates.name) supabaseUpdates.name = updates.name;
+        if (updates.address) supabaseUpdates.address = updates.address;
+        if (updates.phone) supabaseUpdates.phone = updates.phone;
+        if (updates.settings) supabaseUpdates.settings = updates.settings;
+        if (updates.isActive !== undefined) supabaseUpdates.is_active = updates.isActive;
+        if (updates.closingHour !== undefined) supabaseUpdates.closing_hour = updates.closingHour;
+        if (updates.theme_config !== undefined) supabaseUpdates.theme_config = updates.theme_config;
+        if (updates.theme_config !== undefined) supabaseUpdates.theme_config = updates.theme_config;
+
+        const updatedBarFromDb = await BarsService.updateBar(barId, supabaseUpdates);
+
+        // Confirmation (optionnelle car on a déjà l'état optimiste, mais assure la synchro exacte)
+        // On ne met à jour que si nécessaire pour éviter des re-renders inutiles
       }
 
-      // Log mise à jour bar
-      if (oldBar) {
-        auditLogger.log({
-          event: 'BAR_UPDATED',
-          severity: 'info',
-          userId: currentSession!.userId,
-          userName: currentSession!.userName,
-          userRole: currentSession!.role,
-          barId: barId,
-          barName: oldBar.name,
-          description: `Mise à jour bar: ${oldBar.name}`,
-          metadata: {
-            updates: updates,
-            oldValues: { name: oldBar.name, address: oldBar.address, phone: oldBar.phone },
-          },
-          relatedEntityId: barId,
-          relatedEntityType: 'bar',
-        });
-      }
-
-      // ❌ SUPPRESSION DE refreshBars()
-      // On ne recharge PAS depuis le serveur pour éviter la Race Condition (stale read)
-      // On fait confiance à updatedBar retourné par l'écriture.
-      // await refreshBars();
+      // 3. Audit Log (Toujours, même si offline c'est géré par le logger interne qui a sa propre queue)
+      auditLogger.log({
+        event: 'BAR_UPDATED',
+        severity: 'info',
+        userId: currentSession.userId,
+        userName: currentSession.userName,
+        userRole: currentSession.role,
+        barId: barId,
+        barName: oldBar.name,
+        description: `Mise à jour bar (Optimiste): ${oldBar.name}`,
+        metadata: {
+          updates: updates,
+          offline: isOffline
+        },
+        relatedEntityId: barId,
+        relatedEntityType: 'bar',
+      });
 
     } catch (error) {
       console.error('[BarContext] Error updating bar:', error);
+      // En cas d'erreur FATALE (crash code), on pourrait vouloir rollback, 
+      // mais en general on laisse l'état optimiste pour ne pas frustrer l'user
+      // Le prochain refreshBars() remettra d'équerre la vérité serveur.
     }
-  }, [currentSession, hasPermission, bars, refreshBars]);
+  }, [currentSession, hasPermission, bars, currentBar]);
 
   // Helpers
   const isOwner = useCallback((barId: string) => {
@@ -531,10 +553,10 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           .from('users').select('name').eq('id', userId).single()
           .then(({ data: userData }) => {
             if (userData?.name) {
-              return ServerMappingsService.upsertServerMapping(currentBar.id, userData.name, userId);
+              return ServerMappingsService.upsertServerMapping(currentBar.id || '', userData.name, userId);
             }
           })
-          .catch(err => console.warn('[BarContext] Auto-mapping skipped for new server:', err));
+          .catch((err: any) => console.warn('[BarContext] Auto-mapping skipped for new server:', err));
       }
 
       return newMember;

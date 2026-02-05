@@ -19,7 +19,8 @@ export type MutationType =
   | 'CREATE_PRODUCT'        // Nouveau produit
   | 'DELETE_PRODUCT'        // Suppression produit
   | 'CREATE_TICKET'         // Nouveau bon (pas supporté offline en V1)
-  | 'PAY_TICKET';           // Paiement du bon (pas supporté offline en V1)
+  | 'PAY_TICKET'            // Paiement du bon (pas supporté offline en V1)
+  | 'UPDATE_BAR';           // Mise à jour des paramètres du bar (Settings)
 
 /**
  * Statut d'une opération dans la queue de sync
@@ -80,7 +81,8 @@ export interface SyncOperation {
  */
 export type NetworkStatus =
   | 'online'    // Connecté au réseau
-  | 'offline'   // Hors ligne
+  | 'offline'   // Hors ligne (confirmé après grace period)
+  | 'unstable'  // Connexion instable (grace period en cours)
   | 'checking'; // Vérification en cours
 
 /**
