@@ -383,6 +383,14 @@ export default function SalesHistoryPage() {
                 onCancelSale={handleCancelSale}
                 hasReturns={selectedSale ? (getReturnsBySale(selectedSale.id).length > 0) : false}
                 hasConsignments={selectedSale ? consignments.some(c => c.saleId === selectedSale.id && ['active', 'claimed'].includes(c.status)) : false}
+                serverName={selectedSale ? (() => {
+                    if (selectedSale.assignedTo) return selectedSale.assignedTo;
+                    const serverId = selectedSale.serverId || selectedSale.soldBy;
+                    if (serverId) {
+                        return safeUsers.find(u => u.id === serverId)?.name;
+                    }
+                    return undefined;
+                })() : undefined}
             />
 
             <GuideTourModal />
