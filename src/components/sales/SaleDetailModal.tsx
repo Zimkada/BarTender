@@ -79,10 +79,6 @@ export function SaleDetailModal({ sale, formatPrice, onClose, canCancel, hasRetu
                                         <User size={12} className="text-gray-400" />
                                         <span>Serveur</span>
                                     </div>
-                                    {/* TODO: Récupérer le nom du serveur via props ou context si nécessaire, ou on assume que c'est déjà enrichi avant. 
-                                        Pour l'instant, on affiche l'ID si on n'a pas le nom, ou on le passera en props plus tard. 
-                                        Dans SalesHistoryPage, on a accès aux users.
-                                    */}
                                     <span className="font-semibold text-gray-700">{serverName || 'Non spécifié'}</span>
                                 </div>
                             </div>
