@@ -18,20 +18,32 @@ export interface TicketRow {
   payment_method: string | null;
   ticket_number: number;
   notes: string | null;
+  table_number: number | null;
+  customer_name: string | null;
 }
 
 export class TicketsService {
   /**
    * Créer un nouveau bon via RPC create_ticket
    */
-  static async createTicket(barId: string, createdBy: string, notes?: string, serverId?: string, closingHour?: number): Promise<TicketRow> {
+  static async createTicket(
+    barId: string,
+    createdBy: string,
+    notes?: string,
+    serverId?: string,
+    closingHour?: number,
+    tableNumber?: number,
+    customerName?: string
+  ): Promise<TicketRow> {
     try {
       const { data, error } = await supabase.rpc('create_ticket', {
         p_bar_id: barId,
         p_created_by: createdBy,
         p_notes: notes || null,
         p_server_id: serverId || null,
-        p_closing_hour: closingHour ?? 6 // Default 6 if not provided
+        p_closing_hour: closingHour ?? 6,
+        p_table_number: tableNumber || null,
+        p_customer_name: customerName || null
       }).single();
 
       if (error || !data) {
