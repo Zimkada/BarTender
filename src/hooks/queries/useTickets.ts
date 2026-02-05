@@ -54,6 +54,8 @@ export function useTickets(barId: string | undefined) {
                 paidBy: t.paid_by || undefined,
                 ticketNumber: t.ticket_number,
                 notes: t.notes || undefined,
+                tableNumber: t.table_number || undefined,
+                customerName: t.customer_name || undefined,
             }));
         },
         enabled: !!barId,

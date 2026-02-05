@@ -328,6 +328,8 @@ export interface Ticket {
   notes?: string;
   ticketNumber?: number; // ✨ NOUVEAU: Numéro séquentiel (1, 2, 3...)
   paymentMethod?: string; // ✨ NOUVEAU: Moteur de paiement du bon
+  tableNumber?: number; // ✨ NOUVEAU: Numéro de table (optionnel)
+  customerName?: string; // ✨ NOUVEAU: Nom du client (optionnel)
 }
 
 // ===== AJUSTEMENTS DE STOCK =====
