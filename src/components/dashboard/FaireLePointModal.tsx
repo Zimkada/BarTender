@@ -187,9 +187,8 @@ export function FaireLePointModal({ tickets, onClose }: FaireLePointModalProps) 
             {viewDetailsId && (
                 <InvoiceModal
                     ticketId={viewDetailsId}
-                    // Pass ticket number from tickets list
                     ticketNumber={tickets.find(t => t.id === viewDetailsId)?.ticketNumber}
-                    // Pass current paymentMethod if not paid yet (undefined), or if paid (from logic, but here we view OPEN tickets mainly)
+                    ticket={tickets.find(t => t.id === viewDetailsId)}
                     onClose={() => setViewDetailsId(null)}
                 />
             )}

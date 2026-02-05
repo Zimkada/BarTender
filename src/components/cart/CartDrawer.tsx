@@ -9,6 +9,7 @@ import { PaymentMethod } from './PaymentMethodSelector';
 import { CartFooter } from './CartFooter';
 import type { TicketWithSummary } from '../../hooks/queries/useTickets';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
+import { formatTicketInfo } from '../../utils/formatTicketInfo';
 import { useAuth } from '../../context/AuthContext';
 import { useBarContext } from '../../context/BarContext';
 import { ServerMappingsService } from '../../services/supabase/server-mappings.service';
@@ -26,7 +27,7 @@ interface CartDrawerProps {
     serverNames?: string[];
     currentServerName?: string;
     ticketsWithSummary?: TicketWithSummary[];
-    onCreateBon?: (serverId: string | null, notes?: string) => Promise<string | null>;
+    onCreateBon?: (serverId: string | null, tableNumber?: number, customerName?: string) => Promise<string | null>;
     isLoading?: boolean;
 }
 
@@ -104,15 +105,18 @@ export function CartDrawer({
 
     const bonOptions: SelectOption[] = [
         { value: '', label: 'Sans bon' },
-        ...filteredTickets.map(t => ({
-            value: t.id,
-            label: `BON #${t.ticketNumber || '?'}${t.notes ? ` (${t.notes})` : ''} • ${t.productSummary} • ${formatPrice(t.totalAmount)}`
-        }))
+        ...filteredTickets.map(t => {
+            const ticketInfo = formatTicketInfo(t);
+            return {
+                value: t.id,
+                label: `BON #${t.ticketNumber || '?'}${ticketInfo ? ` (${ticketInfo})` : ''} • ${t.productSummary} • ${formatPrice(t.totalAmount)}`
+            };
+        })
     ];
 
-    const handleCreateBon = async (notes?: string) => {
+    const handleCreateBon = async (tableNumber?: number, customerName?: string) => {
         if (!onCreateBon) return;
-        const newId = await onCreateBon(effectiveServerId, notes);
+        const newId = await onCreateBon(effectiveServerId, tableNumber, customerName);
         if (newId) setSelectedBon(newId);
     };
 
