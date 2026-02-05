@@ -2,15 +2,18 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Printer } from 'lucide-react';
 import { SalesService } from '../../services/supabase/sales.service';
+import { TicketRow } from '../../services/supabase/tickets.service';
 import { useBarContext } from '../../context/BarContext';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { Button } from '../ui/Button';
+import { formatTicketInfo } from '../../utils/formatTicketInfo';
 
 interface InvoiceModalProps {
     ticketId: string;
     ticketNumber?: number;
     notes?: string;
     paymentMethod?: string; // If provided, we are in "Read-Only/Paid" mode or "View Details" mode
+    ticket?: Pick<TicketRow, 'table_number' | 'customer_name' | 'notes'>; // NOUVEAU: pour formatTicketInfo
     onClose: () => void;
 }
 
@@ -21,7 +24,7 @@ interface AggregatedItem {
     total: number;
 }
 
-export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, onClose }: InvoiceModalProps) {
+export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, ticket, onClose }: InvoiceModalProps) {
     const { currentBar } = useBarContext();
     const { formatPrice } = useCurrencyFormatter();
     const [sales, setSales] = useState<any[]>([]);
@@ -128,9 +131,9 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, onC
                                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">
                                         {ticketNumber ? `BON #${ticketNumber}` : `BON-${ticketId.slice(0, 8)}`} • {today}
                                     </p>
-                                    {notes && (
+                                    {(ticket ? formatTicketInfo(ticket) : notes) && (
                                         <p className="text-[10px] font-black text-brand-primary uppercase mt-1 tracking-tight">
-                                            {notes}
+                                            {ticket ? formatTicketInfo(ticket) : notes}
                                         </p>
                                     )}
                                 </div>

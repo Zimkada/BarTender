@@ -6,6 +6,7 @@ import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { FaireLePointModal } from './FaireLePointModal';
 import { InvoiceModal } from './InvoiceModal';
 import { Button } from '../ui/Button';
+import { formatTicketInfo } from '../../utils/formatTicketInfo';
 
 interface BonStripProps {
     tickets: TicketWithSummary[];
@@ -67,9 +68,9 @@ export function BonStrip({ tickets }: BonStripProps) {
                                 {ticket.createdAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                             </span>
                         </div>
-                        {ticket.notes && (
+                        {formatTicketInfo(ticket) && (
                             <div className="text-[9px] font-bold text-gray-400 uppercase tracking-tight mb-1 truncate">
-                                {ticket.notes}
+                                {formatTicketInfo(ticket)}
                             </div>
                         )}
                         <p className="text-[10px] font-black text-gray-700 truncate mb-2">{ticket.productSummary}</p>
@@ -105,7 +106,7 @@ export function BonStrip({ tickets }: BonStripProps) {
                 <InvoiceModal
                     ticketId={viewDetailsId}
                     ticketNumber={tickets.find(t => t.id === viewDetailsId)?.ticketNumber}
-                    notes={tickets.find(t => t.id === viewDetailsId)?.notes}
+                    ticket={tickets.find(t => t.id === viewDetailsId)}
                     onClose={() => setViewDetailsId(null)}
                 />
             )}
