@@ -2,6 +2,8 @@ import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
 import { ProductsService } from './products.service';
 import { auditLogger } from '../../services/AuditLogger'; // Audit log service
+import { networkManager } from '../NetworkManager';
+import { offlineQueue } from '../offlineQueue';
 
 type Sale = Database['public']['Tables']['sales']['Row'];
 type SaleInsert = Database['public']['Tables']['sales']['Insert'];
@@ -48,11 +50,86 @@ export class SalesService {
    * Créer une nouvelle vente
    * Utilise une fonction RPC atomique pour garantir la cohérence des données
    * Statut initial: 'pending' (nécessite validation gérant)
+   *
+   * ⭐ OFFLINE SUPPORT: Si offline et éligible (manager/promoter en mode simplifié),
+   * la vente est mise en queue locale et synchronisée au retour de la connexion
    */
-  static async createSale(data: CreateSaleData & { status?: 'pending' | 'validated' }): Promise<Sale> {
+  static async createSale(
+    data: CreateSaleData & { status?: 'pending' | 'validated' },
+    options?: {
+      canWorkOffline?: boolean; // Flag indiquant si l'utilisateur peut travailler offline
+      userId?: string; // ID de l'utilisateur créateur (pour queue)
+    }
+  ): Promise<Sale> {
     try {
       const status = data.status || 'pending';
+      const isOffline = networkManager.isOffline();
 
+      // ⭐ MODE OFFLINE: Queue la vente si offline et éligible
+      if (isOffline && options?.canWorkOffline) {
+        console.log('[SalesService] Offline mode detected, queueing sale');
+
+        // Générer idempotency key pour prévenir les doublons
+        const idempotencyKey = `sync_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        // Ajouter à la queue locale
+        const queuedOperation = await offlineQueue.addOperation(
+          'CREATE_SALE',
+          {
+            bar_id: data.bar_id,
+            items: data.items,
+            payment_method: data.payment_method,
+            sold_by: data.sold_by,
+            server_id: data.server_id || null,
+            status,
+            validated_by: data.validated_by || null,
+            customer_name: data.customer_name || null,
+            customer_phone: data.customer_phone || null,
+            notes: data.notes || null,
+            business_date: data.business_date || null,
+            ticket_id: data.ticket_id || null,
+            idempotency_key: idempotencyKey,
+          },
+          data.bar_id,
+          options.userId || data.sold_by
+        );
+
+        console.log('[SalesService] Sale queued:', queuedOperation.id);
+
+        // Retourner une réponse optimiste (vente locale temporaire)
+        // L'ID sera remplacé par l'ID réel lors de la synchronisation
+        return {
+          id: queuedOperation.id, // ID temporaire local
+          bar_id: data.bar_id,
+          items: data.items as any,
+          subtotal: data.items.reduce((sum, item) => sum + item.total_price, 0),
+          discount_total: 0,
+          total: data.items.reduce((sum, item) => sum + item.total_price, 0),
+          currency: 'XOF',
+          status,
+          applied_promotions: null,
+          created_by: data.sold_by,
+          sold_by: data.sold_by,
+          validated_by: data.validated_by || null,
+          rejected_by: null,
+          created_at: new Date().toISOString(),
+          validated_at: null,
+          rejected_at: null,
+          payment_method: data.payment_method,
+          customer_name: data.customer_name || null,
+          customer_phone: data.customer_phone || null,
+          notes: data.notes || null,
+          business_date: data.business_date || new Date().toISOString().split('T')[0],
+          server_id: data.server_id || null,
+          ticket_id: data.ticket_id || null,
+          cancelled_by: null,
+          cancelled_at: null,
+          cancel_reason: null,
+          idempotency_key: idempotencyKey,
+        };
+      }
+
+      // ⭐ MODE ONLINE: Créer la vente normalement via RPC
       // ✨ Utiliser la fonction RPC atomique pour créer la vente avec promotions
       const { data: newSale, error: rpcError } = await supabase.rpc(
         'create_sale_with_promotions',

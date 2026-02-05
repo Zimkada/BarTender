@@ -24,6 +24,7 @@ import { LoadingFallback } from '../components/LoadingFallback';
 import { LazyLoadErrorBoundary } from '../components/LazyLoadErrorBoundary';
 // import { UserManagement } from '../components/UserManagement'; // Removed
 import { UpdateNotification } from '../components/UpdateNotification';
+import { OfflineBanner } from '../components/OfflineBanner';
 
 // Lazy load all modals to reduce initial bundle size (~60-80 KB savings)
 const LazyProductModal = lazy(() => import('../components/ProductModal').then(m => ({ default: m.ProductModal })));
@@ -119,6 +120,7 @@ function RootLayoutContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-brand-subtle to-brand-subtle pb-16 md:pb-0">
+      <OfflineBanner /> {/* Phase 1: Offline Resilience */}
       <UpdateNotification />
       <OnboardingBanner /> {/* UX Improvement 1: Show setup banner */}
       <Header

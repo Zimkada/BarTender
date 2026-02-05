@@ -99,47 +99,30 @@ export const useSalesMutations = (barId: string) => {
 
             if (!salePayload.sold_by) throw new Error('Utilisateur non connecté');
 
-            // 3. Tenter l'envoi ONLINE
-            try {
-                // Vérif primitive d'abord
-                if (!navigator.onLine) throw new Error('Offline');
+            // 3. Déterminer si l'utilisateur peut travailler offline
+            const role = currentSession?.role;
+            const canWorkOffline = isSimplifiedMode && ['gerant', 'promoteur'].includes(role || '');
 
-                const savedSaleRow = await SalesService.createSale(salePayload);
-                return mapSaleRowToSale(savedSaleRow);
-
-            } catch (error: unknown) {
-                // 4. Fallback OFFLINE
-                if (isNetworkError(error)) {
-
-                    // Enqueue dans SyncQueue
-                    syncQueue.enqueue(
-                        'CREATE_SALE',
-                        salePayload,
-                        barId,
-                        currentSession?.userId || 'offline-user'
-                    );
-
-                    // Retourner une "Optimistic Sale" pour l'UI
-                    import('react-hot-toast').then(({ default: toast }) => {
-                        toast.success('Mode Hors-ligne: Vente sauvegardée localement', { icon: '💾' });
-                    });
-
-                    return {
-                        id: `temp_${Date.now()}`, // ID temporaire
-                        ...saleData,
-                        createdAt: new Date(),
-                        businessDate: businessDate,
-                        status: 'pending', // Sera validée après sync
-                        total: saleData.items.reduce((sum, item: SaleItem) => sum + (item.total_price || item.totalPrice || 0), 0),
-                        currency: 'XOF',
-                        createdBy: salePayload.sold_by,
-                        isOptimistic: true // UI flag
-                    } as unknown as Sale;
+            // 4. ⭐ NOUVEAU: Laisser le service gérer online/offline automatiquement
+            const savedSaleRow = await SalesService.createSale(
+                salePayload,
+                {
+                    canWorkOffline,
+                    userId: currentSession?.userId || ''
                 }
+            );
 
-                // Si c'est une vraie erreur (validation, etc.), on la remonte
-                throw error;
+            // 5. Vérifier si c'est une vente optimiste (offline)
+            const isOptimistic = savedSaleRow.id?.startsWith('sync_');
+
+            if (isOptimistic) {
+                // Afficher notification offline
+                import('react-hot-toast').then(({ default: toast }) => {
+                    toast.success('Mode Hors-ligne: Vente sauvegardée localement', { icon: '💾' });
+                });
             }
+
+            return mapSaleRowToSale(savedSaleRow);
         },
         onSuccess: (sale) => {
             // Ne pas afficher de toast si c'est une vente optimiste (offline)
