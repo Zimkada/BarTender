@@ -62,7 +62,7 @@ export class SalesService {
       console.log('[SalesService] Attempting online RPC (create_sale_idempotent)...');
 
       const rpcPromise = supabase.rpc(
-        'create_sale_idempotent',
+        'create_sale_idempotent' as any,
         {
           p_bar_id: data.bar_id,
           p_items: data.items as any,
@@ -325,8 +325,8 @@ export class SalesService {
     const { data, error } = await supabase.rpc('get_bar_sales_cursor', {
       p_bar_id: barId,
       p_limit: options.limit,
-      p_cursor_date: options.cursorDate || null,
-      p_cursor_id: options.cursorId || null
+      p_cursor_date: options.cursorDate || undefined,
+      p_cursor_id: options.cursorId || undefined
     });
 
     if (error) throw new Error(handleSupabaseError(error));
@@ -360,5 +360,38 @@ export class SalesService {
     const averageSale = totalSales > 0 ? totalRevenue / totalSales : 0;
 
     return { totalRevenue, totalSales, averageSale };
+  }
+
+  // --- Offline Data Access (Vision Rayons X) ---
+
+  static async getOfflineSales(barId: string): Promise<any[]> {
+    try {
+      // 1. Récupérer toutes les opé de type 'CREATE_SALE' en attente ou en cours
+      const operations = await offlineQueue.getOperations({ barId });
+      const pendingSales = operations
+        .filter(op => op.type === 'CREATE_SALE' && (op.status === 'pending' || op.status === 'syncing'))
+        .map(op => {
+          // Reconstruire une fausse "vente" pour l'UI à partir du payload
+          // On s'assure de caster correctement les types
+          return {
+            id: op.id, // ID temporaire
+            bar_id: barId,
+            total: op.payload.items.reduce((sum: number, item: any) => sum + item.total_price, 0),
+            status: 'validated', // On les considère validées pour les stats car le user a "vendu"
+            payment_method: op.payload.payment_method,
+            sold_by: op.payload.sold_by,
+            server_id: op.payload.server_id,
+            business_date: op.payload.business_date,
+            created_at: new Date(op.timestamp).toISOString(),
+            idempotency_key: op.payload.idempotency_key, // 🛡️ Lock Flash: Crucial pour la déduplication
+            isOptimistic: true // Flag pour l'UI
+          };
+        });
+
+      return pendingSales;
+    } catch (error) {
+      console.warn('[SalesService] Failed to fetch offline sales', error);
+      return [];
+    }
   }
 }
