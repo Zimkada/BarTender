@@ -1,11 +1,15 @@
 // hooks/useStockManagement.ts - Hook unifié (Refactored for React Query)
 import { useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { calculateAvailableStock } from '../utils/calculations';
 import { auditLogger } from '../services/AuditLogger';
 import { toDbProduct, toDbProductForCreation } from '../utils/productMapper';
+import { offlineQueue } from '../services/offlineQueue';
+import { syncManager } from '../services/SyncManager';
 import type { Product, ProductStockInfo, Supply, Expense } from '../types';
+import type { SyncOperation } from '../types/sync';
 
 // React Query Hooks
 import { useProducts, useSupplies, useConsignments } from './queries/useStockQueries';
@@ -253,10 +257,28 @@ export const useStockManagement = () => {
    * This is the single source of truth for stock alerts and display.
    * High performance O(N + M) calculation.
    */
+  // 🛡️ Lock Stock (Sprint 2): Récupérer les ventes offline pour déduction immédiate
+  const { data: offlineSales = [] } = useQuery({
+    queryKey: ['offline-sales-for-stock', currentBar?.id],
+    queryFn: async () => {
+      if (!currentBar?.id) return [];
+      const ops = await offlineQueue.getOperations({
+        status: 'pending',
+        barId: currentBar.id
+      });
+      return ops
+        .filter(op => op.type === 'CREATE_SALE')
+        .map(op => op.payload);
+    },
+    enabled: !!currentBar?.id,
+    refetchInterval: 5000 // Rafraîchir toutes les 5s pour capter les nouvelles ventes locales
+  });
+
   const allProductsStockInfo = useMemo(() => {
     const infoMap: Record<string, ProductStockInfo> = {};
+    const recentlySyncedKeys = syncManager.getRecentlySyncedKeys();
 
-    // 1. Initialize with physical stock
+    // 1. Initialiser avec le stock physique (Serveur)
     products.forEach(p => {
       infoMap[p.id] = {
         productId: p.id,
@@ -266,20 +288,38 @@ export const useStockManagement = () => {
       };
     });
 
-    // 2. Add consigned stock
+    // 2. Déduire les consignations actives
     consignments.forEach(c => {
       if (c.status === 'active' && infoMap[c.productId]) {
         infoMap[c.productId].consignedStock += c.quantity;
-        // recalculate available
-        infoMap[c.productId].availableStock = calculateAvailableStock(
-          infoMap[c.productId].physicalStock,
-          infoMap[c.productId].consignedStock
-        );
       }
     });
 
+    // 3. 🛡️ DÉDUIRE les ventes offline (Sprint 2)
+    offlineSales.forEach(sale => {
+      // Déduplication : Ne déduire que si n'est pas déjà dans le tampon de synchro récente
+      if (sale.idempotency_key && recentlySyncedKeys.has(sale.idempotency_key)) {
+        return;
+      }
+
+      sale.items.forEach((item: any) => {
+        const pId = item.product_id || item.productId;
+        if (infoMap[pId]) {
+          infoMap[pId].availableStock -= item.quantity;
+        }
+      });
+    });
+
+    // 4. Recalculer le stock disponible final (Physical - Consigned - Offline)
+    Object.values(infoMap).forEach(info => {
+      info.availableStock = calculateAvailableStock(
+        info.availableStock, // Contient déjà Physical - Offline
+        info.consignedStock
+      );
+    });
+
     return infoMap;
-  }, [products, consignments]);
+  }, [products, consignments, offlineSales]);
 
   const getConsignedStockByProduct = useCallback((productId: string): number => {
     return allProductsStockInfo[productId]?.consignedStock ?? 0;

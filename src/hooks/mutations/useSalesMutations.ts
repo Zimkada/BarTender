@@ -130,11 +130,13 @@ export const useSalesMutations = (barId: string) => {
         networkMode: 'always',
         onSuccess: (sale) => {
             console.log('[useSalesMutations] onSuccess called', sale.id);
-            if (!('isOptimistic' in sale && (sale as any).isOptimistic)) {
+            const isOptimistic = sale.id?.startsWith('sync_') || (sale as any).isOptimistic;
+
+            if (!isOptimistic) {
                 toast.success('Vente enregistrée');
             }
 
-            if (broadcastService.isSupported() && !('isOptimistic' in sale && sale.isOptimistic)) {
+            if (broadcastService.isSupported() && !isOptimistic) {
                 broadcastService.broadcast({ event: 'INSERT', table: 'sales', barId, data: sale });
                 broadcastService.broadcast({ event: 'UPDATE', table: 'bar_products', barId });
             }

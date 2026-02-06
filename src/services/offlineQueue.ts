@@ -107,24 +107,49 @@ class OfflineQueue {
     };
 
     return new Promise((resolve, reject) => {
-      try {
-        const transaction = db.transaction([STORE_NAME], 'readwrite');
-        const store = transaction.objectStore(STORE_NAME);
-        const request = store.add(operation);
+      const execAdd = () => {
+        try {
+          const transaction = db.transaction([STORE_NAME], 'readwrite');
+          const store = transaction.objectStore(STORE_NAME);
+          const request = store.add(operation);
 
-        request.onsuccess = () => {
-          console.log('[OfflineQueue] Operation added:', operation.id);
-          window.dispatchEvent(new CustomEvent('queue-updated'));
-          resolve(operation);
-        };
+          request.onsuccess = () => {
+            console.log('[OfflineQueue] Operation added:', operation.id);
+            window.dispatchEvent(new CustomEvent('queue-updated'));
+            resolve(operation);
+          };
 
-        request.onerror = () => {
-          console.error('[OfflineQueue] Failed to add operation:', request.error);
-          reject(request.error);
-        };
-      } catch (err) {
-        reject(err);
-      }
+          request.onerror = async () => {
+            const error = request.error;
+            // 🛡️ Quota Protection (Sprint 1): Nettoyage automatique si IDB plein
+            if (error?.name === 'QuotaExceededError') {
+              console.warn('[OfflineQueue] Quota exceeded, cleaning up old operations...');
+              try {
+                const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+                const allOps = await this.getOperations();
+                const oldOps = allOps.filter(op => op.timestamp < sevenDaysAgo);
+
+                for (const op of oldOps) {
+                  await this.removeOperation(op.id);
+                }
+
+                // Réessayer une seule fois
+                execAdd();
+                return;
+              } catch (cleanupErr) {
+                reject(cleanupErr);
+                return;
+              }
+            }
+            console.error('[OfflineQueue] Failed to add operation:', error);
+            reject(error);
+          };
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      execAdd();
     });
   }
 
