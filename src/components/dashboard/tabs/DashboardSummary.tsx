@@ -215,13 +215,14 @@ export function DashboardSummary({
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest opacity-80">Rapport de vente & Clôture sécurisée</p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto relative z-10">
+                <div className="flex flex-row gap-2 sm:gap-3 w-full md:w-auto relative z-10">
                     <EnhancedButton
                         onClick={onExportWhatsApp}
                         variant="success"
-                        className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-4 text-white rounded-2xl font-black shadow-lg shadow-emerald-500/20 active:scale-95 transition-all border-none uppercase tracking-widest text-[10px]"
+                        className="flex-1 md:flex-none flex items-center justify-center gap-1 sm:gap-1.5 px-3 sm:px-8 py-3 sm:py-4 text-white rounded-2xl font-black shadow-lg shadow-emerald-500/20 active:scale-95 transition-all border-none uppercase tracking-wider sm:tracking-widest text-[8px] sm:text-[10px]"
                     >
-                        <MessageCircle size={18} strokeWidth={2.5} /> WhatsApp
+                        <MessageCircle size={14} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2.5} />
+                        WhatsApp
                     </EnhancedButton>
 
                     {!isServerRole && (
@@ -230,13 +231,15 @@ export function DashboardSummary({
                                 onClick={onCloseCash}
                                 loading={isClosingCash}
                                 variant="danger"
-                                className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-4 text-white rounded-2xl font-black shadow-lg shadow-red-500/20 active:scale-95 transition-all border-none uppercase tracking-widest text-[10px]"
+                                className="flex-1 md:flex-none flex items-center justify-center gap-1 sm:gap-1.5 px-3 sm:px-8 py-3 sm:py-4 text-white rounded-2xl font-black shadow-lg shadow-red-500/20 active:scale-95 transition-all border-none uppercase tracking-wider sm:tracking-widest text-[8px] sm:text-[10px]"
                             >
-                                <Lock size={18} strokeWidth={2.5} /> Fermer caisse
+                                <Lock size={14} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2.5} />
+                                Fermer caisse
                             </EnhancedButton>
                         ) : (
-                            <div className="flex-1 md:flex-none flex items-center justify-center gap-2 px-8 py-4 bg-gray-100 text-gray-400 rounded-2xl font-black border-2 border-gray-200/50 uppercase tracking-widest text-[10px] cursor-not-allowed">
-                                <Lock size={18} strokeWidth={2.5} /> Caisse fermée
+                            <div className="flex-1 md:flex-none flex items-center justify-center gap-1 sm:gap-1.5 px-3 sm:px-8 py-3 sm:py-4 bg-gray-100 text-gray-400 rounded-2xl font-black border-2 border-gray-200/50 uppercase tracking-wider sm:tracking-widest text-[8px] sm:text-[10px] cursor-not-allowed">
+                                <Lock size={14} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2.5} />
+                                Caisse fermée
                             </div>
                         )
                     )}

@@ -6,6 +6,7 @@ import { AuthService, LoginResult } from '../services/supabase/auth.service';
 import { supabase } from '../lib/supabase';
 import { CacheManagerService } from '../services/cacheManager.service';
 import { OfflineStorage } from '../utils/offlineStorage';
+import { networkManager } from '../services/NetworkManager';
 
 interface AuthContextType {
   currentSession: UserSession | null;
@@ -150,6 +151,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // 🔄 Écouter l'événement custom de token expiré (depuis RootLayout heartbeat)
   useEffect(() => {
     const handleTokenExpired = async () => {
+      // ⭐ RÉSILIENCE OFFLINE: Si on est hors-ligne, on ne déconnecte PAS.
+      // On garde la session en mémoire pour permettre le travail local (Optimisme Résilient).
+      if (networkManager.isOffline()) {
+        console.warn('[AuthContext] Token expiré mais conservé (Mode Offline)');
+        return;
+      }
+
       console.warn('[AuthContext] 🔴 Token expiré détecté, forçage du logout');
       try {
         await AuthService.logout();
@@ -157,9 +165,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.warn('[AuthContext] Erreur lors de la déconnexion:', err);
       }
 
-      // 🧹 Purger les caches avant de fermer la session
-      console.log('[AuthContext] Purge des caches après token expiré');
-      await CacheManagerService.fullCleanup();
+      // 🧹 Purger les caches uniquement si on est bien online
+      // (Pour éviter de supprimer des données non synchronisées par erreur)
+      if (!networkManager.isOffline()) {
+        console.log('[AuthContext] Purge des caches après token expiré (Online)');
+        await CacheManagerService.fullCleanup();
+      } else {
+        console.warn('[AuthContext] Purge des caches annulée (Offline) pour préserver les données');
+      }
 
       setCurrentSession(null);
     };

@@ -6,13 +6,13 @@ import { AuthLayout } from '../layouts/AuthLayout';
 import { ErrorPage } from '../pages/ErrorPage';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { LoadingFallback } from '../components/LoadingFallback';
+import { RootLayout } from '../layouts/RootLayout';
+import { AdminLayout } from '../layouts/AdminLayout';
+import HomePage from '../pages/HomePage';
+import SettingsPage from '../pages/SettingsPage';
 
-// Lazy load layouts to reduce initial bundle size
-const RootLayout = lazyWithRetry(() => import('../layouts/RootLayout').then(m => ({ default: m.RootLayout })));
-const AdminLayout = lazyWithRetry(() => import('../layouts/AdminLayout').then(m => ({ default: m.AdminLayout })));
-
-// Lazy load HomePage to reduce initial bundle (affects mobile performance)
-const HomePage = lazyWithRetry(() => import('../pages/HomePage'));
+// Core Layouts and Pages are directly imported above for offline resilience
+// (RootLayout, AdminLayout, HomePage, SettingsPage)
 
 // === Pages (export default) - With automatic retry on chunk load failure ===
 const DashboardPage = lazyWithRetry(() => import('../pages/DashboardPage'));
@@ -29,7 +29,7 @@ const PromotionsPage = lazyWithRetry(() => import('../pages/PromotionsPage'));
 // === Composants refactorisés en pages (export default) ===
 const InventoryPage = lazyWithRetry(() => import('../pages/InventoryPage'));
 const AccountingPage = lazyWithRetry(() => import('../pages/AccountingPage'));
-const SettingsPage = lazyWithRetry(() => import('../pages/SettingsPage'));
+// SettingsPage is directly imported above for offline resilience
 const ProfilePage = lazyWithRetry(() => import('../pages/ProfilePage'));
 
 // === Composants avec named exports ===

@@ -313,6 +313,8 @@ export interface Sale {
   customerPhone?: string;
   onboarding_step?: string;
   theme_config?: string; // JSON stringifié
+  notes?: string; // ✨ Notes sur la vente
+  isOptimistic?: boolean; // ⭐ Indique une vente créée hors-ligne (UI Optimiste)
 }
 
 // ===== TICKETS (BONS) =====

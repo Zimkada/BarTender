@@ -12,6 +12,7 @@ import { broadcastService } from '../services/broadcast/BroadcastService';
 import { supabase } from '../lib/supabase';
 import { VersionCheckService } from '../services/versionCheck.service';
 import { useRoutePreload } from '../hooks/useRoutePreload';
+import { networkManager } from '../services/NetworkManager';
 
 import { Header } from '../components/Header';
 import { MobileNavigation } from '../components/MobileNavigation';
@@ -79,15 +80,24 @@ function RootLayoutContent() {
     if (!isAuthenticated || !currentSession) return;
 
     const heartbeatInterval = setInterval(async () => {
+      // ⭐ SILENCE OFFLINE: On ne veut pas déconnecter l'utilisateur s'il est hors-ligne
+      // même si le token expire (on synchronisera au retour du réseau).
+      if (networkManager.isOffline()) {
+        console.debug('[RootLayout] Heartbeat skipped (Offline mode)');
+        return;
+      }
+
       try {
         // Vérifier si le session Supabase est toujours valide
         const { data: { session: supabaseSession }, error } = await supabase.auth.getSession();
 
-        if (!supabaseSession || error) {
+        if (error || !supabaseSession) {
           console.warn('[RootLayout] ⚠️ Token expiré détecté lors du heartbeat');
 
-          // Dispatcher un événement custom que AuthContext va écouter
-          window.dispatchEvent(new Event('token-expired'));
+          // Double check internet avant de paniquer
+          if (!networkManager.isOffline()) {
+            window.dispatchEvent(new Event('token-expired'));
+          }
         }
       } catch (err) {
         console.warn('[RootLayout] Erreur lors de la vérification du heartbeat:', err);

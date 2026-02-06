@@ -14,6 +14,7 @@
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { QueryClient } from '@tanstack/react-query';
+import { networkManager } from '../NetworkManager';
 
 export type RealtimeEvent = 'INSERT' | 'UPDATE' | 'DELETE';
 
@@ -46,7 +47,6 @@ export class RealtimeService {
   private channels: Map<string, ChannelState> = new Map();
   private maxRetries: number = 5;
   private retryDelay: number = 1000;
-  private isOnline: boolean = navigator.onLine;
   private queryClient?: QueryClient;
 
   private constructor() {
@@ -248,7 +248,11 @@ export class RealtimeService {
     }
 
     // Only handle real errors
-    console.error(`[Realtime] Channel error for ${channelId}:`, error);
+    if (!networkManager.isOffline()) {
+      console.error(`[Realtime] Channel error for ${channelId}:`, error);
+    } else {
+      console.log(`[Realtime] WebSocket disconnected (Offline mode)`);
+    }
     state.lastError = error;
     state.isConnected = false;
 
@@ -266,7 +270,9 @@ export class RealtimeService {
     status: string,
     config: RealtimeConfig,
   ) {
-    console.log(`[Realtime] Subscription status for ${channelId}: ${status}`);
+    if (!networkManager.isOffline()) {
+      console.log(`[Realtime] Subscription status for ${channelId}: ${status}`);
+    }
 
     switch (status) {
       case 'SUBSCRIBED':
@@ -302,7 +308,7 @@ export class RealtimeService {
     );
 
     setTimeout(() => {
-      if (this.isOnline) {
+      if (!networkManager.isOffline()) {
         this.subscribe(config);
       }
     }, delay);
@@ -310,7 +316,6 @@ export class RealtimeService {
 
   private handleOnline() {
     console.log('[Realtime] Network is online, reconnecting all channels...');
-    this.isOnline = true;
 
     // Attempt to reconnect all channels
     this.channels.forEach((state, channelId) => {
@@ -323,7 +328,6 @@ export class RealtimeService {
 
   private handleOffline() {
     console.log('[Realtime] Network is offline, switching to polling mode');
-    this.isOnline = false;
 
     // Mark all channels as disconnected
     this.channels.forEach((state) => {
@@ -347,7 +351,7 @@ export class RealtimeService {
         ageMs: Date.now() - state.createdAt,
         lastError: state.lastError?.message,
       })),
-      isOnline: this.isOnline,
+      isOnline: !networkManager.isOffline(),
     };
 
     return metrics;

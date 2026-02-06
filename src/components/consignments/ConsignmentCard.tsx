@@ -171,23 +171,23 @@ export function ConsignmentCard({
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={onClaim}
-                                className="flex-1 sm:flex-none px-4 py-2.5 text-white rounded-xl shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-2"
+                                className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 text-white rounded-xl shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-1.5 sm:gap-2"
                                 style={{ background: 'var(--brand-gradient)' }}
                                 title="Client récupère le produit"
                             >
-                                <CheckCircle size={14} strokeWidth={3} />
-                                <span className="text-[10px] font-black uppercase tracking-wider">Récupérer</span>
+                                <CheckCircle size={13} className="sm:w-[14px] sm:h-[14px]" strokeWidth={3} />
+                                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wide sm:tracking-wider">Récupérer</span>
                             </motion.button>
 
                             <motion.button
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={onForfeit}
-                                className="flex-1 sm:flex-none px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-xl flex items-center justify-center gap-2 transition-colors"
+                                className="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-xl flex items-center justify-center gap-1.5 sm:gap-2 transition-colors"
                                 title="Confisquer (Remise en stock)"
                             >
-                                <Package size={14} strokeWidth={2.5} />
-                                <span className="text-[10px] font-black uppercase tracking-wider">Confisquer</span>
+                                <Package size={13} className="sm:w-[14px] sm:h-[14px]" strokeWidth={2.5} />
+                                <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-wide sm:tracking-wider">Confisquer</span>
                             </motion.button>
                         </div>
                     )}

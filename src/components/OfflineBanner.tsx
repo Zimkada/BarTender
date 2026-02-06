@@ -55,15 +55,13 @@ export const OfflineBanner: React.FC = () => {
         };
     }, [currentBar?.id]);
 
-    if (!isOffline || !isVisible) return null;
-
     const role = currentSession?.role;
     const canWorkOffline = isSimplifiedMode && ['gerant', 'promoteur'].includes(role || '');
 
+    if (!isOffline || !isVisible) return null;
+
     return (
-        <div className={`text-white px-4 py-3 shadow-lg relative z-[9999] transition-colors duration-300 ${
-            canWorkOffline ? 'bg-blue-600' : 'bg-red-600'
-        }`}>
+        <div className={`text-white px-4 py-3 shadow-lg relative z-[9999] transition-colors duration-300 ${canWorkOffline ? 'bg-blue-600' : 'bg-red-600'}`}>
             <div className="container mx-auto flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
                     <WifiOff className="w-5 h-5 flex-shrink-0 mt-0.5" />

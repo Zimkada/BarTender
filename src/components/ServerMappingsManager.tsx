@@ -2,10 +2,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { Trash2, Plus, AlertCircle, CheckCircle, Loader, User, MousePointerClick, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ServerMappingsService } from '../services/supabase/server-mappings.service';
+import { networkManager } from '../services/NetworkManager';
+import { OfflineStorage } from '../utils/offlineStorage';
 import { Input } from './ui/Input';
 import { Select, SelectOption } from './ui/Select';
 import { Alert } from './ui/Alert';
 import { Button } from './ui/Button';
+import toast from 'react-hot-toast';
 
 interface ServerMapping {
   serverName: string;
@@ -42,9 +45,28 @@ export function ServerMappingsManager({
   }, [barId]);
 
   const loadMappings = async () => {
+    if (!barId) return;
+
     try {
       setLoading(true);
       setError(null);
+
+      // 1. Charger le cache offline pour une réponse immédiate
+      const cachedMappings = OfflineStorage.getMappings(barId);
+      if (cachedMappings) {
+        setMappings(cachedMappings);
+      }
+
+      // 2. Vérifier si on tente le réseau
+      const isOffline = networkManager.isOffline();
+      if (isOffline) {
+        if (!cachedMappings) {
+          setError('Mode hors ligne : Aucun mapping en cache.');
+        }
+        setLoading(false);
+        return;
+      }
+
       const allMappings = await ServerMappingsService.getAllMappingsForBar(barId);
 
       // Enrich mappings with user names
@@ -55,10 +77,28 @@ export function ServerMappingsManager({
       }));
 
       setMappings(enrichedMappings);
+
+      // 3. Mettre à jour le cache
+      OfflineStorage.saveMappings(barId, enrichedMappings);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors du chargement des mappings';
-      setError(message);
-      console.error('[ServerMappingsManager] Error loading mappings:', err);
+      console.error('[ServerMappingsManager] Load failed:', err);
+
+      const isNetworkErr = !navigator.onLine ||
+        (err instanceof Error && (
+          err.message.includes('fetch') ||
+          err.message.includes('network') ||
+          err.message.includes('Network')
+        ));
+
+      if (isNetworkErr) {
+        setError('Mode hors ligne : Impossible de synchroniser les mappings.');
+        const cached = OfflineStorage.getMappings(barId);
+        if (cached) setMappings(cached);
+      } else {
+        const message = err instanceof Error ? err.message : 'Erreur lors du chargement des mappings';
+        setError(message);
+        toast.error('Échec de chargement des mappings');
+      }
     } finally {
       setLoading(false);
     }
@@ -75,6 +115,7 @@ export function ServerMappingsManager({
         setError('Aucun serveur actif trouvé pour auto-populer');
       } else {
         setSuccess(`${autoCreatedMappings.length} mapping(s) créé(s) automatiquement`);
+        toast.success('Synchronisation automatique réussie');
         await loadMappings();
         setTimeout(() => setSuccess(null), 3000);
       }
@@ -100,6 +141,7 @@ export function ServerMappingsManager({
       await ServerMappingsService.upsertServerMapping(barId, newServerName, newServerId);
 
       setSuccess(`Mapping créé: ${newServerName}`);
+      toast.success(`Assigné: ${newServerName}`);
       setNewServerName('');
       setNewServerId('');
       await loadMappings();

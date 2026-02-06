@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, DollarSign, Clock, Building2, Mail, Phone, MapPin, ShieldCheck, CheckCircle, AlertCircle, GitBranch, WifiOff } from 'lucide-react';
-import { networkManager } from '../services/NetworkManager';
-import { OfflineStorage } from '../utils/offlineStorage';
+import { Settings as SettingsIcon, DollarSign, Clock, Building2, MapPin, Mail, Phone, ShieldCheck, CheckCircle, AlertCircle, GitBranch } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useNotifications } from '../components/Notifications';
 import { Factor } from '@supabase/supabase-js';
@@ -50,7 +48,6 @@ export default function SettingsPage() {
 
     // Rôles
     const isPromoteur = currentSession?.role === 'promoteur' || currentSession?.role === 'super_admin';
-    const isGerant = currentSession?.role === 'gerant';
 
     // Redirection automatique pour les non-promoteurs (qui n'ont pas accès à l'onglet par défaut 'bar')
     const [activeTab, setActiveTab] = useState<'bar' | 'operational' | 'security'>(() => {
@@ -99,6 +96,9 @@ export default function SettingsPage() {
 
     // Charger les membres du bar pour ServerMappingsManager
     useEffect(() => {
+        const controller = new AbortController();
+        let isMounted = true;
+
         const loadBarMembers = async () => {
             if (!currentBar?.id) return;
             try {
@@ -106,31 +106,58 @@ export default function SettingsPage() {
                     .from('bar_members')
                     .select('user_id, role')
                     .eq('bar_id', currentBar.id)
-                    .eq('is_active', true);
+                    .eq('is_active', true)
+                    .abortSignal(controller.signal);
 
-                if (error) throw error;
+                if (error) {
+                    if (error.code === 'ABORT') return;
+                    throw error;
+                }
 
-                // Enrichir avec les noms des utilisateurs
-                const enrichedMembers = await Promise.all((data || []).map(async (member) => {
-                    const { data: user } = await supabase
-                        .from('users')
-                        .select('name')
-                        .eq('id', member.user_id)
-                        .single();
+                // Enrichir avec les noms des utilisateurs - Limitation des requêtes en cascade
+                const userIds = (data || []).map(m => m.user_id).filter(Boolean) as string[];
 
+                if (userIds.length === 0) {
+                    if (isMounted) setBarMembers([]);
+                    return;
+                }
+
+                const { data: users, error: userError } = await supabase
+                    .from('users')
+                    .select('id, name')
+                    .in('id', userIds)
+                    .abortSignal(controller.signal);
+
+                if (userError) throw userError;
+
+                const validMembers = (data || []).map(member => {
+                    const user = users?.find(u => u.id === member.user_id);
                     return {
-                        userId: member.user_id,
+                        userId: member.user_id!,
                         name: user?.name || 'Inconnu',
-                        role: member.role
+                        role: member.role || 'serveur'
                     };
-                }));
+                });
 
-                setBarMembers(enrichedMembers);
-            } catch (error) {
+                if (isMounted) {
+                    // Optimisation : Ne mettre à jour que si les membres ont changé (Deep comparison simplifiée)
+                    setBarMembers(prev => {
+                        const hasChanged = JSON.stringify(prev) !== JSON.stringify(validMembers);
+                        return hasChanged ? validMembers : prev;
+                    });
+                }
+            } catch (error: any) {
+                if (error.name === 'AbortError') return;
                 console.error('[SettingsPage] Error loading bar members:', error);
             }
         };
+
         loadBarMembers();
+
+        return () => {
+            isMounted = false;
+            controller.abort();
+        };
     }, [currentBar?.id]);
 
     // États Bar
@@ -146,6 +173,21 @@ export default function SettingsPage() {
     const [tempConsignmentExpirationDays, setTempConsignmentExpirationDays] = useState(currentBar?.settings?.consignmentExpirationDays ?? 7);
     const [tempSupplyFrequency, setTempSupplyFrequency] = useState(currentBar?.settings?.supplyFrequency ?? 7);
     const [tempOperatingMode, setTempOperatingMode] = useState<'full' | 'simplified'>(currentBar?.settings?.operatingMode ?? 'simplified');
+
+    // BUG #3 FIX (Ajusté) : Synchronisation UNIQUEMENT lors du changement de BarId
+    // On évite de synchroniser operatingMode ici car cela écrase les choix de l'utilisateur lors de refreshBars()
+    useEffect(() => {
+        if (currentBar) {
+            setBarName(currentBar.name ?? '');
+            setBarAddress(currentBar.address ?? '');
+            setBarPhone(currentBar.phone ?? '');
+            setBarEmail(currentBar.email ?? '');
+            setTempCloseHour(currentBar.closingHour ?? 6);
+            setTempConsignmentExpirationDays(currentBar.settings?.consignmentExpirationDays ?? 7);
+            setTempSupplyFrequency(currentBar.settings?.supplyFrequency ?? 7);
+            setTempOperatingMode(currentBar.settings?.operatingMode ?? 'simplified');
+        }
+    }, [currentBar?.id]); // ⚡ Retiré currentBar?.settings?.operatingMode des dépendances pour éviter le revert permanent
 
     // Tabs configuration
     // Tabs configuration - Filtrage par rôle pour sécurité robustesse
@@ -238,10 +280,12 @@ export default function SettingsPage() {
         }
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         updateSettings(tempSettings);
         if (currentBar) {
-            updateBar(currentBar.id, {
+            // ⭐ FIX CRITIQUE: Attendre la fin de updateBar() avant de naviguer
+            // Sinon les updates optimistes sont perdues lors du navigate()
+            await updateBar(currentBar.id, {
                 name: barName.trim(),
                 address: barAddress.trim() || undefined,
                 phone: barPhone.trim() || undefined,
@@ -300,7 +344,7 @@ export default function SettingsPage() {
                 hideSubtitleOnMobile={true}
             />
 
-            <div className="max-w-7xl mx-auto space-y-6 pb-20 px-4">
+            <div className="max-w-7xl mx-auto space-y-6 pb-32 px-4">
                 {/* Contenu - Utilisation de Card pour l'encapsulation */}
                 <Card className="p-6 space-y-8" data-guide="settings-content">
 
@@ -471,168 +515,168 @@ export default function SettingsPage() {
                     {activeTab === 'operational' && (
                         <div className="space-y-8">
                             {/* Section Heures & Délais */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                                <Clock size={16} className="text-brand-primary" />
-                                                Heure de clôture journalière
-                                            </label>
-                                            <Select
-                                                value={tempCloseHour.toString()}
-                                                onChange={(e) => setTempCloseHour(Number(e.target.value))}
-                                                options={Array.from({ length: 24 }, (_, i) => ({
-                                                    value: i.toString(),
-                                                    label: `${i.toString().padStart(2, '0')}h00`
-                                                }))}
-                                                helperText="Heure de fin de votre journée comptable (ex: 06h00 pour un maquis)."
-                                            />
-                                        </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                                        <Clock size={16} className="text-brand-primary" />
+                                        Heure de clôture journalière
+                                    </label>
+                                    <Select
+                                        value={tempCloseHour.toString()}
+                                        onChange={(e) => setTempCloseHour(Number(e.target.value))}
+                                        options={Array.from({ length: 24 }, (_, i) => ({
+                                            value: i.toString(),
+                                            label: `${i.toString().padStart(2, '0')}h00`
+                                        }))}
+                                        helperText="Heure de fin de votre journée comptable (ex: 06h00 pour un maquis)."
+                                    />
+                                </div>
 
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                Expiration des consignations
-                                            </label>
-                                            <Select
-                                                value={tempConsignmentExpirationDays.toString()}
-                                                onChange={(e) => setTempConsignmentExpirationDays(Number(e.target.value))}
-                                                options={[
-                                                    { value: '7', label: '7 jours (Standard)' },
-                                                    { value: '14', label: '14 jours - 2 semaines' },
-                                                    { value: '30', label: '30 jours - 1 mois' },
-                                                ]}
-                                                helperText="Délai avant que les produits consignés retournent en stock."
-                                            />
-                                        </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Expiration des consignations
+                                    </label>
+                                    <Select
+                                        value={tempConsignmentExpirationDays.toString()}
+                                        onChange={(e) => setTempConsignmentExpirationDays(Number(e.target.value))}
+                                        options={[
+                                            { value: '7', label: '7 jours (Standard)' },
+                                            { value: '14', label: '14 jours - 2 semaines' },
+                                            { value: '30', label: '30 jours - 1 mois' },
+                                        ]}
+                                        helperText="Délai avant que les produits consignés retournent en stock."
+                                    />
+                                </div>
 
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                Fréquence approvisionnement
-                                            </label>
-                                            <Select
-                                                value={tempSupplyFrequency.toString()}
-                                                onChange={(e) => setTempSupplyFrequency(Number(e.target.value))}
-                                                options={[
-                                                    { value: '7', label: '7 jours (Standard)' },
-                                                    { value: '14', label: '14 jours - 2 semaines' },
-                                                    { value: '30', label: '30 jours - 1 mois' },
-                                                ]}
-                                                helperText="Fréquence de réapprovisionnement automatique."
-                                            />
-                                        </div>
-                                    </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Fréquence approvisionnement
+                                    </label>
+                                    <Select
+                                        value={tempSupplyFrequency.toString()}
+                                        onChange={(e) => setTempSupplyFrequency(Number(e.target.value))}
+                                        options={[
+                                            { value: '7', label: '7 jours (Standard)' },
+                                            { value: '14', label: '14 jours - 2 semaines' },
+                                            { value: '30', label: '30 jours - 1 mois' },
+                                        ]}
+                                        helperText="Fréquence de réapprovisionnement automatique."
+                                    />
+                                </div>
+                            </div>
 
-                                    <hr className="border-gray-100" />
+                            <hr className="border-gray-100" />
 
-                                    {/* Section Devise */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
-                                            <DollarSign size={16} className="text-brand-primary" />
-                                            Devise Principale
-                                        </label>
-                                        <RadioGroup
-                                            value={tempSettings.currency}
-                                            onValueChange={(value) => {
-                                                const currency = currencyOptions.find(c => c.code === value);
-                                                if (currency) {
-                                                    setTempSettings({
-                                                        ...tempSettings,
-                                                        currency: currency.code,
-                                                        currencySymbol: currency.symbol,
-                                                    });
-                                                }
-                                            }}
-                                            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
+                            {/* Section Devise */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                                    <DollarSign size={16} className="text-brand-primary" />
+                                    Devise Principale
+                                </label>
+                                <RadioGroup
+                                    value={tempSettings.currency}
+                                    onValueChange={(value) => {
+                                        const currency = currencyOptions.find(c => c.code === value);
+                                        if (currency) {
+                                            setTempSettings({
+                                                ...tempSettings,
+                                                currency: currency.code,
+                                                currencySymbol: currency.symbol,
+                                            });
+                                        }
+                                    }}
+                                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
+                                >
+                                    {currencyOptions.map((currency) => (
+                                        <label
+                                            key={currency.code}
+                                            className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer border transition-all ${tempSettings.currency === currency.code
+                                                ? 'bg-brand-subtle border-brand-primary shadow-sm ring-1 ring-brand-primary'
+                                                : 'bg-white border-gray-200 hover:bg-gray-50'
+                                                }`}
                                         >
-                                            {currencyOptions.map((currency) => (
-                                                <label
-                                                    key={currency.code}
-                                                    className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer border transition-all ${tempSettings.currency === currency.code
-                                                        ? 'bg-brand-subtle border-brand-primary shadow-sm ring-1 ring-brand-primary'
-                                                        : 'bg-white border-gray-200 hover:bg-gray-50'
-                                                        }`}
-                                                >
-                                                    <RadioGroupItem value={currency.code} id={currency.code} />
-                                                    <div>
-                                                        <div className="font-bold text-sm text-gray-800">{currency.code}</div>
-                                                        <div className="text-xs text-gray-500">{currency.name}</div>
-                                                    </div>
-                                                </label>
-                                            ))}
-                                        </RadioGroup>
-                                    </div>
-
-                                    <hr className="border-gray-100" />
-
-                                    {/* Section Mode Opérationnel */}
-                                    <div>
-                                        <label className="block text-lg font-bold text-gray-900 mb-4">Mode de fonctionnement</label>
-                                        <RadioGroup
-                                            value={tempOperatingMode}
-                                            onValueChange={(value: 'full' | 'simplified') => setTempOperatingMode(value)}
-                                            className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                                        >
-                                            <label className={`flex gap-4 p-4 rounded-xl cursor-pointer border-2 transition-all ${tempOperatingMode === 'full'
-                                                ? 'bg-brand-subtle border-brand-primary shadow-md'
-                                                : 'bg-white border-gray-100 hover:border-gray-200'
-                                                }`}>
-                                                <RadioGroupItem value="full" className="mt-1" />
-                                                <div className="space-y-1">
-                                                    <div className="font-bold text-gray-900">Mode Complet</div>
-                                                    <p className="text-sm text-gray-600">Chaque serveur a son propre compte et gère ses tables. Idéal pour les grands établissements structurés.</p>
-                                                </div>
-                                            </label>
-
-                                            <label className={`flex gap-4 p-4 rounded-xl cursor-pointer border-2 transition-all ${tempOperatingMode === 'simplified'
-                                                ? 'bg-brand-subtle border-brand-primary shadow-md'
-                                                : 'bg-white border-gray-100 hover:border-gray-200'
-                                                }`}>
-                                                <RadioGroupItem value="simplified" className="mt-1" />
-                                                <div className="space-y-1">
-                                                    <div className="font-bold text-gray-900">Mode Simplifié</div>
-                                                    <p className="text-sm text-gray-600">Le gérant centralise les commandes et sélectionne le serveur. Idéal pour les maquis et petits bars.</p>
-                                                </div>
-                                            </label>
-                                        </RadioGroup>
-                                    </div>
-
-                                    {tempOperatingMode === 'simplified' && FEATURES.ENABLE_SWITCHING_MODE && (
-                                        <div className="bg-gray-50 rounded-xl p-3 md:p-6 border border-gray-200 animate-in fade-in zoom-in-95 duration-300">
-                                            <div className="flex items-center gap-2 mb-4">
-                                                <GitBranch size={20} className="text-brand-primary" />
-                                                <h4 className="font-bold text-gray-900">Configuration du Mode Switching</h4>
+                                            <RadioGroupItem value={currency.code} id={currency.code} />
+                                            <div>
+                                                <div className="font-bold text-sm text-gray-800">{currency.code}</div>
+                                                <div className="text-xs text-gray-500">{currency.name}</div>
                                             </div>
-                                            <ServerMappingsManager
-                                                barId={currentBar.id}
-                                                barMembers={barMembers}
-                                                enabled={FEATURES.SHOW_SWITCHING_MODE_UI}
-                                            />
+                                        </label>
+                                    ))}
+                                </RadioGroup>
+                            </div>
+
+                            <hr className="border-gray-100" />
+
+                            {/* Section Mode Opérationnel */}
+                            <div>
+                                <label className="block text-lg font-bold text-gray-900 mb-4">Mode de fonctionnement</label>
+                                <RadioGroup
+                                    value={tempOperatingMode}
+                                    onValueChange={(value: 'full' | 'simplified') => setTempOperatingMode(value)}
+                                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                                >
+                                    <label className={`flex gap-4 p-4 rounded-xl cursor-pointer border-2 transition-all ${tempOperatingMode === 'full'
+                                        ? 'bg-brand-subtle border-brand-primary shadow-md'
+                                        : 'bg-white border-gray-100 hover:border-gray-200'
+                                        }`}>
+                                        <RadioGroupItem value="full" className="mt-1" />
+                                        <div className="space-y-1">
+                                            <div className="font-bold text-gray-900">Mode Complet</div>
+                                            <p className="text-sm text-gray-600">Chaque serveur a son propre compte et gère ses tables. Idéal pour les grands établissements structurés.</p>
                                         </div>
-                                    )}
+                                    </label>
+
+                                    <label className={`flex gap-4 p-4 rounded-xl cursor-pointer border-2 transition-all ${tempOperatingMode === 'simplified'
+                                        ? 'bg-brand-subtle border-brand-primary shadow-md'
+                                        : 'bg-white border-gray-100 hover:border-gray-200'
+                                        }`}>
+                                        <RadioGroupItem value="simplified" className="mt-1" />
+                                        <div className="space-y-1">
+                                            <div className="font-bold text-gray-900">Mode Simplifié</div>
+                                            <p className="text-sm text-gray-600">Le gérant centralise les commandes et sélectionne le serveur. Idéal pour les maquis et petits bars.</p>
+                                        </div>
+                                    </label>
+                                </RadioGroup>
+                            </div>
+
+                            {tempOperatingMode === 'simplified' && FEATURES.ENABLE_SWITCHING_MODE && (
+                                <div className="bg-gray-50 rounded-xl p-3 md:p-6 border border-gray-200 animate-in fade-in zoom-in-95 duration-300">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <GitBranch size={20} className="text-brand-primary" />
+                                        <h4 className="font-bold text-gray-900">Configuration du Mode Switching</h4>
+                                    </div>
+                                    <ServerMappingsManager
+                                        barId={currentBar.id}
+                                        barMembers={barMembers}
+                                        enabled={FEATURES.SHOW_SWITCHING_MODE_UI}
+                                    />
                                 </div>
                             )}
-                        </Card>
-
-                {/* Footer Actions */}
-                    <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 md:static md:bg-transparent md:border-0 md:p-0 z-20">
-                        <div className="max-w-7xl mx-auto flex gap-3">
-                            <Button
-                                onClick={() => navigate(-1)}
-                                variant="secondary"
-                                size="lg"
-                                className="flex-1"
-                            >
-                                Annuler
-                            </Button>
-                            <Button
-                                onClick={handleSave}
-                                variant="default" // Utilise le variant glass/brand par défaut
-                                size="lg"
-                                className="flex-1 font-bold shadow-brand"
-                            >
-                                Enregistrer les modifications
-                            </Button>
                         </div>
+                    )}
+                </Card>
+
+                {/* Footer Actions - Z-index élevé pour visibilité mobile */}
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-200 md:static md:bg-transparent md:border-0 md:p-0 z-50">
+                    <div className="max-w-7xl mx-auto flex flex-col-reverse sm:flex-row gap-3">
+                        <Button
+                            onClick={() => navigate(-1)}
+                            variant="secondary"
+                            size="lg"
+                            className="w-full sm:flex-1 h-12"
+                        >
+                            Annuler
+                        </Button>
+                        <Button
+                            onClick={handleSave}
+                            variant="default"
+                            size="lg"
+                            className="w-full sm:flex-1 font-bold shadow-brand h-12"
+                        >
+                            Enregistrer les modifications
+                        </Button>
                     </div>
+                </div>
             </div>
         </div>
     );

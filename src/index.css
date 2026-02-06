@@ -211,9 +211,11 @@
 
 /* 🎨 Boutons d'Action PageHeader */
 .glass-action-button-2026 {
-  background: hsla(0, 0%, 100%, 0.6) !important;
+  background: linear-gradient(135deg,
+    hsla(var(--brand-hue), var(--brand-saturation), 96%, 0.9) 0%,
+    hsla(var(--brand-hue), var(--brand-saturation), 92%, 0.85) 100%) !important;
   backdrop-filter: blur(8px) !important;
-  border: 1px solid var(--brand-border) !important;
+  border: 1px solid hsla(var(--brand-hue), var(--brand-saturation), 50%, 0.25) !important;
   color: var(--brand-text) !important;
   box-shadow:
     0 4px 10px -2px var(--brand-shadow-light),
@@ -223,8 +225,10 @@
 }
 
 .glass-action-button-2026:hover {
-  background: hsla(var(--brand-hue), var(--brand-saturation), 50%, 0.1) !important;
-  border: 1px solid hsla(var(--brand-hue), var(--brand-saturation), 50%, 0.4) !important;
+  background: linear-gradient(135deg,
+    hsla(var(--brand-hue), var(--brand-saturation), 90%, 0.95) 0%,
+    hsla(var(--brand-hue), var(--brand-saturation), 85%, 0.9) 100%) !important;
+  border: 1px solid hsla(var(--brand-hue), var(--brand-saturation), 50%, 0.45) !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 8px 20px -4px var(--brand-shadow) !important;
 }

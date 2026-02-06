@@ -26,9 +26,9 @@ interface NetworkManagerConfig {
  * Configuration par défaut
  */
 const DEFAULT_CONFIG: NetworkManagerConfig = {
-  pingUrl: undefined, // Sera ajouté lors de la migration Supabase
-  checkInterval: 30000, // 30 secondes
-  pingTimeout: 5000,    // 5 secondes
+  pingUrl: 'https://jsonplaceholder.typicode.com/todos/1', // Reliable public API with CORS
+  checkInterval: 3000, // 3 secondes (plus réactif pour les tests)
+  pingTimeout: 3000,    // 3 secondes
 };
 
 /**
@@ -290,10 +290,10 @@ class NetworkManagerService {
   }
 
   /**
-   * Vérifie si actuellement offline
+   * Vérifie si actuellement offline (ou en train de le devenir)
    */
   isOffline(): boolean {
-    return this.status === 'offline';
+    return this.status === 'offline' || this.status === 'unstable';
   }
 
   /**

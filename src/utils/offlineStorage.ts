@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
   BARS: 'bartender_bars',
   CURRENT_BAR_ID: 'bartender_current_bar_id',
   LAST_SYNC: 'bartender_last_sync',
+  SERVER_MAPPINGS: 'bartender_server_mappings',
 } as const;
 
 export class OfflineStorage {
@@ -74,6 +75,41 @@ export class OfflineStorage {
     } catch (error) {
       console.error('[OfflineStorage] Error loading last sync:', error);
       return null;
+    }
+  }
+
+  /**
+   * Sauvegarder les mappings serveurs
+   */
+  static saveMappings(barId: string, mappings: any[]): void {
+    try {
+      const allMappings = this.getAllMappings();
+      allMappings[barId] = mappings;
+      localStorage.setItem(STORAGE_KEYS.SERVER_MAPPINGS, JSON.stringify(allMappings));
+    } catch (error) {
+      console.error('[OfflineStorage] Error saving mappings:', error);
+    }
+  }
+
+  /**
+   * Récupérer les mappings serveurs pour un bar
+   */
+  static getMappings(barId: string): any[] | null {
+    try {
+      const allMappings = this.getAllMappings();
+      return allMappings[barId] || null;
+    } catch (error) {
+      console.error('[OfflineStorage] Error loading mappings:', error);
+      return null;
+    }
+  }
+
+  private static getAllMappings(): Record<string, any[]> {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.SERVER_MAPPINGS);
+      return data ? JSON.parse(data) : {};
+    } catch {
+      return {};
     }
   }
 

@@ -90,19 +90,17 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       setLoading(true);
 
-      // Charger le cache offline en premier pour la réactivité
+      // 1. Charger le cache offline en premier pour la réactivité
       const cachedBars = OfflineStorage.getBars();
       if (cachedBars && cachedBars.length > 0) {
         setBars(cachedBars);
         setUserBars(cachedBars);
       }
 
-      // Puis essayer de récupérer depuis le serveur
+      // 2. Récupérer les données du serveur
+      let serverBars: Bar[] = [];
       if (currentSession.role === 'super_admin') {
-        const allBars = await BarsService.getAllBars();
-        setBars(allBars);
-        setUserBars(allBars);
-        OfflineStorage.saveBars(allBars);
+        serverBars = await BarsService.getAllBars();
       } else {
         if (currentSession.userId === '1') {
           console.warn('[BarContext] Skipping bar fetch for invalid user ID 1');
@@ -113,11 +111,41 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           setLoading(false);
           return;
         }
-        const userBarsData = await BarsService.getMyBars();
-        setBars(userBarsData);
-        setUserBars(userBarsData);
-        OfflineStorage.saveBars(userBarsData);
+        serverBars = await BarsService.getMyBars();
       }
+
+      // 3. Fusionner avec les opérations en attente (Résilence Bug #1)
+      const pendingOps = await offlineQueue.getOperations({ status: 'pending' });
+      const barUpdates = pendingOps.filter(op => op.type === 'UPDATE_BAR');
+
+      const mergedBars = serverBars.map(bar => {
+        const barPendingUpdate = barUpdates.find(op => op.barId === bar.id);
+        if (barPendingUpdate) {
+          console.log(`[BarContext] Merging pending update for bar ${bar.id}`, barPendingUpdate.payload.updates);
+          return {
+            ...bar,
+            ...barPendingUpdate.payload.updates,
+            settings: {
+              ...(bar.settings || {}),
+              ...(barPendingUpdate.payload.updates.settings || {})
+            }
+          };
+        }
+        return bar;
+      });
+
+      setBars(mergedBars);
+      setUserBars(mergedBars);
+      OfflineStorage.saveBars(mergedBars);
+
+      // Si le bar actuel est parmi eux, le mettre à jour aussi
+      if (currentBarId) {
+        const updatedCurrent = mergedBars.find(b => b.id === currentBarId);
+        if (updatedCurrent) {
+          setCurrentBar(updatedCurrent);
+        }
+      }
+
     } catch (error) {
       console.error('[BarContext] Error loading bars:', error);
     } finally {
@@ -319,25 +347,23 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setCurrentBar(optimisticBar);
       }
 
-      // 2. Persistance (Offline vs Online)
+      // 2. Persistance locale SYSTÉMATIQUE (Crucial pour éviter le revert offline)
+      const currentCachedBars = OfflineStorage.getBars() || [];
+      const updatedCachedBars = currentCachedBars.map(b => b.id === barId ? optimisticBar : b);
+      OfflineStorage.saveBars(updatedCachedBars);
+
+      // 3. Persistance distante (Sync différée si offline)
       const isOffline = networkManager.isOffline();
 
       if (isOffline) {
         // Mode Hors Ligne : On met en file d'attente
         console.log('[BarContext] Offline update - queuing changes');
         await offlineQueue.addOperation(
-          'UPDATE_BAR', // Nouveau type à gérer ou utiliser un générique
+          'UPDATE_BAR',
           { barId, updates },
           barId,
           currentSession.userId
         );
-
-        // On sauvegarde aussi dans le cache local pour survivre au reload
-        const currentCachedBars = OfflineStorage.getBars() || [];
-        const updatedCachedBars = currentCachedBars.map(b => b.id === barId ? optimisticBar : b);
-        OfflineStorage.saveBars(updatedCachedBars);
-
-        // Log local audit si possible ou différé
       } else {
         // Mode En Ligne : On envoie au serveur
         console.log('[BarContext] Online update - sending to server');
@@ -351,9 +377,8 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         if (updates.isActive !== undefined) supabaseUpdates.is_active = updates.isActive;
         if (updates.closingHour !== undefined) supabaseUpdates.closing_hour = updates.closingHour;
         if (updates.theme_config !== undefined) supabaseUpdates.theme_config = updates.theme_config;
-        if (updates.theme_config !== undefined) supabaseUpdates.theme_config = updates.theme_config;
 
-        const updatedBarFromDb = await BarsService.updateBar(barId, supabaseUpdates);
+        await BarsService.updateBar(barId, supabaseUpdates);
 
         // Confirmation (optionnelle car on a déjà l'état optimiste, mais assure la synchro exacte)
         // On ne met à jour que si nécessaire pour éviter des re-renders inutiles
@@ -536,7 +561,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const memberData = data as BarMemberRow;
       const newMember: BarMember = {
         id: memberData.id,
-        userId: memberData.user_id,
+        userId: memberData.user_id as string, // Cast safe after single() insert
         barId: memberData.bar_id,
         role: memberData.role as UserRole,
         assignedBy: memberData.assigned_by || currentSession.userId,
@@ -549,14 +574,19 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       // Auto-créer le mapping server_name pour les nouveaux serveurs (non-blocking)
       if (role === 'serveur') {
-        supabase
-          .from('users').select('name').eq('id', userId).single()
-          .then(({ data: userData }) => {
+        const targetBarId = currentBar.id;
+        const targetUserId = userId;
+
+        (async () => {
+          try {
+            const { data: userData } = await supabase.from('users').select('name').eq('id', targetUserId).single();
             if (userData?.name) {
-              return ServerMappingsService.upsertServerMapping(currentBar.id || '', userData.name, userId);
+              await ServerMappingsService.upsertServerMapping(targetBarId || '', userData.name, targetUserId);
             }
-          })
-          .catch((err: any) => console.warn('[BarContext] Auto-mapping skipped for new server:', err));
+          } catch (err) {
+            console.warn('[BarContext] Auto-mapping skipped for new server:', err);
+          }
+        })();
       }
 
       return newMember;
