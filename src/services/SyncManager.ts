@@ -25,6 +25,21 @@ class SyncManagerService {
   private isSyncing = false;
   private networkUnsubscribe: (() => void) | null = null;
   private retryConfig: RetryConfig = DEFAULT_RETRY_CONFIG;
+  private timers: Map<string, NodeJS.Timeout> = new Map();
+
+  /**
+   * 🛡️ Tampon de sécurité (Phase 8) : 
+   * Stocke les clés d'idempotence des ventes tout juste synchronisées
+   * pour éviter le "Trou de CA" (Flash) avant que le serveur n'indexe.
+   */
+  private recentlySyncedKeys: Set<string> = new Set();
+
+  /**
+   * Récupère les clés récemment synchronisées (pour dédoublonnage UI)
+   */
+  getRecentlySyncedKeys(): Set<string> {
+    return new Set(this.recentlySyncedKeys);
+  }
 
   /**
    * Initialise le service et s'abonne aux changements réseau
@@ -49,11 +64,15 @@ class SyncManagerService {
    * Nettoie les abonnements
    */
   cleanup(): void {
+    // 🛡️ Clear tous les timers actifs (Anti-Memory Leak)
+    this.timers.forEach(timer => clearTimeout(timer));
+    this.timers.clear();
+
     if (this.networkUnsubscribe) {
       this.networkUnsubscribe();
       this.networkUnsubscribe = null;
     }
-    console.log('[SyncManager] Cleaned up');
+    console.log('[SyncManager] Cleaned up with timers cleared');
   }
 
   /**
@@ -86,12 +105,28 @@ class SyncManagerService {
         return;
       }
 
+      // 🛡️ Lock Token (Sprint 1): Vérifier/Rafraîchir la session avant de commencer
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError || !session) {
+        console.warn('[SyncManager] Invalid session, attempting refresh...');
+        const { error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) {
+          console.error('[SyncManager] Session refresh failed, sync aborted');
+          return;
+        }
+      }
+
       // Synchroniser chaque opération séquentiellement
       for (const operation of allOps) {
         await this.syncOperation(operation);
       }
 
       console.log('[SyncManager] Sync completed');
+
+      // 🚀 Coup de Sifflet : Notifier que la sync est finie pour rafraîchir les UI
+      window.dispatchEvent(new CustomEvent('sync-completed'));
+
     } catch (error) {
       console.error('[SyncManager] Sync failed:', error);
     } finally {
@@ -121,6 +156,27 @@ class SyncManagerService {
       if (result.success) {
         // Succès: marquer comme success et supprimer de la queue
         await offlineQueue.updateOperationStatus(operation.id, 'success');
+
+        // 🛡️ Lock Flash (Phase 8): Alimenter la zone tampon (10s)
+        // Cette logique est spécifique à CREATE_SALE, mais l'idempotency_key est sur l'opération
+        // On l'ajoute ici pour être générique, mais elle ne sera présente que pour CREATE_SALE
+        const idempotencyKey = operation.payload.idempotency_key;
+        if (idempotencyKey) {
+          this.recentlySyncedKeys.add(idempotencyKey);
+
+          // Clear previous timer for this key if it exists
+          if (this.timers.has(idempotencyKey)) {
+            clearTimeout(this.timers.get(idempotencyKey)!);
+          }
+
+          const timerId = setTimeout(() => {
+            this.recentlySyncedKeys.delete(idempotencyKey);
+            this.timers.delete(idempotencyKey);
+          }, 10000);
+
+          this.timers.set(idempotencyKey, timerId);
+        }
+
         await offlineQueue.removeOperation(operation.id);
         console.log(`[SyncManager] Operation ${operation.id} synced successfully`);
       } else {
@@ -264,6 +320,26 @@ class SyncManagerService {
       }
 
       console.log(`[SyncManager] Syncing bar update for ${barId}`, updates);
+
+      // 🛡️ Conflict Detection (Sprint 2): Vérifier si le serveur a été mis à jour après cette opération
+      const { data: currentBar, error: fetchError } = await supabase
+        .from('bars')
+        .select('updated_at')
+        .eq('id', barId)
+        .single();
+
+      if (!fetchError && currentBar?.updated_at) {
+        const serverUpdateTime = new Date(currentBar.updated_at).getTime();
+        if (serverUpdateTime > operation.timestamp) {
+          console.warn(`[SyncManager] Conflict detected for bar ${barId}. Server: ${currentBar.updated_at} > Local: ${new Date(operation.timestamp).toISOString()}`);
+          return {
+            success: false,
+            operationId: operation.id,
+            error: 'CONFLICT_DETECTED',
+            shouldRetry: false // Résolution manuelle requise
+          };
+        }
+      }
 
       // Mapper les updates (camelCase Partial<Bar>) vers le format Supabase (snake_case)
       // Car BarContext a stocké les updates bruts

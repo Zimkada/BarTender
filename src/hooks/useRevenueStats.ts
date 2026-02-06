@@ -8,6 +8,7 @@ import { ReturnsService } from '../services/supabase/returns.service';
 import { getCurrentBusinessDateString, filterByBusinessDateRange } from '../utils/businessDateHelpers';
 import { statsKeys } from './queries/useStatsQueries';
 import { CACHE_STRATEGY } from '../lib/cache-strategy';
+import { syncManager } from '../services/SyncManager';
 
 interface RevenueStats {
     netRevenue: number;
@@ -18,6 +19,15 @@ interface RevenueStats {
     isOffline: boolean;
     source: 'sql' | 'local';
     lastUpdated: Date | undefined;
+}
+
+interface InternalStats {
+    netRevenue: number;
+    grossRevenue: number;
+    refundsTotal: number;
+    saleCount: number;
+    averageSale: number;
+    isStale: boolean;
 }
 
 export function useRevenueStats(options: { startDate?: string; endDate?: string; enabled?: boolean } = {}): RevenueStats {
@@ -37,8 +47,8 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         enabled = true
     } = options;
 
-    const calculateLocalStats = useCallback(() => {
-        if (!sales || !returns) return { netRevenue: 0, grossRevenue: 0, refundsTotal: 0, saleCount: 0 };
+    const calculateLocalStats = useCallback((): InternalStats => {
+        if (!sales || !returns) return { netRevenue: 0, grossRevenue: 0, refundsTotal: 0, saleCount: 0, averageSale: 0, isStale: true };
 
         const closeHour = currentBar?.closingHour ?? 6;
 
@@ -84,35 +94,69 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         const refundsTotal = filteredReturns.reduce((sum, r) => sum + r.refundAmount, 0);
         const netRevenue = grossRevenue - refundsTotal;
 
-        return { netRevenue, grossRevenue, refundsTotal, saleCount };
-    }, [sales, returns, startDate, endDate, currentBar?.closingHour, isServerRole, operatingMode, currentSession?.userId]);
+        return {
+            netRevenue,
+            grossRevenue,
+            refundsTotal,
+            saleCount,
+            averageSale: saleCount > 0 ? grossRevenue / saleCount : 0,
+            isStale: true
+        };
+    }, [sales, returns, startDate, endDate, currentBar?.closingHour, isServerRole, currentSession?.userId]);
 
     // Standard query for fetching revenue stats
-    const { data: stats, isLoading, error } = useQuery({
+    const { data: stats, isLoading, error } = useQuery<InternalStats>({
         queryKey: statsKeys.summary(currentBarId, startDate, endDate),
         queryFn: async () => {
-            // ✨ Pass serverId if server role to filter their stats
             const serverId = isServerRole ? currentSession?.userId : undefined;
-            const stats = await SalesService.getSalesStats(currentBarId, startDate, endDate, serverId);
 
-            // ✨ Also filter returns by server if applicable (pass serverId to filter at DB level)
-            const returnServerId = isServerRole ? currentSession?.userId : undefined;
-            const returnsData = await ReturnsService.getReturns(currentBarId, startDate, endDate, returnServerId, operatingMode);
+            // 1. Fetch Server Stats, Offline Sales (Parallel)
+            const [serverStats, offlineSales] = await Promise.all([
+                SalesService.getSalesStats(currentBarId, startDate, endDate, serverId)
+                    .catch((err) => {
+                        console.warn('[useRevenueStats] Server fetch failed', err);
+                        return null;
+                    }),
+                SalesService.getOfflineSales(currentBarId)
+            ]);
+
+            const recentlySyncedKeys = syncManager.getRecentlySyncedKeys();
+
+            // 2. Déduplication (Phase 8):
+            // Ne compter que les ventes offline qui ne sont pas DÉJÀ synchronisées
+            const deduplicatedOfflineSales = offlineSales.filter(sale => {
+                const idempotencyKey = sale.idempotency_key;
+                return !idempotencyKey || !recentlySyncedKeys.has(idempotencyKey);
+            });
+
+            // 3. Calculs fusionnés
+            const s = serverStats || { totalRevenue: 0, totalSales: 0, averageSale: 0 };
+            const offlineRevenue = deduplicatedOfflineSales.reduce((sum, sale) => sum + sale.total, 0);
+
+            const grossRevenue = s.totalRevenue + offlineRevenue;
+            const saleCount = s.totalSales + deduplicatedOfflineSales.length;
+
+            // 4. Refunds (Server side)
+            const returnsData = await ReturnsService.getReturns(currentBarId, startDate, endDate, serverId, operatingMode)
+                .catch(() => []);
 
             const filteredReturns = returnsData
                 .filter((r: any) => r.is_refunded && (r.status === 'approved' || r.status === 'restocked'));
 
             const refundsTotal = filteredReturns.reduce((sum: number, r: any) => sum + Number(r.refund_amount), 0);
+            const netRevenue = grossRevenue - refundsTotal;
 
             return {
-                netRevenue: stats.totalRevenue - refundsTotal,
-                grossRevenue: stats.totalRevenue,
+                netRevenue,
+                grossRevenue,
                 refundsTotal,
-                saleCount: stats.totalSales
+                saleCount,
+                averageSale: saleCount > 0 ? grossRevenue / saleCount : 0,
+                isStale: !serverStats
             };
         },
         enabled: enabled && !!currentBarId,
-        placeholderData: calculateLocalStats,
+        placeholderData: (previousData) => previousData || calculateLocalStats(),
         staleTime: CACHE_STRATEGY.dailyStats.staleTime,
         gcTime: CACHE_STRATEGY.dailyStats.gcTime,
     });
@@ -123,8 +167,8 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         refundsTotal: stats?.refundsTotal ?? 0,
         saleCount: stats?.saleCount ?? 0, // Using totalSales from proxy as saleCount
         isLoading,
-        isOffline: !!error,
-        source: error ? 'local' : 'sql',
+        isOffline: !!error || !!stats?.isStale,
+        source: (error || stats?.isStale) ? 'local' : 'sql',
         lastUpdated: new Date(),
     };
 }

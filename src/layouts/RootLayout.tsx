@@ -107,7 +107,6 @@ function RootLayoutContent() {
     return () => clearInterval(heartbeatInterval);
   }, [isAuthenticated, currentSession]);
 
-  // 🔄 Initialiser la vérification de version au démarrage de l'app
   useEffect(() => {
     VersionCheckService.initialize().catch(err => {
       console.warn('[RootLayout] Erreur lors de l\'initialisation VersionCheckService:', err);
@@ -118,6 +117,30 @@ function RootLayoutContent() {
       VersionCheckService.stopChecking();
     };
   }, []);
+
+  // 🔄 Vision Rayons X: Rafraîchir les données au retour du réseau ou fin de synchro
+  useEffect(() => {
+    // 1. Écouter le retour du réseau (Pour déclencher le refetch immédiat et voir les données mergées)
+    const unsubscribeNetwork = networkManager.subscribe((status) => {
+      if (status === 'online') {
+        console.log('[RootLayout] Network restored, invalidating to fetch fresh data...');
+        queryClient.invalidateQueries();
+      }
+    });
+
+    // 2. Écouter la fin de la synchro (Pour nettoyer la queue locale et avoir les données définitives)
+    const handleSyncCompleted = () => {
+      console.log('[RootLayout] Sync completed, invalidating query cache...');
+      queryClient.invalidateQueries();
+    };
+
+    window.addEventListener('sync-completed', handleSyncCompleted);
+
+    return () => {
+      unsubscribeNetwork();
+      window.removeEventListener('sync-completed', handleSyncCompleted);
+    };
+  }, [queryClient]);
 
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" replace />;
