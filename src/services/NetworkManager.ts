@@ -9,6 +9,15 @@ import type { NetworkStatus } from '../types/sync';
 type NetworkChangeListener = (status: NetworkStatus) => void;
 
 /**
+ * Décision réseau atomique (Expert Refinement)
+ */
+export interface NetworkDecision {
+  shouldBlock: boolean;
+  shouldShowBanner: boolean;
+  reason: NetworkStatus;
+}
+
+/**
  * Configuration du NetworkManager
  */
 interface NetworkManagerConfig {
@@ -17,6 +26,9 @@ interface NetworkManagerConfig {
 
   /** Intervalle de vérification réseau en ms */
   checkInterval: number;
+
+  /** Délai avant de passer en mode offline (ms) */
+  gracePeriod?: number;
 
   /** Timeout pour le ping test en ms */
   pingTimeout: number;
@@ -49,8 +61,10 @@ class NetworkManagerService {
   private checkIntervalId: number | null = null;
   private isInitialized = false;
 
-  /** Grace period avant de considérer offline (60 secondes) */
-  private readonly gracePeriod = 60000;
+  /** Grace period avant de considérer offline (par défaut 60s) */
+  private get gracePeriod(): number {
+    return this.config.gracePeriod ?? 60000;
+  }
 
   /** Timer pour transition unstable → offline */
   private offlineTimer: number | null = null;
@@ -283,6 +297,33 @@ class NetworkManagerService {
   }
 
   /**
+   * DISTINCTION CRITIQUE (Phase 9)
+   * On ne montre la bannière que si confirmement offline.
+   * Mais on bloque les opérations si instable (pour éviter race conditions).
+   */
+
+  /** Doit-on montrer la bannière offline ? */
+  shouldShowOfflineBanner(): boolean {
+    return this.status === 'offline';
+  }
+
+  /** Doit-on bloquer les opérations réseau ? */
+  shouldBlockNetworkOps(): boolean {
+    return this.status === 'offline' || this.status === 'unstable';
+  }
+
+  /**
+   * Retourne une décision atomique cohérente (Évite les incohérences d'état entre deux appels)
+   */
+  getDecision(): NetworkDecision {
+    return {
+      shouldBlock: this.shouldBlockNetworkOps(),
+      shouldShowBanner: this.shouldShowOfflineBanner(),
+      reason: this.status
+    };
+  }
+
+  /**
    * Vérifie si actuellement online
    */
   isOnline(): boolean {
@@ -290,10 +331,10 @@ class NetworkManagerService {
   }
 
   /**
-   * Vérifie si actuellement offline (ou en train de le devenir)
+   * @deprecated Utiliser shouldBlockNetworkOps() ou shouldShowOfflineBanner()
    */
   isOffline(): boolean {
-    return this.status === 'offline' || this.status === 'unstable';
+    return this.shouldBlockNetworkOps();
   }
 
   /**

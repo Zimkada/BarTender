@@ -30,7 +30,8 @@ export class ServerMappingsService {
     const normalizedName = serverName.trim();
 
     // 1. Détection préventive du mode hors ligne
-    if (networkManager.isOffline()) {
+    const { shouldShowBanner } = networkManager.getDecision();
+    if (shouldShowBanner) {
       console.log('[ServerMappingsService] Offline mode: using cache fallback for', normalizedName);
       const cachedMappings = OfflineStorage.getMappings(barId);
       const mapping = cachedMappings?.find((m: any) => m.serverName === normalizedName);

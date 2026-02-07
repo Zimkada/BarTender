@@ -248,7 +248,8 @@ export class RealtimeService {
     }
 
     // Only handle real errors
-    if (!networkManager.isOffline()) {
+    const { shouldShowBanner: isOffline } = networkManager.getDecision();
+    if (!isOffline) {
       console.error(`[Realtime] Channel error for ${channelId}:`, error);
     } else {
       console.log(`[Realtime] WebSocket disconnected (Offline mode)`);
@@ -270,7 +271,8 @@ export class RealtimeService {
     status: string,
     config: RealtimeConfig,
   ) {
-    if (!networkManager.isOffline()) {
+    const { shouldShowBanner: isOffline } = networkManager.getDecision();
+    if (!isOffline) {
       console.log(`[Realtime] Subscription status for ${channelId}: ${status}`);
     }
 
@@ -308,7 +310,8 @@ export class RealtimeService {
     );
 
     setTimeout(() => {
-      if (!networkManager.isOffline()) {
+      const { shouldBlock } = networkManager.getDecision();
+      if (!shouldBlock) {
         this.subscribe(config);
       }
     }, delay);
@@ -351,7 +354,7 @@ export class RealtimeService {
         ageMs: Date.now() - state.createdAt,
         lastError: state.lastError?.message,
       })),
-      isOnline: !networkManager.isOffline(),
+      isOnline: !networkManager.getDecision().shouldShowBanner,
     };
 
     return metrics;

@@ -140,9 +140,10 @@ export default function SettingsPage() {
                 });
 
                 if (isMounted) {
-                    // Optimisation : Ne mettre à jour que si les membres ont changé (Deep comparison simplifiée)
+                    // Optimisation : Utiliser une comparaison de longueur et d'IDs au lieu de JSON.stringify
                     setBarMembers(prev => {
-                        const hasChanged = JSON.stringify(prev) !== JSON.stringify(validMembers);
+                        const hasChanged = prev.length !== validMembers.length ||
+                            validMembers.some((m, idx) => m.userId !== prev[idx]?.userId || m.role !== prev[idx]?.role);
                         return hasChanged ? validMembers : prev;
                     });
                 }

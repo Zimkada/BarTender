@@ -1,5 +1,5 @@
 // hooks/useStockManagement.ts - Hook unifié (Refactored for React Query)
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
@@ -258,8 +258,9 @@ export const useStockManagement = () => {
    * High performance O(N + M) calculation.
    */
   // 🛡️ Lock Stock (Sprint 2): Récupérer les ventes offline pour déduction immédiate
-  const { data: offlineSales = [] } = useQuery({
+  const { data: offlineSales = [], refetch: refetchOfflineSales } = useQuery({
     queryKey: ['offline-sales-for-stock', currentBar?.id],
+    networkMode: 'always', // 🛡️ CRITIQUE: Fonctionne même offline (IndexedDB)
     queryFn: async () => {
       if (!currentBar?.id) return [];
       const ops = await offlineQueue.getOperations({
@@ -271,8 +272,28 @@ export const useStockManagement = () => {
         .map(op => op.payload);
     },
     enabled: !!currentBar?.id,
-    refetchInterval: 5000 // Rafraîchir toutes les 5s pour capter les nouvelles ventes locales
+    refetchInterval: false // 🚀 Désactivé : Utiliser listener queue-updated pour réactivité instantanée
   });
+
+  // 🚀 Réactivité Instantanée: Écouter les mises à jour de la queue
+  useEffect(() => {
+    const handleQueueUpdate = () => {
+      console.log('[useStockManagement] Queue updated, refetching offline sales...');
+      refetchOfflineSales();
+    };
+
+    const handleSyncCompleted = () => {
+      console.log('[useStockManagement] Sync completed, refetching offline sales...');
+      refetchOfflineSales();
+    };
+
+    window.addEventListener('queue-updated', handleQueueUpdate);
+    window.addEventListener('sync-completed', handleSyncCompleted);
+    return () => {
+      window.removeEventListener('queue-updated', handleQueueUpdate);
+      window.removeEventListener('sync-completed', handleSyncCompleted);
+    };
+  }, [refetchOfflineSales]);
 
   const allProductsStockInfo = useMemo(() => {
     const infoMap: Record<string, ProductStockInfo> = {};

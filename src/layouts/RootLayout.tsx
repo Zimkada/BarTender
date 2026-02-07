@@ -59,14 +59,23 @@ function RootLayoutContent() {
     if (!isAuthenticated || !currentSession) {
       console.log('[RootLayout] Session perdue, nettoyage et redirection vers login');
 
-      // ✅ 1. Nettoyer React Query cache
-      queryClient.clear();
+      // ✅ 1. Nettoyer React Query cache (Gérer les erreurs IDB potentielles)
+      try {
+        queryClient.clear();
+      } catch (err) {
+        console.error('[RootLayout] QueryClient clear failed:', err);
+      }
 
-      // ✅ 2. Fermer les subscriptions Realtime et Broadcast
+      // ✅ 2. Fermer les subscriptions Realtime et Broadcast (Isolés)
       realtimeService.unsubscribeAll().catch(err =>
         console.warn('[RootLayout] Erreur lors de la fermeture Realtime:', err)
       );
-      broadcastService.closeAllChannels();
+
+      try {
+        broadcastService.closeAllChannels();
+      } catch (err) {
+        console.warn('[RootLayout] Broadcast closure failed:', err);
+      }
 
       // La navigation sera gérée par le Navigate ci-dessous
     }
@@ -82,7 +91,8 @@ function RootLayoutContent() {
     const heartbeatInterval = setInterval(async () => {
       // ⭐ SILENCE OFFLINE: On ne veut pas déconnecter l'utilisateur s'il est hors-ligne
       // même si le token expire (on synchronisera au retour du réseau).
-      if (networkManager.isOffline()) {
+      const { shouldShowBanner: isOffline } = networkManager.getDecision();
+      if (isOffline) {
         console.debug('[RootLayout] Heartbeat skipped (Offline mode)');
         return;
       }
@@ -95,7 +105,7 @@ function RootLayoutContent() {
           console.warn('[RootLayout] ⚠️ Token expiré détecté lors du heartbeat');
 
           // Double check internet avant de paniquer
-          if (!networkManager.isOffline()) {
+          if (!networkManager.getDecision().shouldShowBanner) {
             window.dispatchEvent(new Event('token-expired'));
           }
         }
