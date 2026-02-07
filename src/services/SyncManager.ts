@@ -28,17 +28,17 @@ class SyncManagerService {
   private timers: Map<string, NodeJS.Timeout> = new Map();
 
   /**
-   * 🛡️ Tampon de sécurité (Phase 8) : 
-   * Stocke les clés d'idempotence des ventes tout juste synchronisées
-   * pour éviter le "Trou de CA" (Flash) avant que le serveur n'indexe.
+   * 🛡️ Tampon de sécurité (Phase 8/11.3) : 
+   * Stocke les clés d'idempotence, les montants et les payloads des ventes tout juste synchronisées
+   * pour éviter le "Trou de CA" (Flash) avant que le serveur n'indexe les agrégats.
    */
-  private recentlySyncedKeys: Set<string> = new Set();
+  private recentlySyncedKeys: Map<string, { total: number, timestamp: number, payload: any }> = new Map();
 
   /**
-   * Récupère les clés récemment synchronisées (pour dédoublonnage UI)
+   * Récupère les clés récemment synchronisées avec leurs détails (pour dédoublonnage UI)
    */
-  getRecentlySyncedKeys(): Set<string> {
-    return new Set(this.recentlySyncedKeys);
+  getRecentlySyncedKeys(): Map<string, { total: number, timestamp: number, payload: any }> {
+    return new Map(this.recentlySyncedKeys);
   }
 
   /**
@@ -60,19 +60,24 @@ class SyncManagerService {
     console.log('[SyncManager] Initialized');
   }
 
-  /**
-   * Nettoie les abonnements
-   */
   cleanup(): void {
-    // 🛡️ Clear tous les timers actifs (Anti-Memory Leak)
-    this.timers.forEach(timer => clearTimeout(timer));
-    this.timers.clear();
-
-    if (this.networkUnsubscribe) {
-      this.networkUnsubscribe();
-      this.networkUnsubscribe = null;
+    try {
+      // 🛡️ Clear tous les timers actifs (Anti-Memory Leak)
+      this.timers.forEach(timer => clearTimeout(timer));
+      this.timers.clear();
+    } catch (err) {
+      console.error('[SyncManager] Error clearing timers:', err);
     }
-    console.log('[SyncManager] Cleaned up with timers cleared');
+
+    try {
+      if (this.networkUnsubscribe) {
+        this.networkUnsubscribe();
+        this.networkUnsubscribe = null;
+      }
+    } catch (err) {
+      console.error('[SyncManager] Error unsubscribing from network:', err);
+    }
+    console.log('[SyncManager] Cleaned up with safety guards');
   }
 
   /**
@@ -90,17 +95,29 @@ class SyncManagerService {
     }
 
     this.isSyncing = true;
-    console.log('[SyncManager] Starting sync...');
+    console.log('[SyncManager] Starting sync cycle...');
 
     try {
-      // Récupérer toutes les opérations pending et error
+      // 🛡️ SYNC RESCUE (V11.5): Avant de commencer, on "sauve" les opérations en erreur
+      // OU celles restées bloquées en "syncing" (ex: crash au milieu d'un envoi).
+      const errorOpsBefore = await offlineQueue.getOperations({ status: 'error' });
+      const stuckOpsBefore = await offlineQueue.getOperations({ status: 'syncing' });
+      const opsToRescue = [...errorOpsBefore, ...stuckOpsBefore];
+
+      if (opsToRescue.length > 0) {
+        console.log(`[SyncManager] Proactive Rescue: resetting ${opsToRescue.length} operations (error/stuck)`);
+        for (const op of opsToRescue) {
+          await offlineQueue.resetRetries(op.id);
+        }
+      }
+
+      // Récupérer toutes les opérations à traiter
       const pendingOps = await offlineQueue.getOperations({ status: 'pending' });
-      const errorOps = await offlineQueue.getOperations({ status: 'error' });
-      const allOps = [...pendingOps, ...errorOps];
+      // Note: les errorOps sont maintenant devenus pending grâce au rescue ci-dessus
 
-      console.log(`[SyncManager] Found ${allOps.length} operations to sync`);
+      console.log(`[SyncManager] Found ${pendingOps.length} operations to sync`);
 
-      if (allOps.length === 0) {
+      if (pendingOps.length === 0) {
         console.log('[SyncManager] No operations to sync');
         return;
       }
@@ -118,7 +135,7 @@ class SyncManagerService {
       }
 
       // Synchroniser chaque opération séquentiellement
-      for (const operation of allOps) {
+      for (const operation of pendingOps) {
         await this.syncOperation(operation);
       }
 
@@ -162,7 +179,16 @@ class SyncManagerService {
         // On l'ajoute ici pour être générique, mais elle ne sera présente que pour CREATE_SALE
         const idempotencyKey = operation.payload.idempotency_key;
         if (idempotencyKey) {
-          this.recentlySyncedKeys.add(idempotencyKey);
+          // Calculer le montant pour le buffer de transition (Phase 11.3)
+          const total = operation.payload.items?.reduce((sum: number, item: any) => {
+            return sum + (item.total_price || (item.unit_price * item.quantity) || 0);
+          }, 0) || 0;
+
+          this.recentlySyncedKeys.set(idempotencyKey, {
+            total,
+            timestamp: Date.now(),
+            payload: operation.payload
+          });
 
           // Clear previous timer for this key if it exists
           if (this.timers.has(idempotencyKey)) {
@@ -172,7 +198,7 @@ class SyncManagerService {
           const timerId = setTimeout(() => {
             this.recentlySyncedKeys.delete(idempotencyKey);
             this.timers.delete(idempotencyKey);
-          }, 10000);
+          }, 60000); // 🛡️ Buffer étendu à 60s pour laisser le temps au serveur d'agréger
 
           this.timers.set(idempotencyKey, timerId);
         }
@@ -252,6 +278,7 @@ class SyncManagerService {
         p_customer_phone: payload.customer_phone || null,
         p_notes: payload.notes || null,
         p_business_date: payload.business_date || null,
+        p_ticket_id: payload.ticket_id || null,
       }).single();
 
       if (error) {
@@ -421,7 +448,21 @@ class SyncManagerService {
    * Force une synchronisation manuelle
    */
   async forceSync(): Promise<void> {
-    console.log('[SyncManager] Force sync requested');
+    console.log('[SyncManager] Force sync requested (Rescue mode)');
+
+    // 🛡️ SYNC RESCUE (V11.5): On "sauve" les opérations en erreur en remettant à zéro leurs retries
+    try {
+      const errorOps = await offlineQueue.getOperations({ status: 'error' });
+      if (errorOps.length > 0) {
+        console.log(`[SyncManager] Rescuing ${errorOps.length} failed operations...`);
+        for (const op of errorOps) {
+          await offlineQueue.resetRetries(op.id);
+        }
+      }
+    } catch (err) {
+      console.error('[SyncManager] Error during sync rescue:', err);
+    }
+
     await this.syncAll();
   }
 
