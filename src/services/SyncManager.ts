@@ -38,17 +38,58 @@ class SyncManagerService {
   private timers: Map<string, NodeJS.Timeout> = new Map();
 
   /**
-   * 🛡️ Tampon de sécurité (Phase 8/11.3) : 
+   * 🛡️ Tampon de sécurité (Phase 8/11.3) :
    * Stocke les clés d'idempotence, les montants et les payloads des ventes tout juste synchronisées
    * pour éviter le "Trou de CA" (Flash) avant que le serveur n'indexe les agrégats.
+   *
+   * ✅ TTL : 5 minutes - Après ce délai, les entrées sont automatiquement nettoyées
    */
-  private recentlySyncedKeys: Map<string, { total: number, timestamp: number, payload: SyncOperationCreateSale['payload'] }> = new Map();
+  private static readonly SYNC_KEYS_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+  private recentlySyncedKeys: Map<string, {
+    total: number;
+    timestamp: number;
+    payload: SyncOperationCreateSale['payload'];
+    expiresAt: number; // ✅ TTL pour cleanup automatique
+  }> = new Map();
 
   /**
    * Récupère les clés récemment synchronisées avec leurs détails (pour dédoublonnage UI)
+   * ✅ Nettoie automatiquement les entrées expirées avant de retourner
    */
   getRecentlySyncedKeys(): Map<string, { total: number, timestamp: number, payload: SyncOperationCreateSale['payload'] }> {
-    return new Map(this.recentlySyncedKeys);
+    this.cleanupExpiredSyncKeys();
+
+    // Retourner sans le champ expiresAt (internal use only)
+    const cleaned = new Map<string, { total: number, timestamp: number, payload: SyncOperationCreateSale['payload'] }>();
+    for (const [key, value] of this.recentlySyncedKeys.entries()) {
+      cleaned.set(key, {
+        total: value.total,
+        timestamp: value.timestamp,
+        payload: value.payload
+      });
+    }
+    return cleaned;
+  }
+
+  /**
+   * 🧹 Nettoie les clés de sync expirées
+   * Appelé automatiquement à chaque syncAll() et getRecentlySyncedKeys()
+   */
+  private cleanupExpiredSyncKeys(): void {
+    const now = Date.now();
+    let cleanedCount = 0;
+
+    for (const [key, value] of this.recentlySyncedKeys.entries()) {
+      if (value.expiresAt < now) {
+        this.recentlySyncedKeys.delete(key);
+        cleanedCount++;
+      }
+    }
+
+    if (cleanedCount > 0) {
+      console.log(`[SyncManager] Cleaned up ${cleanedCount} expired sync keys`);
+    }
   }
 
   /**
@@ -106,6 +147,9 @@ class SyncManagerService {
 
     this.isSyncing = true;
     console.log('[SyncManager] Starting sync cycle...');
+
+    // 🧹 Cleanup expired sync keys (Memory leak prevention)
+    this.cleanupExpiredSyncKeys();
 
     try {
       // 🛡️ LOAD PERSISTENT MAPPING (Phase 13 Blindage)
@@ -201,10 +245,12 @@ class SyncManagerService {
             return sum + (item.total_price || (item.unit_price * item.quantity) || 0);
           }, 0) || 0;
 
+          const now = Date.now();
           this.recentlySyncedKeys.set(idempotencyKey, {
             total,
-            timestamp: Date.now(),
-            payload: operation.payload
+            timestamp: now,
+            payload: operation.payload,
+            expiresAt: now + SyncManagerService.SYNC_KEYS_TTL_MS // ✅ Auto-expire après 5 min
           });
 
           // Clear previous timer for this key if it exists
@@ -325,6 +371,8 @@ class SyncManagerService {
         // 🗺️ Enregistrer la correspondance pour les opérations suivantes dans la file
         if (payload.temp_id && realId) {
           this.idMapping.set(payload.temp_id, realId);
+          // ✅ Persister le mapping dans IndexedDB pour survie au redémarrage
+          await offlineQueue.saveIdTranslation(payload.temp_id, realId);
         }
       }
 

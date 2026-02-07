@@ -108,6 +108,10 @@ export class SalesService {
 
       console.log('[SalesService] Attempting online RPC (create_sale_idempotent)...');
 
+      // ✅ AbortController pour annuler la requête en cas de timeout
+      const abortController = new AbortController();
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
       const rpcPromise = supabase.rpc(
         'create_sale_idempotent',
         {
@@ -123,16 +127,25 @@ export class SalesService {
           p_notes: data.notes ?? undefined,
           p_business_date: data.business_date ?? undefined,
           p_ticket_id: data.ticket_id ?? undefined
-        }
+        },
+        { signal: abortController.signal }
       ).single();
 
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('TIMEOUT_EXCEEDED')), 5000)
-      );
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          abortController.abort(); // ✅ Annuler la requête HTTP
+          reject(new Error('TIMEOUT_EXCEEDED'));
+        }, 5000);
+      });
 
       try {
         const result = await Promise.race([rpcPromise, timeoutPromise]);
         console.log('[SalesService] Race result received');
+
+        // ✅ Cleanup du timeout si la requête réussit
+        if (timeoutId !== undefined) {
+          clearTimeout(timeoutId);
+        }
 
         // Type guard pour vérifier la structure du résultat
         if (result && typeof result === 'object' && 'error' in result && result.error) {
@@ -146,6 +159,11 @@ export class SalesService {
           : result;
 
       } catch (err) {
+        // ✅ Cleanup du timeout en cas d'erreur
+        if (timeoutId !== undefined) {
+          clearTimeout(timeoutId);
+        }
+
         const errorMessage = err instanceof Error ? err.message : String(err);
         console.warn('[SalesService] Online failure:', errorMessage);
 
