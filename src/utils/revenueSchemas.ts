@@ -17,7 +17,16 @@ export const SaleItemSchema = z.object({
 // Helper to map DB casing to CamelCase
 const mapSaleToCamel = (val: unknown) => {
     if (typeof val === 'object' && val !== null) {
-        const v = val as any;
+        const v = val as Record<string, unknown>;
+
+        // ✅ Normalize businessDate: extract YYYY-MM-DD from datetime strings
+        const rawBusinessDate = v.businessDate ?? v.business_date;
+        let normalizedBusinessDate = rawBusinessDate;
+        if (typeof rawBusinessDate === 'string' && rawBusinessDate.includes('T')) {
+            // Extract date part from ISO 8601 datetime (e.g., "2026-01-04T00:00:00.000Z" → "2026-01-04")
+            normalizedBusinessDate = rawBusinessDate.split('T')[0];
+        }
+
         return {
             ...v,
             barId: v.barId ?? v.bar_id,
@@ -26,7 +35,7 @@ const mapSaleToCamel = (val: unknown) => {
             validatedAt: v.validatedAt ?? v.validated_at,
             rejectedAt: v.rejectedAt ?? v.rejected_at,
             cancelledAt: v.cancelledAt ?? v.cancelled_at,
-            businessDate: v.businessDate ?? v.business_date,
+            businessDate: normalizedBusinessDate,
             idempotencyKey: v.idempotencyKey ?? v.idempotency_key,
             isOptimistic: v.isOptimistic ?? v.is_optimistic,
         };
@@ -71,7 +80,15 @@ export const CalculableSaleSchema = z.preprocess(mapSaleToCamel, z.object({
 
 const mapReturnToCamel = (val: unknown) => {
     if (typeof val === 'object' && val !== null) {
-        const v = val as any;
+        const v = val as Record<string, unknown>;
+
+        // ✅ Normalize businessDate: extract YYYY-MM-DD from datetime strings
+        const rawBusinessDate = v.businessDate ?? v.business_date;
+        let normalizedBusinessDate = rawBusinessDate;
+        if (typeof rawBusinessDate === 'string' && rawBusinessDate.includes('T')) {
+            normalizedBusinessDate = rawBusinessDate.split('T')[0];
+        }
+
         return {
             ...v,
             barId: v.barId ?? v.bar_id,
@@ -83,7 +100,7 @@ const mapReturnToCamel = (val: unknown) => {
             returnedBy: v.returnedBy ?? v.returned_by,
             serverId: v.serverId ?? v.server_id ?? v.user_id, // handling alias
             returnedAt: v.returnedAt ?? v.returned_at ?? v.created_at,
-            businessDate: v.businessDate ?? v.business_date,
+            businessDate: normalizedBusinessDate,
         };
     }
     return val;

@@ -61,9 +61,14 @@ function validateInputs(
             validSales.push(result.data);
         } else {
             const saleId = typeof sale === 'object' && sale !== null && 'id' in sale
-                ? String((sale as any).id)
+                ? String((sale as Record<string, unknown>).id)
                 : 'unknown';
-            console.warn('[RevenueCalculator] Invalid sale dropped:', saleId, result.error.issues);
+            // Log validation failures for debugging (only in dev)
+            if (process.env.NODE_ENV === 'development') {
+                console.warn(`[RevenueCalculator] Invalid sale ${saleId}:`,
+                    result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')
+                );
+            }
         }
     });
 
@@ -73,7 +78,7 @@ function validateInputs(
             validReturns.push(result.data);
         } else {
             const retId = typeof ret === 'object' && ret !== null && 'id' in ret
-                ? String((ret as any).id)
+                ? String((ret as Record<string, unknown>).id)
                 : 'unknown';
             console.warn('[RevenueCalculator] Invalid return dropped:', retId, result.error.issues);
         }
