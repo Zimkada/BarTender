@@ -12,10 +12,10 @@ interface CartFooterProps {
     serverOptions: SelectOption[];
     selectedServer: string;
     onServerChange: (value: string) => void;
-    bonOptions: SelectOption[];
-    selectedBon: string;
-    onBonChange: (value: string) => void;
-    onCreateBon: (tableNumber?: number, customerName?: string) => void;
+    bonOptions?: SelectOption[];
+    selectedBon?: string;
+    onBonChange?: (value: string) => void;
+    onCreateBon?: (tableNumber?: number, customerName?: string) => void;
     paymentMethod: PaymentMethod;
     onPaymentMethodChange: (value: PaymentMethod) => void;
     onCheckout: () => void;
@@ -32,7 +32,7 @@ export function CartFooter({
     serverOptions,
     selectedServer,
     onServerChange,
-    bonOptions,
+    bonOptions = [],
     selectedBon,
     onBonChange,
     onCreateBon,

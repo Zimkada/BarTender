@@ -1,4 +1,5 @@
 import { ShoppingCart } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useFeedback } from '../hooks/useFeedback';
 import { useViewport } from '../hooks/useViewport';
 import { useBarContext } from '../context/BarContext';
@@ -27,7 +28,7 @@ export function Cart({
   const { isMobile } = useViewport();
   const { currentBar, isSimplifiedMode } = useBarContext();
   const { currentSession } = useAuth();
-  const { serverNames } = useServerMappings(isSimplifiedMode ? currentBar?.id : undefined);
+  const { serverNames, mappings } = useServerMappings(isSimplifiedMode ? currentBar?.id : undefined);
   const { tickets: ticketsWithSummary, refetchTickets } = useTickets(currentBar?.id);
 
   // --- CONNECT TO APP CONTEXT ---
@@ -71,6 +72,19 @@ export function Cart({
     if (items.length === 0) return;
 
     let serverId: string | undefined;
+
+    // 🔴 BLOCKING LOGIC : SERVER OFFLINE MODE
+    const isOffline = !window.navigator.onLine;
+    const isServer = currentSession?.role === 'serveur';
+
+    if (isOffline && isServer) {
+      toast.error(
+        "MODE HORS LIGNE RESTREINT\n\nVérifiez d'abord votre connexion internet.\n\nSi le problème persiste, demandez au Gérant de passer en MODE SIMPLIFIÉ.",
+        { duration: 6000, icon: '🚫' }
+      );
+      return;
+    }
+
     if (isSimplifiedMode && assignedTo && currentBar?.id) {
       if (assignedTo.startsWith('Moi (')) {
         serverId = currentSession?.userId;
@@ -161,6 +175,7 @@ export function Cart({
         isSimplifiedMode={isSimplifiedMode}
         serverNames={serverNames}
         currentServerName={currentSession?.userName}
+        serverMappings={mappings}
         ticketsWithSummary={ticketsWithSummary}
         onCreateBon={handleCreateBon}
         isLoading={isLoading('checkout')}

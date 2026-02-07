@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, X, ShoppingBag } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { CalculatedItem } from '../../hooks/useCartLogic';
 import { CartShared } from './CartShared';
 import { useViewport } from '../../hooks/useViewport';
@@ -11,8 +11,8 @@ import type { TicketWithSummary } from '../../hooks/queries/useTickets';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { formatTicketInfo } from '../../utils/formatTicketInfo';
 import { useAuth } from '../../context/AuthContext';
-import { useBarContext } from '../../context/BarContext';
-import { ServerMappingsService } from '../../services/supabase/server-mappings.service';
+// useBarContext removed
+// ServerMappingsService removed as resolution is now synchronous via props
 
 interface CartDrawerProps {
     isOpen: boolean;
@@ -26,6 +26,7 @@ interface CartDrawerProps {
     isSimplifiedMode?: boolean;
     serverNames?: string[];
     currentServerName?: string;
+    serverMappings?: { serverName: string; userId: string }[];
     ticketsWithSummary?: TicketWithSummary[];
     onCreateBon?: (serverId: string | null, tableNumber?: number, customerName?: string) => Promise<string | null>;
     isLoading?: boolean;
@@ -43,6 +44,7 @@ export function CartDrawer({
     isSimplifiedMode = false,
     serverNames = [],
     currentServerName,
+    serverMappings = [],
     ticketsWithSummary = [],
     onCreateBon,
     isLoading = false
@@ -50,47 +52,38 @@ export function CartDrawer({
     const { isMobile } = useViewport();
     const { formatPrice } = useCurrencyFormatter();
     const { currentSession } = useAuth();
-    const { currentBar } = useBarContext();
+    // currentBar removed as it was only used for async server mapping resolution
 
     const [selectedServer, setSelectedServer] = useState<string>('');
     const [selectedBon, setSelectedBon] = useState<string>('');
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
-    const [effectiveServerId, setEffectiveServerId] = useState<string | null>(null);
 
-    // Résolution du serveur effectif : mode simplifié → résolution nom→UUID, mode complet → userId connecté
-    useEffect(() => {
-        if (!isSimplifiedMode) {
-            setEffectiveServerId(currentSession?.userId || null);
-            return;
-        }
-        if (!selectedServer) {
-            setEffectiveServerId(null);
-            return;
-        }
-        // "Moi (" = user connecté — court-circuit, pas de résolution via server_name_mappings
-        if (selectedServer.startsWith('Moi (')) {
-            setEffectiveServerId(currentSession?.userId || null);
-            return;
-        }
-        ServerMappingsService.getUserIdForServerName(currentBar?.id || '', selectedServer)
-            .then(id => setEffectiveServerId(id || null));
-    }, [selectedServer, isSimplifiedMode, currentSession?.userId, currentBar?.id]);
+    // Résolution SYNCHRONE du serveur effectif pour éviter les race conditions lors de la création de bons
+    const effectiveServerId = useMemo(() => {
+        if (!isSimplifiedMode) return currentSession?.userId || null;
+        if (!selectedServer) return null;
+        if (selectedServer.startsWith('Moi (')) return currentSession?.userId || null;
 
-    // Réinitialiser le bon sélectionné quand le serveur change
-    useEffect(() => {
-        setSelectedBon('');
-    }, [effectiveServerId]);
+        // Résolution immédiate via les mappings passés en prop
+        const mapping = serverMappings.find(m => m.serverName === selectedServer);
+        if (mapping) return mapping.userId;
 
-    // Reset state when drawer closes to ensure clean slate on next open
+        return null;
+    }, [selectedServer, isSimplifiedMode, currentSession?.userId, serverMappings]);
+
+    // Réinitialiser le bon sélectionné UNIQUEMENT si le serveur change pour un AUTRE serveur valide
+    // (Évite le reset lors du passage de null -> ID au montage)
     useEffect(() => {
-        if (!isOpen) {
-            setSelectedBon('');
-            // Optional: reset selectedServer too if desired, but user specifically asked for bon reset.
-            // Keeping selectedServer might be useful for repeated fast entry by same server.
-            // But let's reset it to be safe and consistent with "clean slate".
-            setSelectedServer('');
+        if (effectiveServerId && selectedBon) {
+            const currentTicket = ticketsWithSummary.find(t => t.id === selectedBon);
+            if (currentTicket && currentTicket.serverId !== effectiveServerId && currentTicket.serverId !== null) {
+                setSelectedBon('');
+            }
         }
-    }, [isOpen]);
+    }, [effectiveServerId, ticketsWithSummary, selectedBon]);
+
+    // Maintien de l'état à la fermeture pour permettre les allers-retours
+    // On ne reset QUE si la vente est validée (géré dans handleCheckout)
 
     const serverOptions: SelectOption[] = [
         { value: '', label: 'Sélectionner un serveur...' },

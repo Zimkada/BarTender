@@ -7,13 +7,15 @@ import { useBarContext } from '../../context/BarContext';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { Button } from '../ui/Button';
 import { formatTicketInfo } from '../../utils/formatTicketInfo';
+import type { TicketWithSummary } from '../../hooks/queries/useTickets';
+import { syncManager } from '../../services/SyncManager';
 
 interface InvoiceModalProps {
     ticketId: string;
     ticketNumber?: number;
     notes?: string;
     paymentMethod?: string; // If provided, we are in "Read-Only/Paid" mode or "View Details" mode
-    ticket?: Pick<TicketRow, 'table_number' | 'customer_name' | 'notes'>; // NOUVEAU: pour formatTicketInfo
+    ticket?: TicketWithSummary | Pick<TicketRow, 'table_number' | 'customer_name' | 'notes'>;
     onClose: () => void;
 }
 
@@ -31,15 +33,55 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        SalesService.getSalesByTicketId(ticketId)
-            .then(data => {
-                setSales(data);
-                setIsLoading(false);
-            })
-            .catch(e => {
-                console.error('Erreur fetch facture:', e);
-                setIsLoading(false);
-            });
+        let isMounted = true;
+        let timeout: NodeJS.Timeout;
+
+        const fetchData = () => {
+            if (!isMounted) return;
+            setIsLoading(true);
+            Promise.all([
+                SalesService.getSalesByTicketId(ticketId),
+                SalesService.getOfflineSalesByTicketId(ticketId)
+            ])
+                .then(([onlineData, offlineData]) => {
+                    if (!isMounted) return;
+                    // Déduplication flash utilisant les idempotency keys de la file d'attente
+                    const recentlySyncedMap = syncManager.getRecentlySyncedKeys();
+                    const filteredOffline = offlineData.filter(s => {
+                        const idKey = s.idempotency_key;
+                        if (idKey && recentlySyncedMap.has(idKey)) {
+                            return !onlineData.some((os: any) => os.idempotency_key === idKey);
+                        }
+                        return true;
+                    });
+
+                    setSales([...onlineData, ...filteredOffline]);
+                    setIsLoading(false);
+                })
+                .catch((e: any) => {
+                    if (!isMounted) return;
+                    console.error('Erreur fetch facture:', e);
+                    setIsLoading(false);
+                });
+        };
+
+        fetchData();
+
+        // 🚀 Réactivité dans le modal: rafraîchir si une vente est ajoutée au bon en cours
+        const handleUpdate = () => {
+            clearTimeout(timeout);
+            timeout = setTimeout(fetchData, 200);
+        };
+
+        window.addEventListener('queue-updated', handleUpdate);
+        window.addEventListener('sync-completed', handleUpdate);
+
+        return () => {
+            isMounted = false;
+            clearTimeout(timeout);
+            window.removeEventListener('queue-updated', handleUpdate);
+            window.removeEventListener('sync-completed', handleUpdate);
+        };
     }, [ticketId]);
 
     // Aggregate items and payment methods across all sales on this ticket
@@ -48,10 +90,8 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
     let grandTotal = 0;
 
     sales.forEach(sale => {
-        grandTotal += sale.total || 0;
+        grandTotal += (sale.total || 0);
         // Prioritize ticket payment method if available (passed as prop), otherwise fallback to sales payment methods
-        // But for "View Details" of OPEN ticket, paymentMethod prop is undefined, so we show accumulated sales methods (if any mixed).
-        // Actually, for open tickets, usually sales have "ticket" or null payment method.
         if (sale.payment_method && sale.payment_method !== 'ticket') paymentMethods.add(sale.payment_method);
         ; (sale.items || []).forEach((item: any) => {
             const name = item.product_name || item.productName || 'Produit';
@@ -128,11 +168,25 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
                                 {/* Bar name + reference */}
                                 <div className="text-center">
                                     <h1 className="text-lg font-black text-gray-900 uppercase tracking-tighter">{currentBar?.name || 'Bar'}</h1>
-                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1">
-                                        {ticketNumber ? `BON #${ticketNumber}` : `BON-${ticketId.slice(0, 8)}`} • {today}
-                                    </p>
+                                    <div className="flex flex-col items-center gap-1 mt-1">
+                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                                            {ticketNumber ? `BON #${ticketNumber}` : (ticketId.startsWith('temp_') ? 'BON PROVISOIRE' : `BON-${ticketId.slice(0, 8)}`)} • {today}
+                                        </p>
+                                        {ticketId.startsWith('temp_') && (
+                                            <span className="text-[7px] font-black bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full uppercase tracking-widest border border-amber-200">
+                                                En attente de synchronisation
+                                            </span>
+                                        )}
+                                    </div>
+                                    {ticket && 'serverName' in ticket && ticket.serverName && (
+                                        <div className="flex justify-center mt-1">
+                                            <span className="text-[8px] font-black text-white bg-brand-primary px-3 py-0.5 rounded-full uppercase tracking-[0.2em]">
+                                                {ticket.serverName}
+                                            </span>
+                                        </div>
+                                    )}
                                     {(ticket ? formatTicketInfo(ticket) : notes) && (
-                                        <p className="text-[10px] font-black text-brand-primary uppercase mt-1 tracking-tight">
+                                        <p className="text-[10px] font-black text-brand-primary uppercase mt-1.5 tracking-tight">
                                             {ticket ? formatTicketInfo(ticket) : notes}
                                         </p>
                                     )}
