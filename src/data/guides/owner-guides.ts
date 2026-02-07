@@ -1021,7 +1021,7 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
       emoji: '👋',
       title: 'Bienvenue à la Gestion de l\'Équipe !',
       description:
-        'Votre système de **Gestion de l\'Équipe** se divise en **3 onglets** pour gérer complètement votre équipe : **Mon Équipe** (visualiser et retirer membres), **Recrutement** (ajouter nouveaux ou importer existants), et **Assignation Caisses** (mode simplifié). Un bar bien organisé commence par une équipe bien définie !',
+        'Votre système de **Gestion de l\'Équipe** se divise en **3 onglets** pour gérer complètement votre équipe : **Mon Équipe** (visualiser et retirer membres), **Recrutement** (ajouter nouveaux ou importer existants), et **Nom d\'affichage pour les ventes** (mode simplifié). Un bar bien organisé commence par une équipe bien définie !',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
@@ -1137,16 +1137,16 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
     {
       id: 'step-8',
       emoji: '🔗',
-      title: 'Onglet 3: Assignation Caisses (Mode Simplifié)',
+      title: 'Onglet 3: Nom d\'affichage pour les ventes (Mode Simplifié)',
       description:
-        'L\'**Onglet Assignation Caisses** configure les **mappings** entre noms courts de registres POS (ex: "Afi", "Fifi") et comptes serveurs réels. **Uniquement nécessaire en Mode Simplifié** (1 compte manager au comptoir, création manuelle ventes). Cette section peut être repliée par défaut.',
+        'L\'**Onglet Nom d\'affichage pour les ventes** configure les **identifiants d\'affichage** entre noms courts pour la vente (ex: "Afi", "Fifi") et comptes serveurs réels. **Uniquement nécessaire en Mode Simplifié** (1 compte manager au comptoir, création manuelle ventes). Cette section peut être repliée par défaut.',
       elementSelector: '[data-guide="team-mappings"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '⚙️ **Mode Simplifié** = 1 compte manager crée ventes + sélectionne serveur manuellement',
-        '🔗 Mappings = Lier noms (ex:"Afi") à vraies serveurs pour affichage correct',
-        '📍 Auto-populate = Bouton pour créer mappings auto depuis membres actifs',
+        '🔗 Identifiants = Lier noms (ex:"Afi") à vrais serveurs pour affichage correct',
+        '📍 Auto-populate = Bouton pour créer noms d\'affichage auto depuis membres actifs',
         '🚫 Pas nécessaire en Mode Complet (chaque serveur a son compte)',
       ],
     },
@@ -1154,16 +1154,16 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
     {
       id: 'step-9',
       emoji: '⚙️',
-      title: 'Configurer les Mappings Serveurs',
+      title: 'Configurer les Noms d\'affichage',
       description:
-        '**Ajouter un mapping** : Saisissez le nom court du register (ex: "Afi") → Sélectionnez le serveur correspondant (dropdown) → Validez. **Supprimer** : Icône trash pour retirer mapping. **Auto-populate** : Bouton pour générer automatiquement mappings depuis vos membres actifs.',
+        '**Ajouter un nom d\'affichage** : Saisissez le nom pour la vente (ex: "Afi") → Sélectionnez le serveur correspondant (dropdown) → Validez. **Supprimer** : Icône trash pour retirer le nom. **Auto-populate** : Bouton pour générer automatiquement les noms depuis vos membres actifs.',
       elementSelector: '[data-guide="team-mappings-add"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📝 Nom court = Identifiant simple (ex: "Afi", "Fifi", "Ali")',
         '👤 Sélectionnez le vrai compte serveur associé',
-        '⚡ Auto-populate = Économise temps, crée mappings auto',
+        '⚡ Auto-populate = Économise temps, crée noms d\'affichage auto',
         '🔐 Indispensable pour Mode Simplifié (sinon ventes non attribuées correctement)',
       ],
     },
@@ -1174,13 +1174,13 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
       emoji: '✅',
       title: 'Vous Maîtrisez Votre Équipe !',
       description:
-        'Vous connaissez maintenant les **3 onglets** (Mon Équipe, Recrutement, Assignation Caisses), comment **ajouter/retirer membres**, **créer nouveaux comptes ou importer existants**, et configurer **mappings pour mode simplifié**. Vous êtes prêt à gérer votre équipe complètement !',
+        'Vous connaissez maintenant les **3 onglets** (Mon Équipe, Recrutement, Nom d\'affichage pour les ventes), comment **ajouter/retirer membres**, **créer nouveaux comptes ou importer existants**, et configurer **identifiants pour mode simplifié**. Vous êtes prêt à gérer votre équipe complètement !',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📊 Consultez Mon Équipe régulièrement pour vérifier statuts',
         '👥 Recrutement = Continuer grandir équipe',
-        '🔗 Mappings = Essentiel en Mode Simplifié (sinon sales attribution problems)',
+        '🔗 Identifiants = Essentiel en Mode Simplifié (sinon sales attribution problems)',
         '⚙️ Vérifiez permissions = Ce que vous pouvez faire vs ce que vous ne pouvez pas',
       ],
       action: '→ Commencez à gérer votre équipe !',
@@ -1338,17 +1338,17 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
     {
       id: 'step-8',
       emoji: '🔗',
-      title: 'Switching Mode Configuration (Mode Simplifié)',
+      title: 'Configuration Nom d\'affichage (Mode Simplifié)',
       description:
-        'Si vous choisissez **Mode Simplifié**, une section **Assignation Caisses** apparaît pour configurer **Mappings Serveurs** : lier noms courts (ex: "Afi") à vrais comptes serveurs pour attribution correcte ventes.',
+        'Si vous choisissez **Mode Simplifié**, une section **Nom d\'affichage pour les ventes** apparaît pour configurer les **Identifiants d\'affichage** : lier noms courts (ex: "Afi") à vrais comptes serveurs pour attribution correcte ventes.',
       elementSelector: '[data-guide="settings-switching-mode"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '🔗 Mappings = Lier noms courts → serveurs réels',
+        '🔗 Identifiants = Lier noms courts → serveurs réels',
         '📝 Exemple: "Afi" → Afiwa, "Fifi" → Félicitée',
         '⚡ Auto-populate = Bouton pour générer auto depuis membres actifs',
-        '🚫 Sans mappings = Ventes mode simplifié ne sont pas attribuées!',
+        '🚫 Sans identifiants = Ventes mode simplifié ne sont pas attribuées!',
       ],
     },
 
@@ -1416,7 +1416,7 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
       tips: [
         '⚙️ Vérifiez Closing Hour = Impacte TOUT (retours, journées, comptabilité)',
         '🔄 Mode Opérationnel = Choix important (affecte workflow serveurs)',
-        '🔗 Mode Simplifié = Configurez Mappings sinon attribution cassée',
+        '🔗 Mode Simplifié = Configurez Identifiants d\'affichage sinon attribution cassée',
         '🛡️ Activez 2FA = Protection critique pour votre sécurité',
       ],
       action: '→ Vérifiez et sauvegardez vos paramètres !',
