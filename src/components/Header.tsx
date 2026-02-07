@@ -224,10 +224,10 @@ export function Header({
   // ==================== VERSION DESKTOP (1% promoteurs avec PC) ====================
   return (
     <header className="liquid-gold-header shadow-2xl sticky top-0 z-50 transition-all duration-500">
-      <div className="container mx-auto px-6 py-3">
-        <div className="flex items-center justify-between gap-8">
+      <div className="container mx-auto px-4 xl:px-6 py-3">
+        <div className="flex items-center justify-between gap-2 xl:gap-8">
           {/* Gauche: Hamburger + Logo + Indicateurs + Bar selector */}
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-1.5 xl:gap-4">
             {/* Bouton Menu Hamburger */}
             <Button
               onClick={onToggleMobileSidebar}
@@ -262,9 +262,6 @@ export function Header({
             {/* ✅ Badge réseau compact (offline/connexion lente) */}
             <NetworkBadge />
 
-            {/* ✅ Badge réseau compact (offline/connexion lente) */}
-            <NetworkBadge />
-
             {/* NEW: Desktop buttons for common modals */}
             {currentSession?.role !== 'super_admin' && (
               <>
@@ -293,21 +290,21 @@ export function Header({
           </div>
 
           {/* Droite: Stats + User + Déconnexion */}
-          <div className="flex items-center gap-2 md:gap-6">
+          <div className="flex items-center gap-1.5 xl:gap-6">
             {/* Ventes du jour - Masqué pour super admin */}
             {currentSession?.role !== 'super_admin' && (
-              <div className="hidden sm:flex glass-button-2026 px-4 py-1.5 flex-col items-center justify-center text-center rounded-2xl shadow-2xl border-white/40 min-w-[140px]">
-                <p className="text-white/80 text-[9px] uppercase tracking-[0.2em] font-black">Revenue</p>
+              <div className="hidden sm:flex glass-button-2026 px-3 xl:px-4 py-1.5 flex-col items-center justify-center text-center rounded-2xl shadow-2xl border-white/40 min-w-[100px] xl:min-w-[140px]">
+                <p className="text-white/80 text-[8px] xl:text-[9px] uppercase tracking-[0.1em] xl:tracking-[0.2em] font-black">Revenue</p>
                 <AnimatedCounter
                   value={todayTotal}
-                  className="text-white text-xl md:text-2xl font-black tracking-tighter drop-shadow-md"
+                  className="text-white text-base xl:text-2xl font-black tracking-tighter drop-shadow-md"
                   suffix=" FCFA"
                 />
               </div>
             )}
 
-            {/* User info */}
-            <div className="hidden md:block text-right">
+            {/* User info - Masqué sur petit desktop (1024px) pour éviter overflow */}
+            <div className="hidden xl:block text-right">
               <p className="text-white font-medium">{currentSession?.userName}</p>
               <p className="text-white/80 text-sm flex items-center justify-end gap-1">
                 {getRoleIcon()}

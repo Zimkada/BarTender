@@ -315,7 +315,7 @@ export function CartFooter({
                                                     type="text"
                                                     value={customerName}
                                                     onChange={(e) => setCustomerName(e.target.value)}
-                                                    placeholder="Ex: Amina"
+                                                    placeholder="Ex: Jean"
                                                     onKeyDown={(e) => e.key === 'Enter' && handleConfirmCreateBon()}
                                                     className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary uppercase placeholder:normal-case"
                                                 />

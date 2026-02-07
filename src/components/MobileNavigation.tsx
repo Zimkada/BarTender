@@ -31,10 +31,7 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
   const { currentSession } = useAuth();
   const { isMobile } = useViewport();
   const navigate = useNavigate();
-
-  if (!isMobile) {
-    return null;
-  }
+  const { showNotification } = useNotifications();
 
   // 🛡️ Monitor network status
   const [isOffline, setIsOffline] = React.useState(!networkManager.isOnline());
@@ -45,7 +42,9 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
     });
   }, []);
 
-  const { showNotification } = useNotifications();
+  if (!isMobile) {
+    return null;
+  }
 
   const allNavItems: NavItem[] = [
     {
