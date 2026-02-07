@@ -4,15 +4,19 @@ import type { Sale, Return } from '../types';
 
 describe('revenueCalculator', () => {
     // Helper helpers
+    const MOCK_BAR_ID = 'e0892013-6fca-4482-965d-4f65c15a7732';
+    const MOCK_USER_ID = 'a453765e-1463-4416-bf75-6e462d733c2a';
+    const MOCK_SERVER_ID = 'f47ac10b-58cc-4372-a567-0e02b2c3d479';
+
     const createSale = (id: string, total: number, idempotencyKey?: string, status: 'validated' = 'validated'): Sale => ({
         id,
-        barId: 'bar-1',
+        barId: MOCK_BAR_ID,
         items: [],
         total,
         currency: 'XOF',
         status,
-        createdBy: 'user-1',
-        soldBy: 'user-1',
+        createdBy: MOCK_USER_ID,
+        soldBy: MOCK_USER_ID,
         createdAt: new Date(),
         // Normalement businessDate est une Date, mais filterByBusinessDateRange utilise getBusinessDate qui gère string ou Date.
         // On va mettre une date fixe pour les tests.
@@ -21,14 +25,18 @@ describe('revenueCalculator', () => {
     } as unknown as Sale); // Cast safely
 
     const createReturn = (id: string, refundAmount: number): Return => ({
-        id,
-        barId: 'bar-1',
+        id: '00000000-0000-0000-0000-000000000004', // Needs to be UUID too if validated? Schema says id: uuid
+        saleId: '00000000-0000-0000-0000-000000000005',
+        productId: '00000000-0000-0000-0000-000000000006',
+        barId: MOCK_BAR_ID,
         refundAmount,
+        quantityReturned: 1, // Required by schema
         isRefunded: true,
         status: 'approved',
-        returnedBy: 'user-1',
+        returnedBy: MOCK_USER_ID,
         returnedAt: new Date('2023-01-01T12:00:00Z'),
         businessDate: new Date('2023-01-01T12:00:00Z'),
+        serverId: MOCK_SERVER_ID
     } as any);
 
     it('should calculate basic gross revenue from server sales', () => {
@@ -102,7 +110,7 @@ describe('revenueCalculator', () => {
 
     it('should deduplicate offline queue sales if present in recentlySyncedKeys', () => {
         const key = 'uuid-offline-1';
-        const offlineSales = [{ idempotency_key: key, total: 500, sold_by: 'user-1' }];
+        const offlineSales = [{ idempotency_key: key, total: 500, sold_by: MOCK_USER_ID }];
 
         const recentlySyncedKeys = new Map();
         // Le buffer a la clé (vient d'être succès RPC)
@@ -130,7 +138,7 @@ describe('revenueCalculator', () => {
 
     it('should NOT deduplicate offline sale if key is missing from buffer', () => {
         const key = 'uuid-offline-2';
-        const offlineSales = [{ idempotency_key: key, total: 200, sold_by: 'user-1' }];
+        const offlineSales = [{ idempotency_key: key, total: 200, sold_by: MOCK_USER_ID }];
         const recentlySyncedKeys = new Map(); // Buffer vide
 
         const stats = calculateRevenueStats({

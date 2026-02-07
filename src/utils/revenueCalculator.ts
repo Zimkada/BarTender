@@ -1,24 +1,23 @@
 import { filterByBusinessDateRange } from './businessDateHelpers';
-import type { Sale, Return } from '../types';
-// We'll define a minimal interface for OfflineSale to avoid circular deps with services if possible, 
-// or import it. Since services might depend on types, and utils are low-level, importing from service might be okay.
-// But to be cleaner, let's just definition what we need: idempotency_key, total, sold_by.
-export interface MinimalOfflineSale {
-    idempotency_key?: string;
-    total: number;
-    sold_by: string;
-}
+import {
+    type ValidatedCalculableSale,
+    type ValidatedReturn,
+    type ValidatedOfflineSale,
+    CalculableSaleSchema,
+    ReturnSchema,
+    MinimalOfflineSaleSchema
+} from './revenueSchemas';
 
 export interface RecentlySyncedItem {
     total: number;
     timestamp: number;
-    payload: any;
+    payload?: unknown; // Optionnel, non utilisé dans les calculs de revenus
 }
 
 export interface RevenueCalculatorOptions {
-    sales: Sale[];
-    returns: Return[];
-    offlineSales: MinimalOfflineSale[];
+    sales: unknown[]; // We accept unknown and validate inside with Zod
+    returns: unknown[];
+    offlineSales: unknown[];
     recentlySyncedKeys: Map<string, RecentlySyncedItem>;
     startDate: string; // 'YYYY-MM-DD' - Required
     endDate: string;   // 'YYYY-MM-DD' - Required
@@ -26,6 +25,12 @@ export interface RevenueCalculatorOptions {
     isServerRole: boolean;
     currentUserId?: string;
 }
+
+export type StrictRevenueCalculatorOptions = Omit<RevenueCalculatorOptions, 'sales' | 'returns' | 'offlineSales'> & {
+    sales: ValidatedCalculableSale[];
+    returns: ValidatedReturn[];
+    offlineSales: ValidatedOfflineSale[];
+};
 
 export interface CalculatedStats {
     netRevenue: number;
@@ -36,10 +41,61 @@ export interface CalculatedStats {
 }
 
 /**
- * Pure function to calculate revenue stats.
- * Extracted from useRevenueStats for testing and stability.
+ * 🛡️ Validation Wrapper (Phase 5C)
+ * Filters out invalid data to prevent calculation errors.
  */
-export const calculateRevenueStats = ({
+function validateInputs(
+    sales: unknown[],
+    returns: unknown[],
+    offlineSales: unknown[]
+): { validSales: ValidatedCalculableSale[], validReturns: ValidatedReturn[], validOfflineSales: ValidatedOfflineSale[] } {
+    const validSales: ValidatedCalculableSale[] = [];
+    const validReturns: ValidatedReturn[] = [];
+    const validOfflineSales: ValidatedOfflineSale[] = [];
+
+    // Optimize: Loop once per array
+    sales.forEach(sale => {
+        // Use CalculableSaleSchema for leniency (supports partial objects from optimized SQL)
+        const result = CalculableSaleSchema.safeParse(sale);
+        if (result.success) {
+            validSales.push(result.data);
+        } else {
+            const saleId = typeof sale === 'object' && sale !== null && 'id' in sale
+                ? String((sale as any).id)
+                : 'unknown';
+            console.warn('[RevenueCalculator] Invalid sale dropped:', saleId, result.error.issues);
+        }
+    });
+
+    returns.forEach(ret => {
+        const result = ReturnSchema.safeParse(ret);
+        if (result.success) {
+            validReturns.push(result.data);
+        } else {
+            const retId = typeof ret === 'object' && ret !== null && 'id' in ret
+                ? String((ret as any).id)
+                : 'unknown';
+            console.warn('[RevenueCalculator] Invalid return dropped:', retId, result.error.issues);
+        }
+    });
+
+    offlineSales.forEach(os => {
+        const result = MinimalOfflineSaleSchema.safeParse(os);
+        if (result.success) {
+            validOfflineSales.push(result.data);
+        } else {
+            console.warn('[RevenueCalculator] Invalid offline sale dropped:', result.error.issues);
+        }
+    });
+
+    return { validSales, validReturns, validOfflineSales };
+}
+
+/**
+ * Pure function to calculate revenue stats.
+ * Expects validated data.
+ */
+export const calculateRevenueStatsPure = ({
     sales,
     returns,
     offlineSales,
@@ -49,7 +105,7 @@ export const calculateRevenueStats = ({
     closeHour = 6,
     isServerRole,
     currentUserId
-}: RevenueCalculatorOptions): CalculatedStats => {
+}: StrictRevenueCalculatorOptions): CalculatedStats => {
 
     // 1. Filter sales by server role if applicable
     let baseSales = sales.filter(s => s.status === 'validated');
@@ -124,4 +180,22 @@ export const calculateRevenueStats = ({
         saleCount,
         averageSale: saleCount > 0 ? grossRevenue / saleCount : 0
     };
+};
+
+/**
+ * Main entry point: Validates inputs then calculates.
+ */
+export const calculateRevenueStats = (options: RevenueCalculatorOptions): CalculatedStats => {
+    const { validSales, validReturns, validOfflineSales } = validateInputs(
+        options.sales,
+        options.returns,
+        options.offlineSales
+    );
+
+    return calculateRevenueStatsPure({
+        ...options,
+        sales: validSales,
+        returns: validReturns,
+        offlineSales: validOfflineSales
+    });
 };
