@@ -153,7 +153,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const handleTokenExpired = async () => {
       // ⭐ RÉSILIENCE OFFLINE: Si on est hors-ligne, on ne déconnecte PAS.
       // On garde la session en mémoire pour permettre le travail local (Optimisme Résilient).
-      if (networkManager.isOffline()) {
+      if (networkManager.getDecision().shouldShowBanner) {
         console.warn('[AuthContext] Token expiré mais conservé (Mode Offline)');
         return;
       }
@@ -162,19 +162,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         await AuthService.logout();
       } catch (err) {
-        console.warn('[AuthContext] Erreur lors de la déconnexion:', err);
+        console.warn('[AuthContext] Erreur lors de la déconnexion Supabase:', err);
       }
 
-      // 🧹 Purger les caches uniquement si on est bien online
-      // (Pour éviter de supprimer des données non synchronisées par erreur)
-      if (!networkManager.isOffline()) {
-        console.log('[AuthContext] Purge des caches après token expiré (Online)');
-        await CacheManagerService.fullCleanup();
-      } else {
-        console.warn('[AuthContext] Purge des caches annulée (Offline) pour préserver les données');
+      try {
+        // 🧹 Purger les caches uniquement si on ne bloque pas les op réseau (confirmé online)
+        if (!networkManager.shouldBlockNetworkOps()) {
+          console.log('[AuthContext] Purge des caches après token expiré (Online)');
+          await CacheManagerService.fullCleanup();
+        } else {
+          console.warn('[AuthContext] Purge des caches annulée (Offline) pour préserver les données');
+        }
+      } catch (err) {
+        console.error('[AuthContext] Cache cleanup failed:', err);
+      } finally {
+        // ⭐ CRITICAL: Toujours libérer la session React pour éviter le mode "Zombie"
+        setCurrentSession(null);
+        console.log('[AuthContext] Session locale libérée (finally)');
       }
-
-      setCurrentSession(null);
     };
 
     window.addEventListener('token-expired', handleTokenExpired);
@@ -323,19 +328,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     try {
-      await AuthService.logout();
+      try {
+        await AuthService.logout();
+      } catch (err) {
+        console.warn('[AuthContext] Erreur lors de la déconnexion Supabase:', err);
+      }
+
+      // 🧹 Nettoyer tous les caches avant de fermer la session
+      console.log('[AuthContext] Purge des caches avant logout');
+      await CacheManagerService.fullCleanup();
     } catch (err) {
-      console.warn('[AuthContext] Erreur lors de la déconnexion Supabase:', err);
+      console.error('[AuthContext] Critical error during logout cleanup:', err);
+    } finally {
+      // 💾 Nettoyer le stockage offline (bars, sélection) SYSTÉMATIQUEMENT
+      OfflineStorage.clear();
+      setCurrentSession(null);
     }
-
-    // 🧹 Nettoyer tous les caches avant de fermer la session
-    console.log('[AuthContext] Purge des caches avant logout');
-    await CacheManagerService.fullCleanup();
-
-    // 💾 Nettoyer le stockage offline (bars, sélection)
-    OfflineStorage.clear();
-
-    setCurrentSession(null);
   }, [currentSession, setCurrentSession]);
 
   const hasPermission = useCallback((permission: keyof RolePermissions) => {
