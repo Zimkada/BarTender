@@ -110,6 +110,7 @@ describe('revenueCalculator', () => {
 
     it('should deduplicate offline queue sales if present in recentlySyncedKeys', () => {
         const key = 'uuid-offline-1';
+        // Input mocks can be snake_case, preprocess will handle it
         const offlineSales = [{ idempotency_key: key, total: 500, sold_by: MOCK_USER_ID }];
 
         const recentlySyncedKeys = new Map();
@@ -119,7 +120,7 @@ describe('revenueCalculator', () => {
         const stats = calculateRevenueStats({
             sales: [], // Rien sur le serveur encore
             returns: [],
-            offlineSales,
+            offlineSales, // Passed as unknown[], will be validated/transformed
             recentlySyncedKeys,
             startDate: '2023-01-01',
             endDate: '2023-01-01',

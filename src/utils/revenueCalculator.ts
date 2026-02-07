@@ -137,11 +137,11 @@ export const calculateRevenueStatsPure = ({
 
     // 4. Offline Sales & Deduplication
     const filteredOfflineSales = isServerRole
-        ? offlineSales.filter(s => s.sold_by === currentUserId)
+        ? offlineSales.filter(s => s.soldBy === currentUserId)
         : offlineSales;
 
     const deduplicatedOfflineQueue = filteredOfflineSales.filter(sale => {
-        const key = sale.idempotency_key;
+        const key = sale.idempotencyKey;
         // If it has a key and that key is in the recently synced map, we filter it out 
         // because it's either already in 'sales' OR in 'transitionRevenue'
         return !key || !recentlySyncedKeys.has(key);

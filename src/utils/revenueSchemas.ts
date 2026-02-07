@@ -104,11 +104,11 @@ export const ReturnSchema = z.preprocess(mapReturnToCamel, z.object({
     businessDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.date()),
 }));
 
-export const MinimalOfflineSaleSchema = z.object({
-    idempotency_key: z.string().optional(),
+export const MinimalOfflineSaleSchema = z.preprocess(mapSaleToCamel, z.object({
+    idempotencyKey: z.string().optional().nullable(),
     total: z.number().min(0),
-    sold_by: z.string().uuid(),
-});
+    soldBy: z.string().uuid(),
+}));
 
 // --- Types Inférés ---
 export type ValidatedSale = z.infer<typeof SaleSchema>;
