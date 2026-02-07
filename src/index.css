@@ -58,23 +58,24 @@
        Modifier --brand-hue pour changer toute l'identité visuelle
        ═══════════════════════════════════════════════════════════ */
 
-    /* Teinte de base (0-360) - Valeurs Initiales Neutres (Gris) */
+    /* Teinte de base (0-360) - Valeurs Initiales par Défaut (Amber) */
     /* Ces valeurs sont OVERRIDÉES par le script dans index.html avant le paint */
-    --brand-hue: 220;
-    --brand-saturation: 10%;
+    --brand-hue: 28;
+    --brand-saturation: 65%;
 
-    /* Luminosités pour le gradient premium (Plus sombre pour éviter la fatigue) */
-    --brand-light: 45%;
-    --brand-dark: 30%;
+    /* Luminosités pour le gradient premium (Match les couleurs réelles du thème Amber) */
+    --brand-light: 55%;
+    --brand-dark: 45%;
 
     /* Couleurs calculées */
     --brand-primary: hsl(var(--brand-hue), var(--brand-saturation), var(--brand-light));
     --brand-primary-dark: hsl(var(--brand-hue), var(--brand-saturation), var(--brand-dark));
 
     /* Gradient principal (Header, Boutons actifs, etc.) */
+    /* Note: dark→light pour correspondre au ThemeContext (primary→secondary) */
     --brand-gradient: linear-gradient(135deg,
-        hsl(var(--brand-hue), var(--brand-saturation), var(--brand-light)) 0%,
-        hsl(var(--brand-hue), var(--brand-saturation), var(--brand-dark)) 100%);
+        hsl(var(--brand-hue), var(--brand-saturation), var(--brand-dark)) 0%,
+        hsl(var(--brand-hue), var(--brand-saturation), var(--brand-light)) 100%);
 
     /* Ombre colorée harmonisée */
     --brand-shadow: hsla(var(--brand-hue), var(--brand-saturation), 40%, 0.4);
