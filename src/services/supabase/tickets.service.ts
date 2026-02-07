@@ -7,6 +7,7 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import { networkManager } from '../NetworkManager';
 import { offlineQueue } from '../offlineQueue';
+import { generateUUID } from '../../utils/crypto';
 
 export interface TicketRow {
   id: string;
@@ -38,10 +39,7 @@ export class TicketsService {
     tableNumber?: number,
     customerName?: string
   ): Promise<TicketRow> {
-    // 🛡️ SÉCURITÉ UUID (Fix Compatibilité): crypto.randomUUID peut manquer sur certains envs
-    const idempotencyKey = typeof crypto !== 'undefined' && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `ticket_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const idempotencyKey = generateUUID();
     const tempId = `temp_tkt_${Date.now()}`;
 
     // 1. Détection réseau
@@ -105,7 +103,7 @@ export class TicketsService {
    * Fermer un bon (open → paid) via RPC pay_ticket (Resilience Pro)
    */
   static async payTicket(ticketId: string, paidBy: string, paymentMethod: string, barId?: string): Promise<TicketRow> {
-    const idempotencyKey = crypto.randomUUID();
+    const idempotencyKey = generateUUID();
 
     if (!networkManager.isOnline() && barId) {
       console.log('[TicketsService] Offline detected, queuing ticket payment');

@@ -30,6 +30,7 @@ export function FaireLePointModal({ tickets, onClose }: FaireLePointModalProps) 
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
     const [paidIds, setPaidIds] = useState<Set<string>>(new Set());
+    const isManagerOrPromoter = currentSession?.role === 'gerant' || currentSession?.role === 'promoteur';
 
     // View Details Logic
     const [viewDetailsId, setViewDetailsId] = useState<string | null>(null);
@@ -98,27 +99,62 @@ export function FaireLePointModal({ tickets, onClose }: FaireLePointModalProps) 
                                     <div key={ticket.id} className={`rounded-xl border transition-all ${isPayingMode ? 'border-brand-primary ring-1 ring-brand-primary bg-white shadow-md' : 'border-gray-100 bg-gray-50/30'}`}>
                                         <div className="p-4">
                                             <div className="flex items-start justify-between gap-3">
+                                                {/* Content Area */}
                                                 <div className="flex-1 min-w-0" onClick={() => setViewDetailsId(ticket.id)} role="button">
                                                     <div className="flex items-center justify-between mb-1">
                                                         <p className="text-[10px] font-black text-brand-primary uppercase tracking-widest">
                                                             BON #{ticket.ticketNumber || '?'}
                                                         </p>
-                                                        {ticket.serverName && (
-                                                            <span className="text-[9px] font-bold text-gray-400 flex items-center gap-0.5 uppercase tracking-tighter">
-                                                                <User size={8} className="text-gray-300" />
-                                                                {ticket.serverName}
-                                                            </span>
-                                                        )}
+                                                        <span className="text-[10px] font-black text-gray-400 whitespace-nowrap">
+                                                            {new Date(ticket.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
                                                     </div>
-                                                    <p className="text-[11px] font-black text-gray-800 truncate">{ticket.productSummary}</p>
-                                                    <p className="text-[9px] text-gray-400 mt-0.5">
-                                                        {ticket.salesCount} vente{ticket.salesCount > 1 ? 's' : ''}
-                                                        {formatTicketInfo(ticket) && ` • ${formatTicketInfo(ticket)}`}
-                                                    </p>
+
+                                                    {/* Context Area (Role & Screen Size Sensitive) */}
+                                                    {(ticket.serverName || formatTicketInfo(ticket)) && (
+                                                        <div className="text-[9px] font-bold text-gray-400 uppercase tracking-tight mb-1 truncate flex items-center gap-1.5">
+                                                            {isManagerOrPromoter ? (
+                                                                <>
+                                                                    <span className="flex items-center gap-0.5 text-brand-primary/70 shrink-0">
+                                                                        <User size={8} />
+                                                                        {ticket.serverName}
+                                                                    </span>
+                                                                    {formatTicketInfo(ticket) && (
+                                                                        <span className="hidden sm:inline truncate opacity-70">
+                                                                            <span className="mx-1 opacity-30">•</span>
+                                                                            {formatTicketInfo(ticket)}
+                                                                        </span>
+                                                                    )}
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    {formatTicketInfo(ticket) ? (
+                                                                        <span className="truncate text-brand-primary/80">{formatTicketInfo(ticket)}</span>
+                                                                    ) : (
+                                                                        <span className="flex items-center gap-0.5 text-brand-primary/70 shrink-0">
+                                                                            <User size={8} />
+                                                                            {ticket.serverName}
+                                                                        </span>
+                                                                    )}
+                                                                    {formatTicketInfo(ticket) && ticket.serverName && (
+                                                                        <span className="hidden sm:inline truncate opacity-70">
+                                                                            <span className="mx-1 opacity-30">•</span>
+                                                                            {ticket.serverName}
+                                                                        </span>
+                                                                    )}
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    <p className="text-[11px] font-black text-gray-800 truncate mb-1">{ticket.productSummary}</p>
                                                 </div>
 
                                                 <div className="flex flex-col items-end gap-2">
-                                                    <span className="text-sm font-black text-brand-dark font-mono">{formatPrice(ticket.totalAmount)}</span>
+                                                    <div className="text-right leading-none">
+                                                        <span className="text-sm font-black text-brand-dark font-mono block">{formatPrice(ticket.totalAmount)}</span>
+                                                        <span className="text-[9px] font-black text-gray-400 uppercase mt-1 inline-block">({ticket.salesCount} ventes)</span>
+                                                    </div>
 
                                                     {!isPayingMode && !isPaid && (
                                                         <div className="flex items-center gap-1">

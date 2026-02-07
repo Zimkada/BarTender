@@ -4,6 +4,7 @@ import { ProductsService } from './products.service';
 import { auditLogger } from '../../services/AuditLogger';
 import { networkManager } from '../NetworkManager';
 import { offlineQueue } from '../offlineQueue';
+import { generateUUID } from '../../utils/crypto';
 
 export type DBSale = Database['public']['Tables']['sales']['Row'] & {
   idempotency_key?: string;
@@ -91,11 +92,7 @@ export class SalesService {
     const status = data.status || 'pending';
     const { shouldShowBanner: isOffline } = networkManager.getDecision();
 
-    // 🛡️ SÉCURITÉ (V11.5): Utiliser un UUID pour éviter toute collision d'idempotence
-    const uuid = typeof crypto !== 'undefined' && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `sale_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const idempotencyKey = uuid;
+    const idempotencyKey = generateUUID();
 
     try {
       if (isOffline && options?.canWorkOffline) {
