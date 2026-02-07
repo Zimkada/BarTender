@@ -59,7 +59,16 @@ export const useSalesMutations = (barId: string) => {
                 ? saleData.serverId
                 : (currentSession?.userId || '');
 
-            const validatedByValue = isSimplifiedMode && saleData.status === 'validated'
+            const role = currentSession?.role;
+            const isManagerOrAdmin = (role as string) === 'admin' || (role as string) === 'gerant';
+
+            // 🛡️ DECISION CRITIQUE (V11.4): Une vente offline par un gérant/admin est VALIDÉE par défaut.
+            // Cela évite qu'elle ne disparaisse du CA global après synchronisation.
+            const finalStatus = (isManagerOrAdmin || isSimplifiedMode)
+                ? 'validated'
+                : (saleData.status || 'pending');
+
+            const validatedByValue = (finalStatus === 'validated')
                 ? (currentSession?.userId || null)
                 : null;
 
@@ -71,7 +80,7 @@ export const useSalesMutations = (barId: string) => {
                 server_id: saleData.serverId || null,
                 ticket_id: saleData.ticketId || null,
                 validated_by: validatedByValue,
-                status: saleData.status || 'pending',
+                status: finalStatus,
                 customer_name: (saleData as any).customerName,
                 customer_phone: (saleData as any).customerPhone,
                 notes: (saleData as any).notes,
@@ -85,20 +94,17 @@ export const useSalesMutations = (barId: string) => {
                 throw new Error('Utilisateur non connecté');
             }
 
-            const role = currentSession?.role;
-            const canWorkOffline = !!role;
-
             const safetyTimeoutPromise = new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('GLOBAL_MUTATION_TIMEOUT')), 15000)
             );
 
-            console.log('[useSalesMutations] calling SalesService.createSale with 15s safety race', { canWorkOffline });
+            console.log('[useSalesMutations] calling SalesService.createSale with 15s safety race', { canWorkOffline: !!role });
 
             const savedSaleRow = await Promise.race([
                 SalesService.createSale(
                     salePayload,
                     {
-                        canWorkOffline,
+                        canWorkOffline: !!role,
                         userId: currentSession?.userId || ''
                     }
                 ),

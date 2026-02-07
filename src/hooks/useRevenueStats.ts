@@ -191,19 +191,24 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
     // 🚀 Réactivité Instantanée (Phase 10)
     // S'abonner aux mises à jour de la queue pour invalider les stats immédiatement
     useEffect(() => {
-        const handleQueueUpdate = () => {
-            console.log('[useRevenueStats] Queue updated, refetching...');
-            refetch();
+        let timeout: NodeJS.Timeout;
 
-            // Re-fetch local cache for placeholder too
-            const dStart = startDate ? new Date(startDate) : undefined;
-            const dEnd = endDate ? new Date(endDate) : undefined;
-            SalesService.getOfflineSales(currentBarId, dStart, dEnd).then(sales => {
-                const filtered = isServerRole
-                    ? sales.filter(s => s.sold_by === currentSession?.userId)
-                    : sales;
-                setOfflineQueueSales(filtered);
-            });
+        const handleQueueUpdate = () => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                console.log('[useRevenueStats] Queue updated, refetching...');
+                refetch();
+
+                // Re-fetch local cache for placeholder too
+                const dStart = startDate ? new Date(startDate) : undefined;
+                const dEnd = endDate ? new Date(endDate) : undefined;
+                SalesService.getOfflineSales(currentBarId, dStart, dEnd).then(sales => {
+                    const filtered = isServerRole
+                        ? sales.filter(s => s.sold_by === currentSession?.userId)
+                        : sales;
+                    setOfflineQueueSales(filtered);
+                });
+            }, 150);
         };
 
         const handleSyncCompleted = () => {
@@ -214,6 +219,7 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         window.addEventListener('queue-updated', handleQueueUpdate);
         window.addEventListener('sync-completed', handleSyncCompleted);
         return () => {
+            clearTimeout(timeout);
             window.removeEventListener('queue-updated', handleQueueUpdate);
             window.removeEventListener('sync-completed', handleSyncCompleted);
         };

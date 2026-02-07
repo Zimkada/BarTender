@@ -39,6 +39,7 @@ export const useProducts = (barId: string | undefined) => {
         enabled: !!barId,
         staleTime: CACHE_STRATEGY.products.staleTime,
         gcTime: CACHE_STRATEGY.products.gcTime,
+        networkMode: 'always', // 🛡️ CRITIQUE: Permet l'accès au cache stock offline
         refetchInterval: smartSync.isSynced ? false : 30000, // 🚀 Hybride: Realtime si connecté, sinon polling 30s
     });
 };
@@ -99,6 +100,7 @@ export const useSupplies = (barId: string | undefined) => {
             enabled: !!barId,
             staleTime: CACHE_STRATEGY.products.staleTime,
             gcTime: CACHE_STRATEGY.products.gcTime,
+            networkMode: 'always', // 🛡️ CRITIQUE
             refetchInterval: smartSync.isSynced ? false : 60000, // 🚀 Hybride: Realtime ou polling 60s
         }
     );
@@ -162,6 +164,7 @@ export const useConsignments = (barId: string | undefined) => {
             enabled: !!barId,
             staleTime: CACHE_STRATEGY.products.staleTime,
             gcTime: CACHE_STRATEGY.products.gcTime,
+            networkMode: 'always', // 🛡️ CRITIQUE
             refetchInterval: smartSync.isSynced ? false : 60000,
         }
     );

@@ -1,14 +1,19 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
 
-type Return = Database['public']['Tables']['returns']['Row'];
+// 🛡️ Fix V12: Strict Typing for Returns
+export type DBReturn = Database['public']['Tables']['returns']['Row'] & {
+    operating_mode_at_creation?: 'full' | 'simplified';
+    // Add other fields if missing from generated types
+};
+
 type ReturnInsert = Database['public']['Tables']['returns']['Insert'];
 
 export class ReturnsService {
     /**
      * Créer un retour
      */
-    static async createReturn(data: ReturnInsert): Promise<Return> {
+    static async createReturn(data: ReturnInsert): Promise<DBReturn> {
         try {
             const { data: newReturn, error } = await supabase
                 .from('returns')
@@ -17,7 +22,7 @@ export class ReturnsService {
                 .single();
 
             if (error) throw error;
-            return newReturn;
+            return newReturn as DBReturn;
         } catch (error: any) {
             throw new Error(handleSupabaseError(error));
         }
@@ -33,7 +38,7 @@ export class ReturnsService {
         endDate?: Date | string,
         serverId?: string,
         operatingMode?: 'full' | 'simplified'
-    ): Promise<Return[]> {
+    ): Promise<DBReturn[]> {
         try {
             // Helper pour formater la date au format YYYY-MM-DD attendu par PostgreSQL
             const formatToYYYYMMDD = (date: Date | string): string => {

@@ -24,5 +24,5 @@ export function useServerMappings(barId: string | undefined) {
   // Extract just the server names (already sorted by the service)
   const serverNames = mappings.map(m => m.serverName);
 
-  return { serverNames, isLoading, error };
+  return { serverNames, mappings, isLoading, error };
 }

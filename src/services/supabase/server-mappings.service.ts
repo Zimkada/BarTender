@@ -34,7 +34,7 @@ export class ServerMappingsService {
     if (shouldShowBanner) {
       console.log('[ServerMappingsService] Offline mode: using cache fallback for', normalizedName);
       const cachedMappings = OfflineStorage.getMappings(barId);
-      const mapping = cachedMappings?.find((m: any) => m.serverName === normalizedName);
+      const mapping = cachedMappings?.find((m) => m.serverName === normalizedName);
       return mapping?.userId || null;
     }
 
@@ -47,11 +47,11 @@ export class ServerMappingsService {
         .eq('server_name', normalizedName)
         .single();
 
-      const timeoutPromise = new Promise((_, reject) =>
+      const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('TIMEOUT_EXCEEDED')), 3000)
       );
 
-      const result = await Promise.race([rpcPromise, timeoutPromise]) as any;
+      const result = await Promise.race([rpcPromise, timeoutPromise]);
 
       if (result.error) {
         if (result.error.code === 'PGRST116') {
@@ -61,16 +61,17 @@ export class ServerMappingsService {
       }
 
       return result.data?.user_id || null;
-    } catch (error: any) {
-      if (error.message === 'TIMEOUT_EXCEEDED') {
+    } catch (error) {
+      const err = error as Error;
+      if (err.message === 'TIMEOUT_EXCEEDED') {
         console.warn('[ServerMappingsService] Fetch timed out (3s), using cache fallback for', normalizedName);
       } else {
-        console.warn('[ServerMappingsService] Fetch failed, falling back to cache:', error);
+        console.warn('[ServerMappingsService] Fetch failed, falling back to cache:', err);
       }
 
       // 2. Fallback de secours en cas d'erreur réseau ou timeout
       const cachedMappings = OfflineStorage.getMappings(barId);
-      const mapping = cachedMappings?.find((m: any) => m.serverName === normalizedName);
+      const mapping = cachedMappings?.find((m) => m.serverName === normalizedName);
       return mapping?.userId || null;
     }
   }

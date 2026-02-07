@@ -18,6 +18,18 @@ export interface RLSViolation {
   created_at: string;
 }
 
+export interface BarHealthStatus {
+  bar_id: string;
+  bar_name: string;
+  device_id: string;
+  app_version: string;
+  last_heartbeat_at: string | null;
+  unsynced_count: number;
+  battery_level: number | null;
+  status: 'online' | 'warning' | 'offline';
+  minutes_since_heartbeat: number;
+}
+
 export interface SecurityDashboardData {
   hour: string;
   table_name: string;
