@@ -291,7 +291,7 @@ export default function TeamManagementPage() {
         tabs={[
           { id: 'members', label: isMobile ? 'Équipe' : 'Mon Équipe', icon: Users },
           { id: 'add', label: isMobile ? 'Ajouter' : 'Recrutement', icon: UserPlus },
-          ...(FEATURES.ENABLE_SWITCHING_MODE ? [{ id: 'mappings', label: isMobile ? 'Caisses' : 'Assignation Caisses', icon: GitBranch }] : [])
+          ...(FEATURES.ENABLE_SWITCHING_MODE ? [{ id: 'mappings', label: isMobile ? 'Nom sur vente' : "Nom d'affichage sur vente", icon: GitBranch }] : [])
         ]}
         activeTab={pageTab}
         onTabChange={(id) => {
