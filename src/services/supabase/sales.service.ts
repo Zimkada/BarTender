@@ -6,6 +6,7 @@ import { auditLogger } from '../../services/AuditLogger';
 import { networkManager } from '../NetworkManager';
 import { offlineQueue } from '../offlineQueue';
 import { generateUUID } from '../../utils/crypto';
+import { toSupabaseJson } from '../../lib/supabase-rpc.types';
 
 export type DBSale = Database['public']['Tables']['sales']['Row'] & {
   idempotency_key?: string;
@@ -111,7 +112,7 @@ export class SalesService {
         'create_sale_idempotent',
         {
           p_bar_id: data.bar_id,
-          p_items: data.items as any,
+          p_items: toSupabaseJson(data.items),
           p_payment_method: data.payment_method,
           p_sold_by: data.sold_by,
           p_idempotency_key: idempotencyKey,
@@ -130,20 +131,25 @@ export class SalesService {
       );
 
       try {
-        const result = await Promise.race([rpcPromise, timeoutPromise]) as any;
+        const result = await Promise.race([rpcPromise, timeoutPromise]);
         console.log('[SalesService] Race result received');
 
-        if (result.error) {
+        // Type guard pour vérifier la structure du résultat
+        if (result && typeof result === 'object' && 'error' in result && result.error) {
           console.error('[SalesService] RPC error detail:', result.error);
           throw result.error;
         }
 
-        return result.data;
+        // Extraction type-safe de data
+        return (result && typeof result === 'object' && 'data' in result)
+          ? result.data
+          : result;
 
-      } catch (err: any) {
-        console.warn('[SalesService] Online failure:', err.message);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        console.warn('[SalesService] Online failure:', errorMessage);
 
-        if (err.message === 'TIMEOUT_EXCEEDED' || err.message === 'Failed to fetch' || !navigator.onLine) {
+        if (errorMessage === 'TIMEOUT_EXCEEDED' || errorMessage === 'Failed to fetch' || !navigator.onLine) {
           if (options?.canWorkOffline) {
             console.log('[SalesService] Failing OVER to offline queue');
             return await this.fallbackToOfflineQueue(data, status, idempotencyKey, options);
@@ -151,7 +157,7 @@ export class SalesService {
         }
         throw err;
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('[SalesService] Global failure in createSale:', error);
       throw new Error(handleSupabaseError(error));
     }
@@ -365,15 +371,26 @@ export class SalesService {
 
     if (error || !data) throw new Error(handleSupabaseError(error || 'Vente introuvable'));
 
+    // Type enrichi avec les relations
+    const enrichedData = data as typeof data & {
+      seller?: { name: string } | null;
+      validator?: { name: string } | null;
+    };
+
     // Calculer items_count pour l'affichage
-    const items = data.items as any[];
-    const items_count = items ? items.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0) : 0;
+    const items = Array.isArray(enrichedData.items) ? enrichedData.items : [];
+    const items_count = items.reduce((acc: number, item) => {
+      const quantity = typeof item === 'object' && item !== null && 'quantity' in item
+        ? Number(item.quantity) || 0
+        : 0;
+      return acc + quantity;
+    }, 0);
 
     return {
-      ...data,
+      ...enrichedData,
       items_count,
-      seller_name: (data as any).seller?.name,
-      validator_name: (data as any).validator?.name
+      seller_name: enrichedData.seller?.name,
+      validator_name: enrichedData.validator?.name
     };
   }
 
