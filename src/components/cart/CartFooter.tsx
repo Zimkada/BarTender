@@ -1,4 +1,4 @@
-import { Trash2, Users, Check, Wallet, Receipt, Plus, ArrowRight, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Trash2, Users, Check, Wallet, Receipt, Plus, ArrowRight, X, ChevronDown, ChevronUp, User } from 'lucide-react';
 import { useState } from 'react';
 import { EnhancedButton } from '../EnhancedButton';
 import { Select, SelectOption } from '../ui/Select';
@@ -54,8 +54,14 @@ export function CartFooter({
     // UX : Drawer de sélection de bon (remplace le select natif pour mobile)
     const [showBonSelection, setShowBonSelection] = useState(false);
 
+    // UX : Drawer de sélection de serveur (Mode Simplifié Premium)
+    const [showServerSelection, setShowServerSelection] = useState(false);
+
     // Fonction pour obtenir le label du bon sélectionné
     const selectedBonLabel = bonOptions.find(o => o.value === selectedBon)?.label;
+
+    // Fonction pour obtenir le label du serveur sélectionné
+    const selectedServerLabel = serverOptions.find(o => o.value === selectedServer)?.label;
 
     // UI creation bon - 2 champs séparés
     const [isCreatingBon, setIsCreatingBon] = useState(false);
@@ -73,27 +79,71 @@ export function CartFooter({
         setShowBonSelection(false);
     };
 
+    // Helper: Générer les initiales (ex: "Serveur Test" -> "ST")
+    const getInitials = (name: string) => {
+        return name
+            .split(' ')
+            .map(n => n[0])
+            .join('')
+            .substring(0, 2)
+            .toUpperCase();
+    };
+
+    // Helper: Générer une couleur de fond stable à partir du nom
+    const getAvatarColor = (name: string) => {
+        const colors = [
+            'bg-blue-100 text-blue-600',
+            'bg-green-100 text-green-600',
+            'bg-purple-100 text-purple-600',
+            'bg-orange-100 text-orange-600',
+            'bg-pink-100 text-pink-600',
+            'bg-teal-100 text-teal-600',
+            'bg-indigo-100 text-indigo-600',
+            'bg-rose-100 text-rose-600',
+        ];
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) {
+            hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return colors[Math.abs(hash) % colors.length];
+    };
+
 
 
     return (
         <div className={`space-y-1.5 ${isMobile ? '' : 'p-1'}`}>
-            {/* Server Selection - Extra Compact */}
+            {/* Server Selection - Premium Trigger (Remplace le Select standard) */}
             {isSimplifiedMode && (
-                <div className="bg-gray-50/30 rounded-lg overflow-hidden border border-brand-subtle/20">
-                    <Select
-                        label=""
-                        options={serverOptions}
-                        value={selectedServer}
-                        onChange={(e) => onServerChange(e.target.value)}
-                        size="sm"
-                        className="border-none bg-transparent shadow-none h-7 text-[9px] font-black uppercase"
-                        leftIcon={<Users size={10} className="text-brand-primary" />}
-                    />
+                <div className="mb-2">
+                    <button
+                        onClick={() => setShowServerSelection(true)}
+                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${selectedServer
+                            ? 'bg-white border-gray-200 shadow-sm shadow-gray-100/50'
+                            : 'bg-brand-primary/5 border-brand-primary/30 shadow-sm shadow-brand-primary/5'
+                            }`}
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${selectedServer ? 'bg-gray-100 text-gray-600' : 'bg-brand-primary/10 text-brand-primary'}`}>
+                                {selectedServer ? <User size={16} strokeWidth={2.5} /> : <Users size={16} />}
+                            </div>
+                            <div className="flex flex-col items-start">
+                                <span className={`text-[10px] font-black uppercase tracking-wide ${selectedServer ? 'text-gray-800' : 'text-brand-primary'}`}>
+                                    {selectedServerLabel || 'Sélectionner un serveur...'}
+                                </span>
+                                {selectedServer && (
+                                    <span className="text-[8px] text-gray-400 font-medium uppercase tracking-wider">
+                                        Serveur actif
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        <ChevronDown size={14} className={selectedServer ? 'text-gray-300' : 'text-brand-primary/50'} />
+                    </button>
                 </div>
             )}
 
             {/* Bon Selection Mode Toggle - Enlarged for Priority */}
-            <div className={`rounded-xl overflow-hidden border-2 transition-all ${selectedBon ? 'bg-brand-primary/10 border-brand-primary' : 'bg-white border-gray-200 hover:border-brand-primary/50'}`}>
+            <div className={`rounded-xl overflow-hidden border transition-all ${selectedBon ? 'bg-brand-primary/10 border-brand-primary shadow-sm' : 'bg-brand-primary/5 border-brand-primary/20 hover:border-brand-primary/40'}`}>
                 {selectedBon ? (
                     // Active Bon Display (Clear & Visible)
                     <div className="flex items-center justify-between p-2">
@@ -111,7 +161,7 @@ export function CartFooter({
                             </div>
                         </div>
                         <button
-                            onClick={() => onBonChange('')}
+                            onClick={() => onBonChange?.('')}
                             className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                         >
                             <X size={18} />
@@ -124,24 +174,85 @@ export function CartFooter({
                         className="w-full flex items-center justify-between p-3 group"
                     >
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-500 group-hover:bg-brand-primary/10 group-hover:text-brand-primary flex items-center justify-center transition-colors">
+                            <div className="w-8 h-8 rounded-full bg-brand-primary/10 text-brand-primary group-hover:bg-brand-primary/20 flex items-center justify-center transition-colors">
                                 <Receipt size={16} strokeWidth={2.5} />
                             </div>
                             <div className="flex flex-col items-start">
-                                <span className="text-[11px] font-black uppercase text-gray-700 group-hover:text-brand-primary transition-colors">
+                                <span className="text-[11px] font-black uppercase text-brand-primary group-hover:text-brand-dark transition-colors">
                                     Mettre sur un bon
                                 </span>
-                                <span className="text-[9px] text-gray-400 font-medium">
+                                <span className="text-[9px] text-brand-primary/60 font-medium">
                                     Différer le paiement
                                 </span>
                             </div>
                         </div>
-                        <div className="bg-gray-100 text-gray-600 group-hover:bg-brand-primary/10 group-hover:text-brand-primary rounded-lg px-2 py-1 text-[9px] font-bold transition-colors">
+                        <div className="bg-brand-primary/20 text-brand-primary group-hover:bg-brand-primary group-hover:text-white rounded-lg px-2 py-1 text-[9px] font-black transition-all">
                             {bonOptions.length - 1} en cours
                         </div>
                     </button>
                 )}
             </div>
+
+            {/* Server Selection Overlay (Custom Drawer - Premium UX) */}
+            <AnimatePresence>
+                {showServerSelection && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 0.5 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowServerSelection(false)}
+                            className="fixed inset-0 bg-black/50 z-[100]"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, y: 100 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 100 }}
+                            className="fixed inset-x-0 bottom-0 bg-white shadow-2xl z-[101] rounded-t-2xl border-t border-gray-100 p-4 max-h-[70vh] flex flex-col"
+                        >
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-sm font-black text-gray-900 uppercase tracking-wide">Qui prend cette commande ?</h3>
+                                <button onClick={() => setShowServerSelection(false)} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors">
+                                    <X size={16} />
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto pb-4">
+                                {serverOptions.filter(o => o.value).map((opt) => {
+                                    const isSelected = selectedServer === opt.value;
+
+                                    return (
+                                        <button
+                                            key={opt.value}
+                                            onClick={() => {
+                                                onServerChange(opt.value);
+                                                setShowServerSelection(false);
+                                            }}
+                                            className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${isSelected
+                                                ? 'bg-brand-primary/5 border-brand-primary shadow-sm'
+                                                : 'bg-white border-gray-100 hover:border-brand-primary/30 hover:bg-gray-50'
+                                                }`}
+                                        >
+                                            <div className={`w-12 h-12 rounded-full mb-2 flex items-center justify-center text-sm font-black shadow-sm ${getAvatarColor(opt.label)}`}>
+                                                {getInitials(opt.label)}
+                                            </div>
+                                            <span className={`text-[10px] font-black uppercase text-center leading-tight ${isSelected ? 'text-brand-primary' : 'text-gray-700'}`}>
+                                                {opt.label}
+                                            </span>
+
+                                            {isSelected && (
+                                                <div className="absolute top-2 right-2 w-4 h-4 bg-brand-primary text-white rounded-full flex items-center justify-center">
+                                                    <Check size={10} strokeWidth={3} />
+                                                </div>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
 
             {/* Bon Selection Overlay (Custom Drawer) */}
             <AnimatePresence>
