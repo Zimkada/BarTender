@@ -6,7 +6,8 @@ import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { SalesService, type OfflineSale } from '../services/supabase/sales.service';
 import { ReturnsService } from '../services/supabase/returns.service';
-import { getCurrentBusinessDateString, filterByBusinessDateRange } from '../utils/businessDateHelpers';
+import { getCurrentBusinessDateString } from '../utils/businessDateHelpers';
+import { calculateRevenueStats } from '../utils/revenueCalculator';
 import { statsKeys } from './queries/useStatsQueries';
 import { CACHE_STRATEGY } from '../lib/cache-strategy';
 import { syncManager } from '../services/SyncManager';
@@ -71,81 +72,23 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
 
         // On utilise soit les ventes passées en paramètre (frais), soit le state (si dispo)
         const offlineSource = customOfflineSales || offlineQueueSales;
-
-        // ✨ Filter by server if role is serveur
-        let baseSales = sales.filter(s => s.status === 'validated');
-
-        if (isServerRole) {
-            // Source of truth: soldBy is the business attribution
-            baseSales = baseSales.filter(s =>
-                s.soldBy === currentSession?.userId
-            );
-        }
-
-        // Filter sales by business date range
-        const filteredSales = filterByBusinessDateRange(
-            baseSales,
-            startDate,
-            endDate,
-            closeHour
-        );
-
-        // 🛡️ Buffer de Transition (Phase 11.3): Bridge le gap post-sync
         const recentlySyncedMap = syncManager.getRecentlySyncedKeys();
-        let transitionRevenue = 0;
-        let transitionCount = 0;
 
-        recentlySyncedMap.forEach((data, key) => {
-            // Si la vente n'est pas encore dans la liste serveur officielle (sales)
-            // On l'ajoute au CA de transition pour éviter le "trou"
-            // 🛡️ UNIFICATION (V11.6): Déduplication fiable via idempotencyKey
-            const alreadyInServerSales = sales.some((s: any) =>
-                s.idempotencyKey === key
-            );
-            if (!alreadyInServerSales) {
-                transitionRevenue += data.total;
-                transitionCount += 1;
-            }
-        });
-
-        // 🛡️ Déduplication (Offline Queue vs Buffer)
-        const deduplicatedOfflineQueue = offlineSource.filter(sale => {
-            const key = sale.idempotency_key;
-            return !key || !recentlySyncedMap.has(key);
-        });
-
-        const offlineRevenue = deduplicatedOfflineQueue.reduce((sum: number, sale: any) => sum + (sale.total || 0), 0); // 🛡️ Fix V11.6: Guard anti-NaN
-        const grossRevenue = filteredSales.reduce((sum: number, sale: any) => sum + (sale.total || 0), 0) + offlineRevenue + transitionRevenue;
-        const saleCount = filteredSales.length + deduplicatedOfflineQueue.length + transitionCount;
-
-        // ✨ Filter returns by server if applicable
-        let baseReturns = returns.filter(r => r.isRefunded && (r.status === 'approved' || r.status === 'restocked'));
-        if (isServerRole) {
-            // Source of truth: serverId is the server who made the original sale
-            // Servers see returns on their sales regardless of who created the return
-            baseReturns = baseReturns.filter(r =>
-                r.serverId === currentSession?.userId
-            );
-        }
-
-        // Filter returns by business date range
-        const filteredReturns = filterByBusinessDateRange(
-            baseReturns,
+        const stats = calculateRevenueStats({
+            sales,
+            returns,
+            offlineSales: offlineSource,
+            recentlySyncedKeys: recentlySyncedMap,
             startDate,
             endDate,
-            closeHour
-        );
-
-        const refundsTotal = filteredReturns.reduce((sum, r) => sum + r.refundAmount, 0);
-        const netRevenue = grossRevenue - refundsTotal;
+            closeHour,
+            isServerRole,
+            currentUserId: currentSession?.userId
+        });
 
         return {
-            netRevenue,
-            grossRevenue,
-            refundsTotal,
-            saleCount,
-            averageSale: saleCount > 0 ? grossRevenue / saleCount : 0,
-            isStale: true
+            ...stats,
+            isStale: true // Always true for local recalc
         };
     }, [sales, returns, startDate, endDate, currentBar?.closingHour, isServerRole, currentSession?.userId, offlineQueueSales]);
 

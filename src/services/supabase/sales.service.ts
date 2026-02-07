@@ -5,6 +5,12 @@ import { auditLogger } from '../../services/AuditLogger';
 import { networkManager } from '../NetworkManager';
 import { offlineQueue } from '../offlineQueue';
 
+export type DBSale = Database['public']['Tables']['sales']['Row'] & {
+  idempotency_key?: string;
+  ticket_id?: string;
+  seller?: { name: string };
+  validator?: { name: string };
+};
 type Sale = Database['public']['Tables']['sales']['Row'];
 type SaleItem = {
   product_id: string;
@@ -302,7 +308,7 @@ export class SalesService {
 
   // --- Read Methods (Restored) ---
 
-  static async getBarSales(barId: string, options?: any): Promise<any[]> {
+  static async getBarSales(barId: string, options?: any): Promise<DBSale[]> {
     let query = supabase
       .from('sales')
       .select(`
@@ -321,7 +327,8 @@ export class SalesService {
 
     const { data, error } = await query;
     if (error) throw new Error(handleSupabaseError(error));
-    return data;
+    // 🛡️ Fix V12: Strict typing
+    return data as unknown as DBSale[];
   }
 
   static async getSaleById(saleId: string): Promise<Sale & {
