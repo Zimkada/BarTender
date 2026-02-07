@@ -152,6 +152,7 @@ export function Header({
                   <RefreshButton />
                   <NetworkBadge />
 
+
                   <Button
                     onClick={logout}
                     variant="ghost"
@@ -257,6 +258,9 @@ export function Header({
             {/* ✅ Nouveau badge sync unifié (remplace OfflineIndicator + NetworkIndicator + SyncButton) */}
             <SyncStatusBadge position="header" />
             <RefreshButton />
+
+            {/* ✅ Badge réseau compact (offline/connexion lente) */}
+            <NetworkBadge />
 
             {/* ✅ Badge réseau compact (offline/connexion lente) */}
             <NetworkBadge />

@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useViewport } from '../hooks/useViewport';
+import { networkManager } from '../services/NetworkManager';
+import { useNotifications } from './Notifications';
 
 interface NavItem {
   icon: React.ReactNode;
@@ -21,7 +23,6 @@ interface NavItem {
   roles: Array<'promoteur' | 'gerant' | 'serveur'>;
 }
 
-// ✅ FIX: Interface ajoutée pour les props du composant
 interface MobileNavigationProps {
   onShowQuickSale: () => void;
 }
@@ -35,16 +36,34 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
     return null;
   }
 
+  // 🛡️ Monitor network status
+  const [isOffline, setIsOffline] = React.useState(!networkManager.isOnline());
+
+  React.useEffect(() => {
+    return networkManager.subscribe(() => {
+      setIsOffline(!networkManager.isOnline());
+    });
+  }, []);
+
+  const { showNotification } = useNotifications();
+
   const allNavItems: NavItem[] = [
     {
       icon: <Zap size={24} />,
       label: 'Vente',
-      onClick: onShowQuickSale,
-      color: 'text-brand-primary',
+      onClick: () => {
+        if (isOffline) {
+          showNotification('error', "Vente rapide indisponible hors connexion. Utilisez l'onglet Panier.");
+          return;
+        }
+        onShowQuickSale();
+      },
+      color: isOffline ? 'text-gray-400 opacity-40' : 'text-brand-primary',
       roles: ['promoteur', 'gerant', 'serveur']
     },
     {
       icon: <LayoutDashboard size={24} />,
+      // ... rest of the items ...
       label: 'Dashboard',
       path: '/dashboard',
       color: 'text-blue-600',

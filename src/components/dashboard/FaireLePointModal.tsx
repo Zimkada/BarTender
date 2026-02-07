@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Receipt, Check, Eye } from 'lucide-react';
+import { X, Receipt, Check, Eye, User } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { TicketWithSummary } from '../../hooks/queries/useTickets';
 import { ticketKeys } from '../../hooks/queries/useTickets';
@@ -12,6 +12,7 @@ import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { InvoiceModal } from './InvoiceModal';
 import { Button } from '../ui/Button';
 import { PaymentMethodSelector, PaymentMethod } from '../cart/PaymentMethodSelector';
+import { formatTicketInfo } from '../../utils/formatTicketInfo';
 
 interface FaireLePointModalProps {
     tickets: TicketWithSummary[];
@@ -98,11 +99,22 @@ export function FaireLePointModal({ tickets, onClose }: FaireLePointModalProps) 
                                         <div className="p-4">
                                             <div className="flex items-start justify-between gap-3">
                                                 <div className="flex-1 min-w-0" onClick={() => setViewDetailsId(ticket.id)} role="button">
-                                                    <p className="text-[10px] font-black text-brand-primary uppercase tracking-widest mb-1">
-                                                        BON #{ticket.ticketNumber || '?'}
-                                                    </p>
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <p className="text-[10px] font-black text-brand-primary uppercase tracking-widest">
+                                                            BON #{ticket.ticketNumber || '?'}
+                                                        </p>
+                                                        {ticket.serverName && (
+                                                            <span className="text-[9px] font-bold text-gray-400 flex items-center gap-0.5 uppercase tracking-tighter">
+                                                                <User size={8} className="text-gray-300" />
+                                                                {ticket.serverName}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <p className="text-[11px] font-black text-gray-800 truncate">{ticket.productSummary}</p>
-                                                    <p className="text-[9px] text-gray-400 mt-0.5">{ticket.salesCount} vente{ticket.salesCount > 1 ? 's' : ''}</p>
+                                                    <p className="text-[9px] text-gray-400 mt-0.5">
+                                                        {ticket.salesCount} vente{ticket.salesCount > 1 ? 's' : ''}
+                                                        {formatTicketInfo(ticket) && ` • ${formatTicketInfo(ticket)}`}
+                                                    </p>
                                                 </div>
 
                                                 <div className="flex flex-col items-end gap-2">

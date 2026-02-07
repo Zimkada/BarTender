@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Receipt } from 'lucide-react';
+import { Receipt, User } from 'lucide-react';
 import type { TicketWithSummary } from '../../hooks/queries/useTickets';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { FaireLePointModal } from './FaireLePointModal';
@@ -50,16 +50,23 @@ export function BonStrip({ tickets }: BonStripProps) {
                             className="bg-white rounded-xl border border-brand-subtle/30 p-3 shadow-sm transition-all w-full cursor-pointer hover:border-brand-primary/40 active:scale-[0.98]"
                         >
                             <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] font-black text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                                <span className="text-[10px] font-black text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-md uppercase tracking-wider whitespace-nowrap">
                                     BON #{ticket.ticketNumber || '?'}
                                 </span>
-                                <span className="text-[10px] font-black text-gray-500">
+                                <span className="text-[10px] font-black text-gray-500 whitespace-nowrap">
                                     {ticket.createdAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             </div>
-                            {formatTicketInfo(ticket) && (
-                                <div className="text-[9px] font-bold text-gray-400 uppercase tracking-tight mb-1 truncate">
-                                    {formatTicketInfo(ticket)}
+                            {(ticket.serverName || formatTicketInfo(ticket)) && (
+                                <div className="text-[9px] font-bold text-gray-400 uppercase tracking-tight mb-1 truncate flex items-center gap-1.5">
+                                    {ticket.serverName && (
+                                        <span className="flex items-center gap-0.5 text-brand-primary/70 shrink-0">
+                                            <User size={8} />
+                                            {ticket.serverName}
+                                        </span>
+                                    )}
+                                    {ticket.serverName && formatTicketInfo(ticket) && <span className="opacity-30">•</span>}
+                                    <span className="truncate">{formatTicketInfo(ticket)}</span>
                                 </div>
                             )}
                             <p className="text-[10px] font-black text-gray-700 truncate mb-2">{ticket.productSummary}</p>
