@@ -371,14 +371,20 @@ export class ProductsService {
         return null;
       }
 
-      const globalProduct = data.global_products as GlobalProductRow | null;
+      const prod = data as BarProduct & {
+        global_products: GlobalProductRow | null;
+        bar_categories: BarCategory | null;
+        display_name: string;
+        local_image: string | null;
+      };
+      const globalProduct = prod.global_products;
 
       return {
-        ...data,
+        ...prod,
         global_product: globalProduct,
-        category: (data as any).bar_categories,
-        display_name: (data as any).display_name,
-        display_image: (data as any).local_image || globalProduct?.official_image || null,
+        category: prod.bar_categories,
+        display_name: prod.display_name,
+        display_image: prod.local_image || globalProduct?.official_image || null,
       };
     } catch (error) {
       throw new Error(handleSupabaseError(error));

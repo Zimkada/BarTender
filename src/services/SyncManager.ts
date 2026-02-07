@@ -16,6 +16,8 @@ import { offlineQueue } from './offlineQueue';
 import { supabase } from '../lib/supabase';
 import { BarsService } from './supabase/bars.service';
 import { broadcastService } from './broadcast/BroadcastService';
+import { buildCreateSaleParams, type CreateTicketParams, type PayTicketParams } from '../lib/supabase-rpc.types';
+import { getErrorMessage } from '../utils/errorHandler';
 
 /**
  * Service de gestion de la synchronisation automatique
@@ -236,12 +238,12 @@ class SyncManagerService {
         }
       }
     } catch (error) {
-      const err = error as any; // Temporary cast for logic parsing
-      console.error(`[SyncManager] Exception syncing operation ${operation.id}:`, err);
+      const errorMessage = getErrorMessage(error);
+      console.error(`[SyncManager] Exception syncing operation ${operation.id}:`, errorMessage);
       await offlineQueue.updateOperationStatus(
         operation.id,
         'error',
-        err.message || 'Sync exception'
+        errorMessage || 'Sync exception'
       );
     }
   }
@@ -271,11 +273,11 @@ class SyncManagerService {
         return this.syncUpdateBar(operation);
 
       default:
-        console.warn(`[SyncManager] Unknown operation type: ${(operation as any).type}`);
+        console.warn(`[SyncManager] Unimplemented operation type: ${operation.type}`);
         return {
           success: false,
           operationId: operation.id,
-          error: `Unknown operation type: ${(operation as any).type}`,
+          error: `Operation type ${operation.type} not yet implemented`,
           shouldRetry: false,
         };
     }
@@ -288,18 +290,23 @@ class SyncManagerService {
     try {
       const payload = operation.payload;
 
-      // Appeler le RPC idempotent (à créer ou utiliser existant)
-      // Note: On utilise p_idempotency_key pour éviter les doublons
-      const { data, error } = await supabase.rpc('create_ticket', {
+      // Convertir closing_hour en nombre si c'est une string
+      const closingHour = typeof payload.closing_hour === 'string'
+        ? parseInt(payload.closing_hour, 10)
+        : payload.closing_hour;
+
+      const params: CreateTicketParams = {
         p_bar_id: payload.bar_id,
         p_created_by: payload.created_by,
-        p_notes: payload.notes ?? undefined,
-        p_server_id: payload.server_id ?? undefined,
-        p_closing_hour: payload.closing_hour,
-        p_table_number: payload.table_number ?? undefined,
-        p_customer_name: payload.customer_name ?? undefined,
-        // p_idempotency_key: payload.idempotency_key // Si le RPC est mis à jour
-      }).single();
+        p_notes: payload.notes || undefined,
+        p_server_id: payload.server_id || undefined,
+        p_closing_hour: closingHour,
+        p_table_number: payload.table_number || undefined,
+        p_customer_name: payload.customer_name || undefined,
+        p_idempotency_key: payload.idempotency_key,
+      };
+
+      const { data, error } = await supabase.rpc('create_ticket', params).single();
 
       if (error) {
         return {
@@ -310,17 +317,25 @@ class SyncManagerService {
         };
       }
 
-      const realId = (data as any).id;
-      console.log(`[SyncManager] Ticket created: ${payload.temp_id} -> ${realId}`);
+      // Type guard pour vérifier que data a un id
+      if (data && typeof data === 'object' && 'id' in data) {
+        const realId = String((data as { id: string | number }).id);
+        console.log(`[SyncManager] Ticket created: ${payload.temp_id} -> ${realId}`);
 
-      // 🗺️ Enregistrer la correspondance pour les opérations suivantes dans la file
-      if (payload.temp_id) {
-        this.idMapping.set(payload.temp_id, realId);
+        // 🗺️ Enregistrer la correspondance pour les opérations suivantes dans la file
+        if (payload.temp_id && realId) {
+          this.idMapping.set(payload.temp_id, realId);
+        }
       }
 
       return { success: true, operationId: operation.id };
-    } catch (err: any) {
-      return { success: false, operationId: operation.id, error: err.message, shouldRetry: true };
+    } catch (error) {
+      return {
+        success: false,
+        operationId: operation.id,
+        error: getErrorMessage(error),
+        shouldRetry: true
+      };
     }
   }
 
@@ -338,11 +353,13 @@ class SyncManagerService {
         console.log(`[SyncManager] PAY_TICKET: Translated ${payload.ticket_id} to ${targetTicketId}`);
       }
 
-      const { error } = await supabase.rpc('pay_ticket', {
+      const params: PayTicketParams = {
         p_ticket_id: targetTicketId,
         p_paid_by: payload.paid_by,
         p_payment_method: payload.payment_method
-      }).single();
+      };
+
+      const { error } = await supabase.rpc('pay_ticket', params).single();
 
       if (error) {
         return {
@@ -354,8 +371,13 @@ class SyncManagerService {
       }
 
       return { success: true, operationId: operation.id };
-    } catch (err: any) {
-      return { success: false, operationId: operation.id, error: err.message, shouldRetry: true };
+    } catch (error) {
+      return {
+        success: false,
+        operationId: operation.id,
+        error: getErrorMessage(error),
+        shouldRetry: true
+      };
     }
   }
 
@@ -376,20 +398,24 @@ class SyncManagerService {
       }
 
       // Appeler le RPC idempotent pour créer la vente
-      const { data, error } = await supabase.rpc('create_sale_idempotent', {
-        p_bar_id: payload.bar_id,
-        p_items: payload.items as unknown as any[],
-        p_payment_method: payload.payment_method,
-        p_sold_by: payload.sold_by,
-        p_idempotency_key: payload.idempotency_key,
-        p_server_id: payload.server_id ?? undefined,
-        p_status: payload.status || 'validated',
-        p_customer_name: payload.customer_name ?? undefined,
-        p_customer_phone: payload.customer_phone ?? undefined,
-        p_notes: payload.notes ?? undefined,
-        p_business_date: payload.business_date ?? undefined,
-        p_ticket_id: targetTicketId ?? undefined, // 🚀 ID Traduit
-      }).single();
+      const rpcParams = buildCreateSaleParams(
+        {
+          bar_id: payload.bar_id,
+          items: payload.items,
+          payment_method: payload.payment_method,
+          sold_by: payload.sold_by,
+          server_id: payload.server_id,
+          status: payload.status,
+          customer_name: payload.customer_name,
+          customer_phone: payload.customer_phone,
+          notes: payload.notes,
+          business_date: payload.business_date,
+          ticket_id: targetTicketId,
+        },
+        payload.idempotency_key
+      );
+
+      const { data, error } = await supabase.rpc('create_sale_idempotent', rpcParams).single();
 
       if (error) {
         console.error(`[SyncManager] RPC error for operation ${operation.id}:`, error);
@@ -405,7 +431,12 @@ class SyncManagerService {
         };
       }
 
-      console.log(`[SyncManager] Sale created successfully: ${(data as any).id}`);
+      // Type guard pour l'ID de la vente créée
+      const saleId = data && typeof data === 'object' && 'id' in data
+        ? String((data as { id: string | number }).id)
+        : 'unknown';
+
+      console.log(`[SyncManager] Sale created successfully: ${saleId}`);
 
       // 🚀 Broadcast aux autres onglets pour mise à jour immédiate
       if (broadcastService.isSupported()) {
@@ -413,7 +444,7 @@ class SyncManagerService {
           event: 'INSERT',
           table: 'sales',
           barId: payload.bar_id,
-          data: data, // La vente complète retournée par RPC
+          data: data,
         });
 
         // Notifier aussi le changement de stock
@@ -429,13 +460,13 @@ class SyncManagerService {
         operationId: operation.id,
       };
     } catch (error) {
-      const err = error as any;
-      console.error(`[SyncManager] Exception creating sale:`, err);
+      const errorMessage = getErrorMessage(error);
+      console.error(`[SyncManager] Exception creating sale:`, errorMessage);
       return {
         success: false,
         operationId: operation.id,
-        error: err.message || 'Unknown exception',
-        shouldRetry: true, // Retry par défaut sur exception
+        error: errorMessage,
+        shouldRetry: true,
       };
     }
   }
@@ -510,15 +541,16 @@ class SyncManagerService {
         operationId: operation.id,
       };
 
-    } catch (error: any) {
-      console.error(`[SyncManager] Exception updating bar:`, error);
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      console.error(`[SyncManager] Exception updating bar:`, errorMessage);
 
       const shouldRetry = this.shouldRetryError(error);
 
       return {
         success: false,
         operationId: operation.id,
-        error: error.message || 'Unknown exception',
+        error: errorMessage,
         shouldRetry: shouldRetry,
       };
     }
@@ -528,9 +560,11 @@ class SyncManagerService {
    * Détermine si une erreur est temporaire et mérite un retry
    */
   private shouldRetryError(error: unknown): boolean {
-    const err = error as any;
-    const errorCode = err.code || '';
-    const errorMessage = err.message || '';
+    // Extraction type-safe du code et message d'erreur
+    const errorCode = typeof error === 'object' && error !== null && 'code' in error
+      ? String(error.code)
+      : '';
+    const errorMessage = getErrorMessage(error);
 
     // Erreurs réseau temporaires
     if (errorCode.includes('NETWORK') || errorCode.includes('TIMEOUT')) {

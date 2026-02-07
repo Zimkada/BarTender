@@ -1,5 +1,6 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
+import type { SyncOperationCreateSale } from '../../types/sync';
 import { ProductsService } from './products.service';
 import { auditLogger } from '../../services/AuditLogger';
 import { networkManager } from '../NetworkManager';
@@ -43,10 +44,14 @@ export interface OfflineSale {
   id: string;
   bar_id: string;
   total: number;
+  subtotal?: number; // Sous-total avant remises
+  discount_total?: number; // Total des remises appliquées
+  currency?: string; // Devise (XAF, XOF, etc.)
   status: string;
   payment_method: string;
   sold_by: string;
   soldBy?: string; // Alias camelCase pour compatibilité
+  created_by?: string; // Créateur (généralement identique à sold_by)
   server_id?: string | null;
   serverId?: string | null; // Alias camelCase
   business_date?: string | null;
@@ -82,7 +87,7 @@ export class SalesService {
       canWorkOffline?: boolean;
       userId?: string;
     }
-  ): Promise<Sale> {
+  ): Promise<Sale | OfflineSale> {
     console.log('[SalesService] entering createSale', {
       isOffline: networkManager.getDecision().shouldShowBanner,
       canWorkOffline: options?.canWorkOffline,
@@ -103,21 +108,21 @@ export class SalesService {
       console.log('[SalesService] Attempting online RPC (create_sale_idempotent)...');
 
       const rpcPromise = supabase.rpc(
-        'create_sale_idempotent' as any,
+        'create_sale_idempotent',
         {
           p_bar_id: data.bar_id,
           p_items: data.items as any,
           p_payment_method: data.payment_method,
           p_sold_by: data.sold_by,
           p_idempotency_key: idempotencyKey,
-          p_server_id: data.server_id || null,
+          p_server_id: data.server_id ?? undefined,
           p_status: status,
-          p_customer_name: data.customer_name || null,
-          p_customer_phone: data.customer_phone || null,
-          p_notes: data.notes || null,
-          p_business_date: data.business_date || null,
-          p_ticket_id: data.ticket_id || null
-        } as any
+          p_customer_name: data.customer_name ?? undefined,
+          p_customer_phone: data.customer_phone ?? undefined,
+          p_notes: data.notes ?? undefined,
+          p_business_date: data.business_date ?? undefined,
+          p_ticket_id: data.ticket_id ?? undefined
+        }
       ).single();
 
       const timeoutPromise = new Promise((_, reject) =>
@@ -157,7 +162,7 @@ export class SalesService {
     status: string,
     idempotencyKey: string,
     options?: { userId?: string }
-  ): Promise<any> {
+  ): Promise<OfflineSale> {
     console.log('[SalesService] Fallback: calling offlineQueue.addOperation');
     const queuedOperation = await offlineQueue.addOperation(
       'CREATE_SALE',
@@ -181,17 +186,19 @@ export class SalesService {
 
     console.log('[SalesService] Fallback success. Operation ID:', queuedOperation.id);
 
+    const subtotal = data.items.reduce((sum, item) => sum + item.total_price, 0);
+
     return {
       id: queuedOperation.id,
       bar_id: data.bar_id,
-      items: data.items as any,
-      subtotal: data.items.reduce((sum, item) => sum + item.total_price, 0),
-      discount_total: 0,
-      total: data.items.reduce((sum, item) => sum + item.total_price, 0),
-      currency: 'XOF',
+      items: data.items,
+      subtotal,
+      discount_total: 0, // Pas de remise pour les ventes offline (pour l'instant)
+      total: subtotal, // Total = subtotal - discount
+      currency: 'XAF', // Devise par défaut
       status,
-      created_by: data.sold_by,
       sold_by: data.sold_by,
+      created_by: data.sold_by, // Créateur = vendeur
       created_at: new Date().toISOString(),
       payment_method: data.payment_method,
       business_date: data.business_date || new Date().toISOString().split('T')[0],
@@ -412,8 +419,8 @@ export class SalesService {
     const { data, error } = result;
     if (error) throw new Error(handleSupabaseError(error));
 
-    // Agrégation côté client (safe pour < 1000 ventes/jour)
-    const totalRevenue = data?.reduce((sum: number, sale: any) => sum + (sale.total || 0), 0) || 0;
+    // Agrégations
+    const totalRevenue = data?.reduce((sum: number, sale: { total: number }) => sum + (sale.total || 0), 0) || 0;
     const totalSales = data?.length || 0;
     const averageSale = totalSales > 0 ? totalRevenue / totalSales : 0;
 
@@ -431,7 +438,7 @@ export class SalesService {
       const endStr = endDate ? endDate.toISOString().split('T')[0] : null;
 
       const pendingSales = operations
-        .filter(op => op.type === 'CREATE_SALE' && (op.status === 'pending' || op.status === 'syncing'))
+        .filter((op): op is SyncOperationCreateSale => op.type === 'CREATE_SALE' && (op.status === 'pending' || op.status === 'syncing'))
         .filter(op => {
           if (!startStr || !endStr) return true;
           const saleDate = op.payload.business_date || new Date(op.timestamp).toISOString().split('T')[0];
@@ -450,7 +457,7 @@ export class SalesService {
     try {
       const operations = await offlineQueue.getOperations();
       return operations
-        .filter(op => op.type === 'CREATE_SALE' && op.payload.ticket_id === ticketId && (op.status === 'pending' || op.status === 'syncing'))
+        .filter((op): op is SyncOperationCreateSale => op.type === 'CREATE_SALE' && op.payload.ticket_id === ticketId && (op.status === 'pending' || op.status === 'syncing'))
         .map(op => this.mapOperationToOfflineSale(op, op.payload.bar_id));
     } catch (error) {
       console.warn('[SalesService] Failed to fetch offline sales for ticket', error);
@@ -458,8 +465,8 @@ export class SalesService {
     }
   }
 
-  private static mapOperationToOfflineSale(op: any, barId: string): OfflineSale {
-    const total = op.payload.items.reduce((sum: number, item: any) => {
+  private static mapOperationToOfflineSale(op: SyncOperationCreateSale, barId: string): OfflineSale {
+    const total = op.payload.items.reduce((sum: number, item: SaleItem) => {
       const itemTotal = item.total_price || (item.unit_price * item.quantity) || 0;
       return sum + itemTotal;
     }, 0);

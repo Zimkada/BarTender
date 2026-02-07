@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Sale, SaleItem } from '../types';
 import { SalesService, OfflineSale } from '../services/supabase/sales.service';
 import { syncManager } from '../services/SyncManager';
+import { type PaymentMethod, isValidPaymentMethod } from '../types/payment';
 
 interface TransitionSale extends Omit<Sale, 'id' | 'businessDate'> {
     id: string;
@@ -97,21 +98,26 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
                 // On reconstruit l'objet à partir du payload sauvegardé dans le buffer (SyncManager)
                 const payload = data.payload;
                 if (payload) {
+                    // Validation du payment method
+                    const paymentMethod = isValidPaymentMethod(payload.payment_method)
+                        ? payload.payment_method
+                        : 'cash' as PaymentMethod;
+
                     transitionSales.push({
                         id: `transition_${key}`,
                         barId: payload.bar_id,
                         total: data.total,
                         status: (payload.status || 'validated') as 'pending' | 'validated',
-                        paymentMethod: payload.payment_method as any, // Enum narrowing
+                        paymentMethod,
                         soldBy: payload.sold_by,
-                        serverId: payload.server_id ?? undefined,
+                        serverId: payload.server_id ?? null,
                         businessDate: payload.business_date ? new Date(payload.business_date) : new Date(),
                         createdAt: new Date(data.timestamp),
                         items: payload.items,
                         idempotencyKey: key,
                         isTransition: true,
-                        currency: 'XAF', // Valeur par défaut ou à extraire du contexte si possible
-                        createdBy: payload.sold_by // Par défaut le vendeur
+                        currency: 'XAF',
+                        createdBy: payload.sold_by
                     });
                 }
             }
