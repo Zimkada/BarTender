@@ -1,9 +1,10 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../lib/supabase';
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
-import { SalesService } from '../services/supabase/sales.service';
+import { SalesService, type OfflineSale } from '../services/supabase/sales.service';
 import { ReturnsService } from '../services/supabase/returns.service';
 import { getCurrentBusinessDateString, filterByBusinessDateRange } from '../utils/businessDateHelpers';
 import { statsKeys } from './queries/useStatsQueries';
@@ -47,10 +48,29 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         enabled = true
     } = options;
 
-    const calculateLocalStats = useCallback((): InternalStats => {
+    // 📊 Offline Cache (Phase 10: Sprint B)
+    // On garde une copie locale de la queue pour calculateLocalStats (placeholder aware)
+    const [offlineQueueSales, setOfflineQueueSales] = useState<OfflineSale[]>([]);
+
+    useEffect(() => {
+        const dStart = startDate ? new Date(startDate) : undefined;
+        const dEnd = endDate ? new Date(endDate) : undefined;
+        SalesService.getOfflineSales(currentBarId, dStart, dEnd).then(sales => {
+            // Filtrage serveur ici aussi pour le placeholder
+            const filtered = isServerRole
+                ? sales.filter(s => s.sold_by === currentSession?.userId)
+                : sales;
+            setOfflineQueueSales(filtered);
+        });
+    }, [currentBarId, startDate, endDate, isServerRole, currentSession?.userId]);
+
+    const calculateLocalStats = useCallback((customOfflineSales?: OfflineSale[]): InternalStats => {
         if (!sales || !returns) return { netRevenue: 0, grossRevenue: 0, refundsTotal: 0, saleCount: 0, averageSale: 0, isStale: true };
 
         const closeHour = currentBar?.closingHour ?? 6;
+
+        // On utilise soit les ventes passées en paramètre (frais), soit le state (si dispo)
+        const offlineSource = customOfflineSales || offlineQueueSales;
 
         // ✨ Filter by server if role is serveur
         let baseSales = sales.filter(s => s.status === 'validated');
@@ -70,8 +90,33 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
             closeHour
         );
 
-        const grossRevenue = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
-        const saleCount = filteredSales.length;
+        // 🛡️ Buffer de Transition (Phase 11.3): Bridge le gap post-sync
+        const recentlySyncedMap = syncManager.getRecentlySyncedKeys();
+        let transitionRevenue = 0;
+        let transitionCount = 0;
+
+        recentlySyncedMap.forEach((data, key) => {
+            // Si la vente n'est pas encore dans la liste serveur officielle (sales)
+            // On l'ajoute au CA de transition pour éviter le "trou"
+            // 🛡️ UNIFICATION (V11.4): Gérer les deux casses
+            const alreadyInServerSales = sales.some((s: any) =>
+                s.idempotencyKey === key || s.idempotency_key === key
+            );
+            if (!alreadyInServerSales) {
+                transitionRevenue += data.total;
+                transitionCount += 1;
+            }
+        });
+
+        // 🛡️ Déduplication (Offline Queue vs Buffer)
+        const deduplicatedOfflineQueue = offlineSource.filter(sale => {
+            const key = sale.idempotency_key;
+            return !key || !recentlySyncedMap.has(key);
+        });
+
+        const offlineRevenue = deduplicatedOfflineQueue.reduce((sum: number, sale: any) => sum + sale.total, 0);
+        const grossRevenue = filteredSales.reduce((sum: number, sale: any) => sum + sale.total, 0) + offlineRevenue + transitionRevenue;
+        const saleCount = filteredSales.length + deduplicatedOfflineQueue.length + transitionCount;
 
         // ✨ Filter returns by server if applicable
         let baseReturns = returns.filter(r => r.isRefunded && (r.status === 'approved' || r.status === 'restocked'));
@@ -102,39 +147,78 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
             averageSale: saleCount > 0 ? grossRevenue / saleCount : 0,
             isStale: true
         };
-    }, [sales, returns, startDate, endDate, currentBar?.closingHour, isServerRole, currentSession?.userId]);
+    }, [sales, returns, startDate, endDate, currentBar?.closingHour, isServerRole, currentSession?.userId, offlineQueueSales]);
 
     // Standard query for fetching revenue stats
-    const { data: stats, isLoading, error } = useQuery<InternalStats>({
-        queryKey: statsKeys.summary(currentBarId, startDate, endDate),
+    const { data: stats, isLoading, error, refetch } = useQuery<InternalStats>({
+        queryKey: statsKeys.summary(currentBarId, startDate, endDate, operatingMode, isServerRole),
+        networkMode: 'always', // ⭐ Force execution even when offline
         queryFn: async () => {
             const serverId = isServerRole ? currentSession?.userId : undefined;
 
             // 1. Fetch Server Stats, Offline Sales (Parallel)
-            const [serverStats, offlineSales] = await Promise.all([
-                SalesService.getSalesStats(currentBarId, startDate, endDate, serverId)
-                    .catch((err) => {
-                        console.warn('[useRevenueStats] Server fetch failed', err);
-                        return null;
-                    }),
-                SalesService.getOfflineSales(currentBarId)
-            ]);
+            const dStart = startDate ? new Date(startDate) : undefined;
+            const dEnd = endDate ? new Date(endDate) : undefined;
 
-            const recentlySyncedKeys = syncManager.getRecentlySyncedKeys();
+            let serverRawData;
+            try {
+                // 🛡️ RÉCUPÉRATION DIRECTE (V11.5): On récupère les lignes pour sommer nous-mêmes
+                const { data, error } = await supabase
+                    .from('sales')
+                    .select('total, status, sold_by, business_date, idempotency_key')
+                    .eq('bar_id', currentBarId)
+                    .eq('status', 'validated')
+                    .gte('business_date', dStart?.toISOString().split('T')[0] || '')
+                    .lte('business_date', dEnd?.toISOString().split('T')[0] || '');
 
-            // 2. Déduplication (Phase 8):
-            // Ne compter que les ventes offline qui ne sont pas DÉJÀ synchronisées
-            const deduplicatedOfflineSales = offlineSales.filter(sale => {
-                const idempotencyKey = sale.idempotency_key;
-                return !idempotencyKey || !recentlySyncedKeys.has(idempotencyKey);
+                if (error) throw error;
+                serverRawData = data;
+            } catch (err) {
+                console.warn('[useRevenueStats] Server fetch failed, fetching fresh offline data...', err);
+                const freshOfflineSales = await SalesService.getOfflineSales(currentBarId, dStart, dEnd);
+                const filtered = isServerRole
+                    ? freshOfflineSales.filter(s => s.sold_by === currentSession?.userId)
+                    : freshOfflineSales;
+                return calculateLocalStats(filtered);
+            }
+
+            // 🛡️ CALCUL SOUVERAIN (V11.5): On fait la somme nous-mêmes (Anti-Lag)
+            const serverRevenue = serverRawData?.reduce((sum: number, sale: any) => sum + (sale.total || 0), 0) || 0;
+            const serverCount = serverRawData?.length || 0;
+
+            const offlineSales = await SalesService.getOfflineSales(currentBarId, dStart, dEnd);
+            const recentlySyncedMap = syncManager.getRecentlySyncedKeys();
+
+            // 2. Déduplication (Phase 8) + Filtrage Serveur (Phase 10)
+            const deduplicatedOfflineSales = offlineSales
+                .filter(sale => {
+                    const idempotencyKey = sale.idempotency_key;
+                    return !idempotencyKey || !recentlySyncedMap.has(idempotencyKey);
+                })
+                .filter(sale => {
+                    if (!isServerRole) return true;
+                    return sale.sold_by === currentSession?.userId;
+                });
+
+            // 🛡️ 3. Transition Buffer (Phase 11.3): Gérer les ventes en cours d'indexation
+            let transitionRevenue = 0;
+            let transitionCount = 0;
+
+            recentlySyncedMap.forEach((data, key) => {
+                // On vérifie le dédoublonnage contre serverRawData (plus fiable que AppContext)
+                const alreadyIndexed = serverRawData?.some((s: any) =>
+                    s.idempotency_key === key
+                );
+                if (!alreadyIndexed) {
+                    transitionRevenue += data.total;
+                    transitionCount += 1;
+                }
             });
 
-            // 3. Calculs fusionnés
-            const s = serverStats || { totalRevenue: 0, totalSales: 0, averageSale: 0 };
+            // 4. Calculs fusionnés
             const offlineRevenue = deduplicatedOfflineSales.reduce((sum, sale) => sum + sale.total, 0);
-
-            const grossRevenue = s.totalRevenue + offlineRevenue;
-            const saleCount = s.totalSales + deduplicatedOfflineSales.length;
+            const grossRevenue = serverRevenue + offlineRevenue + transitionRevenue;
+            const saleCount = serverCount + deduplicatedOfflineSales.length + transitionCount;
 
             // 4. Refunds (Server side)
             const returnsData = await ReturnsService.getReturns(currentBarId, startDate, endDate, serverId, operatingMode)
@@ -152,7 +236,7 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
                 refundsTotal,
                 saleCount,
                 averageSale: saleCount > 0 ? grossRevenue / saleCount : 0,
-                isStale: !serverStats
+                isStale: !serverRawData
             };
         },
         enabled: enabled && !!currentBarId,
@@ -160,6 +244,37 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         staleTime: CACHE_STRATEGY.dailyStats.staleTime,
         gcTime: CACHE_STRATEGY.dailyStats.gcTime,
     });
+
+    // 🚀 Réactivité Instantanée (Phase 10)
+    // S'abonner aux mises à jour de la queue pour invalider les stats immédiatement
+    useEffect(() => {
+        const handleQueueUpdate = () => {
+            console.log('[useRevenueStats] Queue updated, refetching...');
+            refetch();
+
+            // Re-fetch local cache for placeholder too
+            const dStart = startDate ? new Date(startDate) : undefined;
+            const dEnd = endDate ? new Date(endDate) : undefined;
+            SalesService.getOfflineSales(currentBarId, dStart, dEnd).then(sales => {
+                const filtered = isServerRole
+                    ? sales.filter(s => s.sold_by === currentSession?.userId)
+                    : sales;
+                setOfflineQueueSales(filtered);
+            });
+        };
+
+        const handleSyncCompleted = () => {
+            console.log('[useRevenueStats] Sync completed, refetching stats...');
+            refetch(); // 🛡️ Rafraîchir les stats serveur après sync
+        };
+
+        window.addEventListener('queue-updated', handleQueueUpdate);
+        window.addEventListener('sync-completed', handleSyncCompleted);
+        return () => {
+            window.removeEventListener('queue-updated', handleQueueUpdate);
+            window.removeEventListener('sync-completed', handleSyncCompleted);
+        };
+    }, [refetch, startDate, endDate, currentBarId, isServerRole, currentSession?.userId]);
 
     return {
         netRevenue: stats?.netRevenue ?? 0,
