@@ -233,6 +233,32 @@ class OfflineQueue {
     });
   }
 
+  async resetRetries(operationId: string): Promise<void> {
+    const db = await this.ensureDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const getRequest = store.get(operationId);
+
+      getRequest.onsuccess = () => {
+        const operation = getRequest.result as SyncOperation | undefined;
+        if (!operation) {
+          reject(new Error(`Operation ${operationId} not found`));
+          return;
+        }
+        operation.retryCount = 0;
+        operation.status = 'pending';
+        const putRequest = store.put(operation);
+        putRequest.onsuccess = () => {
+          window.dispatchEvent(new CustomEvent('queue-updated'));
+          resolve();
+        };
+        putRequest.onerror = () => reject(putRequest.error);
+      };
+      getRequest.onerror = () => reject(getRequest.error);
+    });
+  }
+
   async removeOperation(operationId: string): Promise<void> {
     const db = await this.ensureDB();
     return new Promise((resolve, reject) => {

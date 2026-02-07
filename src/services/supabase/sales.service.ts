@@ -32,7 +32,38 @@ export interface CreateSaleData {
   ticket_id?: string;
 }
 
+export interface OfflineSale {
+  id: string;
+  bar_id: string;
+  total: number;
+  status: string;
+  payment_method: string;
+  sold_by: string;
+  soldBy?: string; // Alias camelCase pour compatibilité
+  server_id?: string | null;
+  serverId?: string | null; // Alias camelCase
+  business_date?: string | null;
+  businessDate?: string | null; // Alias camelCase
+  created_at: string;
+  createdAt?: string; // Alias camelCase
+  idempotency_key?: string;
+  items: SaleItem[]; // 🛡️ CRITIQUE: Nécessaire pour totalItems calculation
+  isOptimistic: boolean;
+}
+
 export class SalesService {
+  /**
+   * Wrapper with timeout for Supabase calls
+   */
+  private static withTimeout<T>(promise: Promise<T> | any, ms: number = 5000): Promise<T> {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT_EXCEEDED')), ms)
+    );
+    // Supabase queries are PromiseLike
+    const actualPromise = promise instanceof Promise ? promise : Promise.resolve(promise);
+    return Promise.race([actualPromise, timeout]) as Promise<T>;
+  }
+
   /**
    * Créer une nouvelle vente avec stratégie de résilience offline/online
    */
@@ -44,14 +75,19 @@ export class SalesService {
     }
   ): Promise<Sale> {
     console.log('[SalesService] entering createSale', {
-      isOffline: networkManager.isOffline(),
+      isOffline: networkManager.getDecision().shouldShowBanner,
       canWorkOffline: options?.canWorkOffline,
       data_sold_by: data.sold_by
     });
 
     const status = data.status || 'pending';
-    const isOffline = networkManager.isOffline();
-    const idempotencyKey = `sale_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const { shouldShowBanner: isOffline } = networkManager.getDecision();
+
+    // 🛡️ SÉCURITÉ (V11.5): Utiliser un UUID pour éviter toute collision d'idempotence
+    const uuid = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `sale_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const idempotencyKey = uuid;
 
     try {
       if (isOffline && options?.canWorkOffline) {
@@ -335,10 +371,14 @@ export class SalesService {
 
   static async getSalesStats(
     barId: string,
-    startDate?: string,
-    endDate?: string,
+    startDate?: Date,
+    endDate?: Date,
     serverId?: string
-  ): Promise<{ totalRevenue: number; totalSales: number; averageSale: number }> {
+  ): Promise<{
+    totalRevenue: number;
+    totalSales: number;
+    averageSale: number;
+  }> {
     // Calcul simple pour les besoins courants (dashboard)
     // Pour l'admin, on utilise admin_as_get_sales_stats via une autre route si besoin
     let query = supabase
@@ -347,15 +387,16 @@ export class SalesService {
       .eq('bar_id', barId)
       .eq('status', 'validated');
 
-    if (startDate) query = query.gte('business_date', startDate);
-    if (endDate) query = query.lte('business_date', endDate);
+    if (startDate) query = query.gte('business_date', startDate.toISOString().split('T')[0]);
+    if (endDate) query = query.lte('business_date', endDate.toISOString().split('T')[0]);
     if (serverId) query = query.eq('sold_by', serverId);
 
-    const { data, error } = await query;
+    const result = await this.withTimeout<{ data: any[] | null, error: any }>(query);
+    const { data, error } = result;
     if (error) throw new Error(handleSupabaseError(error));
 
     // Agrégation côté client (safe pour < 1000 ventes/jour)
-    const totalRevenue = data?.reduce((sum, sale) => sum + sale.total, 0) || 0;
+    const totalRevenue = data?.reduce((sum: number, sale: any) => sum + (sale.total || 0), 0) || 0;
     const totalSales = data?.length || 0;
     const averageSale = totalSales > 0 ? totalRevenue / totalSales : 0;
 
@@ -364,26 +405,45 @@ export class SalesService {
 
   // --- Offline Data Access (Vision Rayons X) ---
 
-  static async getOfflineSales(barId: string): Promise<any[]> {
+  static async getOfflineSales(barId: string, startDate?: Date, endDate?: Date): Promise<OfflineSale[]> {
     try {
       // 1. Récupérer toutes les opé de type 'CREATE_SALE' en attente ou en cours
       const operations = await offlineQueue.getOperations({ barId });
+
+      const startStr = startDate ? startDate.toISOString().split('T')[0] : null;
+      const endStr = endDate ? endDate.toISOString().split('T')[0] : null;
+
       const pendingSales = operations
         .filter(op => op.type === 'CREATE_SALE' && (op.status === 'pending' || op.status === 'syncing'))
+        .filter(op => {
+          if (!startStr || !endStr) return true;
+          const saleDate = op.payload.business_date || new Date(op.timestamp).toISOString().split('T')[0];
+          return saleDate >= startStr && saleDate <= endStr;
+        })
         .map(op => {
           // Reconstruire une fausse "vente" pour l'UI à partir du payload
-          // On s'assure de caster correctement les types
+          const total = op.payload.items.reduce((sum: number, item: any) => {
+            const itemTotal = item.total_price || (item.unit_price * item.quantity) || 0;
+            return sum + itemTotal;
+          }, 0);
+          const createdAtStr = new Date(op.timestamp).toISOString();
+
           return {
             id: op.id, // ID temporaire
             bar_id: barId,
-            total: op.payload.items.reduce((sum: number, item: any) => sum + item.total_price, 0),
+            total,
             status: 'validated', // On les considère validées pour les stats car le user a "vendu"
             payment_method: op.payload.payment_method,
             sold_by: op.payload.sold_by,
+            soldBy: op.payload.sold_by, // Alias camelCase
             server_id: op.payload.server_id,
+            serverId: op.payload.server_id, // Alias camelCase
             business_date: op.payload.business_date,
-            created_at: new Date(op.timestamp).toISOString(),
+            businessDate: op.payload.business_date, // Alias camelCase
+            created_at: createdAtStr,
+            createdAt: createdAtStr, // Alias camelCase
             idempotency_key: op.payload.idempotency_key, // 🛡️ Lock Flash: Crucial pour la déduplication
+            items: op.payload.items, // 🛡️ CRITIQUE: Items nécessaires pour calculs
             isOptimistic: true // Flag pour l'UI
           };
         });
