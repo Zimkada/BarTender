@@ -54,6 +54,8 @@ export interface OfflineSale {
   createdAt?: string; // Alias camelCase
   idempotency_key?: string;
   items: SaleItem[]; // 🛡️ CRITIQUE: Nécessaire pour totalItems calculation
+  ticket_id?: string | null;
+  ticketId?: string | null; // Alias camelCase
   isOptimistic: boolean;
 }
 
@@ -308,6 +310,17 @@ export class SalesService {
 
   // --- Read Methods (Restored) ---
 
+  static async getSalesByTicketId(ticketId: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('sales')
+      .select('*')
+      .eq('ticket_id', ticketId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw new Error(handleSupabaseError(error));
+    return data || [];
+  }
+
   static async getBarSales(barId: string, options?: any): Promise<DBSale[]> {
     let query = supabase
       .from('sales')
@@ -427,38 +440,66 @@ export class SalesService {
           const saleDate = op.payload.business_date || new Date(op.timestamp).toISOString().split('T')[0];
           return saleDate >= startStr && saleDate <= endStr;
         })
-        .map(op => {
-          // Reconstruire une fausse "vente" pour l'UI à partir du payload
-          const total = op.payload.items.reduce((sum: number, item: any) => {
-            const itemTotal = item.total_price || (item.unit_price * item.quantity) || 0;
-            return sum + itemTotal;
-          }, 0);
-          const createdAtStr = new Date(op.timestamp).toISOString();
-
-          return {
-            id: op.id, // ID temporaire
-            bar_id: barId,
-            total,
-            status: 'validated', // On les considère validées pour les stats car le user a "vendu"
-            payment_method: op.payload.payment_method,
-            sold_by: op.payload.sold_by,
-            soldBy: op.payload.sold_by, // Alias camelCase
-            server_id: op.payload.server_id,
-            serverId: op.payload.server_id, // Alias camelCase
-            business_date: op.payload.business_date,
-            businessDate: op.payload.business_date, // Alias camelCase
-            created_at: createdAtStr,
-            createdAt: createdAtStr, // Alias camelCase
-            idempotency_key: op.payload.idempotency_key, // 🛡️ Lock Flash: Crucial pour la déduplication
-            items: op.payload.items, // 🛡️ CRITIQUE: Items nécessaires pour calculs
-            isOptimistic: true // Flag pour l'UI
-          };
-        });
+        .map(op => this.mapOperationToOfflineSale(op, barId));
 
       return pendingSales;
     } catch (error) {
       console.warn('[SalesService] Failed to fetch offline sales', error);
       return [];
     }
+  }
+
+  static async getOfflineSalesByTicketId(ticketId: string): Promise<OfflineSale[]> {
+    try {
+      const operations = await offlineQueue.getOperations();
+      return operations
+        .filter(op => op.type === 'CREATE_SALE' && op.payload.ticket_id === ticketId && (op.status === 'pending' || op.status === 'syncing'))
+        .map(op => this.mapOperationToOfflineSale(op, op.payload.bar_id));
+    } catch (error) {
+      console.warn('[SalesService] Failed to fetch offline sales for ticket', error);
+      return [];
+    }
+  }
+
+  private static mapOperationToOfflineSale(op: any, barId: string): OfflineSale {
+    const total = op.payload.items.reduce((sum: number, item: any) => {
+      const itemTotal = item.total_price || (item.unit_price * item.quantity) || 0;
+      return sum + itemTotal;
+    }, 0);
+    const createdAtStr = new Date(op.timestamp).toISOString();
+
+    // 🛡️ DUAL-CASING STRATEGY (Phase 15)
+    // Garantir que les propriétés clés sont accessibles via les deux conventions
+    // pour éviter les bugs de filtrage dans les hooks (useTickets vs useDashboardAnalytics)
+    return {
+      id: op.id, // ID temporaire
+      bar_id: barId,
+      total,
+      status: 'validated', // On les considère validées pour les stats car le user a "vendu"
+      payment_method: op.payload.payment_method,
+
+      // Dual-casing SoldBy
+      sold_by: op.payload.sold_by,
+      soldBy: op.payload.sold_by,
+
+      // Dual-casing ServerId
+      server_id: op.payload.server_id,
+      serverId: op.payload.server_id,
+
+      // Dual-casing BusinessDate
+      business_date: op.payload.business_date,
+      businessDate: op.payload.business_date,
+
+      // Dual-casing TicketId
+      ticket_id: op.payload.ticket_id,
+      ticketId: op.payload.ticket_id,
+
+      created_at: createdAtStr,
+      createdAt: createdAtStr,
+
+      idempotency_key: op.payload.idempotency_key, // 🛡️ Lock Flash: Crucial pour la déduplication
+      items: op.payload.items, // 🛡️ CRITIQUE: Items nécessaires pour calculs
+      isOptimistic: true // Flag pour l'UI
+    };
   }
 }
