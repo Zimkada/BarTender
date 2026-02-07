@@ -20,7 +20,7 @@ export class ExpensesService {
 
             if (error) throw error;
             return newExpense;
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -38,7 +38,7 @@ export class ExpensesService {
 
             if (error) throw error;
             return data || [];
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -54,7 +54,7 @@ export class ExpensesService {
                 .eq('id', id);
 
             if (error) throw error;
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -74,7 +74,7 @@ export class ExpensesService {
 
             if (error) throw error;
             return newCategory;
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -92,7 +92,7 @@ export class ExpensesService {
 
             if (error) throw error;
             return data || [];
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }

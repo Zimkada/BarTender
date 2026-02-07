@@ -5,6 +5,7 @@ import type { GlobalProduct as GlobalProductType } from '../../types';
 type GlobalProductRow = Database['public']['Tables']['global_products']['Row'];
 type GlobalProductInsert = Database['public']['Tables']['global_products']['Insert'];
 type BarProduct = Database['public']['Tables']['bar_products']['Row'];
+type BarProductInsert = Database['public']['Tables']['bar_products']['Insert'];
 type BarProductUpdate = Database['public']['Tables']['bar_products']['Update'];
 type BarCategory = Database['public']['Tables']['bar_categories']['Row'];
 
@@ -71,7 +72,7 @@ export class ProductsService {
         isActive: result.is_active ?? true,
         createdAt: new Date(result.created_at || Date.now())
       };
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -109,7 +110,7 @@ export class ProductsService {
         isActive: p.is_active ?? true,
         createdAt: new Date(p.created_at || Date.now())
       }));
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -147,7 +148,7 @@ export class ProductsService {
         isActive: p.is_active ?? true,
         createdAt: new Date(p.created_at || Date.now())
       }));
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -190,7 +191,7 @@ export class ProductsService {
         isActive: result.is_active ?? true,
         createdAt: new Date(result.created_at || Date.now())
       };
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -208,11 +209,11 @@ export class ProductsService {
       if (error) {
         const errorMessage = error.message?.toLowerCase() || '';
         if (errorMessage.includes('restrict') || errorMessage.includes('constraint')) {
-            throw new Error('Ce produit ne peut pas être supprimé car il est référencé ailleurs.');
+          throw new Error('Ce produit ne peut pas être supprimé car il est référencé ailleurs.');
         }
         throw new Error('Erreur lors de la suppression du produit global');
       }
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -250,6 +251,7 @@ export class ProductsService {
           is_custom_product: data.is_custom_product || false,
           is_active: true,
           volume: data.volume,
+          display_name: data.local_name || 'Nouveau produit', // Champ requis en Insert
         })
         .select()
         .single();
@@ -259,7 +261,7 @@ export class ProductsService {
       }
 
       return newProduct;
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -281,7 +283,7 @@ export class ProductsService {
       const { data: productsData, error: rpcError } = await supabase
         .rpc('get_bar_products', {
           p_bar_id: barId,
-          p_impersonating_user_id: impersonatingUserId || null,
+          p_impersonating_user_id: impersonatingUserId ?? undefined,
           p_limit: options?.limit || 500,
           p_offset: options?.offset || 0,
         });
@@ -299,7 +301,7 @@ export class ProductsService {
       }));
 
       return enrichedProducts;
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -317,7 +319,7 @@ export class ProductsService {
         .select(`
           *,
           global_products (*),
-          bar_categories (*)
+          bar_categories!fk_bar_products_local_category (*)
         `)
         .eq('bar_id', barId)
         .eq('local_category_id', categoryId)
@@ -327,20 +329,25 @@ export class ProductsService {
         throw new Error('Erreur lors de la récupération des produits');
       }
 
-      const enrichedProducts: BarProductWithDetails[] = (data || []).map((product: any) => {
-        const globalProduct = product.global_products as GlobalProductRow | null;
+      const enrichedProducts: BarProductWithDetails[] = (data || []).map((product) => {
+        const prod = product as BarProduct & {
+          global_products: GlobalProductRow | null;
+          bar_categories: BarCategory | null;
+          display_name: string;
+        };
+        const globalProduct = prod.global_products;
 
         return {
-          ...product,
+          ...prod,
           global_product: globalProduct,
-          category: product.bar_categories,
-          display_name: product.display_name,
-          display_image: product.local_image || globalProduct?.official_image || null,
+          category: prod.bar_categories,
+          display_name: prod.display_name,
+          display_image: prod.local_image || globalProduct?.official_image || null,
         };
       });
 
       return enrichedProducts;
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -355,7 +362,7 @@ export class ProductsService {
         .select(`
           *,
           global_products (*),
-          bar_categories (*)
+          bar_categories!fk_bar_products_local_category (*)
         `)
         .eq('id', productId)
         .single();
@@ -369,11 +376,11 @@ export class ProductsService {
       return {
         ...data,
         global_product: globalProduct,
-        category: data.bar_categories,
-        display_name: data.display_name,
-        display_image: data.local_image || globalProduct?.official_image || null,
+        category: (data as any).bar_categories,
+        display_name: (data as any).display_name,
+        display_image: (data as any).local_image || globalProduct?.official_image || null,
       };
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -398,7 +405,7 @@ export class ProductsService {
       }
 
       return data;
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -416,7 +423,7 @@ export class ProductsService {
       if (error) {
         throw new Error('Erreur lors de la mise à jour du stock');
       }
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -434,7 +441,7 @@ export class ProductsService {
       if (error) {
         throw new Error('Erreur lors de l\'incrémentation du stock');
       }
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -453,7 +460,7 @@ export class ProductsService {
         console.error('Stock decrement error:', error);
         throw new Error(`Erreur lors de la décrémentation du stock: ${error.message} (${error.details || ''})`);
       }
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -471,7 +478,7 @@ export class ProductsService {
       if (error) {
         throw new Error('Erreur lors de la désactivation du produit');
       }
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -522,7 +529,7 @@ export class ProductsService {
       }
 
       return data;
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -537,7 +544,7 @@ export class ProductsService {
         .select(`
           *,
           global_products (*),
-          bar_categories (*)
+          bar_categories!fk_bar_products_local_category (*)
         `)
         .eq('bar_id', barId)
         .eq('is_active', true)
@@ -547,20 +554,25 @@ export class ProductsService {
         throw new Error('Erreur lors de la récupération des produits en rupture');
       }
 
-      const enrichedProducts: BarProductWithDetails[] = (data || []).map((product: any) => {
-        const globalProduct = product.global_products as GlobalProductRow | null;
+      const enrichedProducts: BarProductWithDetails[] = (data || []).map((product) => {
+        const prod = product as BarProduct & {
+          global_products: GlobalProductRow | null;
+          bar_categories: BarCategory | null;
+          display_name: string;
+        };
+        const globalProduct = prod.global_products;
 
         return {
-          ...product,
+          ...prod,
           global_product: globalProduct,
-          category: product.bar_categories,
-          display_name: product.display_name,
-          display_image: product.local_image || globalProduct?.official_image || null,
+          category: prod.bar_categories,
+          display_name: prod.display_name,
+          display_image: prod.local_image || globalProduct?.official_image || null,
         };
       });
 
       return enrichedProducts;
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -597,7 +609,7 @@ export class ProductsService {
       }
 
       return newCategory;
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -618,7 +630,7 @@ export class ProductsService {
       }
 
       return data || [];
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -643,7 +655,7 @@ export class ProductsService {
       }
 
       return data;
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -661,7 +673,7 @@ export class ProductsService {
       if (error) {
         throw new Error('Erreur lors de la suppression de la catégorie');
       }
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }

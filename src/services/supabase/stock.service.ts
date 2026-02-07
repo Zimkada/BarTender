@@ -5,6 +5,7 @@ type Supply = Database['public']['Tables']['supplies']['Row'];
 type SupplyInsert = Database['public']['Tables']['supplies']['Insert'];
 type Consignment = Database['public']['Tables']['consignments']['Row'];
 type ConsignmentInsert = Database['public']['Tables']['consignments']['Insert'];
+type ConsignmentUpdate = Database['public']['Tables']['consignments']['Update'];
 
 export class StockService {
     // =====================================================
@@ -37,7 +38,7 @@ export class StockService {
 
             if (error) throw error;
             return data || [];
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -52,7 +53,7 @@ export class StockService {
 
             if (error) throw error;
             return newSupply;
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -73,7 +74,7 @@ export class StockService {
                 throw error;
             }
             return data;
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -108,7 +109,7 @@ export class StockService {
 
             if (error) throw error;
             return data || [];
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -123,7 +124,7 @@ export class StockService {
 
             if (error) throw error;
             return newConsignment;
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -131,7 +132,7 @@ export class StockService {
     static async updateConsignmentStatus(
         id: string,
         status: 'active' | 'claimed' | 'expired' | 'forfeited',
-        updates: Partial<Consignment> = {}
+        updates: ConsignmentUpdate = {}
     ): Promise<Consignment> {
         try {
             const { data, error } = await supabase
@@ -143,7 +144,7 @@ export class StockService {
 
             if (error) throw error;
             return data;
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -182,7 +183,7 @@ export class StockService {
             }
 
             return data;
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }

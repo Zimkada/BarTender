@@ -2,12 +2,10 @@ import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
 
 // 🛡️ Fix V12: Strict Typing for Returns
-export type DBReturn = Database['public']['Tables']['returns']['Row'] & {
-    operating_mode_at_creation?: 'full' | 'simplified';
-    // Add other fields if missing from generated types
-};
+export type DBReturn = Database['public']['Tables']['returns']['Row'];
 
 type ReturnInsert = Database['public']['Tables']['returns']['Insert'];
+type ReturnUpdate = Database['public']['Tables']['returns']['Update'];
 
 export class ReturnsService {
     /**
@@ -23,7 +21,7 @@ export class ReturnsService {
 
             if (error) throw error;
             return newReturn as DBReturn;
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -37,7 +35,7 @@ export class ReturnsService {
         startDate?: Date | string,
         endDate?: Date | string,
         serverId?: string,
-        operatingMode?: 'full' | 'simplified'
+        _operatingMode?: 'full' | 'simplified'
     ): Promise<DBReturn[]> {
         try {
             // Helper pour formater la date au format YYYY-MM-DD attendu par PostgreSQL
@@ -70,16 +68,15 @@ export class ReturnsService {
             // ✨ MODE SWITCHING FIX: Filter by server with client-side OR logic
             // Apply server filter in JavaScript to ensure proper AND/OR precedence
             // Source of truth: returned_by is who created the return, server_id is the server
-            let data = allReturns || [];
+            let data = (allReturns || []) as DBReturn[];
             if (serverId && allReturns) {
-                data = allReturns.filter((returnItem: any) =>
+                data = (allReturns as DBReturn[]).filter((returnItem) =>
                     returnItem.returned_by === serverId || returnItem.server_id === serverId
                 );
-
             }
 
             return data;
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -90,7 +87,7 @@ export class ReturnsService {
     static async getAllReturns(
         startDate?: Date | string,
         endDate?: Date | string
-    ): Promise<Return[]> {
+    ): Promise<DBReturn[]> {
         try {
             let query = supabase
                 .from('returns')
@@ -117,7 +114,7 @@ export class ReturnsService {
 
             if (error) throw error;
             return data || [];
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -125,48 +122,18 @@ export class ReturnsService {
     /**
      * Mettre à jour un retour
      */
-    static async updateReturn(id: string, updates: Partial<Return>): Promise<Return> {
+    static async updateReturn(id: string, updates: ReturnUpdate): Promise<DBReturn> {
         try {
-            // Map camelCase TypeScript field names to snake_case PostgreSQL column names
-            const mappedUpdates: Record<string, any> = {};
-
-            const fieldMapping: Record<string, string> = {
-                barId: 'bar_id',
-                saleId: 'sale_id',
-                productId: 'product_id',
-                productName: 'product_name',
-                productVolume: 'product_volume',
-                quantitySold: 'quantity_sold',
-                quantityReturned: 'quantity_returned',
-                returnedBy: 'returned_by',
-                returnedAt: 'returned_at',
-                businessDate: 'business_date',
-                refundAmount: 'refund_amount',
-                isRefunded: 'is_refunded',
-                autoRestock: 'auto_restock',
-                manualRestockRequired: 'manual_restock_required',
-                restockedAt: 'restocked_at',
-                customRefund: 'custom_refund',
-                customRestock: 'custom_restock',
-                originalSeller: 'original_seller',
-            };
-
-            // Convert camelCase keys to snake_case
-            Object.entries(updates).forEach(([key, value]) => {
-                const snakeKey = fieldMapping[key as keyof typeof fieldMapping] || key;
-                mappedUpdates[snakeKey] = value;
-            });
-
             const { data, error } = await supabase
                 .from('returns')
-                .update(mappedUpdates)
+                .update(updates)
                 .eq('id', id)
                 .select()
                 .single();
 
             if (error) throw error;
-            return data;
-        } catch (error: any) {
+            return data as DBReturn;
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -182,7 +149,7 @@ export class ReturnsService {
                 .eq('id', id);
 
             if (error) throw error;
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }

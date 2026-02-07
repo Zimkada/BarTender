@@ -9,7 +9,6 @@ import { toDbProduct, toDbProductForCreation } from '../utils/productMapper';
 import { offlineQueue } from '../services/offlineQueue';
 import { syncManager } from '../services/SyncManager';
 import type { Product, ProductStockInfo, Supply, Expense } from '../types';
-import type { SyncOperation } from '../types/sync';
 
 // React Query Hooks
 import { useProducts, useSupplies, useConsignments } from './queries/useStockQueries';
@@ -17,6 +16,23 @@ import { useStockMutations } from './mutations/useStockMutations';
 
 // Callback type for expense creation
 export type CreateExpenseCallback = (expense: Omit<Expense, 'id' | 'barId' | 'createdAt'>) => void;
+
+interface CreateConsignmentData {
+  saleId: string;
+  productId: string;
+  productName: string;
+  productVolume?: string;
+  quantity: number;
+  totalAmount: number;
+  customerName?: string;
+  customerPhone?: string;
+  notes?: string;
+  expiresAt: Date | string;
+  expirationDays?: number;
+  originalSeller: string;
+  serverId?: string;
+  businessDate: string;
+}
 
 export const useStockManagement = () => {
   const { currentBar } = useBarContext();
@@ -85,7 +101,7 @@ export const useStockManagement = () => {
     mutations.adjustStock.mutate(
       { productId, delta: quantity, reason },
       {
-        onError: (error: any) => {
+        onError: (error) => {
           console.error(`Failed to increase stock for product ${productId}:`, error);
         }
       }
@@ -102,7 +118,7 @@ export const useStockManagement = () => {
     mutations.adjustStock.mutate(
       { productId, delta: -quantity, reason },
       {
-        onError: (error: any) => {
+        onError: (error) => {
           console.error(`Failed to decrease stock for product ${productId}:`, error);
         }
       }
@@ -112,7 +128,7 @@ export const useStockManagement = () => {
 
   // ===== LOGIQUE DE CONSIGNATION =====
 
-  const createConsignment = useCallback((data: any) => {
+  const createConsignment = useCallback((data: CreateConsignmentData) => {
     if (!currentBar || !session) return Promise.reject('No bar or session');
 
     const consignmentData = {
@@ -242,7 +258,7 @@ export const useStockManagement = () => {
       onSuccess: () => {
         onSuccess();
       },
-      onError: (error: any) => {
+      onError: (error) => {
         onError(error.message || 'Erreur lors de la validation');
       }
     });
@@ -323,8 +339,8 @@ export const useStockManagement = () => {
         return;
       }
 
-      sale.items.forEach((item: any) => {
-        const pId = item.product_id || item.productId;
+      sale.items.forEach((item) => {
+        const pId = item.product_id;
         if (infoMap[pId]) {
           infoMap[pId].availableStock -= item.quantity;
         }

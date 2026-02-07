@@ -7,9 +7,17 @@ import { useTeamPerformance } from '../hooks/useTeamPerformance';
 import { getCurrentBusinessDateString } from '../utils/businessDateHelpers';
 import { AnalyticsService } from '../services/supabase/analytics.service';
 import { useQuery } from '@tanstack/react-query';
-import { Sale } from '../types';
-import { SalesService } from '../services/supabase/sales.service';
+import { Sale, SaleItem } from '../types';
+import { SalesService, OfflineSale } from '../services/supabase/sales.service';
 import { syncManager } from '../services/SyncManager';
+
+interface TransitionSale extends Omit<Sale, 'id' | 'businessDate'> {
+    id: string;
+    businessDate: Date;
+    isTransition: true;
+    currency: string;
+    createdBy: string;
+}
 
 export function useDashboardAnalytics(currentBarId: string | undefined) {
     const { sales, getTodaySales, getTodayReturns, getLowStockProducts, users } = useAppContext();
@@ -35,7 +43,7 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
     });
 
     // 🟠 Offline Sync (Phase 10: Sprint B)
-    const [offlineQueueSales, setOfflineQueueSales] = useState<any[]>([]);
+    const [offlineQueueSales, setOfflineQueueSales] = useState<OfflineSale[]>([]);
 
     useEffect(() => {
         // Fetch offline sales for today
@@ -72,16 +80,16 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
 
         // 🛡️ Déduplication de la queue (Offline vs Buffer)
         const deduplicatedOfflineQueue = offlineQueueSales.filter(sale => {
-            const key = (sale as any).idempotency_key;
+            const key = sale.idempotency_key;
             return !key || !recentlySyncedMap.has(key);
         });
 
         // 🛡️ Transition Buffer (Phase 11.3/11.4): Bridge le gap post-sync pour la LISTE
-        const transitionSales: any[] = [];
+        const transitionSales: TransitionSale[] = [];
         recentlySyncedMap.forEach((data, key) => {
             // Si la vente n'est pas encore dans la liste serveur officielle (todayValidatedSales)
-            // 🛡️ UNIFICATION (V11.4): Chercher les deux casses
-            const alreadyIndexed = todayValidatedSales.some((s: any) =>
+            // 🛡️ UNIFICATION (V11.4): Chercher les deux casses sans cast brute
+            const alreadyIndexed = todayValidatedSales.some((s: UnifiedSale) =>
                 (s.idempotencyKey === key) || (s.idempotency_key === key)
             );
 
@@ -93,21 +101,23 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
                         id: `transition_${key}`,
                         barId: payload.bar_id,
                         total: data.total,
-                        status: payload.status || 'validated',
-                        paymentMethod: payload.payment_method,
+                        status: (payload.status || 'validated') as 'pending' | 'validated',
+                        paymentMethod: payload.payment_method as any, // Enum narrowing
                         soldBy: payload.sold_by,
-                        serverId: payload.server_id,
+                        serverId: payload.server_id ?? undefined,
                         businessDate: payload.business_date ? new Date(payload.business_date) : new Date(),
                         createdAt: new Date(data.timestamp),
                         items: payload.items,
-                        idempotencyKey: key, // Pour le prochain cycle de dédoublonnage
-                        isTransition: true
+                        idempotencyKey: key,
+                        isTransition: true,
+                        currency: 'XAF', // Valeur par défaut ou à extraire du contexte si possible
+                        createdBy: payload.sold_by // Par défaut le vendeur
                     });
                 }
             }
         });
 
-        const mergedSales = [...todayValidatedSales, ...deduplicatedOfflineQueue, ...transitionSales];
+        const mergedSales = [...todayValidatedSales, ...deduplicatedOfflineQueue, ...transitionSales] as (Sale | OfflineSale | TransitionSale)[];
         if (!isServerRole) return mergedSales;
         // Source of truth: soldBy is the business attribution
         return mergedSales.filter(s => s.soldBy === currentUserId);
@@ -127,6 +137,23 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
         );
     }, [activeConsignments, isServerRole, currentUserId]);
 
+    // 🛡️ Interface d'unification pour le pool mixte (Online/Offline/Transition)
+    interface UnifiedSale {
+        id: string;
+        status: string;
+        total: number;
+        idempotencyKey?: string;
+        idempotency_key?: string;
+        businessDate?: Date | string | null;
+        business_date?: string | null;
+        soldBy?: string;
+        sold_by?: string;
+        serverId?: string | null;
+        server_id?: string | null;
+        createdAt?: Date | string;
+        created_at?: string;
+    }
+
     // 4. Pending Sales (Orders Tab)
     const pendingSales = useMemo(() => {
         const isManager = !isServerRole;
@@ -136,19 +163,22 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
         // 🛡️ FUSION OFFLINE (Phase 15): 
         // Inclure les ventes offline en attente dans la liste des commandes
         // Le dédoublonnage est déjà fait partiellement, mais on refait une passe propre
-        const allSalesPool = [...sales, ...offlineQueueSales.filter(os => {
+        const allSalesPool: UnifiedSale[] = [...sales, ...offlineQueueSales.filter(os => {
             // Exclure si déjà présent dans sales via idempotencyKey
-            return !sales.some(s => (s as any).idempotencyKey === os.idempotency_key);
+            return !sales.some(s => s.idempotencyKey === os.idempotency_key);
         })];
 
-        return allSalesPool.filter(s => {
+        return allSalesPool.filter((s: UnifiedSale) => {
+            // Unification des champs snake_case vs camelCase pour le pool mixte
             const businessDateVal = s.businessDate || s.business_date;
+            const saleStatus = s.status;
+
             const saleDateStr = businessDateVal instanceof Date
                 ? businessDateVal.toISOString().split('T')[0]
                 : String(businessDateVal).split('T')[0];
 
             // Basic filters: pending + today
-            if (s.status !== 'pending' || saleDateStr !== todayDateStr) {
+            if (saleStatus !== 'pending' || saleDateStr !== todayDateStr) {
                 return false;
             }
 
@@ -166,11 +196,11 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
             if (!isOwnSale) return false;
 
             const createdAtVal = s.createdAt || s.created_at;
-            const saleTime = new Date(createdAtVal).getTime();
+            const saleTime = createdAtVal ? new Date(createdAtVal).getTime() : 0;
             const isRecent = (now - saleTime) < TEN_MINUTES_MS;
             return isRecent;
         });
-    }, [sales, offlineQueueSales, currentSession, todayDateStr, isServerRole, currentUserId]);
+    }, [sales, offlineQueueSales, todayDateStr, isServerRole, currentUserId]);
 
     // 5. Hooks / Sub-queries
     const { netRevenue: todayTotal } = useRevenueStats({
@@ -180,7 +210,7 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
     });
 
     const teamPerformanceData = useTeamPerformance({
-        sales: serverFilteredSales,
+        sales: serverFilteredSales as Sale[],
         returns: todayReturns,
         users: users,
         barMembers: [],
@@ -190,10 +220,10 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
 
     const lowStockProducts = getLowStockProducts();
 
-    const totalItems = serverFilteredSales.reduce((sum: number, sale: Sale) => {
+    const totalItems = serverFilteredSales.reduce((sum: number, sale: (Sale | OfflineSale | TransitionSale)) => {
         // 🛡️ Guard: Vérifier que items existe (ventes offline pourraient ne pas avoir items)
         if (!sale.items || !Array.isArray(sale.items)) return sum;
-        return sum + sale.items.reduce((s: number, i: any) => s + (i.quantity || 0), 0);
+        return sum + sale.items.reduce((s: number, i: SaleItem) => s + (i.quantity || 0), 0);
     }, 0);
 
     // Top produits : agrégation locale depuis les ventes du jour (même pattern que totalItems / teamPerformance)
@@ -205,7 +235,7 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
             // 🛡️ Guard: Vérifier que items existe
             if (!sale.items || !Array.isArray(sale.items)) return;
 
-            sale.items.forEach((item: any) => {
+            sale.items.forEach((item: SaleItem) => {
                 const existing = productMap.get(item.product_id);
                 if (existing) {
                     existing.qty += item.quantity;

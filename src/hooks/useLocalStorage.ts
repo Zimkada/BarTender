@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { z } from 'zod';
 
 // Event dispatcher pour synchroniser entre composants
 const createStorageEventDispatcher = () => {
   const listeners = new Set<() => void>();
-  
+
   return {
     subscribe: (listener: () => void) => {
       listeners.add(listener);
@@ -17,12 +18,18 @@ const createStorageEventDispatcher = () => {
 
 const storageEventDispatcher = createStorageEventDispatcher();
 
-export function useLocalStorage<T>(key: string, initialValue: T) {
+export function useLocalStorage<T>(key: string, initialValue: T, schema?: z.ZodType<T>) {
   // État local
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {
       const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
+      if (!item) return initialValue;
+
+      const parsed = JSON.parse(item);
+      if (schema) {
+        return schema.parse(parsed);
+      }
+      return parsed as T;
     } catch (error) {
       console.error(`Error reading localStorage key "${key}":`, error);
       return initialValue;
@@ -52,7 +59,8 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       try {
         const item = window.localStorage.getItem(key);
         if (item) {
-          const newValue = JSON.parse(item);
+          const parsed = JSON.parse(item);
+          const newValue = schema ? schema.parse(parsed) : parsed;
           // Utiliser queueMicrotask pour éviter setState pendant render
           queueMicrotask(() => {
             setStoredValue(newValue);

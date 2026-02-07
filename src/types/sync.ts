@@ -1,43 +1,56 @@
-// sync.ts - Types pour système de synchronisation offline/online
-// Architecture propre avant migration Supabase
+import type { Database } from '../lib/database.types';
 
 /**
  * Types de mutations supportées par le système de sync
- * Chaque opération métier a son type pour traçabilité
  */
 export type MutationType =
-  | 'CREATE_SALE'           // Nouvelle vente
-  | 'UPDATE_PRODUCT'        // Mise à jour produit (stock, prix, etc.)
-  | 'CREATE_RETURN'         // Nouveau retour
-  | 'UPDATE_RETURN'         // Mise à jour statut retour (approved, rejected)
-  | 'CREATE_CONSIGNMENT'    // Nouvelle consignation
-  | 'CLAIM_CONSIGNMENT'     // Récupération consignation
-  | 'FORFEIT_CONSIGNMENT'   // Confiscation consignation
-  | 'ADD_EXPENSE'           // Nouvelle dépense
-  | 'ADD_SALARY'            // Nouveau paiement salaire
-  | 'ADD_SUPPLY'            // Nouvel approvisionnement
-  | 'CREATE_PRODUCT'        // Nouveau produit
-  | 'DELETE_PRODUCT'        // Suppression produit
-  | 'CREATE_TICKET'         // Nouveau bon (pas supporté offline en V1)
-  | 'PAY_TICKET'            // Paiement du bon (pas supporté offline en V1)
-  | 'UPDATE_BAR'            // Mise à jour des paramètres du bar (Settings)
-  | 'CREATE_SERVER_MAPPING';// Création mapping serveur (v11.8 - Auto-mapping)
+  | 'CREATE_SALE'
+  | 'UPDATE_PRODUCT'
+  | 'CREATE_RETURN'
+  | 'UPDATE_RETURN'
+  | 'CREATE_CONSIGNMENT'
+  | 'CLAIM_CONSIGNMENT'
+  | 'FORFEIT_CONSIGNMENT'
+  | 'ADD_EXPENSE'
+  | 'ADD_SALARY'
+  | 'ADD_SUPPLY'
+  | 'CREATE_PRODUCT'
+  | 'DELETE_PRODUCT'
+  | 'CREATE_TICKET'
+  | 'PAY_TICKET'
+  | 'UPDATE_BAR'
+  | 'CREATE_SERVER_MAPPING';
 
 /**
  * Statut d'une opération dans la queue de sync
  */
 export type SyncOperationStatus =
-  | 'pending'   // En attente de synchronisation
-  | 'syncing'   // Synchronisation en cours
-  | 'success'   // Synchronisée avec succès
-  | 'error';    // Erreur lors de la synchronisation
+  | 'pending'
+  | 'syncing'
+  | 'success'
+  | 'error';
+
+// Helper types from Database
+type TableInsert<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert'];
+type TableUpdate<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Update'];
 
 /**
  * Payload pour la création d'une vente
  */
+export interface SaleItem {
+  product_id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  original_unit_price?: number;
+  discount_amount?: number;
+  promotion_id?: string;
+}
+
 export interface CreateSalePayload {
   bar_id: string;
-  items: any[]; // On pourra affiner avec SaleItem plus tard
+  items: SaleItem[];
   payment_method: string;
   sold_by: string;
   server_id?: string | null;
@@ -51,25 +64,28 @@ export interface CreateSalePayload {
 }
 
 /**
- * Payload pour la mise à jour d'un bar
+ * Payloads spécifiques pour les autres opérations
  */
+export type CreateReturnPayload = TableInsert<'returns'>;
+export type UpdateReturnPayload = { id: string; updates: TableUpdate<'returns'> };
+export type CreateConsignmentPayload = TableInsert<'consignments'>;
+export type UpdateConsignmentPayload = { id: string; status: string; updates?: TableUpdate<'consignments'> };
+export type AddExpensePayload = TableInsert<'expenses'>;
+export type AddSupplyPayload = TableInsert<'supplies'>;
+export type UpdateProductPayload = { id: string; updates: TableUpdate<'bar_products'> };
+export type CreateProductPayload = TableInsert<'bar_products'>;
+
 export interface UpdateBarPayload {
   barId: string;
-  updates: Record<string, any>; // Partial<Bar> idealement mais pour l'instant any pour éviter dépendance circulaire
+  updates: TableUpdate<'bars'>;
 }
 
-/**
- * Payload pour la création d'un mapping serveur (v11.8)
- */
 export interface CreateServerMappingPayload {
   barId: string;
   serverName: string;
   userId: string;
 }
 
-/**
- * Payload pour la création d'un ticket (v12)
- */
 export interface CreateTicketPayload {
   bar_id: string;
   created_by: string;
@@ -79,12 +95,9 @@ export interface CreateTicketPayload {
   table_number?: number | null;
   customer_name?: string | null;
   idempotency_key: string;
-  temp_id: string; // Utilisé pour ID Mapping
+  temp_id: string;
 }
 
-/**
- * Payload pour le paiement d'un ticket (v12)
- */
 export interface PayTicketPayload {
   ticket_id: string;
   paid_by: string;
@@ -93,7 +106,7 @@ export interface PayTicketPayload {
 }
 
 /**
- * Structure de base commune à toutes les opérations
+ * Structure de base commune
  */
 interface SyncOperationBase {
   id: string;
@@ -109,35 +122,20 @@ interface SyncOperationBase {
 /**
  * Opérations spécifiques typées
  */
-export type SyncOperationCreateSale = SyncOperationBase & {
-  type: 'CREATE_SALE';
-  payload: CreateSalePayload;
-};
-
-export type SyncOperationUpdateBar = SyncOperationBase & {
-  type: 'UPDATE_BAR';
-  payload: UpdateBarPayload;
-};
-
-export type SyncOperationCreateServerMapping = SyncOperationBase & {
-  type: 'CREATE_SERVER_MAPPING';
-  payload: CreateServerMappingPayload;
-};
-
-export type SyncOperationCreateTicket = SyncOperationBase & {
-  type: 'CREATE_TICKET';
-  payload: CreateTicketPayload;
-};
-
-export type SyncOperationPayTicket = SyncOperationBase & {
-  type: 'PAY_TICKET';
-  payload: PayTicketPayload;
-};
-
-export type SyncOperationGeneric = SyncOperationBase & {
-  type: Exclude<MutationType, 'CREATE_SALE' | 'UPDATE_BAR' | 'CREATE_SERVER_MAPPING' | 'CREATE_TICKET' | 'PAY_TICKET'>;
-  payload: any;
-};
+export type SyncOperationCreateSale = SyncOperationBase & { type: 'CREATE_SALE'; payload: CreateSalePayload };
+export type SyncOperationUpdateBar = SyncOperationBase & { type: 'UPDATE_BAR'; payload: UpdateBarPayload };
+export type SyncOperationCreateServerMapping = SyncOperationBase & { type: 'CREATE_SERVER_MAPPING'; payload: CreateServerMappingPayload };
+export type SyncOperationCreateTicket = SyncOperationBase & { type: 'CREATE_TICKET'; payload: CreateTicketPayload };
+export type SyncOperationPayTicket = SyncOperationBase & { type: 'PAY_TICKET'; payload: PayTicketPayload };
+export type SyncOperationCreateReturn = SyncOperationBase & { type: 'CREATE_RETURN'; payload: CreateReturnPayload };
+export type SyncOperationUpdateReturn = SyncOperationBase & { type: 'UPDATE_RETURN'; payload: UpdateReturnPayload };
+export type SyncOperationCreateConsignment = SyncOperationBase & { type: 'CREATE_CONSIGNMENT'; payload: CreateConsignmentPayload };
+export type SyncOperationUpdateConsignment = SyncOperationBase & { type: 'CLAIM_CONSIGNMENT' | 'FORFEIT_CONSIGNMENT'; payload: UpdateConsignmentPayload };
+export type SyncOperationAddExpense = SyncOperationBase & { type: 'ADD_EXPENSE' | 'ADD_SALARY'; payload: AddExpensePayload };
+export type SyncOperationAddSupply = SyncOperationBase & { type: 'ADD_SUPPLY'; payload: AddSupplyPayload };
+export type SyncOperationUpdateProduct = SyncOperationBase & { type: 'UPDATE_PRODUCT'; payload: UpdateProductPayload };
+export type SyncOperationCreateProduct = SyncOperationBase & { type: 'CREATE_PRODUCT'; payload: CreateProductPayload };
+export type SyncOperationDeleteProduct = SyncOperationBase & { type: 'DELETE_PRODUCT'; payload: { id: string } };
 
 /**
  * Union discriminée pour type-safety
@@ -148,7 +146,15 @@ export type SyncOperation =
   | SyncOperationCreateServerMapping
   | SyncOperationCreateTicket
   | SyncOperationPayTicket
-  | SyncOperationGeneric;
+  | SyncOperationCreateReturn
+  | SyncOperationUpdateReturn
+  | SyncOperationCreateConsignment
+  | SyncOperationUpdateConsignment
+  | SyncOperationAddExpense
+  | SyncOperationAddSupply
+  | SyncOperationUpdateProduct
+  | SyncOperationCreateProduct
+  | SyncOperationDeleteProduct;
 
 /**
  * État du réseau détecté

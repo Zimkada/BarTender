@@ -2,6 +2,7 @@
 // Utilise IndexedDB pour persister les opérations localement
 
 import type { SyncOperation, SyncOperationStatus, MutationType } from '../types/sync';
+import { MutationSchemas } from '../types/schemas';
 
 /**
  * Configuration IndexedDB
@@ -101,6 +102,17 @@ class OfflineQueue {
     barId: string,
     userId: string
   ): Promise<SyncOperation> {
+    // 🛡️ RUNTIME VALIDATION (Phase 16 : Blindage Expert)
+    const schema = MutationSchemas[type];
+    if (schema) {
+      try {
+        schema.parse(payload);
+      } catch (err: any) {
+        console.error(`[OfflineQueue] Validation failed for ${type}:`, err.errors || err);
+        throw new Error(`INVALID_PAYLOAD: ${type}`);
+      }
+    }
+
     const db = await this.ensureDB();
 
     const operation = {

@@ -5,7 +5,7 @@ import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { SalesService, type OfflineSale } from '../services/supabase/sales.service';
-import { ReturnsService } from '../services/supabase/returns.service';
+import { ReturnsService, type DBReturn } from '../services/supabase/returns.service';
 import { getCurrentBusinessDateString } from '../utils/businessDateHelpers';
 import { calculateRevenueStats } from '../utils/revenueCalculator';
 import { statsKeys } from './queries/useStatsQueries';
@@ -22,6 +22,14 @@ interface RevenueStats {
     source: 'sql' | 'local';
     lastUpdated: Date | undefined;
 }
+
+type SalesSummaryRow = {
+    total: number | null;
+    status: string;
+    sold_by: string;
+    business_date: string;
+    idempotency_key: string | null;
+};
 
 interface InternalStats {
     netRevenue: number;
@@ -126,7 +134,7 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
             }
 
             // 🛡️ CALCUL SOUVERAIN (V11.5): On fait la somme nous-mêmes (Anti-Lag)
-            const serverRevenue = serverRawData?.reduce((sum: number, sale: any) => sum + (sale.total || 0), 0) || 0;
+            const serverRevenue = (serverRawData as SalesSummaryRow[] | null)?.reduce((sum: number, sale) => sum + (sale.total || 0), 0) || 0;
             const serverCount = serverRawData?.length || 0;
 
             const offlineSales = await SalesService.getOfflineSales(currentBarId, dStart, dEnd);
@@ -149,7 +157,7 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
 
             recentlySyncedMap.forEach((data, key) => {
                 // On vérifie le dédoublonnage contre serverRawData (plus fiable que AppContext)
-                const alreadyIndexed = serverRawData?.some((s: any) =>
+                const alreadyIndexed = (serverRawData as SalesSummaryRow[] | null)?.some((s) =>
                     s.idempotency_key === key
                 );
                 if (!alreadyIndexed) {
@@ -167,10 +175,10 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
             const returnsData = await ReturnsService.getReturns(currentBarId, startDate, endDate, serverId, operatingMode)
                 .catch(() => []);
 
-            const filteredReturns = returnsData
-                .filter((r: any) => r.is_refunded && (r.status === 'approved' || r.status === 'restocked'));
+            const filteredReturns = (returnsData as DBReturn[])
+                .filter((r) => r.is_refunded && (r.status === 'approved' || r.status === 'restocked'));
 
-            const refundsTotal = filteredReturns.reduce((sum: number, r: any) => sum + Number(r.refund_amount), 0);
+            const refundsTotal = filteredReturns.reduce((sum: number, r) => sum + Number(r.refund_amount), 0);
             const netRevenue = grossRevenue - refundsTotal;
 
             return {
