@@ -4,6 +4,33 @@
  */
 
 import { Bar } from '../types';
+import type { ServerNameMapping } from '../services/supabase/server-mappings.service';
+
+/**
+ * Type pour le cache des mappings (structure minimale requise)
+ * Compatible avec ServerNameMapping complet ET version enrichie
+ */
+export interface CachedMapping {
+  serverName: string;
+  userId: string;
+  userName?: string; // Optionnel (pour UI uniquement)
+}
+
+/**
+ * Type guard pour valider la structure d'un mapping
+ */
+export function isValidCachedMapping(obj: unknown): obj is CachedMapping {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'serverName' in obj &&
+    'userId' in obj &&
+    typeof (obj as CachedMapping).serverName === 'string' &&
+    typeof (obj as CachedMapping).userId === 'string' &&
+    (obj as CachedMapping).serverName.length > 0 &&
+    (obj as CachedMapping).userId.length > 0
+  );
+}
 
 const STORAGE_KEYS = {
   BARS: 'bartender_bars',
@@ -121,13 +148,22 @@ export class OfflineStorage {
   }
 
   /**
-   * Sauvegarder les mappings serveurs
+   * Sauvegarder les mappings serveurs (accepte ServerNameMapping OU structure enrichie)
+   * Normalise automatiquement vers CachedMapping
    */
-  static saveMappings(barId: string, mappings: any[]): void {
+  static saveMappings(barId: string, mappings: (ServerNameMapping | CachedMapping)[]): void {
     try {
       this.checkVersionAndMigrate();
+
+      // Normaliser vers CachedMapping (structure minimale)
+      const normalized = mappings.map(m => ({
+        serverName: m.serverName,
+        userId: m.userId,
+        userName: 'userName' in m ? m.userName : undefined
+      }));
+
       const allMappings = this.getAllMappings();
-      allMappings[barId] = mappings;
+      allMappings[barId] = normalized;
       localStorage.setItem(STORAGE_KEYS.SERVER_MAPPINGS, JSON.stringify(allMappings));
     } catch (error) {
       console.error('[OfflineStorage] Error saving mappings:', error);
@@ -136,19 +172,35 @@ export class OfflineStorage {
 
   /**
    * Récupérer les mappings serveurs pour un bar
+   * ✨ NOUVEAU : Valide et nettoie automatiquement le cache corrompu
    */
-  static getMappings(barId: string): any[] | null {
+  static getMappings(barId: string): CachedMapping[] | null {
     try {
       this.checkVersionAndMigrate();
       const allMappings = this.getAllMappings();
-      return allMappings[barId] || null;
+      const rawMappings = allMappings[barId];
+
+      if (!rawMappings) return null;
+
+      // ✅ Validation : filtrer les entrées invalides
+      const validMappings = rawMappings.filter(isValidCachedMapping);
+
+      // Si des mappings invalides détectés, nettoyer le cache
+      if (validMappings.length < rawMappings.length) {
+        console.warn(
+          `[OfflineStorage] Detected ${rawMappings.length - validMappings.length} corrupted mapping(s), cleaning cache`
+        );
+        this.saveMappings(barId, validMappings);
+      }
+
+      return validMappings.length > 0 ? validMappings : null;
     } catch (error) {
       console.error('[OfflineStorage] Error loading mappings:', error);
       return null;
     }
   }
 
-  private static getAllMappings(): Record<string, any[]> {
+  private static getAllMappings(): Record<string, CachedMapping[]> {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.SERVER_MAPPINGS);
       return data ? JSON.parse(data) : {};

@@ -20,7 +20,8 @@ export type MutationType =
   | 'DELETE_PRODUCT'        // Suppression produit
   | 'CREATE_TICKET'         // Nouveau bon (pas supporté offline en V1)
   | 'PAY_TICKET'            // Paiement du bon (pas supporté offline en V1)
-  | 'UPDATE_BAR';           // Mise à jour des paramètres du bar (Settings)
+  | 'UPDATE_BAR'            // Mise à jour des paramètres du bar (Settings)
+  | 'CREATE_SERVER_MAPPING';// Création mapping serveur (v11.8 - Auto-mapping)
 
 /**
  * Statut d'une opération dans la queue de sync
@@ -32,49 +33,122 @@ export type SyncOperationStatus =
   | 'error';    // Erreur lors de la synchronisation
 
 /**
- * Une opération de synchronisation dans la queue
- *
- * @example
- * {
- *   id: 'sync_1234567890_abc',
- *   type: 'CREATE_SALE',
- *   payload: { items: [...], total: 5000 },
- *   timestamp: 1697812345678,
- *   retryCount: 0,
- *   status: 'pending'
- * }
+ * Payload pour la création d'une vente
  */
-export interface SyncOperation {
-  /** ID unique de l'opération (format: sync_timestamp_random) */
-  id: string;
+export interface CreateSalePayload {
+  bar_id: string;
+  items: any[]; // On pourra affiner avec SaleItem plus tard
+  payment_method: string;
+  sold_by: string;
+  server_id?: string | null;
+  status: string;
+  customer_name?: string | null;
+  customer_phone?: string | null;
+  notes?: string | null;
+  business_date?: string | null;
+  ticket_id?: string | null;
+  idempotency_key: string;
+}
 
-  /** Type de mutation à synchroniser */
-  type: MutationType;
-
-  /** Données de l'opération (structure dépend du type) */
-  payload: any;
-
-  /** Timestamp de création (milliseconds depuis epoch) */
-  timestamp: number;
-
-  /** Nombre de tentatives de synchronisation */
-  retryCount: number;
-
-  /** Statut actuel de l'opération */
-  status: SyncOperationStatus;
-
-  /** Message d'erreur si status === 'error' */
-  errorMessage?: string;
-
-  /** Timestamp de la dernière tentative */
-  lastAttemptAt?: number;
-
-  /** ID du bar concerné (pour multi-tenant isolation) */
+/**
+ * Payload pour la mise à jour d'un bar
+ */
+export interface UpdateBarPayload {
   barId: string;
+  updates: Record<string, any>; // Partial<Bar> idealement mais pour l'instant any pour éviter dépendance circulaire
+}
 
-  /** ID de l'utilisateur qui a créé l'opération */
+/**
+ * Payload pour la création d'un mapping serveur (v11.8)
+ */
+export interface CreateServerMappingPayload {
+  barId: string;
+  serverName: string;
   userId: string;
 }
+
+/**
+ * Payload pour la création d'un ticket (v12)
+ */
+export interface CreateTicketPayload {
+  bar_id: string;
+  created_by: string;
+  notes?: string | null;
+  server_id?: string | null;
+  closing_hour: number;
+  table_number?: number | null;
+  customer_name?: string | null;
+  idempotency_key: string;
+  temp_id: string; // Utilisé pour ID Mapping
+}
+
+/**
+ * Payload pour le paiement d'un ticket (v12)
+ */
+export interface PayTicketPayload {
+  ticket_id: string;
+  paid_by: string;
+  payment_method: string;
+  idempotency_key: string;
+}
+
+/**
+ * Structure de base commune à toutes les opérations
+ */
+interface SyncOperationBase {
+  id: string;
+  timestamp: number;
+  retryCount: number;
+  status: SyncOperationStatus;
+  errorMessage?: string;
+  lastAttemptAt?: number;
+  barId: string;
+  userId: string;
+}
+
+/**
+ * Opérations spécifiques typées
+ */
+export type SyncOperationCreateSale = SyncOperationBase & {
+  type: 'CREATE_SALE';
+  payload: CreateSalePayload;
+};
+
+export type SyncOperationUpdateBar = SyncOperationBase & {
+  type: 'UPDATE_BAR';
+  payload: UpdateBarPayload;
+};
+
+export type SyncOperationCreateServerMapping = SyncOperationBase & {
+  type: 'CREATE_SERVER_MAPPING';
+  payload: CreateServerMappingPayload;
+};
+
+export type SyncOperationCreateTicket = SyncOperationBase & {
+  type: 'CREATE_TICKET';
+  payload: CreateTicketPayload;
+};
+
+export type SyncOperationPayTicket = SyncOperationBase & {
+  type: 'PAY_TICKET';
+  payload: PayTicketPayload;
+};
+
+export type SyncOperationGeneric = SyncOperationBase & {
+  type: Exclude<MutationType, 'CREATE_SALE' | 'UPDATE_BAR' | 'CREATE_SERVER_MAPPING' | 'CREATE_TICKET' | 'PAY_TICKET'>;
+  payload: any;
+};
+
+/**
+ * Union discriminée pour type-safety
+ */
+export type SyncOperation =
+  | SyncOperationCreateSale
+  | SyncOperationUpdateBar
+  | SyncOperationCreateServerMapping
+  | SyncOperationCreateTicket
+  | SyncOperationPayTicket
+  | SyncOperationGeneric;
 
 /**
  * État du réseau détecté

@@ -7,8 +7,9 @@ import type { SyncOperation, SyncOperationStatus, MutationType } from '../types/
  * Configuration IndexedDB
  */
 const DB_NAME = 'bartender_offline_queue';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // UPGRADE: v1 -> v2 (Phase 13 Blindage)
 const STORE_NAME = 'sync_operations';
+const TRANSLATIONS_STORE = 'id_translations'; // NEW: Store pour ID-Mapping persistant
 
 /**
  * Service de gestion de la queue de synchronisation
@@ -28,8 +29,6 @@ class OfflineQueue {
     }
 
     this.initPromise = new Promise((resolve, reject) => {
-      // ⭐ DB SAFETY TIMEOUT (Anti-Spinner)
-      // Si IndexedDB met plus de 5s à s'ouvrir (lock conflict), on throw pour débloquer l'UI
       const timeoutId = setTimeout(() => {
         console.error('[OfflineQueue] IndexedDB open timed out (5s)');
         reject(new Error('IDB_OPEN_TIMEOUT'));
@@ -53,13 +52,22 @@ class OfflineQueue {
 
         request.onupgradeneeded = (event) => {
           const db = (event.target as IDBOpenDBRequest).result;
+
+          // Store principal des opérations
           if (!db.objectStoreNames.contains(STORE_NAME)) {
             const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
             store.createIndex('status', 'status', { unique: false });
             store.createIndex('barId', 'barId', { unique: false });
             store.createIndex('timestamp', 'timestamp', { unique: false });
             store.createIndex('barId_status', ['barId', 'status'], { unique: false });
-            console.log('[OfflineQueue] Object store created');
+            console.log('[OfflineQueue] sync_operations store created');
+          }
+
+          // Store des traductions d'IDs (v2)
+          if (!db.objectStoreNames.contains(TRANSLATIONS_STORE)) {
+            const translationStore = db.createObjectStore(TRANSLATIONS_STORE, { keyPath: 'tempId' });
+            translationStore.createIndex('timestamp', 'timestamp', { unique: false });
+            console.log('[OfflineQueue] id_translations store created');
           }
         };
       } catch (err) {
@@ -87,15 +95,15 @@ class OfflineQueue {
   /**
    * Ajoute une opération à la queue
    */
-  async addOperation(
-    type: MutationType,
-    payload: any,
+  async addOperation<T extends MutationType>(
+    type: T,
+    payload: Extract<SyncOperation, { type: T }>['payload'],
     barId: string,
     userId: string
   ): Promise<SyncOperation> {
     const db = await this.ensureDB();
 
-    const operation: SyncOperation = {
+    const operation = {
       id: `sync_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       type,
       payload,
@@ -104,7 +112,7 @@ class OfflineQueue {
       status: 'pending',
       barId,
       userId,
-    };
+    } as SyncOperation;
 
     return new Promise((resolve, reject) => {
       const execAdd = () => {
@@ -304,6 +312,51 @@ class OfflineQueue {
       errorCount: operations.filter(op => op.status === 'error').length,
       totalCount: operations.length,
     };
+  }
+
+  // --- ID TRANSLATIONS (Phase 13 Blindage) ---
+
+  async saveIdTranslation(tempId: string, realId: string): Promise<void> {
+    const db = await this.ensureDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([TRANSLATIONS_STORE], 'readwrite');
+      const store = transaction.objectStore(TRANSLATIONS_STORE);
+      const request = store.put({
+        tempId,
+        realId,
+        timestamp: Date.now()
+      });
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async getIdTranslations(): Promise<Map<string, string>> {
+    const db = await this.ensureDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([TRANSLATIONS_STORE], 'readonly');
+      const store = transaction.objectStore(TRANSLATIONS_STORE);
+      const request = store.getAll();
+
+      request.onsuccess = () => {
+        const results = request.result as Array<{ tempId: string; realId: string }>;
+        const map = new Map<string, string>();
+        results.forEach(item => map.set(item.tempId, item.realId));
+        resolve(map);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async clearIdTranslations(): Promise<void> {
+    const db = await this.ensureDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([TRANSLATIONS_STORE], 'readwrite');
+      const store = transaction.objectStore(TRANSLATIONS_STORE);
+      const request = store.clear();
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
   }
 
   close(): void {
