@@ -11,6 +11,8 @@ export const returnKeys = {
 export const useReturns = (barId: string | undefined, options?: { refetchInterval?: number | false }) => {
     return useQuery({
         queryKey: returnKeys.list(barId || ''),
+        networkMode: 'always', // 🛡️ Fix V11.6: Accès offline aux retours
+        placeholderData: (previousData: any) => previousData, // 🛡️ Fix V11.6: Anti-flash
         queryFn: async (): Promise<Return[]> => {
             if (!barId) return [];
             const dbReturns = await ReturnsService.getReturns(barId);

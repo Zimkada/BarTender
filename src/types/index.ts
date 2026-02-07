@@ -314,6 +314,7 @@ export interface Sale {
   onboarding_step?: string;
   theme_config?: string; // JSON stringifié
   notes?: string; // ✨ Notes sur la vente
+  idempotencyKey?: string; // 🛡️ Clé anti-doublon (V11.5)
   isOptimistic?: boolean; // ⭐ Indique une vente créée hors-ligne (UI Optimiste)
 }
 

@@ -31,6 +31,7 @@ export const useSales = (barId: string | undefined) => {
 
     return useQuery({
         queryKey: salesKeys.list(barId || '') as any,
+        networkMode: 'always', // 🛡️ CRITIQUE: Permet l'accès au cache même offline
         queryFn: async (): Promise<Sale[]> => {
             if (!barId) return [];
             const dbSales = await SalesService.getBarSales(barId);
@@ -40,6 +41,7 @@ export const useSales = (barId: string | undefined) => {
         staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
         gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
         refetchInterval: smartSync.isSynced ? false : 30000, // 🚀 Hybride: Realtime ou polling 30s
+        placeholderData: (previousData: any) => previousData, // 🛡️ Fix V11.6: Évite le flash blanc lors des refetch
     });
 };
 
@@ -71,5 +73,6 @@ const mapSalesData = (dbSales: any[]): Sale[] => {
         // - Simplified mode: server_id = assigned server, sold_by = serveur
         serverId: s.server_id ?? undefined,
         ticketId: s.ticket_id ?? undefined,
+        idempotencyKey: (s as any).idempotency_key || undefined, // 🛡️ Fix V11.6: Mapping vital pour déduplication
     }));
 };

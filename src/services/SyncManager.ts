@@ -198,48 +198,48 @@ class SyncManagerService {
           const timerId = setTimeout(() => {
             this.recentlySyncedKeys.delete(idempotencyKey);
             this.timers.delete(idempotencyKey);
-          }, 60000); // 🛡️ Buffer étendu à 60s pour laisser le temps au serveur d'agréger
+          }, 10000); // 🛡️ Fix V11.6: 10s suffisent grâce à l'idempotencyKey
 
           this.timers.set(idempotencyKey, timerId);
-        }
-
-        await offlineQueue.removeOperation(operation.id);
-        console.log(`[SyncManager] Operation ${operation.id} synced successfully`);
-      } else {
-        // Échec: marquer comme error et planifier retry si applicable
-        await offlineQueue.updateOperationStatus(
-          operation.id,
-          'error',
-          result.error || 'Unknown error'
-        );
-
-        if (result.shouldRetry) {
-          console.warn(`[SyncManager] Operation ${operation.id} failed, will retry later`);
-          // Le retry sera géré au prochain cycle de sync
-        } else {
-          console.error(`[SyncManager] Operation ${operation.id} failed permanently:`, result.error);
-        }
       }
-    } catch (error: any) {
-      console.error(`[SyncManager] Exception syncing operation ${operation.id}:`, error);
+
+      await offlineQueue.removeOperation(operation.id);
+      console.log(`[SyncManager] Operation ${operation.id} synced successfully`);
+    } else {
+      // Échec: marquer comme error et planifier retry si applicable
       await offlineQueue.updateOperationStatus(
         operation.id,
         'error',
-        error.message || 'Sync exception'
+        result.error || 'Unknown error'
       );
+
+      if (result.shouldRetry) {
+        console.warn(`[SyncManager] Operation ${operation.id} failed, will retry later`);
+        // Le retry sera géré au prochain cycle de sync
+      } else {
+        console.error(`[SyncManager] Operation ${operation.id} failed permanently:`, result.error);
+      }
     }
+  } catch(error: any) {
+    console.error(`[SyncManager] Exception syncing operation ${operation.id}:`, error);
+    await offlineQueue.updateOperationStatus(
+      operation.id,
+      'error',
+      error.message || 'Sync exception'
+    );
   }
+}
 
   /**
    * Synchronise une opération selon son type
    */
-  private async syncByType(operation: SyncOperation): Promise<SyncResult> {
-    switch (operation.type) {
+  private async syncByType(operation: SyncOperation): Promise < SyncResult > {
+  switch(operation.type) {
       case 'CREATE_SALE':
-        return this.syncCreateSale(operation);
+  return this.syncCreateSale(operation);
 
       case 'UPDATE_BAR':
-        return this.syncUpdateBar(operation);
+  return this.syncUpdateBar(operation);
 
       // TODO: Ajouter d'autres types d'opérations ici
       // case 'UPDATE_PRODUCT':
@@ -248,239 +248,239 @@ class SyncManagerService {
       //   return this.syncCreateReturn(operation);
 
       default:
-        console.warn(`[SyncManager] Unknown operation type: ${operation.type}`);
-        return {
-          success: false,
-          operationId: operation.id,
-          error: `Unknown operation type: ${operation.type}`,
-          shouldRetry: false,
-        };
-    }
+  console.warn(`[SyncManager] Unknown operation type: ${operation.type}`);
+  return {
+    success: false,
+    operationId: operation.id,
+    error: `Unknown operation type: ${operation.type}`,
+    shouldRetry: false,
+  };
+}
   }
 
   /**
    * Synchronise une vente créée offline
    */
-  private async syncCreateSale(operation: SyncOperation): Promise<SyncResult> {
-    try {
-      const payload = operation.payload;
+  private async syncCreateSale(operation: SyncOperation): Promise < SyncResult > {
+  try {
+    const payload = operation.payload;
 
-      // Appeler le RPC idempotent pour créer la vente
-      const { data, error } = await supabase.rpc('create_sale_idempotent' as any, {
-        p_bar_id: payload.bar_id,
-        p_items: payload.items,
-        p_payment_method: payload.payment_method,
-        p_sold_by: payload.sold_by,
-        p_idempotency_key: payload.idempotency_key,
-        p_server_id: payload.server_id || null,
-        p_status: payload.status || 'validated',
-        p_customer_name: payload.customer_name || null,
-        p_customer_phone: payload.customer_phone || null,
-        p_notes: payload.notes || null,
-        p_business_date: payload.business_date || null,
-        p_ticket_id: payload.ticket_id || null,
-      }).single();
+    // Appeler le RPC idempotent pour créer la vente
+    const { data, error } = await supabase.rpc('create_sale_idempotent' as any, {
+      p_bar_id: payload.bar_id,
+      p_items: payload.items,
+      p_payment_method: payload.payment_method,
+      p_sold_by: payload.sold_by,
+      p_idempotency_key: payload.idempotency_key,
+      p_server_id: payload.server_id || null,
+      p_status: payload.status || 'validated',
+      p_customer_name: payload.customer_name || null,
+      p_customer_phone: payload.customer_phone || null,
+      p_notes: payload.notes || null,
+      p_business_date: payload.business_date || null,
+      p_ticket_id: payload.ticket_id || null,
+    }).single();
 
-      if (error) {
-        console.error(`[SyncManager] RPC error for operation ${operation.id}:`, error);
+    if(error) {
+      console.error(`[SyncManager] RPC error for operation ${operation.id}:`, error);
 
-        // Déterminer si on doit retry selon le code d'erreur
-        const shouldRetry = this.shouldRetryError(error);
-
-        return {
-          success: false,
-          operationId: operation.id,
-          error: error.message || error.code,
-          shouldRetry,
-        };
-      }
-
-      console.log(`[SyncManager] Sale created successfully: ${(data as any).id}`);
-
-      // 🚀 Broadcast aux autres onglets pour mise à jour immédiate
-      if (broadcastService.isSupported()) {
-        broadcastService.broadcast({
-          event: 'INSERT',
-          table: 'sales',
-          barId: payload.bar_id,
-          data: data, // La vente complète retournée par RPC
-        });
-
-        // Notifier aussi le changement de stock
-        broadcastService.broadcast({
-          event: 'UPDATE',
-          table: 'bar_products',
-          barId: payload.bar_id,
-        });
-      }
-
-      return {
-        success: true,
-        operationId: operation.id,
-      };
-    } catch (error: any) {
-      console.error(`[SyncManager] Exception creating sale:`, error);
-      return {
-        success: false,
-        operationId: operation.id,
-        error: error.message || 'Unknown exception',
-        shouldRetry: true, // Retry par défaut sur exception
-      };
-    }
-  }
-
-  /**
-   * Synchronise une mise à jour de bar (Settings)
-   */
-  private async syncUpdateBar(operation: SyncOperation): Promise<SyncResult> {
-    try {
-      const payload = operation.payload;
-      const { barId, updates } = payload;
-
-      if (!barId || !updates) {
-        return {
-          success: false,
-          operationId: operation.id,
-          error: 'Missing barId or updates in payload',
-          shouldRetry: false
-        };
-      }
-
-      console.log(`[SyncManager] Syncing bar update for ${barId}`, updates);
-
-      // 🛡️ Conflict Detection (Sprint 2): Vérifier si le serveur a été mis à jour après cette opération
-      const { data: currentBar, error: fetchError } = await supabase
-        .from('bars')
-        .select('updated_at')
-        .eq('id', barId)
-        .single();
-
-      if (!fetchError && currentBar?.updated_at) {
-        const serverUpdateTime = new Date(currentBar.updated_at).getTime();
-        if (serverUpdateTime > operation.timestamp) {
-          console.warn(`[SyncManager] Conflict detected for bar ${barId}. Server: ${currentBar.updated_at} > Local: ${new Date(operation.timestamp).toISOString()}`);
-          return {
-            success: false,
-            operationId: operation.id,
-            error: 'CONFLICT_DETECTED',
-            shouldRetry: false // Résolution manuelle requise
-          };
-        }
-      }
-
-      // Mapper les updates (camelCase Partial<Bar>) vers le format Supabase (snake_case)
-      // Car BarContext a stocké les updates bruts
-      const supabaseUpdates: any = {};
-      if (updates.name) supabaseUpdates.name = updates.name;
-      if (updates.address) supabaseUpdates.address = updates.address;
-      if (updates.phone) supabaseUpdates.phone = updates.phone;
-      if (updates.settings) supabaseUpdates.settings = updates.settings;
-      if (updates.isActive !== undefined) supabaseUpdates.is_active = updates.isActive;
-      if (updates.closingHour !== undefined) supabaseUpdates.closing_hour = updates.closingHour;
-      if (updates.theme_config !== undefined) supabaseUpdates.theme_config = updates.theme_config;
-
-      // Utiliser BarsService pour effectuer la mise à jour
-      await BarsService.updateBar(barId, supabaseUpdates);
-
-      console.log(`[SyncManager] Bar updated successfully: ${barId}`);
-
-      // 🚀 Broadcast aux autres onglets
-      if (broadcastService.isSupported()) {
-        broadcastService.broadcast({
-          event: 'UPDATE',
-          table: 'bars',
-          barId: barId,
-          data: { id: barId, ...supabaseUpdates }
-        });
-      }
-
-      return {
-        success: true,
-        operationId: operation.id,
-      };
-
-    } catch (error: any) {
-      console.error(`[SyncManager] Exception updating bar:`, error);
-
+      // Déterminer si on doit retry selon le code d'erreur
       const shouldRetry = this.shouldRetryError(error);
 
       return {
         success: false,
         operationId: operation.id,
-        error: error.message || 'Unknown exception',
-        shouldRetry: shouldRetry,
+        error: error.message || error.code,
+        shouldRetry,
       };
     }
+
+      console.log(`[SyncManager] Sale created successfully: ${(data as any).id}`);
+
+    // 🚀 Broadcast aux autres onglets pour mise à jour immédiate
+    if(broadcastService.isSupported()) {
+  broadcastService.broadcast({
+    event: 'INSERT',
+    table: 'sales',
+    barId: payload.bar_id,
+    data: data, // La vente complète retournée par RPC
+  });
+
+  // Notifier aussi le changement de stock
+  broadcastService.broadcast({
+    event: 'UPDATE',
+    table: 'bar_products',
+    barId: payload.bar_id,
+  });
+}
+
+return {
+  success: true,
+  operationId: operation.id,
+};
+    } catch (error: any) {
+  console.error(`[SyncManager] Exception creating sale:`, error);
+  return {
+    success: false,
+    operationId: operation.id,
+    error: error.message || 'Unknown exception',
+    shouldRetry: true, // Retry par défaut sur exception
+  };
+}
+  }
+
+  /**
+   * Synchronise une mise à jour de bar (Settings)
+   */
+  private async syncUpdateBar(operation: SyncOperation): Promise < SyncResult > {
+  try {
+    const payload = operation.payload;
+    const { barId, updates } = payload;
+
+    if(!barId || !updates) {
+  return {
+    success: false,
+    operationId: operation.id,
+    error: 'Missing barId or updates in payload',
+    shouldRetry: false
+  };
+}
+
+console.log(`[SyncManager] Syncing bar update for ${barId}`, updates);
+
+// 🛡️ Conflict Detection (Sprint 2): Vérifier si le serveur a été mis à jour après cette opération
+const { data: currentBar, error: fetchError } = await supabase
+  .from('bars')
+  .select('updated_at')
+  .eq('id', barId)
+  .single();
+
+if (!fetchError && currentBar?.updated_at) {
+  const serverUpdateTime = new Date(currentBar.updated_at).getTime();
+  if (serverUpdateTime > operation.timestamp) {
+    console.warn(`[SyncManager] Conflict detected for bar ${barId}. Server: ${currentBar.updated_at} > Local: ${new Date(operation.timestamp).toISOString()}`);
+    return {
+      success: false,
+      operationId: operation.id,
+      error: 'CONFLICT_DETECTED',
+      shouldRetry: false // Résolution manuelle requise
+    };
+  }
+}
+
+// Mapper les updates (camelCase Partial<Bar>) vers le format Supabase (snake_case)
+// Car BarContext a stocké les updates bruts
+const supabaseUpdates: any = {};
+if (updates.name) supabaseUpdates.name = updates.name;
+if (updates.address) supabaseUpdates.address = updates.address;
+if (updates.phone) supabaseUpdates.phone = updates.phone;
+if (updates.settings) supabaseUpdates.settings = updates.settings;
+if (updates.isActive !== undefined) supabaseUpdates.is_active = updates.isActive;
+if (updates.closingHour !== undefined) supabaseUpdates.closing_hour = updates.closingHour;
+if (updates.theme_config !== undefined) supabaseUpdates.theme_config = updates.theme_config;
+
+// Utiliser BarsService pour effectuer la mise à jour
+await BarsService.updateBar(barId, supabaseUpdates);
+
+console.log(`[SyncManager] Bar updated successfully: ${barId}`);
+
+// 🚀 Broadcast aux autres onglets
+if (broadcastService.isSupported()) {
+  broadcastService.broadcast({
+    event: 'UPDATE',
+    table: 'bars',
+    barId: barId,
+    data: { id: barId, ...supabaseUpdates }
+  });
+}
+
+return {
+  success: true,
+  operationId: operation.id,
+};
+
+    } catch (error: any) {
+  console.error(`[SyncManager] Exception updating bar:`, error);
+
+  const shouldRetry = this.shouldRetryError(error);
+
+  return {
+    success: false,
+    operationId: operation.id,
+    error: error.message || 'Unknown exception',
+    shouldRetry: shouldRetry,
+  };
+}
   }
 
   /**
    * Détermine si une erreur est temporaire et mérite un retry
    */
   private shouldRetryError(error: any): boolean {
-    const errorCode = error.code || '';
-    const errorMessage = error.message || '';
+  const errorCode = error.code || '';
+  const errorMessage = error.message || '';
 
-    // Erreurs réseau temporaires
-    if (errorCode.includes('NETWORK') || errorCode.includes('TIMEOUT')) {
-      return true;
-    }
-
-    // Erreurs de timeout
-    if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
-      return true;
-    }
-
-    // Erreurs de connexion
-    if (errorMessage.includes('connection') || errorMessage.includes('connect')) {
-      return true;
-    }
-
-    // Erreurs de quota/rate limiting (temporaires)
-    if (errorCode.includes('QUOTA') || errorCode.includes('RATE_LIMIT')) {
-      return true;
-    }
-
-    // Par défaut, ne pas retry (erreur permanente comme violation de contrainte)
-    return false;
+  // Erreurs réseau temporaires
+  if (errorCode.includes('NETWORK') || errorCode.includes('TIMEOUT')) {
+    return true;
   }
+
+  // Erreurs de timeout
+  if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
+    return true;
+  }
+
+  // Erreurs de connexion
+  if (errorMessage.includes('connection') || errorMessage.includes('connect')) {
+    return true;
+  }
+
+  // Erreurs de quota/rate limiting (temporaires)
+  if (errorCode.includes('QUOTA') || errorCode.includes('RATE_LIMIT')) {
+    return true;
+  }
+
+  // Par défaut, ne pas retry (erreur permanente comme violation de contrainte)
+  return false;
+}
 
   /**
    * Force une synchronisation manuelle
    */
-  async forceSync(): Promise<void> {
-    console.log('[SyncManager] Force sync requested (Rescue mode)');
+  async forceSync(): Promise < void> {
+  console.log('[SyncManager] Force sync requested (Rescue mode)');
 
-    // 🛡️ SYNC RESCUE (V11.5): On "sauve" les opérations en erreur en remettant à zéro leurs retries
-    try {
-      const errorOps = await offlineQueue.getOperations({ status: 'error' });
-      if (errorOps.length > 0) {
-        console.log(`[SyncManager] Rescuing ${errorOps.length} failed operations...`);
-        for (const op of errorOps) {
-          await offlineQueue.resetRetries(op.id);
-        }
-      }
+  // 🛡️ SYNC RESCUE (V11.5): On "sauve" les opérations en erreur en remettant à zéro leurs retries
+  try {
+    const errorOps = await offlineQueue.getOperations({ status: 'error' });
+    if(errorOps.length > 0) {
+  console.log(`[SyncManager] Rescuing ${errorOps.length} failed operations...`);
+  for (const op of errorOps) {
+    await offlineQueue.resetRetries(op.id);
+  }
+}
     } catch (err) {
-      console.error('[SyncManager] Error during sync rescue:', err);
-    }
+  console.error('[SyncManager] Error during sync rescue:', err);
+}
 
-    await this.syncAll();
+await this.syncAll();
   }
 
   /**
    * Récupère le statut de synchronisation
    */
-  async getSyncStatus(): Promise<{
-    isSyncing: boolean;
-    pendingCount: number;
-    errorCount: number;
-  }> {
-    const stats = await offlineQueue.getStats();
-    return {
-      isSyncing: this.isSyncing,
-      pendingCount: stats.pendingCount,
-      errorCount: stats.errorCount,
-    };
-  }
+  async getSyncStatus(): Promise < {
+  isSyncing: boolean;
+  pendingCount: number;
+  errorCount: number;
+} > {
+  const stats = await offlineQueue.getStats();
+  return {
+    isSyncing: this.isSyncing,
+    pendingCount: stats.pendingCount,
+    errorCount: stats.errorCount,
+  };
+}
 }
 
 /**

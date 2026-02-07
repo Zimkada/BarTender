@@ -98,9 +98,9 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         recentlySyncedMap.forEach((data, key) => {
             // Si la vente n'est pas encore dans la liste serveur officielle (sales)
             // On l'ajoute au CA de transition pour éviter le "trou"
-            // 🛡️ UNIFICATION (V11.4): Gérer les deux casses
+            // 🛡️ UNIFICATION (V11.6): Déduplication fiable via idempotencyKey
             const alreadyInServerSales = sales.some((s: any) =>
-                s.idempotencyKey === key || s.idempotency_key === key
+                s.idempotencyKey === key
             );
             if (!alreadyInServerSales) {
                 transitionRevenue += data.total;
@@ -114,8 +114,8 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
             return !key || !recentlySyncedMap.has(key);
         });
 
-        const offlineRevenue = deduplicatedOfflineQueue.reduce((sum: number, sale: any) => sum + sale.total, 0);
-        const grossRevenue = filteredSales.reduce((sum: number, sale: any) => sum + sale.total, 0) + offlineRevenue + transitionRevenue;
+        const offlineRevenue = deduplicatedOfflineQueue.reduce((sum: number, sale: any) => sum + (sale.total || 0), 0); // 🛡️ Fix V11.6: Guard anti-NaN
+        const grossRevenue = filteredSales.reduce((sum: number, sale: any) => sum + (sale.total || 0), 0) + offlineRevenue + transitionRevenue;
         const saleCount = filteredSales.length + deduplicatedOfflineQueue.length + transitionCount;
 
         // ✨ Filter returns by server if applicable
