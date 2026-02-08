@@ -1,6 +1,30 @@
 // Hook PWA - Gestion PWA optimisée pour Bénin/Afrique
 import { useState, useEffect, useCallback } from 'react';
 
+/**
+ * ✅ Type-safe declarations for PWA and Analytics APIs
+ */
+
+/** BeforeInstallPromptEvent (PWA API) */
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+}
+
+/** Extended Navigator with iOS Safari standalone property */
+interface NavigatorWithStandalone extends Navigator {
+  standalone?: boolean;
+}
+
+/** Extended Window with Google Analytics gtag */
+interface WindowWithGtag extends Window {
+  gtag?: (
+    command: string,
+    eventName: string,
+    eventParams?: Record<string, string | number | boolean>
+  ) => void;
+}
+
 interface PWAInstallPrompt {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
@@ -40,13 +64,14 @@ export function usePWA(): PWAState & PWAActions {
         return;
       }
 
-      // Safari
-      if ((window.navigator as any).standalone === true) {
+      // Safari iOS - Check standalone property
+      const navWithStandalone = window.navigator as NavigatorWithStandalone;
+      if (navWithStandalone.standalone === true) {
         setIsInstalled(true);
         return;
       }
 
-      // Autres navigateurs
+      // Autres navigateurs (Android TWA)
       if (document.referrer.includes('android-app://')) {
         setIsInstalled(true);
       }
@@ -58,7 +83,10 @@ export function usePWA(): PWAState & PWAActions {
     const handleBeforeInstallPrompt = (e: Event) => {
       console.log('[PWA] Prompt d\'installation disponible');
       e.preventDefault();
-      setInstallPrompt(e as any);
+
+      // ✅ Type-safe cast to BeforeInstallPromptEvent
+      const installEvent = e as BeforeInstallPromptEvent;
+      setInstallPrompt(installEvent);
       setIsInstallable(true);
     };
 
@@ -70,8 +98,9 @@ export function usePWA(): PWAState & PWAActions {
       setInstallPrompt(null);
 
       // Analytics installation
-      if (typeof gtag !== 'undefined') {
-        (window as any).gtag('event', 'pwa_install', {
+      const windowWithGtag = window as WindowWithGtag;
+      if (typeof windowWithGtag.gtag !== 'undefined') {
+        windowWithGtag.gtag('event', 'pwa_install', {
           event_category: 'engagement',
           event_label: 'bartender_benin'
         });

@@ -70,7 +70,7 @@ const GuideSuggestionsPopover: React.FC<{
           {/* Footer */}
           <div className="px-4 py-3 border-t border-gray-200 bg-gray-50 flex-shrink-0">
             <p className="text-xs text-gray-600">
-              💡 Les guides apparaissent automatiquement sur les pages pertinentes
+              💡 Accédez aux guides via le bouton bleu 🔵 en haut de chaque page
             </p>
           </div>
         </motion.div>

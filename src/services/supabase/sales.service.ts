@@ -1,717 +1,556 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
+import type { SyncOperationCreateSale } from '../../types/sync';
 import { ProductsService } from './products.service';
-import { auditLogger } from '../../services/AuditLogger'; // Audit log service
+import { auditLogger } from '../../services/AuditLogger';
+import { networkManager } from '../NetworkManager';
+import { offlineQueue } from '../offlineQueue';
+import { generateUUID } from '../../utils/crypto';
+import { toSupabaseJson } from '../../lib/supabase-rpc.types';
 
+export type DBSale = Database['public']['Tables']['sales']['Row'] & {
+  idempotency_key?: string;
+  ticket_id?: string;
+  seller?: { name: string };
+  validator?: { name: string };
+};
 type Sale = Database['public']['Tables']['sales']['Row'];
-type SaleInsert = Database['public']['Tables']['sales']['Insert'];
-
-export interface SaleItem {
+type SaleItem = {
   product_id: string;
   product_name: string;
   quantity: number;
-  unit_price: number;           // Prix unitaire FINAL (après promo)
-  total_price: number;           // Prix total FINAL (après promo)
-
-  // ✨ NOUVEAU : Champs pour traçabilité des promotions
-  original_unit_price?: number;  // Prix unitaire AVANT promo
-  discount_amount?: number;      // Montant de la réduction TOTALE
-  promotion_id?: string;         // ID de la promotion appliquée
-  promotion_name?: string;       // Nom de la promotion (pour affichage)
-}
+  unit_price: number;
+  total_price: number;
+  original_unit_price?: number;
+  discount_amount?: number;
+  promotion_id?: string;
+  promotion_name?: string;
+};
 
 export interface CreateSaleData {
   bar_id: string;
   items: SaleItem[];
-  payment_method: 'cash' | 'mobile_money' | 'card' | 'credit';
+  payment_method: 'cash' | 'mobile_money' | 'card' | 'credit' | 'ticket';
   sold_by: string;
-  server_id?: string; // ✨ NOUVEAU: UUID du serveur assigné (mode switching support)
-  validated_by?: string; // ✨ NOUVEAU: UUID du validateur (gérant en mode simplifié)
+  server_id?: string;
+  validated_by?: string;
   customer_name?: string;
   customer_phone?: string;
   notes?: string;
-  business_date?: string; // Ajouté pour le mode offline-first
+  business_date?: string;
+  ticket_id?: string;
 }
 
-export interface SaleWithDetails extends Sale {
-  seller_name: string;
-  validator_name?: string | null;
-  items_count: number;
+export interface OfflineSale {
+  id: string;
+  bar_id: string;
+  total: number;
+  subtotal?: number; // Sous-total avant remises
+  discount_total?: number; // Total des remises appliquées
+  currency?: string; // Devise (XAF, XOF, etc.)
+  status: string;
+  payment_method: string;
+  sold_by: string;
+  soldBy?: string; // Alias camelCase pour compatibilité
+  created_by?: string; // Créateur (généralement identique à sold_by)
+  server_id?: string | null;
+  serverId?: string | null; // Alias camelCase
+  business_date?: string | null;
+  businessDate?: string | null; // Alias camelCase
+  created_at: string;
+  createdAt?: string; // Alias camelCase
+  idempotency_key?: string;
+  items: SaleItem[]; // 🛡️ CRITIQUE: Nécessaire pour totalItems calculation
+  ticket_id?: string | null;
+  ticketId?: string | null; // Alias camelCase
+  isOptimistic: boolean;
 }
 
-/**
- * Service de gestion des ventes
- */
 export class SalesService {
   /**
-   * Créer une nouvelle vente
-   * Utilise une fonction RPC atomique pour garantir la cohérence des données
-   * Statut initial: 'pending' (nécessite validation gérant)
+   * Wrapper with timeout for Supabase calls
    */
-  static async createSale(data: CreateSaleData & { status?: 'pending' | 'validated' }): Promise<Sale> {
-    try {
-      const status = data.status || 'pending';
+  private static withTimeout<T>(promise: Promise<T> | any, ms: number = 5000): Promise<T> {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT_EXCEEDED')), ms)
+    );
+    // Supabase queries are PromiseLike
+    const actualPromise = promise instanceof Promise ? promise : Promise.resolve(promise);
+    return Promise.race([actualPromise, timeout]) as Promise<T>;
+  }
 
-      // ✨ Utiliser la fonction RPC atomique pour créer la vente avec promotions
-      const { data: newSale, error: rpcError } = await supabase.rpc(
-        'create_sale_with_promotions',
+  /**
+   * Créer une nouvelle vente avec stratégie de résilience offline/online
+   */
+  static async createSale(
+    data: CreateSaleData & { status?: 'pending' | 'validated' },
+    options?: {
+      canWorkOffline?: boolean;
+      userId?: string;
+    }
+  ): Promise<Sale | OfflineSale> {
+    console.log('[SalesService] entering createSale', {
+      isOffline: networkManager.getDecision().shouldShowBanner,
+      canWorkOffline: options?.canWorkOffline,
+      data_sold_by: data.sold_by
+    });
+
+    const status = data.status || 'pending';
+    const { shouldShowBanner: isOffline } = networkManager.getDecision();
+
+    const idempotencyKey = generateUUID();
+
+    try {
+      if (isOffline && options?.canWorkOffline) {
+        console.log('[SalesService] NetworkManager says OFFLINE. Triggering immediate fallback');
+        return await this.fallbackToOfflineQueue(data, status, idempotencyKey, options);
+      }
+
+      console.log('[SalesService] Attempting online RPC (create_sale_idempotent)...');
+
+      // ✅ Timeout avec cleanup pour éviter les memory leaks
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+      const rpcPromise = supabase.rpc(
+        'create_sale_idempotent',
         {
           p_bar_id: data.bar_id,
-          p_items: data.items,
+          p_items: toSupabaseJson(data.items),
           p_payment_method: data.payment_method,
           p_sold_by: data.sold_by,
-          p_server_id: data.server_id || null, // ✨ NOUVEAU: Mode switching support
+          p_idempotency_key: idempotencyKey,
+          p_server_id: data.server_id ?? undefined,
           p_status: status,
-          p_validated_by: data.validated_by || null, // ✨ NOUVEAU: Gérant qui valide en mode simplifié
-          p_customer_name: data.customer_name || null,
-          p_customer_phone: data.customer_phone || null,
-          p_notes: data.notes || null,
-          p_business_date: data.business_date || null // ✅ Passage du paramètre
+          p_customer_name: data.customer_name ?? undefined,
+          p_customer_phone: data.customer_phone ?? undefined,
+          p_notes: data.notes ?? undefined,
+          p_business_date: data.business_date ?? undefined,
+          p_ticket_id: data.ticket_id ?? undefined
         }
       ).single();
 
-      if (rpcError) {
-        throw new Error(`Erreur lors de la création de la vente: ${rpcError.message}`);
-      }
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error('TIMEOUT_EXCEEDED'));
+        }, 5000);
+      });
 
-      if (!newSale) {
-        throw new Error('Erreur lors de la création de la vente: aucune donnée retournée');
-      }
+      try {
+        const result = await Promise.race([rpcPromise, timeoutPromise]);
+        console.log('[SalesService] Race result received');
 
-      return newSale;
-    } catch (error: any) {
-      throw new Error(handleSupabaseError(error));
-    }
-  }
-
-  /**
-   * Valider une vente (gérant/promoteur uniquement)
-   */
-  static async validateSale(saleId: string, validatedBy: string): Promise<Sale> {
-    try {
-      const { data, error } = await supabase
-        .from('sales')
-        .update({
-          status: 'validated',
-          validated_by: validatedBy,
-          validated_at: new Date().toISOString(),
-        })
-        .eq('id', saleId)
-        .select()
-        .single();
-
-      if (error || !data) {
-        throw new Error('Erreur lors de la validation de la vente');
-      }
-
-      // TODO: Créer une transaction comptable
-
-      return data;
-    } catch (error: any) {
-      throw new Error(handleSupabaseError(error));
-    }
-  }
-
-  /**
-   * Rejeter une vente (gérant/promoteur uniquement)
-   * Restaure le stock
-   */
-  static async rejectSale(saleId: string, validatedBy: string): Promise<Sale> {
-    try {
-      // 1. Récupérer la vente pour restaurer le stock
-      const { data: sale } = await supabase
-        .from('sales')
-        .select('items')
-        .eq('id', saleId)
-        .single();
-
-      if (!sale) {
-        throw new Error('Vente introuvable');
-      }
-
-      // 2. Restaurer le stock
-      const items = sale.items as SaleItem[];
-      for (const item of items) {
-        await ProductsService.incrementStock(item.product_id, item.quantity);
-      }
-
-      // 3. Marquer la vente comme rejetée
-      const { data, error } = await supabase
-        .from('sales')
-        .update({
-          status: 'rejected',
-          rejected_by: validatedBy,
-          rejected_at: new Date().toISOString(),
-        })
-        .eq('id', saleId)
-        .eq('status', 'pending') // 🚀 SÉCURITÉ CRITIQUE: On ne peut rejeter QUE ce qui est pending
-        .select()
-        .maybeSingle(); // Utiliser maybeSingle pour ne pas throw error tout de suite si pas trouvé
-
-      if (error) {
-        console.error('❌ rejectSale UPDATE error:', error);
-        throw new Error(`Erreur lors du rejet de la vente: ${error.message || error.code}`);
-      }
-
-      if (!data) {
-        // Si data est null, c'est que soit l'ID n'existe pas, soit le statut n'était pas 'pending'
-        throw new Error('Impossible d\'annuler cette vente : elle a probablement déjà été validée ou modifiée.');
-      }
-
-      return data;
-    } catch (error: any) {
-      console.error('❌ rejectSale exception:', error);
-      throw new Error(handleSupabaseError(error));
-    }
-  }
-
-  /**
-   * Annuler une vente validée (gérant/promoteur uniquement)
-   * Restaure le stock et marque comme annulée avec raison
-   */
-  static async cancelSale(saleId: string, cancelledBy: string, reason: string): Promise<Sale> {
-    try {
-      // 1. Récupérer la vente pour restaurer le stock
-      const { data: sale } = await supabase
-        .from('sales')
-        .select('items')
-        .eq('id', saleId)
-        .single();
-
-      if (!sale) {
-        throw new Error('Vente introuvable');
-      }
-
-      // 1b. SECURITÉ : Vérifier s'il existe des mouvements liés (Retours ou Consignations)
-      // On ne peut pas annuler une vente qui a déjà eu des mouvements de stock partiels
-      const { count: returnCount } = await supabase
-        .from('returns')
-        .select('id', { count: 'exact', head: true })
-        .eq('sale_id', saleId);
-
-      if (returnCount && returnCount > 0) {
-        throw new Error('Impossible d\'annuler cette vente car elle contient des retours produits.');
-      }
-
-      const { count: consignmentCount } = await supabase
-        .from('consignments')
-        .select('id', { count: 'exact', head: true })
-        .eq('sale_id', saleId)
-        .in('status', ['active', 'claimed']);
-
-      if (consignmentCount && consignmentCount > 0) {
-        throw new Error('Impossible d\'annuler cette vente car elle contient des consignations actives ou récupérées.');
-      }
-
-      // 2. Restaurer le stock (même pattern que rejectSale)
-      const items = sale.items as SaleItem[];
-      for (const item of items) {
-        await ProductsService.incrementStock(item.product_id, item.quantity);
-      }
-
-      // 3. Marquer la vente comme annulée
-      const { data, error } = await supabase
-        .from('sales')
-        .update({
-          status: 'cancelled',
-          cancelled_by: cancelledBy,
-          cancelled_at: new Date().toISOString(),
-          cancel_reason: reason,
-        })
-        .eq('id', saleId)
-        .eq('status', 'validated') // SÉCURITÉ: On ne peut annuler QUE ce qui est validated
-        .select()
-        .maybeSingle();
-
-      if (error) {
-        console.error('❌ cancelSale UPDATE error:', error);
-        throw new Error(`Erreur lors de l'annulation de la vente: ${error.message || error.code}`);
-      }
-
-      if (!data) {
-        throw new Error('Impossible d\'annuler cette vente : elle n\'est plus en statut validée.');
-      }
-
-      // 4. Audit log pour traçabilité (CRITIQUE pour prévenir la fraude)
-      // Note: userId, userName, userRole sont résolus côté serveur par le RPC
-      await auditLogger.log({
-        event: 'SALE_CANCELLED',
-        severity: 'warning',
-        barId: data.bar_id,
-        description: `Vente annulée - Raison: ${reason}`,
-        relatedEntityId: saleId,
-        relatedEntityType: 'sale',
-        metadata: {
-          total: data.total,
-          items_count: (data.items as any[]).length,
-          cancel_reason: reason,
-          cancelled_at: data.cancelled_at
+        // ✅ Cleanup du timeout si la requête réussit
+        if (timeoutId !== undefined) {
+          clearTimeout(timeoutId);
         }
-      });
 
-      return data;
-    } catch (error: any) {
-      console.error('❌ cancelSale exception:', error);
+        // Type guard pour vérifier la structure du résultat Supabase
+        if (result && typeof result === 'object' && 'error' in result && result.error) {
+          console.error('[SalesService] RPC error detail:', result.error);
+          throw result.error;
+        }
+
+        // Extraction type-safe de data (Supabase renvoie { data, error })
+        if (result && typeof result === 'object' && 'data' in result) {
+          return result.data as Sale;
+        }
+
+        return result as Sale;
+
+      } catch (err) {
+        // ✅ Cleanup du timeout en cas d'erreur
+        if (timeoutId !== undefined) {
+          clearTimeout(timeoutId);
+        }
+
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        console.warn('[SalesService] Online failure:', errorMessage);
+
+        if (errorMessage === 'TIMEOUT_EXCEEDED' || errorMessage === 'Failed to fetch' || !navigator.onLine) {
+          if (options?.canWorkOffline) {
+            console.log('[SalesService] Failing OVER to offline queue');
+            return await this.fallbackToOfflineQueue(data, status, idempotencyKey, options);
+          }
+        }
+        throw err;
+      }
+    } catch (error) {
+      console.error('[SalesService] Global failure in createSale:', error);
       throw new Error(handleSupabaseError(error));
     }
   }
 
-  /**
-   * Récupérer toutes les ventes d'un bar
-   */
-  static async getBarSales(
-    barId: string,
-    options?: {
-      status?: 'pending' | 'validated' | 'rejected' | 'cancelled';
-      startDate?: string;
-      endDate?: string;
-      limit?: number;
-      offset?: number; // ✨ Nouveau: support pagination offset
-    }
-  ): Promise<SaleWithDetails[]> {
-    try {
-      let query = supabase
-        .from('sales')
-        .select(`
-          *,
-          seller:users!sales_sold_by_fkey (name),
-          validator:users!sales_validated_by_fkey (name)
-        `)
-        .eq('bar_id', barId)
-        .order('business_date', { ascending: false }); // ✅ Tri par business_date
+  private static async fallbackToOfflineQueue(
+    data: CreateSaleData,
+    status: string,
+    idempotencyKey: string,
+    options?: { userId?: string }
+  ): Promise<OfflineSale> {
+    console.log('[SalesService] Fallback: calling offlineQueue.addOperation');
+    const queuedOperation = await offlineQueue.addOperation(
+      'CREATE_SALE',
+      {
+        bar_id: data.bar_id,
+        items: data.items,
+        payment_method: data.payment_method,
+        sold_by: data.sold_by,
+        server_id: data.server_id || null,
+        status,
+        customer_name: data.customer_name || null,
+        customer_phone: data.customer_phone || null,
+        notes: data.notes || null,
+        business_date: data.business_date || null,
+        ticket_id: data.ticket_id || null,
+        idempotency_key: idempotencyKey,
+      },
+      data.bar_id,
+      options?.userId || data.sold_by
+    );
 
-      if (options?.status) {
-        query = query.eq('status', options.status);
-      }
+    console.log('[SalesService] Fallback success. Operation ID:', queuedOperation.id);
 
-      if (options?.startDate) {
-        query = query.gte('business_date', options.startDate); // ✅ Filtre par business_date
-      }
+    const subtotal = data.items.reduce((sum, item) => sum + item.total_price, 0);
 
-      if (options?.endDate) {
-        query = query.lte('business_date', options.endDate); // ✅ Filtre par business_date
-      }
-
-      if (options?.limit) {
-        query = query.limit(options.limit);
-      }
-
-      if (options?.offset) {
-        query = query.range(options.offset, options.offset + (options.limit || 50) - 1); // ✨ Pagination avec offset
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        throw new Error('Erreur lors de la récupération des ventes');
-      }
-
-      return (data || []).map((sale: any) => ({
-        ...sale,
-        items: sale.items || [], // Ensure items is always an array
-        seller_name: sale.seller?.name || 'Inconnu',
-        validator_name: sale.validator?.name || null,
-        items_count: (sale.items || []).length, // Also guard here
-      }));
-    } catch (error: any) {
-      throw new Error(handleSupabaseError(error));
-    }
+    return {
+      id: queuedOperation.id,
+      bar_id: data.bar_id,
+      items: data.items,
+      subtotal,
+      discount_total: 0, // Pas de remise pour les ventes offline (pour l'instant)
+      total: subtotal, // Total = subtotal - discount
+      currency: 'XAF', // Devise par défaut
+      status,
+      sold_by: data.sold_by,
+      created_by: data.sold_by, // Créateur = vendeur
+      created_at: new Date().toISOString(),
+      payment_method: data.payment_method,
+      business_date: data.business_date || new Date().toISOString().split('T')[0],
+      server_id: data.server_id || null,
+      ticket_id: data.ticket_id || null,
+      idempotency_key: idempotencyKey,
+      isOptimistic: true,
+    };
   }
 
-  /**
-   * Récupérer toutes les ventes de TOUS les bars (pour Super Admin)
-   */
-  static async getAllSales(
-    options?: {
-      status?: 'pending' | 'validated' | 'rejected' | 'cancelled';
-      startDate?: string;
-      endDate?: string;
-      limit?: number;
+  static async validateSale(saleId: string, validatedBy: string): Promise<Sale> {
+    const { data, error } = await supabase
+      .from('sales')
+      .update({
+        status: 'validated',
+        validated_by: validatedBy,
+        validated_at: new Date().toISOString(),
+      })
+      .eq('id', saleId)
+      .select()
+      .single();
+
+    if (error || !data) throw new Error(handleSupabaseError(error));
+    return data;
+  }
+
+  static async rejectSale(saleId: string, validatedBy: string): Promise<Sale> {
+    const { data: sale } = await supabase
+      .from('sales')
+      .select('items')
+      .eq('id', saleId)
+      .single();
+
+    if (!sale) throw new Error('Vente introuvable');
+
+    const items = sale.items as SaleItem[];
+    for (const item of items) {
+      await ProductsService.incrementStock(item.product_id, item.quantity);
     }
-  ): Promise<SaleWithDetails[]> {
-    try {
-      let query = supabase
-        .from('sales')
-        .select(`
-          *,
-          seller:users!sales_sold_by_fkey (name),
-          validator:users!sales_validated_by_fkey (name)
-        `)
-        .order('business_date', { ascending: false });
 
-      if (options?.status) {
-        query = query.eq('status', options.status);
-      }
-      if (options?.startDate) {
-        query = query.gte('business_date', options.startDate);
-      }
-      if (options?.endDate) {
-        query = query.lte('business_date', options.endDate);
-      }
-      if (options?.limit) {
-        query = query.limit(options.limit);
-      }
+    const { data, error } = await supabase
+      .from('sales')
+      .update({
+        status: 'rejected',
+        rejected_by: validatedBy,
+        rejected_at: new Date().toISOString(),
+      })
+      .eq('id', saleId)
+      .eq('status', 'pending')
+      .select()
+      .maybeSingle();
 
-      const { data, error } = await query;
+    if (error || !data) throw new Error(handleSupabaseError(error || 'Impossible d\'annuler cette vente'));
+    return data;
+  }
 
-      if (error) {
-        throw new Error('Erreur lors de la récupération de toutes les ventes');
-      }
+  static async cancelSale(saleId: string, cancelledBy: string, reason: string): Promise<Sale> {
+    const { data: sale } = await supabase
+      .from('sales')
+      .select('items')
+      .eq('id', saleId)
+      .single();
 
-      return (data || []).map((sale: any) => ({
-        ...sale,
-        items: sale.items || [],
-        seller_name: sale.seller?.name || 'Inconnu',
-        validator_name: sale.validator?.name || null,
-        items_count: (sale.items || []).length,
-      }));
-    } catch (error: any) {
-      throw new Error(handleSupabaseError(error));
+    if (!sale) throw new Error('Vente introuvable');
+
+    const { count: returnCount } = await supabase.from('returns').select('id', { count: 'exact', head: true }).eq('sale_id', saleId);
+    if (returnCount && returnCount > 0) throw new Error('Impossible d\'annuler cette vente car elle contient des retours produits.');
+
+    const { count: consCount } = await supabase.from('consignments').select('id', { count: 'exact', head: true }).eq('sale_id', saleId).in('status', ['active', 'claimed']);
+    if (consCount && consCount > 0) throw new Error('Impossible d\'annuler cette vente car elle contient des consignations actives.');
+
+    const items = sale.items as SaleItem[];
+    for (const item of items) {
+      await ProductsService.incrementStock(item.product_id, item.quantity);
     }
+
+    const { data, error } = await supabase
+      .from('sales')
+      .update({
+        status: 'cancelled',
+        cancelled_by: cancelledBy,
+        cancelled_at: new Date().toISOString(),
+        cancel_reason: reason,
+      })
+      .eq('id', saleId)
+      .eq('status', 'validated')
+      .select()
+      .maybeSingle();
+
+    if (error || !data) throw new Error(handleSupabaseError(error || 'Impossible d\'annuler cette vente'));
+
+    await auditLogger.log({
+      event: 'SALE_CANCELLED',
+      severity: 'warning',
+      barId: data.bar_id,
+      description: `Vente annulée - Raison: ${reason}`,
+      relatedEntityId: saleId,
+      relatedEntityType: 'sale',
+      metadata: { total: data.total, reason }
+    });
+
+    return data;
   }
 
-  /**
-   * Récupérer une vente par ID
-   */
-  static async getSaleById(saleId: string): Promise<SaleWithDetails | null> {
-    try {
-      const { data, error } = await supabase
-        .from('sales')
-        .select(`
-          *,
-          seller:users!sales_sold_by_fkey (name),
-          validator:users!sales_validated_by_fkey (name)
-        `)
-        .eq('id', saleId)
-        .single();
+  static async deleteSale(saleId: string): Promise<void> {
+    const { error } = await supabase
+      .from('sales')
+      .delete()
+      .eq('id', saleId);
 
-      if (error || !data) {
-        return null;
-      }
-
-      return {
-        ...data,
-        items: data.items || [], // Ensure items is always an array
-        seller_name: (data.seller as any)?.name || 'Inconnu',
-        validator_name: (data.validator as any)?.name || null,
-        items_count: (data.items as SaleItem[] || []).length,
-      };
-    } catch (error: any) {
-      throw new Error(handleSupabaseError(error));
-    }
+    if (error) throw new Error(handleSupabaseError(error));
   }
 
-  /**
-   * Récupérer les ventes en attente de validation
-   */
-  static async getPendingSales(barId: string): Promise<SaleWithDetails[]> {
-    return this.getBarSales(barId, { status: 'pending' });
+  // --- Read Methods (Restored) ---
+
+  static async getSalesByTicketId(ticketId: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('sales')
+      .select('*')
+      .eq('ticket_id', ticketId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw new Error(handleSupabaseError(error));
+    return data || [];
   }
 
-  /**
-   * Récupérer les ventes validées
-   */
-  static async getValidatedSales(
-    barId: string,
-    startDate?: string,
-    endDate?: string
-  ): Promise<SaleWithDetails[]> {
-    return this.getBarSales(barId, { status: 'validated', startDate, endDate });
+  static async getBarSales(barId: string, options?: {
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<DBSale[]> {
+    let query = supabase
+      .from('sales')
+      .select(`
+        *,
+        seller:users!sales_sold_by_fkey (name),
+        validator:users!sales_validated_by_fkey (name)
+      `)
+      .eq('bar_id', barId)
+      .order('business_date', { ascending: false });
+
+    if (options?.status) query = query.eq('status', options.status);
+    if (options?.startDate) query = query.gte('business_date', options.startDate);
+    if (options?.endDate) query = query.lte('business_date', options.endDate);
+    if (options?.limit) query = query.limit(options.limit);
+    if (options?.offset) query = query.range(options.offset, options.offset + (options.limit || 50) - 1);
+
+    const { data, error } = await query;
+    if (error) throw new Error(handleSupabaseError(error));
+    // 🛡️ Fix V12: Strict typing
+    return data as unknown as DBSale[];
   }
 
-  /**
-   * Récupérer les statistiques de vente d'un bar
-   * Optionnellement filtrer par serverId (pour voir uniquement ses ventes)
-   */
-  static async getSalesStats(
-    barId: string,
-    startDate?: string,
-    endDate?: string,
-    serverId?: string
-  ): Promise<{
-    totalSales: number;
-    totalRevenue: number;
-    pendingSales: number;
-    averageSale: number;
+  static async getSaleById(saleId: string): Promise<Sale & {
+    items_count?: number;
+    seller_name?: string;
+    validator_name?: string;
   }> {
-    try {
-      // Ventes validées (Filtre sur business_date)
-      let validatedQuery = supabase
-        .from('sales')
-        .select('id, total, server_id, sold_by, created_by, business_date, status')
-        .eq('bar_id', barId)
-        .eq('status', 'validated');
+    const { data, error } = await supabase
+      .from('sales')
+      .select(`
+        *,
+        seller:users!sales_sold_by_fkey (name),
+        validator:users!sales_validated_by_fkey (name)
+      `)
+      .eq('id', saleId)
+      .single();
 
-      if (startDate) {
-        validatedQuery = validatedQuery.gte('business_date', startDate);
-      }
+    if (error || !data) throw new Error(handleSupabaseError(error || 'Vente introuvable'));
 
-      if (endDate) {
-        validatedQuery = validatedQuery.lte('business_date', endDate);
-      }
+    // Type enrichi avec les relations
+    const enrichedData = data as typeof data & {
+      seller?: { name: string } | null;
+      validator?: { name: string } | null;
+    };
 
-      const { data: allValidatedSales } = await validatedQuery;
+    // Calculer items_count pour l'affichage
+    const items = Array.isArray(enrichedData.items) ? enrichedData.items : [];
+    const items_count = items.reduce((acc: number, item) => {
+      const quantity = typeof item === 'object' && item !== null && 'quantity' in item
+        ? Number(item.quantity) || 0
+        : 0;
+      return acc + quantity;
+    }, 0);
 
-      // ✨ MODE SWITCHING FIX: Filter by server with client-side OR logic
-      // Apply server filter in JavaScript to ensure proper AND/OR precedence
-      // Source of truth: sold_by is the business attribution
-      let validatedSales = allValidatedSales || [];
-      if (serverId) {
-        validatedSales = validatedSales.filter((sale: any) =>
-          sale.sold_by === serverId
-        );
-
-      }
-
-      const totalRevenue = validatedSales.reduce((sum: number, sale: any) => sum + (sale.total || 0), 0);
-      const totalSales = validatedSales.length;
-      const averageSale = totalSales > 0 ? totalRevenue / totalSales : 0;
-
-
-      // Ventes en attente (Toujours temps réel, pas de filtre date nécessaire généralement, ou created_at)
-      const { data: allPendingSales } = await supabase
-        .from('sales')
-        .select('id, server_id, created_by')
-        .eq('bar_id', barId)
-        .eq('status', 'pending');
-
-      // Source of truth: sold_by/created_by depending on the operation
-      let pendingCount = allPendingSales?.length || 0;
-      if (serverId && allPendingSales) {
-        const filteredPending = allPendingSales.filter((sale: any) =>
-          sale.created_by === serverId
-        );
-        pendingCount = filteredPending.length;
-      }
-
-      return {
-        totalSales,
-        totalRevenue,
-        pendingSales: pendingCount || 0,
-        averageSale,
-      };
-    } catch (error: any) {
-      throw new Error(handleSupabaseError(error));
-    }
+    return {
+      ...(enrichedData as Sale),
+      items_count,
+      seller_name: enrichedData.seller?.name,
+      validator_name: enrichedData.validator?.name
+    } as Sale & {
+      items_count?: number;
+      seller_name?: string;
+      validator_name?: string;
+    };
   }
 
-  /**
-   * Récupérer les ventes par utilisateur (serveur)
-   */
-  static async getSalesByUser(
-    barId: string,
-    userId: string,
-    startDate?: string,
-    endDate?: string
-  ): Promise<SaleWithDetails[]> {
-    try {
-      let query = supabase
-        .from('sales')
-        .select(`
-          *,
-          seller:users!sales_sold_by_fkey (name),
-          validator:users!sales_validated_by_fkey (name)
-        `)
-        .eq('bar_id', barId)
-        .eq('created_by', userId)
-        .order('business_date', { ascending: false }); // Tri par business_date
-
-      if (startDate) {
-        query = query.gte('business_date', startDate); // Filtre par business_date
-      }
-
-      if (endDate) {
-        query = query.lte('business_date', endDate); // Filtre par business_date
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        throw new Error('Erreur lors de la récupération des ventes');
-      }
-
-      return (data || []).map((sale: any) => ({
-        ...sale,
-        seller_name: sale.seller?.name || 'Inconnu',
-        validator_name: sale.validator?.name || null, // Accès correct
-        items_count: (sale.items as SaleItem[]).length,
-      }));
-    } catch (error: any) {
-      throw new Error(handleSupabaseError(error));
-    }
-  }
-
-  /**
-   * Récupérer le top des produits vendus
-   */
-  static async getTopProducts(
-    barId: string,
-    limit: number = 10,
-    startDate?: string,
-    endDate?: string
-  ): Promise<Array<{ product_name: string; quantity: number; revenue: number }>> {
-    try {
-      let query = supabase
-        .from('sales')
-        .select('items')
-        .eq('bar_id', barId)
-        .eq('status', 'validated');
-
-      if (startDate) {
-        query = query.gte('business_date', startDate);
-      }
-
-      if (endDate) {
-        query = query.lte('business_date', endDate);
-      }
-
-      const { data: sales } = await query;
-
-      if (!sales) {
-        return [];
-      }
-
-      // Agréger les produits vendus
-      const productMap = new Map<string, { quantity: number; revenue: number }>();
-
-      sales.forEach((sale) => {
-        const items = sale.items as SaleItem[];
-        items.forEach((item) => {
-          const existing = productMap.get(item.product_name) || { quantity: 0, revenue: 0 };
-          productMap.set(item.product_name, {
-            quantity: existing.quantity + item.quantity,
-            revenue: existing.revenue + item.total_price,
-          });
-        });
-      });
-
-      // Convertir en array et trier
-      const topProducts = Array.from(productMap.entries())
-        .map(([product_name, stats]) => ({
-          product_name,
-          ...stats,
-        }))
-        .sort((a, b) => b.revenue - a.revenue)
-        .slice(0, limit);
-
-      return topProducts;
-    } catch (error: any) {
-      throw new Error(handleSupabaseError(error));
-    }
-  }
-
-  /**
-   * Récupérer les ventes paginées d'un bar via RPC (utilisé par les admins)
-   * Utilise admin_as_get_bar_sales RPC pour contourner les RLS si nécessaire
-   */
-  static async getBarSalesPaginated(
-    barId: string,
-    options?: {
-      limit?: number;
-      offset?: number;
-    }
-  ): Promise<SaleWithDetails[]> {
-    try {
-      const { data, error } = await supabase.rpc('admin_as_get_bar_sales', {
-        p_acting_as_user_id: null,
-        p_bar_id: barId,
-        p_limit: options?.limit || 50,
-        p_offset: options?.offset || 0,
-      });
-
-      if (error) {
-        console.error('[SalesService] RPC error:', error);
-        throw new Error('Erreur lors de la récupération des ventes paginées');
-      }
-
-      // data is JSONB array from RPC
-      const sales = (data || []) as any[];
-      return sales.map((sale: any) => ({
-        ...sale,
-        items: sale.items || [],
-        seller_name: sale.seller_name || 'Inconnu',
-        validator_name: sale.validator_name || null,
-        items_count: (sale.items || []).length,
-      }));
-    } catch (error: any) {
-      throw new Error(handleSupabaseError(error));
-    }
-  }
-
-  /**
-   * Récupérer les ventes avec cursor pagination via RPC (utilisé par les admins)
-   * Plus efficace que offset pour les gros datasets et données temps réel
-   * Cursor utilise clé composite (business_date, id)
-   */
   static async getBarSalesCursorPaginated(
     barId: string,
-    options?: {
-      limit?: number;
-      cursorDate?: string; // ISO timestamp YYYY-MM-DD ou null pour première page
-      cursorId?: string; // UUID ou null pour première page
-    }
-  ): Promise<SaleWithDetails[]> {
+    options: { limit: number; cursorDate?: string; cursorId?: string }
+  ): Promise<any[]> {
+    // Phase 3.4.2: Use the new efficient RPC
+    const { data, error } = await supabase.rpc('get_bar_sales_cursor', {
+      p_bar_id: barId,
+      p_limit: options.limit,
+      p_cursor_date: options.cursorDate || undefined,
+      p_cursor_id: options.cursorId || undefined
+    });
+
+    if (error) throw new Error(handleSupabaseError(error));
+    return data || [];
+  }
+
+  static async getSalesStats(
+    barId: string,
+    startDate?: Date,
+    endDate?: Date,
+    serverId?: string
+  ): Promise<{
+    totalRevenue: number;
+    totalSales: number;
+    averageSale: number;
+  }> {
+    // Calcul simple pour les besoins courants (dashboard)
+    // Pour l'admin, on utilise admin_as_get_sales_stats via une autre route si besoin
+    let query = supabase
+      .from('sales')
+      .select('total, status, sold_by')
+      .eq('bar_id', barId)
+      .eq('status', 'validated');
+
+    if (startDate) query = query.gte('business_date', startDate.toISOString().split('T')[0]);
+    if (endDate) query = query.lte('business_date', endDate.toISOString().split('T')[0]);
+    if (serverId) query = query.eq('sold_by', serverId);
+
+    const result = await this.withTimeout<{
+      data: Array<{ total: number; status: string; sold_by: string }> | null;
+      error: unknown;
+    }>(query);
+    const { data, error } = result;
+    if (error) throw new Error(handleSupabaseError(error));
+
+    // Agrégations
+    const totalRevenue = data?.reduce((sum: number, sale: { total: number }) => sum + (sale.total || 0), 0) || 0;
+    const totalSales = data?.length || 0;
+    const averageSale = totalSales > 0 ? totalRevenue / totalSales : 0;
+
+    return { totalRevenue, totalSales, averageSale };
+  }
+
+  // --- Offline Data Access (Vision Rayons X) ---
+
+  static async getOfflineSales(barId: string, startDate?: Date, endDate?: Date): Promise<OfflineSale[]> {
     try {
-      const { data, error } = await supabase.rpc('admin_as_get_bar_sales_cursor', {
-        p_acting_as_user_id: null,
-        p_bar_id: barId,
-        p_limit: options?.limit || 50,
-        p_cursor_date: options?.cursorDate || null,
-        p_cursor_id: options?.cursorId || null,
-      });
+      // 1. Récupérer toutes les opé de type 'CREATE_SALE' en attente ou en cours
+      const operations = await offlineQueue.getOperations({ barId });
 
-      if (error) {
-        console.error('[SalesService] RPC error:', error);
-        throw new Error('Erreur lors de la récupération des ventes avec cursor pagination');
-      }
+      const startStr = startDate ? startDate.toISOString().split('T')[0] : null;
+      const endStr = endDate ? endDate.toISOString().split('T')[0] : null;
 
-      // data est JSONB array depuis RPC, chaque item inclut info cursor
-      const sales = (data || []) as any[];
-      return sales.map((sale: any) => ({
-        ...sale,
-        items: sale.items || [],
-        seller_name: sale.seller_name || 'Inconnu',
-        validator_name: sale.validator_name || null,
-        items_count: (sale.items || []).length,
-      }));
-    } catch (error: any) {
-      throw new Error(handleSupabaseError(error));
+      const pendingSales = operations
+        .filter((op): op is SyncOperationCreateSale => op.type === 'CREATE_SALE' && (op.status === 'pending' || op.status === 'syncing'))
+        .filter(op => {
+          if (!startStr || !endStr) return true;
+          const saleDate = op.payload.business_date || new Date(op.timestamp).toISOString().split('T')[0];
+          return saleDate >= startStr && saleDate <= endStr;
+        })
+        .map(op => this.mapOperationToOfflineSale(op, barId));
+
+      return pendingSales;
+    } catch (error) {
+      console.warn('[SalesService] Failed to fetch offline sales', error);
+      return [];
     }
   }
 
-  /**
-   * Supprimer une vente (admin uniquement)
-   * Restaure le stock si la vente était pending
-   */
-  static async deleteSale(saleId: string): Promise<void> {
+  static async getOfflineSalesByTicketId(ticketId: string): Promise<OfflineSale[]> {
     try {
-      // 1. Récupérer la vente
-      const { data: sale } = await supabase
-        .from('sales')
-        .select('items, status')
-        .eq('id', saleId)
-        .single();
-
-      if (!sale) {
-        throw new Error('Vente introuvable');
-      }
-
-      // 2. Restaurer le stock si la vente était pending
-      if (sale.status === 'pending') {
-        const items = sale.items as SaleItem[];
-        for (const item of items) {
-          await ProductsService.incrementStock(item.product_id, item.quantity);
-        }
-      }
-
-      // 3. Supprimer la vente
-      const { error } = await supabase.from('sales').delete().eq('id', saleId);
-
-      if (error) {
-        throw new Error('Erreur lors de la suppression de la vente');
-      }
-    } catch (error: any) {
-      throw new Error(handleSupabaseError(error));
+      const operations = await offlineQueue.getOperations();
+      return operations
+        .filter((op): op is SyncOperationCreateSale => op.type === 'CREATE_SALE' && op.payload.ticket_id === ticketId && (op.status === 'pending' || op.status === 'syncing'))
+        .map(op => this.mapOperationToOfflineSale(op, op.payload.bar_id));
+    } catch (error) {
+      console.warn('[SalesService] Failed to fetch offline sales for ticket', error);
+      return [];
     }
+  }
+
+  private static mapOperationToOfflineSale(op: SyncOperationCreateSale, barId: string): OfflineSale {
+    const total = op.payload.items.reduce((sum: number, item: SaleItem) => {
+      const itemTotal = item.total_price || (item.unit_price * item.quantity) || 0;
+      return sum + itemTotal;
+    }, 0);
+    const createdAtStr = new Date(op.timestamp).toISOString();
+
+    // 🛡️ DUAL-CASING STRATEGY (Phase 15)
+    // Garantir que les propriétés clés sont accessibles via les deux conventions
+    // pour éviter les bugs de filtrage dans les hooks (useTickets vs useDashboardAnalytics)
+    return {
+      id: op.id, // ID temporaire
+      bar_id: barId,
+      total,
+      status: 'validated', // On les considère validées pour les stats car le user a "vendu"
+      payment_method: op.payload.payment_method,
+
+      // Dual-casing SoldBy
+      sold_by: op.payload.sold_by,
+      soldBy: op.payload.sold_by,
+
+      // Dual-casing ServerId
+      server_id: op.payload.server_id,
+      serverId: op.payload.server_id,
+
+      // Dual-casing BusinessDate
+      business_date: op.payload.business_date,
+      businessDate: op.payload.business_date,
+
+      // Dual-casing TicketId
+      ticket_id: op.payload.ticket_id,
+      ticketId: op.payload.ticket_id,
+
+      created_at: createdAtStr,
+      createdAt: createdAtStr,
+
+      idempotency_key: op.payload.idempotency_key, // 🛡️ Lock Flash: Crucial pour la déduplication
+      items: op.payload.items, // 🛡️ CRITIQUE: Items nécessaires pour calculs
+      isOptimistic: true // Flag pour l'UI
+    };
   }
 }

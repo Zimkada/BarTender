@@ -1,12 +1,18 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, X, ShoppingBag } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { CalculatedItem } from '../../hooks/useCartLogic';
 import { CartShared } from './CartShared';
 import { useViewport } from '../../hooks/useViewport';
 import { SelectOption } from '../ui/Select';
 import { PaymentMethod } from './PaymentMethodSelector';
 import { CartFooter } from './CartFooter';
+import type { TicketWithSummary } from '../../hooks/queries/useTickets';
+import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
+import { formatTicketInfo } from '../../utils/formatTicketInfo';
+import { useAuth } from '../../context/AuthContext';
+// useBarContext removed
+// ServerMappingsService removed as resolution is now synchronous via props
 
 interface CartDrawerProps {
     isOpen: boolean;
@@ -16,10 +22,13 @@ interface CartDrawerProps {
     onUpdateQuantity: (productId: string, quantity: number) => void;
     onRemoveItem: (productId: string) => void;
     onClear: () => void;
-    onCheckout: (serverName?: string, paymentMethod?: PaymentMethod) => Promise<void>;
+    onCheckout: (serverName?: string, paymentMethod?: PaymentMethod, ticketId?: string) => Promise<void>;
     isSimplifiedMode?: boolean;
     serverNames?: string[];
     currentServerName?: string;
+    serverMappings?: { serverName: string; userId: string }[];
+    ticketsWithSummary?: TicketWithSummary[];
+    onCreateBon?: (serverId: string | null, tableNumber?: number, customerName?: string) => Promise<string | null>;
     isLoading?: boolean;
 }
 
@@ -35,12 +44,46 @@ export function CartDrawer({
     isSimplifiedMode = false,
     serverNames = [],
     currentServerName,
+    serverMappings = [],
+    ticketsWithSummary = [],
+    onCreateBon,
     isLoading = false
 }: CartDrawerProps) {
     const { isMobile } = useViewport();
+    const { formatPrice } = useCurrencyFormatter();
+    const { currentSession } = useAuth();
+    // currentBar removed as it was only used for async server mapping resolution
 
     const [selectedServer, setSelectedServer] = useState<string>('');
+    const [selectedBon, setSelectedBon] = useState<string>('');
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
+
+    // Résolution SYNCHRONE du serveur effectif pour éviter les race conditions lors de la création de bons
+    const effectiveServerId = useMemo(() => {
+        if (!isSimplifiedMode) return currentSession?.userId || null;
+        if (!selectedServer) return null;
+        if (selectedServer.startsWith('Moi (')) return currentSession?.userId || null;
+
+        // Résolution immédiate via les mappings passés en prop
+        const mapping = serverMappings.find(m => m.serverName === selectedServer);
+        if (mapping) return mapping.userId;
+
+        return null;
+    }, [selectedServer, isSimplifiedMode, currentSession?.userId, serverMappings]);
+
+    // Réinitialiser le bon sélectionné UNIQUEMENT si le serveur change pour un AUTRE serveur valide
+    // (Évite le reset lors du passage de null -> ID au montage)
+    useEffect(() => {
+        if (effectiveServerId && selectedBon) {
+            const currentTicket = ticketsWithSummary.find(t => t.id === selectedBon);
+            if (currentTicket && currentTicket.serverId !== effectiveServerId && currentTicket.serverId !== null) {
+                setSelectedBon('');
+            }
+        }
+    }, [effectiveServerId, ticketsWithSummary, selectedBon]);
+
+    // Maintien de l'état à la fermeture pour permettre les allers-retours
+    // On ne reset QUE si la vente est validée (géré dans handleCheckout)
 
     const serverOptions: SelectOption[] = [
         { value: '', label: 'Sélectionner un serveur...' },
@@ -48,13 +91,38 @@ export function CartDrawer({
         ...serverNames.map(name => ({ value: name, label: name }))
     ];
 
+    // Filtrer les bons par serveur effectif — bons sans server_id (legacy) sont visibles à tous
+    const filteredTickets = effectiveServerId
+        ? ticketsWithSummary.filter(t => !t.serverId || t.serverId === effectiveServerId)
+        : ticketsWithSummary;
+
+    const bonOptions: SelectOption[] = [
+        { value: '', label: 'Sans bon' },
+        ...filteredTickets.map(t => {
+            const ticketInfo = formatTicketInfo(t);
+            return {
+                value: t.id,
+                label: `BON #${t.ticketNumber || '?'}${ticketInfo ? ` (${ticketInfo})` : ''} • ${t.productSummary} • ${formatPrice(t.totalAmount)}`
+            };
+        })
+    ];
+
+    const handleCreateBon = async (tableNumber?: number, customerName?: string) => {
+        if (!onCreateBon) return;
+        const newId = await onCreateBon(effectiveServerId, tableNumber, customerName);
+        if (newId) setSelectedBon(newId);
+    };
+
     const handleCheckout = async () => {
         if (isSimplifiedMode && !selectedServer) {
             alert('Veuillez sélectionner le serveur qui a effectué la vente');
             return;
         }
-        await onCheckout(isSimplifiedMode ? selectedServer : undefined, paymentMethod);
-        if (!isLoading) setSelectedServer('');
+        await onCheckout(isSimplifiedMode ? selectedServer : undefined, paymentMethod, selectedBon || undefined);
+        if (!isLoading) {
+            setSelectedServer('');
+            setSelectedBon('');
+        }
     };
 
     const drawerVariants = isMobile ? {
@@ -90,7 +158,7 @@ export function CartDrawer({
                         className={`
                             fixed z-[110] bg-white/95 backdrop-blur-2xl shadow-[0_-20px_80px_-20px_rgba(0,0,0,0.3)] flex flex-col
                             ${isMobile
-                                ? 'bottom-0 left-0 right-0 h-[88vh] rounded-t-[3rem]' // Mobile
+                                ? 'bottom-0 left-0 right-0 h-[94vh] rounded-t-[3rem]' // Mobile
                                 : 'top-0 right-0 bottom-0 w-[420px] rounded-l-[3rem]' // Desktop
                             }
                             border-l border-white/20
@@ -98,27 +166,27 @@ export function CartDrawer({
                     >
                         {/* --- DRAG HANDLE (Mobile) --- */}
                         {isMobile && (
-                            <div className="w-full flex justify-center pt-4 pb-2" onClick={onClose}>
-                                <div className="w-16 h-1.5 bg-gray-200 rounded-full" />
+                            <div className="w-full flex justify-center pt-2 pb-1" onClick={onClose}>
+                                <div className="w-12 h-1 bg-gray-200 rounded-full" />
                             </div>
                         )}
 
                         {/* --- HEADER VISION 2026 --- */}
-                        <div className="flex items-center justify-between px-8 py-5">
-                            <div className="flex flex-col">
-                                <h2 className="text-2xl font-black text-gray-900 flex items-center gap-3 uppercase tracking-tighter">
-                                    <ShoppingBag className="text-brand-primary" size={28} strokeWidth={2.5} />
+                        <div className="flex items-center justify-between px-6 py-2 border-b border-gray-100/50">
+                            <div className="flex flex-row items-center gap-2">
+                                <h2 className="text-lg font-black text-gray-900 flex items-center gap-2 uppercase tracking-tighter">
+                                    <ShoppingBag className="text-brand-primary" size={20} strokeWidth={2.5} />
                                     Panier
+                                    <span className="ml-2 bg-brand-primary/10 text-brand-primary px-2 py-0.5 rounded-md text-[10px] font-black tracking-wide uppercase">
+                                        ({items.length} {items.length > 1 ? 'articles' : 'article'})
+                                    </span>
                                 </h2>
-                                <p className="text-[10px] font-black text-brand-primary/60 uppercase tracking-[0.3em] mt-1 pl-1">
-                                    {items.length} Article{items.length > 1 ? 's' : ''} sélectionné{items.length > 1 ? 's' : ''}
-                                </p>
                             </div>
                             <button
                                 onClick={onClose}
-                                className="w-10 h-10 flex items-center justify-center bg-gray-50 text-gray-600 hover:text-gray-900 rounded-full transition-all hover:rotate-90"
+                                className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-600 hover:text-gray-900 rounded-full transition-all hover:rotate-90"
                             >
-                                <X size={24} />
+                                <X size={18} />
                             </button>
                         </div>
 
@@ -164,6 +232,10 @@ export function CartDrawer({
                                     serverOptions={serverOptions}
                                     selectedServer={selectedServer}
                                     onServerChange={setSelectedServer}
+                                    bonOptions={bonOptions}
+                                    selectedBon={selectedBon}
+                                    onBonChange={setSelectedBon}
+                                    onCreateBon={handleCreateBon}
                                     paymentMethod={paymentMethod}
                                     onPaymentMethodChange={setPaymentMethod}
                                     onCheckout={handleCheckout}

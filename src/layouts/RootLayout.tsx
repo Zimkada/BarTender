@@ -12,6 +12,7 @@ import { broadcastService } from '../services/broadcast/BroadcastService';
 import { supabase } from '../lib/supabase';
 import { VersionCheckService } from '../services/versionCheck.service';
 import { useRoutePreload } from '../hooks/useRoutePreload';
+import { networkManager } from '../services/NetworkManager';
 
 import { Header } from '../components/Header';
 import { MobileNavigation } from '../components/MobileNavigation';
@@ -24,6 +25,7 @@ import { LoadingFallback } from '../components/LoadingFallback';
 import { LazyLoadErrorBoundary } from '../components/LazyLoadErrorBoundary';
 // import { UserManagement } from '../components/UserManagement'; // Removed
 import { UpdateNotification } from '../components/UpdateNotification';
+import { OfflineBanner } from '../components/OfflineBanner';
 
 // Lazy load all modals to reduce initial bundle size (~60-80 KB savings)
 const LazyProductModal = lazy(() => import('../components/ProductModal').then(m => ({ default: m.ProductModal })));
@@ -57,14 +59,23 @@ function RootLayoutContent() {
     if (!isAuthenticated || !currentSession) {
       console.log('[RootLayout] Session perdue, nettoyage et redirection vers login');
 
-      // ✅ 1. Nettoyer React Query cache
-      queryClient.clear();
+      // ✅ 1. Nettoyer React Query cache (Gérer les erreurs IDB potentielles)
+      try {
+        queryClient.clear();
+      } catch (err) {
+        console.error('[RootLayout] QueryClient clear failed:', err);
+      }
 
-      // ✅ 2. Fermer les subscriptions Realtime et Broadcast
+      // ✅ 2. Fermer les subscriptions Realtime et Broadcast (Isolés)
       realtimeService.unsubscribeAll().catch(err =>
         console.warn('[RootLayout] Erreur lors de la fermeture Realtime:', err)
       );
-      broadcastService.closeAllChannels();
+
+      try {
+        broadcastService.closeAllChannels();
+      } catch (err) {
+        console.warn('[RootLayout] Broadcast closure failed:', err);
+      }
 
       // La navigation sera gérée par le Navigate ci-dessous
     }
@@ -78,15 +89,25 @@ function RootLayoutContent() {
     if (!isAuthenticated || !currentSession) return;
 
     const heartbeatInterval = setInterval(async () => {
+      // ⭐ SILENCE OFFLINE: On ne veut pas déconnecter l'utilisateur s'il est hors-ligne
+      // même si le token expire (on synchronisera au retour du réseau).
+      const { shouldShowBanner: isOffline } = networkManager.getDecision();
+      if (isOffline) {
+        console.debug('[RootLayout] Heartbeat skipped (Offline mode)');
+        return;
+      }
+
       try {
         // Vérifier si le session Supabase est toujours valide
         const { data: { session: supabaseSession }, error } = await supabase.auth.getSession();
 
-        if (!supabaseSession || error) {
+        if (error || !supabaseSession) {
           console.warn('[RootLayout] ⚠️ Token expiré détecté lors du heartbeat');
 
-          // Dispatcher un événement custom que AuthContext va écouter
-          window.dispatchEvent(new Event('token-expired'));
+          // Double check internet avant de paniquer
+          if (!networkManager.getDecision().shouldShowBanner) {
+            window.dispatchEvent(new Event('token-expired'));
+          }
         }
       } catch (err) {
         console.warn('[RootLayout] Erreur lors de la vérification du heartbeat:', err);
@@ -96,7 +117,6 @@ function RootLayoutContent() {
     return () => clearInterval(heartbeatInterval);
   }, [isAuthenticated, currentSession]);
 
-  // 🔄 Initialiser la vérification de version au démarrage de l'app
   useEffect(() => {
     VersionCheckService.initialize().catch(err => {
       console.warn('[RootLayout] Erreur lors de l\'initialisation VersionCheckService:', err);
@@ -107,6 +127,30 @@ function RootLayoutContent() {
       VersionCheckService.stopChecking();
     };
   }, []);
+
+  // 🔄 Vision Rayons X: Rafraîchir les données au retour du réseau ou fin de synchro
+  useEffect(() => {
+    // 1. Écouter le retour du réseau (Pour déclencher le refetch immédiat et voir les données mergées)
+    const unsubscribeNetwork = networkManager.subscribe((status) => {
+      if (status === 'online') {
+        console.log('[RootLayout] Network restored, invalidating to fetch fresh data...');
+        queryClient.invalidateQueries();
+      }
+    });
+
+    // 2. Écouter la fin de la synchro (Pour nettoyer la queue locale et avoir les données définitives)
+    const handleSyncCompleted = () => {
+      console.log('[RootLayout] Sync completed, invalidating query cache...');
+      queryClient.invalidateQueries();
+    };
+
+    window.addEventListener('sync-completed', handleSyncCompleted);
+
+    return () => {
+      unsubscribeNetwork();
+      window.removeEventListener('sync-completed', handleSyncCompleted);
+    };
+  }, [queryClient]);
 
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" replace />;
@@ -119,6 +163,7 @@ function RootLayoutContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-brand-subtle to-brand-subtle pb-16 md:pb-0">
+      <OfflineBanner /> {/* Phase 1: Offline Resilience */}
       <UpdateNotification />
       <OnboardingBanner /> {/* UX Improvement 1: Show setup banner */}
       <Header

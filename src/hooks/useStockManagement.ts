@@ -1,10 +1,13 @@
 // hooks/useStockManagement.ts - Hook unifié (Refactored for React Query)
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { calculateAvailableStock } from '../utils/calculations';
 import { auditLogger } from '../services/AuditLogger';
 import { toDbProduct, toDbProductForCreation } from '../utils/productMapper';
+import { offlineQueue } from '../services/offlineQueue';
+import { syncManager } from '../services/SyncManager';
 import type { Product, ProductStockInfo, Supply, Expense } from '../types';
 
 // React Query Hooks
@@ -13,6 +16,23 @@ import { useStockMutations } from './mutations/useStockMutations';
 
 // Callback type for expense creation
 export type CreateExpenseCallback = (expense: Omit<Expense, 'id' | 'barId' | 'createdAt'>) => void;
+
+export interface CreateConsignmentData {
+  saleId: string;
+  productId: string;
+  productName: string;
+  productVolume?: string;
+  quantity: number;
+  totalAmount: number;
+  customerName?: string;
+  customerPhone?: string;
+  notes?: string;
+  expiresAt: Date | string;
+  expirationDays?: number;
+  originalSeller: string;
+  serverId?: string;
+  businessDate: string;
+}
 
 export const useStockManagement = () => {
   const { currentBar } = useBarContext();
@@ -81,7 +101,7 @@ export const useStockManagement = () => {
     mutations.adjustStock.mutate(
       { productId, delta: quantity, reason },
       {
-        onError: (error: any) => {
+        onError: (error) => {
           console.error(`Failed to increase stock for product ${productId}:`, error);
         }
       }
@@ -98,7 +118,7 @@ export const useStockManagement = () => {
     mutations.adjustStock.mutate(
       { productId, delta: -quantity, reason },
       {
-        onError: (error: any) => {
+        onError: (error) => {
           console.error(`Failed to decrease stock for product ${productId}:`, error);
         }
       }
@@ -108,7 +128,7 @@ export const useStockManagement = () => {
 
   // ===== LOGIQUE DE CONSIGNATION =====
 
-  const createConsignment = useCallback((data: any) => {
+  const createConsignment = useCallback((data: CreateConsignmentData) => {
     if (!currentBar || !session) return Promise.reject('No bar or session');
 
     const consignmentData = {
@@ -238,7 +258,7 @@ export const useStockManagement = () => {
       onSuccess: () => {
         onSuccess();
       },
-      onError: (error: any) => {
+      onError: (error) => {
         onError(error.message || 'Erreur lors de la validation');
       }
     });
@@ -253,10 +273,49 @@ export const useStockManagement = () => {
    * This is the single source of truth for stock alerts and display.
    * High performance O(N + M) calculation.
    */
+  // 🛡️ Lock Stock (Sprint 2): Récupérer les ventes offline pour déduction immédiate
+  const { data: offlineSales = [], refetch: refetchOfflineSales } = useQuery({
+    queryKey: ['offline-sales-for-stock', currentBar?.id],
+    networkMode: 'always', // 🛡️ CRITIQUE: Fonctionne même offline (IndexedDB)
+    queryFn: async () => {
+      if (!currentBar?.id) return [];
+      const ops = await offlineQueue.getOperations({
+        status: 'pending',
+        barId: currentBar.id
+      });
+      return ops
+        .filter(op => op.type === 'CREATE_SALE')
+        .map(op => op.payload);
+    },
+    enabled: !!currentBar?.id,
+    refetchInterval: false // 🚀 Désactivé : Utiliser listener queue-updated pour réactivité instantanée
+  });
+
+  // 🚀 Réactivité Instantanée: Écouter les mises à jour de la queue
+  useEffect(() => {
+    const handleQueueUpdate = () => {
+      console.log('[useStockManagement] Queue updated, refetching offline sales...');
+      refetchOfflineSales();
+    };
+
+    const handleSyncCompleted = () => {
+      console.log('[useStockManagement] Sync completed, refetching offline sales...');
+      refetchOfflineSales();
+    };
+
+    window.addEventListener('queue-updated', handleQueueUpdate);
+    window.addEventListener('sync-completed', handleSyncCompleted);
+    return () => {
+      window.removeEventListener('queue-updated', handleQueueUpdate);
+      window.removeEventListener('sync-completed', handleSyncCompleted);
+    };
+  }, [refetchOfflineSales]);
+
   const allProductsStockInfo = useMemo(() => {
     const infoMap: Record<string, ProductStockInfo> = {};
+    const recentlySyncedKeys = syncManager.getRecentlySyncedKeys();
 
-    // 1. Initialize with physical stock
+    // 1. Initialiser avec le stock physique (Serveur)
     products.forEach(p => {
       infoMap[p.id] = {
         productId: p.id,
@@ -266,20 +325,38 @@ export const useStockManagement = () => {
       };
     });
 
-    // 2. Add consigned stock
+    // 2. Déduire les consignations actives
     consignments.forEach(c => {
       if (c.status === 'active' && infoMap[c.productId]) {
         infoMap[c.productId].consignedStock += c.quantity;
-        // recalculate available
-        infoMap[c.productId].availableStock = calculateAvailableStock(
-          infoMap[c.productId].physicalStock,
-          infoMap[c.productId].consignedStock
-        );
       }
     });
 
+    // 3. 🛡️ DÉDUIRE les ventes offline (Sprint 2)
+    offlineSales.forEach(sale => {
+      // Déduplication : Ne déduire que si n'est pas déjà dans le tampon de synchro récente
+      if (sale.idempotency_key && recentlySyncedKeys.has(sale.idempotency_key)) {
+        return;
+      }
+
+      sale.items.forEach((item) => {
+        const pId = item.product_id;
+        if (infoMap[pId]) {
+          infoMap[pId].availableStock -= item.quantity;
+        }
+      });
+    });
+
+    // 4. Recalculer le stock disponible final (Physical - Consigned - Offline)
+    Object.values(infoMap).forEach(info => {
+      info.availableStock = calculateAvailableStock(
+        info.availableStock, // Contient déjà Physical - Offline
+        info.consignedStock
+      );
+    });
+
     return infoMap;
-  }, [products, consignments]);
+  }, [products, consignments, offlineSales]);
 
   const getConsignedStockByProduct = useCallback((productId: string): number => {
     return allProductsStockInfo[productId]?.consignedStock ?? 0;

@@ -8,6 +8,281 @@
 import { GuideTour } from '@/types/guide';
 
 /**
+ * Guide 0: Sales Process (PREMIER GUIDE)
+ * Comprehensive guide covering all sales scenarios:
+ * - Mode complet (serveur pending → gérant validation)
+ * - Mode simplifié (gérant direct avec mappings)
+ * - Offline & synchronisation
+ * - Bons & paiement différé
+ * - Cas avancés (retours, annulations)
+ * Accessible à tous les rôles avec étapes role-spécifiques
+ */
+export const SALES_PROCESS_GUIDE: GuideTour = {
+  id: 'sales-process',
+  title: 'Processus de Vente BarTender',
+  subtitle: 'Du panier à la validation : tous les scénarios',
+  description: 'Guide complet du processus de vente : création, validation, bons, offline et cas avancés. Adapté à votre rôle et mode de fonctionnement.',
+
+  targetRoles: ['promoteur', 'gerant', 'serveur'],
+
+  estimatedDuration: 12,
+  difficulty: 'intermediate',
+  emoji: '🛍️',
+  version: 1,
+
+  triggers: [
+    {
+      type: 'onMount',
+      condition: 'isHomePage',
+      delay: 1000,
+      showOnce: true,
+    },
+  ],
+
+  steps: [
+    // ==================== INTRODUCTION ====================
+    {
+      id: 'step-1',
+      emoji: '🎯',
+      title: 'Bienvenue au Processus de Vente BarTender !',
+      description:
+        'BarTender gère les ventes selon **2 modes de fonctionnement** et **votre rôle**. Ce guide couvre tous les scénarios : mode complet (serveurs créent, gérant valide), mode simplifié (gérant crée tout), bons/paiement différé, offline & synchronisation. Découvrez comment fonctionne votre bar !',
+      position: 'center',
+      visibleFor: ['promoteur', 'gerant', 'serveur'],
+      tips: [
+        '📋 **Mode Complet** : Serveurs créent ventes (pending) → Gérant valide → Stock déduit',
+        '⚡ **Mode Simplifié** : Gérant crée ventes directement (validated) avec noms serveurs',
+        '📱 **Bons** : Paiement différé, traçabilité commandes',
+        '🌐 **Offline** : Ventes en cache, sync automatique quand réseau revient',
+      ],
+    },
+
+    // ==================== MODE COMPLET - SERVEUR ====================
+    {
+      id: 'step-2',
+      emoji: '🍺',
+      title: 'Mode Complet : Vous êtes SERVEUR',
+      description:
+        '**En Mode Complet**, vous avez un **compte avec authentification**. Vous créez les ventes au comptoir, puis un **Gérant les valide**. Votre rôle : capter les commandes clients avec précision. Le Gérant assure la validité et la comptabilité.',
+      position: 'bottom',
+      visibleFor: ['serveur'],
+      tips: [
+        '✅ Vous créez ventes (Panier → Paiement → Envoyer)',
+        '⏳ Ventes en attente de validation par Gérant',
+        '👀 Vous voyez votre historique personnel dans "Historique" page',
+        '❌ En Mode Simplifié, vous n\'avez pas accès (Gérant crée pour vous)',
+      ],
+    },
+
+    {
+      id: 'step-3',
+      emoji: '📋',
+      title: 'Mode Complet - Serveur : Flux Étape par Étape',
+      description:
+        '**Flux de créati vente** : 1️⃣ Cliquez "Vente Rapide" (menu bas ou Dashboard) → 2️⃣ Sélectionnez produits demandés par client → 3️⃣ Vérifiez panier (quantités, prix) → 4️⃣ Choisissez paiement (cash, mobile, carte) → 5️⃣ Cliquez "Valider" → ✅ Vente envoyée (status=pending) → Attente gérant.',
+      elementSelector: '[data-guide="quick-sale-btn"]',
+      position: 'bottom',
+      visibleFor: ['serveur'],
+      tips: [
+        '💰 Paiement = Spécifiez à la création (cash par défaut)',
+        '⏳ Vente reste "en attente" jusqu\'à validation gérant',
+        '📱 Pouvez voir ventes en attente dans Dashboard → Synthèse',
+        '🔄 Rejet possible : Si gérant rejette, modifiez et renvoyez',
+      ],
+    },
+
+    {
+      id: 'step-4',
+      emoji: '📊',
+      title: 'Mode Complet - Serveur : Vos Performances',
+      description:
+        'Votre **historique personnel** (page "Historique") affiche toutes vos ventes : **validées** (finales, comptabilisées), **rejetées** (retournées pour correction), **annulées** (supprimées par promoteur). Analysez vos **CA net** et nombre de ventes pour progresser. Gérant utilise ces données pour vous motiver !',
+      elementSelector: '[data-guide="sales-history"]',
+      position: 'bottom',
+      visibleFor: ['serveur'],
+      tips: [
+        '✅ Ventes Validées = Finales, stock déduit, comptabilisées',
+        '❌ Ventes Rejetées = À modifier et renvoyer (ou ignorer)',
+        '🚫 Ventes Annulées = Supprimées par promoteur (rare)',
+        '📈 Consultez pour savoir quels produits/heures vous performez bien',
+      ],
+    },
+
+    // ==================== MODE COMPLET - GÉRANT ====================
+    {
+      id: 'step-5',
+      emoji: '⚙️',
+      title: 'Mode Complet : Vous êtes GÉRANT',
+      description:
+        '**En Mode Complet**, votre rôle double : **créer ventes directes** (vous validées auto) + **valider ventes serveurs**. Vous pilotez les stocks, la comptabilité et contrôlez la qualité. Dashboard central pour superviser tous.',
+      position: 'bottom',
+      visibleFor: ['gerant', 'promoteur'],
+      tips: [
+        '🎯 **Ventes propres** : Validées instantanément (pas d\'attente)',
+        '📋 **Ventes serveurs** : En attente dans Dashboard → "Gestion Commandes"',
+        '✅ **Validation** : ✅ Valider | ❌ Rejeter | ✓✓ Batch (plusieurs à la fois)',
+        '📊 **Supervision** : Dashboard affiche équipe + stocks + CA',
+      ],
+    },
+
+    {
+      id: 'step-6',
+      emoji: '✅',
+      title: 'Mode Complet - Gérant : Valider les Ventes',
+      description:
+        '**Dashboard → Onglet "Gestion Commandes"** affiche toutes les ventes serveurs en **attente de validation**. Pour chaque vente : voir heure, montant, articles. **Actions** : ✅ Valider (stock déduit, comptabilisé) ou ❌ Rejeter (retour serveur, stock remis). Vous pouvez **valider en masse** : cochez plusieurs + cliquez "Valider tous".',
+      elementSelector: '[data-guide="pending-sales"]',
+      position: 'bottom',
+      visibleFor: ['gerant', 'promoteur'],
+      tips: [
+        '📌 Validation = Déduction stock + Comptabilisation finale',
+        '🔍 Vérifiez articles avant validation si doute',
+        '❌ Rejet = Vente retourne à serveur (stock remis, payant re-traité)',
+        '⏱️ Ventes expirées (après fermeture caisse) = Auto-invalidées',
+      ],
+    },
+
+    // ==================== MODE SIMPLIFIÉ ====================
+    {
+      id: 'step-7',
+      emoji: '⚡',
+      title: 'Mode Simplifié : Architecture & Accès',
+      description:
+        '**En Mode Simplifié**, **serveurs n\'ont pas de comptes** (juste noms : "Ahmed", "Fifi", "Moustapha"). **Gérant crée TOUTES les ventes** au comptoir, attribuant chacune à un serveur via son nom. **Validation immédiate** (pas d\'attente). Bons & tickets pour traçabilité. Idéal pour gérant solo ou peu staffing.',
+      position: 'center',
+      visibleFor: ['gerant', 'promoteur', 'serveur'],
+      tips: [
+        '👤 Serveurs = Noms texte, pas comptes auth',
+        '⚡ Ventes créées + validées immédiatement (par gérant)',
+        '🔗 **Mappings** : Nom serveur (ex: "Ahmed") ↔ Compte gérant interne',
+        '📱 Gérant peut aussi créer vente sous son nom ("Moi (Ahmed)")',
+      ],
+    },
+
+    {
+      id: 'step-8',
+      emoji: '🎯',
+      title: 'Mode Simplifié - Gérant : Flux Vente',
+      description:
+        '**Flux** : 1️⃣ Cliquez "Vente Rapide" → 2️⃣ **Sélectionnez serveur** dans dropdown (ex: "Ahmed", "Fifi", ou "Moi (Gérant)") → 3️⃣ Ajouter produits → 4️⃣ Optionnel : **Créer/mettre sur Bon** (paiement différé) OU → 5️⃣ Paiement cash immédiat → 6️⃣ Cliquez "Valider" → ✅ Vente créée + validée immédiatement.',
+      elementSelector: '[data-guide="quick-sale-btn"]',
+      position: 'bottom',
+      visibleFor: ['gerant', 'promoteur'],
+      tips: [
+        '📝 **Sélection serveur** = Dropdown de noms + "Moi (Gérant)"',
+        '🔗 Derrière les coulisses : Système résout "Ahmed" → UUID interne',
+        '🎫 **Bons** : Si client paye plus tard, "Mettre sur Bon" au lieu de cash',
+        '✅ Validation immédiate = Stock déduit tout de suite',
+      ],
+    },
+
+    // ==================== BONS & PAIEMENT DIFFÉRÉ ====================
+    {
+      id: 'step-9',
+      emoji: '🎫',
+      title: 'Bons & Tickets : Paiement Différé & Traçabilité',
+      description:
+        '**Bon/Ticket** = Enregistrement de commande avec paiement reporté. Utilisé pour : **paiement différé** (client paie plus tard) ou **traçabilité** (numéro table, nom client). **Workflow** : 1️⃣ Créer bon → 2️⃣ Ajouter ventes au bon (plusieurs ventes) → 3️⃣ Client revient payer → 4️⃣ Cliquez "Fermer bon" (= Payer) → ✅ Paiement final collecté.',
+      elementSelector: '[data-guide="bon-strip"]',
+      position: 'bottom',
+      visibleFor: ['gerant', 'promoteur'],
+      tips: [
+        '🎫 Bon # = Numéro séquentiel (1, 2, 3...) visible partout',
+        '📝 Données : Table number, customer name, notes (optionnel)',
+        '💰 Montant = Cumulé de toutes ventes sur ce bon',
+        '✅ Fermer bon = Paiement final + Stock déduit',
+      ],
+    },
+
+    // ==================== OFFLINE & SYNCHRONISATION ====================
+    {
+      id: 'step-10',
+      emoji: '📡',
+      title: 'Offline : Créer Ventes Sans Réseau',
+      description:
+        '**Pas d\'internet ?** BarTender fonctionne quand même ! Les ventes créées **offline** sont **en cache** (stockées localement). Quand réseau revient, **synchronisation automatique** : ventes envoyées vers serveur. **Aucune donnée perdue**. Bannière orange = Indication offline.',
+      position: 'center',
+      visibleFor: ['gerant', 'promoteur'],
+      tips: [
+        '📱 Créez ventes normalement même offline',
+        '💾 Ventes stockées en cache local (IndexedDB)',
+        '🔄 Sync automatique quand réseau revient',
+        '🚨 Si problème sync → Toast vous informe (retry auto)',
+      ],
+    },
+
+    {
+      id: 'step-11',
+      emoji: '🔄',
+      title: 'Offline : Synchronisation Automatique',
+      description:
+        '**Quand réseau revient** : 1️⃣ BarTender détecte connexion automatiquement → 2️⃣ Boucle sur opérations en cache (ventes, bons) → 3️⃣ Envoie vers serveur → 4️⃣ Si succès : ventes finalisées (stock déduit, comptabilité mise à jour) → ✅ Toast "Synchronisé" → Dashboard se met à jour. **Anti-doublon** : Chaque vente = clé unique (évite créer 2x si problème).',
+      position: 'bottom',
+      visibleFor: ['gerant', 'promoteur'],
+      tips: [
+        '⚙️ Sync = Automatique, vous ne faites rien',
+        '📊 Dashboard → Affiche "X opérations en attente de sync" si offline',
+        '✅ Une fois synced → Opérations disparaissent de queue',
+        '🔐 Idempotency key = Protection contre doublons',
+      ],
+    },
+
+    // ==================== CAS AVANCÉS ====================
+    {
+      id: 'step-12',
+      emoji: '↩️',
+      title: 'Cas Avancé : Retours & Remboursements',
+      description:
+        '**Client retour produit** ? Historique → Sélectionnez vente → Cliquez "Créer Retour" → Modal → Choisissez produit + raison (Défectueux, Expiré, Erreur, etc.) → Submit. Retour en **attente** de validation gérant. Une fois approuvé : **Stock remis** + **Remboursement traité**. Vente reste comptabilisée (avec retour soustrait).',
+      elementSelector: '[data-guide="create-return"]',
+      position: 'bottom',
+      visibleFor: ['gerant', 'promoteur'],
+      tips: [
+        '✅ Approuvé retour = Stock remis + Remboursement dans stats',
+        '❌ Rejeté retour = Stock non remis (si raison invalide)',
+        '📊 **Revenu Net** = Ventes - Retours approuvés automatiquement',
+        '🚫 Annulation bloquée si retours présents (pas combinable)',
+      ],
+    },
+
+    {
+      id: 'step-13',
+      emoji: '🚫',
+      title: 'Cas Avancé : Annulation de Vente (Promoteur)',
+      description:
+        '**Promoteur uniquement** : Historique → Détails vente → Bouton "Annuler" (si vente validée). Annulation = **Stock restitué** + **Vente supprimée des stats**. ⚠️ Action irréversible ! Confirmez avant (tapez nom bar pour confirmer). Utile si erreur grave ou problème client insolvable.',
+      elementSelector: '[data-guide="sales-details"]',
+      position: 'bottom',
+      visibleFor: ['promoteur'],
+      tips: [
+        '⚠️ UNIQUEMENT Promoteur (autorité suprême)',
+        '🚫 Conditions : Pas de retours/consignations dessus',
+        '💾 Vente conservée en historique (état "Annulée")',
+        '🔐 Confirmation requise (tapez confirmation)',
+      ],
+    },
+
+    // ==================== CONCLUSION ====================
+    {
+      id: 'step-14',
+      emoji: '✅',
+      title: 'Vous Maîtrisez le Processus de Vente !',
+      description:
+        'Félicitations ! Vous connaissez maintenant : **Mode Complet** (serveur pending → gérant valide), **Mode Simplifié** (gérant direct), **Bons & paiement différé**, **Offline & sync**, **Retours & annulations**. Vous êtes prêt à créer des ventes efficacement selon votre rôle et contexte !',
+      position: 'center',
+      visibleFor: ['promoteur', 'gerant', 'serveur'],
+      tips: [
+        '🎯 Débutez avec ventes simples, progressez vers bons/offline',
+        '📱 Utilisez "Vente Rapide" (menu bas) pour rapidité en service',
+        '📊 Dashboard = Votre centre de commande pour supervision',
+        '💡 Questions ? Consultez les guides détaillés : Inventaire, Équipe, Paramètres',
+      ],
+      action: '→ Commencez votre première vente !',
+    },
+  ],
+};
+
+/**
  * Guide 1: Dashboard Overview
  * First guide shown after onboarding (test case for Phase 1)
  */
@@ -163,13 +438,31 @@ export const DASHBOARD_OVERVIEW_GUIDE: GuideTour = {
       ],
     },
 
-    // CONCLUSION
+    // GESTION BONS ET TICKETS
     {
       id: 'step-8',
+      emoji: '🎫',
+      title: 'Gestion des Bons et Tickets',
+      description:
+        '**Bons de Commande** et **Tickets** facilitent la gestion de votre bar selon votre rôle. Les **Bons** (pour précommandes/commandes) et **Tickets** (mini-reçus de transactions) offrent une traçabilité complète. Tous les rôles ont accès à cette fonctionnalité de manière adaptée à leurs besoins.',
+      elementSelector: '[data-guide="dashboard-tickets"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant', 'serveur'],
+      tips: [
+        '📋 **Bons** = Précommandes ou commandes en attente de traitement',
+        '🎫 **Tickets** = Mini-reçus/confirmations de ventes',
+        '🔍 Consultez historique bons et tickets pour audit et traçabilité',
+        '✅ Chaque bon/ticket = Tracé et archived automatiquement',
+      ],
+    },
+
+    // CONCLUSION
+    {
+      id: 'step-9',
       emoji: '✅',
       title: 'Vous Maîtrisez Maintenant votre Tableau de Bord !',
       description:
-        'Félicitations ! Vous connaissez les 3 onglets du tableau de bord : **Synthèse du jour** (chiffres clés), **Gestion Commandes** (validation), **Performance équipe** (statistiques). Pour explorer d\'autres fonctionnalités (Inventaire, Historique, Équipe, Paramètres), ouvrez le menu hamburger (☰) en haut à droite.',
+        'Félicitations ! Vous connaissez les 3 onglets du tableau de bord : **Synthèse du jour** (chiffres clés), **Gestion Commandes** (validation), **Performance équipe** (statistiques), et **Gestion Bons/Tickets** (traçabilité). Pour explorer d\'autres fonctionnalités (Inventaire, Historique, Équipe, Paramètres), ouvrez le menu hamburger (☰) en haut à droite.',
       position: 'center',
       action: 'Cliquez sur Fermer pour commencer',
       visibleFor: ['promoteur', 'gerant'],
@@ -701,7 +994,7 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
       emoji: '🚨',
       title: 'Gérer Expiration & Urgence',
       description:
-        'Les **consignations expirées** sont marquées en **rouge**. Vous devez manuellement décider : **Récupérer** (si client la redemande) ou **Confisquer** (si délai dépassé et client silencieux). Bouton "Vérifier expirations" vous rappelle les actions pending.',
+        'Les **consignations expirées** sont marquées en **rouge**. Vous devez manuellement décider : **Récupérer** (si client la redemande) ou **Confisquer** (si délai dépassé et client silencieux).',
       elementSelector: '[data-guide="consignments-active-tab"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
@@ -709,7 +1002,7 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
         '⚠️ Expiration = **Alerte seulement** (pas action automatique)',
         '📞 Avertissez client AVANT expiration pour lui rappeler récupérer',
         '⏰ Délai = Paramétrable en Paramètres (onglet Opérationnel)',
-        '✅ "Vérifier expirations" = Scan consignations dépassées pour action',
+        '🔴 Consignations expirées = Marquées rouge dans l\'onglet Actives',
       ],
     },
 
@@ -847,12 +1140,12 @@ export const HISTORIQUE_GUIDE: GuideTour = {
       id: 'step-4',
       emoji: '📊',
       title: 'Vue 3: Analytics - Vos Statistiques en Détail',
-      description: 'La **Vue Analytics** synthétise vos données avec **4 KPIs clés** (Revenu, Ventes, Articles, KPI custom) et des **graphiques avancés** pour une analyse complète de vos performances.',
+      description: 'La **Vue Analytics** synthétise vos données avec **3 KPIs clés** (Revenu, Ventes, Articles) et des **graphiques avancés** pour une analyse complète de vos performances.',
       elementSelector: '[data-guide="analytics-kpis"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '📈 Les 4 KPIs incluent la comparaison avec la période précédente (%)',
+        '📈 Les 3 KPIs incluent la comparaison avec la période précédente (%)',
         '🔢 "Articles" = nombre total d\'articles vendus',
         '⚡ Tous les calculs incluent les ajustements de retours',
       ],
@@ -890,22 +1183,8 @@ export const HISTORIQUE_GUIDE: GuideTour = {
       ],
     },
 
-    // ==================== VUE 3: CONSIGNATIONS ====================
-    {
-      id: 'step-7',
-      emoji: '📦',
-      title: 'Analyse: Suivi des Consignations',
-      description: 'Le **widget Consignations** affiche vos stats : Total d\'articles consignés, **Actifs** (en attente de récupération), **Récupérés** (clients sont revenus), **Expirés** et **Confisqués**. Suivez aussi votre **Taux de Récupération** en %.',
-      elementSelector: '[data-guide="analytics-consignments"]',
-      position: 'top',
-      visibleFor: ['promoteur', 'gerant'],
-      tips: [
-        '✅ Taux de récupération élevé = clients fidèles qui reviennent',
-        '🔴 Articles expirés/confisqués = stock réintégré à la vente',
-        '💡 Optimisez votre délai de consignation en fonction du taux',
-      ],
-    },
 
+    // ==================== VUE 3: TOP PRODUITS ====================
     // ==================== VUE 3: TOP PRODUITS ====================
     {
       id: 'step-8',
@@ -954,9 +1233,43 @@ export const HISTORIQUE_GUIDE: GuideTour = {
       ],
     },
 
-    // ==================== EXPORT ====================
+    // ==================== ANNULATION DE VENTE ====================
     {
       id: 'step-11',
+      emoji: '🚫',
+      title: 'Annuler une Vente (Promoteur Uniquement)',
+      description: '**Mode Lecture Détails** : Cliquez sur une vente pour ouvrir ses détails complets. En tant que **Promoteur**, vous avez l\'option **"Annuler"** pour annuler définitivement cette vente. L\'annulation **restitue les articles au stock** et **supprime la vente des statistiques**.',
+      elementSelector: '[data-guide="sales-details"]',
+      position: 'bottom',
+      visibleFor: ['promoteur'],
+      tips: [
+        '🔍 Ouvrez le détail de la vente (cliquez sur le ticket)',
+        '🚫 Bouton "Annuler" visible seulement pour Promoteurs',
+        '✅ Annulation = Stock restitué + Vente supprimée des stats',
+        '⚠️ Action irréversible : confirmation requise avant annulation',
+      ],
+    },
+
+    // ==================== FILTRES PAR TYPE VENTE ====================
+    {
+      id: 'step-12',
+      emoji: '🔍',
+      title: 'Filtrer par Type de Vente (Validées / Rejetées / Annulées)',
+      description: '**Filtrer les ventes** par statut : **Validées** (approuvées et comptabilisées), **Rejetées** (non approuvées par managers), **Annulées** (supprimées par promoteur). Ces filtres s\'appliquent à toutes les 3 vues (Liste, Cartes, Analytics) instantanément pour une analyse fine par statut.',
+      elementSelector: '[data-guide="sales-type-filter"]',
+      position: 'bottom',
+      visibleFor: ['promoteur'],
+      tips: [
+        '✅ **Validées** = Ventes finales, comptabilisées dans les stats',
+        '❌ **Rejetées** = Retournées au serveur pour correction',
+        '🚫 **Annulées** = Supprimées par le promoteur (stock restitué)',
+        '📊 Combinez avec autres filtres (période, vendeur) pour analyses détaillées',
+      ],
+    },
+
+    // ==================== EXPORT ====================
+    {
+      id: 'step-13',
       emoji: '💾',
       title: 'Exporter Vos Données',
       description: 'Exportez vos analyses complètes en **Excel** ou **CSV** pour des traitements externes (analyse poussée, rapports détaillés, intégration comptabilité). Les données exportées incluent tous les ajustements (retours, consignations).',
@@ -972,15 +1285,16 @@ export const HISTORIQUE_GUIDE: GuideTour = {
 
     // ==================== CONCLUSION ====================
     {
-      id: 'step-12',
+      id: 'step-14',
       emoji: '✅',
       title: 'Vous Maîtrisez Votre Historique !',
-      description: 'Vous connaissez maintenant les **3 vues** (Liste, Cartes, Analytics), les **filtres puissants**, les **4 KPIs clés**, les **graphiques avancés** (CA, Catégories), et l\'**export données**. Vous êtes prêt à analyser vos performances en profondeur !',
+      description: 'Vous connaissez maintenant les **3 vues** (Liste, Cartes, Analytics), les **filtres puissants** (période, vendeur, type), les **3 KPIs clés**, les **graphiques avancés** (CA, Catégories), l\'**annulation de vente** (promoteur), et l\'**export données**. Vous êtes prêt à analyser vos performances en profondeur !',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🎯 Consultez régulièrement vos analytics pour optimiser votre bar',
         '📈 Suivez votre équipe et identifiez vos champions',
+        '🚫 Promoteurs : Utilisez l\'annulation avec parcimonie (impact inventaire)',
         '💡 Les données = meilleur outil pour prendre les bonnes décisions',
       ],
       action: '→ Vous pouvez maintenant explorer chaque vue en détail !',
@@ -1021,7 +1335,7 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
       emoji: '👋',
       title: 'Bienvenue à la Gestion de l\'Équipe !',
       description:
-        'Votre système de **Gestion de l\'Équipe** se divise en **3 onglets** pour gérer complètement votre équipe : **Mon Équipe** (visualiser et retirer membres), **Recrutement** (ajouter nouveaux ou importer existants), et **Assignation Caisses** (mode simplifié). Un bar bien organisé commence par une équipe bien définie !',
+        'Votre système de **Gestion de l\'Équipe** se divise en **3 onglets** pour gérer complètement votre équipe : **Mon Équipe** (visualiser et retirer membres), **Recrutement** (ajouter nouveaux ou importer existants), et **Nom d\'affichage pour les ventes** (mode simplifié). Un bar bien organisé commence par une équipe bien définie !',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
@@ -1133,20 +1447,38 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
       ],
     },
 
+    // ==================== MAPPINGS AUTOMATIQUES ====================
+    {
+      id: 'step-7b',
+      emoji: '🔗',
+      title: 'Mappings Automatiques Serveurs (Promoteur & Serveur)',
+      description:
+        '**Lors de la création d\'un compte** ou de l\'**ajout d\'un membre existant**, le système crée automatiquement un **mapping** entre le nom d\'affichage (pour les ventes en mode simplifié) et le compte réel du serveur. **Exemple** : Compte "Ahmed_Ali" → Nom d\'affichage auto-généré "AA" ou "Ahmed". Ce mapping facilite les ventes rapides au comptoir en mode simplifié.',
+      elementSelector: '[data-guide="team-mappings-auto"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '⚙️ **Automatique** : Pas d\'action manuelle requise lors création/ajout',
+        '🎯 Nom d\'affichage = Initiales ou prénom court pour rapididité',
+        '📱 Utile en **Mode Simplifié** où 1 compte gérant crée les ventes',
+        '🔄 Mappings éditable après création si besoin de clarifier',
+      ],
+    },
+
     // ==================== ONGLET 3: ASSIGNATION CAISSES ====================
     {
       id: 'step-8',
       emoji: '🔗',
-      title: 'Onglet 3: Assignation Caisses (Mode Simplifié)',
+      title: 'Onglet 3: Nom d\'affichage pour les ventes (Mode Simplifié)',
       description:
-        'L\'**Onglet Assignation Caisses** configure les **mappings** entre noms courts de registres POS (ex: "Afi", "Fifi") et comptes serveurs réels. **Uniquement nécessaire en Mode Simplifié** (1 compte manager au comptoir, création manuelle ventes). Cette section peut être repliée par défaut.',
+        'L\'**Onglet Nom d\'affichage pour les ventes** configure les **identifiants d\'affichage** entre noms courts pour la vente (ex: "Afi", "Fifi") et comptes serveurs réels. **Uniquement nécessaire en Mode Simplifié** (1 compte manager au comptoir, création manuelle ventes). Cette section peut être repliée par défaut.',
       elementSelector: '[data-guide="team-mappings"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '⚙️ **Mode Simplifié** = 1 compte manager crée ventes + sélectionne serveur manuellement',
-        '🔗 Mappings = Lier noms (ex:"Afi") à vraies serveurs pour affichage correct',
-        '📍 Auto-populate = Bouton pour créer mappings auto depuis membres actifs',
+        '🔗 Identifiants = Lier noms (ex:"Afi") à vrais serveurs pour affichage correct',
+        '📍 Auto-populate = Bouton pour créer noms d\'affichage auto depuis membres actifs',
         '🚫 Pas nécessaire en Mode Complet (chaque serveur a son compte)',
       ],
     },
@@ -1154,16 +1486,16 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
     {
       id: 'step-9',
       emoji: '⚙️',
-      title: 'Configurer les Mappings Serveurs',
+      title: 'Configurer les Noms d\'affichage',
       description:
-        '**Ajouter un mapping** : Saisissez le nom court du register (ex: "Afi") → Sélectionnez le serveur correspondant (dropdown) → Validez. **Supprimer** : Icône trash pour retirer mapping. **Auto-populate** : Bouton pour générer automatiquement mappings depuis vos membres actifs.',
+        '**Ajouter un nom d\'affichage** : Saisissez le nom pour la vente (ex: "Afi") → Sélectionnez le serveur correspondant (dropdown) → Validez. **Supprimer** : Icône trash pour retirer le nom. **Auto-populate** : Bouton pour générer automatiquement les noms depuis vos membres actifs.',
       elementSelector: '[data-guide="team-mappings-add"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📝 Nom court = Identifiant simple (ex: "Afi", "Fifi", "Ali")',
         '👤 Sélectionnez le vrai compte serveur associé',
-        '⚡ Auto-populate = Économise temps, crée mappings auto',
+        '⚡ Auto-populate = Économise temps, crée noms d\'affichage auto',
         '🔐 Indispensable pour Mode Simplifié (sinon ventes non attribuées correctement)',
       ],
     },
@@ -1174,13 +1506,13 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
       emoji: '✅',
       title: 'Vous Maîtrisez Votre Équipe !',
       description:
-        'Vous connaissez maintenant les **3 onglets** (Mon Équipe, Recrutement, Assignation Caisses), comment **ajouter/retirer membres**, **créer nouveaux comptes ou importer existants**, et configurer **mappings pour mode simplifié**. Vous êtes prêt à gérer votre équipe complètement !',
+        'Vous connaissez maintenant les **3 onglets** (Mon Équipe, Recrutement, Nom d\'affichage pour les ventes), comment **ajouter/retirer membres**, **créer nouveaux comptes ou importer existants**, et configurer **identifiants pour mode simplifié**. Vous êtes prêt à gérer votre équipe complètement !',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '📊 Consultez Mon Équipe régulièrement pour vérifier statuts',
         '👥 Recrutement = Continuer grandir équipe',
-        '🔗 Mappings = Essentiel en Mode Simplifié (sinon sales attribution problems)',
+        '🔗 Identifiants = Essentiel en Mode Simplifié (sinon sales attribution problems)',
         '⚙️ Vérifiez permissions = Ce que vous pouvez faire vs ce que vous ne pouvez pas',
       ],
       action: '→ Commencez à gérer votre équipe !',
@@ -1237,15 +1569,34 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
       emoji: '🏢',
       title: 'Onglet 1: Infos Bar - Identification',
       description:
-        'L\'**Onglet Bar** contient les informations d\'identification de votre établissement : **Nom du bar**, **Adresse**, **Téléphone**, **Email**. Ces infos apparaissent sur vos factures, rapports d\'export et communications officielles.',
+        'L\'**Onglet Bar** contient les informations d\'identification de votre établissement : **Nom du bar**, **Adresse**, **Téléphone**, **Email**. Ces infos apparaissent sur vos factures, rapports d\'export et communications officielles. **Promoteur uniquement**.',
       elementSelector: '[data-guide="settings-bar"]',
       position: 'bottom',
-      visibleFor: ['promoteur', 'gerant'],
+      visibleFor: ['promoteur'],
       tips: [
         '📝 **Nom du bar** : Ex: "Le Privilège", "Le Spot", etc.',
         '📍 **Adresse** : Complète pour factures (ex: Cotonou, Bénin)',
         '📞 **Téléphone** : Contact principal (ex: +229 97 00 00 00)',
         '📧 **Email** : Contact email official',
+        '🔒 Accès réservé aux Promoteurs pour protéger les infos sensibles',
+      ],
+    },
+
+    // ==================== CHANGEMENT DE THÈME ====================
+    {
+      id: 'step-2b',
+      emoji: '🎨',
+      title: 'Changement de Thème (Tous Rôles)',
+      description:
+        'Personnalisez votre **interface BarTender** avec le **changement de thème** : passez entre **Mode Clair** (blanc, lisibilité diurne) et **Mode Sombre** (noir/gris, réduction fatigue oculaire nocturne). Le thème s\'applique instantanément à tous les écrans et se mémorise dans vos préférences.',
+      elementSelector: '[data-guide="settings-theme"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant', 'serveur'],
+      tips: [
+        '☀️ **Mode Clair** = Blanc/gris clair, idéal le jour',
+        '🌙 **Mode Sombre** = Noir/gris foncé, réduit fatigue nocturne',
+        '⚡ Changement instantané, pas de rechargement',
+        '💾 Préférence sauvegardée automatiquement par utilisateur',
       ],
     },
 
@@ -1338,17 +1689,17 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
     {
       id: 'step-8',
       emoji: '🔗',
-      title: 'Switching Mode Configuration (Mode Simplifié)',
+      title: 'Configuration Nom d\'affichage (Mode Simplifié)',
       description:
-        'Si vous choisissez **Mode Simplifié**, une section **Assignation Caisses** apparaît pour configurer **Mappings Serveurs** : lier noms courts (ex: "Afi") à vrais comptes serveurs pour attribution correcte ventes.',
+        'Si vous choisissez **Mode Simplifié**, une section **Nom d\'affichage pour les ventes** apparaît pour configurer les **Identifiants d\'affichage** : lier noms courts (ex: "Afi") à vrais comptes serveurs pour attribution correcte ventes.',
       elementSelector: '[data-guide="settings-switching-mode"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '🔗 Mappings = Lier noms courts → serveurs réels',
+        '🔗 Identifiants = Lier noms courts → serveurs réels',
         '📝 Exemple: "Afi" → Afiwa, "Fifi" → Félicitée',
         '⚡ Auto-populate = Bouton pour générer auto depuis membres actifs',
-        '🚫 Sans mappings = Ventes mode simplifié ne sont pas attribuées!',
+        '🚫 Sans identifiants = Ventes mode simplifié ne sont pas attribuées!',
       ],
     },
 
@@ -1416,7 +1767,7 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
       tips: [
         '⚙️ Vérifiez Closing Hour = Impacte TOUT (retours, journées, comptabilité)',
         '🔄 Mode Opérationnel = Choix important (affecte workflow serveurs)',
-        '🔗 Mode Simplifié = Configurez Mappings sinon attribution cassée',
+        '🔗 Mode Simplifié = Configurez Identifiants d\'affichage sinon attribution cassée',
         '🛡️ Activez 2FA = Protection critique pour votre sécurité',
       ],
       action: '→ Vérifiez et sauvegardez vos paramètres !',
@@ -1551,17 +1902,17 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
     {
       id: 'step-7',
       emoji: '🏆',
-      title: 'Classement des Meilleures Promotions',
+      title: 'Analyses: KPIs de Performance',
       description:
-        'Un **tableau de performance** classe vos promotions par score composite (0-99). Les meilleures en haut : celles qui génèrent le plus de profit et d\'utilisation avec un bon ROI.',
+        'Vous trouvez les **KPIs clés** (CA, Utilisations, Profit, ROI) qui vous permettent d\'analyser vos promotions. Les meilleures promotions sont celles qui génèrent le plus de profit et d\'utilisation avec un bon ROI.',
       elementSelector: '[data-guide="promo-ranking"]',
       position: 'top',
-      action: 'Consultez le classement',
+      action: 'Consultez les KPIs',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '⭐ Score composite = combinaison de profit, utilisations et ROI',
+        '⭐ ROI = combinaison de profit et d\'utilisations',
         '📅 Comparez les périodes (jour, semaine, mois) avec les filtres',
-        '🔄 Les promotions avec bons scores méritent d\'être réactivées',
+        '🔄 Les promotions avec bon ROI méritent d\'être réactivées',
       ],
     },
 
@@ -1999,6 +2350,7 @@ export const FORECASTING_AI_GUIDE: GuideTour = {
  * All owner guides (Phase 2+)
  */
 export const OWNER_GUIDES: GuideTour[] = [
+  SALES_PROCESS_GUIDE,             // 🛍️ Premier guide - Processus complet de vente
   DASHBOARD_OVERVIEW_GUIDE,
   MANAGE_INVENTORY_GUIDE,
   MANAGE_RETURNS_GUIDE,

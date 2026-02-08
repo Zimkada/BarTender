@@ -18,10 +18,18 @@ import { useFeedback } from '../../hooks/useFeedback';
 import { supabase } from '../../lib/supabase';
 import { UserCard } from '../../components/admin/UserCard';
 
+/**
+ * ✅ Type pour les utilisateurs avec leurs rôles et bars (correspond à PaginatedUsersResult)
+ */
+type UserWithRolesAndBars = User & {
+  roles: string[];
+  bars: Array<{ id: string; name: string }>;
+};
+
 export default function UsersManagementPage() {
   const { showSuccess, showError } = useFeedback(); // Destructure useFeedback hooks
 
-  const [users, setUsers] = useState<Array<User & { roles: string[] }>>([]);
+  const [users, setUsers] = useState<UserWithRolesAndBars[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
@@ -32,12 +40,12 @@ export default function UsersManagementPage() {
   const [debouncedSearchQuery] = useDebounce(searchQuery, 500);
   const [error, setError] = useState<string | null>(null);
 
-  const [editingUser, setEditingUser] = useState<(User & { roles: string[] }) | null>(null);
+  const [editingUser, setEditingUser] = useState<UserWithRolesAndBars | null>(null);
   const [showPromotersForm, setShowPromotersForm] = useState(false);
-  const [resetingPasswordForUser, setResetingPasswordForUser] = useState<(User & { roles: string[] }) | null>(null);
-  const [settingPasswordForUser, setSettingPasswordForUser] = useState<(User & { roles: string[] }) | null>(null);
+  const [resetingPasswordForUser, setResetingPasswordForUser] = useState<UserWithRolesAndBars | null>(null);
+  const [settingPasswordForUser, setSettingPasswordForUser] = useState<UserWithRolesAndBars | null>(null);
   const [showAddBar, setShowAddBar] = useState(false);
-  const [selectedPromoter, setSelectedPromoter] = useState<(User & { roles: string[] }) | null>(null);
+  const [selectedPromoter, setSelectedPromoter] = useState<UserWithRolesAndBars | null>(null);
 
   const totalPages = Math.ceil(totalCount / limit);
 
@@ -254,10 +262,10 @@ export default function UsersManagementPage() {
                           {user.name}
                         </div>
                         <div className="text-xs text-gray-500 md:hidden">
-                          {(user as any).bars && (user as any).bars.length > 0
-                            ? (user as any).bars.map((bar: { name: string }, idx: number) => (
+                          {user.bars && user.bars.length > 0
+                            ? user.bars.map((bar: { name: string }, idx: number) => (
                               <span key={bar.name}>
-                                {bar.name}{idx < (user as any).bars.length - 1 ? ', ' : ''}
+                                {bar.name}{idx < user.bars.length - 1 ? ', ' : ''}
                               </span>
                             ))
                             : 'Aucun bar'}
@@ -279,8 +287,8 @@ export default function UsersManagementPage() {
                     </td>
                     <td className="px-2 sm:px-4 md:px-6 py-4 whitespace-nowrap hidden md:table-cell">
                       <div className="flex flex-wrap gap-1">
-                        {(user as any).bars && (user as any).bars.length > 0 ? (
-                          (user as any).bars.map((bar: { id: string; name: string }) => (
+                        {user.bars && user.bars.length > 0 ? (
+                          user.bars.map((bar: { id: string; name: string }) => (
                             <span
                               key={bar.id}
                               className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800"

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { ReturnsService } from '../../services/supabase/returns.service';
+import { ReturnsService, type DBReturn } from '../../services/supabase/returns.service';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 import type { Return } from '../../types';
 
@@ -11,11 +11,13 @@ export const returnKeys = {
 export const useReturns = (barId: string | undefined, options?: { refetchInterval?: number | false }) => {
     return useQuery({
         queryKey: returnKeys.list(barId || ''),
+        networkMode: 'always', // 🛡️ Fix V11.6: Accès offline aux retours
+        placeholderData: (previousData: any) => previousData, // 🛡️ Fix V11.6: Anti-flash
         queryFn: async (): Promise<Return[]> => {
             if (!barId) return [];
             const dbReturns = await ReturnsService.getReturns(barId);
 
-            return dbReturns.map(r => ({
+            return dbReturns.map((r: DBReturn) => ({
                 id: r.id,
                 barId: r.bar_id,
                 saleId: r.sale_id,
@@ -24,7 +26,7 @@ export const useReturns = (barId: string | undefined, options?: { refetchInterva
                 productVolume: r.product_volume,
                 quantitySold: r.quantity_sold,
                 quantityReturned: r.quantity_returned,
-                reason: r.reason as any,
+                reason: r.reason as any, // Typed in DB as string, mapped to union
                 returnedBy: r.returned_by,
                 serverId: r.server_id || undefined,
                 server_id: r.server_id || undefined, // Snake_case alias for DB compatibility
@@ -32,7 +34,7 @@ export const useReturns = (barId: string | undefined, options?: { refetchInterva
                 businessDate: r.business_date ? new Date(r.business_date) : new Date(r.returned_at),
                 refundAmount: Number(r.refund_amount) || 0,
                 isRefunded: r.is_refunded || false,
-                status: (r.status as any) || 'pending',
+                status: (r.status as 'pending' | 'validated' | 'rejected') || 'pending',
                 autoRestock: r.auto_restock || false,
                 manualRestockRequired: r.manual_restock_required || false,
                 restockedAt: r.restocked_at ? new Date(r.restocked_at) : undefined,
@@ -40,7 +42,7 @@ export const useReturns = (barId: string | undefined, options?: { refetchInterva
                 customRefund: r.custom_refund || undefined,
                 customRestock: r.custom_restock || undefined,
                 originalSeller: r.original_seller || undefined,
-                operatingModeAtCreation: (r as any).operating_mode_at_creation as 'full' | 'simplified' | undefined,
+                operatingModeAtCreation: r.operating_mode_at_creation || undefined,
             }));
         },
         enabled: !!barId,

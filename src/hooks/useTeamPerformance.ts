@@ -67,9 +67,14 @@ export function useTeamPerformance({
                 };
             }
 
-            userStats[userId].revenue += sale.total;
+            userStats[userId].revenue += (sale.total || 0);
             userStats[userId].sales += 1;
-            userStats[userId].items += sale.items.reduce((sum, item) => sum + item.quantity, 0);
+
+            // 🛡️ Blindage Défensif (Lead Dev Pattern): 
+            // Sécuriser le calcul des items contre les données malformées (offline/cache)
+            if (sale.items && Array.isArray(sale.items)) {
+                userStats[userId].items += sale.items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+            }
         });
 
         // 2. Déduire les retours remboursés

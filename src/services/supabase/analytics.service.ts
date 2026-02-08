@@ -1,4 +1,13 @@
 import { supabase } from '../../lib/supabase';
+import type {
+    DailySalesSummaryRow,
+    ExpensesSummaryRow,
+    SalariesSummaryRow,
+    BarStatsMultiPeriodRow,
+    MaterializedViewMetricsRow,
+    TopProductRpcRow,
+    ViewFreshnessRow
+} from './analytics.types';
 
 export interface DailySalesSummary {
     bar_id: string;
@@ -110,8 +119,9 @@ export const AnalyticsService = {
         const startStr = typeof startDate === 'string' ? startDate : this.formatDate(startDate);
         const endStr = typeof endDate === 'string' ? endDate : this.formatDate(endDate);
 
+        // ✅ Type-safe query to materialized view
         const { data, error } = await supabase
-            .from('daily_sales_summary' as any)
+            .from('daily_sales_summary')
             .select('*')
             .eq('bar_id', barId)
             .gte(dateColumn, startStr)
@@ -119,7 +129,7 @@ export const AnalyticsService = {
             .order(dateColumn, { ascending: false });
 
         if (error) throw error;
-        return (data as any) || [];
+        return (data as DailySalesSummaryRow[]) || [];
     },
 
     /**
@@ -161,8 +171,8 @@ export const AnalyticsService = {
 
         if (error) throw error;
 
-        // Transform RPC response to match TopProduct interface
-        return (data || []).map((row: any) => ({
+        // ✅ Transform RPC response to match TopProduct interface (type-safe)
+        return ((data as TopProductRpcRow[]) || []).map((row) => ({
             bar_id: barId,
             sale_date: '', // N/A for aggregated data
             sale_week: '',
@@ -183,15 +193,16 @@ export const AnalyticsService = {
     /**
      * Récupère les stats multi-périodes pour un bar (dashboard rapide)
      */
-    async getBarStatsMultiPeriod(barId: string) {
+    async getBarStatsMultiPeriod(barId: string): Promise<BarStatsMultiPeriodRow> {
+        // ✅ Type-safe query to materialized view
         const { data, error } = await supabase
-            .from('bar_stats_multi_period' as any)
+            .from('bar_stats_multi_period')
             .select('*')
             .eq('bar_id', barId)
             .single();
 
         if (error) throw error;
-        return data;
+        return data as BarStatsMultiPeriodRow;
     },
 
     /**
@@ -226,8 +237,9 @@ export const AnalyticsService = {
     /**
      * Rafraîchit toutes les vues matérialisées (Cache Warming)
      */
-    async refreshAllViews(triggeredBy: string = 'manual'): Promise<any> {
-        const { data, error } = await (supabase as any)
+    async refreshAllViews(triggeredBy: string = 'manual'): Promise<unknown> {
+        // ✅ Type-safe RPC call
+        const { data, error } = await supabase
             .rpc('refresh_all_materialized_views', {
                 p_triggered_by: triggeredBy
             });
@@ -243,8 +255,9 @@ export const AnalyticsService = {
     /**
      * Rafraîchit une vue matérialisée spécifique
      */
-    async refreshView(viewName: string, triggeredBy: string = 'manual'): Promise<any> {
-        const { data, error } = await (supabase as any)
+    async refreshView(viewName: string, triggeredBy: string = 'manual'): Promise<unknown> {
+        // ✅ Type-safe RPC call
+        const { data, error } = await supabase
             .rpc('refresh_materialized_view_with_logging', {
                 p_view_name: viewName,
                 p_triggered_by: triggeredBy
@@ -261,13 +274,9 @@ export const AnalyticsService = {
     /**
      * Récupère la fraîcheur d'une vue matérialisée
      */
-    async getViewFreshness(viewName: string): Promise<{
-        view_name: string;
-        last_refresh: string | null;
-        minutes_old: number;
-        is_stale: boolean;
-    } | null> {
-        const { data, error } = await (supabase as any)
+    async getViewFreshness(viewName: string): Promise<ViewFreshnessRow | null> {
+        // ✅ Type-safe RPC call
+        const { data, error } = await supabase
             .rpc('get_view_freshness', {
                 p_view_name: viewName
             });
@@ -277,14 +286,16 @@ export const AnalyticsService = {
             return null;
         }
 
-        return data && data.length > 0 ? data[0] : null;
+        const result = data as ViewFreshnessRow[] | null;
+        return result && result.length > 0 ? result[0] : null;
     },
 
     /**
      * Récupère les métriques de toutes les vues matérialisées
      */
-    async getViewMetrics(): Promise<any[]> {
-        const { data, error } = await (supabase as any)
+    async getViewMetrics(): Promise<MaterializedViewMetricsRow[]> {
+        // ✅ Type-safe query to materialized view
+        const { data, error } = await supabase
             .from('materialized_view_metrics')
             .select('*');
 
@@ -293,7 +304,7 @@ export const AnalyticsService = {
             return [];
         }
 
-        return data || [];
+        return (data as MaterializedViewMetricsRow[]) || [];
     },
 
     /**
@@ -308,8 +319,9 @@ export const AnalyticsService = {
         const dateColumn = groupBy === 'day' ? 'expense_date' :
             groupBy === 'week' ? 'expense_week' : 'expense_month';
 
+        // ✅ Type-safe query to materialized view
         const { data, error } = await supabase
-            .from('expenses_summary' as any)
+            .from('expenses_summary')
             .select('*')
             .eq('bar_id', barId)
             .gte(dateColumn, startDate.toISOString())
@@ -317,7 +329,7 @@ export const AnalyticsService = {
             .order(dateColumn, { ascending: false });
 
         if (error) throw error;
-        return (data as any) || [];
+        return (data as ExpensesSummaryRow[]) || [];
     },
 
     /**
@@ -332,8 +344,9 @@ export const AnalyticsService = {
         const dateColumn = groupBy === 'day' ? 'payment_date' :
             groupBy === 'week' ? 'payment_week' : 'payment_month';
 
+        // ✅ Type-safe query to materialized view
         const { data, error } = await supabase
-            .from('salaries_summary' as any)
+            .from('salaries_summary')
             .select('*')
             .eq('bar_id', barId)
             .gte(dateColumn, startDate.toISOString())
@@ -341,6 +354,6 @@ export const AnalyticsService = {
             .order(dateColumn, { ascending: false });
 
         if (error) throw error;
-        return (data as any) || [];
+        return (data as SalariesSummaryRow[]) || [];
     }
 };

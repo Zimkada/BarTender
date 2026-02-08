@@ -12,160 +12,217 @@ import { broadcastService } from '../../services/broadcast/BroadcastService';
 import { Database } from '../../lib/database.types';
 import { PaymentMethod } from '../../components/cart/PaymentMethodSelector';
 import { SaleItem } from '../../types';
+import toast from 'react-hot-toast';
+import { z } from 'zod';
+import { SaleItemSchema } from '../../utils/revenueSchemas';
 
-type OptimisticSale = Sale & { isOptimistic: true };
 type SaleRow = Database['public']['Tables']['sales']['Row'];
+
+/**
+ * Extension de SaleRow pour les champs optionnels ajoutés dynamiquement
+ * (isOptimistic en offline, customer fields, etc.)
+ */
+interface SaleRowExtended extends SaleRow {
+    isOptimistic?: boolean;
+    ticket_id?: string | null;
+    customer_name?: string | null;
+    customer_phone?: string | null;
+    notes?: string | null;
+}
+
+/**
+ * 🛡️ Parse et valide les items provenant de la DB (type Json)
+ * Retourne un tableau vide si la validation échoue
+ */
+const parseSaleItemsFromDb = (items: unknown): SaleItem[] => {
+    const result = z.array(SaleItemSchema).safeParse(items);
+
+    if (!result.success) {
+        console.error('[useSalesMutations] Invalid items from DB:', result.error);
+        return [];
+    }
+
+    // Les items validés par Zod sont compatibles avec SaleItem
+    return result.data as SaleItem[];
+};
+
+/**
+ * 🛡️ Valide et normalise les items de vente en snake_case
+ * Filtre les items invalides et log les erreurs
+ * @throws Error si aucun item valide n'est trouvé
+ */
+const validateAndNormalizeSaleItems = (items: unknown[]): Record<string, unknown>[] => {
+    const validItems: Record<string, unknown>[] = [];
+
+    items.forEach((item, index) => {
+        const itemRecord = item as Record<string, unknown>;
+
+        // Transform to snake_case (handles both camelCase and snake_case inputs)
+        const normalized = {
+            product_id: itemRecord.product_id || itemRecord.productId,
+            product_name: itemRecord.product_name || itemRecord.productName,
+            quantity: itemRecord.quantity,
+            unit_price: itemRecord.unit_price || itemRecord.unitPrice,
+            total_price: itemRecord.total_price || itemRecord.totalPrice,
+            original_unit_price: itemRecord.original_unit_price || itemRecord.originalUnitPrice,
+            discount_amount: itemRecord.discount_amount || itemRecord.discountAmount,
+            promotion_id: itemRecord.promotion_id || itemRecord.promotionId,
+            promotion_name: itemRecord.promotion_name || itemRecord.promotionName
+        };
+
+        // ✅ Validate with Zod schema
+        const result = SaleItemSchema.safeParse(normalized);
+
+        if (result.success) {
+            validItems.push(result.data);
+        } else {
+            console.error(
+                `[useSalesMutations] Invalid sale item at index ${index}:`,
+                result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')
+            );
+        }
+    });
+
+    if (validItems.length === 0) {
+        throw new Error('Aucun article valide dans la vente');
+    }
+
+    return validItems;
+};
 
 export const useSalesMutations = (barId: string) => {
     const queryClient = useQueryClient();
     const { currentSession } = useAuth();
     const { currentBar, isSimplifiedMode } = useBarContext();
 
-    // 🔄 Helper pour détecter si c'est une erreur réseau (offline)
     const isNetworkError = (error: unknown): boolean => {
-        // Type guard: vérifier que c'est un Error object avant d'accéder à .message
-        if (!(error instanceof Error)) {
-            return !navigator.onLine; // Fallback: assume network error si offline
-        }
+        if (!(error instanceof Error)) return !navigator.onLine;
 
-        // Maintenant safe d'accéder à .message
+        // ✅ Type-safe error code extraction
+        const errorCode = typeof error === 'object' && error !== null && 'code' in error
+            ? String((error as Record<string, unknown>).code)
+            : '';
+
         return (
             !navigator.onLine ||
             error.message === 'Failed to fetch' ||
             error.message.includes('NetworkError') ||
             error.message.includes('connection') ||
             error.message.includes('Internet') ||
-            (error as any).code === 'PGRST000' // PostgREST connection error
+            errorCode === 'PGRST000'
         );
     };
 
-    /**
-     * 🟢 CREATE SALE (Optimistic Offline)
-     * Tente la création online. Si fail -> Queue offline + Retourne un succès simulé.
-     */
-
     const createSale = useMutation<Sale, unknown, Partial<Sale> & { items: SaleItem[] }, unknown>({
         mutationFn: async (saleData: Partial<Sale> & { items: SaleItem[] }) => {
-            // Import dymanique pour éviter cycle (si nécessaire)
-            const { syncQueue } = await import('../../services/SyncQueue');
+            console.log('[useSalesMutations] mutationFn triggered', saleData);
 
             // 1. Préparer les données
             const closeHour = currentBar?.closingHour ?? BUSINESS_DAY_CLOSE_HOUR;
             const businessDate = calculateBusinessDate(new Date(), closeHour);
             const formattedBusinessDate = dateToYYYYMMDD(businessDate);
 
-            // Formatage des items commun
-            const itemsFormatted = saleData.items.map((item: SaleItem) => ({
-                product_id: item.product_id || item.productId,
-                product_name: item.product_name || item.productName,
-                quantity: item.quantity,
-                unit_price: item.unit_price || item.unitPrice,
-                total_price: item.total_price || item.totalPrice,
-                original_unit_price: item.original_unit_price || item.originalUnitPrice,
-                discount_amount: item.discount_amount || item.discountAmount,
-                promotion_id: item.promotion_id || item.promotionId,
-                promotion_type: item.promotion_type || item.promotionType,
-                promotion_name: item.promotion_name || item.promotionName
-            }));
+            // ✅ Validate and normalize items with Zod (filters invalid items)
+            const itemsFormatted = validateAndNormalizeSaleItems(saleData.items);
 
-            // 2. Construire le Payload complet (Compatible Supabase RPC)
-            // ✨ MODE SWITCHING FIX: sold_by doit être le serveur, pas le gérant/promoteur
-            // En mode simplifié: sold_by = serverId (qui a reçu le crédit)
-            // En mode complet: sold_by = currentSession.userId (qui a créé)
             const soldByValue = isSimplifiedMode && saleData.serverId
                 ? saleData.serverId
                 : (currentSession?.userId || '');
 
-            // ✨ CORRECTION VALIDATED_BY: En mode simplifié, le gérant qui crée est le validateur
-            // En mode complet, validated_by sera NULL (sera renseigné lors de la validation manuelle)
-            const validatedByValue = isSimplifiedMode && saleData.status === 'validated'
+            const role = currentSession?.role;
+            const isManagerOrAdmin = role === 'admin' || role === 'gerant';
+
+            // 🛡️ DECISION CRITIQUE (V11.4): Une vente offline par un gérant/admin est VALIDÉE par défaut.
+            // Cela évite qu'elle ne disparaisse du CA global après synchronisation.
+            const finalStatus = (isManagerOrAdmin || isSimplifiedMode)
+                ? 'validated'
+                : (saleData.status || 'pending');
+
+            const validatedByValue = (finalStatus === 'validated')
                 ? (currentSession?.userId || null)
                 : null;
 
-            const salePayload: Database['public']['Tables']['sales']['Insert'] = {
-                bar_id: barId,
-                items: itemsFormatted,
-                payment_method: saleData.paymentMethod || 'cash',
-                sold_by: soldByValue,
-                server_id: saleData.serverId || null,
-                validated_by: validatedByValue, // ✨ NOUVEAU: Gérant connecté en mode simplifié
-                status: saleData.status || 'pending', // Pending par défaut si offline
-                customer_name: saleData.customerName,
-                customer_phone: saleData.customerPhone,
-                notes: saleData.notes,
-                business_date: formattedBusinessDate,
-                // Metadata contextuelles pour la sync offline
-                created_at_local: new Date().toISOString()
+            // ✅ Type-safe sale payload construction
+            const saleDataExtended = saleData as Partial<Sale> & {
+                items: SaleItem[];
+                customerName?: string;
+                customerPhone?: string;
+                notes?: string;
             };
 
-            if (!salePayload.sold_by) throw new Error('Utilisateur non connecté');
+            const salePayload = {
+                bar_id: barId,
+                items: itemsFormatted,
+                payment_method: saleData.ticketId ? 'ticket' : (saleData.paymentMethod || 'cash'),
+                sold_by: soldByValue,
+                server_id: saleData.serverId || null,
+                ticket_id: saleData.ticketId || null,
+                validated_by: validatedByValue,
+                status: finalStatus,
+                customer_name: saleDataExtended.customerName,
+                customer_phone: saleDataExtended.customerPhone,
+                notes: saleDataExtended.notes,
+                business_date: formattedBusinessDate,
+            };
 
-            // 3. Tenter l'envoi ONLINE
-            try {
-                // Vérif primitive d'abord
-                if (!navigator.onLine) throw new Error('Offline');
+            console.log('[useSalesMutations] payload prepared', salePayload);
 
-                const savedSaleRow = await SalesService.createSale(salePayload);
-                return mapSaleRowToSale(savedSaleRow);
+            if (!salePayload.sold_by) {
+                console.error('[useSalesMutations] No user ID found for sale');
+                throw new Error('Utilisateur non connecté');
+            }
 
-            } catch (error: unknown) {
-                // 4. Fallback OFFLINE
-                if (isNetworkError(error)) {
-                    console.log('🌐 Mode Offline détecté, mise en queue...', error);
+            const safetyTimeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('GLOBAL_MUTATION_TIMEOUT')), 15000)
+            );
 
-                    // Enqueue dans SyncQueue
-                    syncQueue.enqueue(
-                        'CREATE_SALE',
-                        salePayload,
-                        barId,
-                        currentSession?.userId || 'offline-user'
+            console.log('[useSalesMutations] calling SalesService.createSale with 15s safety race', { canWorkOffline: !!role });
+
+            const savedSaleRow = await Promise.race([
+                SalesService.createSale(
+                    salePayload,
+                    {
+                        canWorkOffline: !!role,
+                        userId: currentSession?.userId || ''
+                    }
+                ),
+                safetyTimeoutPromise
+            ]) as SaleRow;
+
+            console.log('[useSalesMutations] SalesService.createSale returned', savedSaleRow.id);
+
+            const isOptimistic = savedSaleRow.id?.startsWith('sync_');
+
+            if (isOptimistic) {
+                console.log('[useSalesMutations] optimistic sale detected, showing toast');
+                if (role === 'serveur') {
+                    toast.error(
+                        "⚠️ Signal réseau faible. Vente mise en attente locale.\nATTENTION : Le gérant ne recevra cette demande qu'après synchronisation automatique.",
+                        {
+                            duration: 8000,
+                            icon: '📡',
+                            style: { background: '#dc2626', color: '#fff', fontWeight: 'bold', border: '2px solid #fff' }
+                        }
                     );
-
-                    // Retourner une "Optimistic Sale" pour l'UI
-                    import('react-hot-toast').then(({ default: toast }) => {
-                        toast.success('Mode Hors-ligne: Vente sauvegardée localement', { icon: '💾' });
-                    });
-
-                    return {
-                        id: `temp_${Date.now()}`, // ID temporaire
-                        ...saleData,
-                        createdAt: new Date(),
-                        businessDate: businessDate,
-                        status: 'pending', // Sera validée après sync
-                        total: saleData.items.reduce((sum, item: SaleItem) => sum + (item.total_price || item.totalPrice || 0), 0),
-                        currency: 'XOF',
-                        createdBy: salePayload.sold_by,
-                        isOptimistic: true // UI flag
-                    } as unknown as Sale;
+                } else {
+                    toast.success('Mode Hors-ligne: Vente sauvegardée localement (En attente de sync)', { icon: '💾', duration: 5000 });
                 }
-
-                // Si c'est une vraie erreur (validation, etc.), on la remonte
-                throw error;
             }
+
+            return mapSaleRowToSale(savedSaleRow);
         },
+        networkMode: 'always',
         onSuccess: (sale) => {
-            // Ne pas afficher de toast si c'est une vente optimiste (offline)
-            // Le toast est déjà affiché dans le mutationFn
-            if (!('isOptimistic' in sale && sale.isOptimistic)) {
-                import('react-hot-toast').then(({ default: toast }) => {
-                    toast.success('Vente enregistrée');
-                });
+            console.log('[useSalesMutations] onSuccess called', sale.id);
+            const isOptimistic = sale.id?.startsWith('sync_') || Boolean(sale.isOptimistic);
+
+            if (!isOptimistic) {
+                toast.success('Vente enregistrée');
             }
 
-            // 🚀 PHASE 3-4: Broadcast aux autres onglets (sync instant 0ms)
-            if (broadcastService.isSupported() && !('isOptimistic' in sale && sale.isOptimistic)) {
-                broadcastService.broadcast({
-                    event: 'INSERT',
-                    table: 'sales',
-                    barId,
-                    data: sale,
-                });
-                // 🚀 FIX: Broadcaster aussi le changement de stock
-                broadcastService.broadcast({
-                    event: 'UPDATE',
-                    table: 'bar_products',
-                    barId,
-                });
+            if (broadcastService.isSupported() && !isOptimistic) {
+                broadcastService.broadcast({ event: 'INSERT', table: 'sales', barId, data: sale });
+                broadcastService.broadcast({ event: 'UPDATE', table: 'bar_products', barId });
             }
 
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
@@ -173,11 +230,10 @@ export const useSalesMutations = (barId: string) => {
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
         },
         onError: (error: unknown) => {
-            // Ne pas afficher d'erreur si c'est une erreur réseau (offline géré)
+            console.error('[useSalesMutations] onError called', error);
             if (!isNetworkError(error)) {
-                import('react-hot-toast').then(({ default: toast }) => {
-                    toast.error(`Erreur lors de la création de la vente: ${error.message}`);
-                });
+                const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+                toast.error(`Erreur création: ${errorMessage}`);
             }
         }
     });
@@ -186,28 +242,13 @@ export const useSalesMutations = (barId: string) => {
         mutationFn: ({ id, validatorId }: { id: string; validatorId: string }) =>
             SalesService.validateSale(id, validatorId),
         onSuccess: (_data, variables) => {
-            import('react-hot-toast').then(({ default: toast }) => {
-                toast.success('Vente validée');
-            });
-
-            // 🚀 PHASE 3-4: Broadcast aux autres onglets
+            toast.success('Vente validée');
             if (broadcastService.isSupported()) {
-                broadcastService.broadcast({
-                    event: 'UPDATE',
-                    table: 'sales',
-                    barId,
-                    data: { id: variables.id, status: 'validated' },
-                });
-                // 🚀 FIX: Broadcaster aussi le changement de stock (décrément effectif)
-                broadcastService.broadcast({
-                    event: 'UPDATE',
-                    table: 'bar_products',
-                    barId,
-                });
+                broadcastService.broadcast({ event: 'UPDATE', table: 'sales', barId, data: { id: variables.id, status: 'validated' } });
+                broadcastService.broadcast({ event: 'UPDATE', table: 'bar_products', barId });
             }
-
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
-            queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) }); // NEW: Invalidate stats
+            queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
         },
     });
 
@@ -215,50 +256,25 @@ export const useSalesMutations = (barId: string) => {
         mutationFn: ({ id, rejectorId }: { id: string; rejectorId: string }) =>
             SalesService.rejectSale(id, rejectorId),
         onSuccess: (_data, variables) => {
-            import('react-hot-toast').then(({ default: toast }) => {
-                toast.success('Vente rejetée (stock restauré)');
-            });
-
-            // 🚀 PHASE 3-4: Broadcast aux autres onglets
+            toast.success('Vente rejetée (stock restauré)');
             if (broadcastService.isSupported()) {
-                broadcastService.broadcast({
-                    event: 'UPDATE',
-                    table: 'sales',
-                    barId,
-                    data: { id: variables.id, status: 'rejected' },
-                });
+                broadcastService.broadcast({ event: 'UPDATE', table: 'sales', barId, data: { id: variables.id, status: 'rejected' } });
             }
-
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
-            queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) }); // NEW: Invalidate stats
+            queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
         },
     });
-
-    // Removed duplicate cancelSale declaration
 
     const cancelSale = useMutation({
         mutationFn: ({ id, reason }: { id: string; reason: string }) =>
             SalesService.cancelSale(id, currentSession?.userId || '', reason),
         onSuccess: (_data, variables) => {
-            import('react-hot-toast').then(({ default: toast }) => {
-                toast.success('Vente annulée (Stock restauré)');
-            });
-
+            toast.success('Vente annulée (Stock restauré)');
             if (broadcastService.isSupported()) {
-                broadcastService.broadcast({
-                    event: 'UPDATE',
-                    table: 'sales',
-                    barId,
-                    data: { id: variables.id, status: 'cancelled' },
-                });
-                broadcastService.broadcast({
-                    event: 'UPDATE',
-                    table: 'bar_products',
-                    barId,
-                });
+                broadcastService.broadcast({ event: 'UPDATE', table: 'sales', barId, data: { id: variables.id, status: 'cancelled' } });
+                broadcastService.broadcast({ event: 'UPDATE', table: 'bar_products', barId });
             }
-
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
@@ -268,56 +284,44 @@ export const useSalesMutations = (barId: string) => {
     const deleteSale = useMutation({
         mutationFn: SalesService.deleteSale,
         onSuccess: (_data, saleId) => {
-            import('react-hot-toast').then(({ default: toast }) => {
-                toast.success('Vente supprimée');
-            });
-
-            // 🚀 PHASE 3-4: Broadcast aux autres onglets
+            toast.success('Vente supprimée');
             if (broadcastService.isSupported()) {
-                broadcastService.broadcast({
-                    event: 'DELETE',
-                    table: 'sales',
-                    barId,
-                    data: { id: saleId },
-                });
+                broadcastService.broadcast({ event: 'DELETE', table: 'sales', barId, data: { id: saleId } });
             }
-
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
-            queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) }); // NEW: Invalidate stats
+            queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
         },
     });
 
-    return {
-        createSale,
-        validateSale,
-        rejectSale,
-        cancelSale,
-        deleteSale,
-    };
+    return { createSale, validateSale, rejectSale, cancelSale, deleteSale };
 };
 
-// Helper pour éviter la duplication du mapping
 const mapSaleRowToSale = (savedSaleRow: SaleRow): Sale => {
+    // ✅ Type-safe row extension using explicit interface
+    const rowExtended = savedSaleRow as SaleRowExtended;
+
     return {
         id: savedSaleRow.id,
         barId: savedSaleRow.bar_id,
-        items: savedSaleRow.items as SaleItem[],
+        items: parseSaleItemsFromDb(savedSaleRow.items), // ✅ Validated items from DB
         total: savedSaleRow.total,
         currency: 'XOF',
         status: savedSaleRow.status as 'pending' | 'validated' | 'rejected' | 'cancelled',
-        createdBy: savedSaleRow.created_by || savedSaleRow.sold_by, // Fallback
-        soldBy: savedSaleRow.sold_by || undefined,  // ✨ CRUCIAL: Include soldBy from DB (attribution métier)
-        serverId: savedSaleRow.server_id || undefined,  // ✨ NOUVEAU: Include serverId from DB
+        createdBy: savedSaleRow.created_by || savedSaleRow.sold_by || '',
+        soldBy: savedSaleRow.sold_by || '',
+        isOptimistic: rowExtended.isOptimistic,
+        serverId: savedSaleRow.server_id || undefined,
+        ticketId: rowExtended.ticket_id || undefined,
         validatedBy: savedSaleRow.validated_by || undefined,
         rejectedBy: savedSaleRow.rejected_by || undefined,
         createdAt: new Date(savedSaleRow.created_at || new Date().toISOString()),
         validatedAt: savedSaleRow.validated_at ? new Date(savedSaleRow.validated_at) : undefined,
         rejectedAt: savedSaleRow.status === 'rejected' && savedSaleRow.updated_at ? new Date(savedSaleRow.updated_at) : undefined,
         businessDate: savedSaleRow.business_date ? new Date(savedSaleRow.business_date) : new Date(),
-        paymentMethod: savedSaleRow.payment_method as PaymentMethod, // Assuming PaymentMethod is defined
-        customerName: savedSaleRow.customer_name || undefined,
-        customerPhone: savedSaleRow.customer_phone || undefined,
-        notes: savedSaleRow.notes || undefined
+        paymentMethod: savedSaleRow.payment_method as PaymentMethod,
+        customerName: rowExtended.customer_name || undefined,
+        customerPhone: rowExtended.customer_phone || undefined,
+        notes: rowExtended.notes || undefined
     };
 };

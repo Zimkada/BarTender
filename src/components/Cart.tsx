@@ -1,4 +1,5 @@
 import { ShoppingCart } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useFeedback } from '../hooks/useFeedback';
 import { useViewport } from '../hooks/useViewport';
 import { useBarContext } from '../context/BarContext';
@@ -9,6 +10,8 @@ import { useServerMappings } from '../hooks/useServerMappings';
 import { PaymentMethod } from './cart/PaymentMethodSelector';
 import { useCartLogic } from '../hooks/useCartLogic';
 import { CartDrawer } from './cart/CartDrawer';
+import { useTickets } from '../hooks/queries/useTickets';
+import { TicketsService } from '../services/supabase/tickets.service';
 
 interface CartProps {
   isOpen: boolean;
@@ -25,7 +28,8 @@ export function Cart({
   const { isMobile } = useViewport();
   const { currentBar, isSimplifiedMode } = useBarContext();
   const { currentSession } = useAuth();
-  const { serverNames } = useServerMappings(isSimplifiedMode ? currentBar?.id : undefined);
+  const { serverNames, mappings } = useServerMappings(isSimplifiedMode ? currentBar?.id : undefined);
+  const { tickets: ticketsWithSummary, refetchTickets } = useTickets(currentBar?.id);
 
   // --- CONNECT TO APP CONTEXT ---
   const {
@@ -42,31 +46,65 @@ export function Cart({
     barId: currentBar?.id
   });
 
+  // --- CREATE BON ---
+  const handleCreateBon = async (serverId: string | null, tableNumber?: number, customerName?: string): Promise<string | null> => {
+    if (!currentBar || !currentSession) return null;
+    try {
+      const ticket = await TicketsService.createTicket(
+        currentBar.id,
+        currentSession.userId,
+        undefined,  // notes deprecated
+        serverId || undefined,
+        currentBar.closingHour,
+        tableNumber,
+        customerName
+      );
+      refetchTickets();
+      return ticket.id;
+    } catch (e) {
+      console.error('Erreur création bon:', e);
+      return null;
+    }
+  };
+
   // --- CHECKOUT WRAPPER ---
-  const handleCheckout = async (assignedTo?: string, paymentMethod?: PaymentMethod) => {
+  const handleCheckout = async (assignedTo?: string, paymentMethod?: PaymentMethod, ticketId?: string) => {
     if (items.length === 0) return;
 
     let serverId: string | undefined;
+
+    // 🔴 BLOCKING LOGIC : SERVER OFFLINE MODE
+    const isOffline = !window.navigator.onLine;
+    const isServer = currentSession?.role === 'serveur';
+
+    if (isOffline && isServer) {
+      toast.error(
+        "MODE HORS LIGNE RESTREINT\n\nVérifiez d'abord votre connexion internet.\n\nSi le problème persiste, demandez au Gérant de passer en MODE SIMPLIFIÉ.",
+        { duration: 6000, icon: '🚫' }
+      );
+      return;
+    }
+
     if (isSimplifiedMode && assignedTo && currentBar?.id) {
-      const serverName = assignedTo.startsWith('Moi (')
-        ? (currentSession?.userName || assignedTo)
-        : assignedTo;
+      if (assignedTo.startsWith('Moi (')) {
+        serverId = currentSession?.userId;
+      } else {
+        try {
+          const resolvedId = await ServerMappingsService.getUserIdForServerName(
+            currentBar.id,
+            assignedTo
+          );
+          serverId = resolvedId || undefined;
 
-      try {
-        const resolvedId = await ServerMappingsService.getUserIdForServerName(
-          currentBar.id,
-          serverName
-        );
-        serverId = resolvedId || undefined;
-
-        if (!serverId) {
-          alert(`Serveur inconnu: "${serverName}". Veuillez vérifier le mapping.`);
+          if (!serverId) {
+            alert(`Serveur inconnu: "${assignedTo}". Veuillez vérifier le mapping.`);
+            return;
+          }
+        } catch (error) {
+          console.error(error);
+          alert('Erreur lors de la résolution du serveur.');
           return;
         }
-      } catch (error) {
-        console.error(error);
-        alert('Erreur lors de la résolution du serveur.');
-        return;
       }
     }
 
@@ -76,7 +114,8 @@ export function Cart({
         items: calculatedItems,
         paymentMethod,
         assignedTo,
-        serverId
+        serverId,
+        ticketId
       });
       showSuccess('🎉 Vente validée !', 1000);
       onToggle();
@@ -136,6 +175,9 @@ export function Cart({
         isSimplifiedMode={isSimplifiedMode}
         serverNames={serverNames}
         currentServerName={currentSession?.userName}
+        serverMappings={mappings}
+        ticketsWithSummary={ticketsWithSummary}
+        onCreateBon={handleCreateBon}
         isLoading={isLoading('checkout')}
       />
     </>

@@ -60,6 +60,7 @@ export interface BarSettings {
   serversList?: string[]; // Liste des serveurs (mode simplifié uniquement)
   consignmentExpirationDays?: number; // Nombre de jours avant expiration consignation (défaut: 7)
   supplyFrequency?: number; // Fréquence d'approvisionnement en jours (1-30, défaut: 7)
+  [key: string]: unknown; // Allow extra dynamic settings
 }
 
 export interface BarMember {
@@ -289,6 +290,7 @@ export interface Sale {
   createdBy: string;      // ID de qui a créé la vente (audit technique)
   soldBy: string;         // ID du vendeur (source de vérité métier)
   serverId?: string;      // ✨ NOUVEAU: UUID du serveur assigné (mode switching support)
+  ticketId?: string;      // FK vers tickets — null = "sans bon"
   validatedBy?: string;   // ID du gérant qui a validé et sorti le stock
   rejectedBy?: string;    // ID du gérant qui a rejeté la demande
 
@@ -307,11 +309,31 @@ export interface Sale {
   assignedTo?: string;    // En mode simplifié : nom du serveur qui a servi (ex: "Marie")
   tableNumber?: string;   // Numéro de la table si applicable
   // Informations complémentaires
-  paymentMethod?: 'cash' | 'mobile_money' | 'card' | 'credit';
+  paymentMethod?: 'cash' | 'mobile_money' | 'card' | 'credit' | 'ticket';
   customerName?: string;
   customerPhone?: string;
   onboarding_step?: string;
   theme_config?: string; // JSON stringifié
+  notes?: string; // ✨ Notes sur la vente
+  idempotencyKey?: string; // 🛡️ Clé anti-doublon (V11.5)
+  isOptimistic?: boolean; // ⭐ Indique une vente créée hors-ligne (UI Optimiste)
+}
+
+// ===== TICKETS (BONS) =====
+export interface Ticket {
+  id: string;
+  barId: string;
+  status: 'open' | 'paid';
+  createdBy: string;
+  serverId?: string;
+  createdAt: Date;
+  paidAt?: Date;
+  paidBy?: string;
+  notes?: string;
+  ticketNumber?: number; // ✨ NOUVEAU: Numéro séquentiel (1, 2, 3...)
+  paymentMethod?: string; // ✨ NOUVEAU: Moteur de paiement du bon
+  tableNumber?: number; // ✨ NOUVEAU: Numéro de table (optionnel)
+  customerName?: string; // ✨ NOUVEAU: Nom du client (optionnel)
 }
 
 // ===== AJUSTEMENTS DE STOCK =====

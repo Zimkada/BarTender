@@ -35,16 +35,22 @@ export interface OrderSuggestion {
 export const ForecastingService = {
     /**
      * Récupère les statistiques de ventes pré-calculées pour un bar
+     *
+     * @note La vue matérialisée product_sales_stats n'est pas incluse dans les types générés
+     * car elle est créée dynamiquement via migration SQL.
      */
     async getProductSalesStats(barId: string): Promise<ProductSalesStats[]> {
+        // @ts-expect-error - Vue matérialisée product_sales_stats non incluse dans les types générés
         const { data, error } = await supabase
-            .from('product_sales_stats' as any)
+            .from('product_sales_stats')
             .select('*')
             .eq('bar_id', barId)
             .order('daily_average', { ascending: false });
 
         if (error) throw error;
-        return (data as any) || [];
+
+        // ✅ Type-safe return with explicit ProductSalesStats[] interface
+        return (data as ProductSalesStats[]) || [];
     },
 
     /**
@@ -116,9 +122,13 @@ export const ForecastingService = {
 
     /**
      * Rafraîchir les statistiques manuellement
+     *
+     * @note La fonction RPC refresh_product_sales_stats n'est pas incluse dans les types générés
+     * car elle est créée dynamiquement via migration SQL.
      */
     async refreshStats(): Promise<void> {
-        const { error } = await supabase.rpc('refresh_product_sales_stats' as any);
+        // @ts-expect-error - RPC refresh_product_sales_stats non incluse dans les types générés
+        const { error } = await supabase.rpc('refresh_product_sales_stats');
         if (error) throw error;
     }
 };

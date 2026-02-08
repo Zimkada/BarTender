@@ -66,7 +66,8 @@ export function disableFramerMotionOnMobile() {
   if (!isMobileDevice()) return;
 
   // Désactiver les animations globalement
-  if (typeof window !== 'undefined' && (window as any).reduceMotion === undefined) {
-    (window as any).reduceMotion = true;
+  const win = window as Window & { reduceMotion?: boolean };
+  if (typeof window !== 'undefined' && win.reduceMotion === undefined) {
+    win.reduceMotion = true;
   }
 }

@@ -1,16 +1,23 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Trash2, Plus, AlertCircle, CheckCircle, Loader, User, MousePointerClick, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ServerMappingsService } from '../services/supabase/server-mappings.service';
+import { networkManager } from '../services/NetworkManager';
+import { OfflineStorage, type CachedMapping } from '../utils/offlineStorage';
 import { Input } from './ui/Input';
 import { Select, SelectOption } from './ui/Select';
 import { Alert } from './ui/Alert';
 import { Button } from './ui/Button';
+import toast from 'react-hot-toast';
 
+/**
+ * Interface locale pour la gestion UI des mappings
+ * Compatible avec CachedMapping pour éviter les conflits de cache
+ */
 interface ServerMapping {
   serverName: string;
-  userId: string | null;
-  userName?: string; // Display name from users table
+  userId: string | null; // Null autorisé seulement pour l'UI (formulaire vide)
+  userName?: string;
 }
 
 interface ServerMappingsManagerProps {
@@ -36,33 +43,60 @@ export function ServerMappingsManager({
   const [newServerName, setNewServerName] = useState('');
   const [newServerId, setNewServerId] = useState('');
 
-  // Load mappings on mount
-  useEffect(() => {
-    loadMappings();
-  }, [barId]);
+  // Load mappings on mount or when barId/barMembers change
+  const loadMappings = useCallback(async () => {
+    if (!barId) return;
 
-  const loadMappings = async () => {
     try {
       setLoading(true);
       setError(null);
+
+      // 1. Charger le cache offline pour une réponse immédiate
+      const cachedMappings = OfflineStorage.getMappings(barId);
+      if (cachedMappings) {
+        setMappings(cachedMappings);
+      }
+
+      // 2. Vérifier si on tente le réseau
+      const { shouldBlock } = networkManager.getDecision();
+      if (shouldBlock) {
+        if (!cachedMappings) {
+          setError('Mode hors ligne : Aucun mapping en cache.');
+        }
+        setLoading(false);
+        return;
+      }
+
       const allMappings = await ServerMappingsService.getAllMappingsForBar(barId);
 
-      // Enrich mappings with user names
-      const enrichedMappings = allMappings.map(mapping => ({
+      // ✨ Enrichir avec userName pour affichage UI (compatible CachedMapping)
+      // Note: BarContext peut aussi mettre à jour ce cache (sans userName).
+      // C'est acceptable car userName est optionnel et sert uniquement à l'affichage.
+      const enrichedMappings: CachedMapping[] = allMappings.map(mapping => ({
         serverName: mapping.serverName,
         userId: mapping.userId,
         userName: barMembers.find(m => m.userId === mapping.userId)?.name || 'Inconnu'
       }));
 
       setMappings(enrichedMappings);
+      OfflineStorage.saveMappings(barId, enrichedMappings); // ✅ Cache compatible
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Erreur lors du chargement des mappings';
-      setError(message);
-      console.error('[ServerMappingsManager] Error loading mappings:', err);
+      const error = err as Error;
+      console.error('[ServerMappingsManager] Error loading mappings:', error);
+      if (error.message !== 'Aborted') {
+        setError('Erreur lors du chargement des mappings.');
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [barId, barMembers]);
+
+  useEffect(() => {
+    loadMappings();
+  }, [loadMappings]);
+
+
+
 
   const handleAutoPopulate = async () => {
     try {
@@ -75,6 +109,7 @@ export function ServerMappingsManager({
         setError('Aucun serveur actif trouvé pour auto-populer');
       } else {
         setSuccess(`${autoCreatedMappings.length} mapping(s) créé(s) automatiquement`);
+        toast.success('Synchronisation automatique réussie');
         await loadMappings();
         setTimeout(() => setSuccess(null), 3000);
       }
@@ -100,6 +135,7 @@ export function ServerMappingsManager({
       await ServerMappingsService.upsertServerMapping(barId, newServerName, newServerId);
 
       setSuccess(`Mapping créé: ${newServerName}`);
+      toast.success(`Assigné: ${newServerName}`);
       setNewServerName('');
       setNewServerId('');
       await loadMappings();
@@ -156,10 +192,10 @@ export function ServerMappingsManager({
         <div className="relative z-10">
           <h3 className="text-xl font-bold text-brand-text mb-2 flex items-center gap-2">
             <Zap className="text-brand-primary" size={20} />
-            Assignation des Caisses
+            Noms d'affichage pour les ventes
           </h3>
           <p className="text-sm text-gray-600 max-w-2xl leading-relaxed">
-            Reliez les noms utilisés en <strong>Mode Simplifié</strong> (Caisses, Noms courts) aux comptes utilisateurs du <strong>Mode Complet</strong> pour garantir un suivi précis des ventes et des stocks.
+            Reliez les noms utilisés en <strong>Mode Simplifié</strong> (Noms de vente, Identifiants courts) aux comptes utilisateurs du <strong>Mode Complet</strong> pour garantir un suivi précis.
           </p>
         </div>
       </div>
@@ -195,7 +231,7 @@ export function ServerMappingsManager({
           <div className="lg:col-span-3 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
               <h4 className="font-bold text-gray-900 flex items-center gap-2">
-                Mappings Actifs
+                Noms d'affichage actifs
                 <span className="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-full">{mappings.length}</span>
               </h4>
               {mappings.length > 0 && (
@@ -258,9 +294,9 @@ export function ServerMappingsManager({
                     <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-4">
                       <MousePointerClick className="text-gray-300" size={32} />
                     </div>
-                    <h5 className="font-bold text-gray-900 mb-1">Aucune caisse assignée</h5>
+                    <h5 className="font-bold text-gray-900 mb-1">Aucun nom de vente configuré</h5>
                     <p className="text-xs text-gray-500 max-w-xs mb-6">
-                      Commencez par utiliser l'auto-synchronisation ou ajoutez manuellement vos noms de caisses.
+                      Commencez par utiliser l'auto-synchronisation ou ajoutez manuellement vos noms de vente.
                     </p>
                     <Button
                       onClick={handleAutoPopulate}
@@ -286,10 +322,10 @@ export function ServerMappingsManager({
 
               <div className="space-y-6 flex-1 py-2">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-brand-primary uppercase tracking-widest pl-1">Nom de la Caisse / Serveur</label>
+                  <label className="text-[10px] font-black text-brand-primary uppercase tracking-widest pl-1">Nom du vendeur (Affichage Vente)</label>
                   <Input
                     type="text"
-                    placeholder="ex: Ahmed ou Caisse 1"
+                    placeholder="ex: Ahmed ou Serveur 1"
                     value={newServerName}
                     onChange={(e) => setNewServerName(e.target.value)}
                     className="h-12 bg-gray-50 border-gray-200 focus:bg-white rounded-xl text-sm font-bold"
@@ -315,7 +351,7 @@ export function ServerMappingsManager({
                     className="w-full h-14 rounded-2xl font-black uppercase tracking-wide sm:tracking-widest shadow-xl shadow-brand-subtle flex items-center justify-center gap-2 text-xs sm:text-sm"
                   >
                     {saving ? <Loader size={20} className="animate-spin" /> : <Plus size={20} />}
-                    {saving ? 'Validation...' : 'Valider l\'Assignation'}
+                    {saving ? 'Validation...' : 'Valider le Nom de Vente'}
                   </Button>
                 </div>
 

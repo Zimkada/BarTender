@@ -10,13 +10,14 @@
  *      useStockManagement (source de vérité)
  */
 
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, ReactNode } from 'react';
 import { useStockManagement } from '../hooks/useStockManagement';
 
 // Type du contexte = Retour de useStockManagement
 type StockBridgeContextType = ReturnType<typeof useStockManagement> | null;
 
-const StockBridgeContext = createContext<StockBridgeContextType>(null);
+// Export du context pour le hook séparé (compatibilité Vite Fast Refresh)
+export const StockBridgeContext = createContext<StockBridgeContextType>(null);
 
 interface StockBridgeProviderProps {
   children: ReactNode;
@@ -36,18 +37,6 @@ export const StockBridgeProvider = ({ children }: StockBridgeProviderProps) => {
 };
 
 /**
- * Hook pour consommer le StockBridge depuis n'importe quel composant
- *
- * @throws Error si utilisé hors du StockBridgeProvider
- * @example
- * const { processSaleValidation, processSupply } = useStockBridge();
+ * ✅ Hook déplacé vers src/context/hooks/useStockBridge.ts
+ * Pour compatibilité Vite Fast Refresh
  */
-export const useStockBridge = () => {
-  const context = useContext(StockBridgeContext);
-
-  if (!context) {
-    throw new Error('useStockBridge must be used within StockBridgeProvider');
-  }
-
-  return context;
-};

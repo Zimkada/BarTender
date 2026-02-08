@@ -6,6 +6,7 @@ import { AuthService, LoginResult } from '../services/supabase/auth.service';
 import { supabase } from '../lib/supabase';
 import { CacheManagerService } from '../services/cacheManager.service';
 import { OfflineStorage } from '../utils/offlineStorage';
+import { networkManager } from '../services/NetworkManager';
 
 interface AuthContextType {
   currentSession: UserSession | null;
@@ -57,7 +58,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           loginTime: new Date(),
           permissions: getPermissionsByRole(authUser.role),
           firstLogin: authUser.first_login ?? false,
-          hasCompletedOnboarding: (authUser as any).has_completed_onboarding ?? false // Map pending training status
+          hasCompletedOnboarding: authUser.has_completed_onboarding ?? false // Map pending training status
         };
         setCurrentSession(session);
       } else {
@@ -133,7 +134,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 loginTime: new Date(),
                 permissions: getPermissionsByRole(authUser.role),
                 firstLogin: authUser.first_login ?? false,
-                hasCompletedOnboarding: (authUser as any).has_completed_onboarding ?? false
+                hasCompletedOnboarding: authUser.has_completed_onboarding ?? false
               };
               setCurrentSession(newSession);
             }
@@ -150,18 +151,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // 🔄 Écouter l'événement custom de token expiré (depuis RootLayout heartbeat)
   useEffect(() => {
     const handleTokenExpired = async () => {
+      // ⭐ RÉSILIENCE OFFLINE: Si on est hors-ligne, on ne déconnecte PAS.
+      // On garde la session en mémoire pour permettre le travail local (Optimisme Résilient).
+      if (networkManager.getDecision().shouldShowBanner) {
+        console.warn('[AuthContext] Token expiré mais conservé (Mode Offline)');
+        return;
+      }
+
       console.warn('[AuthContext] 🔴 Token expiré détecté, forçage du logout');
       try {
         await AuthService.logout();
       } catch (err) {
-        console.warn('[AuthContext] Erreur lors de la déconnexion:', err);
+        console.warn('[AuthContext] Erreur lors de la déconnexion Supabase:', err);
       }
 
-      // 🧹 Purger les caches avant de fermer la session
-      console.log('[AuthContext] Purge des caches après token expiré');
-      await CacheManagerService.fullCleanup();
-
-      setCurrentSession(null);
+      try {
+        // 🧹 Purger les caches uniquement si on ne bloque pas les op réseau (confirmé online)
+        if (!networkManager.shouldBlockNetworkOps()) {
+          console.log('[AuthContext] Purge des caches après token expiré (Online)');
+          await CacheManagerService.fullCleanup();
+        } else {
+          console.warn('[AuthContext] Purge des caches annulée (Offline) pour préserver les données');
+        }
+      } catch (err) {
+        console.error('[AuthContext] Cache cleanup failed:', err);
+      } finally {
+        // ⭐ CRITICAL: Toujours libérer la session React pour éviter le mode "Zombie"
+        setCurrentSession(null);
+        console.log('[AuthContext] Session locale libérée (finally)');
+      }
     };
 
     window.addEventListener('token-expired', handleTokenExpired);
@@ -192,7 +210,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           loginTime: new Date(),
           permissions: getPermissionsByRole(authUser.role),
           firstLogin: authUser.first_login ?? false,
-          hasCompletedOnboarding: (authUser as any).has_completed_onboarding ?? false
+          hasCompletedOnboarding: authUser.has_completed_onboarding ?? false
         };
         setCurrentSession(session);
 
@@ -257,7 +275,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           loginTime: new Date(),
           permissions: getPermissionsByRole(authUser.role),
           firstLogin: authUser.first_login ?? false,
-          hasCompletedOnboarding: (authUser as any).has_completed_onboarding ?? false
+          hasCompletedOnboarding: authUser.has_completed_onboarding ?? false
         };
         setCurrentSession(session);
 
@@ -310,19 +328,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     try {
-      await AuthService.logout();
+      try {
+        await AuthService.logout();
+      } catch (err) {
+        console.warn('[AuthContext] Erreur lors de la déconnexion Supabase:', err);
+      }
+
+      // 🧹 Nettoyer tous les caches avant de fermer la session
+      console.log('[AuthContext] Purge des caches avant logout');
+      await CacheManagerService.fullCleanup();
     } catch (err) {
-      console.warn('[AuthContext] Erreur lors de la déconnexion Supabase:', err);
+      console.error('[AuthContext] Critical error during logout cleanup:', err);
+    } finally {
+      // 💾 Nettoyer le stockage offline (bars, sélection) SYSTÉMATIQUEMENT
+      OfflineStorage.clear();
+      setCurrentSession(null);
     }
-
-    // 🧹 Nettoyer tous les caches avant de fermer la session
-    console.log('[AuthContext] Purge des caches avant logout');
-    await CacheManagerService.fullCleanup();
-
-    // 💾 Nettoyer le stockage offline (bars, sélection)
-    OfflineStorage.clear();
-
-    setCurrentSession(null);
   }, [currentSession, setCurrentSession]);
 
   const hasPermission = useCallback((permission: keyof RolePermissions) => {
@@ -515,6 +536,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Sauvegarder dans localStorage pour persistance
     localStorage.setItem('selectedBarId', barId);
 
+    // ✨ FIX CRITIQUE: Mettre à jour l'objet 'auth_user' en cache aussi
+    // Sinon au F5, AuthService.initializeSession() reprendra le VIEUX barId stocké dans 'auth_user'
+    const cachedUser = AuthService.getCurrentUser();
+    if (cachedUser) {
+      const updatedUser = {
+        ...cachedUser,
+        barId,
+        barName,
+        role: newRole
+      };
+      localStorage.setItem('auth_user', JSON.stringify(updatedUser));
+    }
+
     auditLogger.log({
       event: 'BAR_SWITCHED',
       severity: 'info',
@@ -569,7 +603,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           loginTime: new Date(),
           permissions: getPermissionsByRole(user.role),
           firstLogin: user.first_login ?? false,
-          hasCompletedOnboarding: (user as any).has_completed_onboarding ?? false
+          hasCompletedOnboarding: user.has_completed_onboarding ?? false
         };
         setCurrentSession(session);
       }

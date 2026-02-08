@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from 'react';
+import { createContext, useContext } from 'react';
 import {
   Category,
   Product,
@@ -46,7 +46,7 @@ export interface AppContextType {
   getAverageCostPerUnit: (productId: string) => number;
 
   // Ventes
-  addSale: (saleData: any) => Promise<Sale | null>;
+  addSale: (saleData: Partial<Sale>) => Promise<Sale | null>;
   validateSale: (saleId: string, validatorId: string) => void;
   rejectSale: (saleId: string, rejectorId: string) => void;
   getSalesByDate: (startDate: Date, endDate: Date, includePending?: boolean) => Sale[];

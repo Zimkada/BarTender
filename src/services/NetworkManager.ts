@@ -9,6 +9,15 @@ import type { NetworkStatus } from '../types/sync';
 type NetworkChangeListener = (status: NetworkStatus) => void;
 
 /**
+ * Décision réseau atomique (Expert Refinement)
+ */
+export interface NetworkDecision {
+  shouldBlock: boolean;
+  shouldShowBanner: boolean;
+  reason: NetworkStatus;
+}
+
+/**
  * Configuration du NetworkManager
  */
 interface NetworkManagerConfig {
@@ -18,6 +27,9 @@ interface NetworkManagerConfig {
   /** Intervalle de vérification réseau en ms */
   checkInterval: number;
 
+  /** Délai avant de passer en mode offline (ms) */
+  gracePeriod?: number;
+
   /** Timeout pour le ping test en ms */
   pingTimeout: number;
 }
@@ -26,9 +38,9 @@ interface NetworkManagerConfig {
  * Configuration par défaut
  */
 const DEFAULT_CONFIG: NetworkManagerConfig = {
-  pingUrl: undefined, // Sera ajouté lors de la migration Supabase
-  checkInterval: 30000, // 30 secondes
-  pingTimeout: 5000,    // 5 secondes
+  pingUrl: 'https://jsonplaceholder.typicode.com/todos/1', // Reliable public API with CORS
+  checkInterval: 3000, // 3 secondes (plus réactif pour les tests)
+  pingTimeout: 3000,    // 3 secondes
 };
 
 /**
@@ -48,6 +60,14 @@ class NetworkManagerService {
   private config: NetworkManagerConfig;
   private checkIntervalId: number | null = null;
   private isInitialized = false;
+
+  /** Grace period avant de considérer offline (par défaut 60s) */
+  private get gracePeriod(): number {
+    return this.config.gracePeriod ?? 60000;
+  }
+
+  /** Timer pour transition unstable → offline */
+  private offlineTimer: number | null = null;
 
   constructor(config?: Partial<NetworkManagerConfig>) {
     this.config = {
@@ -89,6 +109,12 @@ class NetworkManagerService {
     window.removeEventListener('offline', this.handleOffline);
     this.stopPeriodicCheck();
 
+    // Nettoyer le timer de grace period
+    if (this.offlineTimer !== null) {
+      clearTimeout(this.offlineTimer);
+      this.offlineTimer = null;
+    }
+
     this.isInitialized = false;
     console.log('[NetworkManager] Cleaned up');
   }
@@ -98,6 +124,14 @@ class NetworkManagerService {
    */
   private handleOnline = (): void => {
     console.log('[NetworkManager] Browser reports online');
+
+    // Annuler le timer de grace period si connexion revenue
+    if (this.offlineTimer !== null) {
+      clearTimeout(this.offlineTimer);
+      this.offlineTimer = null;
+      console.log('[NetworkManager] Grace period cancelled, connection restored');
+    }
+
     // Vérifier la connectivité réelle
     this.checkConnectivity();
   };
@@ -107,7 +141,21 @@ class NetworkManagerService {
    */
   private handleOffline = (): void => {
     console.log('[NetworkManager] Browser reports offline');
-    this.updateStatus('offline');
+
+    // Grace period: passer par 'unstable' avant 'offline'
+    this.updateStatus('unstable');
+
+    // Annuler un timer existant
+    if (this.offlineTimer !== null) {
+      clearTimeout(this.offlineTimer);
+    }
+
+    // Démarrer le timer de grace period
+    this.offlineTimer = window.setTimeout(() => {
+      console.log('[NetworkManager] Grace period elapsed, now truly offline');
+      this.updateStatus('offline');
+      this.offlineTimer = null;
+    }, this.gracePeriod);
   };
 
   /**
@@ -154,13 +202,30 @@ class NetworkManagerService {
    * Étapes:
    * 1. Vérifier navigator.onLine
    * 2. Si online, ping le server pour validation réelle
-   * 3. Si offline, rester offline
+   * 3. Si offline, appliquer grace period
    */
   async checkConnectivity(): Promise<void> {
     // Étape 1: Vérifier navigator.onLine (instantané)
     if (!navigator.onLine) {
-      this.updateStatus('offline');
+      // Appliquer grace period avant offline
+      if (this.status !== 'unstable' && this.status !== 'offline') {
+        this.updateStatus('unstable');
+        if (this.offlineTimer === null) {
+          this.offlineTimer = window.setTimeout(() => {
+            console.log('[NetworkManager] Grace period elapsed (check), now truly offline');
+            this.updateStatus('offline');
+            this.offlineTimer = null;
+          }, this.gracePeriod);
+        }
+      }
       return;
+    }
+
+    // Si on revient online pendant grace period, annuler timer
+    if (this.offlineTimer !== null) {
+      clearTimeout(this.offlineTimer);
+      this.offlineTimer = null;
+      console.log('[NetworkManager] Grace period cancelled (check), connection restored');
     }
 
     // Étape 2: Si online selon le browser, valider avec ping
@@ -174,7 +239,21 @@ class NetworkManagerService {
 
     // Ping le server pour validation réelle
     const isReachable = await this.pingServer();
-    this.updateStatus(isReachable ? 'online' : 'offline');
+    if (isReachable) {
+      this.updateStatus('online');
+    } else {
+      // Server injoignable: appliquer grace period
+      if (this.status !== 'unstable' && this.status !== 'offline') {
+        this.updateStatus('unstable');
+        if (this.offlineTimer === null) {
+          this.offlineTimer = window.setTimeout(() => {
+            console.log('[NetworkManager] Grace period elapsed (ping fail), now truly offline');
+            this.updateStatus('offline');
+            this.offlineTimer = null;
+          }, this.gracePeriod);
+        }
+      }
+    }
   }
 
   /**
@@ -218,6 +297,33 @@ class NetworkManagerService {
   }
 
   /**
+   * DISTINCTION CRITIQUE (Phase 9)
+   * On ne montre la bannière que si confirmement offline.
+   * Mais on bloque les opérations si instable (pour éviter race conditions).
+   */
+
+  /** Doit-on montrer la bannière offline ? */
+  shouldShowOfflineBanner(): boolean {
+    return this.status === 'offline';
+  }
+
+  /** Doit-on bloquer les opérations réseau ? */
+  shouldBlockNetworkOps(): boolean {
+    return this.status === 'offline' || this.status === 'unstable';
+  }
+
+  /**
+   * Retourne une décision atomique cohérente (Évite les incohérences d'état entre deux appels)
+   */
+  getDecision(): NetworkDecision {
+    return {
+      shouldBlock: this.shouldBlockNetworkOps(),
+      shouldShowBanner: this.shouldShowOfflineBanner(),
+      reason: this.status
+    };
+  }
+
+  /**
    * Vérifie si actuellement online
    */
   isOnline(): boolean {
@@ -225,10 +331,17 @@ class NetworkManagerService {
   }
 
   /**
-   * Vérifie si actuellement offline
+   * @deprecated Utiliser shouldBlockNetworkOps() ou shouldShowOfflineBanner()
    */
   isOffline(): boolean {
-    return this.status === 'offline';
+    return this.shouldBlockNetworkOps();
+  }
+
+  /**
+   * Vérifie si connexion instable (grace period en cours)
+   */
+  isUnstable(): boolean {
+    return this.status === 'unstable';
   }
 
   /**

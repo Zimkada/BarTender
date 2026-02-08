@@ -13,9 +13,10 @@
 
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import { networkManager } from '../NetworkManager';
 import { QueryClient } from '@tanstack/react-query';
 
-export type RealtimeEvent = 'INSERT' | 'UPDATE' | 'DELETE';
+export type RealtimeEvent = 'INSERT' | 'UPDATE' | 'DELETE' | '*';
 
 interface RealtimeConfig {
   table: string;
@@ -23,7 +24,7 @@ interface RealtimeConfig {
   schema?: string;
   filter?: string; // e.g., "bar_id=eq.123"
   onMessage: (payload: any) => void;
-  onError?: (error: Error) => void;
+  onError?: (error: unknown) => void;
   maxRetries?: number;
   retryDelay?: number;
 }
@@ -33,7 +34,7 @@ interface ChannelState {
   channel: RealtimeChannel | null;
   isConnected: boolean;
   retryCount: number;
-  lastError?: Error;
+  lastError?: Error | unknown;
   createdAt: number;
 }
 
@@ -46,8 +47,7 @@ export class RealtimeService {
   private channels: Map<string, ChannelState> = new Map();
   private maxRetries: number = 5;
   private retryDelay: number = 1000;
-  private isOnline: boolean = navigator.onLine;
-  private queryClient?: QueryClient;
+  private queryClient: QueryClient | null = null;
 
   private constructor() {
     // Monitor network status
@@ -63,10 +63,10 @@ export class RealtimeService {
   }
 
   /**
-   * Initialize with React Query client for invalidation
+   * Set QueryClient for cache invalidation
    */
-  setQueryClient(queryClient: QueryClient) {
-    this.queryClient = queryClient;
+  setQueryClient(client: QueryClient) {
+    this.queryClient = client;
   }
 
   /**
@@ -82,11 +82,6 @@ export class RealtimeService {
     }
 
     try {
-      // Build channel filter
-      const filter = config.filter
-        ? `${config.table}:${config.event}.${config.filter}`
-        : `${config.table}:${config.event}`;
-
       // Create channel
       const channel = supabase.channel(channelId, {
         config: {
@@ -102,7 +97,7 @@ export class RealtimeService {
           schema: config.schema || 'public',
           table: config.table,
           filter: config.filter,
-        } as any, (payload) => {
+        } as any, (payload: any) => {
           this.handleMessage(channelId, payload, config.onMessage);
         })
         .on('system', { event: 'join' }, () => {
@@ -191,12 +186,13 @@ export class RealtimeService {
 
   private handleMessage(
     channelId: string,
-    payload: any,
+    payload: unknown,
     onMessage: (payload: any) => void,
   ) {
     try {
       // Validate payload structure
-      if (!payload.new && !payload.old) {
+      const data = payload as { new?: unknown; old?: unknown };
+      if (!data.new && !data.old) {
         console.warn(`[Realtime] Invalid payload for ${channelId}:`, payload);
         return;
       }
@@ -233,14 +229,15 @@ export class RealtimeService {
 
   private handleChannelError(
     channelId: string,
-    error: any,
+    error: Error | { message: string } | unknown,
     config: RealtimeConfig,
   ) {
     const state = this.channels.get(channelId);
     if (!state) return;
 
     // Ignore false positives: "Subscribed to PostgreSQL" is a system message, not an error
-    if (error?.message === 'Subscribed to PostgreSQL') {
+    const errObj = error as { message?: string };
+    if (errObj?.message === 'Subscribed to PostgreSQL') {
       console.log(`[Realtime] Successfully subscribed to ${channelId}`);
       state.isConnected = true;
       state.retryCount = 0;
@@ -248,7 +245,12 @@ export class RealtimeService {
     }
 
     // Only handle real errors
-    console.error(`[Realtime] Channel error for ${channelId}:`, error);
+    const { shouldShowBanner: isOffline } = networkManager.getDecision();
+    if (!isOffline) {
+      console.error(`[Realtime] Channel error for ${channelId}:`, error);
+    } else {
+      console.log(`[Realtime] WebSocket disconnected (Offline mode)`);
+    }
     state.lastError = error;
     state.isConnected = false;
 
@@ -266,7 +268,10 @@ export class RealtimeService {
     status: string,
     config: RealtimeConfig,
   ) {
-    console.log(`[Realtime] Subscription status for ${channelId}: ${status}`);
+    const { shouldShowBanner: isOffline } = networkManager.getDecision();
+    if (!isOffline) {
+      console.log(`[Realtime] Subscription status for ${channelId}: ${status}`);
+    }
 
     switch (status) {
       case 'SUBSCRIBED':
@@ -302,7 +307,8 @@ export class RealtimeService {
     );
 
     setTimeout(() => {
-      if (this.isOnline) {
+      const { shouldBlock } = networkManager.getDecision();
+      if (!shouldBlock) {
         this.subscribe(config);
       }
     }, delay);
@@ -310,7 +316,6 @@ export class RealtimeService {
 
   private handleOnline() {
     console.log('[Realtime] Network is online, reconnecting all channels...');
-    this.isOnline = true;
 
     // Attempt to reconnect all channels
     this.channels.forEach((state, channelId) => {
@@ -323,7 +328,6 @@ export class RealtimeService {
 
   private handleOffline() {
     console.log('[Realtime] Network is offline, switching to polling mode');
-    this.isOnline = false;
 
     // Mark all channels as disconnected
     this.channels.forEach((state) => {
@@ -345,9 +349,9 @@ export class RealtimeService {
         connected: state.isConnected,
         retryCount: state.retryCount,
         ageMs: Date.now() - state.createdAt,
-        lastError: state.lastError?.message,
+        lastError: state.lastError && typeof state.lastError === 'object' && 'message' in state.lastError ? (state.lastError as any).message : String(state.lastError),
       })),
-      isOnline: this.isOnline,
+      isOnline: !networkManager.getDecision().shouldShowBanner,
     };
 
     return metrics;

@@ -1,13 +1,24 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { useRevenueStats } from '../hooks/useRevenueStats';
 import { useTeamPerformance } from '../hooks/useTeamPerformance';
 import { getCurrentBusinessDateString } from '../utils/businessDateHelpers';
-import { AnalyticsService, DailySalesSummary } from '../services/supabase/analytics.service';
+import { AnalyticsService } from '../services/supabase/analytics.service';
 import { useQuery } from '@tanstack/react-query';
-import { Sale, Return } from '../types';
+import { Sale, SaleItem } from '../types';
+import { SalesService, OfflineSale } from '../services/supabase/sales.service';
+import { syncManager } from '../services/SyncManager';
+import { type PaymentMethod, isValidPaymentMethod } from '../types/payment';
+
+interface TransitionSale extends Omit<Sale, 'id' | 'businessDate'> {
+    id: string;
+    businessDate: Date;
+    isTransition: true;
+    currency: string;
+    createdBy: string;
+}
 
 export function useDashboardAnalytics(currentBarId: string | undefined) {
     const { sales, getTodaySales, getTodayReturns, getLowStockProducts, users } = useAppContext();
@@ -32,16 +43,91 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
         enabled: !!currentBarId && !isServerRole // Servers don't need the heavy global aggregation often
     });
 
+    // 🟠 Offline Sync (Phase 10: Sprint B)
+    const [offlineQueueSales, setOfflineQueueSales] = useState<OfflineSale[]>([]);
+
+    useEffect(() => {
+        // Fetch offline sales for today
+        const dToday = new Date(todayDateStr);
+        SalesService.getOfflineSales(currentBarId || '', dToday, dToday)
+            .then(setOfflineQueueSales);
+
+        const handleQueueUpdate = () => {
+            SalesService.getOfflineSales(currentBarId || '', dToday, dToday)
+                .then(setOfflineQueueSales);
+        };
+
+        const handleSyncCompleted = () => {
+            console.log('[useDashboardAnalytics] Sync completed, refetching offline sales...');
+            SalesService.getOfflineSales(currentBarId || '', dToday, dToday)
+                .then(setOfflineQueueSales);
+        };
+
+        window.addEventListener('queue-updated', handleQueueUpdate);
+        window.addEventListener('sync-completed', handleSyncCompleted);
+        return () => {
+            window.removeEventListener('queue-updated', handleQueueUpdate);
+            window.removeEventListener('sync-completed', handleSyncCompleted);
+        };
+    }, [currentBarId, todayDateStr]);
+
     // 2. Local Computed Stats (Real-time)
     const todayValidatedSales = getTodaySales();
     const todayReturns = getTodayReturns();
 
     // 3. Filtered Data per Role
     const serverFilteredSales = useMemo(() => {
-        if (!isServerRole) return todayValidatedSales;
+        const recentlySyncedMap = syncManager.getRecentlySyncedKeys();
+
+        // 🛡️ Déduplication de la queue (Offline vs Buffer)
+        const deduplicatedOfflineQueue = offlineQueueSales.filter(sale => {
+            const key = sale.idempotency_key;
+            return !key || !recentlySyncedMap.has(key);
+        });
+
+        // 🛡️ Transition Buffer (Phase 11.3/11.4): Bridge le gap post-sync pour la LISTE
+        const transitionSales: TransitionSale[] = [];
+        recentlySyncedMap.forEach((data, key) => {
+            // Si la vente n'est pas encore dans la liste serveur officielle (todayValidatedSales)
+            // 🛡️ UNIFICATION (V11.4): Chercher les deux casses sans cast brute
+            const alreadyIndexed = todayValidatedSales.some((s: UnifiedSale) =>
+                (s.idempotencyKey === key) || (s.idempotency_key === key)
+            );
+
+            if (!alreadyIndexed) {
+                // On reconstruit l'objet à partir du payload sauvegardé dans le buffer (SyncManager)
+                const payload = data.payload;
+                if (payload) {
+                    // Validation du payment method
+                    const paymentMethod = isValidPaymentMethod(payload.payment_method)
+                        ? payload.payment_method
+                        : 'cash' as PaymentMethod;
+
+                    transitionSales.push({
+                        id: `transition_${key}`,
+                        barId: payload.bar_id,
+                        total: data.total,
+                        status: (payload.status || 'validated') as 'pending' | 'validated',
+                        paymentMethod,
+                        soldBy: payload.sold_by,
+                        serverId: payload.server_id ?? null,
+                        businessDate: payload.business_date ? new Date(payload.business_date) : new Date(),
+                        createdAt: new Date(data.timestamp),
+                        items: payload.items,
+                        idempotencyKey: key,
+                        isTransition: true,
+                        currency: 'XAF',
+                        createdBy: payload.sold_by
+                    });
+                }
+            }
+        });
+
+        const mergedSales = [...todayValidatedSales, ...deduplicatedOfflineQueue, ...transitionSales] as (Sale | OfflineSale | TransitionSale)[];
+        if (!isServerRole) return mergedSales;
         // Source of truth: soldBy is the business attribution
-        return todayValidatedSales.filter(s => s.soldBy === currentUserId);
-    }, [todayValidatedSales, isServerRole, currentUserId]);
+        return mergedSales.filter(s => s.soldBy === currentUserId);
+    }, [todayValidatedSales, offlineQueueSales, isServerRole, currentUserId]);
 
     const serverFilteredReturns = useMemo(() => {
         if (!isServerRole) return todayReturns;
@@ -57,19 +143,48 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
         );
     }, [activeConsignments, isServerRole, currentUserId]);
 
+    // 🛡️ Interface d'unification pour le pool mixte (Online/Offline/Transition)
+    interface UnifiedSale {
+        id: string;
+        status: string;
+        total: number;
+        idempotencyKey?: string;
+        idempotency_key?: string;
+        businessDate?: Date | string | null;
+        business_date?: string | null;
+        soldBy?: string;
+        sold_by?: string;
+        serverId?: string | null;
+        server_id?: string | null;
+        createdAt?: Date | string;
+        created_at?: string;
+    }
+
     // 4. Pending Sales (Orders Tab)
     const pendingSales = useMemo(() => {
         const isManager = !isServerRole;
         const TEN_MINUTES_MS = 10 * 60 * 1000;
         const now = new Date().getTime();
 
-        return sales.filter(s => {
-            const saleDateStr = s.businessDate instanceof Date
-                ? s.businessDate.toISOString().split('T')[0]
-                : String(s.businessDate).split('T')[0];
+        // 🛡️ FUSION OFFLINE (Phase 15): 
+        // Inclure les ventes offline en attente dans la liste des commandes
+        // Le dédoublonnage est déjà fait partiellement, mais on refait une passe propre
+        const allSalesPool: UnifiedSale[] = [...sales, ...offlineQueueSales.filter(os => {
+            // Exclure si déjà présent dans sales via idempotencyKey
+            return !sales.some(s => s.idempotencyKey === os.idempotency_key);
+        })];
+
+        return allSalesPool.filter((s: UnifiedSale) => {
+            // Unification des champs snake_case vs camelCase pour le pool mixte
+            const businessDateVal = s.businessDate || s.business_date;
+            const saleStatus = s.status;
+
+            const saleDateStr = businessDateVal instanceof Date
+                ? businessDateVal.toISOString().split('T')[0]
+                : String(businessDateVal).split('T')[0];
 
             // Basic filters: pending + today
-            if (s.status !== 'pending' || saleDateStr !== todayDateStr) {
+            if (saleStatus !== 'pending' || saleDateStr !== todayDateStr) {
                 return false;
             }
 
@@ -79,14 +194,19 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
             }
 
             // Servers see only their own sales within 10 minutes
-            const isOwnSale = s.soldBy === currentUserId || s.serverId === currentUserId;
+            // 🛡️ DUAL-CASING: Vérifier soldBy OU sold_by
+            const sellerId = s.soldBy || s.sold_by;
+            const serverId = s.serverId || s.server_id;
+
+            const isOwnSale = sellerId === currentUserId || serverId === currentUserId;
             if (!isOwnSale) return false;
 
-            const saleTime = new Date(s.createdAt).getTime();
+            const createdAtVal = s.createdAt || s.created_at;
+            const saleTime = createdAtVal ? new Date(createdAtVal).getTime() : 0;
             const isRecent = (now - saleTime) < TEN_MINUTES_MS;
             return isRecent;
         });
-    }, [sales, currentSession, todayDateStr, isServerRole, currentUserId]);
+    }, [sales, offlineQueueSales, todayDateStr, isServerRole, currentUserId]);
 
     // 5. Hooks / Sub-queries
     const { netRevenue: todayTotal } = useRevenueStats({
@@ -96,7 +216,7 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
     });
 
     const teamPerformanceData = useTeamPerformance({
-        sales: isServerRole ? serverFilteredSales : todayValidatedSales,
+        sales: serverFilteredSales as Sale[],
         returns: todayReturns,
         users: users,
         barMembers: [],
@@ -106,9 +226,11 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
 
     const lowStockProducts = getLowStockProducts();
 
-    const totalItems = serverFilteredSales.reduce((sum: number, sale: Sale) =>
-        sum + sale.items.reduce((s: number, i: any) => s + i.quantity, 0), 0
-    );
+    const totalItems = serverFilteredSales.reduce((sum: number, sale: (Sale | OfflineSale | TransitionSale)) => {
+        // 🛡️ Guard: Vérifier que items existe (ventes offline pourraient ne pas avoir items)
+        if (!sale.items || !Array.isArray(sale.items)) return sum;
+        return sum + sale.items.reduce((s: number, i: SaleItem) => s + (i.quantity || 0), 0);
+    }, 0);
 
     // Top produits : agrégation locale depuis les ventes du jour (même pattern que totalItems / teamPerformance)
     const topProductsList = useMemo(() => {
@@ -116,7 +238,10 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
         const productMap = new Map<string, { name: string; qty: number }>();
 
         serverFilteredSales.forEach(sale => {
-            sale.items.forEach(item => {
+            // 🛡️ Guard: Vérifier que items existe
+            if (!sale.items || !Array.isArray(sale.items)) return;
+
+            sale.items.forEach((item: SaleItem) => {
                 const existing = productMap.get(item.product_id);
                 if (existing) {
                     existing.qty += item.quantity;

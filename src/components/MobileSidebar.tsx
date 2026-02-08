@@ -26,6 +26,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { IconButton } from './ui/IconButton';
+import { networkManager } from '../services/NetworkManager';
+import { useNotifications } from './Notifications';
 
 interface MobileSidebarProps {
   isOpen: boolean;
@@ -51,6 +53,16 @@ export function MobileSidebar({
 }: MobileSidebarProps) {
   const { currentSession, logout } = useAuth();
   const navigate = useNavigate();
+  const { showNotification } = useNotifications();
+
+  // 🛡️ Monitor network status
+  const [isOffline, setIsOffline] = React.useState(!networkManager.isOnline());
+
+  React.useEffect(() => {
+    return networkManager.subscribe(() => {
+      setIsOffline(!networkManager.isOnline());
+    });
+  }, []);
 
   const handleLogout = () => {
     if (confirm('Voulez-vous vraiment vous déconnecter ?')) {
@@ -78,13 +90,12 @@ export function MobileSidebar({
     { id: 'returns', label: 'Retours', icon: <RotateCcw size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/returns' },
     { id: 'consignments', label: 'Consignations', icon: <Archive size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/consignments' },
     { id: 'teamManagement', label: "Gestion de l'Équipe", icon: <Users size={20} />, roles: ['promoteur', 'gerant'], path: '/team' },
-    { id: 'promotions', label: 'Promotions', icon: <Gift size={20} />, roles: ['promoteur', 'gerant'], path: '/promotions' }, // Placeholder path
+    { id: 'promotions', label: 'Promotions', icon: <Gift size={20} />, roles: ['promoteur', 'gerant'], path: '/promotions' },
     { id: 'settings', label: 'Paramètres', icon: <Settings size={20} />, roles: ['promoteur', 'gerant'], path: '/settings' },
     { id: 'profile', label: 'Mon Profil', icon: <User size={20} />, roles: ['super_admin', 'promoteur', 'gerant', 'serveur'], path: '/profil' },
     { id: 'accounting', label: 'Comptabilité', icon: <DollarSign size={20} />, roles: ['promoteur'], path: '/accounting' }
   ];
 
-  // Filtrer les menus selon le rôle
   const visibleMenus = menuItems.filter(item =>
     currentSession && item.roles.includes(currentSession.role as any)
   );
@@ -93,7 +104,6 @@ export function MobileSidebar({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Overlay sombre */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -102,7 +112,6 @@ export function MobileSidebar({
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110]"
           />
 
-          {/* Barre latérale */}
           <motion.div
             initial={{ x: '-100%' }}
             animate={{ x: 0 }}
@@ -113,70 +122,64 @@ export function MobileSidebar({
               : 'bg-brand-subtle'
               }`}
           >
-            {/* Header */}
             <div className={`flex items-center justify-between p-4 border-b ${currentSession?.role === 'super_admin'
               ? 'border-purple-200 bg-gradient-to-r from-purple-600 to-indigo-600'
               : 'border-brand-subtle bg-brand-gradient'
               }`}>
               <div className="flex items-center gap-2">
                 {currentSession?.role === 'super_admin' && (
-                  <img
-                    src="/icons/icon-48x48.png"
-                    alt="BarTender"
-                    className="w-6 h-6 flex-shrink-0 rounded"
-                  />
+                  <img src="/icons/icon-48x48.png" alt="BarTender" className="w-6 h-6 flex-shrink-0 rounded" />
                 )}
                 <h2 className="text-white font-bold text-lg">
                   {currentSession?.role === 'super_admin' ? 'BarTender Pro Administration' : 'Menu'}
                 </h2>
               </div>
-              <div>
-                <p className={currentSession?.role === 'super_admin' ? 'text-purple-100 text-xs' : 'text-white/90 text-xs'}>
-                  {currentSession?.userName} • {currentSession?.role}
-                </p>
-              </div>
-              <IconButton
-                onClick={onClose}
-                className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
-                aria-label="Fermer le menu"
-              >
+              <IconButton onClick={onClose} className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors" aria-label="Fermer le menu">
                 <X size={24} />
               </IconButton>
             </div>
 
-            {/* Liste des menus */}
             <div className="flex-1 overflow-y-auto p-2">
-              {visibleMenus.map((item) => (
-                <motion.button
-                  key={item.id}
-                  onClick={() => {
-                    if (item.path) {
-                      navigate(item.path);
-                    } else if (item.action) {
-                      item.action();
-                    }
-                    onClose();
-                  }}
-                  whileHover={{ scale: 1.02, x: 4 }}
-                  whileTap={{ scale: 0.98 }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-2 transition-all ${currentMenu === item.id
-                    ? currentSession?.role === 'super_admin'
-                      ? 'bg-purple-600 text-white shadow-md'
-                      : 'bg-brand-primary text-white shadow-md'
-                    : 'bg-white/60 text-gray-700 hover:bg-white hover:shadow-sm'
-                    }`}
-                >
-                  <span className={currentMenu === item.id ? 'text-white' : (currentSession?.role === 'super_admin' ? 'text-purple-600' : 'text-brand-primary')}>
-                    {item.icon}
-                  </span>
-                  <span className="font-medium">{item.label}</span>
-                </motion.button>
-              ))}
+              {visibleMenus.map((item) => {
+                const isQuickSale = item.id === 'quickSale';
+                const isDisabled = isQuickSale && isOffline;
+
+                return (
+                  <motion.button
+                    key={item.id}
+                    onClick={() => {
+                      if (isDisabled) {
+                        showNotification('error', "Vente rapide indisponible hors connexion. Utilisez l'onglet Accueil (Panier).");
+                        return;
+                      }
+                      if (item.path) {
+                        navigate(item.path);
+                      } else if (item.action) {
+                        item.action();
+                      }
+                      onClose();
+                    }}
+                    whileHover={isDisabled ? {} : { scale: 1.02, x: 4 }}
+                    whileTap={isDisabled ? {} : { scale: 0.98 }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-2 transition-all ${currentMenu === item.id
+                      ? currentSession?.role === 'super_admin'
+                        ? 'bg-purple-600 text-white shadow-md'
+                        : 'bg-brand-primary text-white shadow-md'
+                      : isDisabled
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60'
+                        : 'bg-white/60 text-gray-700 hover:bg-white hover:shadow-sm'
+                      }`}
+                  >
+                    <span className={currentMenu === item.id ? 'text-white' : (isDisabled ? 'text-gray-300' : (currentSession?.role === 'super_admin' ? 'text-purple-600' : 'text-brand-primary'))}>
+                      {item.icon}
+                    </span>
+                    <span className="font-medium">{item.label}</span>
+                  </motion.button>
+                );
+              })}
             </div>
 
-            {/* Footer - Actions */}
             <div className={`p-4 border-t space-y-2 ${currentSession?.role === 'super_admin' ? 'border-purple-200' : 'border-brand-subtle'}`}>
-              {/* Bouton déconnexion */}
               <motion.button
                 onClick={handleLogout}
                 whileHover={{ scale: 1.02 }}
@@ -193,4 +196,3 @@ export function MobileSidebar({
     </AnimatePresence>
   );
 }
-

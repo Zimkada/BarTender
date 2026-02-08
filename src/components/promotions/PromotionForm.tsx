@@ -139,7 +139,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                 await PromotionsService.updatePromotion(initialData.id, promotionData);
                 showNotification('success', 'Promotion mise à jour');
             } else {
-                await PromotionsService.createPromotion(promotionData as any);
+                await PromotionsService.createPromotion(promotionData as Omit<Promotion, 'id' | 'createdAt' | 'updatedAt'>);
                 showNotification('success', 'Promotion créée');
             }
 
@@ -367,7 +367,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                                 ].map((t) => (
                                     <div
                                         key={t.id}
-                                        onClick={() => setTargetType(t.id as any)}
+                                        onClick={() => setTargetType(t.id as 'all' | 'category' | 'product')}
                                         className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all cursor-pointer h-full ${targetType === t.id ? 'border-brand-primary bg-brand-subtle' : 'border-slate-100 bg-slate-50 hover:border-brand-subtle'}`}
                                     >
                                         <RadioGroupItem value={t.id} id={`targetType-${t.id}`} className="text-brand-primary border-brand-subtle shrink-0" />

@@ -17,6 +17,7 @@ import { AppProvider } from './context/AppProvider';
 import { ModalProvider } from './context/ModalContext';
 import { NotificationsProvider } from './components/Notifications';
 import { ErrorFallback } from './components/common/ErrorFallback';
+import App from './App';
 
 // PWA Components
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
@@ -45,6 +46,7 @@ createRoot(document.getElementById('root')!).render(
                       <AppProvider>
                         <ModalProvider>
                           <ErrorBoundary FallbackComponent={ErrorFallback} onError={(error, info) => console.error("Caught an error:", error, info)}>
+                            <App />
                             <RouterProvider router={router} />
                             {/* PWA Components */}
                             <PWAInstallPrompt />

@@ -34,8 +34,9 @@ export function GlobalCategoriesTab() {
             setLoading(true);
             const data = await CategoriesService.getGlobalCategories();
             setCategories(data);
-        } catch (error: any) {
-            showError(error.message);
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+            showError(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -74,23 +75,24 @@ export function GlobalCategoriesTab() {
                     name: formData.name,
                     color: formData.color,
                     icon: formData.icon,
-                    order_index: formData.orderIndex
-                } as any);
+                    orderIndex: formData.orderIndex
+                });
                 showSuccess('Catégorie mise à jour');
             } else {
                 await CategoriesService.createGlobalCategory({
                     name: formData.name,
                     color: formData.color,
                     icon: formData.icon,
-                    order_index: formData.orderIndex,
-                    is_system: true
-                } as any);
+                    orderIndex: formData.orderIndex,
+                    isSystem: true
+                });
                 showSuccess('Catégorie créée');
             }
             setIsModalOpen(false);
             loadCategories();
-        } catch (error: any) {
-            showError(error.message);
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+            showError(errorMessage);
         }
     };
 
@@ -108,13 +110,14 @@ export function GlobalCategoriesTab() {
             setDeleteModalOpen(false);
             setCategoryToDelete(null);
             loadCategories();
-        } catch (error: any) {
+        } catch (error: unknown) {
             // Check if error is due to RESTRICT constraint (products using this category)
-            const errorMessage = error.message?.toLowerCase() || '';
-            if (errorMessage.includes('restrict') || errorMessage.includes('constraint') || errorMessage.includes('fk_global_products_category')) {
+            const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+            const logMsg = errorMessage.toLowerCase();
+            if (logMsg.includes('restrict') || logMsg.includes('constraint') || logMsg.includes('fk_global_products_category')) {
                 showError('Cette catégorie ne peut pas être supprimée car elle est utilisée par des produits. Supprimez d\'abord les produits qui la référencent.');
             } else {
-                showError(error.message);
+                showError(errorMessage);
             }
         }
     };
@@ -195,7 +198,7 @@ export function GlobalCategoriesTab() {
                     open={isModalOpen}
                     onClose={() => setIsModalOpen(false)}
                     title={editingCategory ? 'Modifier la catégorie' : 'Nouvelle catégorie'}
-                    size="md"
+                    size="default"
                     footer={
                         <div className="flex justify-end gap-3 mt-8">
                             <Button
@@ -227,43 +230,43 @@ export function GlobalCategoriesTab() {
                             />
                         </div>
 
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div>
-                                                            <Label htmlFor="categoryIcon">Icône (Emoji)</Label>
-                                                            <Input
-                                                                id="categoryIcon"
-                                                                type="text"
-                                                                value={formData.icon}
-                                                                onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                                                                className="text-center text-xl"
-                                                                placeholder="🍺"
-                                                            />
-                                                        </div>
-                                                        <div>
-                                                            <Label htmlFor="categoryOrderIndex">Ordre</Label>
-                                                            <Input
-                                                                id="categoryOrderIndex"
-                                                                type="number"
-                                                                value={formData.orderIndex}
-                                                                onChange={(e) => setFormData({ ...formData, orderIndex: parseInt(e.target.value) })}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-sm font-medium text-gray-700 mb-1">Couleur</label>
-                                                        <div className="flex gap-2 flex-wrap">
-                                                            {['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6366F1', '#14B8A6'].map((color) => (
-                                                                <Button
-                                                                    key={color}
-                                                                    onClick={() => setFormData({ ...formData, color })}
-                                                                    variant="ghost"
-                                                                    className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 p-0 ${formData.color === color ? 'border-gray-900 scale-110' : 'border-transparent'
-                                                                        }`}
-                                                                    style={{ backgroundColor: color }}
-                                                                />
-                                                            ))}
-                                                        </div>
-                                                    </div>                    </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <Label htmlFor="categoryIcon">Icône (Emoji)</Label>
+                                <Input
+                                    id="categoryIcon"
+                                    type="text"
+                                    value={formData.icon}
+                                    onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                                    className="text-center text-xl"
+                                    placeholder="🍺"
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="categoryOrderIndex">Ordre</Label>
+                                <Input
+                                    id="categoryOrderIndex"
+                                    type="number"
+                                    value={formData.orderIndex}
+                                    onChange={(e) => setFormData({ ...formData, orderIndex: parseInt(e.target.value) })}
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Couleur</label>
+                            <div className="flex gap-2 flex-wrap">
+                                {['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6366F1', '#14B8A6'].map((color) => (
+                                    <Button
+                                        key={color}
+                                        onClick={() => setFormData({ ...formData, color })}
+                                        variant="ghost"
+                                        className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 p-0 ${formData.color === color ? 'border-gray-900 scale-110' : 'border-transparent'
+                                            }`}
+                                        style={{ backgroundColor: color }}
+                                    />
+                                ))}
+                            </div>
+                        </div>                    </div>
                 </Modal>
             )}
 

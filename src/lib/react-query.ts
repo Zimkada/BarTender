@@ -13,21 +13,26 @@ import { CACHE_STRATEGY } from './cache-strategy';
  */
 
 // ✨ CONFIGURATION DES RETRIES (Optimisée pour éviter le spam 401/403/404)
-const retryFn = (failureCount: number, error: any) => {
+const retryFn = (failureCount: number, error: unknown) => {
+  // 🛡️ Type Guard: Sécurisation de l'erreur
+  const err = error as { status?: number; name?: string; message?: string };
+
   // 1. Ne pas retry si erreur 404/401/403 (Statique/Auth)
-  if (error?.status === 404 || error?.status === 401 || error?.status === 403) return false;
+  if (err?.status === 404 || err?.status === 401 || err?.status === 403) return false;
   // 2. Ne pas retry si la requête a été annulée volontairement
-  if (error?.name === 'AbortError' || error?.message?.includes('aborted')) return false;
+  if (err?.name === 'AbortError' || err?.message?.includes('aborted')) return false;
   // 3. Max 2 tentatives (au lieu de 3 par défaut) pour réduire la latence perçue en cas d'erreur
   return failureCount < 2;
 };
 
 // Gestionnaire d'erreur global pour les requêtes
-const onError = (error: any) => {
+const onError = (error: unknown) => {
   console.error('[React Query Error]', error);
+  const err = error as { status?: number; message?: string };
+
   // On ne notifie pas les erreurs 401/403 car elles sont souvent gérées par l'auth interceptor
-  if (error?.status !== 401 && error?.status !== 403) {
-    const message = error?.message || 'Une erreur est survenue lors de la récupération des données';
+  if (err?.status !== 401 && err?.status !== 403) {
+    const message = err?.message || 'Une erreur est survenue lors de la récupération des données';
     import('react-hot-toast').then(({ default: toast }) => {
       toast.error(message, { id: 'query-error' }); // id unique pour éviter les doublons
     });
@@ -57,9 +62,10 @@ export const queryClient = new QueryClient({
   },
   // Cache global pour intercepter les erreurs de mutation
   mutationCache: new MutationCache({
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       // Notification automatique pour toutes les erreurs de mutation (écriture)
-      const message = error?.message || 'Une erreur est survenue lors de l\'opération';
+      const err = error as { message?: string };
+      const message = err?.message || 'Une erreur est survenue lors de l\'opération';
       import('react-hot-toast').then(({ default: toast }) => {
         toast.error(message);
       });

@@ -1,6 +1,6 @@
 // ApiClient.ts - Client HTTP pour synchronisation avec backend Supabase
 import { SYNC_CONFIG, isSupabaseEnabled } from '../config/sync.config';
-import type { SyncOperation } from '../types/sync';
+import type { SyncOperation, CreateServerMappingPayload } from '../types/sync';
 import type {
   Sale,
   Return,
@@ -10,6 +10,7 @@ import type {
   Consignment,
   Salary,
 } from '../types';
+import { ServerMappingsService } from './supabase/server-mappings.service';
 
 /**
  * Résultat d'une opération de sync
@@ -95,6 +96,8 @@ class ApiClient {
           return await this.forfeitConsignment(operation.payload, operation.barId);
         case 'ADD_SALARY':
           return await this.addSalary(operation.payload as Salary, operation.barId);
+        case 'CREATE_SERVER_MAPPING':
+          return await this.createServerMapping(operation.payload as CreateServerMappingPayload);
         default:
           return {
             success: false,
@@ -200,6 +203,33 @@ class ApiClient {
       consignment_id: payload.consignmentId,
       bar_id: barId,
     });
+  }
+
+  // ===== SERVER MAPPINGS =====
+
+  private async createServerMapping(payload: CreateServerMappingPayload): Promise<ApiResponse> {
+    try {
+      await ServerMappingsService.upsertServerMapping(
+        payload.barId,
+        payload.serverName,
+        payload.userId
+      );
+      return {
+        success: true,
+        data: {
+          barId: payload.barId,
+          serverName: payload.serverName,
+          userId: payload.userId,
+          synced_at: new Date().toISOString(),
+        },
+      };
+    } catch (error) {
+      const err = error as Error;
+      return {
+        success: false,
+        error: err.message || 'Failed to create server mapping',
+      };
+    }
   }
 
   // ===== SALARIES =====

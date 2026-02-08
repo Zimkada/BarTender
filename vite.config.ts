@@ -229,6 +229,8 @@ export default defineConfig({
       }
     },
     // CSS Minification
-    cssMinify: true
+    cssMinify: true,
+    // Increase chunk size warning limit (guides & offline add significant bundle size)
+    chunkSizeWarningLimit: 600
   }
 });

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Search, Zap, X, ShoppingCart, Trash2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { PaymentMethod } from './cart/PaymentMethodSelector';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
@@ -18,6 +19,8 @@ import { Input } from './ui/Input';
 import { useCart } from '../hooks/useCart';
 import { CartDrawer } from './cart/CartDrawer';
 // Components for Desktop Sidebar reconstruction
+import { useTickets } from '../hooks/queries/useTickets';
+import { TicketsService } from '../services/supabase/tickets.service';
 import { CartShared } from './cart/CartShared';
 import { CartFooter } from './cart/CartFooter';
 import { SelectOption } from './ui/Select';
@@ -47,7 +50,46 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   // Desktop Specific State (Simplified Mode)
   const [selectedServerDesktop, setSelectedServerDesktop] = useState('');
   const [paymentMethodDesktop, setPaymentMethodDesktop] = useState<PaymentMethod>('cash');
+  const [selectedBonDesktop, setSelectedBonDesktop] = useState(''); // NEW: Bon support
   const [showSuccessDesktop, setShowSuccessDesktop] = useState(false);
+
+  // --- TICKETS (BONS) ---
+  const { tickets: ticketsWithSummary, refetchTickets } = useTickets(currentBar?.id);
+
+  const handleCreateBon = async (tableNumber?: number, customerName?: string) => {
+    if (!currentBar || !currentSession) return;
+    try {
+      let serverIdToAssign: string | undefined = undefined;
+
+      if (selectedServerDesktop) {
+        if (selectedServerDesktop.startsWith('Moi (')) {
+          serverIdToAssign = currentSession.userId;
+        } else {
+          // Résolution de l'ID pour un serveur tiers en mode simplifié
+          serverIdToAssign = (await ServerMappingsService.getUserIdForServerName(
+            currentBar.id,
+            selectedServerDesktop
+          )) || undefined;
+        }
+      }
+
+      const ticket = await TicketsService.createTicket(
+        currentBar.id,
+        currentSession.userId,
+        undefined,
+        serverIdToAssign,
+        currentBar.closingHour,
+        tableNumber,
+        customerName
+      );
+      await refetchTickets();
+      setSelectedBonDesktop(ticket.id);
+      toast.success("Nouveau bon créé !");
+    } catch (e) {
+      console.error(e);
+      toast.error("Erreur lors de la création du bon");
+    }
+  };
 
 
   // --- NEW: USE CART HOOK (Local Mode) ---
@@ -87,6 +129,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
 
     // 1. Resolve Server ID (if Simplified Mode)
     let serverId: string | undefined;
+
     if (isSimplifiedMode && assignedServerName) {
       try {
         const serverNameToCheck = assignedServerName.startsWith('Moi (')
@@ -339,6 +382,19 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                       onServerChange={setSelectedServerDesktop}
                       paymentMethod={paymentMethodDesktop}
                       onPaymentMethodChange={setPaymentMethodDesktop}
+
+                      // BONS PROPS
+                      bonOptions={[
+                        { value: '', label: 'Aucun (Encaissement direct)' },
+                        ...(ticketsWithSummary || []).map(t => ({
+                          value: t.id,
+                          label: `Table ${t.tableNumber || '?'} - ${t.customerName || 'Client'}`
+                        }))
+                      ]}
+                      selectedBon={selectedBonDesktop}
+                      onBonChange={setSelectedBonDesktop}
+                      onCreateBon={handleCreateBon}
+
                       onCheckout={() => handleCheckout(selectedServerDesktop, paymentMethodDesktop)}
                       onClear={clearCart}
                       isLoading={createSale.isPending}

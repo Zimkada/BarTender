@@ -12,9 +12,10 @@ interface SaleDetailModalProps {
     hasReturns?: boolean; // ✨ NEW
     hasConsignments?: boolean; // ✨ NEW
     onCancelSale?: (saleId: string, reason: string) => Promise<void>;
+    serverName?: string;
 }
 
-export function SaleDetailModal({ sale, formatPrice, onClose, canCancel, hasReturns, hasConsignments, onCancelSale }: SaleDetailModalProps) {
+export function SaleDetailModal({ sale, formatPrice, onClose, canCancel, hasReturns, hasConsignments, onCancelSale, serverName }: SaleDetailModalProps) {
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
     const [isCancelling, setIsCancelling] = useState(false);
@@ -78,11 +79,7 @@ export function SaleDetailModal({ sale, formatPrice, onClose, canCancel, hasRetu
                                         <User size={12} className="text-gray-400" />
                                         <span>Serveur</span>
                                     </div>
-                                    {/* TODO: Récupérer le nom du serveur via props ou context si nécessaire, ou on assume que c'est déjà enrichi avant. 
-                                        Pour l'instant, on affiche l'ID si on n'a pas le nom, ou on le passera en props plus tard. 
-                                        Dans SalesHistoryPage, on a accès aux users.
-                                    */}
-                                    <span className="font-semibold text-gray-700">Non spécifié</span>
+                                    <span className="font-semibold text-gray-700">{serverName || 'Non spécifié'}</span>
                                 </div>
                             </div>
 

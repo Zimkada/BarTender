@@ -3,7 +3,11 @@ import type { Database } from '../../lib/database.types';
 import type { GlobalCategory as GlobalCategoryType } from '../../types';
 
 type BarCategory = Database['public']['Tables']['bar_categories']['Row'];
+type BarCategoryInsert = Database['public']['Tables']['bar_categories']['Insert'];
+type BarCategoryUpdate = Database['public']['Tables']['bar_categories']['Update'];
 type GlobalCategoryRow = Database['public']['Tables']['global_categories']['Row'];
+type GlobalCategoryInsert = Database['public']['Tables']['global_categories']['Insert'];
+type GlobalCategoryUpdate = Database['public']['Tables']['global_categories']['Update'];
 
 /**
  * Interface pour une catégorie enrichie (avec données globales si applicable)
@@ -44,7 +48,7 @@ export class CategoriesService {
             }
 
             return data || [];
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -65,7 +69,7 @@ export class CategoriesService {
 
             if (error) throw error;
             return data || [];
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -79,7 +83,8 @@ export class CategoriesService {
     ): Promise<BarCategory> {
         try {
             console.log('[CategoriesService] Creating custom category:', { barId, data });
-            const payload = {
+            // ✅ Type-safe payload using Database Insert type
+            const payload: BarCategoryInsert = {
                 bar_id: barId,
                 custom_name: data.name,
                 custom_color: data.color || '#3B82F6',
@@ -89,7 +94,7 @@ export class CategoriesService {
 
             const { data: newCategory, error } = await supabase
                 .from('bar_categories')
-                .insert(payload as any)
+                .insert(payload)
                 .select()
                 .single();
 
@@ -103,7 +108,7 @@ export class CategoriesService {
             }
 
             return newCategory;
-        } catch (error: any) {
+        } catch (error) {
             console.error('[CategoriesService] Catch Error:', error);
             throw new Error(handleSupabaseError(error));
         }
@@ -117,13 +122,16 @@ export class CategoriesService {
         globalCategoryId: string
     ): Promise<BarCategory> {
         try {
+            // ✅ Type-safe payload using Database Insert type
+            const payload: BarCategoryInsert = {
+                bar_id: barId,
+                global_category_id: globalCategoryId,
+                is_active: true,
+            };
+
             const { data: newCategory, error } = await supabase
                 .from('bar_categories')
-                .insert({
-                    bar_id: barId,
-                    global_category_id: globalCategoryId,
-                    is_active: true,
-                } as any)
+                .insert(payload)
                 .select()
                 .single();
 
@@ -132,7 +140,7 @@ export class CategoriesService {
             }
 
             return newCategory;
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -146,13 +154,14 @@ export class CategoriesService {
         updates: { name?: string; color?: string }
     ): Promise<BarCategory> {
         try {
-            const updateData: any = {};
+            // ✅ Type-safe update payload using Database Update type
+            const updateData: BarCategoryUpdate = {};
             if (updates.name !== undefined) updateData.custom_name = updates.name;
             if (updates.color !== undefined) updateData.custom_color = updates.color;
 
             const { data, error } = await supabase
                 .from('bar_categories')
-                .update(updateData as any)
+                .update(updateData)
                 .eq('id', categoryId)
                 .select()
                 .single();
@@ -162,7 +171,7 @@ export class CategoriesService {
             }
 
             return data;
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -172,9 +181,12 @@ export class CategoriesService {
      */
     static async deleteCategory(categoryId: string): Promise<void> {
         try {
+            // ✅ Type-safe soft delete using Database Update type
+            const updatePayload: BarCategoryUpdate = { is_active: false };
+
             const { error } = await supabase
                 .from('bar_categories')
-                .update({ is_active: false } as any)
+                .update(updatePayload)
                 .eq('id', categoryId);
 
             if (error) {
@@ -185,7 +197,7 @@ export class CategoriesService {
                 }
                 throw new Error('Erreur lors de la suppression de la catégorie');
             }
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -215,7 +227,7 @@ export class CategoriesService {
                 isSystem: cat.is_system ?? false,
                 createdAt: new Date(cat.created_at || Date.now())
             }));
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -225,9 +237,18 @@ export class CategoriesService {
      */
     static async createGlobalCategory(data: Partial<GlobalCategoryType>): Promise<GlobalCategoryType> {
         try {
+            // ✅ Type-safe payload transformation from app type to DB type
+            const payload: GlobalCategoryInsert = {
+                name: data.name!,
+                color: data.color,
+                icon: data.icon,
+                order_index: data.orderIndex,
+                is_system: data.isSystem,
+            };
+
             const { data: newCategory, error } = await supabase
                 .from('global_categories')
-                .insert(data as any)
+                .insert(payload)
                 .select()
                 .single();
 
@@ -244,7 +265,7 @@ export class CategoriesService {
                 isSystem: result.is_system ?? false,
                 createdAt: new Date(result.created_at || Date.now())
             };
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -254,9 +275,17 @@ export class CategoriesService {
      */
     static async updateGlobalCategory(id: string, updates: Partial<GlobalCategoryType>): Promise<GlobalCategoryType> {
         try {
+            // ✅ Type-safe payload transformation from app type to DB type
+            const payload: GlobalCategoryUpdate = {};
+            if (updates.name !== undefined) payload.name = updates.name;
+            if (updates.color !== undefined) payload.color = updates.color;
+            if (updates.icon !== undefined) payload.icon = updates.icon;
+            if (updates.orderIndex !== undefined) payload.order_index = updates.orderIndex;
+            if (updates.isSystem !== undefined) payload.is_system = updates.isSystem;
+
             const { data, error } = await supabase
                 .from('global_categories')
-                .update(updates as any)
+                .update(payload)
                 .eq('id', id)
                 .select()
                 .single();
@@ -274,7 +303,7 @@ export class CategoriesService {
                 isSystem: result.is_system ?? false,
                 createdAt: new Date(result.created_at || Date.now())
             };
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }
@@ -284,9 +313,12 @@ export class CategoriesService {
      */
     static async deleteGlobalCategory(id: string): Promise<void> {
         try {
+            // ✅ Type-safe soft delete using Database Update type
+            const updatePayload: GlobalCategoryUpdate = { is_active: false };
+
             const { error } = await supabase
                 .from('global_categories')
-                .update({ is_active: false } as any)
+                .update(updatePayload)
                 .eq('id', id);
 
             if (error) {
@@ -297,7 +329,7 @@ export class CategoriesService {
                 }
                 throw new Error('Erreur lors de la suppression de la catégorie');
             }
-        } catch (error: any) {
+        } catch (error) {
             throw new Error(handleSupabaseError(error));
         }
     }

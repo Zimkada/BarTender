@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useBarContext } from '../context/BarContext';
 import { useCacheWarming } from '../hooks/useViewMonitoring';
 import { useAuth } from '../context/AuthContext';
-import { useStock } from '../context/StockContext';
+import { useStock } from '../context/hooks/useStock';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { useNotifications } from '../components/Notifications';
 import { useQueryClient } from '@tanstack/react-query';
@@ -12,6 +12,7 @@ import {
     Category,
     Product,
     Sale,
+    SaleItem,
     AppSettings,
     Return,
     User,
@@ -182,7 +183,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }).then((data) => {
             showNotification('success', `Catégorie "${category.name}" créée avec succès`, { duration: 3000 });
             return data;
-        }).catch((error: any) => {
+        }).catch((error) => {
             showNotification('error', error.message || 'Erreur lors de la création de la catégorie', { duration: 5000 });
             throw error;
         });
@@ -191,7 +192,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const linkCategory = useCallback((globalCategoryId: string) => {
         return categoryMutations.linkGlobalCategory.mutateAsync(globalCategoryId).then(() => {
             showNotification('success', 'Catégorie globale ajoutée avec succès', { duration: 3000 });
-        }).catch((error: any) => {
+        }).catch((error) => {
             showNotification('error', error.message || 'Erreur lors de l\'ajout de la catégorie', { duration: 5000 });
             throw error;
         });
@@ -211,7 +212,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 showNotification('success', `${categories.length} catégories créées avec succès`, { duration: 3000 });
                 return results;
             })
-            .catch((error: any) => {
+            .catch((error) => {
                 showNotification('error', error.message || 'Erreur lors de la création des catégories', { duration: 5000 });
                 throw error;
             });
@@ -230,7 +231,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 onSuccess: () => {
                     showNotification('success', 'Catégorie mise à jour avec succès', { duration: 3000 });
                 },
-                onError: (error: any) => {
+                onError: (error) => {
                     showNotification('error', error.message || 'Erreur lors de la mise à jour de la catégorie', { duration: 5000 });
                 },
             }
@@ -242,7 +243,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             onSuccess: () => {
                 showNotification('success', 'Catégorie supprimée avec succès', { duration: 3000 });
             },
-            onError: (error: any) => {
+            onError: (error) => {
                 showNotification('error', error.message || 'Erreur lors de la suppression de la catégorie', { duration: 5000 });
             },
         });
@@ -281,20 +282,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         // Mapping CartItem[] (UI) -> SaleItem[] (DB/Service)
         // ✨ Amélioration: Préserver les prix calculés et détails de promotion
-        const formattedItems = isAlreadyFormatted
-            ? (saleData.items as any)
-            : saleData.items?.map((item: any) => ({
-                product_id: item.product.id,
-                product_name: item.product.name,
-                quantity: item.quantity,
-                unit_price: item.unit_price ?? item.product.price,
-                total_price: item.total_price ?? (item.product.price * item.quantity),
-                original_unit_price: item.original_unit_price ?? item.product.price,
-                discount_amount: item.discount_amount ?? 0,
-                promotion_id: item.promotion_id,
-                promotion_type: item.promotion_type,
-                promotion_name: item.promotion_name
-            })) || [];
+        const formattedItems: SaleItem[] = isAlreadyFormatted
+            ? (saleData.items as SaleItem[] || [])
+            : saleData.items?.map((item) => {
+                // Type guard: item est CartItem avec champs additionnels potentiels
+                const cartItem = item as unknown as CartItem & {
+                    unit_price?: number;
+                    total_price?: number;
+                    original_unit_price?: number;
+                    discount_amount?: number;
+                    promotion_id?: string;
+                    promotion_type?: string;
+                    promotion_name?: string;
+                };
+                return {
+                    product_id: cartItem.product.id,
+                    product_name: cartItem.product.name,
+                    quantity: cartItem.quantity,
+                    unit_price: cartItem.unit_price ?? cartItem.product.price,
+                    total_price: cartItem.total_price ?? (cartItem.product.price * cartItem.quantity),
+                    original_unit_price: cartItem.original_unit_price ?? cartItem.product.price,
+                    discount_amount: cartItem.discount_amount ?? 0,
+                    promotion_id: cartItem.promotion_id,
+                    promotion_type: cartItem.promotion_type,
+                    promotion_name: cartItem.promotion_name
+                } as SaleItem;
+            }) || [];
 
         // Mapping CartItem[] (UI) -> SaleItem[] (DB/Service)
         // ✨ FIX: En mode simplifié, sold_by = serveur sélectionné, pas le gérant
@@ -303,19 +316,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ? saleData.serverId
             : currentSession.userId;
 
-        const newSaleData = {
-            bar_id: currentBar.id,
+        const newSaleData: Partial<Sale> & { items: SaleItem[] } = {
+            barId: currentBar.id,
             items: formattedItems,
-            payment_method: saleData.paymentMethod || 'cash', // Default to cash if not provided
-            sold_by: soldByValue,
-            customer_name: saleData.customerName,
-            customer_phone: saleData.customerPhone,
+            paymentMethod: saleData.paymentMethod || 'cash',
+            soldBy: soldByValue,
+            customerName: saleData.customerName,
+            customerPhone: saleData.customerPhone,
             notes: saleData.notes,
             status: (currentSession.role === 'promoteur' || currentSession.role === 'gerant') ? 'validated' : 'pending',
-            serverId: saleData.serverId || undefined  // ✨ NOUVEAU: Pass server_id for simplified mode
+            serverId: saleData.serverId,
+            ticketId: saleData.ticketId
         };
 
-        const result = await salesMutations.createSale.mutateAsync(newSaleData as any);
+        const result = await salesMutations.createSale.mutateAsync(newSaleData);
 
         // Clear cart after successful sale creation
         if (result) {

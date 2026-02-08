@@ -83,7 +83,7 @@ export default function ConsignmentPage() {
 
 // ===== TAB 2: CONSIGNATIONS ACTIVES =====
 interface ActiveConsignmentsTabProps {
-  stockManager: any;
+  stockManager: ReturnType<typeof useStockManagement>;
   isReadOnly?: boolean;
 }
 
@@ -99,7 +99,7 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
   const [urgencyFilter, setUrgencyFilter] = useState<"all" | "soon" | "expired">("all");
 
   const users = useMemo(() =>
-    Array.isArray(barMembers) ? barMembers.map((m: any) => m.user).filter(Boolean) as UserType[] : [],
+    Array.isArray(barMembers) ? barMembers.map((m) => m.user).filter(Boolean) as UserType[] : [],
     [barMembers]
   );
 
@@ -217,7 +217,7 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
             ].map((f) => (
               <button
                 key={f.id}
-                onClick={() => setUrgencyFilter(f.id as any)}
+                onClick={() => setUrgencyFilter(f.id as "all" | "soon" | "expired")}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${urgencyFilter === f.id
                   ? "glass-action-button-active-2026 shadow-md shadow-brand-subtle"
                   : "glass-action-button-2026"
@@ -274,7 +274,7 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
 };
 
 // ===== TAB 3: HISTORIQUE =====
-const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
+const HistoryTab: React.FC<{ stockManager: ReturnType<typeof useStockManagement> }> = ({ stockManager }) => {
   const { sales } = useAppContext();
   const { barMembers } = useBarContext();
   const { currentSession } = useAuth();
@@ -282,7 +282,7 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
   const [filterStatus, setFilterStatus] = useState<"all" | "claimed" | "expired" | "forfeited">("all");
 
   const users = useMemo(() =>
-    Array.isArray(barMembers) ? barMembers.map((m: any) => m.user).filter(Boolean) as UserType[] : [],
+    Array.isArray(barMembers) ? barMembers.map((m) => m.user).filter(Boolean) as UserType[] : [],
     [barMembers]
   );
 
@@ -323,7 +323,7 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
         ].map((filter) => (
           <button
             key={filter.value}
-            onClick={() => setFilterStatus(filter.value as any)}
+            onClick={() => setFilterStatus(filter.value as "all" | "claimed" | "expired" | "forfeited")}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${filterStatus === filter.value
               ? "glass-action-button-active-2026 shadow-md shadow-brand-subtle"
               : "glass-action-button-2026 text-gray-400"

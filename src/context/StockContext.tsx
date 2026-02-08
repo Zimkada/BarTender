@@ -1,8 +1,8 @@
 // StockContext.tsx - Context pour centraliser la gestion du stock
 // Wrapper autour de useStockManagement pour le rendre accessible globalement
-import React, { createContext, useContext, ReactNode } from 'react';
-import { useStockManagement } from '../hooks/useStockManagement';
-import type { Product, Supply, Consignment, ProductStockInfo } from '../types';
+import React, { createContext, ReactNode } from 'react';
+import { useStockManagement, type CreateConsignmentData } from '../hooks/useStockManagement';
+import type { Product, Supply, Consignment, ProductStockInfo, Expense } from '../types';
 
 interface StockContextType {
   // Products
@@ -16,7 +16,7 @@ interface StockContextType {
   supplies: Supply[];
   processSupply: (
     supplyData: { productId: string; quantity: number; lotSize: number; lotPrice: number; supplier: string },
-    onExpenseCreated: (expenseData: any) => void
+    onExpenseCreated: (expenseData: Omit<Expense, 'id' | 'barId' | 'createdAt'>) => void
   ) => void;
   getAverageCostPerUnit: (productId: string) => number;
 
@@ -25,21 +25,14 @@ interface StockContextType {
 
   // Consignments
   consignments: Consignment[];
-  createConsignment: (data: Omit<Consignment, 'id' | 'barId' | 'createdAt' | 'createdBy' | 'status'> & { expirationDays?: number }) => void;
+  createConsignment: (data: CreateConsignmentData) => Promise<unknown>;
   claimConsignment: (consignmentId: string) => boolean;
   forfeitConsignment: (consignmentId: string) => boolean;
   getActiveConsignments: () => Consignment[];
 }
 
-const StockContext = createContext<StockContextType | undefined>(undefined);
-
-export const useStock = () => {
-  const context = useContext(StockContext);
-  if (!context) {
-    throw new Error('useStock must be used within StockProvider');
-  }
-  return context;
-};
+// Export du context pour le hook séparé (compatibilité Vite Fast Refresh)
+export const StockContext = createContext<StockContextType | undefined>(undefined);
 
 interface StockProviderProps {
   children: ReactNode;

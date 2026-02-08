@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings as SettingsIcon, DollarSign, Clock, Building2, Mail, Phone, MapPin, ShieldCheck, CheckCircle, AlertCircle, GitBranch } from 'lucide-react';
+import { Settings as SettingsIcon, DollarSign, Clock, Building2, MapPin, Mail, Phone, ShieldCheck, CheckCircle, AlertCircle, GitBranch } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useNotifications } from '../components/Notifications';
 import { Factor } from '@supabase/supabase-js';
@@ -48,7 +48,6 @@ export default function SettingsPage() {
 
     // Rôles
     const isPromoteur = currentSession?.role === 'promoteur' || currentSession?.role === 'super_admin';
-    const isGerant = currentSession?.role === 'gerant';
 
     // Redirection automatique pour les non-promoteurs (qui n'ont pas accès à l'onglet par défaut 'bar')
     const [activeTab, setActiveTab] = useState<'bar' | 'operational' | 'security'>(() => {
@@ -67,6 +66,7 @@ export default function SettingsPage() {
     const [mfaSecret, setMfaSecret] = useState<string | null>(null);
     const [verifyCode, setVerifyCode] = useState('');
     const [mfaError, setMfaError] = useState('');
+
     const [mfaLoading, setMfaLoading] = useState(false);
 
     // Vérifier état MFA
@@ -96,6 +96,9 @@ export default function SettingsPage() {
 
     // Charger les membres du bar pour ServerMappingsManager
     useEffect(() => {
+        const controller = new AbortController();
+        let isMounted = true;
+
         const loadBarMembers = async () => {
             if (!currentBar?.id) return;
             try {
@@ -103,31 +106,59 @@ export default function SettingsPage() {
                     .from('bar_members')
                     .select('user_id, role')
                     .eq('bar_id', currentBar.id)
-                    .eq('is_active', true);
+                    .eq('is_active', true)
+                    .abortSignal(controller.signal);
 
-                if (error) throw error;
+                if (error) {
+                    if (error.code === 'ABORT') return;
+                    throw error;
+                }
 
-                // Enrichir avec les noms des utilisateurs
-                const enrichedMembers = await Promise.all((data || []).map(async (member) => {
-                    const { data: user } = await supabase
-                        .from('users')
-                        .select('name')
-                        .eq('id', member.user_id)
-                        .single();
+                // Enrichir avec les noms des utilisateurs - Limitation des requêtes en cascade
+                const userIds = (data || []).map(m => m.user_id).filter(Boolean) as string[];
 
+                if (userIds.length === 0) {
+                    if (isMounted) setBarMembers([]);
+                    return;
+                }
+
+                const { data: users, error: userError } = await supabase
+                    .from('users')
+                    .select('id, name')
+                    .in('id', userIds)
+                    .abortSignal(controller.signal);
+
+                if (userError) throw userError;
+
+                const validMembers = (data || []).map(member => {
+                    const user = users?.find(u => u.id === member.user_id);
                     return {
-                        userId: member.user_id,
+                        userId: member.user_id!,
                         name: user?.name || 'Inconnu',
-                        role: member.role
+                        role: member.role || 'serveur'
                     };
-                }));
+                });
 
-                setBarMembers(enrichedMembers);
-            } catch (error) {
+                if (isMounted) {
+                    // Optimisation : Utiliser une comparaison de longueur et d'IDs au lieu de JSON.stringify
+                    setBarMembers(prev => {
+                        const hasChanged = prev.length !== validMembers.length ||
+                            validMembers.some((m, idx) => m.userId !== prev[idx]?.userId || m.role !== prev[idx]?.role);
+                        return hasChanged ? validMembers : prev;
+                    });
+                }
+            } catch (error: any) {
+                if (error.name === 'AbortError') return;
                 console.error('[SettingsPage] Error loading bar members:', error);
             }
         };
+
         loadBarMembers();
+
+        return () => {
+            isMounted = false;
+            controller.abort();
+        };
     }, [currentBar?.id]);
 
     // États Bar
@@ -143,6 +174,21 @@ export default function SettingsPage() {
     const [tempConsignmentExpirationDays, setTempConsignmentExpirationDays] = useState(currentBar?.settings?.consignmentExpirationDays ?? 7);
     const [tempSupplyFrequency, setTempSupplyFrequency] = useState(currentBar?.settings?.supplyFrequency ?? 7);
     const [tempOperatingMode, setTempOperatingMode] = useState<'full' | 'simplified'>(currentBar?.settings?.operatingMode ?? 'simplified');
+
+    // BUG #3 FIX (Ajusté) : Synchronisation UNIQUEMENT lors du changement de BarId
+    // On évite de synchroniser operatingMode ici car cela écrase les choix de l'utilisateur lors de refreshBars()
+    useEffect(() => {
+        if (currentBar) {
+            setBarName(currentBar.name ?? '');
+            setBarAddress(currentBar.address ?? '');
+            setBarPhone(currentBar.phone ?? '');
+            setBarEmail(currentBar.email ?? '');
+            setTempCloseHour(currentBar.closingHour ?? 6);
+            setTempConsignmentExpirationDays(currentBar.settings?.consignmentExpirationDays ?? 7);
+            setTempSupplyFrequency(currentBar.settings?.supplyFrequency ?? 7);
+            setTempOperatingMode(currentBar.settings?.operatingMode ?? 'simplified');
+        }
+    }, [currentBar?.id]); // ⚡ Retiré currentBar?.settings?.operatingMode des dépendances pour éviter le revert permanent
 
     // Tabs configuration
     // Tabs configuration - Filtrage par rôle pour sécurité robustesse
@@ -235,10 +281,12 @@ export default function SettingsPage() {
         }
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         updateSettings(tempSettings);
         if (currentBar) {
-            updateBar(currentBar.id, {
+            // ⭐ FIX CRITIQUE: Attendre la fin de updateBar() avant de naviguer
+            // Sinon les updates optimistes sont perdues lors du navigate()
+            await updateBar(currentBar.id, {
                 name: barName.trim(),
                 address: barAddress.trim() || undefined,
                 phone: barPhone.trim() || undefined,
@@ -297,7 +345,7 @@ export default function SettingsPage() {
                 hideSubtitleOnMobile={true}
             />
 
-            <div className="max-w-7xl mx-auto space-y-6 pb-20 px-4">
+            <div className="max-w-7xl mx-auto space-y-6 pb-32 px-4">
                 {/* Contenu - Utilisation de Card pour l'encapsulation */}
                 <Card className="p-6 space-y-8" data-guide="settings-content">
 
@@ -609,22 +657,22 @@ export default function SettingsPage() {
                     )}
                 </Card>
 
-                {/* Footer Actions */}
-                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-200 md:static md:bg-transparent md:border-0 md:p-0 z-20">
-                    <div className="max-w-7xl mx-auto flex gap-3">
+                {/* Footer Actions - Z-index élevé pour visibilité mobile */}
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-200 md:static md:bg-transparent md:border-0 md:p-0 z-50">
+                    <div className="max-w-7xl mx-auto flex flex-col-reverse sm:flex-row gap-3">
                         <Button
                             onClick={() => navigate(-1)}
                             variant="secondary"
                             size="lg"
-                            className="flex-1"
+                            className="w-full sm:flex-1 h-12"
                         >
                             Annuler
                         </Button>
                         <Button
                             onClick={handleSave}
-                            variant="default" // Utilise le variant glass/brand par défaut
+                            variant="default"
                             size="lg"
-                            className="flex-1 font-bold shadow-brand"
+                            className="w-full sm:flex-1 font-bold shadow-brand h-12"
                         >
                             Enregistrer les modifications
                         </Button>

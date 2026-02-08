@@ -1,7 +1,8 @@
 import type { Factor, User as SupabaseUser } from '@supabase/supabase-js';
 
-import { supabase, handleSupabaseError } from '../../lib/supabase';
-import type { Database } from '../../lib/database.types';
+import { supabase } from '../../lib/supabase';
+import { getErrorMessage } from '../../utils/errorHandler';
+import type { Database, Json } from '../../lib/database.types';
 import { User as AppUser, UserRole, BarMember } from '../../types';
 
 type DbUser = Database['public']['Tables']['users']['Row'];
@@ -14,6 +15,7 @@ export interface AuthUser extends Omit<DbUser, 'password_hash'> {
   barName: string;
   allBarIds?: string[]; // IDs de tous les bars actifs (pour multi-bar support)
   factors?: Factor[]; // Add factors for MFA
+  has_completed_onboarding?: boolean; // ✅ Track if user has completed onboarding/training
 }
 
 export interface LoginCredentials {
@@ -35,6 +37,103 @@ export interface LoginResult {
   mfaFactorId?: string; // ID du facteur MFA à utiliser pour le challenge
   error?: string;
   authUserId?: string; // Temporarily store user ID for MFA flow
+}
+
+// Interfaces pour le typage interne des requêtes
+interface PromoterMemberRow {
+  user_id: string;
+  bar_id: string;
+  bars: { name: string } | null;
+}
+
+interface UserRoleRow {
+  user_id: string;
+  role: string;
+}
+
+/**
+ * ✅ Interface for membership with joined bar data
+ */
+interface MembershipWithBar {
+  role: 'super_admin' | 'promoteur' | 'gerant' | 'serveur';
+  bar_id: string;
+  bars: {
+    name: string;
+    address?: string | null;
+    phone?: string | null;
+  } | null;
+}
+
+/**
+ * ✅ Interface for MFA verification response
+ */
+interface MfaVerificationResponse {
+  session: {
+    access_token: string;
+    refresh_token: string;
+    user: SupabaseUser;
+  } | null;
+  user: SupabaseUser | null;
+}
+
+/**
+ * ✅ Interface for Supabase Edge Function errors
+ */
+interface FunctionsHttpError {
+  name: 'FunctionsHttpError';
+  context: {
+    body: string | { error?: string };
+  };
+  message: string;
+}
+
+/**
+ * ✅ Type guard for Supabase Edge Function errors
+ */
+const isFunctionsHttpError = (error: unknown): error is FunctionsHttpError => {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    (error as Record<string, unknown>).name === 'FunctionsHttpError' &&
+    'context' in error
+  );
+};
+
+interface BarMemberRPCResponse {
+  id: string;
+  user_id: string;
+  bar_id: string;
+  role: string;
+  assigned_by: string | null;
+  joined_at: string;
+  is_active: boolean;
+  user_id_inner: string;
+  username: string | null;
+  name: string;
+  phone: string;
+  email: string;
+  created_at: string;
+  user_is_active: boolean;
+  first_login: boolean;
+  avatar_url: string | null;
+  last_login_at: string | null;
+}
+
+interface BarMemberDetailsRPCResponse {
+  user_id: string;
+  username: string | null;
+  user_email: string;
+  user_name: string;
+  user_phone: string;
+  first_login: boolean;
+  created_at: string;
+  last_login_at: string | null;
+  role: string;
+  joined_at?: string;
+  assigned_at?: string;
+  member_is_active?: boolean;
+  is_active?: boolean;
 }
 
 /**
@@ -79,41 +178,44 @@ export class AuthService {
       throw new Error('Aucun rôle actif trouvé pour cet utilisateur');
     }
 
+    // ✅ Type-safe cast for memberships with joined bar data
+    const typedMemberships = memberships as unknown as MembershipWithBar[];
+
     // Sélection du bar par défaut lors de l'initialisation
     // Priorité: 1) localStorage, 2) Premier bar actif (plus récent)
     const savedBarId = localStorage.getItem('selectedBarId');
-    let defaultMembership = memberships[0]; // Fallback: premier bar (plus récent)
+    let defaultMembership = typedMemberships[0]; // Fallback: premier bar (plus récent)
 
     // Si un bar est sauvegardé dans localStorage, l'utiliser s'il existe dans les memberships
     if (savedBarId) {
-      const savedMembership = memberships.find((m: any) => m.bar_id === savedBarId);
+      const savedMembership = typedMemberships.find(m => m.bar_id === savedBarId);
       if (savedMembership) {
         defaultMembership = savedMembership;
       }
     }
 
     // Récupérer les IDs de TOUS les bars pour BarSelector
-    const allBarIds = memberships.map((m: any) => m.bar_id);
+    const allBarIds = typedMemberships.map(m => m.bar_id);
 
-    const profileData = profile as any;
-    const membershipData = defaultMembership as any;
-
+    // ✅ Type-safe access to profile and membership data
     return {
       id: userId,
-      email: profileData.email!,
-      username: profileData.username || '',
-      name: profileData.name || '',
-      phone: profileData.phone || '',
-      avatar_url: profileData.avatar_url,
-      is_active: profileData.is_active ?? true,
-      first_login: profileData.first_login ?? false,
-      has_completed_onboarding: profileData.has_completed_onboarding ?? false, // New field
-      created_at: profileData.created_at,
-      updated_at: profileData.updated_at,
-      last_login_at: profileData.last_login_at,
-      role: membershipData.role as AuthUser['role'],
-      barId: membershipData.bar_id || '',
-      barName: membershipData.bars?.name || '',
+      email: profile.email!,
+      username: profile.username || '',
+      name: profile.name || '',
+      phone: profile.phone || '',
+      avatar_url: profile.avatar_url,
+      is_active: profile.is_active ?? true,
+      first_login: profile.first_login ?? false,
+      has_completed_onboarding: profile.has_completed_onboarding ?? false,
+      onboarding_completed_at: profile.onboarding_completed_at,
+      training_version_completed: profile.training_version_completed,
+      created_at: profile.created_at,
+      updated_at: profile.updated_at,
+      last_login_at: profile.last_login_at,
+      role: defaultMembership.role as AuthUser['role'],
+      barId: defaultMembership.bar_id || '',
+      barName: defaultMembership.bars?.name || '',
       allBarIds, // Tous les bars actifs (multi-bar support)
     };
   }
@@ -134,9 +236,10 @@ export class AuthService {
         // Il retourne data.session = null et data.user avec les facteurs
         if (error.message.includes('A multi-factor authentication challenge is required') && data.user) {
           const user = data.user as SupabaseUser;
+          // ✅ Type-safe access to MFA factors (Factor[] from Supabase)
           const totpFactor = user.factors?.find((f: Factor) => f.factor_type === 'totp');
           if (totpFactor) {
-            return { mfaRequired: true, mfaFactorId: totpFactor.id, authUserId: data.user.id };
+            return { mfaRequired: true, mfaFactorId: totpFactor.id, authUserId: user.id };
           }
         }
         // Pour toute autre erreur, la relancer
@@ -159,9 +262,9 @@ export class AuthService {
 
       localStorage.setItem('auth_user', JSON.stringify(authUser));
       return { user: authUser };
-    } catch (error: any) {
+    } catch (error) {
       console.error('AuthService login error:', error);
-      return { error: handleSupabaseError(error) };
+      return { error: getErrorMessage(error) };
     }
   }
 
@@ -183,8 +286,8 @@ export class AuthService {
         throw new Error(error.message || 'Code MFA incorrect');
       }
 
-      // Cast data to any to access session/user safely if types are outdated
-      const mfaData = data as any;
+      // ✅ Type-safe cast to MFA verification response
+      const mfaData = data as unknown as MfaVerificationResponse;
 
       if (!mfaData.session || !mfaData.user) {
         throw new Error('Vérification MFA échouée: session non établie.');
@@ -194,9 +297,9 @@ export class AuthService {
 
       localStorage.setItem('auth_user', JSON.stringify(authUser));
       return { user: authUser };
-    } catch (error: any) {
+    } catch (error) {
       console.error('AuthService verifyMfa error:', error); // Debugging
-      return { error: handleSupabaseError(error) };
+      return { error: getErrorMessage(error) };
     }
   }
 
@@ -241,22 +344,23 @@ export class AuthService {
 
       return response.data.user as Omit<DbUser, 'password_hash'>;
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('AuthService signup caught error:', JSON.stringify(error, null, 2));
 
       let errorMessage = 'Erreur lors de la création de l\'utilisateur';
 
-      // Check if it's a Supabase Functions error
-      if (error && error.name === 'FunctionsHttpError' && error.context) {
+      // ✅ Type-safe check for Supabase Functions error using type guard
+      if (isFunctionsHttpError(error)) {
         try {
+          const errCtx = error.context;
           // The body might be a string, or already parsed if Content-Type is application/json
-          const errorBody = typeof error.context.body === 'string' ? JSON.parse(error.context.body) : error.context.body;
-          errorMessage = errorBody.error || error.context.body || error.message;
+          const errorBody = typeof errCtx.body === 'string' ? JSON.parse(errCtx.body) : errCtx.body;
+          errorMessage = errorBody.error || (typeof errCtx.body === 'string' ? errCtx.body : '') || getErrorMessage(error);
         } catch (parseError) {
-          errorMessage = error.message; // Fallback if body parsing fails
+          errorMessage = getErrorMessage(error); // Fallback
         }
-      } else if (error && error.message) {
-        errorMessage = error.message;
+      } else {
+        errorMessage = getErrorMessage(error);
       }
 
       throw new Error(errorMessage);
@@ -299,21 +403,22 @@ export class AuthService {
       // The Edge Function returns the created user, which matches the expected return type.
       return response.data.user as Omit<DbUser, 'password_hash'>;
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('AuthService createPromoter caught error:', JSON.stringify(error, null, 2)); // <-- ADDED LOG
 
       let errorMessage = 'Erreur lors de la création de l\'utilisateur';
 
-      // Check if it's a Supabase Functions error
-      if (error && error.name === 'FunctionsHttpError' && error.context) {
+      // ✅ Type-safe check for Supabase Functions error using type guard
+      if (isFunctionsHttpError(error)) {
         try {
-          const errorBody = typeof error.context.body === 'string' ? JSON.parse(error.context.body) : error.context.body;
-          errorMessage = errorBody.error || error.context.body || error.message;
+          const errCtx = error.context;
+          const errorBody = typeof errCtx.body === 'string' ? JSON.parse(errCtx.body) : errCtx.body;
+          errorMessage = errorBody.error || (typeof errCtx.body === 'string' ? errCtx.body : '') || getErrorMessage(error);
         } catch (parseError) {
-          errorMessage = error.message;
+          errorMessage = getErrorMessage(error);
         }
-      } else if (error && error.message) {
-        errorMessage = error.message;
+      } else {
+        errorMessage = getErrorMessage(error);
       }
 
       throw new Error(errorMessage);
@@ -334,15 +439,15 @@ export class AuthService {
     barName: string,
     barAddress?: string | null,
     barPhone?: string | null,
-    barSettings?: any
+    barSettings?: Json
   ): Promise<{ success: boolean; barId?: string; barName?: string; barAddress?: string; barPhone?: string; error?: string }> {
     try {
       const { data, error } = await supabase.rpc('setup_promoter_bar', {
         p_owner_id: ownerId,
         p_bar_name: barName,
-        p_address: barAddress || null,
-        p_phone: barPhone || null,
-        p_settings: barSettings || null,
+        p_address: barAddress || undefined,
+        p_phone: barPhone || undefined,
+        p_settings: barSettings || undefined,
       });
 
       if (error) {
@@ -356,18 +461,26 @@ export class AuthService {
         throw new Error(error.message);
       }
 
-      return {
-        success: data.success,
-        barId: data.bar_id,
-        barName: data.bar_name,
-        barAddress: data.bar_address,
-        barPhone: data.bar_phone,
+      const result = data as {
+        success: boolean;
+        bar_id: string;
+        bar_name: string;
+        bar_address: string;
+        bar_phone: string;
       };
-    } catch (error: any) {
+
+      return {
+        success: result.success,
+        barId: result.bar_id,
+        barName: result.bar_name,
+        barAddress: result.bar_address,
+        barPhone: result.bar_phone,
+      };
+    } catch (error) {
       console.error('AuthService setupPromoterBar error:', error);
       return {
         success: false,
-        error: error.message || 'Une erreur est survenue lors de la création du bar.',
+        error: getErrorMessage(error) || 'Une erreur est survenue lors de la création du bar.',
       };
     }
   }
@@ -388,7 +501,8 @@ export class AuthService {
         throw new Error('Erreur lors de la récupération des promoteurs');
       }
 
-      const members = membersData as any[];
+      // Cast manuel car la jointure nested n'est pas toujours parfaitement inférée
+      const members = membersData as unknown as PromoterMemberRow[];
 
       if (!members || members.length === 0) {
         return [];
@@ -405,7 +519,8 @@ export class AuthService {
         throw new Error('Erreur lors de la récupération des profils promoteurs');
       }
 
-      const users = usersData as any[];
+      // ✅ Type-safe cast to DbUser array
+      const users = usersData as DbUser[];
 
       // 3. Combiner les données
       const userBarsMap = new Map<string, { id: string; name: string }[]>();
@@ -424,9 +539,9 @@ export class AuthService {
 
       return promoters as Array<DbUser & { bars: { id: string; name: string }[] }>;
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('AuthService getAllPromoters error:', error);
-      throw new Error(handleSupabaseError(error));
+      throw new Error(getErrorMessage(error));
     }
   }
 
@@ -444,7 +559,7 @@ export class AuthService {
         throw new Error('Erreur lors de la récupération des utilisateurs');
       }
 
-      const users = usersData as any[];
+      const users = usersData as DbUser[];
 
       if (!users || users.length === 0) {
         return [];
@@ -460,7 +575,7 @@ export class AuthService {
         throw new Error('Erreur lors de la récupération des rôles');
       }
 
-      const members = membersData as any[];
+      const members = membersData as unknown as UserRoleRow[];
 
       // 3. Mapper les rôles par utilisateur
       const userRolesMap = new Map<string, string[]>();
@@ -478,9 +593,9 @@ export class AuthService {
         roles: userRolesMap.get(user.id) || []
       })) as Array<DbUser & { roles: string[] }>;
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('AuthService getAllUsersWithRoles error:', error);
-      throw new Error(handleSupabaseError(error));
+      throw new Error(getErrorMessage(error));
     }
   }
 
@@ -497,7 +612,7 @@ export class AuthService {
         throw new Error(error.message);
       }
 
-      const members = membersData as any[];
+      const members = membersData as BarMemberRPCResponse[];
 
       return members.map(m => ({
         id: m.id,
@@ -509,22 +624,24 @@ export class AuthService {
         isActive: m.is_active,
         user: {
           id: m.user_id_inner,
-          username: m.username,
-          password: '', // Pas exposé
+          username: m.username || '',
+          password: '', // Pas de mot de passe exposé
           name: m.name,
           phone: m.phone,
           email: m.email,
+          created_at: undefined, // Le type User attend Date | string, mais ici on simplifie
           createdAt: new Date(m.created_at),
           isActive: m.user_is_active,
           firstLogin: m.first_login,
           avatarUrl: m.avatar_url || undefined,
           lastLoginAt: m.last_login_at ? new Date(m.last_login_at) : undefined,
           createdBy: undefined,
+          role: m.role as UserRole, // Ajout du rôle requis par AppUser
         }
       }));
-    } catch (error: any) {
+    } catch (error) {
       console.error('AuthService getAllBarMembers error:', error);
-      throw new Error(handleSupabaseError(error));
+      throw new Error(getErrorMessage(error));
     }
   }
 
@@ -596,9 +713,13 @@ export class AuthService {
 
       localStorage.setItem('auth_user', JSON.stringify(authUser));
       return authUser;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Session initialization error:', error);
-      if (error?.message?.includes('Invalid Refresh Token')) {
+      // ✅ Type-safe error property check
+      const errorMessage = error && typeof error === 'object' && 'message' in error
+        ? String((error as Record<string, unknown>).message)
+        : '';
+      if (errorMessage.includes('Invalid Refresh Token')) {
         await supabase.auth.signOut();
         localStorage.removeItem('auth_user');
       }
@@ -647,7 +768,7 @@ export class AuthService {
         .from('users')
         .update(updates)
         .eq('id', userId)
-        .select('id, username, email, name, phone, avatar_url, is_active, first_login, created_at, updated_at, last_login_at')
+        .select('id, username, email, name, phone, avatar_url, is_active, first_login, created_at, updated_at, last_login_at, has_completed_onboarding, onboarding_completed_at, training_version_completed')
         .single();
 
       if (error || !data) {
@@ -682,9 +803,9 @@ export class AuthService {
       }
 
       return data;
-    } catch (error: any) {
+    } catch (error) {
       console.error('AuthService updateProfile error:', error);
-      throw new Error(handleSupabaseError(error));
+      throw new Error(getErrorMessage(error));
     }
   }
 
@@ -718,9 +839,9 @@ export class AuthService {
         currentUser.first_login = false;
         localStorage.setItem('auth_user', JSON.stringify(currentUser));
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('AuthService changePassword error:', error);
-      throw new Error(handleSupabaseError(error));
+      throw new Error(getErrorMessage(error));
     }
   }
 
@@ -737,7 +858,7 @@ export class AuthService {
       const { data: membersData, error: rpcError } = await supabase
         .rpc('get_bar_members', {
           p_bar_id: barId,
-          p_impersonating_user_id: impersonatingUserId || null
+          p_impersonating_user_id: impersonatingUserId || undefined
         });
 
       if (rpcError) {
@@ -745,14 +866,14 @@ export class AuthService {
         throw new Error('Erreur lors de la récupération des membres');
       }
 
-      const members = membersData as any[];
+      const members = membersData as BarMemberDetailsRPCResponse[];
 
       if (!members || members.length === 0) {
         return [];
       }
 
       // Map RPC results to expected format
-      return members.map((member: any) => ({
+      return members.map((member) => ({
         id: member.user_id,
         username: member.username || null,
         email: member.user_email || '',
@@ -765,13 +886,13 @@ export class AuthService {
         updated_at: new Date().toISOString(),
         last_login_at: member.last_login_at ?? null,
         role: member.role,
-        joined_at: member.joined_at || member.assigned_at,
-        member_is_active: member.member_is_active ?? member.is_active,
+        joined_at: (member.joined_at || member.assigned_at)!, // On suppose qu'une des deux dates existe
+        member_is_active: (member.member_is_active ?? member.is_active) ?? true,
       })) as Array<Omit<DbUser, 'password_hash'> & { role: string; joined_at: string; member_is_active: boolean }>;
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('AuthService getBarMembers error:', error);
-      throw new Error(handleSupabaseError(error));
+      throw new Error(getErrorMessage(error));
     }
   }
 
@@ -789,9 +910,9 @@ export class AuthService {
       if (error) {
         throw new Error('Erreur lors de la désactivation du membre');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('AuthService deactivateMember error:', error);
-      throw new Error(handleSupabaseError(error));
+      throw new Error(getErrorMessage(error));
     }
   }
 
@@ -809,9 +930,9 @@ export class AuthService {
       if (error) {
         throw new Error('Erreur lors de l\'activation du membre');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('AuthService activateMember error:', error);
-      throw new Error(handleSupabaseError(error));
+      throw new Error(getErrorMessage(error));
     }
   }
 
@@ -831,10 +952,10 @@ export class AuthService {
     try {
       const { data, error } = await supabase.rpc('admin_update_user', {
         p_user_id: userId,
-        p_name: updates.name || null,
-        p_phone: updates.phone || null,
-        p_email: updates.email || null,
-        p_is_active: updates.isActive !== undefined ? updates.isActive : null,
+        p_name: updates.name || undefined,
+        p_phone: updates.phone || undefined,
+        p_email: updates.email || undefined,
+        p_is_active: updates.isActive !== undefined ? updates.isActive : undefined,
       });
 
       if (error) {
@@ -847,9 +968,9 @@ export class AuthService {
       }
 
       console.log('User updated successfully:', data);
-    } catch (error: any) {
+    } catch (error) {
       console.error('AuthService updateUser error:', error);
-      throw new Error(handleSupabaseError(error));
+      throw new Error(getErrorMessage(error));
     }
   }
 
@@ -865,9 +986,9 @@ export class AuthService {
       if (error) {
         throw new Error(error.message || 'Erreur lors de l\'envoi de l\'email');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('AuthService resetPassword error:', error);
-      throw new Error(handleSupabaseError(error));
+      throw new Error(getErrorMessage(error));
     }
   }
 }

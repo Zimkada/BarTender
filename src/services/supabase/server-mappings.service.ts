@@ -9,6 +9,8 @@
  */
 
 import { supabase } from '../../lib/supabase';
+import { networkManager } from '../NetworkManager';
+import { OfflineStorage } from '../../utils/offlineStorage';
 
 export interface ServerNameMapping {
   id: string;
@@ -25,27 +27,52 @@ export class ServerMappingsService {
    * Used during sale creation in simplified mode to resolve server name → UUID
    */
   static async getUserIdForServerName(barId: string, serverName: string): Promise<string | null> {
+    const normalizedName = serverName.trim();
+
+    // 1. Détection préventive du mode hors ligne
+    const { shouldShowBanner } = networkManager.getDecision();
+    if (shouldShowBanner) {
+      console.log('[ServerMappingsService] Offline mode: using cache fallback for', normalizedName);
+      const cachedMappings = OfflineStorage.getMappings(barId);
+      const mapping = cachedMappings?.find((m) => m.serverName === normalizedName);
+      return mapping?.userId || null;
+    }
+
     try {
-      const { data, error } = await supabase
+      // ⭐ TIMEOUT RESILIENCE (Correction Spinner)
+      const rpcPromise = supabase
         .from('server_name_mappings')
         .select('user_id')
         .eq('bar_id', barId)
-        .eq('server_name', serverName)
+        .eq('server_name', normalizedName)
         .single();
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // Not found - return null (will be handled by caller)
-          console.debug(`[ServerMappingsService] No mapping found for: ${serverName} in bar: ${barId}`);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('TIMEOUT_EXCEEDED')), 3000)
+      );
+
+      const result = await Promise.race([rpcPromise, timeoutPromise]);
+
+      if (result.error) {
+        if (result.error.code === 'PGRST116') {
           return null;
         }
-        throw error;
+        throw result.error;
       }
 
-      return data?.user_id || null;
+      return result.data?.user_id || null;
     } catch (error) {
-      console.error('[ServerMappingsService] Error getting user ID for server name:', error);
-      throw error;
+      const err = error as Error;
+      if (err.message === 'TIMEOUT_EXCEEDED') {
+        console.warn('[ServerMappingsService] Fetch timed out (3s), using cache fallback for', normalizedName);
+      } else {
+        console.warn('[ServerMappingsService] Fetch failed, falling back to cache:', err);
+      }
+
+      // 2. Fallback de secours en cas d'erreur réseau ou timeout
+      const cachedMappings = OfflineStorage.getMappings(barId);
+      const mapping = cachedMappings?.find((m) => m.serverName === normalizedName);
+      return mapping?.userId || null;
     }
   }
 
@@ -104,10 +131,10 @@ export class ServerMappingsService {
       return {
         id: data.id,
         barId: data.bar_id,
-        userId: data.user_id,
+        userId: data.user_id as string,
         serverName: data.server_name,
-        createdAt: new Date(data.created_at),
-        updatedAt: new Date(data.updated_at),
+        createdAt: new Date(data.created_at || Date.now()),
+        updatedAt: new Date(data.updated_at || Date.now()),
       };
     } catch (error) {
       console.error('[ServerMappingsService] Error upserting server mapping:', error);
@@ -132,10 +159,10 @@ export class ServerMappingsService {
       return (data || []).map(m => ({
         id: m.id,
         barId: m.bar_id,
-        userId: m.user_id,
+        userId: m.user_id as string,
         serverName: m.server_name,
-        createdAt: new Date(m.created_at),
-        updatedAt: new Date(m.updated_at),
+        createdAt: new Date(m.created_at || Date.now()),
+        updatedAt: new Date(m.updated_at || Date.now()),
       }));
     } catch (error) {
       console.error('[ServerMappingsService] Error getting all mappings for bar:', error);
@@ -191,12 +218,17 @@ export class ServerMappingsService {
     mappings: Array<{ serverName: string; userId: string | null }>
   ): Promise<ServerNameMapping[]> {
     try {
-      const normalizedMappings = mappings.map(m => ({
-        bar_id: barId,
-        server_name: m.serverName.trim(),
-        user_id: m.userId,
-      }));
+      const normalizedMappings = mappings
+        .filter(m => m.userId !== null) // Filtre les mappings invalides
+        .map(m => ({
+          bar_id: barId,
+          server_name: m.serverName.trim(),
+          user_id: m.userId as string,
+        }));
 
+      if (normalizedMappings.length === 0) return [];
+
+      // @ts-expect-error - Table server_name_mappings non incluse dans les types générés
       const { data, error } = await supabase
         .from('server_name_mappings')
         .upsert(normalizedMappings, {
@@ -206,13 +238,21 @@ export class ServerMappingsService {
 
       if (error) throw error;
 
-      return (data || []).map(m => ({
+      // ✅ Type-safe mapping with explicit interface
+      return (data || []).map((m: {
+        id: string;
+        bar_id: string;
+        user_id: string;
+        server_name: string;
+        created_at: string;
+        updated_at: string;
+      }) => ({
         id: m.id,
         barId: m.bar_id,
         userId: m.user_id,
         serverName: m.server_name,
-        createdAt: new Date(m.created_at),
-        updatedAt: new Date(m.updated_at),
+        createdAt: new Date(m.created_at || Date.now()),
+        updatedAt: new Date(m.updated_at || Date.now()),
       }));
     } catch (error) {
       console.error('[ServerMappingsService] Error batch upserting mappings:', error);
@@ -243,7 +283,7 @@ export class ServerMappingsService {
       }
 
       // Fetch user names for these user IDs
-      const userIds = barMembers.map(bm => bm.user_id);
+      const userIds = (barMembers || []).map(bm => bm.user_id).filter((id): id is string => id !== null);
       const { data: users, error: usersError } = await supabase
         .from('users')
         .select('id, name')
@@ -254,14 +294,14 @@ export class ServerMappingsService {
       // Create a map of user ID to name
       const userNameMap = new Map((users || []).map(u => [u.id, u.name]));
 
-      // Prepare mappings from the fetched bar members
+      // prepare mappings from the fetched bar members
       const mappingsToCreate = barMembers
         .map(bm => ({
           bar_id: barId,
           server_name: (userNameMap.get(bm.user_id) || '').trim(),
           user_id: bm.user_id,
         }))
-        .filter(m => m.server_name); // Only include if user has a name
+        .filter(m => m.server_name && m.user_id); // Only include if user has a name and ID
 
       if (mappingsToCreate.length === 0) {
         console.info('[ServerMappingsService] No valid server members to map for bar:', barId);
@@ -269,6 +309,7 @@ export class ServerMappingsService {
       }
 
       // Upsert all mappings at once (creates if not exist, updates if exist)
+      // @ts-expect-error - Table server_name_mappings non incluse dans les types générés
       const { data, error: upsertError } = await supabase
         .from('server_name_mappings')
         .upsert(mappingsToCreate, {
@@ -282,13 +323,13 @@ export class ServerMappingsService {
         `[ServerMappingsService] Auto-populated ${data?.length || 0} mappings for bar: ${barId}`
       );
 
-      return (data || []).map(m => ({
+      return (data || []).map((m: any) => ({
         id: m.id,
         barId: m.bar_id,
         userId: m.user_id,
         serverName: m.server_name,
-        createdAt: new Date(m.created_at),
-        updatedAt: new Date(m.updated_at),
+        createdAt: new Date(m.created_at || Date.now()),
+        updatedAt: new Date(m.updated_at || Date.now()),
       }));
     } catch (error) {
       console.error('[ServerMappingsService] Error auto-populating mappings:', error);
