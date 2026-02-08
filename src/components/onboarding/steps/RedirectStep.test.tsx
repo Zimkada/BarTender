@@ -3,9 +3,11 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { RedirectStep } from './RedirectStep';
 import { BrowserRouter } from 'react-router-dom';
 import * as BarContext from '../../../context/BarContext';
+import { OnboardingProvider } from '../../../context/OnboardingContext';
 
 // Mock BarContext
 vi.mock('../../../context/BarContext', () => ({
+    useBarContext: vi.fn(), // Note: was useBar in previous view? Correcting to useBarContext if needed.
     useBar: vi.fn(),
 }));
 
@@ -33,7 +35,9 @@ describe('RedirectStep', () => {
 
         const { unmount } = render(
             <BrowserRouter>
-                <RedirectStep config={mockConfig} onComplete={mockOnComplete} />
+                <OnboardingProvider>
+                    <RedirectStep config={mockConfig} onComplete={mockOnComplete} />
+                </OnboardingProvider>
             </BrowserRouter>
         );
 
@@ -49,7 +53,9 @@ describe('RedirectStep', () => {
 
         const { unmount } = render(
             <BrowserRouter>
-                <RedirectStep config={mockConfig} onComplete={mockOnComplete} />
+                <OnboardingProvider>
+                    <RedirectStep config={mockConfig} onComplete={mockOnComplete} />
+                </OnboardingProvider>
             </BrowserRouter>
         );
 
@@ -73,7 +79,9 @@ describe('RedirectStep', () => {
 
         render(
             <BrowserRouter>
-                <RedirectStep config={mockConfig} onComplete={mockOnComplete} />
+                <OnboardingProvider>
+                    <RedirectStep config={mockConfig} onComplete={mockOnComplete} />
+                </OnboardingProvider>
             </BrowserRouter>
         );
 

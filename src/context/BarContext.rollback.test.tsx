@@ -1,25 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import React, { ReactNode } from 'react';
-import { BarProvider, useBarContext } from '../BarContext';
-import { BarsService } from '../../services/supabase/bars.service';
-import { OfflineStorage } from '../../utils/offlineStorage';
-import { networkManager } from '../../services/NetworkManager';
-import { useAuth } from '../../context/AuthContext';
+import { BarProvider, useBarContext } from './BarContext';
+import { BarsService } from '../services/supabase/bars.service';
+import { OfflineStorage } from '../utils/offlineStorage';
+import { networkManager } from '../services/NetworkManager';
+import { useAuth } from './AuthContext';
 
 // 1. Mocks de base
-vi.mock('../../context/AuthContext', () => ({
+vi.mock('./AuthContext', () => ({
     useAuth: vi.fn(),
 }));
 
-vi.mock('../../services/supabase/bars.service', () => ({
+vi.mock('../services/supabase/bars.service', () => ({
     BarsService: {
         updateBar: vi.fn(),
         getMyBars: vi.fn().mockResolvedValue([]),
     },
 }));
 
-vi.mock('../../utils/offlineStorage', () => ({
+vi.mock('../utils/offlineStorage', () => ({
     OfflineStorage: {
         getBars: vi.fn(),
         saveBars: vi.fn(),
@@ -29,14 +29,14 @@ vi.mock('../../utils/offlineStorage', () => ({
     },
 }));
 
-vi.mock('../../services/NetworkManager', () => ({
+vi.mock('../services/NetworkManager', () => ({
     networkManager: {
         shouldBlockNetworkOps: vi.fn().mockReturnValue(false), // Online par défaut
         subscribe: vi.fn().mockReturnValue(() => { }),
     },
 }));
 
-vi.mock('../../services/AuditLogger', () => ({
+vi.mock('../services/AuditLogger', () => ({
     auditLogger: {
         log: vi.fn(),
     },
@@ -44,7 +44,7 @@ vi.mock('../../services/AuditLogger', () => ({
 
 // Wrapper pour fournir les contextes nécessaires
 const wrapper = ({ children }: { children: ReactNode }) => (
-    <BarProvider>{ children } </BarProvider>
+    <BarProvider>{children} </BarProvider>
 );
 
 describe('BarContext - Structural Hardening (Phase 9)', () => {

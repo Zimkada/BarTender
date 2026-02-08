@@ -1,12 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { calculateRevenueStats } from '../utils/revenueCalculator';
-import type { Sale, Return } from '../types';
+import { calculateRevenueStats } from './revenueCalculator';
+import type { Sale } from '../types';
 
 describe('revenueCalculator', () => {
     // Helper helpers
     const MOCK_BAR_ID = 'e0892013-6fca-4482-965d-4f65c15a7732';
     const MOCK_USER_ID = 'a453765e-1463-4416-bf75-6e462d733c2a';
-    const MOCK_SERVER_ID = 'f47ac10b-58cc-4372-a567-0e02b2c3d479';
 
     const createSale = (id: string, total: number, idempotencyKey?: string, status: 'validated' = 'validated'): Sale => ({
         id,
@@ -23,21 +22,6 @@ describe('revenueCalculator', () => {
         businessDate: new Date('2023-01-01T12:00:00Z'),
         idempotencyKey
     } as unknown as Sale); // Cast safely
-
-    const createReturn = (id: string, refundAmount: number): Return => ({
-        id: '00000000-0000-0000-0000-000000000004', // Needs to be UUID too if validated? Schema says id: uuid
-        saleId: '00000000-0000-0000-0000-000000000005',
-        productId: '00000000-0000-0000-0000-000000000006',
-        barId: MOCK_BAR_ID,
-        refundAmount,
-        quantityReturned: 1, // Required by schema
-        isRefunded: true,
-        status: 'approved',
-        returnedBy: MOCK_USER_ID,
-        returnedAt: new Date('2023-01-01T12:00:00Z'),
-        businessDate: new Date('2023-01-01T12:00:00Z'),
-        serverId: MOCK_SERVER_ID
-    } as any);
 
     it('should calculate basic gross revenue from server sales', () => {
         const sales = [
