@@ -63,7 +63,7 @@ export function useSmartSync(config: UseSmartSyncConfig) {
 
   const realtimeSubscription = useRealtimeSubscription({
     table,
-    event: event as any,
+    event: event,
     filter: barId ? `bar_id=eq.${barId}` : undefined,
     enabled: enabled && broadcastSupported,
     queryKeysToInvalidate: keys,
@@ -72,7 +72,7 @@ export function useSmartSync(config: UseSmartSyncConfig) {
       console.log(`[SmartSync] Realtime change detected for ${table}:`, payload.event);
       // When Realtime message received, broadcast to other tabs
       if (broadcastSupported) {
-        broadcast(payload.event === 'DELETE' ? 'DELETE' : (payload.event as any), payload.new || payload.old);
+        broadcast(payload.event === 'DELETE' ? 'DELETE' : payload.event, payload.new || payload.old);
       }
       syncStatusRef.current = 'realtime';
     },

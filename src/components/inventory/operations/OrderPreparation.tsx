@@ -64,7 +64,7 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
 
             const newAlerts: StockAlert[] = stats
                 .map((stat: ProductSalesStats) => {
-                    const availableStock = (allProductsStockInfo as any)[stat.product_id]?.availableStock ?? stat.current_stock;
+                    const availableStock = allProductsStockInfo[stat.product_id]?.availableStock ?? stat.current_stock;
                     return { ...stat, availableStock };
                 })
                 .filter(stat => stat.availableStock <= stat.alert_threshold)
@@ -121,7 +121,7 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
     const orderSuggestions = useMemo(() => {
         return productStats
             .map((stat: ProductSalesStats) => {
-                const availableStock = (allProductsStockInfo as any)[stat.product_id]?.availableStock ?? stat.current_stock;
+                const availableStock = allProductsStockInfo[stat.product_id]?.availableStock ?? stat.current_stock;
                 return ForecastingService.calculateOrderSuggestion(stat, coverageDays, availableStock);
             })
             .filter(suggestion => suggestion.suggestedQuantity > 0)
@@ -221,10 +221,10 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
                                                 { value: 'all', label: 'Toutes' },
                                                 { value: 'new', label: 'Nouvelles' },
                                                 { value: 'resolved', label: 'Ignorées' }
-                                            ].map(filter => (
+                                            ].map((filter) => (
                                                 <button
                                                     key={filter.value}
-                                                    onClick={() => setFilterStatus(filter.value as any)}
+                                                    onClick={() => setFilterStatus(filter.value as 'all' | 'new' | 'resolved')}
                                                     className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium transition-colors ${filterStatus === filter.value
                                                         ? 'bg-brand-primary text-white'
                                                         : 'bg-white text-gray-700'
@@ -273,7 +273,26 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
                                                         key={suggestion.productId}
                                                         suggestion={suggestion}
                                                         formatPrice={formatPrice}
-                                                        onSupply={() => onSupplyClick({ ...suggestion, daily_average: 0, sale_velocity: 0, last_sale_date: new Date().toISOString(), alert_threshold: 0, current_stock: suggestion.currentStock, product_id: suggestion.productId, product_name: suggestion.productName, product_volume: suggestion.productVolume }, suggestion.suggestedQuantity)}
+                                                        onSupply={() => onSupplyClick({
+                                                            product_id: suggestion.productId,
+                                                            product_name: suggestion.productName,
+                                                            product_volume: suggestion.productVolume,
+                                                            current_stock: suggestion.currentStock,
+                                                            daily_average: 0,
+                                                            last_sale_date: new Date().toISOString(),
+                                                            alert_threshold: 0,
+                                                            bar_id: currentBar?.id || '',
+                                                            cost_price: 0,
+                                                            selling_price: 0,
+                                                            product_created_at: new Date().toISOString(),
+                                                            days_with_sales: 0,
+                                                            total_transactions: 0,
+                                                            total_sold_30d: 0,
+                                                            days_since_creation: 0,
+                                                            days_without_sale: 0,
+                                                            avg_purchase_cost: 0,
+                                                            updated_at: new Date().toISOString()
+                                                        }, suggestion.suggestedQuantity)}
                                                         onBackToAlert={() => setShowOrderSuggestions(false)}
                                                     />
                                                 ))}
@@ -361,7 +380,26 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
                                                             key={suggestion.productId}
                                                             suggestion={suggestion}
                                                             formatPrice={formatPrice}
-                                                            onSupply={() => onSupplyClick({ ...suggestion, daily_average: 0, sale_velocity: 0, last_sale_date: new Date().toISOString(), alert_threshold: 0, current_stock: suggestion.currentStock, product_id: suggestion.productId, product_name: suggestion.productName, product_volume: suggestion.productVolume }, suggestion.suggestedQuantity)}
+                                                            onSupply={() => onSupplyClick({
+                                                                product_id: suggestion.productId,
+                                                                product_name: suggestion.productName,
+                                                                product_volume: suggestion.productVolume,
+                                                                current_stock: suggestion.currentStock,
+                                                                daily_average: 0,
+                                                                last_sale_date: new Date().toISOString(),
+                                                                alert_threshold: 0,
+                                                                bar_id: currentBar?.id || '',
+                                                                cost_price: 0,
+                                                                selling_price: 0,
+                                                                product_created_at: new Date().toISOString(),
+                                                                days_with_sales: 0,
+                                                                total_transactions: 0,
+                                                                total_sold_30d: 0,
+                                                                days_since_creation: 0,
+                                                                days_without_sale: 0,
+                                                                avg_purchase_cost: 0,
+                                                                updated_at: new Date().toISOString()
+                                                            }, suggestion.suggestedQuantity)}
                                                         />
                                                     ))}
                                                 </div>
