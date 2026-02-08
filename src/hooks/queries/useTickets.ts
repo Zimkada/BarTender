@@ -2,12 +2,48 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { TicketsService, type TicketRow } from '../../services/supabase/tickets.service';
 import { useSales } from './useSalesQueries';
-import type { Ticket } from '../../types';
+import type { Ticket, Sale, SaleItem } from '../../types';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 import { useServerMappings } from '../useServerMappings';
 import { SalesService, type OfflineSale } from '../../services/supabase/sales.service';
 import { syncManager } from '../../services/SyncManager';
 import { offlineQueue } from '../../services/offlineQueue';
+
+// ===== Type-Safe Declarations =====
+
+/**
+ * ✅ TicketRow enrichi avec flag optimiste pour tickets créés offline
+ * Les tickets optimistes (pending sync) ont isOptimistic = true
+ */
+interface TicketRowWithOptimistic extends TicketRow {
+    isOptimistic?: boolean;
+}
+
+/**
+ * ✅ Sale avec dual-casing support pour idempotency_key
+ * Online sales use camelCase (idempotencyKey)
+ * Offline sales use snake_case (idempotency_key)
+ */
+interface SaleWithDualCasing extends Sale {
+    idempotency_key?: string; // Support snake_case variant
+}
+
+/**
+ * ✅ SaleItem avec dual-casing support pour compatibilité online/offline
+ * product_name (snake_case) : Format DB standard
+ * productName (camelCase) : Fallback pour certaines transformations
+ */
+interface SaleItemWithDualCasing extends SaleItem {
+    productName?: string; // Fallback camelCase variant
+}
+
+/**
+ * ✅ Type union pour ventes online/offline avec support dual-casing
+ */
+type UnifiedSale = (Sale | OfflineSale) & {
+    idempotency_key?: string;
+    items: SaleItemWithDualCasing[];
+};
 
 // ===== Query Keys =====
 export const ticketKeys = {
@@ -133,6 +169,7 @@ export function useTickets(barId: string | undefined) {
         // 2. Fusionner avec les tickets optimistes
         const allBaseTickets = [...filteredServerTickets, ...pendingTickets];
 
+        // ✅ Type-safe cast to access isOptimistic flag from offline tickets
         return allBaseTickets.map(t => ({
             id: t.id,
             barId: t.bar_id,
@@ -147,7 +184,7 @@ export function useTickets(barId: string | undefined) {
             notes: t.notes || undefined,
             tableNumber: t.table_number || undefined,
             customerName: t.customer_name || undefined,
-            isOptimistic: (t as any).isOptimistic
+            isOptimistic: (t as TicketRowWithOptimistic).isOptimistic
         }));
     }, [serverTickets, pendingTickets, pendingPayouts]);
 
@@ -173,9 +210,9 @@ export function useTickets(barId: string | undefined) {
                 // Anti-doublon flash : si déjà dans recentlySyncedMap AND dans onlineTicketSales, on ignore
                 const idKey = s.idempotency_key;
                 if (idKey && recentlySyncedMap.has(idKey)) {
-                    // 🛡️ UNIFICATION: Vérifier les deux conventions
+                    // ✅ Type-safe dual-casing check: camelCase (standard) + snake_case (fallback)
                     const alreadyInOnline = onlineTicketSales.some(os =>
-                        (os.idempotencyKey === idKey) || ((os as any).idempotency_key === idKey)
+                        (os.idempotencyKey === idKey) || ((os as SaleWithDualCasing).idempotency_key === idKey)
                     );
                     if (alreadyInOnline) return false;
                 }
@@ -189,9 +226,10 @@ export function useTickets(barId: string | undefined) {
             const productMap = new Map<string, number>();
             let totalAmount = 0;
 
+            // ✅ Type-safe aggregation with dual-casing support for online/offline sales
             allTicketSales.forEach(sale => {
-                totalAmount += (sale as any).total || 0;
-                (sale.items || []).forEach((item: any) => {
+                totalAmount += (sale as UnifiedSale).total || 0;
+                (sale.items || []).forEach((item: SaleItemWithDualCasing) => {
                     const name = item.product_name || item.productName || 'Produit';
                     productMap.set(name, (productMap.get(name) || 0) + (item.quantity || 1));
                 });

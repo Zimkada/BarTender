@@ -9,6 +9,9 @@
 
 import { useState, useEffect } from 'react';
 
+/**
+ * ✅ Type-safe declaration for Network Information API (experimental)
+ */
 interface NetworkInformation extends EventTarget {
   effectiveType?: '4g' | '3g' | '2g' | 'slow-2g';
   downlink?: number;
@@ -16,6 +19,19 @@ interface NetworkInformation extends EventTarget {
   saveData?: boolean;
   addEventListener(type: 'change', listener: () => void): void;
   removeEventListener(type: 'change', listener: () => void): void;
+}
+
+/**
+ * ✅ Extended Navigator with experimental Network Information API
+ * Support multi-navigateur:
+ * - Chrome/Edge: navigator.connection
+ * - Firefox: navigator.mozConnection
+ * - Safari: navigator.webkitConnection
+ */
+interface NavigatorWithNetworkInfo extends Navigator {
+  connection?: NetworkInformation;
+  mozConnection?: NetworkInformation;
+  webkitConnection?: NetworkInformation;
 }
 
 export interface NetworkStatus {
@@ -88,9 +104,9 @@ export function useNetworkStatus(): NetworkStatus {
 }
 
 function getConnection(): NetworkInformation | undefined {
-  return (navigator as any).connection ||
-         (navigator as any).mozConnection ||
-         (navigator as any).webkitConnection;
+  // ✅ Type-safe cast to access experimental Network Information API
+  const nav = navigator as NavigatorWithNetworkInfo;
+  return nav.connection || nav.mozConnection || nav.webkitConnection;
 }
 
 function isSlowConnection(connection?: NetworkInformation): boolean {

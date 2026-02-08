@@ -8,6 +8,7 @@ import { ServerMappingsService } from '../services/supabase/server-mappings.serv
 import { toast } from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { OfflineStorage } from '../utils/offlineStorage';
 import { offlineQueue } from '../services/offlineQueue';
 import { networkManager } from '../services/NetworkManager';
@@ -15,6 +16,15 @@ import { networkManager } from '../services/NetworkManager';
 type BarMemberRow = Database['public']['Tables']['bar_members']['Row'];
 type BarMemberInsert = Database['public']['Tables']['bar_members']['Insert'];
 type BarMemberUpdate = Database['public']['Tables']['bar_members']['Update'];
+
+/**
+ * ✅ Type-safe Supabase query builder for bar_members table
+ * Eliminates 'as any' casts by providing explicit Database schema typing
+ *
+ * TypeScript cannot automatically infer table types from .from('bar_members')
+ * without explicit generics, so we create a typed helper function.
+ */
+const barMembersTable = () => (supabase as SupabaseClient<Database>).from('bar_members');
 
 interface BarContextType {
   // Bars
@@ -834,8 +844,8 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         is_active: true,
       };
 
-      const { data, error } = await (supabase as any)
-        .from('bar_members')
+      // ✅ Type-safe insert with Database schema
+      const { data, error } = await barMembersTable()
         .insert(insertData)
         .select()
         .single();
@@ -895,9 +905,8 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       const targetBarId = currentBar?.id || member.barId;
 
-      // Désactiver via Supabase en utilisant la clé composite (user_id + bar_id)
-      const { error: updateError } = await (supabase as any)
-        .from('bar_members')
+      // ✅ Type-safe update with Database schema (soft delete using composite key)
+      const { error: updateError } = await barMembersTable()
         .update({ is_active: false })
         .eq('user_id', member.userId)
         .eq('bar_id', targetBarId);
@@ -928,8 +937,8 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (updates.role) supabaseUpdates.role = updates.role;
       if (updates.isActive !== undefined) supabaseUpdates.is_active = updates.isActive;
 
-      await (supabase as any)
-        .from('bar_members')
+      // ✅ Type-safe update with Database schema
+      await barMembersTable()
         .update(supabaseUpdates)
         .eq('id', memberId);
 

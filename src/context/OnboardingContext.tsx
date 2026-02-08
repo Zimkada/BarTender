@@ -248,12 +248,18 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
         const hydratedStepData: StepData = {};
 
         if (bar) {
-          const settings = (bar.settings as any) || {};
+          // ✅ Type-safe settings extraction with Record<string, unknown>
+          const settings = (bar.settings as Record<string, unknown> | null) || {};
+          const businessDayCloseHour = typeof settings.businessDayCloseHour === 'number'
+            ? settings.businessDayCloseHour
+            : 6;
+          const operatingMode = settings.operatingMode === 'full' ? 'full' : 'simplifié';
+
           hydratedStepData[OnboardingStep.OWNER_BAR_DETAILS] = {
             barName: bar.name || '',
             location: bar.address || '',
-            closingHour: settings.businessDayCloseHour || 6,
-            operatingMode: (settings.operatingMode === 'full' ? 'full' : 'simplifié') as 'full' | 'simplifié',
+            closingHour: businessDayCloseHour,
+            operatingMode: operatingMode as 'full' | 'simplifié',
             contact: '',
           };
         }

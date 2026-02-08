@@ -13,8 +13,82 @@ import { Database } from '../../lib/database.types';
 import { PaymentMethod } from '../../components/cart/PaymentMethodSelector';
 import { SaleItem } from '../../types';
 import toast from 'react-hot-toast';
+import { z } from 'zod';
+import { SaleItemSchema } from '../../utils/revenueSchemas';
 
 type SaleRow = Database['public']['Tables']['sales']['Row'];
+
+/**
+ * Extension de SaleRow pour les champs optionnels ajoutés dynamiquement
+ * (isOptimistic en offline, customer fields, etc.)
+ */
+interface SaleRowExtended extends SaleRow {
+    isOptimistic?: boolean;
+    ticket_id?: string | null;
+    customer_name?: string | null;
+    customer_phone?: string | null;
+    notes?: string | null;
+}
+
+/**
+ * 🛡️ Parse et valide les items provenant de la DB (type Json)
+ * Retourne un tableau vide si la validation échoue
+ */
+const parseSaleItemsFromDb = (items: unknown): SaleItem[] => {
+    const result = z.array(SaleItemSchema).safeParse(items);
+
+    if (!result.success) {
+        console.error('[useSalesMutations] Invalid items from DB:', result.error);
+        return [];
+    }
+
+    // Les items validés par Zod sont compatibles avec SaleItem
+    return result.data as SaleItem[];
+};
+
+/**
+ * 🛡️ Valide et normalise les items de vente en snake_case
+ * Filtre les items invalides et log les erreurs
+ * @throws Error si aucun item valide n'est trouvé
+ */
+const validateAndNormalizeSaleItems = (items: unknown[]): Record<string, unknown>[] => {
+    const validItems: Record<string, unknown>[] = [];
+
+    items.forEach((item, index) => {
+        const itemRecord = item as Record<string, unknown>;
+
+        // Transform to snake_case (handles both camelCase and snake_case inputs)
+        const normalized = {
+            product_id: itemRecord.product_id || itemRecord.productId,
+            product_name: itemRecord.product_name || itemRecord.productName,
+            quantity: itemRecord.quantity,
+            unit_price: itemRecord.unit_price || itemRecord.unitPrice,
+            total_price: itemRecord.total_price || itemRecord.totalPrice,
+            original_unit_price: itemRecord.original_unit_price || itemRecord.originalUnitPrice,
+            discount_amount: itemRecord.discount_amount || itemRecord.discountAmount,
+            promotion_id: itemRecord.promotion_id || itemRecord.promotionId,
+            promotion_name: itemRecord.promotion_name || itemRecord.promotionName
+        };
+
+        // ✅ Validate with Zod schema
+        const result = SaleItemSchema.safeParse(normalized);
+
+        if (result.success) {
+            validItems.push(result.data);
+        } else {
+            console.error(
+                `[useSalesMutations] Invalid sale item at index ${index}:`,
+                result.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ')
+            );
+        }
+    });
+
+    if (validItems.length === 0) {
+        throw new Error('Aucun article valide dans la vente');
+    }
+
+    return validItems;
+};
 
 export const useSalesMutations = (barId: string) => {
     const queryClient = useQueryClient();
@@ -23,13 +97,19 @@ export const useSalesMutations = (barId: string) => {
 
     const isNetworkError = (error: unknown): boolean => {
         if (!(error instanceof Error)) return !navigator.onLine;
+
+        // ✅ Type-safe error code extraction
+        const errorCode = typeof error === 'object' && error !== null && 'code' in error
+            ? String((error as Record<string, unknown>).code)
+            : '';
+
         return (
             !navigator.onLine ||
             error.message === 'Failed to fetch' ||
             error.message.includes('NetworkError') ||
             error.message.includes('connection') ||
             error.message.includes('Internet') ||
-            (error as any).code === 'PGRST000'
+            errorCode === 'PGRST000'
         );
     };
 
@@ -42,25 +122,15 @@ export const useSalesMutations = (barId: string) => {
             const businessDate = calculateBusinessDate(new Date(), closeHour);
             const formattedBusinessDate = dateToYYYYMMDD(businessDate);
 
-            const itemsFormatted = saleData.items.map((item: any) => ({
-                product_id: item.product_id || item.productId,
-                product_name: item.product_name || item.productName,
-                quantity: item.quantity,
-                unit_price: item.unit_price || item.unitPrice,
-                total_price: item.total_price || item.totalPrice,
-                original_unit_price: item.original_unit_price || item.originalUnitPrice,
-                discount_amount: item.discount_amount || item.discountAmount,
-                promotion_id: item.promotion_id || item.promotionId,
-                promotion_type: item.promotion_type || item.promotionType,
-                promotion_name: item.promotion_name || item.promotionName
-            }));
+            // ✅ Validate and normalize items with Zod (filters invalid items)
+            const itemsFormatted = validateAndNormalizeSaleItems(saleData.items);
 
             const soldByValue = isSimplifiedMode && saleData.serverId
                 ? saleData.serverId
                 : (currentSession?.userId || '');
 
             const role = currentSession?.role;
-            const isManagerOrAdmin = (role as string) === 'admin' || (role as string) === 'gerant';
+            const isManagerOrAdmin = role === 'admin' || role === 'gerant';
 
             // 🛡️ DECISION CRITIQUE (V11.4): Une vente offline par un gérant/admin est VALIDÉE par défaut.
             // Cela évite qu'elle ne disparaisse du CA global après synchronisation.
@@ -72,7 +142,15 @@ export const useSalesMutations = (barId: string) => {
                 ? (currentSession?.userId || null)
                 : null;
 
-            const salePayload: any = {
+            // ✅ Type-safe sale payload construction
+            const saleDataExtended = saleData as Partial<Sale> & {
+                items: SaleItem[];
+                customerName?: string;
+                customerPhone?: string;
+                notes?: string;
+            };
+
+            const salePayload = {
                 bar_id: barId,
                 items: itemsFormatted,
                 payment_method: saleData.ticketId ? 'ticket' : (saleData.paymentMethod || 'cash'),
@@ -81,9 +159,9 @@ export const useSalesMutations = (barId: string) => {
                 ticket_id: saleData.ticketId || null,
                 validated_by: validatedByValue,
                 status: finalStatus,
-                customer_name: (saleData as any).customerName,
-                customer_phone: (saleData as any).customerPhone,
-                notes: (saleData as any).notes,
+                customer_name: saleDataExtended.customerName,
+                customer_phone: saleDataExtended.customerPhone,
+                notes: saleDataExtended.notes,
                 business_date: formattedBusinessDate,
             };
 
@@ -136,7 +214,7 @@ export const useSalesMutations = (barId: string) => {
         networkMode: 'always',
         onSuccess: (sale) => {
             console.log('[useSalesMutations] onSuccess called', sale.id);
-            const isOptimistic = sale.id?.startsWith('sync_') || (sale as any).isOptimistic;
+            const isOptimistic = sale.id?.startsWith('sync_') || Boolean(sale.isOptimistic);
 
             if (!isOptimistic) {
                 toast.success('Vente enregistrée');
@@ -151,10 +229,11 @@ export const useSalesMutations = (barId: string) => {
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
         },
-        onError: (error: any) => {
+        onError: (error: unknown) => {
             console.error('[useSalesMutations] onError called', error);
             if (!isNetworkError(error)) {
-                toast.error(`Erreur création: ${error.message || 'Erreur inconnue'}`);
+                const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+                toast.error(`Erreur création: ${errorMessage}`);
             }
         }
     });
@@ -219,18 +298,21 @@ export const useSalesMutations = (barId: string) => {
 };
 
 const mapSaleRowToSale = (savedSaleRow: SaleRow): Sale => {
+    // ✅ Type-safe row extension using explicit interface
+    const rowExtended = savedSaleRow as SaleRowExtended;
+
     return {
         id: savedSaleRow.id,
         barId: savedSaleRow.bar_id,
-        items: (savedSaleRow.items as any) as SaleItem[],
+        items: parseSaleItemsFromDb(savedSaleRow.items), // ✅ Validated items from DB
         total: savedSaleRow.total,
         currency: 'XOF',
-        status: savedSaleRow.status as any,
+        status: savedSaleRow.status as 'pending' | 'validated' | 'rejected' | 'cancelled',
         createdBy: savedSaleRow.created_by || savedSaleRow.sold_by || '',
         soldBy: savedSaleRow.sold_by || '',
-        isOptimistic: (savedSaleRow as any).isOptimistic,
+        isOptimistic: rowExtended.isOptimistic,
         serverId: savedSaleRow.server_id || undefined,
-        ticketId: (savedSaleRow as any).ticket_id || undefined,
+        ticketId: rowExtended.ticket_id || undefined,
         validatedBy: savedSaleRow.validated_by || undefined,
         rejectedBy: savedSaleRow.rejected_by || undefined,
         createdAt: new Date(savedSaleRow.created_at || new Date().toISOString()),
@@ -238,8 +320,8 @@ const mapSaleRowToSale = (savedSaleRow: SaleRow): Sale => {
         rejectedAt: savedSaleRow.status === 'rejected' && savedSaleRow.updated_at ? new Date(savedSaleRow.updated_at) : undefined,
         businessDate: savedSaleRow.business_date ? new Date(savedSaleRow.business_date) : new Date(),
         paymentMethod: savedSaleRow.payment_method as PaymentMethod,
-        customerName: (savedSaleRow as any).customer_name || undefined,
-        customerPhone: (savedSaleRow as any).customer_phone || undefined,
-        notes: (savedSaleRow as any).notes || undefined
+        customerName: rowExtended.customer_name || undefined,
+        customerPhone: rowExtended.customer_phone || undefined,
+        notes: rowExtended.notes || undefined
     };
 };

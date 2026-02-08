@@ -1,11 +1,38 @@
 import { useQuery } from '@tanstack/react-query';
-import { ProductsService } from '../../services/supabase/products.service';
+import { ProductsService, type BarProductWithDetails } from '../../services/supabase/products.service';
 import { CategoriesService } from '../../services/supabase/categories.service';
 import { StockService } from '../../services/supabase/stock.service';
 import { useApiQuerySimple } from './useApiQuery';
 import type { Product, Supply, Consignment, Category } from '../../types';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 import { useSmartSync } from '../useSmartSync';
+import type { Database } from '../../lib/database.types';
+
+/**
+ * ✅ Extended Supply type with joined bar_product data
+ * Matches the actual DB response from StockService.getSupplies()
+ */
+type SupplyRow = Database['public']['Tables']['supplies']['Row'];
+type SupplyWithProduct = SupplyRow & {
+    bar_product?: {
+        display_name: string;
+    } | null;
+};
+
+/**
+ * ✅ Type guard to validate supply has expected structure
+ */
+const isSupplyWithProduct = (supply: unknown): supply is SupplyWithProduct => {
+    if (!supply || typeof supply !== 'object') return false;
+    const s = supply as Record<string, unknown>;
+    return (
+        typeof s.id === 'string' &&
+        typeof s.bar_id === 'string' &&
+        typeof s.product_id === 'string' &&
+        typeof s.quantity === 'number' &&
+        typeof s.unit_cost === 'number'
+    );
+};
 
 // Clés de requête pour l'invalidation
 export const stockKeys = {
@@ -30,7 +57,7 @@ export const useProducts = (barId: string | undefined) => {
 
     // Standard query for fetching products
     return useQuery({
-        queryKey: stockKeys.products(barId || '') as any,
+        queryKey: stockKeys.products(barId || ''),
         queryFn: async () => {
             if (!barId) return [];
             const dbProducts = await ProductsService.getBarProducts(barId);
@@ -44,8 +71,8 @@ export const useProducts = (barId: string | undefined) => {
     });
 };
 
-// Helper pour mapper les produits
-const mapProducts = (dbProducts: any[]): Product[] => {
+// ✅ Helper pour mapper les produits (type-safe)
+const mapProducts = (dbProducts: BarProductWithDetails[]): Product[] => {
     return dbProducts.map(p => ({
         id: p.id,
         barId: p.bar_id,
@@ -71,30 +98,33 @@ export const useSupplies = (barId: string | undefined) => {
         staleTime: CACHE_STRATEGY.products.staleTime,
         refetchInterval: 60000,
         queryKeysToInvalidate: [
-            stockKeys.supplies(barId || '') as any,
-            stockKeys.products(barId || '') as any
+            stockKeys.supplies(barId || ''),
+            stockKeys.products(barId || '')
         ]
     });
 
     return useApiQuerySimple(
-        stockKeys.supplies(barId || '') as any,
+        stockKeys.supplies(barId || ''),
         async (): Promise<Supply[]> => {
             if (!barId) return [];
             const dbSupplies = await StockService.getSupplies(barId);
 
-            return dbSupplies.map(s => ({
-                id: s.id,
-                barId: s.bar_id,
-                productId: s.product_id,
-                quantity: s.quantity,
-                lotSize: 1,
-                lotPrice: s.unit_cost,
-                supplier: s.supplier_name || 'Inconnu',
-                date: new Date(s.supplied_at || s.created_at || Date.now()),
-                totalCost: s.total_cost,
-                createdBy: s.supplied_by,
-                productName: (s as any).bar_product?.display_name || 'Produit inconnu',
-            }));
+            // ✅ Type-safe filtering and mapping with type guard
+            return dbSupplies
+                .filter((s): s is SupplyWithProduct => isSupplyWithProduct(s))
+                .map(s => ({
+                    id: s.id,
+                    barId: s.bar_id,
+                    productId: s.product_id,
+                    quantity: s.quantity,
+                    lotSize: 1,
+                    lotPrice: s.unit_cost,
+                    supplier: s.supplier_name || 'Inconnu',
+                    date: new Date(s.supplied_at || s.created_at || Date.now()),
+                    totalCost: s.total_cost,
+                    createdBy: s.supplied_by,
+                    productName: s.bar_product?.display_name || 'Produit inconnu',
+                }));
         },
         {
             enabled: !!barId,
@@ -104,6 +134,13 @@ export const useSupplies = (barId: string | undefined) => {
             refetchInterval: smartSync.isSynced ? false : 60000, // 🚀 Hybride: Realtime ou polling 60s
         }
     );
+};
+
+/**
+ * ✅ Type guard for valid consignment status
+ */
+const isValidConsignmentStatus = (status: string): status is Consignment['status'] => {
+    return ['active', 'claimed', 'forfeited', 'expired'].includes(status);
 };
 
 export const useConsignments = (barId: string | undefined) => {
@@ -116,23 +153,22 @@ export const useConsignments = (barId: string | undefined) => {
         staleTime: CACHE_STRATEGY.products.staleTime,
         refetchInterval: 60000,
         queryKeysToInvalidate: [
-            stockKeys.consignments(barId || '') as any,
-            stockKeys.products(barId || '') as any // Les consignations impactent le calcul du stock dispo
+            stockKeys.consignments(barId || ''),
+            stockKeys.products(barId || '') // Les consignations impactent le calcul du stock dispo
         ]
     });
 
     return useApiQuerySimple(
-        stockKeys.consignments(barId || '') as any,
+        stockKeys.consignments(barId || ''),
         async (): Promise<Consignment[]> => {
             if (!barId) return [];
             const dbConsignments = await StockService.getConsignments(barId);
 
             return dbConsignments.map(c => {
-                let status: Consignment['status'] = c.status as any || 'active';
-                // Direct mapping - statuses are already correct in DB
-                if (c.status === 'claimed') status = 'claimed';
-                if (c.status === 'forfeited') status = 'forfeited';
-                if (c.status === 'expired') status = 'expired';
+                // ✅ Simple type-safe status validation with dedicated type guard
+                const status: Consignment['status'] = isValidConsignmentStatus(c.status)
+                    ? c.status
+                    : 'active';
 
                 const createdAt = new Date(c.created_at || Date.now());
                 const expiresAt = new Date(c.expires_at || createdAt.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -172,7 +208,7 @@ export const useConsignments = (barId: string | undefined) => {
 
 export const useCategories = (barId: string | undefined) => {
     return useApiQuerySimple(
-        stockKeys.categories(barId || '') as any,
+        stockKeys.categories(barId || ''),
         async (): Promise<Category[]> => {
             if (!barId) return [];
             const enrichedCategories = await CategoriesService.getCategories(barId);

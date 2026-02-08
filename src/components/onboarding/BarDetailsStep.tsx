@@ -5,6 +5,16 @@ import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
 import { useBar } from '../../context/BarContext';
 import { LoadingButton } from '../ui/LoadingButton';
 import { BarsService } from '../../services/supabase/bars.service';
+import type { BarSettings } from '../../types';
+
+/**
+ * ✅ Extended BarSettings with onboarding-specific fields
+ * These fields are stored in the JSONB settings column during onboarding
+ */
+interface ExtendedBarSettings extends BarSettings {
+  businessDayCloseHour?: number; // Business day closing hour (for revenue calculation)
+  contact?: string; // Contact information (phone/email)
+}
 
 interface BarDetailsFormData {
   barName: string;
@@ -12,6 +22,15 @@ interface BarDetailsFormData {
   closingHour: number;
   operatingMode: 'full' | 'simplifié';
   contact?: string;
+}
+
+/**
+ * ✅ Type-safe payload for BarsService.updateBar()
+ */
+interface BarUpdatePayload {
+  name: string;
+  address: string;
+  settings: ExtendedBarSettings;
 }
 
 export const BarDetailsStep: React.FC = () => {
@@ -73,8 +92,14 @@ export const BarDetailsStep: React.FC = () => {
       if (!currentBar?.id) throw new Error('Aucun bar sélectionné');
 
       // 1. Persist to Database immediately (settings are JSONB, not separate columns)
-      const currentSettings = (currentBar.settings as any) || {};
-      await BarsService.updateBar(currentBar.id, {
+      // ✅ Type-safe settings extraction with ExtendedBarSettings
+      const currentSettings: ExtendedBarSettings = (currentBar.settings as ExtendedBarSettings) || {
+        currency: 'XOF',
+        currencySymbol: 'FCFA',
+      };
+
+      // ✅ Type-safe update payload with explicit interface
+      const updatePayload: BarUpdatePayload = {
         name: formData.barName,
         address: formData.location,
         // Note: contact/email is stored in settings, not as a separate column
@@ -84,7 +109,9 @@ export const BarDetailsStep: React.FC = () => {
           operatingMode: formData.operatingMode,
           contact: formData.contact, // Store contact in settings
         },
-      } as any);
+      };
+
+      await BarsService.updateBar(currentBar.id, updatePayload);
 
       // 2. Save form data to context for UI state
       updateStepData(OnboardingStep.OWNER_BAR_DETAILS, formData);
@@ -294,8 +321,14 @@ export const BarDetailsStep: React.FC = () => {
                     if (!currentBar?.id) throw new Error('Aucun bar sélectionné');
 
                     // Persist current state before leaving (settings are JSONB)
-                    const currentSettings = (currentBar.settings as any) || {};
-                    await BarsService.updateBar(currentBar.id, {
+                    // ✅ Type-safe settings extraction with ExtendedBarSettings
+                    const currentSettings: ExtendedBarSettings = (currentBar.settings as ExtendedBarSettings) || {
+                      currency: 'XOF',
+                      currencySymbol: 'FCFA',
+                    };
+
+                    // ✅ Type-safe update payload with explicit interface
+                    const updatePayload: BarUpdatePayload = {
                       name: formData.barName,
                       address: formData.location,
                       // Note: contact/email is stored in settings, not as a separate column
@@ -305,7 +338,9 @@ export const BarDetailsStep: React.FC = () => {
                         operatingMode: formData.operatingMode,
                         contact: formData.contact, // Store contact in settings
                       },
-                    } as any);
+                    };
+
+                    await BarsService.updateBar(currentBar.id, updatePayload);
 
                     updateStepData(OnboardingStep.OWNER_BAR_DETAILS, formData);
                     completeStep(OnboardingStep.OWNER_BAR_DETAILS, formData);

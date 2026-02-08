@@ -18,6 +18,16 @@ import { formatPeriod, getCurrentPeriod } from '../utils/accounting';
 import { useViewport } from '../hooks/useViewport';
 import { Alert } from './ui/Alert';
 import { Select } from './ui/Select';
+import type { BarMember, User } from '../types';
+
+/**
+ * ✅ BarMember enrichi avec données utilisateur complètes
+ * Retourné par getBarMembers() avec JOIN sur la table users
+ * Contient toutes les informations du membre + détails utilisateur (name, email, etc.)
+ */
+interface BarMemberWithUser extends BarMember {
+  user: User;
+}
 
 export function SalaryManager() {
   const { currentSession } = useAuth();
@@ -40,7 +50,8 @@ export function SalaryManager() {
   const [showForm, setShowForm] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState(getCurrentPeriod());
   const [expandedPeriods, setExpandedPeriods] = useState<Set<string>>(new Set([getCurrentPeriod()]));
-  const [members, setMembers] = useState<any[]>([]);
+  // ✅ Type-safe state with BarMemberWithUser interface
+  const [members, setMembers] = useState<BarMemberWithUser[]>([]);
 
   // Form states
   const [selectedMemberId, setSelectedMemberId] = useState('');
@@ -115,8 +126,8 @@ export function SalaryManager() {
     const member = members.find(m => m.id === memberId);
     if (!member) return 'Membre inconnu';
 
-    const memberWithUser = member as any; // BarMember & { user: User }
-    // ✅ FIX: Accéder à member.user.name au lieu de member.name
+    // ✅ Type-safe access to user data with BarMemberWithUser interface
+    const memberWithUser = member as BarMemberWithUser;
     return memberWithUser.user?.name || memberWithUser.user?.userName || 'N/A';
   };
 
@@ -211,7 +222,8 @@ export function SalaryManager() {
           </p>
           <ul className={`mt-2 space-y-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>
             {unpaidMembers.map(member => {
-              const memberWithUser = member as any; // BarMember & { user: User }
+              // ✅ Type-safe access to user data with BarMemberWithUser interface
+              const memberWithUser = member as BarMemberWithUser;
               const displayName = memberWithUser.user?.name || memberWithUser.user?.userName || 'Membre inconnu';
               return (
                 <li key={member.id}>
@@ -371,9 +383,9 @@ export function SalaryManager() {
                     options={[
                       { value: '', label: 'Sélectionner...' },
                       ...activeMembers.map(member => {
-                        const memberWithUser = member as any; // BarMember & { user: User }
+                        // ✅ Type-safe access to user data with BarMemberWithUser interface
+                        const memberWithUser = member as BarMemberWithUser;
                         const alreadyPaid = getSalaryForPeriod(member.id, selectedPeriod);
-                        // ✅ FIX: Accéder à member.user.name au lieu de member.name
                         const displayName = memberWithUser.user?.name || memberWithUser.user?.userName || 'Membre inconnu';
                         return {
                           value: member.id,

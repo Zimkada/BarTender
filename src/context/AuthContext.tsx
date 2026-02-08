@@ -58,7 +58,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           loginTime: new Date(),
           permissions: getPermissionsByRole(authUser.role),
           firstLogin: authUser.first_login ?? false,
-          hasCompletedOnboarding: (authUser as any).has_completed_onboarding ?? false // Map pending training status
+          hasCompletedOnboarding: authUser.has_completed_onboarding ?? false // Map pending training status
         };
         setCurrentSession(session);
       } else {
@@ -134,7 +134,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 loginTime: new Date(),
                 permissions: getPermissionsByRole(authUser.role),
                 firstLogin: authUser.first_login ?? false,
-                hasCompletedOnboarding: (authUser as any).has_completed_onboarding ?? false
+                hasCompletedOnboarding: authUser.has_completed_onboarding ?? false
               };
               setCurrentSession(newSession);
             }
@@ -210,7 +210,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           loginTime: new Date(),
           permissions: getPermissionsByRole(authUser.role),
           firstLogin: authUser.first_login ?? false,
-          hasCompletedOnboarding: (authUser as any).has_completed_onboarding ?? false
+          hasCompletedOnboarding: authUser.has_completed_onboarding ?? false
         };
         setCurrentSession(session);
 
@@ -275,7 +275,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           loginTime: new Date(),
           permissions: getPermissionsByRole(authUser.role),
           firstLogin: authUser.first_login ?? false,
-          hasCompletedOnboarding: (authUser as any).has_completed_onboarding ?? false
+          hasCompletedOnboarding: authUser.has_completed_onboarding ?? false
         };
         setCurrentSession(session);
 
@@ -603,7 +603,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           loginTime: new Date(),
           permissions: getPermissionsByRole(user.role),
           firstLogin: user.first_login ?? false,
-          hasCompletedOnboarding: (user as any).has_completed_onboarding ?? false
+          hasCompletedOnboarding: user.has_completed_onboarding ?? false
         };
         setCurrentSession(session);
       }

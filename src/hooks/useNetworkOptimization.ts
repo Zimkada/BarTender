@@ -1,5 +1,39 @@
 import { useState, useEffect, useCallback } from 'react';
 
+/**
+ * ✅ Type-safe declarations for experimental Browser APIs
+ */
+
+/** Network Information API (experimental) */
+interface NetworkInformationAPI {
+  type?: 'bluetooth' | 'cellular' | 'ethernet' | 'wifi' | 'wimax' | 'none' | 'unknown';
+  effectiveType?: 'slow-2g' | '2g' | '3g' | '4g';
+  downlink?: number;
+  downlinkMax?: number;
+  rtt?: number;
+  saveData?: boolean;
+  addEventListener?: (type: string, listener: EventListener) => void;
+  removeEventListener?: (type: string, listener: EventListener) => void;
+}
+
+/** Battery Status API (experimental) */
+interface BatteryManager {
+  level: number;
+  charging: boolean;
+  chargingTime: number;
+  dischargingTime: number;
+  addEventListener: (type: string, listener: EventListener) => void;
+  removeEventListener: (type: string, listener: EventListener) => void;
+}
+
+/** Extended Navigator with experimental APIs */
+interface NavigatorWithExperimentalAPIs extends Navigator {
+  connection?: NetworkInformationAPI;
+  mozConnection?: NetworkInformationAPI;
+  webkitConnection?: NetworkInformationAPI;
+  getBattery?: () => Promise<BatteryManager>;
+}
+
 interface NetworkInfo {
   isOnline: boolean;
   connectionType: 'slow-2g' | '2g' | '3g' | '4g' | 'wifi' | 'unknown';
@@ -40,9 +74,9 @@ export function useNetworkOptimization() {
 
   // Détection des capacités réseau
   const updateNetworkInfo = useCallback(() => {
-    const connection = (navigator as any).connection ||
-                      (navigator as any).mozConnection ||
-                      (navigator as any).webkitConnection;
+    const connection = (navigator as NavigatorWithExperimentalAPIs).connection ||
+                      (navigator as NavigatorWithExperimentalAPIs).mozConnection ||
+                      (navigator as NavigatorWithExperimentalAPIs).webkitConnection;
 
     const newNetworkInfo: NetworkInfo = {
       isOnline: navigator.onLine,
@@ -69,7 +103,8 @@ export function useNetworkOptimization() {
 
     // Détection batterie
     if ('getBattery' in navigator) {
-      (navigator as any).getBattery().then((battery: any) => {
+      const navWithBattery = navigator as NavigatorWithExperimentalAPIs;
+      navWithBattery.getBattery?.().then((battery: BatteryManager) => {
         newNetworkInfo.batteryLevel = battery.level;
         newNetworkInfo.isLowBattery = battery.level < 0.2 || battery.charging === false;
         setNetworkInfo(newNetworkInfo);
@@ -121,7 +156,7 @@ export function useNetworkOptimization() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    const connection = (navigator as any).connection;
+    const connection = (navigator as NavigatorWithExperimentalAPIs).connection;
     if (connection) {
       connection.addEventListener('change', handleConnectionChange);
     }

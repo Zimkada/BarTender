@@ -431,6 +431,32 @@ export function AccountingOverview() {
     setShowCapitalContributionModal(false);
   };
 
+  /**
+   * ✅ Extended interfaces for Excel export (capture additional DB properties)
+   */
+  interface ReturnWithQuantity extends import('../types').Return {
+    quantity?: number;
+  }
+
+  interface SupplyExtended extends import('../types').Supply {
+    supplierName?: string;
+  }
+
+  interface ExpenseExtended extends import('../types').Expense {
+    category?: string;
+    customCategory?: string;
+  }
+
+  interface SalaryExtended extends import('../types').Salary {
+    memberName?: string;
+    staffName?: string;
+  }
+
+  interface ConsignmentExtended extends import('../types').Consignment {
+    totalValue?: number;
+    expiredAt?: Date | string;
+  }
+
   // Export comptable complet
   const handleExportAccounting = async () => {
     // Lazy load xlsx library only when export is triggered
@@ -543,7 +569,7 @@ export function AccountingOverview() {
       'ID Retour': ret.id.slice(0, 8),
       'ID Vente': ret.saleId.slice(0, 8),
       Produit: ret.productName,
-      Quantité: -(ret as any).quantity, // Négatif pour indiquer retours
+      Quantité: -((ret as ReturnWithQuantity).quantity || ret.quantityReturned), // Négatif pour indiquer retours
       'Montant remboursé': ret.refundAmount,
       Motif: ret.reason,
       Statut: ret.status,
@@ -562,7 +588,7 @@ export function AccountingOverview() {
       'Prix lot': supply.lotPrice,
       'Taille lot': supply.lotSize,
       'Coût total': supply.lotPrice * supply.lotSize,
-      Fournisseur: (supply as any).supplierName || supply.supplier || 'N/A',
+      Fournisseur: (supply as SupplyExtended).supplierName || supply.supplier || 'N/A',
     }));
     if (suppliesData.length > 0) {
       const suppliesSheet = XLSX.utils.json_to_sheet(suppliesData);
@@ -575,13 +601,15 @@ export function AccountingOverview() {
         const expDate = new Date(exp.date);
         return expDate >= periodStart && expDate <= periodEnd && exp.category !== 'investment';
       })
-      .map(exp => ({
-        Date: new Date(exp.date).toLocaleDateString('fr-FR'),
-        Catégorie: (exp as any).category === 'maintenance' ? 'Entretien' :
-          (exp as any).customCategory || 'Autre',
-        Description: exp.description,
-        Montant: exp.amount,
-      }));
+      .map(exp => {
+        const expExtended = exp as ExpenseExtended;
+        return {
+          Date: new Date(exp.date).toLocaleDateString('fr-FR'),
+          Catégorie: expExtended.category === 'maintenance' ? 'Entretien' : expExtended.customCategory || 'Autre',
+          Description: exp.description,
+          Montant: exp.amount,
+        };
+      });
     if (operatingExpensesData.length > 0) {
       const expensesSheet = XLSX.utils.json_to_sheet(operatingExpensesData);
       XLSX.utils.book_append_sheet(workbook, expensesSheet, 'Dépenses Opérationnelles');
@@ -604,12 +632,15 @@ export function AccountingOverview() {
     }
 
     // 7. ONGLET SALAIRES
-    const salariesData = filteredSalaries.map(salary => ({
-      Période: salary.period,
-      Membre: (salary as any).memberName || (salary as any).staffName || 'N/A',
-      Montant: salary.amount,
-      'Date paiement': new Date(salary.paidAt).toLocaleDateString('fr-FR'),
-    }));
+    const salariesData = filteredSalaries.map(salary => {
+      const salaryExtended = salary as SalaryExtended;
+      return {
+        Période: salary.period,
+        Membre: salaryExtended.memberName || salaryExtended.staffName || 'N/A',
+        Montant: salary.amount,
+        'Date paiement': new Date(salary.paidAt).toLocaleDateString('fr-FR'),
+      };
+    });
     if (salariesData.length > 0) {
       const salariesSheet = XLSX.utils.json_to_sheet(salariesData);
       XLSX.utils.book_append_sheet(workbook, salariesSheet, 'Salaires');
@@ -621,23 +652,26 @@ export function AccountingOverview() {
       return consDate >= periodStart && consDate <= periodEnd;
     });
     if (consignmentsInPeriod.length > 0) {
-      const consignmentsData = consignmentsInPeriod.map(cons => ({
-        Date: new Date(cons.createdAt).toLocaleDateString('fr-FR'),
-        'ID Vente': cons.saleId.slice(0, 8),
-        Produit: cons.productName,
-        Quantité: cons.quantity,
-        'Valeur totale': (cons as any).totalValue || cons.totalAmount,
-        Client: cons.customerName,
-        Téléphone: cons.customerPhone || 'N/A',
-        Statut: cons.status === 'active' ? 'Active' :
-          cons.status === 'claimed' ? 'Récupérée' :
-            cons.status === 'expired' ? 'Expirée' :
-              'Confisquée',
-        'Date expiration': new Date(cons.expiresAt).toLocaleDateString('fr-FR'),
-        'Date récup./expir.': cons.claimedAt ? new Date(cons.claimedAt).toLocaleDateString('fr-FR') :
-          (cons as any).expiredAt ? new Date((cons as any).expiredAt).toLocaleDateString('fr-FR') :
-            'N/A',
-      }));
+      const consignmentsData = consignmentsInPeriod.map(cons => {
+        const consExtended = cons as ConsignmentExtended;
+        return {
+          Date: new Date(cons.createdAt).toLocaleDateString('fr-FR'),
+          'ID Vente': cons.saleId.slice(0, 8),
+          Produit: cons.productName,
+          Quantité: cons.quantity,
+          'Valeur totale': consExtended.totalValue || cons.totalAmount,
+          Client: cons.customerName,
+          Téléphone: cons.customerPhone || 'N/A',
+          Statut: cons.status === 'active' ? 'Active' :
+            cons.status === 'claimed' ? 'Récupérée' :
+              cons.status === 'expired' ? 'Expirée' :
+                'Confisquée',
+          'Date expiration': new Date(cons.expiresAt).toLocaleDateString('fr-FR'),
+          'Date récup./expir.': cons.claimedAt ? new Date(cons.claimedAt).toLocaleDateString('fr-FR') :
+            consExtended.expiredAt ? new Date(consExtended.expiredAt).toLocaleDateString('fr-FR') :
+              'N/A',
+        };
+      });
       const consignmentsSheet = XLSX.utils.json_to_sheet(consignmentsData);
       XLSX.utils.book_append_sheet(workbook, consignmentsSheet, 'Consignations');
     }

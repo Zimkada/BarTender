@@ -17,7 +17,7 @@ import { useStockMutations } from './mutations/useStockMutations';
 // Callback type for expense creation
 export type CreateExpenseCallback = (expense: Omit<Expense, 'id' | 'barId' | 'createdAt'>) => void;
 
-interface CreateConsignmentData {
+export interface CreateConsignmentData {
   saleId: string;
   productId: string;
   productName: string;
