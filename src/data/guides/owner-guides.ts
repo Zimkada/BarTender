@@ -8,6 +8,281 @@
 import { GuideTour } from '@/types/guide';
 
 /**
+ * Guide 0: Sales Process (PREMIER GUIDE)
+ * Comprehensive guide covering all sales scenarios:
+ * - Mode complet (serveur pending → gérant validation)
+ * - Mode simplifié (gérant direct avec mappings)
+ * - Offline & synchronisation
+ * - Bons & paiement différé
+ * - Cas avancés (retours, annulations)
+ * Accessible à tous les rôles avec étapes role-spécifiques
+ */
+export const SALES_PROCESS_GUIDE: GuideTour = {
+  id: 'sales-process',
+  title: 'Processus de Vente BarTender',
+  subtitle: 'Du panier à la validation : tous les scénarios',
+  description: 'Guide complet du processus de vente : création, validation, bons, offline et cas avancés. Adapté à votre rôle et mode de fonctionnement.',
+
+  targetRoles: ['promoteur', 'gerant', 'serveur'],
+
+  estimatedDuration: 12,
+  difficulty: 'intermediate',
+  emoji: '🛍️',
+  version: 1,
+
+  triggers: [
+    {
+      type: 'onMount',
+      condition: 'isHomePage',
+      delay: 1000,
+      showOnce: true,
+    },
+  ],
+
+  steps: [
+    // ==================== INTRODUCTION ====================
+    {
+      id: 'step-1',
+      emoji: '🎯',
+      title: 'Bienvenue au Processus de Vente BarTender !',
+      description:
+        'BarTender gère les ventes selon **2 modes de fonctionnement** et **votre rôle**. Ce guide couvre tous les scénarios : mode complet (serveurs créent, gérant valide), mode simplifié (gérant crée tout), bons/paiement différé, offline & synchronisation. Découvrez comment fonctionne votre bar !',
+      position: 'center',
+      visibleFor: ['promoteur', 'gerant', 'serveur'],
+      tips: [
+        '📋 **Mode Complet** : Serveurs créent ventes (pending) → Gérant valide → Stock déduit',
+        '⚡ **Mode Simplifié** : Gérant crée ventes directement (validated) avec noms serveurs',
+        '📱 **Bons** : Paiement différé, traçabilité commandes',
+        '🌐 **Offline** : Ventes en cache, sync automatique quand réseau revient',
+      ],
+    },
+
+    // ==================== MODE COMPLET - SERVEUR ====================
+    {
+      id: 'step-2',
+      emoji: '🍺',
+      title: 'Mode Complet : Vous êtes SERVEUR',
+      description:
+        '**En Mode Complet**, vous avez un **compte avec authentification**. Vous créez les ventes au comptoir, puis un **Gérant les valide**. Votre rôle : capter les commandes clients avec précision. Le Gérant assure la validité et la comptabilité.',
+      position: 'bottom',
+      visibleFor: ['serveur'],
+      tips: [
+        '✅ Vous créez ventes (Panier → Paiement → Envoyer)',
+        '⏳ Ventes en attente de validation par Gérant',
+        '👀 Vous voyez votre historique personnel dans "Historique" page',
+        '❌ En Mode Simplifié, vous n\'avez pas accès (Gérant crée pour vous)',
+      ],
+    },
+
+    {
+      id: 'step-3',
+      emoji: '📋',
+      title: 'Mode Complet - Serveur : Flux Étape par Étape',
+      description:
+        '**Flux de créati vente** : 1️⃣ Cliquez "Vente Rapide" (menu bas ou Dashboard) → 2️⃣ Sélectionnez produits demandés par client → 3️⃣ Vérifiez panier (quantités, prix) → 4️⃣ Choisissez paiement (cash, mobile, carte) → 5️⃣ Cliquez "Valider" → ✅ Vente envoyée (status=pending) → Attente gérant.',
+      elementSelector: '[data-guide="quick-sale-btn"]',
+      position: 'bottom',
+      visibleFor: ['serveur'],
+      tips: [
+        '💰 Paiement = Spécifiez à la création (cash par défaut)',
+        '⏳ Vente reste "en attente" jusqu\'à validation gérant',
+        '📱 Pouvez voir ventes en attente dans Dashboard → Synthèse',
+        '🔄 Rejet possible : Si gérant rejette, modifiez et renvoyez',
+      ],
+    },
+
+    {
+      id: 'step-4',
+      emoji: '📊',
+      title: 'Mode Complet - Serveur : Vos Performances',
+      description:
+        'Votre **historique personnel** (page "Historique") affiche toutes vos ventes : **validées** (finales, comptabilisées), **rejetées** (retournées pour correction), **annulées** (supprimées par promoteur). Analysez vos **CA net** et nombre de ventes pour progresser. Gérant utilise ces données pour vous motiver !',
+      elementSelector: '[data-guide="sales-history"]',
+      position: 'bottom',
+      visibleFor: ['serveur'],
+      tips: [
+        '✅ Ventes Validées = Finales, stock déduit, comptabilisées',
+        '❌ Ventes Rejetées = À modifier et renvoyer (ou ignorer)',
+        '🚫 Ventes Annulées = Supprimées par promoteur (rare)',
+        '📈 Consultez pour savoir quels produits/heures vous performez bien',
+      ],
+    },
+
+    // ==================== MODE COMPLET - GÉRANT ====================
+    {
+      id: 'step-5',
+      emoji: '⚙️',
+      title: 'Mode Complet : Vous êtes GÉRANT',
+      description:
+        '**En Mode Complet**, votre rôle double : **créer ventes directes** (vous validées auto) + **valider ventes serveurs**. Vous pilotez les stocks, la comptabilité et contrôlez la qualité. Dashboard central pour superviser tous.',
+      position: 'bottom',
+      visibleFor: ['gerant', 'promoteur'],
+      tips: [
+        '🎯 **Ventes propres** : Validées instantanément (pas d\'attente)',
+        '📋 **Ventes serveurs** : En attente dans Dashboard → "Gestion Commandes"',
+        '✅ **Validation** : ✅ Valider | ❌ Rejeter | ✓✓ Batch (plusieurs à la fois)',
+        '📊 **Supervision** : Dashboard affiche équipe + stocks + CA',
+      ],
+    },
+
+    {
+      id: 'step-6',
+      emoji: '✅',
+      title: 'Mode Complet - Gérant : Valider les Ventes',
+      description:
+        '**Dashboard → Onglet "Gestion Commandes"** affiche toutes les ventes serveurs en **attente de validation**. Pour chaque vente : voir heure, montant, articles. **Actions** : ✅ Valider (stock déduit, comptabilisé) ou ❌ Rejeter (retour serveur, stock remis). Vous pouvez **valider en masse** : cochez plusieurs + cliquez "Valider tous".',
+      elementSelector: '[data-guide="pending-sales"]',
+      position: 'bottom',
+      visibleFor: ['gerant', 'promoteur'],
+      tips: [
+        '📌 Validation = Déduction stock + Comptabilisation finale',
+        '🔍 Vérifiez articles avant validation si doute',
+        '❌ Rejet = Vente retourne à serveur (stock remis, payant re-traité)',
+        '⏱️ Ventes expirées (après fermeture caisse) = Auto-invalidées',
+      ],
+    },
+
+    // ==================== MODE SIMPLIFIÉ ====================
+    {
+      id: 'step-7',
+      emoji: '⚡',
+      title: 'Mode Simplifié : Architecture & Accès',
+      description:
+        '**En Mode Simplifié**, **serveurs n\'ont pas de comptes** (juste noms : "Ahmed", "Fifi", "Moustapha"). **Gérant crée TOUTES les ventes** au comptoir, attribuant chacune à un serveur via son nom. **Validation immédiate** (pas d\'attente). Bons & tickets pour traçabilité. Idéal pour gérant solo ou peu staffing.',
+      position: 'center',
+      visibleFor: ['gerant', 'promoteur', 'serveur'],
+      tips: [
+        '👤 Serveurs = Noms texte, pas comptes auth',
+        '⚡ Ventes créées + validées immédiatement (par gérant)',
+        '🔗 **Mappings** : Nom serveur (ex: "Ahmed") ↔ Compte gérant interne',
+        '📱 Gérant peut aussi créer vente sous son nom ("Moi (Ahmed)")',
+      ],
+    },
+
+    {
+      id: 'step-8',
+      emoji: '🎯',
+      title: 'Mode Simplifié - Gérant : Flux Vente',
+      description:
+        '**Flux** : 1️⃣ Cliquez "Vente Rapide" → 2️⃣ **Sélectionnez serveur** dans dropdown (ex: "Ahmed", "Fifi", ou "Moi (Gérant)") → 3️⃣ Ajouter produits → 4️⃣ Optionnel : **Créer/mettre sur Bon** (paiement différé) OU → 5️⃣ Paiement cash immédiat → 6️⃣ Cliquez "Valider" → ✅ Vente créée + validée immédiatement.',
+      elementSelector: '[data-guide="quick-sale-btn"]',
+      position: 'bottom',
+      visibleFor: ['gerant', 'promoteur'],
+      tips: [
+        '📝 **Sélection serveur** = Dropdown de noms + "Moi (Gérant)"',
+        '🔗 Derrière les coulisses : Système résout "Ahmed" → UUID interne',
+        '🎫 **Bons** : Si client paye plus tard, "Mettre sur Bon" au lieu de cash',
+        '✅ Validation immédiate = Stock déduit tout de suite',
+      ],
+    },
+
+    // ==================== BONS & PAIEMENT DIFFÉRÉ ====================
+    {
+      id: 'step-9',
+      emoji: '🎫',
+      title: 'Bons & Tickets : Paiement Différé & Traçabilité',
+      description:
+        '**Bon/Ticket** = Enregistrement de commande avec paiement reporté. Utilisé pour : **paiement différé** (client paie plus tard) ou **traçabilité** (numéro table, nom client). **Workflow** : 1️⃣ Créer bon → 2️⃣ Ajouter ventes au bon (plusieurs ventes) → 3️⃣ Client revient payer → 4️⃣ Cliquez "Fermer bon" (= Payer) → ✅ Paiement final collecté.',
+      elementSelector: '[data-guide="bon-strip"]',
+      position: 'bottom',
+      visibleFor: ['gerant', 'promoteur'],
+      tips: [
+        '🎫 Bon # = Numéro séquentiel (1, 2, 3...) visible partout',
+        '📝 Données : Table number, customer name, notes (optionnel)',
+        '💰 Montant = Cumulé de toutes ventes sur ce bon',
+        '✅ Fermer bon = Paiement final + Stock déduit',
+      ],
+    },
+
+    // ==================== OFFLINE & SYNCHRONISATION ====================
+    {
+      id: 'step-10',
+      emoji: '📡',
+      title: 'Offline : Créer Ventes Sans Réseau',
+      description:
+        '**Pas d\'internet ?** BarTender fonctionne quand même ! Les ventes créées **offline** sont **en cache** (stockées localement). Quand réseau revient, **synchronisation automatique** : ventes envoyées vers serveur. **Aucune donnée perdue**. Bannière orange = Indication offline.',
+      position: 'center',
+      visibleFor: ['gerant', 'promoteur'],
+      tips: [
+        '📱 Créez ventes normalement même offline',
+        '💾 Ventes stockées en cache local (IndexedDB)',
+        '🔄 Sync automatique quand réseau revient',
+        '🚨 Si problème sync → Toast vous informe (retry auto)',
+      ],
+    },
+
+    {
+      id: 'step-11',
+      emoji: '🔄',
+      title: 'Offline : Synchronisation Automatique',
+      description:
+        '**Quand réseau revient** : 1️⃣ BarTender détecte connexion automatiquement → 2️⃣ Boucle sur opérations en cache (ventes, bons) → 3️⃣ Envoie vers serveur → 4️⃣ Si succès : ventes finalisées (stock déduit, comptabilité mise à jour) → ✅ Toast "Synchronisé" → Dashboard se met à jour. **Anti-doublon** : Chaque vente = clé unique (évite créer 2x si problème).',
+      position: 'bottom',
+      visibleFor: ['gerant', 'promoteur'],
+      tips: [
+        '⚙️ Sync = Automatique, vous ne faites rien',
+        '📊 Dashboard → Affiche "X opérations en attente de sync" si offline',
+        '✅ Une fois synced → Opérations disparaissent de queue',
+        '🔐 Idempotency key = Protection contre doublons',
+      ],
+    },
+
+    // ==================== CAS AVANCÉS ====================
+    {
+      id: 'step-12',
+      emoji: '↩️',
+      title: 'Cas Avancé : Retours & Remboursements',
+      description:
+        '**Client retour produit** ? Historique → Sélectionnez vente → Cliquez "Créer Retour" → Modal → Choisissez produit + raison (Défectueux, Expiré, Erreur, etc.) → Submit. Retour en **attente** de validation gérant. Une fois approuvé : **Stock remis** + **Remboursement traité**. Vente reste comptabilisée (avec retour soustrait).',
+      elementSelector: '[data-guide="create-return"]',
+      position: 'bottom',
+      visibleFor: ['gerant', 'promoteur'],
+      tips: [
+        '✅ Approuvé retour = Stock remis + Remboursement dans stats',
+        '❌ Rejeté retour = Stock non remis (si raison invalide)',
+        '📊 **Revenu Net** = Ventes - Retours approuvés automatiquement',
+        '🚫 Annulation bloquée si retours présents (pas combinable)',
+      ],
+    },
+
+    {
+      id: 'step-13',
+      emoji: '🚫',
+      title: 'Cas Avancé : Annulation de Vente (Promoteur)',
+      description:
+        '**Promoteur uniquement** : Historique → Détails vente → Bouton "Annuler" (si vente validée). Annulation = **Stock restitué** + **Vente supprimée des stats**. ⚠️ Action irréversible ! Confirmez avant (tapez nom bar pour confirmer). Utile si erreur grave ou problème client insolvable.',
+      elementSelector: '[data-guide="sales-details"]',
+      position: 'bottom',
+      visibleFor: ['promoteur'],
+      tips: [
+        '⚠️ UNIQUEMENT Promoteur (autorité suprême)',
+        '🚫 Conditions : Pas de retours/consignations dessus',
+        '💾 Vente conservée en historique (état "Annulée")',
+        '🔐 Confirmation requise (tapez confirmation)',
+      ],
+    },
+
+    // ==================== CONCLUSION ====================
+    {
+      id: 'step-14',
+      emoji: '✅',
+      title: 'Vous Maîtrisez le Processus de Vente !',
+      description:
+        'Félicitations ! Vous connaissez maintenant : **Mode Complet** (serveur pending → gérant valide), **Mode Simplifié** (gérant direct), **Bons & paiement différé**, **Offline & sync**, **Retours & annulations**. Vous êtes prêt à créer des ventes efficacement selon votre rôle et contexte !',
+      position: 'center',
+      visibleFor: ['promoteur', 'gerant', 'serveur'],
+      tips: [
+        '🎯 Débutez avec ventes simples, progressez vers bons/offline',
+        '📱 Utilisez "Vente Rapide" (menu bas) pour rapidité en service',
+        '📊 Dashboard = Votre centre de commande pour supervision',
+        '💡 Questions ? Consultez les guides détaillés : Inventaire, Équipe, Paramètres',
+      ],
+      action: '→ Commencez votre première vente !',
+    },
+  ],
+};
+
+/**
  * Guide 1: Dashboard Overview
  * First guide shown after onboarding (test case for Phase 1)
  */
@@ -2075,6 +2350,7 @@ export const FORECASTING_AI_GUIDE: GuideTour = {
  * All owner guides (Phase 2+)
  */
 export const OWNER_GUIDES: GuideTour[] = [
+  SALES_PROCESS_GUIDE,             // 🛍️ Premier guide - Processus complet de vente
   DASHBOARD_OVERVIEW_GUIDE,
   MANAGE_INVENTORY_GUIDE,
   MANAGE_RETURNS_GUIDE,

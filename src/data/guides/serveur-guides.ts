@@ -2,6 +2,223 @@ import { GuideTour } from '@/types/guide';
 import { PROFILE_GUIDE } from './owner-guides';
 
 /**
+ * Guide 0: Sales Process for Servers (PREMIER GUIDE)
+ * Comprehensive guide for server sales workflow:
+ * - Mode complet: Create pending sales, wait for manager validation
+ * - Mode simplifié: Access blocked (manager creates for you)
+ * - Validation workflow, rejection handling
+ * - Offline & synchronisation
+ * - Performance tracking
+ * Server-specific perspective and terminology
+ */
+export const SERVEUR_SALES_PROCESS_GUIDE: GuideTour = {
+  id: 'serveur-sales-process',
+  title: 'Processus de Vente : Guide Serveur',
+  subtitle: 'Créer des ventes, attendre validation, progresser',
+  description: 'Guide complet du processus de vente du point de vue serveur : créer panier, envoyer pour validation, gérer rejets, suivre vos performances. Adapté à votre rôle et mode de fonctionnement.',
+
+  targetRoles: ['serveur'],
+
+  estimatedDuration: 10,
+  difficulty: 'beginner',
+  emoji: '🍺',
+  version: 1,
+
+  triggers: [
+    {
+      type: 'onMount',
+      condition: 'isHomePage',
+      delay: 1000,
+      showOnce: true,
+    },
+  ],
+
+  steps: [
+    // ==================== INTRODUCTION ====================
+    {
+      id: 'step-1',
+      emoji: '🎯',
+      title: 'Bienvenue ! Votre Rôle dans BarTender',
+      description:
+        'Vous êtes **Serveur** 🍺. Votre mission : **capturer chaque vente avec précision**. Vous créez les ventes au comptoir, puis le **Gérant les valide**. Ce guide explique le flux complet : créer panier → sélectionner paiement → envoyer → attendre validation → voir historique. Deux modes possibles : **Mode Complet** (votre contexte normal) et **Mode Simplifié** (gérant crée à votre place).',
+      position: 'center',
+      tips: [
+        '✅ **Mode Complet** : Vous créez ventes (pending) → Gérant valide → Stock déduit',
+        '⚡ **Mode Simplifié** : Accès bloqué (Gérant crée pour vous avec votre nom)',
+        '📱 Vente rapide = Accès via menu bas OU Dashboard',
+        '⏳ Ventes en attente visible dans Dashboard → Synthèse',
+      ],
+    },
+
+    // ==================== MODE COMPLET - VOTRE RÔLE ====================
+    {
+      id: 'step-2',
+      emoji: '⚙️',
+      title: 'Vous Êtes en Mode COMPLET',
+      description:
+        '**Votre bar fonctionne en Mode Complet**. Cela signifie : vous avez un **compte avec authentification**, vous **créez les ventes** que vous capturez, et le **Gérant valide** votre travail. Votre responsabilité : **précision** (bonnes quantités, bons produits), **rapidité** (service fluide), **honnêteté** (enregistrer toutes les ventes).',
+      position: 'bottom',
+      tips: [
+        '👤 Vous = Compte utilisateur "Serveur"',
+        '📱 Accès à "Vente Rapide" toujours disponible',
+        '✅ Ventes créées en **pending** (en attente validation)',
+        '⚠️ Rejet possible si erreur → vous la corrigez et renvoyez',
+      ],
+    },
+
+    // ==================== CRÉER UNE VENTE ====================
+    {
+      id: 'step-3',
+      emoji: '🛒',
+      title: 'Créer une Vente : Le Flux',
+      description:
+        '**Flux étape par étape** : 1️⃣ Cliquez "Vente Rapide" (menu bas ou Dashboard haut) → 2️⃣ **Sélectionnez produits** demandés par client (bière, whisky, etc.) → 3️⃣ **Ajustez quantités** (+/- boutons) → 4️⃣ **Vérifiez panier** à droite (total correct ?) → 5️⃣ **Choisissez paiement** (cash par défaut) → 6️⃣ **Cliquez "Valider"** → ✅ Vente envoyée (status = pending).',
+      elementSelector: '[data-guide="quick-sale-btn"]',
+      position: 'bottom',
+      tips: [
+        '🔍 **Recherche** : Tapez nom produit pour trouver rapidement',
+        '🎯 **Quantités** : Vérifiez avant d\'envoyer (pas de modification après)',
+        '💰 **Paiement** : Cash = défaut, changez seulement si différent',
+        '✅ **Valider** : Envoie vente au gérant (attente validation)',
+      ],
+    },
+
+    // ==================== ATTENTE VALIDATION ====================
+    {
+      id: 'step-4',
+      emoji: '⏳',
+      title: 'Vente Envoyée : Attente Validation',
+      description:
+        '**Après "Valider"** : Votre vente passe en état **"Attente de validation"** ⏳. Le Gérant la voit dans son **Dashboard → Onglet "Gestion Commandes"**. Il peut : ✅ **Approuver** (stock déduit, vente finalisée) ou ❌ **Rejeter** (vente revient, vous recevez notification). **Temps attente** : Normalement quelques secondes/minutes, dépend du gérant.',
+      elementSelector: '[data-guide="pending-sales"]',
+      position: 'bottom',
+      tips: [
+        '📊 Voir ventes en attente : Dashboard → Synthèse du jour',
+        '⏱️ **Attente normale** : Gérant valide batch (plusieurs à la fois)',
+        '❌ **Rejet** = Retour à vous, vous devez corriger et renvoyer',
+        '✅ **Approbation** = Vente devient définitive, apparaît historique',
+      ],
+    },
+
+    // ==================== CAS REJET & CORRECTION ====================
+    {
+      id: 'step-5',
+      emoji: '❌',
+      title: 'Si Vente Rejetée : Corriger & Renvoyer',
+      description:
+        '**Vente rejetée ?** Le Gérant a trouvé une erreur (mauvais produit, quantité incorrecte, etc.). Vous recevez **notification** dans le Dashboard. La vente revient en attente de correction. **Correction** : Créez **une nouvelle vente** (pas modifier l\'ancienne rejetée). L\'ancienne reste en historique avec statut "Rejetée". Renvoyez la nouvelle, gérant re-valide.',
+      elementSelector: '[data-guide="sales-list"]',
+      position: 'bottom',
+      tips: [
+        '📲 Notification toast quand vente rejetée',
+        '🔄 Créez nouvelle vente (l\'ancienne non-modifiable)',
+        '📝 Note : Regardez pourquoi rejet (dashboard peut afficher raison)',
+        '✅ Renvoyez corrigée, gérant ré-approuvera',
+      ],
+    },
+
+    // ==================== HISTORIQUE PERSONNEL ====================
+    {
+      id: 'step-6',
+      emoji: '📊',
+      title: 'Votre Historique : Voir Vos Ventes',
+      description:
+        '**Page "Historique"** affiche **TOUTES vos ventes** avec leurs statuts : ✅ **Validées** (finales, comptabilisées), ❌ **Rejetées** (à corriger), 🚫 **Annulées** (supprimées par promoteur, rare). Chaque vente affiche : heure création, produits, montant, CA Net (après retours). Utilisez pour **vérifier votre travail** et **analyser vos performances**.',
+      elementSelector: '[data-guide="sales-history"]',
+      position: 'bottom',
+      tips: [
+        '✅ Validées = Comptabilisées dans votre CA',
+        '❌ Rejetées = Ignorées (pas comptabilisé)',
+        '📈 **Total CA Net** = Somme validées - Retours',
+        '🎯 Consultez pour savoir quand vous êtes bon (heures, produits)',
+      ],
+    },
+
+    // ==================== PERFORMANCE & STATISTIQUES ====================
+    {
+      id: 'step-7',
+      emoji: '🏆',
+      title: 'Vos Performances : Suivi & Progression',
+      description:
+        '**Dashboard → Onglet "Performance Équipe"** affiche votre **CA Net** et **nombre de ventes** pour le jour. Vous voyez aussi les autres serveurs (comparaison saine 🎯). **Gérant utilise ces données** pour : vous motiver, reconnaître top performers, ajuster staffing. **Votre objectif** : Vendre bien (précision), vendre beaucoup (activité), garder clients heureux (pas de retours).',
+      elementSelector: '[data-guide="team-performance"]',
+      position: 'bottom',
+      tips: [
+        '💰 **CA Net** = Votre chiffre d\'affaires (plus = mieux)',
+        '📊 **Nombre ventes** = Activité (plus actif = plus visible)',
+        '🏆 Top performers = Reconnaissance du gérant (bonus, horaires meilleurs)',
+        '💡 Apprenez des meilleurs : Notez leurs heures/produits de succès',
+      ],
+    },
+
+    // ==================== OFFLINE & SYNCHRONISATION ====================
+    {
+      id: 'step-8',
+      emoji: '📡',
+      title: 'Offline : Créer Ventes Sans Réseau',
+      description:
+        '**Pas d\'internet ?** Vous pouvez **quand même créer des ventes** en Mode Complet ! La vente est **stockée en cache** localement. Quand réseau revient, **synchronisation automatique** : vente envoyée vers gérant. **Aucune donnée perdue**. Bannière orange = Indication offline.',
+      position: 'center',
+      tips: [
+        '📱 Créez ventes normalement même sans réseau',
+        '💾 Ventes en cache local (téléphone/ordinateur)',
+        '🔄 Sync automatique quand connexion revient',
+        '✅ Vente finalisée quand gérant valide après sync',
+      ],
+    },
+
+    // ==================== MODE SIMPLIFIÉ (INFO) ====================
+    {
+      id: 'step-9',
+      emoji: '⚡',
+      title: 'Si Bar Passe en Mode SIMPLIFIÉ',
+      description:
+        '**Si votre bar bascule en Mode Simplifié** (ex: gérant solo, peu de staff) : **Vous n\'aurez plus accès** à "Vente Rapide". À la place, le Gérant crée **toutes les ventes** en utilisant votre **nom** (ex: "Ahmed", "Fifi"). Ventes attribuées directement à vous. C\'est plus simple pour gérant solo. Vous continuez à voir historique et performances.',
+      position: 'bottom',
+      tips: [
+        '⚠️ Mode Simplifié = Votre bouton "Vente Rapide" disparat',
+        '👤 Gérant crée ventes avec votre nom au comptoir',
+        '✅ Ventes validées immédiatement (pas d\'attente)',
+        '📊 Historique et stats toujours visibles',
+      ],
+    },
+
+    // ==================== CONSEILS PRATIQUES ====================
+    {
+      id: 'step-10',
+      emoji: '💡',
+      title: 'Conseils Pratiques pour Performer',
+      description:
+        '**Précision** : Vérifiez panier avant "Valider" (pas possible modifier après). **Rapidité** : Utilisez recherche produit (tape nom) au lieu de scroller. **Honnêteté** : Enregistrez TOUTES les ventes (bar vit ou meurt par intégrité). **Attention détails** : Quantités, paiement, produits corrects = 0 rejet. **Feedback gérant** : Si rejeté, demandez pourquoi et corrigez. **Apprentissage** : Regardez quand clients achètent (heures), quoi (produits) pour proposer mieux.',
+      position: 'center',
+      tips: [
+        '✅ Double-check panier = Zéro rejet',
+        '🔍 Recherche rapide = Plus de ventes par heure',
+        '💯 Précision > Vitesse (rejet = perte temps)',
+        '🎯 Notez heures/produits de succès pour progresser',
+      ],
+    },
+
+    // ==================== CONCLUSION ====================
+    {
+      id: 'step-11',
+      emoji: '✅',
+      title: 'Vous Maîtrisez le Processus de Vente !',
+      description:
+        'Félicitations ! Vous comprenez maintenant : **Créer panier rapidement** (recherche + quantités), **Sélectionner paiement** (cash défaut), **Envoyer pour validation** (status pending), **Attendre & voir résultat** (approuvé/rejeté), **Corriger si rejet**, **Suivre votre historique & performance**. Vous êtes prêt à vendre efficacement et progresser vers top performer !',
+      position: 'center',
+      tips: [
+        '🎯 Visez 0 rejets (précision absolue)',
+        '💰 Maximisez CA Net (vendre plus + produits chers)',
+        '🏆 Devenez top performer du mois',
+        '💬 Questions ? Demandez au gérant (toujours disponible)',
+      ],
+      action: '→ Créez votre première vente maintenant !',
+    },
+  ],
+};
+
+/**
  * Guide 1: First Sale for Servers
  * Step-by-step guide to the quick sale flow (2 access methods)
  */
@@ -751,6 +968,7 @@ export const SERVEUR_CONSIGNMENTS_GUIDE: GuideTour = {
 };
 
 export const SERVEUR_GUIDES: GuideTour[] = [
+    SERVEUR_SALES_PROCESS_GUIDE,       // 🍺 Premier guide - Processus complet de vente serveur
     SERVEUR_FIRST_SALE_GUIDE,
     SERVEUR_DASHBOARD_GUIDE,
     SERVEUR_HISTORY_GUIDE,
