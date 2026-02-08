@@ -294,11 +294,18 @@ export class ProductsService {
       }
 
       // Map RPC results to BarProductWithDetails format
-      const enrichedProducts: BarProductWithDetails[] = (productsData || []).map((product: any) => ({
-        ...product,
-        display_name: product.display_name,
-        display_image: product.local_image || product.official_image || null,
-      }));
+      const enrichedProducts: BarProductWithDetails[] = (productsData || []).map((product) => {
+        const prod = product as unknown as BarProduct & {
+          display_name: string;
+          local_image?: string | null;
+          official_image?: string | null;
+        };
+        return {
+          ...prod,
+          display_name: prod.display_name,
+          display_image: prod.local_image || prod.official_image || null,
+        };
+      });
 
       return enrichedProducts;
     } catch (error) {

@@ -107,8 +107,11 @@ class OfflineQueue {
     if (schema) {
       try {
         schema.parse(payload);
-      } catch (err: any) {
-        console.error(`[OfflineQueue] Validation failed for ${type}:`, err.errors || err);
+      } catch (err) {
+        const errors = typeof err === 'object' && err !== null && 'errors' in err
+          ? err.errors
+          : err;
+        console.error(`[OfflineQueue] Validation failed for ${type}:`, errors);
         throw new Error(`INVALID_PAYLOAD: ${type}`);
       }
     }

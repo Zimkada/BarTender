@@ -1,11 +1,43 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
-import { Bar } from '../../types';
+import { Bar, BarSettings } from '../../types';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 type BarRow = Database['public']['Tables']['bars']['Row'];
 // type BarInsert = Database['public']['Tables']['bars']['Insert']; // Unused
 type BarUpdate = Database['public']['Tables']['bars']['Update'];
 type BarMemberInsert = Database['public']['Tables']['bar_members']['Insert'];
+
+/**
+ * ✅ Type-safe interface pour la vue SQL admin_bars_list
+ * La vue matérialisée admin_bars_list n'est pas dans les types générés Supabase
+ * car elle est créée via migration SQL et contient des JOINs enrichis.
+ *
+ * @note settings/theme_config utilisent `unknown` car le contenu JSONB est dynamique
+ */
+// @ts-expect-error - Vue matérialisée admin_bars_list non incluse dans les types générés
+interface AdminBarsListRow {
+  id: string | null;
+  name: string | null;
+  owner_id: string | null;
+  address?: string | null;
+  phone?: string | null;
+  created_at: string | null;
+  is_active: boolean | null;
+  closing_hour?: number | null;
+  settings?: unknown; // JSONB dynamique, contenu type-safe via BarSettings au runtime
+  theme_config?: unknown; // JSONB dynamique pour thème custom
+  owner_name?: string | null;
+  owner_phone?: string | null;
+  member_count?: number | null;
+  contact_email?: string | null;
+  is_setup_complete?: boolean | null;
+}
+
+/**
+ * ✅ Type union pour mapToBar - accepte BarRow standard ou la vue admin_bars_list
+ */
+type BarLikeRow = BarRow | AdminBarsListRow;
 
 export interface BarWithOwner extends Bar {
   owner_name: string;
@@ -19,7 +51,7 @@ export interface CreateBarData {
   address?: string;
   phone?: string;
   logo_url?: string;
-  settings?: Record<string, any>;
+  settings?: Record<string, unknown>; // ✅ Changed from any to unknown
   closing_hour?: number;
 }
 
@@ -31,20 +63,22 @@ export class BarsService {
    * Helper pour convertir une ligne Supabase en objet Bar frontend
    * Extensible pour gérer BarRow classique ou la vue admin_bars_list
    */
-  private static mapToBar(row: any): Bar {
+  private static mapToBar(row: BarLikeRow): Bar {
+    const defaultSettings = {} as BarSettings; // Fallback
+
     return {
-      id: row.id,
-      name: row.name,
-      address: row.address || undefined,
-      phone: row.phone || undefined,
-      email: row.contact_email || undefined,
+      id: row.id || '',
+      name: row.name || '',
+      address: 'address' in row ? (row.address || undefined) : undefined,
+      phone: 'phone' in row ? (row.phone || undefined) : undefined,
+      email: 'contact_email' in row ? (row.contact_email || undefined) : undefined,
       ownerId: row.owner_id || '',
       createdAt: new Date(row.created_at || Date.now()),
       isActive: row.is_active || false,
-      closingHour: row.closing_hour ?? 6, // ✅ Mappage explicite
-      settings: row.settings as any,
-      theme_config: row.theme_config, // ✅ Mappage du thème (Crucial pour le fix)
-      isSetupComplete: row.is_setup_complete === true, // ✅ Mappage strict pour boolean
+      closingHour: ('closing_hour' in row ? row.closing_hour : 6) ?? 6,
+      settings: (('settings' in row && row.settings) ? (row.settings as unknown as BarSettings) : defaultSettings),
+      theme_config: 'theme_config' in row ? (row.theme_config as unknown as Record<string, unknown> | undefined) : undefined,
+      isSetupComplete: 'is_setup_complete' in row ? (row.is_setup_complete === true) : false,
     };
   }
 
@@ -63,7 +97,7 @@ export class BarsService {
           address: data.address,
           phone: data.phone,
           logo_url: data.logo_url,
-          settings: data.settings,
+          settings: data.settings as unknown, // JSONB accepte unknown, sera validé au runtime
           is_active: true,
           closing_hour: data.closing_hour ?? 6,
         })
@@ -92,7 +126,7 @@ export class BarsService {
       }
 
       return this.mapToBar(newBar);
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -104,7 +138,7 @@ export class BarsService {
     try {
       // ✅ Utilisation de la vue optimisée admin_bars_list
       const { data, error } = await supabase
-        .from('admin_bars_list' as any) // Cast as any because type might not be generated yet
+        .from('admin_bars_list')
         .select('*')
         .eq('id', barId)
         .eq('is_active', true)
@@ -127,8 +161,8 @@ export class BarsService {
         owner_phone: data.owner_phone || '',
         member_count: data.member_count || 0,
       };
-    } catch (error: any) {
-      console.warn('Fallback legacy getBarById due to error:', error);
+    } catch (error) {
+      console.warn('Fallback legacy getBarById due to error:', getErrorMessage(error));
       return this.getBarByIdLegacy(barId);
     }
   }
@@ -166,7 +200,7 @@ export class BarsService {
         owner_phone: owner?.phone || '',
         member_count: count || 0
       };
-    } catch (e: any) {
+    } catch (e) {
       throw new Error(handleSupabaseError(e));
     }
   }
@@ -178,7 +212,7 @@ export class BarsService {
     try {
       // ✅ Utilisation de la vue optimisée admin_bars_list
       const { data, error } = await supabase
-        .from('admin_bars_list' as any)
+        .from('admin_bars_list')
         .select('*')
         .eq('is_active', true)
         .order('created_at', { ascending: false });
@@ -191,13 +225,13 @@ export class BarsService {
         throw new Error('Erreur lors de la récupération des bars');
       }
 
-      return (data || []).map((row: any) => ({
+      return (data || []).map((row: AdminBarsListRow) => ({
         ...this.mapToBar(row),
         owner_name: row.owner_name || '',
         owner_phone: row.owner_phone || '',
         member_count: row.member_count || 0,
       }));
-    } catch (error: any) {
+    } catch (error) {
       console.warn('Fallback legacy getAllBars due to error:', error);
       return this.getAllBarsLegacy();
     }
@@ -258,8 +292,8 @@ export class BarsService {
         throw new Error('Erreur lors de la récupération des bars');
       }
 
-      return (data || []).map((barRow: any) => this.mapToBar(barRow));
-    } catch (error: any) {
+      return (data || []).map((barRow: BarRow) => this.mapToBar(barRow));
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -276,8 +310,8 @@ export class BarsService {
         throw new Error('Erreur lors de la récupération de vos bars');
       }
 
-      return (data || []).map((barRow: any) => this.mapToBar(barRow));
-    } catch (error: any) {
+      return (data || []).map((barRow: BarRow) => this.mapToBar(barRow));
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -285,13 +319,13 @@ export class BarsService {
   /**
    * Mettre à jour un bar
    */
-  static async updateBar(barId: string, updates: BarUpdate & { closingHour?: number; theme_config?: any }): Promise<Bar> {
+  static async updateBar(barId: string, updates: BarUpdate & { closingHour?: number; theme_config?: unknown }): Promise<Bar> {
     try {
       // Mapper closingHour vers closing_hour si présent
-      const dbUpdates: any = { ...updates };
+      const dbUpdates: BarUpdate & { closingHour?: number } = { ...updates };
       if (updates.closingHour !== undefined) {
         dbUpdates.closing_hour = updates.closingHour;
-        delete dbUpdates.closingHour;
+        delete dbUpdates.closingHour; // Clean up non-DB property
       }
 
       // 1. Faire l'UPDATE sans .select() pour éviter l'erreur 406 avec jsonb
@@ -316,7 +350,7 @@ export class BarsService {
       }
 
       return this.mapToBar(data);
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -334,7 +368,7 @@ export class BarsService {
       if (error) {
         throw new Error('Erreur lors de la désactivation du bar');
       }
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -352,7 +386,7 @@ export class BarsService {
       if (error) {
         throw new Error('Erreur lors de l\'activation du bar');
       }
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -360,7 +394,7 @@ export class BarsService {
   /**
    * Mettre à jour les paramètres d'un bar
    */
-  static async updateSettings(barId: string, settings: Record<string, any>): Promise<void> {
+  static async updateSettings(barId: string, settings: Record<string, unknown>): Promise<void> {
     try {
       const { error } = await supabase
         .from('bars')
@@ -370,7 +404,7 @@ export class BarsService {
       if (error) {
         throw new Error('Erreur lors de la mise à jour des paramètres');
       }
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -378,7 +412,7 @@ export class BarsService {
   /**
    * Récupérer les paramètres d'un bar
    */
-  static async getSettings(barId: string): Promise<Record<string, any> | null> {
+  static async getSettings(barId: string): Promise<Record<string, unknown> | null> {
     try {
       const { data, error } = await supabase
         .from('bars')
@@ -390,8 +424,8 @@ export class BarsService {
         return null;
       }
 
-      return data.settings as Record<string, any>;
-    } catch (error: any) {
+      return data.settings as unknown as Record<string, unknown>;
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -432,8 +466,8 @@ export class BarsService {
         totalRevenue: stats.total_revenue || 0,
         pendingSales: stats.pending_sales || 0,
       };
-    } catch (error: any) {
-      console.warn('Fallback legacy getBarStats due to error:', error);
+    } catch (error) {
+      console.warn('Fallback legacy getBarStats due to error:', getErrorMessage(error));
       return this.getBarStatsLegacy(barId);
     }
   }
@@ -492,16 +526,28 @@ export class BarsService {
 
       if (error) throw error;
 
-      return (data || []).map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        email: c.email,
-        phone: c.phone || '',
-        role: c.role,
-        sourceBarName: c.source_bar_name
-      }));
-    } catch (error: any) {
-      console.error('Error fetching staff candidates:', error);
+      interface StaffCandidateRow {
+        id: string;
+        name: string;
+        email: string;
+        phone: string | null;
+        role: string;
+        source_bar_name: string;
+      }
+
+      return (data || []).map((c: unknown) => {
+        const candidate = c as StaffCandidateRow;
+        return {
+          id: candidate.id,
+          name: candidate.name,
+          email: candidate.email,
+          phone: candidate.phone || '',
+          role: candidate.role,
+          sourceBarName: candidate.source_bar_name
+        };
+      });
+    } catch (error) {
+      console.error('Error fetching staff candidates:', getErrorMessage(error));
       return [];
     }
   }
@@ -518,8 +564,8 @@ export class BarsService {
       const { data, error } = await supabase
         .rpc('add_bar_member_existing', {
           p_bar_id: barId,
-          p_user_id: identifier.userId || null,
-          p_email: identifier.email || null,
+          p_user_id: identifier.userId ?? undefined,
+          p_email: identifier.email ?? undefined,
           p_role: role
         });
 
@@ -527,14 +573,18 @@ export class BarsService {
         throw new Error(error.message);
       }
 
-      if (data && !data.success) {
-        return { success: false, error: data.error || 'Erreur inconnue' };
+      // Cast the JSON result to a typed object
+      const result = data as { success: boolean; message?: string; error?: string } | null;
+
+      if (result && !result.success) {
+        return { success: false, error: result.error || 'Erreur inconnue' };
       }
 
-      return { success: true, message: data?.message };
-    } catch (error: any) {
-      console.error('Error adding existing member:', error);
-      return { success: false, error: error.message || 'Erreur lors de l\'ajout' };
+      return { success: true, message: result?.message };
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      console.error('Error adding existing member:', errorMessage);
+      return { success: false, error: errorMessage };
     }
   }
 
@@ -546,7 +596,7 @@ export class BarsService {
   static async assignMemberToBar(
     barId: string,
     userId: string,
-    role: 'promoteur' | 'gérant' | 'serveur',
+    role: 'promoteur' | 'gerant' | 'serveur',
     assignedByUserId: string
   ): Promise<void> {
     try {
@@ -563,7 +613,7 @@ export class BarsService {
       if (error) {
         throw new Error(`Erreur lors de l'assignation du membre: ${error.message}`);
       }
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }

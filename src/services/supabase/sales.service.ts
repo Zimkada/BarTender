@@ -108,8 +108,7 @@ export class SalesService {
 
       console.log('[SalesService] Attempting online RPC (create_sale_idempotent)...');
 
-      // ✅ AbortController pour annuler la requête en cas de timeout
-      const abortController = new AbortController();
+      // ✅ Timeout avec cleanup pour éviter les memory leaks
       let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
       const rpcPromise = supabase.rpc(
@@ -127,13 +126,11 @@ export class SalesService {
           p_notes: data.notes ?? undefined,
           p_business_date: data.business_date ?? undefined,
           p_ticket_id: data.ticket_id ?? undefined
-        },
-        { signal: abortController.signal }
+        }
       ).single();
 
       const timeoutPromise = new Promise((_, reject) => {
         timeoutId = setTimeout(() => {
-          abortController.abort(); // ✅ Annuler la requête HTTP
           reject(new Error('TIMEOUT_EXCEEDED'));
         }, 5000);
       });
@@ -147,16 +144,18 @@ export class SalesService {
           clearTimeout(timeoutId);
         }
 
-        // Type guard pour vérifier la structure du résultat
+        // Type guard pour vérifier la structure du résultat Supabase
         if (result && typeof result === 'object' && 'error' in result && result.error) {
           console.error('[SalesService] RPC error detail:', result.error);
           throw result.error;
         }
 
-        // Extraction type-safe de data
-        return (result && typeof result === 'object' && 'data' in result)
-          ? result.data
-          : result;
+        // Extraction type-safe de data (Supabase renvoie { data, error })
+        if (result && typeof result === 'object' && 'data' in result) {
+          return result.data as Sale;
+        }
+
+        return result as Sale;
 
       } catch (err) {
         // ✅ Cleanup du timeout en cas d'erreur
@@ -349,7 +348,13 @@ export class SalesService {
     return data || [];
   }
 
-  static async getBarSales(barId: string, options?: any): Promise<DBSale[]> {
+  static async getBarSales(barId: string, options?: {
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<DBSale[]> {
     let query = supabase
       .from('sales')
       .select(`
@@ -405,10 +410,14 @@ export class SalesService {
     }, 0);
 
     return {
-      ...enrichedData,
+      ...(enrichedData as Sale),
       items_count,
       seller_name: enrichedData.seller?.name,
       validator_name: enrichedData.validator?.name
+    } as Sale & {
+      items_count?: number;
+      seller_name?: string;
+      validator_name?: string;
     };
   }
 
@@ -450,7 +459,10 @@ export class SalesService {
     if (endDate) query = query.lte('business_date', endDate.toISOString().split('T')[0]);
     if (serverId) query = query.eq('sold_by', serverId);
 
-    const result = await this.withTimeout<{ data: any[] | null, error: any }>(query);
+    const result = await this.withTimeout<{
+      data: Array<{ total: number; status: string; sold_by: string }> | null;
+      error: unknown;
+    }>(query);
     const { data, error } = result;
     if (error) throw new Error(handleSupabaseError(error));
 

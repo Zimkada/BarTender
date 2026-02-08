@@ -3,14 +3,25 @@
  * Permet d'éviter les casts dangereux vers 'any'
  */
 
-import type { Json } from '@supabase/supabase-js';
+import type { Json } from './database.types';
 import type { SaleItem } from '../types/sync';
 
 /**
  * Convertit un tableau TypeScript en Json pour Supabase
+ * ✅ Valide la sérialisation JSON pour éviter la corruption de données
+ *
+ * @throws Error si les données contiennent des types non-sérialisables (fonctions, symboles, références circulaires)
  */
 export function toSupabaseJson<T>(items: T[]): Json {
-  return items as unknown as Json;
+  try {
+    // ✅ Validation : Test de sérialisation complète
+    const serialized = JSON.stringify(items);
+    const parsed = JSON.parse(serialized);
+    return parsed as Json;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    throw new Error(`toSupabaseJson: Invalid JSON data - ${errorMsg}`);
+  }
 }
 
 /**

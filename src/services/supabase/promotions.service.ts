@@ -9,48 +9,92 @@
 
 import { supabase } from '../../lib/supabase';
 import { Promotion, PromotionApplication, Product, PromotionPriceResult } from '../../types';
+import type { Database } from '../../lib/database.types';
+import { getErrorMessage } from '../../utils/errorHandler';
+
+type PromotionRow = Database['public']['Tables']['promotions']['Row'];
+type PromotionInsert = Database['public']['Tables']['promotions']['Insert'];
+type PromotionUpdate = Database['public']['Tables']['promotions']['Update'];
+
+interface PromotionGlobalStats {
+    total_revenue: number;
+    total_discount: number;
+    total_applications: number;
+    total_cost_of_goods: number;
+    net_profit: number;
+    margin_percentage: number;
+    roi_percentage: number;
+}
+
+interface PromotionPerformanceStat {
+    promotion_id: string;
+    promotion_name: string;
+    total_applications: number;
+    total_revenue: number;
+    total_discount: number;
+    total_cost_of_goods: number;
+    net_profit: number;
+    margin_percentage: number;
+    roi_percentage: number;
+}
+
+/**
+ * ✅ Type-safe result interface for promotion performance analytics
+ * Returned by getPromotionsPerformance() with aggregated metrics
+ */
+export interface PromotionPerformanceResult {
+    id: string;
+    name: string;
+    uses: number;
+    revenue: number;
+    discount: number;
+    costOfGoods: number;
+    netProfit: number;
+    marginPercentage: number;
+    roi: number;
+}
 
 /**
  * Convertit les données SQL (snake_case) en objet TypeScript (camelCase)
  * Résout le mismatch entre les conventions SQL et TypeScript
  */
-function mapDbPromoToPromotion(dbPromo: any): Promotion {
+function mapDbPromoToPromotion(dbPromo: PromotionRow): Promotion {
     return {
         id: dbPromo.id,
         barId: dbPromo.bar_id,
         name: dbPromo.name,
-        description: dbPromo.description,
-        type: dbPromo.type,
-        status: dbPromo.status,
-        targetType: dbPromo.target_type,
-        targetProductIds: dbPromo.target_product_ids,
-        targetCategoryIds: dbPromo.target_category_ids,
-        bundleQuantity: dbPromo.bundle_quantity,
-        bundlePrice: dbPromo.bundle_price,
-        discountAmount: dbPromo.discount_amount,
-        discountPercentage: dbPromo.discount_percentage,
-        specialPrice: dbPromo.special_price,
-        timeStart: dbPromo.time_start,
-        timeEnd: dbPromo.time_end,
-        startDate: dbPromo.start_date,
-        endDate: dbPromo.end_date,
-        isRecurring: dbPromo.is_recurring,
-        recurrenceDays: dbPromo.recurrence_days,
-        maxUsesPerCustomer: dbPromo.max_uses_per_customer,
-        maxTotalUses: dbPromo.max_total_uses,
+        description: dbPromo.description || '',
+        type: dbPromo.type as Promotion['type'],
+        status: (dbPromo.status as Promotion['status']) || 'inactive',
+        targetType: dbPromo.target_type as Promotion['targetType'],
+        targetProductIds: dbPromo.target_product_ids ? (dbPromo.target_product_ids as string[]) : [],
+        targetCategoryIds: dbPromo.target_category_ids ? (dbPromo.target_category_ids as string[]) : [],
+        bundleQuantity: dbPromo.bundle_quantity || 0,
+        bundlePrice: dbPromo.bundle_price || 0,
+        discountAmount: dbPromo.discount_amount || 0,
+        discountPercentage: dbPromo.discount_percentage || 0,
+        specialPrice: dbPromo.special_price || 0,
+        timeStart: dbPromo.time_start || undefined,
+        timeEnd: dbPromo.time_end || undefined,
+        startDate: dbPromo.start_date || '',
+        endDate: dbPromo.end_date || undefined,
+        isRecurring: dbPromo.is_recurring || false,
+        recurrenceDays: dbPromo.recurrence_days ? (dbPromo.recurrence_days as number[]) : [],
+        maxUsesPerCustomer: dbPromo.max_uses_per_customer || undefined,
+        maxTotalUses: dbPromo.max_total_uses || undefined,
         currentUses: dbPromo.current_uses || 0,
         priority: dbPromo.priority || 0,
-        createdBy: dbPromo.created_by,
-        createdAt: new Date(dbPromo.created_at),
-        updatedAt: new Date(dbPromo.updated_at)
+        createdBy: dbPromo.created_by || '',
+        createdAt: new Date(dbPromo.created_at || new Date().toISOString()),
+        updatedAt: new Date(dbPromo.updated_at || new Date().toISOString())
     };
 }
 
 /**
  * Convertit un objet Promotion (camelCase) en données SQL (snake_case)
  */
-function mapPromotionToDbPromo(promo: Partial<Promotion>): any {
-    const dbPromo: any = {};
+function mapPromotionToDbPromo(promo: Partial<Promotion>): PromotionUpdate {
+    const dbPromo: PromotionUpdate = {};
 
     if (promo.barId !== undefined) dbPromo.bar_id = promo.barId;
     if (promo.name !== undefined) dbPromo.name = promo.name;
@@ -116,7 +160,7 @@ export const PromotionsService = {
         }
 
         // Mapper les données DB (snake_case) vers TypeScript (camelCase)
-        const promotions = (data || []).map(mapDbPromoToPromotion);
+        const promotions = (data || []).map((row) => mapDbPromoToPromotion(row as PromotionRow));
 
         // Filtrage côté client pour logique complexe
         return promotions.filter(promo => {
@@ -347,8 +391,9 @@ export const PromotionsService = {
                 // Ne pas bloquer si l'incrémentation échoue
             }
         } catch (error) {
-            console.error('Erreur enregistrement application promotion:', error);
-            throw error;
+            const errorMessage = getErrorMessage(error);
+            console.error('Erreur enregistrement application promotion:', errorMessage);
+            throw new Error(errorMessage);
         }
     },
 
@@ -378,7 +423,7 @@ export const PromotionsService = {
     ): Promise<Promotion> {
         try {
             // Convertir camelCase → snake_case pour l'insertion
-            const dbPromo = mapPromotionToDbPromo(promotion);
+            const dbPromo = mapPromotionToDbPromo(promotion) as PromotionInsert;
 
             const { data, error } = await supabase
                 .from('promotions')
@@ -389,10 +434,11 @@ export const PromotionsService = {
             if (error) throw error;
 
             // Convertir snake_case → camelCase pour le retour
-            return mapDbPromoToPromotion(data);
+            return mapDbPromoToPromotion(data as PromotionRow);
         } catch (error) {
-            console.error('Erreur création promotion:', error);
-            throw error;
+            const errorMessage = getErrorMessage(error);
+            console.error('Erreur création promotion:', errorMessage);
+            throw new Error(errorMessage);
         }
     },
 
@@ -427,10 +473,11 @@ export const PromotionsService = {
             if (error) throw error;
 
             // Convertir snake_case → camelCase pour le retour
-            return mapDbPromoToPromotion(data);
+            return mapDbPromoToPromotion(data as PromotionRow);
         } catch (error) {
-            console.error('Erreur mise à jour promotion:', error);
-            throw error;
+            const errorMessage = getErrorMessage(error);
+            console.error('Erreur mise à jour promotion:', errorMessage);
+            throw new Error(errorMessage);
         }
     },
 
@@ -451,8 +498,9 @@ export const PromotionsService = {
 
             if (error) throw error;
         } catch (error) {
-            console.error('Erreur suppression promotion:', error);
-            throw error;
+            const errorMessage = getErrorMessage(error);
+            console.error('Erreur suppression promotion:', errorMessage);
+            throw new Error(errorMessage);
         }
     },
 
@@ -476,10 +524,11 @@ export const PromotionsService = {
             if (error) throw error;
 
             // Convertir snake_case → camelCase
-            return (data || []).map(mapDbPromoToPromotion);
+            return (data || []).map((row) => mapDbPromoToPromotion(row as PromotionRow));
         } catch (error) {
-            console.error('Erreur récupération promotions:', error);
-            throw error;
+            const errorMessage = getErrorMessage(error);
+            console.error('Erreur récupération promotions:', errorMessage);
+            throw new Error(errorMessage);
         }
     },
 
@@ -505,32 +554,36 @@ export const PromotionsService = {
         roi: number;
     }> {
         try {
-            const { data, error } = await (supabase.rpc as any)('get_bar_global_promotion_stats_with_profit', {
+            const { data, error } = await supabase.rpc('get_bar_global_promotion_stats_with_profit', {
                 p_bar_id: barId,
-                p_start_date: startDate?.toISOString() || null,
-                p_end_date: endDate?.toISOString() || null
+                p_start_date: startDate?.toISOString() || undefined,
+                p_end_date: endDate?.toISOString() || undefined
             }).single();
 
             if (error) throw error;
 
-            const totalRevenue = Number(data?.total_revenue || 0);
-            const totalDiscount = Number(data?.total_discount || 0);
-            const totalCostOfGoods = Number(data?.total_cost_of_goods || 0);
-            const netProfit = Number(data?.net_profit || 0);
-            const marginPercentage = Number(data?.margin_percentage || 0);
-            const roi = Number(data?.roi_percentage || 0);
+            // ✅ Type correction: Cast unknown RPC result to defined interface
+            const stats = data as unknown as PromotionGlobalStats;
+
+            const totalRevenue = Number(stats?.total_revenue || 0);
+            const totalDiscount = Number(stats?.total_discount || 0);
+            const totalCostOfGoods = Number(stats?.total_cost_of_goods || 0);
+            const netProfit = Number(stats?.net_profit || 0);
+            const marginPercentage = Number(stats?.margin_percentage || 0);
+            const roi = Number(stats?.roi_percentage || 0);
 
             return {
                 totalRevenue,
                 totalDiscount,
-                totalApplications: Number(data?.total_applications || 0),
+                totalApplications: Number(stats?.total_applications || 0),
                 totalCostOfGoods,
                 netProfit,
                 marginPercentage,
                 roi
             };
         } catch (error) {
-            console.error('Erreur stats globales:', error);
+            const errorMessage = getErrorMessage(error);
+            console.error('Erreur stats globales:', errorMessage);
             return {
                 totalRevenue: 0,
                 totalDiscount: 0,
@@ -555,29 +608,34 @@ export const PromotionsService = {
         barId: string,
         startDate?: Date,
         endDate?: Date
-    ): Promise<any[]> {
+    ): Promise<PromotionPerformanceResult[]> {
         try {
-            const { data, error } = await (supabase.rpc as any)('get_bar_promotion_stats_with_profit', {
+            const { data, error } = await supabase.rpc('get_bar_promotion_stats_with_profit', {
                 p_bar_id: barId,
-                p_start_date: startDate?.toISOString() || null,
-                p_end_date: endDate?.toISOString() || null
+                p_start_date: startDate?.toISOString() || undefined,
+                p_end_date: endDate?.toISOString() || undefined
             });
 
             if (error) throw error;
 
-            return (data || []).map((stat: any) => ({
-                id: stat.promotion_id,
-                name: stat.promotion_name,
-                uses: Number(stat.total_applications),
-                revenue: Number(stat.total_revenue),
-                discount: Number(stat.total_discount),
-                costOfGoods: Number(stat.total_cost_of_goods),
-                netProfit: Number(stat.net_profit),
-                marginPercentage: Number(stat.margin_percentage),
-                roi: Number(stat.roi_percentage)
-            }));
+            // ✅ Type-safe mapping with explicit interface and cast
+            return (data || []).map((item) => {
+                const stat = item as unknown as PromotionPerformanceStat;
+                return {
+                    id: stat.promotion_id,
+                    name: stat.promotion_name,
+                    uses: Number(stat.total_applications),
+                    revenue: Number(stat.total_revenue),
+                    discount: Number(stat.total_discount),
+                    costOfGoods: Number(stat.total_cost_of_goods),
+                    netProfit: Number(stat.net_profit),
+                    marginPercentage: Number(stat.margin_percentage),
+                    roi: Number(stat.roi_percentage)
+                };
+            });
         } catch (error) {
-            console.error('Erreur performance promotions:', error);
+            const errorMessage = getErrorMessage(error);
+            console.error('Erreur performance promotions:', errorMessage);
             return [];
         }
     },
@@ -588,10 +646,11 @@ export const PromotionsService = {
      */
     async autoActivateScheduled(): Promise<void> {
         try {
-            const { error } = await (supabase.rpc as any)('auto_activate_scheduled_promotions');
+            const { error } = await supabase.rpc('auto_activate_scheduled_promotions');
             if (error) throw error;
         } catch (error) {
-            console.error('Erreur activation automatique:', error);
+            const errorMessage = getErrorMessage(error);
+            console.error('Erreur activation automatique:', errorMessage);
         }
     },
 
@@ -601,10 +660,11 @@ export const PromotionsService = {
      */
     async autoExpirePromotions(): Promise<void> {
         try {
-            const { error } = await (supabase.rpc as any)('auto_expire_promotions');
+            const { error } = await supabase.rpc('auto_expire_promotions');
             if (error) throw error;
         } catch (error) {
-            console.error('Erreur expiration automatique:', error);
+            const errorMessage = getErrorMessage(error);
+            console.error('Erreur expiration automatique:', errorMessage);
         }
     }
 };

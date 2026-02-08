@@ -1,14 +1,15 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
 import { auditLogger } from '../AuditLogger';
-// Imports removed as they are no longer used by the remaining methods
-// import { ProductsService } from './products.service';
-// import { StockService } from './stock.service';
-// import { BarsService } from './bars.service';
 
 type BarUpdate = Database['public']['Tables']['bars']['Update'];
-// Unused types removed
+type BarRow = Database['public']['Tables']['bars']['Row'];
 
+interface OnboardingAtomicResult {
+  success: boolean;
+  completed_at?: string;
+  error?: string;
+}
 
 /**
  * Onboarding Service
@@ -48,7 +49,7 @@ export class OnboardingService {
         barId: barId,
         description: 'Owner completed onboarding setup and launched bar',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -74,10 +75,6 @@ export class OnboardingService {
       return false;
     }
   }
-
-  // Methods removed: assignManager, createServers, addProductsToBar, initializeStock
-  // These duplicate logic in BarsService, ProductsService, and StockService
-  // and are no longer used by the redirected onboarding flow.
 
   /**
    * Update bar operating mode
@@ -111,7 +108,7 @@ export class OnboardingService {
         description: `Operating mode changed to ${mode}`,
         metadata: { mode },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -181,7 +178,7 @@ export class OnboardingService {
         isReady: errors.length === 0,
         errors,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         isReady: false,
         errors: [handleSupabaseError(error)],
@@ -208,7 +205,7 @@ export class OnboardingService {
         .from('bars')
         .select('name, settings, is_setup_complete, setup_completed_at')
         .eq('id', barId)
-        .single() as any;
+        .single();
 
       // Get counts
       const { count: managerCount } = await supabase
@@ -242,7 +239,7 @@ export class OnboardingService {
         productCount: productCount || 0,
         hasStock: (stockCount || 0) > 0,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -262,20 +259,19 @@ export class OnboardingService {
     operatingMode?: 'full' | 'simplifié'
   ): Promise<{ success: boolean; completedAt?: string; error?: string }> {
     try {
-      const { data, error } = await (supabase.rpc as any)(
-        'complete_bar_onboarding',
-        {
-          p_bar_id: barId,
-          p_owner_id: ownerId,
-          p_operating_mode: operatingMode || 'simplifié',
-        }
-      );
+      // @ts-expect-error - RPC complete_bar_onboarding non incluse dans les types générés
+      const { data, error } = await supabase.rpc('complete_bar_onboarding', {
+        p_bar_id: barId,
+        p_owner_id: ownerId,
+        p_operating_mode: operatingMode || 'simplifié',
+      });
 
       if (error) {
         throw new Error(`RPC failed: ${error.message}`);
       }
 
-      const result = Array.isArray(data) ? data[0] : data;
+      // Cast unknown to expected result type
+      const result = (Array.isArray(data) ? data[0] : data) as unknown as OnboardingAtomicResult | null;
 
       if (!result?.success) {
         throw new Error(result?.error || 'Unknown error in RPC');
@@ -297,7 +293,7 @@ export class OnboardingService {
         success: true,
         completedAt: result.completed_at,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Atomic onboarding failed:', error);
       return {
         success: false,

@@ -35,7 +35,7 @@ interface BarFromRPC {
   created_at: string;
   is_active: boolean;
   closing_hour: number;
-  settings: Record<string, any> | null;
+  settings: Record<string, unknown> | null;
 }
 
 export interface GetPaginatedUsersParams {
@@ -74,7 +74,7 @@ interface AuditLogFromRPC {
   description: string;
   severity: 'critical' | 'warning' | 'info';
   timestamp: string;
-  metadata: Record<string, any> | null;
+  metadata: Record<string, unknown> | null;
 }
 
 export interface GetPaginatedAuditLogsParams {
@@ -108,6 +108,19 @@ export interface PaginatedGlobalCatalogAuditLogsResult {
   totalCount: number;
 }
 
+interface GlobalCatalogLogFromRPC {
+  id: string;
+  action: string;
+  entity_type: string;
+  entity_id: string;
+  entity_name: string;
+  old_values: Record<string, unknown> | null;
+  new_values: Record<string, unknown> | null;
+  modified_by: string;
+  created_at: string;
+  total_count?: number;
+}
+
 export class AdminService {
   /**
    * Récupère les statistiques agrégées pour le dashboard superadmin.
@@ -116,7 +129,7 @@ export class AdminService {
   static async getDashboardStats(period: string): Promise<DashboardStats> {
     try {
       const cacheBuster = uuidv4();
-      const { data, error } = await (supabase.rpc as any)('get_dashboard_stats', {
+      const { data, error } = await supabase.rpc('get_dashboard_stats', {
         p_period: period,
         p_cache_buster: cacheBuster,
       });
@@ -134,7 +147,7 @@ export class AdminService {
         total_revenue: 0, sales_count: 0, active_users_count: 0, new_users_count: 0, bars_count: 0, active_bars_count: 0,
       };
 
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -154,7 +167,7 @@ export class AdminService {
         sortOrder = 'asc'
       } = params;
 
-      const { data, error } = await (supabase.rpc as any)('get_paginated_bars', {
+      const { data, error } = await supabase.rpc('get_paginated_bars', {
         p_page: page,
         p_limit: limit,
         p_search_query: searchQuery,
@@ -189,7 +202,7 @@ export class AdminService {
 
       return { bars: [], totalCount: 0 };
 
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -207,7 +220,7 @@ export class AdminService {
         roleFilter = 'all'
       } = params;
 
-      const { data, error } = await (supabase.rpc as any)('get_paginated_users', {
+      const { data, error } = await supabase.rpc('get_paginated_users', {
         p_page: page,
         p_limit: limit,
         p_search_query: searchQuery,
@@ -243,7 +256,7 @@ export class AdminService {
 
       return { users: [], totalCount: 0 };
 
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -265,7 +278,7 @@ export class AdminService {
         endDate = undefined
       } = params;
 
-      const { data, error } = await (supabase.rpc as any)('get_paginated_audit_logs', {
+      const { data, error } = await supabase.rpc('get_paginated_audit_logs', {
         p_page: page,
         p_limit: limit,
         p_search_query: searchQuery,
@@ -291,7 +304,7 @@ export class AdminService {
       }
 
       return { logs: [], totalCount: 0 };
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -334,7 +347,7 @@ export class AdminService {
         throw error;
       }
 
-      const logsData = (data || []).map((log: any) => ({
+      const logsData = (data || []).map((log: GlobalCatalogLogFromRPC) => ({
         id: log.id,
         action: log.action as 'CREATE' | 'UPDATE' | 'DELETE',
         entityType: log.entity_type as 'PRODUCT' | 'CATEGORY',
@@ -352,7 +365,7 @@ export class AdminService {
         logs: logsData,
         totalCount: Number(totalCount),
       };
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -363,12 +376,12 @@ export class AdminService {
    */
   static async getUniqueBars(): Promise<{ id: string; name: string; is_active: boolean }[]> {
     try {
-      const { data, error } = await (supabase.rpc as any)('get_unique_bars');
+      const { data, error } = await supabase.rpc('get_unique_bars');
 
       if (error) throw error;
 
       return Array.isArray(data) ? data : [];
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }

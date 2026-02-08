@@ -228,7 +228,8 @@ export class ServerMappingsService {
 
       if (normalizedMappings.length === 0) return [];
 
-      const { data, error } = await (supabase as any)
+      // @ts-expect-error - Table server_name_mappings non incluse dans les types générés
+      const { data, error } = await supabase
         .from('server_name_mappings')
         .upsert(normalizedMappings, {
           onConflict: 'bar_id,server_name',
@@ -237,7 +238,15 @@ export class ServerMappingsService {
 
       if (error) throw error;
 
-      return (data || []).map((m: any) => ({
+      // ✅ Type-safe mapping with explicit interface
+      return (data || []).map((m: {
+        id: string;
+        bar_id: string;
+        user_id: string;
+        server_name: string;
+        created_at: string;
+        updated_at: string;
+      }) => ({
         id: m.id,
         barId: m.bar_id,
         userId: m.user_id,
@@ -289,8 +298,8 @@ export class ServerMappingsService {
       const mappingsToCreate = barMembers
         .map(bm => ({
           bar_id: barId,
-          server_name: (userNameMap.get((bm as any).user_id) || '').trim(),
-          user_id: (bm as any).user_id as string,
+          server_name: (userNameMap.get(bm.user_id) || '').trim(),
+          user_id: bm.user_id,
         }))
         .filter(m => m.server_name && m.user_id); // Only include if user has a name and ID
 
@@ -300,7 +309,8 @@ export class ServerMappingsService {
       }
 
       // Upsert all mappings at once (creates if not exist, updates if exist)
-      const { data, error: upsertError } = await (supabase as any)
+      // @ts-expect-error - Table server_name_mappings non incluse dans les types générés
+      const { data, error: upsertError } = await supabase
         .from('server_name_mappings')
         .upsert(mappingsToCreate, {
           onConflict: 'bar_id,server_name',

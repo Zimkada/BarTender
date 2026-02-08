@@ -62,13 +62,13 @@ class SyncManagerService {
 
     // Retourner sans le champ expiresAt (internal use only)
     const cleaned = new Map<string, { total: number, timestamp: number, payload: SyncOperationCreateSale['payload'] }>();
-    for (const [key, value] of this.recentlySyncedKeys.entries()) {
+    this.recentlySyncedKeys.forEach((value, key) => {
       cleaned.set(key, {
         total: value.total,
         timestamp: value.timestamp,
         payload: value.payload
       });
-    }
+    });
     return cleaned;
   }
 
@@ -80,12 +80,12 @@ class SyncManagerService {
     const now = Date.now();
     let cleanedCount = 0;
 
-    for (const [key, value] of this.recentlySyncedKeys.entries()) {
+    this.recentlySyncedKeys.forEach((value, key) => {
       if (value.expiresAt < now) {
         this.recentlySyncedKeys.delete(key);
         cleanedCount++;
       }
-    }
+    });
 
     if (cleanedCount > 0) {
       console.log(`[SyncManager] Cleaned up ${cleanedCount} expired sync keys`);
@@ -241,7 +241,7 @@ class SyncManagerService {
           const idempotencyKey = operation.payload.idempotency_key;
 
           // Calculer le montant pour le buffer de transition (Phase 11.3)
-          const total = operation.payload.items?.reduce((sum: number, item: any) => {
+          const total = operation.payload.items?.reduce((sum: number, item) => {
             return sum + (item.total_price || (item.unit_price * item.quantity) || 0);
           }, 0) || 0;
 
@@ -560,7 +560,7 @@ class SyncManagerService {
 
       // Mapper les updates (camelCase Partial<Bar>) vers le format Supabase (snake_case)
       // Car BarContext a stocké les updates bruts
-      const supabaseUpdates: any = {};
+      const supabaseUpdates: Record<string, unknown> = {};
       if (updates.name) supabaseUpdates.name = updates.name;
       if (updates.address) supabaseUpdates.address = updates.address;
       if (updates.phone) supabaseUpdates.phone = updates.phone;

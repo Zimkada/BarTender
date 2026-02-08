@@ -2,7 +2,7 @@ import type { Factor, User as SupabaseUser } from '@supabase/supabase-js';
 
 import { supabase } from '../../lib/supabase';
 import { getErrorMessage } from '../../utils/errorHandler';
-import type { Database } from '../../lib/database.types';
+import type { Database, Json } from '../../lib/database.types';
 import { User as AppUser, UserRole, BarMember } from '../../types';
 
 type DbUser = Database['public']['Tables']['users']['Row'];
@@ -15,6 +15,7 @@ export interface AuthUser extends Omit<DbUser, 'password_hash'> {
   barName: string;
   allBarIds?: string[]; // IDs de tous les bars actifs (pour multi-bar support)
   factors?: Factor[]; // Add factors for MFA
+  has_completed_onboarding?: boolean; // ✅ Track if user has completed onboarding/training
 }
 
 export interface LoginCredentials {
@@ -49,6 +50,55 @@ interface UserRoleRow {
   user_id: string;
   role: string;
 }
+
+/**
+ * ✅ Interface for membership with joined bar data
+ */
+interface MembershipWithBar {
+  role: 'super_admin' | 'promoteur' | 'gerant' | 'serveur';
+  bar_id: string;
+  bars: {
+    name: string;
+    address?: string | null;
+    phone?: string | null;
+  } | null;
+}
+
+/**
+ * ✅ Interface for MFA verification response
+ */
+interface MfaVerificationResponse {
+  session: {
+    access_token: string;
+    refresh_token: string;
+    user: SupabaseUser;
+  } | null;
+  user: SupabaseUser | null;
+}
+
+/**
+ * ✅ Interface for Supabase Edge Function errors
+ */
+interface FunctionsHttpError {
+  name: 'FunctionsHttpError';
+  context: {
+    body: string | { error?: string };
+  };
+  message: string;
+}
+
+/**
+ * ✅ Type guard for Supabase Edge Function errors
+ */
+const isFunctionsHttpError = (error: unknown): error is FunctionsHttpError => {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    (error as Record<string, unknown>).name === 'FunctionsHttpError' &&
+    'context' in error
+  );
+};
 
 interface BarMemberRPCResponse {
   id: string;
@@ -128,43 +178,44 @@ export class AuthService {
       throw new Error('Aucun rôle actif trouvé pour cet utilisateur');
     }
 
+    // ✅ Type-safe cast for memberships with joined bar data
+    const typedMemberships = memberships as unknown as MembershipWithBar[];
+
     // Sélection du bar par défaut lors de l'initialisation
     // Priorité: 1) localStorage, 2) Premier bar actif (plus récent)
     const savedBarId = localStorage.getItem('selectedBarId');
-    let defaultMembership = memberships[0]; // Fallback: premier bar (plus récent)
+    let defaultMembership = typedMemberships[0]; // Fallback: premier bar (plus récent)
 
     // Si un bar est sauvegardé dans localStorage, l'utiliser s'il existe dans les memberships
     if (savedBarId) {
-      const savedMembership = memberships.find((m: any) => m.bar_id === savedBarId);
+      const savedMembership = typedMemberships.find(m => m.bar_id === savedBarId);
       if (savedMembership) {
         defaultMembership = savedMembership;
       }
     }
 
     // Récupérer les IDs de TOUS les bars pour BarSelector
-    const allBarIds = memberships.map((m: any) => m.bar_id);
+    const allBarIds = typedMemberships.map(m => m.bar_id);
 
-    const profileData = profile as any;
-    const membershipData = defaultMembership as any;
-
+    // ✅ Type-safe access to profile and membership data
     return {
       id: userId,
-      email: profileData.email!,
-      username: profileData.username || '',
-      name: profileData.name || '',
-      phone: profileData.phone || '',
-      avatar_url: profileData.avatar_url,
-      is_active: profileData.is_active ?? true,
-      first_login: profileData.first_login ?? false,
-      has_completed_onboarding: profileData.has_completed_onboarding ?? false,
-      onboarding_completed_at: profileData.onboarding_completed_at, // New field from DB
-      training_version_completed: profileData.training_version_completed, // New field from DB
-      created_at: profileData.created_at,
-      updated_at: profileData.updated_at,
-      last_login_at: profileData.last_login_at,
-      role: membershipData.role as AuthUser['role'],
-      barId: membershipData.bar_id || '',
-      barName: membershipData.bars?.name || '',
+      email: profile.email!,
+      username: profile.username || '',
+      name: profile.name || '',
+      phone: profile.phone || '',
+      avatar_url: profile.avatar_url,
+      is_active: profile.is_active ?? true,
+      first_login: profile.first_login ?? false,
+      has_completed_onboarding: profile.has_completed_onboarding ?? false,
+      onboarding_completed_at: profile.onboarding_completed_at,
+      training_version_completed: profile.training_version_completed,
+      created_at: profile.created_at,
+      updated_at: profile.updated_at,
+      last_login_at: profile.last_login_at,
+      role: defaultMembership.role as AuthUser['role'],
+      barId: defaultMembership.bar_id || '',
+      barName: defaultMembership.bars?.name || '',
       allBarIds, // Tous les bars actifs (multi-bar support)
     };
   }
@@ -185,8 +236,8 @@ export class AuthService {
         // Il retourne data.session = null et data.user avec les facteurs
         if (error.message.includes('A multi-factor authentication challenge is required') && data.user) {
           const user = data.user as SupabaseUser;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const totpFactor = (user.factors as any[])?.find((f: any) => f.factor_type === 'totp');
+          // ✅ Type-safe access to MFA factors (Factor[] from Supabase)
+          const totpFactor = user.factors?.find((f: Factor) => f.factor_type === 'totp');
           if (totpFactor) {
             return { mfaRequired: true, mfaFactorId: totpFactor.id, authUserId: user.id };
           }
@@ -235,8 +286,8 @@ export class AuthService {
         throw new Error(error.message || 'Code MFA incorrect');
       }
 
-      // Cast data to any to access session/user safely if types are outdated
-      const mfaData = data as any;
+      // ✅ Type-safe cast to MFA verification response
+      const mfaData = data as unknown as MfaVerificationResponse;
 
       if (!mfaData.session || !mfaData.user) {
         throw new Error('Vérification MFA échouée: session non établie.');
@@ -298,13 +349,13 @@ export class AuthService {
 
       let errorMessage = 'Erreur lors de la création de l\'utilisateur';
 
-      // Check if it's a Supabase Functions error
-      if (typeof error === 'object' && error !== null && 'name' in error && (error as any).name === 'FunctionsHttpError' && 'context' in (error as any)) {
+      // ✅ Type-safe check for Supabase Functions error using type guard
+      if (isFunctionsHttpError(error)) {
         try {
-          const errCtx = (error as any).context;
+          const errCtx = error.context;
           // The body might be a string, or already parsed if Content-Type is application/json
           const errorBody = typeof errCtx.body === 'string' ? JSON.parse(errCtx.body) : errCtx.body;
-          errorMessage = errorBody.error || errCtx.body || getErrorMessage(error);
+          errorMessage = errorBody.error || (typeof errCtx.body === 'string' ? errCtx.body : '') || getErrorMessage(error);
         } catch (parseError) {
           errorMessage = getErrorMessage(error); // Fallback
         }
@@ -357,12 +408,12 @@ export class AuthService {
 
       let errorMessage = 'Erreur lors de la création de l\'utilisateur';
 
-      // Check if it's a Supabase Functions error
-      if (typeof error === 'object' && error !== null && 'name' in error && (error as any).name === 'FunctionsHttpError' && 'context' in (error as any)) {
+      // ✅ Type-safe check for Supabase Functions error using type guard
+      if (isFunctionsHttpError(error)) {
         try {
-          const errCtx = (error as any).context;
+          const errCtx = error.context;
           const errorBody = typeof errCtx.body === 'string' ? JSON.parse(errCtx.body) : errCtx.body;
-          errorMessage = errorBody.error || errCtx.body || getErrorMessage(error);
+          errorMessage = errorBody.error || (typeof errCtx.body === 'string' ? errCtx.body : '') || getErrorMessage(error);
         } catch (parseError) {
           errorMessage = getErrorMessage(error);
         }
@@ -388,7 +439,7 @@ export class AuthService {
     barName: string,
     barAddress?: string | null,
     barPhone?: string | null,
-    barSettings?: any
+    barSettings?: Json
   ): Promise<{ success: boolean; barId?: string; barName?: string; barAddress?: string; barPhone?: string; error?: string }> {
     try {
       const { data, error } = await supabase.rpc('setup_promoter_bar', {
@@ -468,7 +519,8 @@ export class AuthService {
         throw new Error('Erreur lors de la récupération des profils promoteurs');
       }
 
-      const users = usersData as any[];
+      // ✅ Type-safe cast to DbUser array
+      const users = usersData as DbUser[];
 
       // 3. Combiner les données
       const userBarsMap = new Map<string, { id: string; name: string }[]>();
@@ -661,9 +713,13 @@ export class AuthService {
 
       localStorage.setItem('auth_user', JSON.stringify(authUser));
       return authUser;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Session initialization error:', error);
-      if (error?.message?.includes('Invalid Refresh Token')) {
+      // ✅ Type-safe error property check
+      const errorMessage = error && typeof error === 'object' && 'message' in error
+        ? String((error as Record<string, unknown>).message)
+        : '';
+      if (errorMessage.includes('Invalid Refresh Token')) {
         await supabase.auth.signOut();
         localStorage.removeItem('auth_user');
       }
