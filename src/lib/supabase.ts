@@ -49,9 +49,9 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 /**
  * Helper pour gérer les erreurs Supabase
  */
-export function handleSupabaseError(error: any): string {
-  if (error?.message) {
-    return error.message;
+export function handleSupabaseError(error: unknown): string {
+  if (error && typeof error === 'object' && 'message' in error) {
+    return String((error as { message: unknown }).message);
   }
   if (typeof error === 'string') {
     return error;
