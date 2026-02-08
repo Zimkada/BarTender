@@ -7,6 +7,7 @@
  * @module promotions.service
  */
 
+import { z } from 'zod';
 import { supabase } from '../../lib/supabase';
 import { Promotion, PromotionApplication, Product, PromotionPriceResult } from '../../types';
 import type { Database } from '../../lib/database.types';
@@ -16,31 +17,31 @@ type PromotionRow = Database['public']['Tables']['promotions']['Row'];
 type PromotionInsert = Database['public']['Tables']['promotions']['Insert'];
 type PromotionUpdate = Database['public']['Tables']['promotions']['Update'];
 
-interface PromotionGlobalStats {
-    total_revenue: number;
-    total_discount: number;
-    total_applications: number;
-    total_cost_of_goods: number;
-    net_profit: number;
-    margin_percentage: number;
-    roi_percentage: number;
-}
+// ✅ Zod Schemas for Runtime Validation
+const PromotionGlobalStatsSchema = z.object({
+    total_revenue: z.coerce.number().default(0),
+    total_discount: z.coerce.number().default(0),
+    total_applications: z.coerce.number().default(0),
+    total_cost_of_goods: z.coerce.number().default(0),
+    net_profit: z.coerce.number().default(0),
+    margin_percentage: z.coerce.number().default(0),
+    roi_percentage: z.coerce.number().default(0),
+});
 
-interface PromotionPerformanceStat {
-    promotion_id: string;
-    promotion_name: string;
-    total_applications: number;
-    total_revenue: number;
-    total_discount: number;
-    total_cost_of_goods: number;
-    net_profit: number;
-    margin_percentage: number;
-    roi_percentage: number;
-}
+const PromotionPerformanceStatSchema = z.object({
+    promotion_id: z.string(),
+    promotion_name: z.string(),
+    total_applications: z.coerce.number().default(0),
+    total_revenue: z.coerce.number().default(0),
+    total_discount: z.coerce.number().default(0),
+    total_cost_of_goods: z.coerce.number().default(0),
+    net_profit: z.coerce.number().default(0),
+    margin_percentage: z.coerce.number().default(0),
+    roi_percentage: z.coerce.number().default(0),
+});
 
 /**
  * ✅ Type-safe result interface for promotion performance analytics
- * Returned by getPromotionsPerformance() with aggregated metrics
  */
 export interface PromotionPerformanceResult {
     id: string;
@@ -56,7 +57,6 @@ export interface PromotionPerformanceResult {
 
 /**
  * Convertit les données SQL (snake_case) en objet TypeScript (camelCase)
- * Résout le mismatch entre les conventions SQL et TypeScript
  */
 function mapDbPromoToPromotion(dbPromo: PromotionRow): Promotion {
     return {
@@ -127,95 +127,50 @@ function mapPromotionToDbPromo(promo: Partial<Promotion>): PromotionUpdate {
 export const PromotionsService = {
     /**
      * Récupère les promotions actives pour un bar
-     * Filtre par date, horaires (Happy Hour), jours de récurrence, et ciblage produit/catégorie
-     *
-     * @param barId - ID du bar
-     * @param productId - ID du produit (optionnel, pour filtrage)
-     * @param categoryId - ID de la catégorie du produit (optionnel, pour filtrage)
-     * @returns Liste des promotions actives applicables
-     *
-     * @example
-     * const promos = await PromotionsService.getActivePromotions('bar-123', 'product-456', 'category-789');
      */
     async getActivePromotions(barId: string, productId?: string, categoryId?: string): Promise<Promotion[]> {
-        const now = new Date();
-        const currentDate = now.toISOString().split('T')[0];
-        const currentTime = now.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
-        const currentDayOfWeek = now.getDay(); // 0=Dimanche, 1=Lundi, ..., 6=Samedi
+        try {
+            const now = new Date();
+            const currentDate = now.toISOString().split('T')[0];
+            const currentTime = now.toTimeString().split(' ')[0].substring(0, 5);
+            const currentDayOfWeek = now.getDay();
 
-        // Requête de base : promotions actives dans la plage de dates
-        const query = supabase
-            .from('promotions')
-            .select('*')
-            .eq('bar_id', barId)
-            .eq('status', 'active')
-            .lte('start_date', currentDate)
-            .or(`end_date.is.null,end_date.gte.${currentDate}`);
+            const { data, error } = await supabase
+                .from('promotions')
+                .select('*')
+                .eq('bar_id', barId)
+                .eq('status', 'active')
+                .lte('start_date', currentDate)
+                .or(`end_date.is.null,end_date.gte.${currentDate}`);
 
-        const { data, error } = await query;
+            if (error) throw error;
 
-        if (error) {
-            console.error('Erreur récupération promotions:', error);
-            throw error;
+            const promotions = (data || []).map((row) => mapDbPromoToPromotion(row as PromotionRow));
+
+            return promotions.filter(promo => {
+                if (promo.isRecurring && promo.recurrenceDays && promo.recurrenceDays.length > 0) {
+                    if (!promo.recurrenceDays.includes(currentDayOfWeek)) return false;
+                }
+                if (promo.timeStart && promo.timeEnd) {
+                    if (currentTime < promo.timeStart || currentTime > promo.timeEnd) return false;
+                }
+                if (promo.maxTotalUses && promo.currentUses >= promo.maxTotalUses) return false;
+                if (promo.targetType === 'product' && productId) {
+                    if (!promo.targetProductIds?.includes(productId)) return false;
+                } else if (promo.targetType === 'category' && categoryId) {
+                    if (!promo.targetCategoryIds?.includes(categoryId)) return false;
+                }
+                return true;
+            });
+        } catch (error) {
+            const errorMessage = getErrorMessage(error);
+            console.error('Erreur récupération promotions actives:', errorMessage);
+            throw new Error(errorMessage);
         }
-
-        // Mapper les données DB (snake_case) vers TypeScript (camelCase)
-        const promotions = (data || []).map((row) => mapDbPromoToPromotion(row as PromotionRow));
-
-        // Filtrage côté client pour logique complexe
-        return promotions.filter(promo => {
-            // 1. Vérifier récurrence (jours de la semaine)
-            if (promo.isRecurring && promo.recurrenceDays && promo.recurrenceDays.length > 0) {
-                if (!promo.recurrenceDays.includes(currentDayOfWeek)) {
-                    return false;
-                }
-            }
-
-            // 2. Vérifier horaires (Happy Hour)
-            if (promo.timeStart && promo.timeEnd) {
-                if (currentTime < promo.timeStart || currentTime > promo.timeEnd) {
-                    return false;
-                }
-            }
-
-            // 3. Vérifier limite d'utilisations globale
-            if (promo.maxTotalUses && promo.currentUses >= promo.maxTotalUses) {
-                return false;
-            }
-
-            // 4. Vérifier ciblage produit/catégorie
-            if (promo.targetType === 'product' && productId) {
-                if (!promo.targetProductIds?.includes(productId)) {
-                    return false;
-                }
-            } else if (promo.targetType === 'category' && categoryId) {
-                if (!promo.targetCategoryIds?.includes(categoryId)) {
-                    return false;
-                }
-            }
-            // Si targetType === 'all', pas de filtrage nécessaire
-
-            return true;
-        });
     },
 
     /**
      * Calcule le meilleur prix pour un produit avec les promotions applicables
-     * Compare toutes les promotions et retourne celle qui offre le meilleur prix
-     *
-     * IMPORTANT: Cette fonction ne vérifie PAS les contraintes suivantes (à gérer côté appelant):
-     * - Limite d'utilisations par client (maxUsesPerCustomer)
-     * - Stock disponible suffisant pour les bundles
-     *
-     * @param product - Produit concerné
-     * @param quantity - Quantité achetée
-     * @param promotions - Liste des promotions applicables (déjà filtrées par getActivePromotions)
-     * @returns Résultat avec prix final, prix original, économie, et promotion appliquée
-     *
-     * @example
-     * const activePromos = await PromotionsService.getActivePromotions(barId, productId, categoryId);
-     * const result = PromotionsService.calculateBestPrice(product, 3, activePromos);
-     * console.log(`Prix: ${result.finalPrice} FCFA (économie: ${result.discount} FCFA)`);
      */
     calculateBestPrice(
         product: Product,
@@ -230,13 +185,10 @@ export const PromotionsService = {
             let calculatedPrice = originalPrice;
 
             switch (promo.type) {
-                // ===== Types français (nouveaux) =====
                 case 'lot':
-                    // Exemple: 3 bières à 1000 FCFA au lieu de 1050 FCFA (3 × 350)
-                    // Appliqué seulement si la quantité atteint le seuil du bundle
+                case 'bundle':
                     const bundleQty = promo.bundleQuantity || 0;
                     const bundlePrice = promo.bundlePrice || 0;
-
                     if (bundleQty > 0 && bundlePrice > 0 && quantity >= bundleQty) {
                         const bundles = Math.floor(quantity / bundleQty);
                         const remaining = quantity % bundleQty;
@@ -245,24 +197,19 @@ export const PromotionsService = {
                     break;
 
                 case 'prix_special':
-                    // Exemple: Bière à 300 FCFA au lieu de 350 FCFA
+                case 'special_price':
                     const specialPrice = promo.specialPrice || 0;
-                    if (specialPrice > 0) {
-                        calculatedPrice = specialPrice * quantity;
-                    }
+                    if (specialPrice > 0) calculatedPrice = specialPrice * quantity;
                     break;
 
                 case 'reduction_vente':
-                    // Exemple: -50 FCFA sur le total (pas × quantité)
-                    // Prix: 350 FCFA × 3 = 1050 FCFA → 1050 - 50 = 1000 FCFA
+                case 'fixed_discount':
                     const discountAmount = promo.discountAmount || 0;
-                    if (discountAmount > 0) {
-                        calculatedPrice = Math.max(0, originalPrice - discountAmount);
-                    }
+                    if (discountAmount > 0) calculatedPrice = Math.max(0, originalPrice - discountAmount);
                     break;
 
                 case 'pourcentage':
-                    // Exemple: -10% sur le total
+                case 'percentage':
                     const discountPercentage = promo.discountPercentage || 0;
                     if (discountPercentage > 0 && discountPercentage <= 100) {
                         calculatedPrice = originalPrice * (1 - discountPercentage / 100);
@@ -270,59 +217,16 @@ export const PromotionsService = {
                     break;
 
                 case 'reduction_produit':
-                    // Nouveau: Réduction par unité × quantité
-                    // Exemple: -20 FCFA par unité → 3 × 20 = -60 FCFA total
-                    // Prix: 350 FCFA × 3 = 1050 FCFA → 1050 - 60 = 990 FCFA
                     const discountPerUnit = promo.discountAmount || 0;
-                    if (discountPerUnit > 0) {
-                        calculatedPrice = Math.max(0, originalPrice - (discountPerUnit * quantity));
-                    }
+                    if (discountPerUnit > 0) calculatedPrice = Math.max(0, originalPrice - (discountPerUnit * quantity));
                     break;
 
                 case 'majoration_produit':
-                    // Nouveau: Majoration par unité × quantité (prix augmente)
-                    // Exemple: +30 FCFA par unité → 3 × 30 = +90 FCFA total
-                    // Prix: 350 FCFA × 3 = 1050 FCFA → 1050 + 90 = 1140 FCFA
                     const surchargePerUnit = promo.discountAmount || 0;
-                    if (surchargePerUnit > 0) {
-                        calculatedPrice = originalPrice + (surchargePerUnit * quantity);
-                    }
-                    break;
-
-                // ===== Types anglais (anciens, rétro-compatibilité) =====
-                case 'bundle':
-                    const bundleQty2 = promo.bundleQuantity || 0;
-                    const bundlePrice2 = promo.bundlePrice || 0;
-                    if (bundleQty2 > 0 && bundlePrice2 > 0 && quantity >= bundleQty2) {
-                        const bundles = Math.floor(quantity / bundleQty2);
-                        const remaining = quantity % bundleQty2;
-                        calculatedPrice = bundles * bundlePrice2 + remaining * product.price;
-                    }
-                    break;
-
-                case 'special_price':
-                    const specialPrice2 = promo.specialPrice || 0;
-                    if (specialPrice2 > 0) {
-                        calculatedPrice = specialPrice2 * quantity;
-                    }
-                    break;
-
-                case 'fixed_discount':
-                    const discountAmount2 = promo.discountAmount || 0;
-                    if (discountAmount2 > 0) {
-                        calculatedPrice = Math.max(0, originalPrice - discountAmount2);
-                    }
-                    break;
-
-                case 'percentage':
-                    const discountPercentage2 = promo.discountPercentage || 0;
-                    if (discountPercentage2 > 0 && discountPercentage2 <= 100) {
-                        calculatedPrice = originalPrice * (1 - discountPercentage2 / 100);
-                    }
+                    if (surchargePerUnit > 0) calculatedPrice = originalPrice + (surchargePerUnit * quantity);
                     break;
             }
 
-            // Garder la meilleure offre (priorité en cas d'égalité)
             if (calculatedPrice < bestPrice ||
                 (calculatedPrice === bestPrice && (promo.priority > (bestPromotion?.priority || 0)))) {
                 bestPrice = calculatedPrice;
@@ -331,7 +235,7 @@ export const PromotionsService = {
         }
 
         return {
-            finalPrice: Math.round(bestPrice * 100) / 100, // Arrondi à 2 décimales
+            finalPrice: Math.round(bestPrice * 100) / 100,
             originalPrice,
             discount: Math.round((originalPrice - bestPrice) * 100) / 100,
             appliedPromotion: bestPromotion
@@ -340,28 +244,11 @@ export const PromotionsService = {
 
     /**
      * Enregistre l'application d'une promotion à une vente
-     * Incrémente automatiquement le compteur d'utilisations
-     * 
-     * @param application - Données de l'application (sans id et appliedAt)
-     * 
-     * @example
-     * await PromotionsService.recordApplication({
-     *   barId: 'bar-123',
-     *   promotionId: 'promo-456',
-     *   saleId: 'sale-789',
-     *   productId: 'product-012',
-     *   quantitySold: 3,
-     *   originalPrice: 1050,
-     *   discountedPrice: 1000,
-     *   discountAmount: 50,
-     *   appliedBy: 'user-345'
-     * });
      */
     async recordApplication(
         application: Omit<PromotionApplication, 'id' | 'appliedAt'>
     ): Promise<void> {
         try {
-            // Convertir camelCase → snake_case pour l'insertion
             const dbApplication = {
                 bar_id: application.barId,
                 promotion_id: application.promotionId,
@@ -374,21 +261,18 @@ export const PromotionsService = {
                 applied_by: application.appliedBy
             };
 
-            // 1. Enregistrer l'application
             const { error: insertError } = await supabase
                 .from('promotion_applications')
                 .insert(dbApplication);
 
             if (insertError) throw insertError;
 
-            // 2. Incrémenter le compteur d'utilisations
             const { error: rpcError } = await supabase.rpc('increment_promotion_uses', {
                 p_promotion_id: application.promotionId
             });
 
             if (rpcError) {
-                console.error('Erreur incrémentation compteur:', rpcError);
-                // Ne pas bloquer si l'incrémentation échoue
+                console.warn('Erreur incrémentation compteur (non bloquant):', getErrorMessage(rpcError));
             }
         } catch (error) {
             const errorMessage = getErrorMessage(error);
@@ -399,30 +283,11 @@ export const PromotionsService = {
 
     /**
      * Crée une nouvelle promotion
-     * 
-     * @param promotion - Données de la promotion (sans id, createdAt, updatedAt)
-     * @returns Promotion créée
-     * 
-     * @example
-     * const promo = await PromotionsService.createPromotion({
-     *   barId: 'bar-123',
-     *   name: '3 bières à 1000 FCFA',
-     *   type: 'bundle',
-     *   bundleQuantity: 3,
-     *   bundlePrice: 1000,
-     *   targetType: 'product',
-     *   targetProductIds: ['beer-id'],
-     *   startDate: '2025-12-01',
-     *   endDate: '2025-12-31',
-     *   status: 'active',
-     *   createdBy: 'user-123'
-     * });
      */
     async createPromotion(
         promotion: Omit<Promotion, 'id' | 'createdAt' | 'updatedAt'>
     ): Promise<Promotion> {
         try {
-            // Convertir camelCase → snake_case pour l'insertion
             const dbPromo = mapPromotionToDbPromo(promotion) as PromotionInsert;
 
             const { data, error } = await supabase
@@ -432,8 +297,6 @@ export const PromotionsService = {
                 .single();
 
             if (error) throw error;
-
-            // Convertir snake_case → camelCase pour le retour
             return mapDbPromoToPromotion(data as PromotionRow);
         } catch (error) {
             const errorMessage = getErrorMessage(error);
@@ -444,22 +307,12 @@ export const PromotionsService = {
 
     /**
      * Met à jour une promotion existante
-     * 
-     * @param id - ID de la promotion
-     * @param updates - Champs à mettre à jour
-     * @returns Promotion mise à jour
-     * 
-     * @example
-     * const updated = await PromotionsService.updatePromotion('promo-123', {
-     *   status: 'paused'
-     * });
      */
     async updatePromotion(
         id: string,
         updates: Partial<Promotion>
     ): Promise<Promotion> {
         try {
-            // Convertir camelCase → snake_case pour la mise à jour
             const dbUpdates = mapPromotionToDbPromo(updates);
             dbUpdates.updated_at = new Date().toISOString();
 
@@ -471,8 +324,6 @@ export const PromotionsService = {
                 .single();
 
             if (error) throw error;
-
-            // Convertir snake_case → camelCase pour le retour
             return mapDbPromoToPromotion(data as PromotionRow);
         } catch (error) {
             const errorMessage = getErrorMessage(error);
@@ -483,11 +334,6 @@ export const PromotionsService = {
 
     /**
      * Supprime une promotion
-     * 
-     * @param id - ID de la promotion
-     * 
-     * @example
-     * await PromotionsService.deletePromotion('promo-123');
      */
     async deletePromotion(id: string): Promise<void> {
         try {
@@ -505,13 +351,7 @@ export const PromotionsService = {
     },
 
     /**
-     * Récupère toutes les promotions d'un bar (tous statuts)
-     * 
-     * @param barId - ID du bar
-     * @returns Liste des promotions
-     * 
-     * @example
-     * const allPromos = await PromotionsService.getAllPromotions('bar-123');
+     * Récupère toutes les promotions d'un bar
      */
     async getAllPromotions(barId: string): Promise<Promotion[]> {
         try {
@@ -522,8 +362,6 @@ export const PromotionsService = {
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-
-            // Convertir snake_case → camelCase
             return (data || []).map((row) => mapDbPromoToPromotion(row as PromotionRow));
         } catch (error) {
             const errorMessage = getErrorMessage(error);
@@ -534,11 +372,6 @@ export const PromotionsService = {
 
     /**
      * Récupère les statistiques globales des promotions pour un bar
-     * Utilise une fonction RPC optimisée côté base de données
-     *
-     * @param barId - ID du bar
-     * @param startDate - Date de début (optionnel, NULL = toutes les données)
-     * @param endDate - Date de fin (optionnel, NULL = toutes les données)
      */
     async getGlobalStats(
         barId: string,
@@ -562,28 +395,22 @@ export const PromotionsService = {
 
             if (error) throw error;
 
-            // ✅ Type correction: Cast unknown RPC result to defined interface
-            const stats = data as unknown as PromotionGlobalStats;
-
-            const totalRevenue = Number(stats?.total_revenue || 0);
-            const totalDiscount = Number(stats?.total_discount || 0);
-            const totalCostOfGoods = Number(stats?.total_cost_of_goods || 0);
-            const netProfit = Number(stats?.net_profit || 0);
-            const marginPercentage = Number(stats?.margin_percentage || 0);
-            const roi = Number(stats?.roi_percentage || 0);
+            // ✅ Runtime validation with Zod (No more unsafe cast)
+            const stats = PromotionGlobalStatsSchema.parse(data);
 
             return {
-                totalRevenue,
-                totalDiscount,
-                totalApplications: Number(stats?.total_applications || 0),
-                totalCostOfGoods,
-                netProfit,
-                marginPercentage,
-                roi
+                totalRevenue: stats.total_revenue,
+                totalDiscount: stats.total_discount,
+                totalApplications: stats.total_applications,
+                totalCostOfGoods: stats.total_cost_of_goods,
+                netProfit: stats.net_profit,
+                marginPercentage: stats.margin_percentage,
+                roi: stats.roi_percentage
             };
         } catch (error) {
             const errorMessage = getErrorMessage(error);
-            console.error('Erreur stats globales:', errorMessage);
+            console.error('Erreur récupération stats globales promotions:', errorMessage);
+            // Return zeros instead of throwing to avoid breaking the UI
             return {
                 totalRevenue: 0,
                 totalDiscount: 0,
@@ -598,11 +425,6 @@ export const PromotionsService = {
 
     /**
      * Récupère les performances par promotion
-     * Utilise une fonction RPC optimisée
-     *
-     * @param barId - ID du bar
-     * @param startDate - Date de début (optionnel, NULL = toutes les données)
-     * @param endDate - Date de fin (optionnel, NULL = toutes les données)
      */
     async getPromotionsPerformance(
         barId: string,
@@ -618,24 +440,24 @@ export const PromotionsService = {
 
             if (error) throw error;
 
-            // ✅ Type-safe mapping with explicit interface and cast
+            // ✅ Type-safe mapping with Zod validation
             return (data || []).map((item) => {
-                const stat = item as unknown as PromotionPerformanceStat;
+                const stat = PromotionPerformanceStatSchema.parse(item);
                 return {
                     id: stat.promotion_id,
                     name: stat.promotion_name,
-                    uses: Number(stat.total_applications),
-                    revenue: Number(stat.total_revenue),
-                    discount: Number(stat.total_discount),
-                    costOfGoods: Number(stat.total_cost_of_goods),
-                    netProfit: Number(stat.net_profit),
-                    marginPercentage: Number(stat.margin_percentage),
-                    roi: Number(stat.roi_percentage)
+                    uses: stat.total_applications,
+                    revenue: stat.total_revenue,
+                    discount: stat.total_discount,
+                    costOfGoods: stat.total_cost_of_goods,
+                    netProfit: stat.net_profit,
+                    marginPercentage: stat.margin_percentage,
+                    roi: stat.roi_percentage
                 };
             });
         } catch (error) {
             const errorMessage = getErrorMessage(error);
-            console.error('Erreur performance promotions:', errorMessage);
+            console.error('Erreur récupération performance promotions:', errorMessage);
             return [];
         }
     },

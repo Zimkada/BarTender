@@ -33,6 +33,7 @@ import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
 import { ACCOUNTING_FILTERS, TIME_RANGE_CONFIGS } from '../config/dateFilters';
 import { useRevenueStats } from '../hooks/useRevenueStats';
+import type { Return, Supply, Expense, Salary, Consignment } from '../types';
 
 export function AccountingOverview() {
   const { currentSession } = useAuth();
@@ -434,25 +435,25 @@ export function AccountingOverview() {
   /**
    * ✅ Extended interfaces for Excel export (capture additional DB properties)
    */
-  interface ReturnWithQuantity extends import('../types').Return {
+  interface ReturnWithQuantity extends Return {
     quantity?: number;
   }
 
-  interface SupplyExtended extends import('../types').Supply {
+  interface SupplyExtended extends Supply {
     supplierName?: string;
   }
 
-  interface ExpenseExtended extends import('../types').Expense {
+  interface ExpenseExtended extends Expense {
     category?: string;
     customCategory?: string;
   }
 
-  interface SalaryExtended extends import('../types').Salary {
+  interface SalaryExtended extends Salary {
     memberName?: string;
     staffName?: string;
   }
 
-  interface ConsignmentExtended extends import('../types').Consignment {
+  interface ConsignmentExtended extends Consignment {
     totalValue?: number;
     expiredAt?: Date | string;
   }

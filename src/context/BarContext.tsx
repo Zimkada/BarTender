@@ -1,21 +1,32 @@
 import React, { createContext, useContext, useCallback, ReactNode, useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Bar, BarMember, User, UserRole } from '../types';
+import { Bar, BarMember, User, UserRole, BarSettings } from '../types';
 import { auditLogger } from '../services/AuditLogger';
 import { BarsService } from '../services/supabase/bars.service';
 import { AuthService } from '../services/supabase/auth.service';
 import { ServerMappingsService } from '../services/supabase/server-mappings.service';
 import { toast } from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
-import type { Database } from '../lib/database.types';
+import type { Database, Json } from '../lib/database.types';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { OfflineStorage } from '../utils/offlineStorage';
 import { offlineQueue } from '../services/offlineQueue';
 import { networkManager } from '../services/NetworkManager';
 
+type BarRow = Database['public']['Tables']['bars']['Row'];
+type BarUpdate = Database['public']['Tables']['bars']['Update'];
 type BarMemberRow = Database['public']['Tables']['bar_members']['Row'];
 type BarMemberInsert = Database['public']['Tables']['bar_members']['Insert'];
 type BarMemberUpdate = Database['public']['Tables']['bar_members']['Update'];
+
+/**
+ * ✅ Type-safe interface for offline bar update operations
+ * Prevents unsafe `as any` casts when queueing updates
+ */
+interface OfflineBarUpdate {
+  barId: string;
+  updates: Partial<BarUpdate>;
+}
 
 /**
  * ✅ Type-safe Supabase query builder for bar_members table
@@ -136,10 +147,13 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           return {
             ...bar,
             ...barPendingUpdate.payload.updates,
+            // 🛡️ Fix Type Mismatch: Supabase returns null, Bar expects undefined
+            address: barPendingUpdate.payload.updates.address ?? bar.address ?? undefined,
+            phone: barPendingUpdate.payload.updates.phone ?? bar.phone ?? undefined,
             settings: {
-              ...(bar.settings || {}),
-              ...(barPendingUpdate.payload.updates.settings || {})
-            }
+              ...bar.settings,
+              ...(barPendingUpdate.payload.updates.settings as Partial<BarSettings> || {})
+            } as BarSettings
           };
         }
         return bar;
@@ -453,7 +467,10 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       // Log des résultats mappings (debug amélioré)
       if (mappingsResult.status === 'fulfilled') {
-        const count = mappingsResult.value.length;
+        // ✨ SECURITE RUNTIME (Fix Crash): Vérifier que c'est bien un tableau
+        const mappings = Array.isArray(mappingsResult.value) ? mappingsResult.value : [];
+        const count = mappings.length;
+
         if (count > 0) {
           console.log(`[BarContext] ✅ Mappings ready: ${count} entries preloaded`);
         } else {
@@ -554,7 +571,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         owner_id: ownerId,
         address: barData.address,
         phone: barData.phone,
-        settings: barData.settings,
+        settings: barData.settings as unknown as Json, // ✅ Type-safe: Json is Supabase's JSONB type
         closing_hour: barData.closingHour,
       };
 
@@ -630,7 +647,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         console.log('[BarContext] Offline update - queuing changes');
         await offlineQueue.addOperation(
           'UPDATE_BAR',
-          { barId, updates },
+          { barId, updates } satisfies OfflineBarUpdate,
           barId,
           currentSession.userId
         );
@@ -639,11 +656,12 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         console.log('[BarContext] Online update - sending to server');
 
         // Mapper pour Supabase
-        const supabaseUpdates: any = {};
+        type BarUpdatePayload = Partial<BarUpdate & { theme_config?: unknown }>;
+        const supabaseUpdates: BarUpdatePayload = {};
         if (updates.name) supabaseUpdates.name = updates.name;
         if (updates.address) supabaseUpdates.address = updates.address;
         if (updates.phone) supabaseUpdates.phone = updates.phone;
-        if (updates.settings) supabaseUpdates.settings = updates.settings;
+        if (updates.settings) supabaseUpdates.settings = updates.settings as unknown as Json; // ✅ Type-safe: Json is Supabase's JSONB type
         if (updates.isActive !== undefined) supabaseUpdates.is_active = updates.isActive;
         if (updates.closingHour !== undefined) supabaseUpdates.closing_hour = updates.closingHour;
         if (updates.theme_config !== undefined) supabaseUpdates.theme_config = updates.theme_config;

@@ -1,9 +1,16 @@
+import { z } from 'zod';
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
 import { auditLogger } from '../AuditLogger';
 
 type BarUpdate = Database['public']['Tables']['bars']['Update'];
-type BarRow = Database['public']['Tables']['bars']['Row'];
+
+// ✅ Zod Schema for Atomic Result
+const OnboardingAtomicResultSchema = z.object({
+  success: z.boolean(),
+  completed_at: z.string().optional(),
+  error: z.string().optional(),
+});
 
 interface OnboardingAtomicResult {
   success: boolean;
@@ -61,7 +68,7 @@ export class OnboardingService {
   static async verifyManagerExists(userId: string): Promise<boolean> {
     try {
       const { data: user, error } = await supabase
-        .from('profiles')
+        .from('users') // ✅ Validated: 'users' is the public profile view used by AuthService
         .select('id')
         .eq('id', userId)
         .single();
@@ -259,7 +266,6 @@ export class OnboardingService {
     operatingMode?: 'full' | 'simplifié'
   ): Promise<{ success: boolean; completedAt?: string; error?: string }> {
     try {
-      // @ts-expect-error - RPC complete_bar_onboarding non incluse dans les types générés
       const { data, error } = await supabase.rpc('complete_bar_onboarding', {
         p_bar_id: barId,
         p_owner_id: ownerId,
@@ -270,11 +276,12 @@ export class OnboardingService {
         throw new Error(`RPC failed: ${error.message}`);
       }
 
-      // Cast unknown to expected result type
-      const result = (Array.isArray(data) ? data[0] : data) as unknown as OnboardingAtomicResult | null;
+      // ✅ Runtime validation with Zod
+      const rawResult = Array.isArray(data) ? data[0] : data;
+      const result = OnboardingAtomicResultSchema.parse(rawResult);
 
-      if (!result?.success) {
-        throw new Error(result?.error || 'Unknown error in RPC');
+      if (!result.success) {
+        throw new Error(result.error || 'Unknown error in RPC');
       }
 
       // Log completion

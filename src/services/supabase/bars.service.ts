@@ -1,5 +1,5 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
-import type { Database } from '../../lib/database.types';
+import type { Database, Json } from '../../lib/database.types';
 import { Bar, BarSettings } from '../../types';
 import { getErrorMessage } from '../../utils/errorHandler';
 
@@ -8,6 +8,14 @@ type BarRow = Database['public']['Tables']['bars']['Row'];
 type BarUpdate = Database['public']['Tables']['bars']['Update'];
 type BarMemberInsert = Database['public']['Tables']['bar_members']['Insert'];
 
+import { z } from 'zod';
+
+const AddMemberResultSchema = z.object({
+  success: z.boolean(),
+  message: z.string().optional(),
+  error: z.string().optional(),
+});
+
 /**
  * ✅ Type-safe interface pour la vue SQL admin_bars_list
  * La vue matérialisée admin_bars_list n'est pas dans les types générés Supabase
@@ -15,7 +23,7 @@ type BarMemberInsert = Database['public']['Tables']['bar_members']['Insert'];
  *
  * @note settings/theme_config utilisent `unknown` car le contenu JSONB est dynamique
  */
-// @ts-expect-error - Vue matérialisée admin_bars_list non incluse dans les types générés
+// ✅ Vue matérialisée admin_bars_list non incluse dans les types générés
 interface AdminBarsListRow {
   id: string | null;
   name: string | null;
@@ -97,7 +105,7 @@ export class BarsService {
           address: data.address,
           phone: data.phone,
           logo_url: data.logo_url,
-          settings: data.settings as unknown, // JSONB accepte unknown, sera validé au runtime
+          settings: data.settings as unknown as Json, // JSONB accepte unknown, sera validé au runtime
           is_active: true,
           closing_hour: data.closing_hour ?? 6,
         })
@@ -398,7 +406,7 @@ export class BarsService {
     try {
       const { error } = await supabase
         .from('bars')
-        .update({ settings })
+        .update({ settings: settings as unknown as Json })
         .eq('id', barId);
 
       if (error) {
@@ -574,9 +582,9 @@ export class BarsService {
       }
 
       // Cast the JSON result to a typed object
-      const result = data as { success: boolean; message?: string; error?: string } | null;
+      const result = AddMemberResultSchema.parse(data);
 
-      if (result && !result.success) {
+      if (!result.success) {
         return { success: false, error: result.error || 'Erreur inconnue' };
       }
 
