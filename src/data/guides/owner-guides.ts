@@ -163,13 +163,31 @@ export const DASHBOARD_OVERVIEW_GUIDE: GuideTour = {
       ],
     },
 
-    // CONCLUSION
+    // GESTION BONS ET TICKETS
     {
       id: 'step-8',
+      emoji: '🎫',
+      title: 'Gestion des Bons et Tickets',
+      description:
+        '**Bons de Commande** et **Tickets** facilitent la gestion de votre bar selon votre rôle. Les **Bons** (pour précommandes/commandes) et **Tickets** (mini-reçus de transactions) offrent une traçabilité complète. Tous les rôles ont accès à cette fonctionnalité de manière adaptée à leurs besoins.',
+      elementSelector: '[data-guide="dashboard-tickets"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant', 'serveur'],
+      tips: [
+        '📋 **Bons** = Précommandes ou commandes en attente de traitement',
+        '🎫 **Tickets** = Mini-reçus/confirmations de ventes',
+        '🔍 Consultez historique bons et tickets pour audit et traçabilité',
+        '✅ Chaque bon/ticket = Tracé et archived automatiquement',
+      ],
+    },
+
+    // CONCLUSION
+    {
+      id: 'step-9',
       emoji: '✅',
       title: 'Vous Maîtrisez Maintenant votre Tableau de Bord !',
       description:
-        'Félicitations ! Vous connaissez les 3 onglets du tableau de bord : **Synthèse du jour** (chiffres clés), **Gestion Commandes** (validation), **Performance équipe** (statistiques). Pour explorer d\'autres fonctionnalités (Inventaire, Historique, Équipe, Paramètres), ouvrez le menu hamburger (☰) en haut à droite.',
+        'Félicitations ! Vous connaissez les 3 onglets du tableau de bord : **Synthèse du jour** (chiffres clés), **Gestion Commandes** (validation), **Performance équipe** (statistiques), et **Gestion Bons/Tickets** (traçabilité). Pour explorer d\'autres fonctionnalités (Inventaire, Historique, Équipe, Paramètres), ouvrez le menu hamburger (☰) en haut à droite.',
       position: 'center',
       action: 'Cliquez sur Fermer pour commencer',
       visibleFor: ['promoteur', 'gerant'],
@@ -940,9 +958,43 @@ export const HISTORIQUE_GUIDE: GuideTour = {
       ],
     },
 
-    // ==================== EXPORT ====================
+    // ==================== ANNULATION DE VENTE ====================
     {
       id: 'step-11',
+      emoji: '🚫',
+      title: 'Annuler une Vente (Promoteur Uniquement)',
+      description: '**Mode Lecture Détails** : Cliquez sur une vente pour ouvrir ses détails complets. En tant que **Promoteur**, vous avez l\'option **"Annuler"** pour annuler définitivement cette vente. L\'annulation **restitue les articles au stock** et **supprime la vente des statistiques**.',
+      elementSelector: '[data-guide="sales-details"]',
+      position: 'bottom',
+      visibleFor: ['promoteur'],
+      tips: [
+        '🔍 Ouvrez le détail de la vente (cliquez sur le ticket)',
+        '🚫 Bouton "Annuler" visible seulement pour Promoteurs',
+        '✅ Annulation = Stock restitué + Vente supprimée des stats',
+        '⚠️ Action irréversible : confirmation requise avant annulation',
+      ],
+    },
+
+    // ==================== FILTRES PAR TYPE VENTE ====================
+    {
+      id: 'step-12',
+      emoji: '🔍',
+      title: 'Filtrer par Type de Vente (Validées / Rejetées / Annulées)',
+      description: '**Filtrer les ventes** par statut : **Validées** (approuvées et comptabilisées), **Rejetées** (non approuvées par managers), **Annulées** (supprimées par promoteur). Ces filtres s\'appliquent à toutes les 3 vues (Liste, Cartes, Analytics) instantanément pour une analyse fine par statut.',
+      elementSelector: '[data-guide="sales-type-filter"]',
+      position: 'bottom',
+      visibleFor: ['promoteur'],
+      tips: [
+        '✅ **Validées** = Ventes finales, comptabilisées dans les stats',
+        '❌ **Rejetées** = Retournées au serveur pour correction',
+        '🚫 **Annulées** = Supprimées par le promoteur (stock restitué)',
+        '📊 Combinez avec autres filtres (période, vendeur) pour analyses détaillées',
+      ],
+    },
+
+    // ==================== EXPORT ====================
+    {
+      id: 'step-13',
       emoji: '💾',
       title: 'Exporter Vos Données',
       description: 'Exportez vos analyses complètes en **Excel** ou **CSV** pour des traitements externes (analyse poussée, rapports détaillés, intégration comptabilité). Les données exportées incluent tous les ajustements (retours, consignations).',
@@ -958,15 +1010,16 @@ export const HISTORIQUE_GUIDE: GuideTour = {
 
     // ==================== CONCLUSION ====================
     {
-      id: 'step-12',
+      id: 'step-14',
       emoji: '✅',
       title: 'Vous Maîtrisez Votre Historique !',
-      description: 'Vous connaissez maintenant les **3 vues** (Liste, Cartes, Analytics), les **filtres puissants**, les **4 KPIs clés**, les **graphiques avancés** (CA, Catégories), et l\'**export données**. Vous êtes prêt à analyser vos performances en profondeur !',
+      description: 'Vous connaissez maintenant les **3 vues** (Liste, Cartes, Analytics), les **filtres puissants** (période, vendeur, type), les **3 KPIs clés**, les **graphiques avancés** (CA, Catégories), l\'**annulation de vente** (promoteur), et l\'**export données**. Vous êtes prêt à analyser vos performances en profondeur !',
       position: 'center',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
         '🎯 Consultez régulièrement vos analytics pour optimiser votre bar',
         '📈 Suivez votre équipe et identifiez vos champions',
+        '🚫 Promoteurs : Utilisez l\'annulation avec parcimonie (impact inventaire)',
         '💡 Les données = meilleur outil pour prendre les bonnes décisions',
       ],
       action: '→ Vous pouvez maintenant explorer chaque vue en détail !',
@@ -1119,6 +1172,24 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
       ],
     },
 
+    // ==================== MAPPINGS AUTOMATIQUES ====================
+    {
+      id: 'step-7b',
+      emoji: '🔗',
+      title: 'Mappings Automatiques Serveurs (Promoteur & Serveur)',
+      description:
+        '**Lors de la création d\'un compte** ou de l\'**ajout d\'un membre existant**, le système crée automatiquement un **mapping** entre le nom d\'affichage (pour les ventes en mode simplifié) et le compte réel du serveur. **Exemple** : Compte "Ahmed_Ali" → Nom d\'affichage auto-généré "AA" ou "Ahmed". Ce mapping facilite les ventes rapides au comptoir en mode simplifié.',
+      elementSelector: '[data-guide="team-mappings-auto"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '⚙️ **Automatique** : Pas d\'action manuelle requise lors création/ajout',
+        '🎯 Nom d\'affichage = Initiales ou prénom court pour rapididité',
+        '📱 Utile en **Mode Simplifié** où 1 compte gérant crée les ventes',
+        '🔄 Mappings éditable après création si besoin de clarifier',
+      ],
+    },
+
     // ==================== ONGLET 3: ASSIGNATION CAISSES ====================
     {
       id: 'step-8',
@@ -1223,15 +1294,34 @@ export const MANAGE_SETTINGS_GUIDE: GuideTour = {
       emoji: '🏢',
       title: 'Onglet 1: Infos Bar - Identification',
       description:
-        'L\'**Onglet Bar** contient les informations d\'identification de votre établissement : **Nom du bar**, **Adresse**, **Téléphone**, **Email**. Ces infos apparaissent sur vos factures, rapports d\'export et communications officielles.',
+        'L\'**Onglet Bar** contient les informations d\'identification de votre établissement : **Nom du bar**, **Adresse**, **Téléphone**, **Email**. Ces infos apparaissent sur vos factures, rapports d\'export et communications officielles. **Promoteur uniquement**.',
       elementSelector: '[data-guide="settings-bar"]',
       position: 'bottom',
-      visibleFor: ['promoteur', 'gerant'],
+      visibleFor: ['promoteur'],
       tips: [
         '📝 **Nom du bar** : Ex: "Le Privilège", "Le Spot", etc.',
         '📍 **Adresse** : Complète pour factures (ex: Cotonou, Bénin)',
         '📞 **Téléphone** : Contact principal (ex: +229 97 00 00 00)',
         '📧 **Email** : Contact email official',
+        '🔒 Accès réservé aux Promoteurs pour protéger les infos sensibles',
+      ],
+    },
+
+    // ==================== CHANGEMENT DE THÈME ====================
+    {
+      id: 'step-2b',
+      emoji: '🎨',
+      title: 'Changement de Thème (Tous Rôles)',
+      description:
+        'Personnalisez votre **interface BarTender** avec le **changement de thème** : passez entre **Mode Clair** (blanc, lisibilité diurne) et **Mode Sombre** (noir/gris, réduction fatigue oculaire nocturne). Le thème s\'applique instantanément à tous les écrans et se mémorise dans vos préférences.',
+      elementSelector: '[data-guide="settings-theme"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant', 'serveur'],
+      tips: [
+        '☀️ **Mode Clair** = Blanc/gris clair, idéal le jour',
+        '🌙 **Mode Sombre** = Noir/gris foncé, réduit fatigue nocturne',
+        '⚡ Changement instantané, pas de rechargement',
+        '💾 Préférence sauvegardée automatiquement par utilisateur',
       ],
     },
 
