@@ -701,7 +701,7 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
       emoji: '🚨',
       title: 'Gérer Expiration & Urgence',
       description:
-        'Les **consignations expirées** sont marquées en **rouge**. Vous devez manuellement décider : **Récupérer** (si client la redemande) ou **Confisquer** (si délai dépassé et client silencieux). Bouton "Vérifier expirations" vous rappelle les actions pending.',
+        'Les **consignations expirées** sont marquées en **rouge**. Vous devez manuellement décider : **Récupérer** (si client la redemande) ou **Confisquer** (si délai dépassé et client silencieux).',
       elementSelector: '[data-guide="consignments-active-tab"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
@@ -709,7 +709,7 @@ export const MANAGE_CONSIGNMENTS_GUIDE: GuideTour = {
         '⚠️ Expiration = **Alerte seulement** (pas action automatique)',
         '📞 Avertissez client AVANT expiration pour lui rappeler récupérer',
         '⏰ Délai = Paramétrable en Paramètres (onglet Opérationnel)',
-        '✅ "Vérifier expirations" = Scan consignations dépassées pour action',
+        '🔴 Consignations expirées = Marquées rouge dans l\'onglet Actives',
       ],
     },
 
@@ -847,12 +847,12 @@ export const HISTORIQUE_GUIDE: GuideTour = {
       id: 'step-4',
       emoji: '📊',
       title: 'Vue 3: Analytics - Vos Statistiques en Détail',
-      description: 'La **Vue Analytics** synthétise vos données avec **4 KPIs clés** (Revenu, Ventes, Articles, KPI custom) et des **graphiques avancés** pour une analyse complète de vos performances.',
+      description: 'La **Vue Analytics** synthétise vos données avec **3 KPIs clés** (Revenu, Ventes, Articles) et des **graphiques avancés** pour une analyse complète de vos performances.',
       elementSelector: '[data-guide="analytics-kpis"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '📈 Les 4 KPIs incluent la comparaison avec la période précédente (%)',
+        '📈 Les 3 KPIs incluent la comparaison avec la période précédente (%)',
         '🔢 "Articles" = nombre total d\'articles vendus',
         '⚡ Tous les calculs incluent les ajustements de retours',
       ],
@@ -890,22 +890,8 @@ export const HISTORIQUE_GUIDE: GuideTour = {
       ],
     },
 
-    // ==================== VUE 3: CONSIGNATIONS ====================
-    {
-      id: 'step-7',
-      emoji: '📦',
-      title: 'Analyse: Suivi des Consignations',
-      description: 'Le **widget Consignations** affiche vos stats : Total d\'articles consignés, **Actifs** (en attente de récupération), **Récupérés** (clients sont revenus), **Expirés** et **Confisqués**. Suivez aussi votre **Taux de Récupération** en %.',
-      elementSelector: '[data-guide="analytics-consignments"]',
-      position: 'top',
-      visibleFor: ['promoteur', 'gerant'],
-      tips: [
-        '✅ Taux de récupération élevé = clients fidèles qui reviennent',
-        '🔴 Articles expirés/confisqués = stock réintégré à la vente',
-        '💡 Optimisez votre délai de consignation en fonction du taux',
-      ],
-    },
 
+    // ==================== VUE 3: TOP PRODUITS ====================
     // ==================== VUE 3: TOP PRODUITS ====================
     {
       id: 'step-8',
@@ -1551,17 +1537,17 @@ export const MANAGE_PROMOTIONS_GUIDE: GuideTour = {
     {
       id: 'step-7',
       emoji: '🏆',
-      title: 'Classement des Meilleures Promotions',
+      title: 'Analyses: KPIs de Performance',
       description:
-        'Un **tableau de performance** classe vos promotions par score composite (0-99). Les meilleures en haut : celles qui génèrent le plus de profit et d\'utilisation avec un bon ROI.',
+        'Vous trouvez les **KPIs clés** (CA, Utilisations, Profit, ROI) qui vous permettent d\'analyser vos promotions. Les meilleures promotions sont celles qui génèrent le plus de profit et d\'utilisation avec un bon ROI.',
       elementSelector: '[data-guide="promo-ranking"]',
       position: 'top',
-      action: 'Consultez le classement',
+      action: 'Consultez les KPIs',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '⭐ Score composite = combinaison de profit, utilisations et ROI',
+        '⭐ ROI = combinaison de profit et d\'utilisations',
         '📅 Comparez les périodes (jour, semaine, mois) avec les filtres',
-        '🔄 Les promotions avec bons scores méritent d\'être réactivées',
+        '🔄 Les promotions avec bon ROI méritent d\'être réactivées',
       ],
     },
 
