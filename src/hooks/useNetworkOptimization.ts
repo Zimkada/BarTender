@@ -75,8 +75,8 @@ export function useNetworkOptimization() {
   // Détection des capacités réseau
   const updateNetworkInfo = useCallback(() => {
     const connection = (navigator as NavigatorWithExperimentalAPIs).connection ||
-                      (navigator as NavigatorWithExperimentalAPIs).mozConnection ||
-                      (navigator as NavigatorWithExperimentalAPIs).webkitConnection;
+      (navigator as NavigatorWithExperimentalAPIs).mozConnection ||
+      (navigator as NavigatorWithExperimentalAPIs).webkitConnection;
 
     const newNetworkInfo: NetworkInfo = {
       isOnline: navigator.onLine,
@@ -117,8 +117,8 @@ export function useNetworkOptimization() {
   // Ajustement automatique des performances
   const adjustPerformanceSettings = useCallback(() => {
     const isSlowOrLimited = networkInfo.isSlowConnection ||
-                           networkInfo.saveData ||
-                           networkInfo.isLowBattery;
+      networkInfo.saveData ||
+      networkInfo.isLowBattery;
 
     const newSettings: PerformanceSettings = {
       enableAnimations: !isSlowOrLimited,

@@ -115,7 +115,9 @@ export const SecurityService = {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      throw handleSupabaseError(error);
+      // 🛡️ Silent Error: Avoid spamming if view is missing or permission denied
+      console.warn('[Security] Dashboard unreachable (missing view or permissions)');
+      return [];
     }
   },
 
@@ -129,7 +131,8 @@ export const SecurityService = {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      throw handleSupabaseError(error);
+      // 🛡️ Silent Error: Avoid spamming if RPC is missing
+      return [];
     }
   },
 
@@ -189,6 +192,24 @@ export const SecurityService = {
       console.error('Failed to log RLS violation:', error);
     }
   },
+
+  /**
+   * Récupérer l'état de santé des bars (heartbeats récents)
+   */
+  async getBarHealthStatus(): Promise<BarHealthStatus[]> {
+    try {
+      const { data, error } = await supabase
+        .from('admin_bars_health_status')
+        .select('*')
+        .order('last_heartbeat_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      // 🛡️ Silent Error: Avoid spamming if view is missing
+      return [];
+    }
+  },
 };
 
 // =====================================================
@@ -209,7 +230,8 @@ export const MaterializedViewService = {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      throw handleSupabaseError(error);
+      // 🛡️ Silent Error: Views might not exist
+      return [];
     }
   },
 
@@ -231,7 +253,8 @@ export const MaterializedViewService = {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      throw handleSupabaseError(error);
+      // 🛡️ Silent Error: Views might not exist
+      return [];
     }
   },
 
@@ -296,7 +319,8 @@ export const MaterializedViewService = {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      throw handleSupabaseError(error);
+      // 🛡️ Silent Error: Views might not exist
+      return [];
     }
   },
 

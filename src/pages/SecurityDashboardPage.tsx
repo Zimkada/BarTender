@@ -14,9 +14,6 @@ import {
   Bell,
   BellOff,
   LayoutGrid,
-  Server,
-  Wifi,
-  WifiOff
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -27,6 +24,7 @@ import {
   MaterializedViewRefreshStats,
   MaterializedViewRefreshLog,
   ActiveRefreshAlert,
+  BarHealthStatus,
 } from '../services/supabase/security.service';
 import { LoadingFallback } from '../components/LoadingFallback';
 import { Alert } from '../components/ui/Alert';
@@ -57,6 +55,7 @@ export default function SecurityDashboardPage() {
   const [refreshHistory, setRefreshHistory] = useState<MaterializedViewRefreshLog[]>([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [previousAlertsCount, setPreviousAlertsCount] = useState(0);
+  const [barHealthData, setBarHealthData] = useState<BarHealthStatus[]>([]);
 
   const loadSecurityData = useCallback(async () => {
     if (currentSession?.role !== 'super_admin') return;
@@ -877,7 +876,17 @@ export default function SecurityDashboardPage() {
                       <h4 className="text-sm font-semibold text-gray-700 mb-3">
                         Historique Durée Refresh (20 derniers)
                       </h4>
-                      <RefreshHistoryChart logs={refreshHistory} chartType="line" />
+                      <RefreshHistoryChart
+                        logs={refreshHistory
+                          .filter(log => log.status !== 'running')
+                          .map(log => ({
+                            ...log,
+                            refresh_started_at: log.started_at,
+                            refresh_completed_at: log.completed_at,
+                            status: log.status as 'success' | 'failed' | 'timeout'
+                          }))}
+                        chartType="line"
+                      />
                     </div>
 
                     {/* Status Distribution */}
@@ -885,7 +894,17 @@ export default function SecurityDashboardPage() {
                       <h4 className="text-sm font-semibold text-gray-700 mb-3">
                         Distribution Statuts
                       </h4>
-                      <RefreshHistoryChart logs={refreshHistory} chartType="pie" />
+                      <RefreshHistoryChart
+                        logs={refreshHistory
+                          .filter(log => log.status !== 'running')
+                          .map(log => ({
+                            ...log,
+                            refresh_started_at: log.started_at,
+                            refresh_completed_at: log.completed_at,
+                            status: log.status as 'success' | 'failed' | 'timeout'
+                          }))}
+                        chartType="pie"
+                      />
                     </div>
 
                     {/* Duration Trend */}
@@ -893,7 +912,17 @@ export default function SecurityDashboardPage() {
                       <h4 className="text-sm font-semibold text-gray-700 mb-3">
                         Tendance Performance
                       </h4>
-                      <RefreshHistoryChart logs={refreshHistory} chartType="area" />
+                      <RefreshHistoryChart
+                        logs={refreshHistory
+                          .filter(log => log.status !== 'running')
+                          .map(log => ({
+                            ...log,
+                            refresh_started_at: log.started_at,
+                            refresh_completed_at: log.completed_at,
+                            status: log.status as 'success' | 'failed' | 'timeout'
+                          }))}
+                        chartType="area"
+                      />
                     </div>
 
                     {/* Average by View */}
@@ -901,7 +930,17 @@ export default function SecurityDashboardPage() {
                       <h4 className="text-sm font-semibold text-gray-700 mb-3">
                         Durée Moyenne par Vue
                       </h4>
-                      <RefreshHistoryChart logs={refreshHistory} chartType="bar" />
+                      <RefreshHistoryChart
+                        logs={refreshHistory
+                          .filter(log => log.status !== 'running')
+                          .map(log => ({
+                            ...log,
+                            refresh_started_at: log.started_at,
+                            refresh_completed_at: log.completed_at,
+                            status: log.status as 'success' | 'failed' | 'timeout'
+                          }))}
+                        chartType="bar"
+                      />
                     </div>
                   </div>
                 </Suspense>
@@ -958,6 +997,8 @@ export default function SecurityDashboardPage() {
               </div>
             </section>
           )}
-        </div>
-      );
+        </>
+      )}
+    </div>
+  );
 }

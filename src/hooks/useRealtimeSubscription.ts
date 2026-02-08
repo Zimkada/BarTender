@@ -21,8 +21,8 @@ interface UseRealtimeSubscriptionConfig {
   schema?: string;
   filter?: string | undefined; // Can be undefined to prevent invalid subscriptions
   enabled?: boolean;
-  onMessage?: (payload: any) => void;
-  onError?: (error: Error) => void;
+  onMessage?: (payload: unknown) => void;
+  onError?: (error: unknown) => void;
   fallbackPollingInterval?: number; // ms, used if Realtime fails
   /**
    * BREAKING CHANGE (v2.0+): queryKeysToInvalidate now expects array of query keys (not strings)
@@ -59,7 +59,7 @@ export function useRealtimeSubscription(config: UseRealtimeSubscriptionConfig) {
 
   // Enhanced message handler with React Query integration
   const handleMessage = useCallback(
-    (payload: any) => {
+    (payload: unknown) => {
       // Call custom handler if provided
       if (config.onMessage) {
         config.onMessage(payload);
@@ -77,12 +77,13 @@ export function useRealtimeSubscription(config: UseRealtimeSubscriptionConfig) {
 
   // Error handler with logging
   const handleError = useCallback(
-    (err: Error) => {
+    (err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
       console.error(
         `[Realtime] Error in ${config.table} subscription:`,
-        err.message,
+        message,
       );
-      setError(err);
+      setError(err instanceof Error ? err : new Error(message));
 
       // Call custom error handler if provided
       if (config.onError) {

@@ -60,6 +60,7 @@ export interface BarSettings {
   serversList?: string[]; // Liste des serveurs (mode simplifié uniquement)
   consignmentExpirationDays?: number; // Nombre de jours avant expiration consignation (défaut: 7)
   supplyFrequency?: number; // Fréquence d'approvisionnement en jours (1-30, défaut: 7)
+  [key: string]: unknown; // Allow extra dynamic settings
 }
 
 export interface BarMember {
