@@ -55,7 +55,7 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
 
     const serverFilteredSales = useMemo(() => {
         if (!isServerRole) return todaySales;
-        return (todaySales as any[]).filter(s => (s.soldBy || s.sold_by) === currentUserId);
+        return (todaySales || []).filter(s => (s?.soldBy || s?.sold_by) === currentUserId);
     }, [todaySales, isServerRole, currentUserId]);
 
     const serverFilteredReturns = useMemo(() => {
@@ -66,8 +66,8 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
     const activeConsignments = useMemo(() => consignments.filter(c => c.status === 'active'), [consignments]);
     const serverFilteredConsignments = useMemo(() => {
         if (!isServerRole) return activeConsignments;
-        return (activeConsignments as Consignment[]).filter(c =>
-            c.serverId === currentUserId || c.originalSeller === currentUserId
+        return (activeConsignments || []).filter(c =>
+            c?.serverId === currentUserId || c?.originalSeller === currentUserId
         );
     }, [activeConsignments, isServerRole, currentUserId]);
 
@@ -76,17 +76,17 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
         const TEN_MINUTES_MS = 10 * 60 * 1000;
         const now = new Date().getTime();
 
-        return (unifiedSales as any[]).filter(s => {
-            if (s.status !== 'pending') return false;
+        return (unifiedSales || []).filter(s => {
+            if (s?.status !== 'pending') return false;
 
             // Managers see all
             if (!isServerRole) return true;
 
             // Servers see only their own recent sales
-            const isOwn = (s.soldBy || s.sold_by) === currentUserId;
+            const isOwn = (s?.soldBy || s?.sold_by) === currentUserId;
             if (!isOwn) return false;
 
-            const time = new Date(s.created_at || s.createdAt).getTime();
+            const time = new Date(s?.created_at || s?.createdAt).getTime();
             return (now - time) < TEN_MINUTES_MS;
         });
     }, [unifiedSales, isServerRole, currentUserId]);

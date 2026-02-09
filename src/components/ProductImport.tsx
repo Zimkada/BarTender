@@ -190,46 +190,52 @@ export function ProductImport({ onClose, isOpen, inline = false }: ProductImport
         color: '#f97316' // Orange par défaut
       }));
 
-      addCategories(categoriesToAdd).then((createdCategories) => {
-        // Mettre à jour le cache et localCategories
-        createdCategories.forEach((cat: any) => {
-          categoryCache.set(cat.name.toLowerCase(), cat.id);
-          localCategories.push(cat);
-          newCategoryNames.add(cat.name);
-        });
+      addCategories(categoriesToAdd)
+        .then((createdCategories) => {
+          // Mettre à jour le cache et localCategories
+          createdCategories.forEach((cat: any) => {
+            categoryCache.set(cat.name.toLowerCase(), cat.id);
+            localCategories.push(cat);
+            newCategoryNames.add(cat.name);
+          });
 
-        // ✅ Mettre à jour les categoryId PENDING dans validProductsToImport
-        validProductsToImport.forEach(product => {
-          if (!product.categoryId || product.categoryId === '' || product.categoryId === 'PENDING') {
-            const categoryName = product.categoryName;
-            if (categoryName) {
-              const categoryId = categoryCache.get(categoryName.toLowerCase());
-              if (categoryId) {
-                product.categoryId = categoryId;
+          // ✅ Mettre à jour les categoryId PENDING dans validProductsToImport
+          validProductsToImport.forEach(product => {
+            if (!product.categoryId || product.categoryId === '' || product.categoryId === 'PENDING') {
+              const categoryName = product.categoryName;
+              if (categoryName) {
+                const categoryId = categoryCache.get(categoryName.toLowerCase());
+                if (categoryId) {
+                  product.categoryId = categoryId;
+                }
               }
             }
+            // Nettoyer le champ temporaire categoryName
+            delete product.categoryName;
+          });
+
+          // 3️⃣ PHASE IMPORT ATOMIQUE: Importer TOUS les produits valides en UNE SEULE opération
+          if (validProductsToImport.length > 0) {
+            addProducts(validProductsToImport);
+            let successMessage = `${validProductsToImport.length} produit(s) importé(s) avec succès.`;
+            if (newCategoryNames.size > 0) {
+              successMessage += ` Nouvelles catégories créées : ${[...newCategoryNames].join(', ')}.`;
+            }
+            showSuccess(successMessage);
           }
-          // Nettoyer le champ temporaire categoryName
-          delete product.categoryName;
+
+          // Réinitialiser l'état
+          if (errorCount === 0) {
+            setImportedProducts([]);
+            setFileName(null);
+            onClose();
+          }
+        })
+        .catch((err: unknown) => {
+          const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la création des catégories';
+          showError(`Échec de création des catégories: ${errorMessage}`);
+          console.error('[ProductImport] Category creation failed:', err);
         });
-
-        // 3️⃣ PHASE IMPORT ATOMIQUE: Importer TOUS les produits valides en UNE SEULE opération
-        if (validProductsToImport.length > 0) {
-          addProducts(validProductsToImport);
-          let successMessage = `${validProductsToImport.length} produit(s) importé(s) avec succès.`;
-          if (newCategoryNames.size > 0) {
-            successMessage += ` Nouvelles catégories créées : ${[...newCategoryNames].join(', ')}.`;
-          }
-          showSuccess(successMessage);
-        }
-
-        // Réinitialiser l'état
-        if (errorCount === 0) {
-          setImportedProducts([]);
-          setFileName(null);
-          onClose();
-        }
-      });
     } else {
       // Pas de catégories à créer, import direct
       if (validProductsToImport.length > 0) {
