@@ -210,6 +210,8 @@ export interface Salary {
   paidAt: Date;
   createdBy: string;
   createdAt: Date;
+  memberName?: string; // ✨ Pour l'affichage
+  staffName?: string; // ✨ Alias pour compatibilité
 }
 
 export interface InitialBalance {

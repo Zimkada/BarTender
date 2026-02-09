@@ -24,6 +24,7 @@ export interface UnifiedExpense {
     productName?: string;
     quantity?: number;
     createdBy: string;
+    beneficiary?: string;
 }
 
 /**
@@ -131,7 +132,8 @@ export function useUnifiedExpenses(barId: string | undefined) {
             notes: `Salaire : ${s.period}`,
             isSupply: false,
             isOptimistic: false,
-            createdBy: s.createdBy
+            createdBy: s.createdBy,
+            beneficiary: s.memberName || s.staffName
         }));
 
         // Transform Offline Ops

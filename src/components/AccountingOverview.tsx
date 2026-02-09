@@ -16,7 +16,6 @@ import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { useAppContext } from '../context/AppContext';
 import { EXPENSE_CATEGORY_LABELS } from '../hooks/useExpenses';
-import { useSalaries } from '../hooks/useSalaries';
 import { useInitialBalance } from '../hooks/useInitialBalance';
 import { useCapitalContributions } from '../hooks/useCapitalContributions';
 import { useBeninCurrency } from '../hooks/useBeninCurrency'; // Changed to common hook
@@ -57,7 +56,6 @@ export function AccountingOverview() {
   const { expenses: unifiedExpenses } = useUnifiedExpenses(currentBar?.id);
   const { consignments } = useUnifiedStock(currentBar?.id);
 
-  const salariesHook = useSalaries(currentBar?.id || '');
   const initialBalanceHook = useInitialBalance(currentBar?.id);
   const capitalContributionsHook = useCapitalContributions(currentBar?.id);
   const { returns, customExpenseCategories } = useAppContext();
@@ -65,8 +63,9 @@ export function AccountingOverview() {
   // ✨ Filtrage Centralisé Local des données unifiées
   const filteredSales = useMemo(() => {
     return unifiedSales.filter(s => {
-      const saleDate = (s as any).businessDate || (s as any).createdAt || new Date();
-      const date = new Date(saleDate);
+      // 🛡️ Robust Date Extraction
+      const rawDate = (s as any).businessDate || (s as any).business_date || (s as any).createdAt || (s as any).created_at || new Date();
+      const date = rawDate instanceof Date ? rawDate : new Date(rawDate);
       return date >= periodStart && date <= periodEnd;
     });
   }, [unifiedSales, periodStart, periodEnd]);
@@ -301,22 +300,21 @@ export function AccountingOverview() {
     // historicalRevenue is now NET (updated in AnalyticsService)
     const previousRevenue = historicalRevenue;
 
-    // 4. Sum all expenses before period (Unifié)
-    const previousExpenses = unifiedExpenses
+    // 5. Sum all salaries before period (Unifié - EXTRAIT de unifiedExpenses)
+    // NOTE: unifiedExpenses contient DÉJÀ les salaires via useUnifiedExpenses
+    // Donc previousExpenses contient TOUT.
+    // Si on veut séparer pour l'affichage, il faut filtrer.
+    // MAIS pour le "previousCosts" total, on peut juste sommer unifiedExpenses.
+
+    const previousCosts = unifiedExpenses
       .filter(exp => exp.date < periodStart)
       .reduce((sum, exp) => sum + exp.amount, 0);
 
-    // 5. Sum all salaries before period
-    const previousSalaries = salariesHook.salaries
-      .filter(sal => new Date(sal.paidAt) < periodStart)
-      .reduce((sum, sal) => sum + sal.amount, 0);
 
-
-    const previousCosts = previousExpenses + previousSalaries;
 
     // ✅ Total = Solde initial + Apports capital + (Revenus - Coûts) des périodes antérieures
     return initialBalanceAmount + previousCapitalContributions + previousRevenue - previousCosts;
-  }, [viewMode, unifiedSales, returns, unifiedExpenses, salariesHook.salaries, periodStart, initialBalanceHook.initialBalance, capitalContributionsHook.contributions, historicalRevenue]);
+  }, [viewMode, unifiedSales, returns, unifiedExpenses, periodStart, initialBalanceHook.initialBalance, capitalContributionsHook.contributions, historicalRevenue]);
 
   // Détail du solde de début (pour affichage détaillé dans la carte)
   const previousBalanceDetails = useMemo(() => {
@@ -328,22 +326,18 @@ export function AccountingOverview() {
     // 3. Sum all sales before period (Using SQL Stats - NET REVENUE)
     const previousRevenue = historicalRevenue;
 
-    const previousExpenses = unifiedExpenses
+    const previousTotalCosts = unifiedExpenses
       .filter(exp => exp.date < periodStart)
       .reduce((sum, exp) => sum + exp.amount, 0);
 
-    const previousSalaries = salariesHook.salaries
-      .filter(sal => new Date(sal.paidAt) < periodStart)
-      .reduce((sum, sal) => sum + sal.amount, 0);
-
-    const activityResult = previousRevenue - (previousExpenses + previousSalaries);
+    const activityResult = previousRevenue - previousTotalCosts;
 
     return {
       initialBalance: initialBalanceAmount,
       capitalContributions: previousCapitalContributions,
       activityResult,
     };
-  }, [viewMode, unifiedSales, returns, unifiedExpenses, salariesHook.salaries, periodStart, initialBalanceHook.initialBalance, capitalContributionsHook.contributions, historicalRevenue]);
+  }, [viewMode, unifiedSales, returns, unifiedExpenses, periodStart, initialBalanceHook.initialBalance, capitalContributionsHook.contributions, historicalRevenue]);
 
   // Final balance (for Vue Analytique)
   const finalBalance = previousBalance + netProfit;
@@ -668,6 +662,16 @@ export function AccountingOverview() {
     }
 
     // 7. ONGLET SALAIRES
+    const filteredSalaries = exportExpenses
+      .filter(e => e.category === 'salary')
+      .map(e => ({
+        period: e.notes?.replace('Salaire : ', '') || 'Période inconnue',
+        amount: e.amount,
+        paidAt: e.date,
+        memberName: e.beneficiary,
+        staffName: e.beneficiary
+      }));
+
     const salariesData = filteredSalaries.map(salary => {
       const salaryExtended = salary as SalaryExtended;
       return {
