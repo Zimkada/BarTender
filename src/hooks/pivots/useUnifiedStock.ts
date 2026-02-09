@@ -50,9 +50,9 @@ export const useUnifiedStock = (barId: string | undefined) => {
     // ===== MUTATIONS WRAPPERS (Compatibilité & Audit) =====
 
     const addProduct = useCallback((productData: Omit<Product, 'id' | 'createdAt'>) => {
-        if (!barId || !session) return;
+        if (!barId || !session) return Promise.reject('Missing barId or session');
         const dbProduct = toDbProductForCreation(productData, barId);
-        mutations.createProduct.mutate(dbProduct);
+        return mutations.createProduct.mutateAsync(dbProduct);
     }, [barId, mutations, session]);
 
     const addProducts = useCallback((productsData: Omit<Product, 'id' | 'createdAt'>[]) => {
@@ -64,26 +64,24 @@ export const useUnifiedStock = (barId: string | undefined) => {
 
     const updateProduct = useCallback((id: string, updates: Partial<Product>) => {
         const dbUpdates = toDbProduct(updates, true);
-        mutations.updateProduct.mutate({ id, updates: dbUpdates });
+        return mutations.updateProduct.mutateAsync({ id, updates: dbUpdates });
     }, [mutations]);
 
     const deleteProduct = useCallback((id: string) => {
-        mutations.deleteProduct.mutate(id);
+        return mutations.deleteProduct.mutateAsync(id);
     }, [mutations]);
 
     const adjustStock = useCallback((productId: string, delta: number, reason: string) => {
-        mutations.adjustStock.mutate({ productId, delta, reason });
+        return mutations.adjustStock.mutateAsync({ productId, delta, reason });
     }, [mutations]);
 
     // Help for migration: map adjustStock to increase/decrease
     const increasePhysicalStock = useCallback((productId: string, quantity: number, reason: string = 'restock') => {
-        adjustStock(productId, quantity, reason);
-        return true;
+        return adjustStock(productId, quantity, reason);
     }, [adjustStock]);
 
     const decreasePhysicalStock = useCallback((productId: string, quantity: number, reason: string = 'manual_decrease') => {
-        adjustStock(productId, -quantity, reason);
-        return true;
+        return adjustStock(productId, -quantity, reason);
     }, [adjustStock]);
 
     // 3. Query des ventes offline (Spécifique pour déduction de stock)
@@ -201,19 +199,14 @@ export const useUnifiedStock = (barId: string | undefined) => {
             businessDate: data.businessDate,
         };
 
-        return new Promise((resolve, reject) => {
-            mutations.createConsignment.mutate(consignmentData, {
-                onSuccess: (data) => resolve(data),
-                onError: (err) => reject(err)
-            });
-        });
+        return mutations.createConsignment.mutateAsync(consignmentData);
     }, [barId, session, mutations]);
 
     const claimConsignment = useCallback((consignmentId: string) => {
         const consignment = consignments.find(c => c.id === consignmentId);
         if (!consignment || !session) return false;
 
-        mutations.claimConsignment.mutate({
+        return mutations.claimConsignment.mutateAsync({
             id: consignmentId,
             productId: consignment.productId,
             quantity: consignment.quantity,
@@ -226,7 +219,7 @@ export const useUnifiedStock = (barId: string | undefined) => {
         const consignment = consignments.find(c => c.id === consignmentId);
         if (!consignment) return false;
 
-        mutations.forfeitConsignment.mutate({
+        return mutations.forfeitConsignment.mutateAsync({
             id: consignmentId,
             productId: consignment.productId,
             quantity: consignment.quantity
@@ -242,7 +235,7 @@ export const useUnifiedStock = (barId: string | undefined) => {
 
         if (expiredActiveConsignments.length > 0) {
             const expiredIds = expiredActiveConsignments.map(c => c.id);
-            mutations.expireConsignments.mutate(expiredIds);
+            return mutations.expireConsignments.mutateAsync(expiredIds);
         }
     }, [consignments, mutations.expireConsignments]);
 
@@ -267,20 +260,17 @@ export const useUnifiedStock = (barId: string | undefined) => {
             supplier: supplyData.supplier
         };
 
-        mutations.addSupply.mutate(dbSupplyData, {
-            onSuccess: (newSupply: any) => {
-                onExpenseCreated({
-                    category: 'supply',
-                    amount: totalCost,
-                    description: `Approvisionnement (${supplyData.quantity} unités)`,
-                    relatedSupplyId: newSupply.id,
-                    createdBy: session.userId,
-                    date: new Date()
-                });
-            }
+        return mutations.addSupply.mutateAsync(dbSupplyData).then((newSupply: any) => {
+            onExpenseCreated({
+                category: 'supply',
+                amount: totalCost,
+                description: `Approvisionnement (${supplyData.quantity} unités)`,
+                relatedSupplyId: newSupply.id,
+                createdBy: session.userId,
+                date: new Date()
+            });
+            return newSupply;
         });
-
-        return null;
     }, [barId, session, mutations]);
 
     const processSaleValidation = useCallback((
@@ -300,9 +290,12 @@ export const useUnifiedStock = (barId: string | undefined) => {
             }
         }
 
-        mutations.validateSale.mutate(saleItems, {
-            onSuccess: () => onSuccess(),
-            onError: (error: any) => onError(error.message || 'Erreur lors de la validation')
+        return mutations.validateSale.mutateAsync(saleItems).then(() => {
+            onSuccess();
+            return true;
+        }).catch((error: any) => {
+            onError(error.message || 'Erreur lors de la validation');
+            throw error;
         });
 
         return true;

@@ -7,10 +7,9 @@
 import { useMemo, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSales, salesKeys } from '../queries/useSalesQueries';
-import { useAuth } from '../../context/AuthContext';
 import { offlineQueue } from '../../services/offlineQueue';
 import { syncManager } from '../../services/SyncManager';
-import { SalesService } from '../../services/supabase/sales.service';
+import { useSalesMutations } from '../mutations/useSalesMutations';
 import type { Sale, SaleItem } from '../../types';
 
 /**
@@ -27,7 +26,6 @@ interface UnifiedSale extends Omit<Sale, 'createdAt' | 'validatedAt' | 'rejected
 
 export const useUnifiedSales = (barId: string | undefined) => {
     const queryClient = useQueryClient();
-    const { currentSession: session } = useAuth();
 
     // 1. Ventes Online (via React Query)
     const { data: onlineSales = [], isLoading: isLoadingOnline } = useSales(barId);
@@ -97,7 +95,7 @@ export const useUnifiedSales = (barId: string | undefined) => {
      */
     const salesHash = useMemo(() => {
         return JSON.stringify({
-            online: onlineSales.map(s => `${s.id}-${s.total}`),
+            online: (onlineSales || []).map(s => `${s.id}-${s.total}`),
             offline: offlineSales.map(s => s.idempotency_key || s.id)
         });
     }, [onlineSales, offlineSales]);
@@ -115,7 +113,7 @@ export const useUnifiedSales = (barId: string | undefined) => {
         });
 
         // Fusionner et trier par date décroissante
-        const combined = [...filteredOffline, ...onlineSales];
+        const combined = [...filteredOffline, ...(onlineSales || [])];
 
         return combined.sort((a: any, b: any) => {
             const dateA = a.created_at || a.createdAt;
@@ -155,17 +153,23 @@ export const useUnifiedSales = (barId: string | undefined) => {
         };
     }, [unifiedSales]);
 
-    // Mutations
+    // 3. Mutations
+    const salesMutations = useSalesMutations(barId || '');
+
+    // ... (rest of the logic remains same for memoized stats)
+
+    // Mutations Wrappers
     const addSale = useCallback(async (saleData: any) => {
-        return SalesService.createSale(saleData, { canWorkOffline: true, userId: session?.userId });
-    }, [session]);
+        return salesMutations.createSale.mutateAsync(saleData);
+    }, [salesMutations]);
 
     return {
         sales: unifiedSales,
         stats,
         isLoading: isLoadingOnline || isLoadingOffline,
         addSale,
-        refetch: () => {
+        refetch: async () => {
+            await syncManager.syncAll();
             refetchOffline();
             queryClient.invalidateQueries({ queryKey: salesKeys.all });
         }
