@@ -10,11 +10,11 @@
  *      useUnifiedStock (source de vérité)
  */
 
-import { createContext, ReactNode } from 'react';
+import { createContext } from 'react';
 import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { useBarContext } from '../context/BarContext';
 
-// Type du contexte = Retour de useStockManagement
+// Type du contexte = Retour de useUnifiedStock
 type StockBridgeContextType = ReturnType<typeof useUnifiedStock> | null;
 
 // Export du context pour le hook séparé (compatibilité Vite Fast Refresh)
