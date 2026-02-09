@@ -1,22 +1,29 @@
 import { useMemo } from 'react';
-import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import { useBarContext } from '../context/BarContext';
 import { useUnifiedStock } from './pivots/useUnifiedStock';
 import { useUnifiedSales } from './pivots/useUnifiedSales';
+import { useUnifiedReturns } from './pivots/useUnifiedReturns';
 import { useRevenueStats } from '../hooks/useRevenueStats';
 import { useTeamPerformance } from '../hooks/useTeamPerformance';
+import { useBarMembers } from './queries/useBarMembers';
 import { getCurrentBusinessDateString } from '../utils/businessDateHelpers';
 import { AnalyticsService } from '../services/supabase/analytics.service';
 import { useQuery } from '@tanstack/react-query';
 import type { Sale, SaleItem, Consignment } from '../types';
 
 export function useDashboardAnalytics(currentBarId: string | undefined) {
-    const { getTodayReturns, getLowStockProducts, users } = useAppContext();
     const { currentSession } = useAuth();
+    const { currentBar } = useBarContext();
 
-    // 🚀 Smart Hooks (Elite Mission)
-    const { allProductsStockInfo, consignments } = useUnifiedStock(currentBarId);
+    // 🚀 Smart Hooks (Elite Mission) - Complete Migration
+    const { allProductsStockInfo, consignments, products } = useUnifiedStock(currentBarId);
     const { sales: unifiedSales, stats: salesStats } = useUnifiedSales(currentBarId);
+    const { getTodayReturns } = useUnifiedReturns(currentBarId, currentBar?.closingHour);
+
+    // Bar Members for users data
+    const { data: barMembers = [] } = useBarMembers(currentBarId);
+    const users = useMemo(() => barMembers.map(member => member.user), [barMembers]);
 
     // Dates
     const todayDateStr = useMemo(() => getCurrentBusinessDateString(), []);
@@ -94,7 +101,19 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
         endDate: undefined
     });
 
-    const lowStockProducts = getLowStockProducts();
+    // Calculate low stock products from unified stock info
+    const lowStockProducts = useMemo(() => {
+        const threshold = currentBar?.settings?.lowStockThreshold ?? 5;
+        return products
+            .filter(p => {
+                const info = allProductsStockInfo[p.id];
+                return info && info.availableStock <= threshold;
+            })
+            .map(p => ({
+                ...p,
+                availableStock: allProductsStockInfo[p.id]?.availableStock ?? 0
+            }));
+    }, [products, allProductsStockInfo, currentBar?.settings?.lowStockThreshold]);
 
     const totalItems = useMemo(() => {
         return serverFilteredSales.reduce((sum: number, sale: any) => {
