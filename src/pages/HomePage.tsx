@@ -12,26 +12,28 @@ import { Card } from '../components/ui/Card';
 import { Product } from '../types';
 import { useFilteredProducts } from '../hooks/useFilteredProducts';
 import { useCategoryManagement } from '../hooks/useCategoryManagement';
-import { useStockManagement } from '../hooks/useStockManagement';
+import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
+import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
 import { ProductGridSkeleton } from '../components/skeletons';
 
 export default function HomePage() {
   // 1. Tous les hooks sont appelés inconditionnellement en haut
   const { categories, addToCart } = useAppContext();
   const { currentBar } = useBarContext();
-  const { products: allProducts, getProductStockInfo } = useStockManagement();
+  const stockManager = useUnifiedStock(currentBar?.id);
+  const { sales, isLoading: isLoadingSales, refetch: refetchSales } = useUnifiedSales(currentBar?.id);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   const productsWithAvailableStock = useMemo(() => {
-    return allProducts.map(product => {
-      const stockInfo = getProductStockInfo(product.id);
+    return stockManager.products.map(product => {
+      const stockInfo = stockManager.getProductStockInfo(product.id);
       return {
         ...product,
         stock: stockInfo?.availableStock ?? 0 // Override 'stock' with availableStock
       };
     });
-  }, [allProducts, getProductStockInfo]);
+  }, [stockManager.products, stockManager.getProductStockInfo]);
 
   const {
     isCategoryModalOpen,
@@ -91,7 +93,7 @@ export default function HomePage() {
               <ShoppingCart size={18} />
             </div>
             <div className="flex flex-col">
-              <span className="text-lg font-black text-brand-dark leading-none">{allProducts.length}</span>
+              <span className="text-lg font-black text-brand-dark leading-none">{stockManager.products.length}</span>
               <span className="text-[9px] font-black text-brand-primary uppercase tracking-wider">produits</span>
             </div>
           </div>
@@ -116,16 +118,20 @@ export default function HomePage() {
         onEditCategory={handleEditCategory}
         onDeleteCategory={handleDeleteCategory}
         onAddCategory={handleAddCategory}
-        productCounts={allProducts.reduce((acc, p) => {
+        productCounts={stockManager.products.reduce((acc: Record<string, number>, p) => {
           acc[p.categoryId] = (acc[p.categoryId] || 0) + 1;
           return acc;
-        }, {} as Record<string, number>)}
+        }, {})}
       />
 
       {/* Product Grid */}
       <Card variant="elevated" padding="default" className="border-brand-subtle min-h-[600px]">
-        {allProducts.length === 0 ? (
+        {stockManager.isLoading ? (
           <ProductGridSkeleton count={12} />
+        ) : stockManager.products.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+            <p className="text-lg font-medium">Aucun produit trouvé</p>
+          </div>
         ) : (
           <ProductGrid
             products={filteredProducts}

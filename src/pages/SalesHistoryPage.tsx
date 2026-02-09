@@ -50,8 +50,8 @@ type ViewMode = 'list' | 'cards' | 'analytics';
 export default function SalesHistoryPage() {
     const { currentBar } = useBarContext();
     const { sales } = useUnifiedSales(currentBar?.id);
-
-    const { categories, products, returns, getReturnsBySale } = useAppContext();
+    const { categories, consignments } = useUnifiedStock(currentBar?.id);
+    const { products, returns, getReturnsBySale } = useAppContext();
     const { barMembers } = useBarContext();
     const { formatPrice } = useCurrencyFormatter();
     const { currentSession } = useAuth();
@@ -62,12 +62,7 @@ export default function SalesHistoryPage() {
     const historyGuideId = currentSession?.role === 'serveur' ? 'serveur-history' : 'analytics-overview';
 
     // Real-time logic moved to useUnifiedSales
-
-    // Mutations avec invalidation cache + broadcast
     const { cancelSale } = useSalesMutations(currentBar?.id || '');
-
-    // ✨ NEW: Récupérer les consignations via Smart Hook
-    const { consignments } = useUnifiedStock(currentBar?.id);
 
     // Récupérer l'heure de clôture (défaut: 6h)
     const closeHour = currentBar?.closingHour ?? 6;
@@ -104,7 +99,7 @@ export default function SalesHistoryPage() {
         filteredSales,
         filteredReturns // ✨ MODE SWITCHING FIX: Get filtered returns from hook
     } = useSalesFilters({
-        sales,
+        sales: sales as any,
         returns, // Pass returns to filter them by server
         currentSession,
         closeHour,
@@ -135,9 +130,9 @@ export default function SalesHistoryPage() {
 
     // HOOK: Export Logic
     const { exportSales } = useSalesExport({
-        filteredSales,
+        filteredSales: filteredSales as any,
         filteredReturns,
-        sales,
+        sales: sales as any,
         returns,
         products,
         categories,

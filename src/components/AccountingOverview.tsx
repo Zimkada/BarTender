@@ -19,8 +19,7 @@ import { EXPENSE_CATEGORY_LABELS } from '../hooks/useExpenses';
 import { useSalaries } from '../hooks/useSalaries';
 import { useInitialBalance } from '../hooks/useInitialBalance';
 import { useCapitalContributions } from '../hooks/useCapitalContributions';
-import { useStockManagement } from '../hooks/useStockManagement';
-import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
+import { useBeninCurrency } from '../hooks/useBeninCurrency'; // Changed to common hook
 import { useViewport } from '../hooks/useViewport';
 // Lazy load charts to reduce initial bundle size (saves ~110 KB gzipped)
 const AnalyticsCharts = lazy(() => import('./AnalyticsCharts'));
@@ -29,14 +28,15 @@ import { AnalyticsService, DailySalesSummary, ExpensesSummary, SalariesSummary }
 import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
 import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
+import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { useUnifiedExpenses } from '../hooks/pivots/useUnifiedExpenses';
 import { ACCOUNTING_FILTERS, TIME_RANGE_CONFIGS } from '../config/dateFilters';
-import type { Return, Supply, Expense, Salary, Consignment } from '../types';
+import type { Return, Supply, Expense, Salary } from '../types';
 
 export function AccountingOverview() {
   const { currentSession } = useAuth();
   const { currentBar } = useBarContext();
-  const { formatPrice } = useCurrencyFormatter();
+  const { formatPrice } = useBeninCurrency();
   const { isMobile } = useViewport();
 
   // ✨ Utiliser le hook de filtrage temporel
@@ -55,11 +55,11 @@ export function AccountingOverview() {
   // ✅ Utiliser les Smart Hooks Élite pour les finances unifiées
   const { sales: unifiedSales } = useUnifiedSales(currentBar?.id);
   const { expenses: unifiedExpenses } = useUnifiedExpenses(currentBar?.id);
+  const { consignments } = useUnifiedStock(currentBar?.id);
 
   const salariesHook = useSalaries(currentBar?.id || '');
   const initialBalanceHook = useInitialBalance(currentBar?.id);
   const capitalContributionsHook = useCapitalContributions(currentBar?.id);
-  const { consignments } = useStockManagement();
   const { returns, customExpenseCategories } = useAppContext();
 
   // ✨ Filtrage Centralisé Local des données unifiées

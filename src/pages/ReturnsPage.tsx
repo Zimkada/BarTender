@@ -10,7 +10,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { getMobileAnimationProps } from "../utils/disableAnimationsOnMobile";
 import { useAppContext } from "../context/AppContext";
-import { useStockManagement } from "../hooks/useStockManagement";
+import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { useBarContext } from "../context/BarContext";
 import { useAuth } from "../context/AuthContext";
 import { useCurrencyFormatter } from "../hooks/useBeninCurrency";
@@ -44,8 +44,8 @@ import { AnimatedCounter } from "../components/AnimatedCounter";
 export default function ReturnsPage() {
   const { sales, returns, addReturn, updateReturn, getReturnsBySale } =
     useAppContext();
-  const { increasePhysicalStock, consignments } = useStockManagement();
   const { currentBar, barMembers, operatingMode } = useBarContext();
+  const { products, increasePhysicalStock, consignments } = useUnifiedStock(currentBar?.id);
   const users = Array.isArray(barMembers)
     ? (barMembers.map((m) => m.user).filter(Boolean) as User[])
     : [];

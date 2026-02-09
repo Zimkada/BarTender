@@ -37,8 +37,13 @@ export default function InventoryPage() {
     const { currentBar } = useBarContext();
 
     // 1. Core Data (Unified Stock)
-    const { products, getProductStockInfo, getAverageCostPerUnit, isLoading: isLoadingProducts } = useUnifiedStock(currentBar?.id);
-    const { categories } = useAppContext();
+    const {
+        products,
+        categories,
+        getProductStockInfo,
+        getAverageCostPerUnit,
+        isLoading: isLoadingProducts
+    } = useUnifiedStock(currentBar?.id);
     const { currentSession } = useAuth();
     const { isMobile } = useViewport();
     const { formatPrice } = useCurrencyFormatter();

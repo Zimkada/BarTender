@@ -6,13 +6,13 @@ import {
   Archive,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAppContext } from '../context/AppContext';
-import { useStockManagement } from '../hooks/useStockManagement';
+import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
+import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
+import { useFeedback } from '../hooks/useFeedback';
+import { useViewport } from '../hooks/useViewport';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
-import { useFeedback } from '../hooks/useFeedback';
-import { useViewport } from '../hooks/useViewport';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
 
 import { Input } from '../components/ui/Input';
@@ -23,7 +23,8 @@ import { Consignment, User as UserType } from '../types';
 type TabType = 'create' | 'active' | 'history';
 
 export default function ConsignmentPage() {
-  const stockManager = useStockManagement();
+  const { currentBar } = useBarContext();
+  const stockManager = useUnifiedStock(currentBar?.id);
   const [activeTab, setActiveTab] = useState<TabType>('active');
   const { isMobile } = useViewport();
   const { currentSession } = useAuth();
@@ -83,7 +84,7 @@ export default function ConsignmentPage() {
 
 // ===== TAB 2: CONSIGNATIONS ACTIVES =====
 interface ActiveConsignmentsTabProps {
-  stockManager: ReturnType<typeof useStockManagement>;
+  stockManager: ReturnType<typeof useUnifiedStock>;
   isReadOnly?: boolean;
 }
 
@@ -91,7 +92,8 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
   stockManager,
   isReadOnly = false,
 }) => {
-  const { sales } = useAppContext();
+  const { currentBar } = useBarContext();
+  const { sales } = useUnifiedSales(currentBar?.id);
   const { barMembers } = useBarContext();
   const { currentSession } = useAuth();
   const { showSuccess, showError } = useFeedback();
@@ -274,8 +276,9 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
 };
 
 // ===== TAB 3: HISTORIQUE =====
-const HistoryTab: React.FC<{ stockManager: ReturnType<typeof useStockManagement> }> = ({ stockManager }) => {
-  const { sales } = useAppContext();
+const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
+  const { currentBar } = useBarContext();
+  const { sales } = useUnifiedSales(currentBar?.id);
   const { barMembers } = useBarContext();
   const { currentSession } = useAuth();
   const { formatPrice } = useCurrencyFormatter();
