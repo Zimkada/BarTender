@@ -8,9 +8,10 @@ import { MutationSchemas } from '../types/schemas';
  * Configuration IndexedDB
  */
 const DB_NAME = 'bartender_offline_queue';
-const DB_VERSION = 2; // UPGRADE: v1 -> v2 (Phase 13 Blindage)
+const DB_VERSION = 3; // UPGRADE: v2 -> v3 (Phase Hardening : Locks & Transition Persistante)
 const STORE_NAME = 'sync_operations';
-const TRANSLATIONS_STORE = 'id_translations'; // NEW: Store pour ID-Mapping persistant
+const TRANSLATIONS_STORE = 'id_translations';
+const TRANSITIONAL_STORE = 'transitional_syncs'; // NEW: Store pour buffer anti-flash persistant
 
 /**
  * Service de gestion de la queue de synchronisation
@@ -69,6 +70,13 @@ class OfflineQueue {
             const translationStore = db.createObjectStore(TRANSLATIONS_STORE, { keyPath: 'tempId' });
             translationStore.createIndex('timestamp', 'timestamp', { unique: false });
             console.log('[OfflineQueue] id_translations store created');
+          }
+
+          // Store du tampon de transition anti-flash (v3)
+          if (!db.objectStoreNames.contains(TRANSITIONAL_STORE)) {
+            const transitionStore = db.createObjectStore(TRANSITIONAL_STORE, { keyPath: 'idempotencyKey' });
+            transitionStore.createIndex('timestamp', 'timestamp', { unique: false });
+            console.log('[OfflineQueue] transitional_syncs store created');
           }
         };
       } catch (err) {
@@ -370,6 +378,101 @@ class OfflineQueue {
       const store = transaction.objectStore(TRANSLATIONS_STORE);
       const request = store.clear();
       request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  // --- TRANSITIONAL SYNCS (Hardening Pillar 4) ---
+
+  /**
+   * Ajoute une vente au tampon de transition persistant
+   */
+  async addTransitionalSync(idempotencyKey: string, data: { total: number, payload: any }): Promise<void> {
+    const db = await this.ensureDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([TRANSITIONAL_STORE], 'readwrite');
+      const store = transaction.objectStore(TRANSITIONAL_STORE);
+      const request = store.put({
+        idempotencyKey,
+        total: data.total,
+        payload: data.payload,
+        timestamp: Date.now()
+      });
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  /**
+   * Récupère toutes les clés de transition actives
+   */
+  async getTransitionalSyncs(): Promise<Map<string, { total: number, timestamp: number, payload: any }>> {
+    const db = await this.ensureDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([TRANSITIONAL_STORE], 'readonly');
+      const store = transaction.objectStore(TRANSITIONAL_STORE);
+      const request = store.getAll();
+
+      request.onsuccess = () => {
+        const results = request.result as Array<{
+          idempotencyKey: string;
+          total: number;
+          timestamp: number;
+          payload: any
+        }>;
+        const map = new Map();
+        results.forEach(item => {
+          map.set(item.idempotencyKey, {
+            total: item.total,
+            timestamp: item.timestamp,
+            payload: item.payload
+          });
+        });
+        resolve(map);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  /**
+   * Supprime une clé de transition spécifique
+   */
+  async removeTransitionalSync(idempotencyKey: string): Promise<void> {
+    const db = await this.ensureDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([TRANSITIONAL_STORE], 'readwrite');
+      const store = transaction.objectStore(TRANSITIONAL_STORE);
+      const request = store.delete(idempotencyKey);
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  /**
+   * Nettoie les clés de transition datant de plus de X minutes
+   */
+  async cleanupTransitionalSyncs(ttlMs: number = 10 * 60 * 1000): Promise<number> {
+    const db = await this.ensureDB();
+    const threshold = Date.now() - ttlMs;
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([TRANSITIONAL_STORE], 'readwrite');
+      const store = transaction.objectStore(TRANSITIONAL_STORE);
+      const index = store.index('timestamp');
+      const range = IDBKeyRange.upperBound(threshold);
+      const request = index.openCursor(range);
+      let count = 0;
+
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (cursor) {
+          cursor.delete();
+          count++;
+          cursor.continue();
+        } else {
+          resolve(count);
+        }
+      };
       request.onerror = () => reject(request.error);
     });
   }

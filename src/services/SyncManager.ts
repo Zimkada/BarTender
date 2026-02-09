@@ -37,6 +37,8 @@ class SyncManagerService {
   private networkUnsubscribe: (() => void) | null = null;
   private retryConfig: RetryConfig = DEFAULT_RETRY_CONFIG;
   private timers: Map<string, NodeJS.Timeout> = new Map();
+  private broadcastChannel = new BroadcastChannel('sync_manager_events'); // 🚀 Cross-tab Sync
+  private idMapping: Map<string, string> = new Map();
 
   /**
    * 🛡️ Tampon de sécurité (Phase 8/11.3) :
@@ -99,11 +101,18 @@ class SyncManagerService {
   init(): void {
     console.log('[SyncManager] Initializing...');
 
-    // S'abonner aux changements de statut réseau
+    // 1. Hydratation initiale du tampon anti-flash (Elite Quality)
+    this.hydrateTransitionalBuffer();
+
+    // 2. Écouter les autres onglets
+    this.broadcastChannel.onmessage = (event) => {
+      this.handleBroadcastMessage(event.data);
+    };
+
+    // 3. S'abonner aux changements de statut réseau
     this.networkUnsubscribe = networkManager.subscribe((status) => {
       console.log('[SyncManager] Network status changed:', status);
 
-      // Si on revient online, déclencher la synchronisation
       if (status === 'online' && !this.isSyncing) {
         this.syncAll();
       }
@@ -112,8 +121,58 @@ class SyncManagerService {
     console.log('[SyncManager] Initialized');
   }
 
+  /**
+   * 🌊 Hydratation : Charge le tampon depuis IndexedDB vers la RAM au lancement
+   */
+  private async hydrateTransitionalBuffer() {
+    try {
+      const persisted = await offlineQueue.getTransitionalSyncs();
+      if (persisted.size > 0) {
+        console.log(`[SyncManager] Hydrated ${persisted.size} transitional keys from storage`);
+        persisted.forEach((val, key) => {
+          this.recentlySyncedKeys.set(key, {
+            ...val,
+            expiresAt: val.timestamp + SyncManagerService.SYNC_KEYS_TTL_MS
+          });
+        });
+      }
+    } catch (err) {
+      console.error('[SyncManager] Hydration failed:', err);
+    }
+  }
+
+  /**
+   * 📡 Gestionnaire de messages inter-onglets
+   */
+  private handleBroadcastMessage(message: any) {
+    if (message.type === 'SYNC_KEY_ADDED') {
+      const { key, data } = message;
+      this.recentlySyncedKeys.set(key, {
+        ...data,
+        expiresAt: data.timestamp + SyncManagerService.SYNC_KEYS_TTL_MS
+      });
+      console.log(`[SyncManager] Sync key replicated from other tab: ${key}`);
+      // Notifier l'UI locale
+      this.dispatchDomainEvent('CREATE_SALE');
+    } else if (message.type === 'SYNC_BATCH_ADDED') {
+      const { items } = message;
+      items.forEach((item: any) => {
+        this.recentlySyncedKeys.set(item.key, {
+          ...item.data,
+          expiresAt: item.data.timestamp + SyncManagerService.SYNC_KEYS_TTL_MS
+        });
+      });
+      console.log(`[SyncManager] Batch of ${items.length} sync keys replicated`);
+      this.dispatchDomainEvent('CREATE_SALE');
+    } else if (message.type === 'SYNC_KEY_REMOVED') {
+      this.recentlySyncedKeys.delete(message.key);
+      this.dispatchDomainEvent('CREATE_SALE');
+    }
+  }
+
   cleanup(): void {
     try {
+      this.broadcastChannel.close();
       // 🛡️ Clear tous les timers actifs (Anti-Memory Leak)
       this.timers.forEach(timer => clearTimeout(timer));
       this.timers.clear();
@@ -137,17 +196,36 @@ class SyncManagerService {
    */
   async syncAll(): Promise<void> {
     if (this.isSyncing) {
-      console.log('[SyncManager] Sync already in progress, skipping');
       return;
     }
 
     if (!networkManager.isOnline()) {
-      console.log('[SyncManager] Cannot sync while offline');
       return;
     }
 
+    // 🔒 WEB LOCKS (Hardening v3)
+    // Empêche plusieurs onglets de synchroniser en même temps
+    // 'ifAvailable: true' fait que les onglets "suiveurs" ignorent l'appel s'ils n'ont pas le lock
+    if (!navigator.locks) {
+      // Fallback for very old browsers (unlikely here)
+      return this.executeSyncCycle();
+    }
+
+    await navigator.locks.request('sync_manager_lock', { ifAvailable: true }, async (lock) => {
+      if (!lock) {
+        console.log('[SyncManager] Sync lock already held by another tab - skipping');
+        return;
+      }
+      await this.executeSyncCycle();
+    });
+  }
+
+  /**
+   * Cœur atomique du cycle de synchronisation
+   */
+  private async executeSyncCycle(): Promise<void> {
     this.isSyncing = true;
-    console.log('[SyncManager] Starting sync cycle...');
+    console.log('[SyncManager] Starting sync cycle (Exclusive Lock acquired)...');
 
     // 🧹 Cleanup expired sync keys (Memory leak prevention)
     this.cleanupExpiredSyncKeys();
@@ -239,6 +317,8 @@ class SyncManagerService {
       console.error('[SyncManager] Sync failed:', error);
     } finally {
       this.isSyncing = false;
+      // Nettoyage périodique (Elite sweeper)
+      offlineQueue.cleanupTransitionalSyncs(SyncManagerService.SYNC_KEYS_TTL_MS);
     }
   }
 
@@ -620,6 +700,8 @@ class SyncManagerService {
       // Map back to operations via idempotency key
       const resultsMap = new Map(results.map(r => [r.idempotency_key, r]));
 
+      const successfulPayloads: SyncOperationCreateSale['payload'][] = [];
+
       for (const op of operations) {
         const result = resultsMap.get(op.payload.idempotency_key);
 
@@ -628,8 +710,7 @@ class SyncManagerService {
           await offlineQueue.updateOperationStatus(op.id, 'success');
           await offlineQueue.removeOperation(op.id);
 
-          // Buffer logique (Lock Flash)
-          this.addToRecentbuffer(op.payload);
+          successfulPayloads.push(op.payload);
 
           // Broadcast events (Optimized: trigger specific sale event)
           this.dispatchDomainEvent('CREATE_SALE', barId);
@@ -640,6 +721,11 @@ class SyncManagerService {
           console.error(`[SyncManager] Batch operation failed for ${op.id}: ${errorMsg}`);
           await offlineQueue.updateOperationStatus(op.id, 'error', errorMsg);
         }
+      }
+
+      // 🚀 OPTIMIZED BATCH BROADCAST (Hardening Pillar 4)
+      if (successfulPayloads.length > 0) {
+        await this.addBatchToRecentBuffer(successfulPayloads);
       }
 
       console.log(`[SyncManager] Batch processed: ${results.filter(r => r.success).length}/${results.length} success`);
@@ -666,25 +752,46 @@ class SyncManagerService {
           'error',
           errorMsg
         );
+        // 🛡️ Cleanup transition buffer on failure (Elite Protection)
+        this.removeFromRecentBuffer(op.payload.idempotency_key);
       }
     }
   }
 
   /**
    * Helper pour alimenter le buffer anti-flash (extrait de syncCreateSale)
+   * ✅ PERSISTANCE : Enregistre dans IndexedDB pour survie au refresh
+   * ✅ RÉPLICATION : Envoie à tous les autres onglets via BroadcastChannel
    */
-  private addToRecentbuffer(payload: SyncOperationCreateSale['payload']) {
+  private async addToRecentbuffer(payload: SyncOperationCreateSale['payload']) {
     const idempotencyKey = payload.idempotency_key;
     const total = payload.items?.reduce((sum: number, item) => {
       return sum + (item.total_price || (item.unit_price * item.quantity) || 0);
     }, 0) || 0;
 
     const now = Date.now();
-    this.recentlySyncedKeys.set(idempotencyKey, {
+    const entry = {
       total,
       timestamp: now,
       payload: payload,
+    };
+
+    // 1. RAM update
+    this.recentlySyncedKeys.set(idempotencyKey, {
+      ...entry,
       expiresAt: now + SyncManagerService.SYNC_KEYS_TTL_MS
+    });
+
+    // 2. Persistent update (IndexedDB v3)
+    offlineQueue.addTransitionalSync(idempotencyKey, entry).catch(err => {
+      console.warn('[SyncManager] Failed to persist transitional key:', err);
+    });
+
+    // 3. Replicate to other tabs (Broadcast)
+    this.broadcastChannel.postMessage({
+      type: 'SYNC_KEY_ADDED',
+      key: idempotencyKey,
+      data: entry
     });
 
     // Clear previous timer
@@ -693,11 +800,69 @@ class SyncManagerService {
     }
 
     const timerId = setTimeout(() => {
-      this.recentlySyncedKeys.delete(idempotencyKey);
-      this.timers.delete(idempotencyKey);
-    }, 10000);
+      this.removeFromRecentBuffer(idempotencyKey);
+    }, 10000); // Garder 10s en priorité haute, IDB fera le reste si refresh
 
     this.timers.set(idempotencyKey, timerId);
+  }
+
+  /**
+   * Nettoie proprement une clé du tampon
+   */
+  private removeFromRecentBuffer(idempotencyKey: string) {
+    this.recentlySyncedKeys.delete(idempotencyKey);
+    offlineQueue.removeTransitionalSync(idempotencyKey).catch(() => { });
+    this.broadcastChannel.postMessage({
+      type: 'SYNC_KEY_REMOVED',
+      key: idempotencyKey
+    });
+    this.timers.delete(idempotencyKey);
+  }
+
+  /**
+   * Version optimisée pour les lots (Batch)
+   * Envoie UN SEUL message broadcast pour tout le lot
+   */
+  private async addBatchToRecentBuffer(payloads: SyncOperationCreateSale['payload'][]) {
+    const now = Date.now();
+    const broadcastItems: any[] = [];
+
+    for (const payload of payloads) {
+      const idempotencyKey = payload.idempotency_key;
+      const total = payload.items?.reduce((sum: number, item) => {
+        return sum + (item.total_price || (item.unit_price * item.quantity) || 0);
+      }, 0) || 0;
+
+      const entry = {
+        total,
+        timestamp: now,
+        payload,
+      };
+
+      // 1. RAM
+      this.recentlySyncedKeys.set(idempotencyKey, {
+        ...entry,
+        expiresAt: now + SyncManagerService.SYNC_KEYS_TTL_MS
+      });
+
+      // 2. IDB
+      offlineQueue.addTransitionalSync(idempotencyKey, entry).catch(() => { });
+
+      broadcastItems.push({ key: idempotencyKey, data: entry });
+
+      // Timers individuels pour le nettoyage 10s
+      if (this.timers.has(idempotencyKey)) {
+        clearTimeout(this.timers.get(idempotencyKey)!);
+      }
+      const timerId = setTimeout(() => this.removeFromRecentBuffer(idempotencyKey), 10000);
+      this.timers.set(idempotencyKey, timerId);
+    }
+
+    // 3. Broadcast UNIQUE
+    this.broadcastChannel.postMessage({
+      type: 'SYNC_BATCH_ADDED',
+      items: broadcastItems
+    });
   }
 
   /**
