@@ -7,9 +7,7 @@ import { useBarContext } from '../context/BarContext';
 import { Button } from '../components/ui/Button';
 import { lazyWithRetry } from '../utils/lazyWithRetry';
 import { LoadingFallback } from '../components/LoadingFallback';
-import { useAutoGuide } from '../hooks/useGuideTrigger';
-import { useOnboarding } from '../context/OnboardingContext';
-import { useGuide } from '../context/GuideContext';
+import { useUnifiedSales, USE_UNIFIED_SALES } from '../hooks/pivots/useUnifiedSales';
 
 // Lazy load AnalyticsCharts to defer recharts bundle
 const AnalyticsCharts = lazyWithRetry(() => import('../components/AnalyticsCharts'));
@@ -20,17 +18,11 @@ const AnalyticsCharts = lazyWithRetry(() => import('../components/AnalyticsChart
  */
 export default function AnalyticsPage() {
   const navigate = useNavigate();
-  const { sales, expenses } = useAppContext();
+  const { expenses } = useAppContext();
   const { currentBar } = useBarContext();
-  const { isComplete } = useOnboarding();
-  const { hasCompletedGuide } = useGuide();
-
-  // Auto-guide disabled - use GuideHeaderButton in header instead
-  // useAutoGuide(
-  //   'analytics-overview',
-  //   isComplete && !hasCompletedGuide('analytics-overview'),
-  //   { delay: 1500 }
-  // );
+  const { sales: unifiedSales } = useUnifiedSales(currentBar?.id);
+  const contextSales = useAppContext().sales;
+  const sales = USE_UNIFIED_SALES ? unifiedSales : contextSales;
 
   // Générer les données pour les graphiques (12 derniers mois)
   const chartData = useMemo(() => {
@@ -48,7 +40,7 @@ export default function AnalyticsPage() {
     sales
       .filter(s => s.status === 'validated')
       .forEach(sale => {
-        const date = new Date(sale.businessDate || sale.createdAt);
+        const date = new Date(sale.businessDate || sale.createdAt || sale.business_date || sale.created_at);
         const key = date.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
         if (months[key]) {
           months[key].revenue += sale.total;
@@ -91,7 +83,7 @@ export default function AnalyticsPage() {
     });
 
     return categories;
-  }, [expenses]); // Removed sales, chartData from dependencies as they are not used here
+  }, [expenses]);
 
   if (!currentBar) {
     return (

@@ -5,7 +5,7 @@
  */
 
 import { useMemo, useEffect, useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tantml:react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSales, salesKeys } from '../queries/useSalesQueries';
 import { useAuth } from '../useAuth';
 import { offlineQueue } from '../../services/offlineQueue';

@@ -11,15 +11,15 @@ import {
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
+import { useUnifiedSales, USE_UNIFIED_SALES } from '../hooks/pivots/useUnifiedSales';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 import { useFeedback } from '../hooks/useFeedback';
 import { DataFreshnessIndicatorCompact } from '../components/DataFreshnessIndicator';
-import { useRealtimeSales } from '../hooks/useRealtimeSales';
-import { Sale, User, getPermissionsByRole } from '../types';
 import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
-import { useStockManagement } from '../hooks/useStockManagement'; // ✨ NEW: For consignments check
+import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { SALES_HISTORY_FILTERS } from '../config/dateFilters';
+import { Sale, User, getPermissionsByRole } from '../types';
 import { useSalesFilters } from '../features/Sales/SalesHistory/hooks/useSalesFilters';
 import { useSalesStats } from '../features/Sales/SalesHistory/hooks/useSalesStats';
 import { useSalesExport } from '../features/Sales/SalesHistory/hooks/useSalesExport';
@@ -48,8 +48,13 @@ type ViewMode = 'list' | 'cards' | 'analytics';
  * Refactoré de composant nommé vers export default page
  */
 export default function SalesHistoryPage() {
-    const { sales, categories, products, returns, getReturnsBySale } = useAppContext();
-    const { barMembers, currentBar } = useBarContext();
+    const { currentBar } = useBarContext();
+    const { sales: unifiedSales } = useUnifiedSales(currentBar?.id);
+    const contextSales = useAppContext().sales;
+    const sales = USE_UNIFIED_SALES ? unifiedSales : contextSales;
+
+    const { categories, products, returns, getReturnsBySale } = useAppContext();
+    const { barMembers } = useBarContext();
     const { formatPrice } = useCurrencyFormatter();
     const { currentSession } = useAuth();
     const { isMobile } = useViewport();
@@ -58,14 +63,13 @@ export default function SalesHistoryPage() {
     // Guide ID for sales history - using header button instead of auto-trigger
     const historyGuideId = currentSession?.role === 'serveur' ? 'serveur-history' : 'analytics-overview';
 
-    // Enable real-time sales updates
-    useRealtimeSales({ barId: currentBar?.id || '' });
+    // Real-time logic moved to useUnifiedSales
 
     // Mutations avec invalidation cache + broadcast
     const { cancelSale } = useSalesMutations(currentBar?.id || '');
 
-    // ✨ NEW: Récupérer les consignations pour le UI Guard
-    const { consignments } = useStockManagement();
+    // ✨ NEW: Récupérer les consignations via Smart Hook
+    const { consignments } = useUnifiedStock(currentBar?.id);
 
     // Récupérer l'heure de clôture (défaut: 6h)
     const closeHour = currentBar?.closingHour ?? 6;
