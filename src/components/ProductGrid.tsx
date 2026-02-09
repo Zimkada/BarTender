@@ -1,43 +1,50 @@
+import { useBarContext } from '../context/BarContext';
 import { ProductCard } from './ProductCard';
 import { EmptyProductsState } from './EmptyProductsState';
 import { Product } from '../types';
-import { useStockManagement } from '../hooks/useStockManagement';
+import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
+import { ProductGridSkeleton } from './skeletons';
 
 interface ProductGridProps {
   products: Product[];
   onAddToCart: (product: Product) => void;
   isLoading?: boolean;
-  categoryName?: string;
   onAddProduct?: () => void;
+  categoryName?: string;
 }
 
 export function ProductGrid({
   products,
   onAddToCart,
   isLoading = false,
-  onAddProduct
+  onAddProduct,
+  categoryName
 }: ProductGridProps) {
-  const { allProductsStockInfo } = useStockManagement();
+  const { currentBar } = useBarContext();
+  const { getProductStockInfo, isLoading: isLoadingStock } = useUnifiedStock(currentBar?.id);
+
+  if (isLoading || isLoadingStock) {
+    return <ProductGridSkeleton count={10} />;
+  }
 
   if (products.length === 0) {
     return (
       <EmptyProductsState
-        isLoading={isLoading}
         onAction={onAddProduct}
         actionLabel="Ajouter un produit"
+        message={categoryName ? `Aucun produit disponible dans "${categoryName}".` : undefined}
       />
     );
   }
 
-  // Si on a des produits, les afficher directement (même si isLoading=true)
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
       {products.map((product) => (
         <ProductCard
           key={product.id}
           product={product}
-          onAddToCart={onAddToCart}
-          availableStock={allProductsStockInfo[product.id]?.availableStock}
+          availableStock={getProductStockInfo(product.id)?.availableStock}
+          onAddToCart={() => onAddToCart(product)}
         />
       ))}
     </div>

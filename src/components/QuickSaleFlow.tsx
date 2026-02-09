@@ -3,8 +3,7 @@ import { Search, Zap, X, ShoppingCart, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { PaymentMethod } from './cart/PaymentMethodSelector';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAppContext } from '../context/AppContext';
-import { useStockManagement } from '../hooks/useStockManagement';
+import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
@@ -33,9 +32,8 @@ interface QuickSaleFlowProps {
 
 export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   // --- HOOKS & CONTEXTS ---
-  const { categories } = useAppContext();
-  const { products, getProductStockInfo } = useStockManagement();
   const { currentBar, isSimplifiedMode } = useBarContext();
+  const { products, categories, getProductStockInfo } = useUnifiedStock(currentBar?.id);
   const { currentSession } = useAuth();
   const { isMobile } = useViewport();
   const { createSale } = useSalesMutations(currentBar?.id || '');

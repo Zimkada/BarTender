@@ -3,7 +3,7 @@ import { Save, Calendar, Tag, Percent, DollarSign, Gift, Search, Wand2, ArrowLef
 import { useBarContext } from '../../context/BarContext';
 import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
-import { useStockManagement } from '../../hooks/useStockManagement';
+import { useUnifiedStock } from '../../hooks/pivots/useUnifiedStock';
 import { PromotionsService } from '../../services/supabase/promotions.service';
 import { Promotion, PromotionType } from '../../types';
 import { useNotifications } from '../Notifications';
@@ -17,18 +17,21 @@ import { BackButton } from '../ui/BackButton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
 
 interface PromotionFormProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: () => void;
-    initialData?: Promotion | null;
+    promotion: Promotion | null; // Changed from initialData to promotion
+    onCancel: () => void; // Added onCancel
 }
 
-export function PromotionForm({ isOpen, onClose, onSave, initialData }: PromotionFormProps) {
+export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: PromotionFormProps) {
     const { currentBar } = useBarContext();
     const { categories } = useAppContext();
-    const { products } = useStockManagement();
+    const { products, getProductStockInfo } = useUnifiedStock(currentBar?.id); // Replaced useStockManagement with useUnifiedStock
+    const { formatPrice } = useCurrencyFormatter(); // Added useCurrencyFormatter
     const { showNotification } = useNotifications();
     const { currentSession } = useAuth();
     // Form State
@@ -52,26 +55,26 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
     const [productSearch, setProductSearch] = useState('');
 
     useEffect(() => {
-        if (initialData) {
-            setName(initialData.name);
-            setDescription(initialData.description || '');
-            setType(initialData.type);
-            setStartDate(initialData.startDate.split('T')[0]);
-            setEndDate(initialData.endDate ? initialData.endDate.split('T')[0] : '');
-            setTargetType(initialData.targetType);
+        if (promotion) {
+            setName(promotion.name);
+            setDescription(promotion.description || '');
+            setType(promotion.type);
+            setStartDate(promotion.startDate.split('T')[0]);
+            setEndDate(promotion.endDate ? promotion.endDate.split('T')[0] : '');
+            setTargetType(promotion.targetType);
 
-            if (initialData.discountPercentage) setDiscountPercentage(initialData.discountPercentage);
-            if (initialData.discountAmount) setDiscountAmount(initialData.discountAmount);
-            if (initialData.specialPrice) setSpecialPrice(initialData.specialPrice);
-            if (initialData.bundleQuantity) setBundleQuantity(initialData.bundleQuantity);
-            if (initialData.bundlePrice) setBundlePrice(initialData.bundlePrice);
+            if (promotion.discountPercentage) setDiscountPercentage(promotion.discountPercentage);
+            if (promotion.discountAmount) setDiscountAmount(promotion.discountAmount);
+            if (promotion.specialPrice) setSpecialPrice(promotion.specialPrice);
+            if (promotion.bundleQuantity) setBundleQuantity(promotion.bundleQuantity);
+            if (promotion.bundlePrice) setBundlePrice(promotion.bundlePrice);
 
-            if (initialData.targetCategoryIds) setSelectedCategoryIds(initialData.targetCategoryIds);
-            if (initialData.targetProductIds) setSelectedProductIds(initialData.targetProductIds);
+            if (promotion.targetCategoryIds) setSelectedCategoryIds(promotion.targetCategoryIds);
+            if (promotion.targetProductIds) setSelectedProductIds(promotion.targetProductIds);
         } else {
             resetForm();
         }
-    }, [initialData, isOpen]);
+    }, [promotion, isOpen]);
 
     const resetForm = () => {
         setName('');
@@ -120,7 +123,7 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                 targetType,
                 targetCategoryIds: targetType === 'category' ? selectedCategoryIds : undefined,
                 targetProductIds: targetType === 'product' ? selectedProductIds : undefined,
-                status: initialData ? initialData.status : 'active',
+                status: promotion ? promotion.status : 'active',
                 priority: 0,
                 createdBy: currentSession.userId
             };
@@ -135,8 +138,8 @@ export function PromotionForm({ isOpen, onClose, onSave, initialData }: Promotio
                 promotionData.bundlePrice = bundlePrice;
             }
 
-            if (initialData) {
-                await PromotionsService.updatePromotion(initialData.id, promotionData);
+            if (promotion) {
+                await PromotionsService.updatePromotion(promotion.id, promotionData);
                 showNotification('success', 'Promotion mise à jour');
             } else {
                 await PromotionsService.createPromotion(promotionData as Omit<Promotion, 'id' | 'createdAt' | 'updatedAt'>);

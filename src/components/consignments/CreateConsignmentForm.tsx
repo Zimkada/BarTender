@@ -7,7 +7,7 @@ import {
     Archive
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAppContext } from '../../context/AppContext';
+import { useUnifiedSales } from '../../hooks/pivots/useUnifiedSales';
 import { useBarContext } from '../../context/BarContext';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
@@ -37,9 +37,10 @@ export function CreateConsignmentForm({
     onSuccess
 }: CreateConsignmentFormProps) {
     const { isMobile } = useViewport();
-    const { getTodaySales, getReturnsBySale } = useAppContext();
-    const { formatPrice } = useCurrencyFormatter();
     const { currentBar, barMembers } = useBarContext();
+    const { sales: allSales } = useUnifiedSales(currentBar?.id);
+    const { getReturnsBySale } = useAppContext(); // On garde ça pour l'instant si returns pas encore migrés partout
+    const { formatPrice } = useCurrencyFormatter();
     const { currentSession: session } = useAuth();
     const { showSuccess, showError } = useFeedback();
 
@@ -70,7 +71,11 @@ export function CreateConsignmentForm({
     }, [barExpirationDays]);
 
     // --- DATA DERIVATION ---
-    const todaySales = getTodaySales();
+    const todaySales = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
+        // Note: businessDate est géré dans useUnifiedSales.stats, mais on peut filtrer ici pour rester local
+        return allSales.filter(s => s.business_date === today || (s as any).created_at?.startsWith(today));
+    }, [allSales]);
 
     const filteredSales = useMemo(() => {
         if (!currentBar || !session) return [];

@@ -4,7 +4,7 @@ import { X, UploadCloud, FileText, AlertTriangle } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
-import { useStockManagement } from '../hooks/useStockManagement';
+import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { useFeedback } from '../hooks/useFeedback';
 import { EnhancedButton } from './EnhancedButton';
 
@@ -12,13 +12,14 @@ interface ProductImportProps {
   isOpen: boolean;
   onClose: () => void;
   inline?: boolean;
+  onImportComplete?: () => void; // Added based on the new function signature
 }
 
-export function ProductImport({ isOpen, onClose, inline = false }: ProductImportProps) {
-  const { categories, addCategories, products } = useAppContext();
-  const { addProducts } = useStockManagement(); // ✅ Batch import au lieu de addProduct
-  const { showSuccess, showError } = useFeedback();
+export function ProductImport({ onImportComplete, onClose, isOpen, inline = false }: ProductImportProps) {
   const { currentBar } = useBarContext();
+  const { products: barProducts, addProducts } = useUnifiedStock(currentBar?.id);
+  const { categories, addCategories } = useAppContext();
+  const { showSuccess, showError } = useFeedback();
   const [importedProducts, setImportedProducts] = useState<any[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
 

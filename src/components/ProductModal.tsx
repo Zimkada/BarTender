@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Globe, PenTool, Search, ChevronRight, PlusCircle, Edit } from 'lucide-react';
-import { Product, Category, GlobalProduct } from '../types';
-import { useAppContext } from '../context/AppContext';
+import { useBarContext } from '../context/BarContext';
+import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { ImageUpload } from './ImageUpload';
 import { ProductsService } from '../services/supabase/products.service';
 import { Modal } from './ui/Modal';
@@ -26,7 +26,8 @@ type Mode = 'custom' | 'global';
 type Step = 'selection' | 'details'; // NEW: For navigation
 
 export function ProductModal({ isOpen, onClose, onSave, product, inline = false }: ProductModalProps) {
-  const { categories } = useAppContext();
+  const { currentBar } = useBarContext();
+  const { categories } = useUnifiedStock(currentBar?.id);
   const [mode, setMode] = useState<Mode>('global');
   const [step, setStep] = useState<Step>('selection'); // NEW: Current step
   const [formData, setFormData] = useState({

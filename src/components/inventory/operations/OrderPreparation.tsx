@@ -14,7 +14,7 @@ import { useCurrencyFormatter } from '../../../hooks/useBeninCurrency';
 import { useViewport } from '../../../hooks/useViewport';
 import { useBarContext } from '../../../context/BarContext';
 import { useFeedback } from '../../../hooks/useFeedback';
-import { useStockManagement } from '../../../hooks/useStockManagement';
+import { useUnifiedStock } from '../../../hooks/pivots/useUnifiedStock';
 import { EnhancedButton } from '../../EnhancedButton';
 import { ForecastingService, ProductSalesStats, OrderSuggestion } from '../../../services/supabase/forecasting.service';
 import { BackButton } from '../../ui/BackButton';
@@ -44,7 +44,7 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
     const { isMobile } = useViewport();
     const { currentBar } = useBarContext();
     const { showError } = useFeedback();
-    const { products, allProductsStockInfo } = useStockManagement();
+    const { products, getProductStockInfo } = useUnifiedStock(currentBar?.id);
 
     const [alerts, setAlerts] = useState<StockAlert[]>([]);
     const [productStats, setProductStats] = useState<ProductSalesStats[]>([]);
@@ -64,7 +64,8 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
 
             const newAlerts: StockAlert[] = stats
                 .map((stat: ProductSalesStats) => {
-                    const availableStock = allProductsStockInfo[stat.product_id]?.availableStock ?? stat.current_stock;
+                    const stockInfo = getProductStockInfo(stat.product_id);
+                    const availableStock = stockInfo?.availableStock ?? stat.current_stock;
                     return { ...stat, availableStock };
                 })
                 .filter(stat => stat.availableStock <= stat.alert_threshold)
@@ -121,7 +122,8 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
     const orderSuggestions = useMemo(() => {
         return productStats
             .map((stat: ProductSalesStats) => {
-                const availableStock = allProductsStockInfo[stat.product_id]?.availableStock ?? stat.current_stock;
+                const stockInfo = getProductStockInfo(stat.product_id);
+                const availableStock = stockInfo?.availableStock ?? stat.current_stock;
                 return ForecastingService.calculateOrderSuggestion(stat, coverageDays, availableStock);
             })
             .filter(suggestion => suggestion.suggestedQuantity > 0)
@@ -132,7 +134,7 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
                 }
                 return b.estimatedCost - a.estimatedCost;
             });
-    }, [productStats, coverageDays, allProductsStockInfo]);
+    }, [productStats, coverageDays, getProductStockInfo]);
 
 
 
