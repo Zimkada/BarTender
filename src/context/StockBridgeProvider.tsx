@@ -1,33 +1,31 @@
 /**
  * StockBridgeProvider - Bridge Pattern pour injection de dépendance
  *
- * Permet à AppContext d'accéder aux fonctions de useStockManagement
+ * Permet à AppContext d'accéder aux fonctions de useUnifiedStock
  * sans créer de dépendance circulaire.
  *
  * Architecture:
  * App → StockBridgeProvider → AppContextProvider → Components
  *            ↓
- *      useStockManagement (source de vérité)
+ *      useUnifiedStock (source de vérité)
  */
 
 import { createContext, ReactNode } from 'react';
-import { useStockManagement } from '../hooks/useStockManagement';
+import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
+import { useBarContext } from '../context/BarContext';
 
 // Type du contexte = Retour de useStockManagement
-type StockBridgeContextType = ReturnType<typeof useStockManagement> | null;
+type StockBridgeContextType = ReturnType<typeof useUnifiedStock> | null;
 
 // Export du context pour le hook séparé (compatibilité Vite Fast Refresh)
 export const StockBridgeContext = createContext<StockBridgeContextType>(null);
 
-interface StockBridgeProviderProps {
-  children: ReactNode;
-}
-
 /**
- * Provider qui expose useStockManagement à toute l'app via Context
+ * Provider qui expose useUnifiedStock à toute l'app via Context
  */
-export const StockBridgeProvider = ({ children }: StockBridgeProviderProps) => {
-  const stockManager = useStockManagement();
+export const StockBridgeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { currentBar } = useBarContext();
+  const stockManager = useUnifiedStock(currentBar?.id);
 
   return (
     <StockBridgeContext.Provider value={stockManager}>

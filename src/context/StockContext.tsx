@@ -1,7 +1,8 @@
 // StockContext.tsx - Context pour centraliser la gestion du stock
-// Wrapper autour de useStockManagement pour le rendre accessible globalement
+// Wrapper autour de useUnifiedStock pour le rendre accessible globalement
 import React, { createContext, ReactNode } from 'react';
-import { useStockManagement, type CreateConsignmentData } from '../hooks/useStockManagement';
+import { useUnifiedStock, CreateConsignmentData } from '../hooks/pivots/useUnifiedStock';
+import { useBarContext } from './BarContext';
 import type { Product, Supply, Consignment, ProductStockInfo, Expense } from '../types';
 
 interface StockContextType {
@@ -38,28 +39,29 @@ interface StockProviderProps {
   children: ReactNode;
 }
 
-export const StockProvider: React.FC<StockProviderProps> = ({ children }) => {
-  const stockManagement = useStockManagement();
+export function StockProvider({ children }: { children: React.ReactNode }) {
+  const { currentBar } = useBarContext();
+  const stockManager = useUnifiedStock(currentBar?.id);
 
   const value: StockContextType = {
-    // Expose toutes les méthodes de useStockManagement
-    products: stockManagement.products,
-    addProduct: stockManagement.addProduct,
-    addProducts: stockManagement.addProducts, // Batch import
-    updateProduct: stockManagement.updateProduct,
-    deleteProduct: stockManagement.deleteProduct,
+    // Expose toutes les méthodes de useUnifiedStock
+    products: stockManager.products,
+    addProduct: stockManager.addProduct,
+    addProducts: stockManager.addProducts,
+    updateProduct: stockManager.updateProduct,
+    deleteProduct: stockManager.deleteProduct,
 
-    supplies: stockManagement.supplies,
-    processSupply: stockManagement.processSupply,
-    getAverageCostPerUnit: stockManagement.getAverageCostPerUnit,
+    supplies: stockManager.supplies,
+    processSupply: stockManager.processSupply,
+    getAverageCostPerUnit: stockManager.getAverageCostPerUnit,
 
-    getProductStockInfo: stockManagement.getProductStockInfo,
+    getProductStockInfo: stockManager.getProductStockInfo,
 
-    consignments: stockManagement.consignments,
-    createConsignment: stockManagement.createConsignment,
-    claimConsignment: stockManagement.claimConsignment,
-    forfeitConsignment: stockManagement.forfeitConsignment,
-    getActiveConsignments: stockManagement.getActiveConsignments,
+    consignments: stockManager.consignments,
+    createConsignment: stockManager.createConsignment,
+    claimConsignment: stockManager.claimConsignment,
+    forfeitConsignment: stockManager.forfeitConsignment,
+    getActiveConsignments: () => stockManager.consignments.filter(c => c.status === 'active'),
   };
 
   return <StockContext.Provider value={value}>{children}</StockContext.Provider>;

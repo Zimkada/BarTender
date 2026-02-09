@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { useAppContext } from '../context/AppContext';
@@ -198,6 +198,9 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
 
     // 🚀 Réactivité Instantanée (Phase 10)
     // S'abonner aux mises à jour de la queue pour invalider les stats immédiatement
+    const refetchRef = useRef(refetch);
+    useEffect(() => { refetchRef.current = refetch; }, [refetch]);
+
     useEffect(() => {
         let timeout: NodeJS.Timeout;
 
@@ -205,7 +208,7 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
             clearTimeout(timeout);
             timeout = setTimeout(() => {
                 console.log('[useRevenueStats] Queue updated, refetching...');
-                refetch();
+                refetchRef.current();
 
                 // Re-fetch local cache for placeholder too
                 const dStart = startDate ? new Date(startDate) : undefined;
@@ -221,7 +224,7 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
 
         const handleSyncCompleted = () => {
             console.log('[useRevenueStats] Sync completed, refetching stats...');
-            refetch(); // 🛡️ Rafraîchir les stats serveur après sync
+            refetchRef.current(); // 🛡️ Rafraîchir les stats serveur après sync
         };
 
         window.addEventListener('queue-updated', handleQueueUpdate);
@@ -231,7 +234,7 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
             window.removeEventListener('queue-updated', handleQueueUpdate);
             window.removeEventListener('sync-completed', handleSyncCompleted);
         };
-    }, [refetch, startDate, endDate, currentBarId, isServerRole, currentSession?.userId]);
+    }, [startDate, endDate, currentBarId, isServerRole, currentSession?.userId]); // ✅ refetch retiré des dépendances critiques
 
     return {
         netRevenue: stats?.netRevenue ?? 0,

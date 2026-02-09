@@ -4,7 +4,7 @@
  * ✅ Séparé du Provider pour compatibilité Vite Fast Refresh
  *
  * Bridge Pattern pour injection de dépendance
- * Permet à AppContext d'accéder aux fonctions de useStockManagement
+ * Permet à AppContext d'accéder aux fonctions de useUnifiedStock
  * sans créer de dépendance circulaire.
  *
  * @throws Error si utilisé hors du StockBridgeProvider

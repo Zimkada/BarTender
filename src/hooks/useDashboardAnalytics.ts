@@ -23,7 +23,11 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
 
     // Bar Members for users data
     const { data: barMembers = [] } = useBarMembers(currentBarId);
-    const users = useMemo(() => barMembers.map(member => member.user), [barMembers]);
+    const users = useMemo(() => barMembers.map(member => ({
+        ...member.user,
+        role: member.role,
+        isActive: member.isActive
+    })), [barMembers]);
 
     // Dates
     const todayDateStr = useMemo(() => getCurrentBusinessDateString(), []);
