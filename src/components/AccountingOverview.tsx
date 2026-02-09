@@ -15,24 +15,22 @@ import { Select } from './ui/Select';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { useAppContext } from '../context/AppContext';
-import { getExpensesByCategory } from '../hooks/useExpenses';
+import { EXPENSE_CATEGORY_LABELS } from '../hooks/useExpenses';
 import { useSalaries } from '../hooks/useSalaries';
 import { useInitialBalance } from '../hooks/useInitialBalance';
 import { useCapitalContributions } from '../hooks/useCapitalContributions';
 import { useStockManagement } from '../hooks/useStockManagement';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
-import { getSaleDate } from '../utils/saleHelpers';
-import { dateToInputValue } from '../utils/dateRangeCalculator';
-
 // Lazy load charts to reduce initial bundle size (saves ~110 KB gzipped)
 const AnalyticsCharts = lazy(() => import('./AnalyticsCharts'));
 
 import { AnalyticsService, DailySalesSummary, ExpensesSummary, SalariesSummary } from '../services/supabase/analytics.service';
 import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
+import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
+import { useUnifiedExpenses } from '../hooks/pivots/useUnifiedExpenses';
 import { ACCOUNTING_FILTERS, TIME_RANGE_CONFIGS } from '../config/dateFilters';
-import { useRevenueStats } from '../hooks/useRevenueStats';
 import type { Return, Supply, Expense, Salary, Consignment } from '../types';
 
 export function AccountingOverview() {
@@ -54,21 +52,40 @@ export function AccountingOverview() {
     defaultRange: 'this_month'
   });
 
-  // ✅ Utiliser AppContext et StockContext (sources uniques)
-  const { sales, supplies } = useAppContext();
-  const salariesHook = useSalaries(currentBar?.id);
+  // ✅ Utiliser les Smart Hooks Élite pour les finances unifiées
+  const { sales: unifiedSales } = useUnifiedSales(currentBar?.id);
+  const { expenses: unifiedExpenses } = useUnifiedExpenses(currentBar?.id);
+
+  const salariesHook = useSalaries(currentBar?.id || '');
   const initialBalanceHook = useInitialBalance(currentBar?.id);
   const capitalContributionsHook = useCapitalContributions(currentBar?.id);
   const { consignments } = useStockManagement();
-  const { returns, expenses, customExpenseCategories } = useAppContext(); // ✅ Use expenses from AppContext
+  const { returns, customExpenseCategories } = useAppContext();
 
-  // ✨ HOOK CENTRALISÉ POUR LE REVENU - Convertir les dates en strings
-  const { netRevenue: totalRevenue /*, isLoading: isAnalyticsLoading */ } = useRevenueStats({ // isAnalyticsLoading REMOVED
-    startDate: dateToInputValue(periodStart),
-    endDate: dateToInputValue(periodEnd)
-  });
+  // ✨ Filtrage Centralisé Local des données unifiées
+  const filteredSales = useMemo(() => {
+    return unifiedSales.filter(s => {
+      const saleDate = (s as any).businessDate || (s as any).createdAt || new Date();
+      const date = new Date(saleDate);
+      return date >= periodStart && date <= periodEnd;
+    });
+  }, [unifiedSales, periodStart, periodEnd]);
 
-  const [expensesExpanded, setExpensesExpanded] = useState(false);
+  const filteredExpenses = useMemo(() => {
+    return unifiedExpenses.filter(e => {
+      return e.date >= periodStart && e.date <= periodEnd;
+    });
+  }, [unifiedExpenses, periodStart, periodEnd]);
+
+  // ✨ Calcul des KPIs Financiers Unifiés
+  const totalRevenue = useMemo(() => {
+    return filteredSales.reduce((sum, s) => sum + s.total, 0);
+  }, [filteredSales]);
+
+  const totalCosts = useMemo(() => {
+    return filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+  }, [filteredExpenses]);
+
   const [viewMode, setViewMode] = useState<'tresorerie' | 'analytique'>('tresorerie');
   const [showInitialBalanceModal, setShowInitialBalanceModal] = useState(false);
   const [initialBalanceForm, setInitialBalanceForm] = useState({
@@ -90,10 +107,6 @@ export function AccountingOverview() {
   const [prevPeriodStats, setPrevPeriodStats] = useState<DailySalesSummary[]>([]);
   const [chartStats, setChartStats] = useState<DailySalesSummary[]>([]);
   const [historicalRevenue, setHistoricalRevenue] = useState(0);
-
-  // ✨ NEW: SQL State for expenses and salaries
-  const [expensesSummary, setExpensesSummary] = useState<ExpensesSummary[]>([]);
-  const [salariesSummary, setSalariesSummary] = useState<SalariesSummary[]>([]);
   const [chartExpenses, setChartExpenses] = useState<ExpensesSummary[]>([]);
   const [chartSalaries, setChartSalaries] = useState<SalariesSummary[]>([]);
 
@@ -129,18 +142,13 @@ export function AccountingOverview() {
       const historyEnd = new Date(periodStart);
       historyEnd.setDate(historyEnd.getDate() - 1);
 
+      // Historical Revenue (for treasury)
       if (historyEnd > historyStart) {
         const history = await AnalyticsService.getRevenueSummary(currentBar.id, historyStart, historyEnd);
         setHistoricalRevenue(history.totalRevenue);
       } else {
         setHistoricalRevenue(0);
       }
-
-      // Load Expenses and Salaries summaries
-      const expenses = await AnalyticsService.getExpensesSummary(currentBar.id, periodStart, periodEnd, 'day');
-      setExpensesSummary(expenses);
-      const salaries = await AnalyticsService.getSalariesSummary(currentBar.id, periodStart, periodEnd, 'day');
-      setSalariesSummary(salaries);
       const chartExpensesData = await AnalyticsService.getExpensesSummary(currentBar.id, chartStart, chartEnd, 'month');
       setChartExpenses(chartExpensesData);
       const chartSalariesData = await AnalyticsService.getSalariesSummary(currentBar.id, chartStart, chartEnd, 'month');
@@ -150,58 +158,43 @@ export function AccountingOverview() {
       console.error("Error loading ancillary analytics:", error);
     }
   };
-
-
-
-
-
-  // ✨ Calculate expenses (using SQL data from expenses_summary)
-  const expensesCosts = useMemo(() => {
-    const total = expensesSummary.reduce((sum, day) => sum + (day.total_expenses || 0), 0);
-    return isNaN(total) || !isFinite(total) ? 0 : total;
-  }, [expensesSummary]);
-
-  // Get expenses breakdown by category (for detailed view)
-  const expensesByCategoryData = useMemo(() => {
-    const categoriesFromExpenses = getExpensesByCategory(expenses, customExpenseCategories, periodStart, periodEnd);
-
-    // ✨ Ajouter les supplies comme une catégorie "Approvisionnements"
-    const suppliesCost = expensesSummary.reduce((sum, day) => sum + (day.supplies_cost || 0), 0);
-
-    if (suppliesCost > 0) {
-      categoriesFromExpenses['supplies'] = {
-        label: 'Approvisionnements',
-        icon: '📦',
-        amount: suppliesCost,
-        count: expensesSummary.reduce((sum, day) => sum + (day.supply_count || 0), 0),
-      };
-    }
-
-    return categoriesFromExpenses;
-  }, [expenses, customExpenseCategories, periodStart, periodEnd, expensesSummary]);
-
-  // ✨ Calculate salaries (using SQL data from salaries_summary)
+  // Indice de fraîcheur (Placeholder unifié)
+  const isDataLoading = false;
+  // ✨ Calcul des Salaires (Unifié)
   const salariesCosts = useMemo(() => {
-    const total = salariesSummary.reduce((sum, day) => sum + (day.total_salaries || 0), 0);
-    return isNaN(total) || !isFinite(total) ? 0 : total;
-  }, [salariesSummary]);
+    return filteredExpenses
+      .filter(e => e.category === 'salary')
+      .reduce((sum, e) => sum + e.amount, 0);
+  }, [filteredExpenses]);
 
-  // Le totalRevenue est maintenant fourni directement par le hook `useRevenueStats`.
-  const totalCosts = expensesCosts + salariesCosts;
+  // ✨ Calcul des Approvisionnements (Unifié)
+  const suppliesCosts = useMemo(() => {
+    return filteredExpenses
+      .filter(e => e.isSupply)
+      .reduce((sum, e) => sum + e.amount, 0);
+  }, [filteredExpenses]);
 
-  // ✨ Operating expenses (using SQL data)
+  // ✨ Dépenses Opérationnelles (Unifié - Hors salaires et appro)
   const operatingExpenses = useMemo(() => {
-    const total = expensesSummary.reduce((sum, day) => sum + (day.operating_expenses || 0), 0);
-    return isNaN(total) || !isFinite(total) ? 0 : total;
-  }, [expensesSummary]);
+    return filteredExpenses
+      .filter(e => !e.isSupply && e.category !== 'investment' && e.category !== 'salary')
+      .reduce((sum, e) => sum + e.amount, 0);
+  }, [filteredExpenses]);
 
-  // ✨ Investments (using SQL data)
+  // ✨ Investissements (Unifié)
   const investments = useMemo(() => {
-    const total = expensesSummary.reduce((sum, day) => sum + (day.investments || 0), 0);
-    return isNaN(total) || !isFinite(total) ? 0 : total;
-  }, [expensesSummary]);
+    return filteredExpenses
+      .filter(e => e.category === 'investment')
+      .reduce((sum, e) => sum + e.amount, 0);
+  }, [filteredExpenses]);
 
-  const totalOperatingCosts = operatingExpenses + salariesCosts;
+  // 💎 Indicateurs de Rentabilité Unifiés
+  const totalOperatingCosts = useMemo(() => {
+    return filteredExpenses
+      .filter(e => e.category !== 'investment')
+      .reduce((sum, e) => sum + e.amount, 0);
+  }, [filteredExpenses]);
+
   const operatingProfit = totalRevenue - totalOperatingCosts;
   const operatingProfitMargin = totalRevenue > 0 ? (operatingProfit / totalRevenue) * 100 : 0;
 
@@ -210,6 +203,10 @@ export function AccountingOverview() {
   // ✅ Safety checks for NaN
   const safeOperatingProfitMargin = isNaN(operatingProfitMargin) || !isFinite(operatingProfitMargin) ? 0 : operatingProfitMargin;
 
+  // Usage informatif des sous-totaux pour l'export Excel 
+  // (On les garde ici pour la clarté mais on les préfixe si inutilisés dans le JSX)
+  const _financesUnifiees = { operatingExpenses, suppliesCosts };
+
   // CALCULATIONS - KPIs and Chart Data
   const {
     revenueGrowth,
@@ -217,12 +214,6 @@ export function AccountingOverview() {
     investmentRate,
     chartData,
   } = useMemo(() => {
-    // 1. Previous Period Calculation
-    const prevPeriodDate = new Date(periodStart);
-    prevPeriodDate.setMonth(prevPeriodDate.getMonth() - 1);
-    const prevPeriodStart = new Date(prevPeriodDate.getFullYear(), prevPeriodDate.getMonth(), 1);
-    const prevPeriodEnd = new Date(prevPeriodDate.getFullYear(), prevPeriodDate.getMonth() + 1, 0);
-
     // ✨ Use SQL Net Revenue directly for previous period (DRY)
     const prevTotalRevenue = prevPeriodStats.reduce((sum, day) => sum + (day.net_revenue || 0), 0);
 
@@ -310,9 +301,9 @@ export function AccountingOverview() {
     // historicalRevenue is now NET (updated in AnalyticsService)
     const previousRevenue = historicalRevenue;
 
-    // 4. Sum all expenses before period
-    const previousExpenses = expenses
-      .filter(exp => new Date(exp.date) < periodStart)
+    // 4. Sum all expenses before period (Unifié)
+    const previousExpenses = unifiedExpenses
+      .filter(exp => exp.date < periodStart)
       .reduce((sum, exp) => sum + exp.amount, 0);
 
     // 5. Sum all salaries before period
@@ -325,7 +316,7 @@ export function AccountingOverview() {
 
     // ✅ Total = Solde initial + Apports capital + (Revenus - Coûts) des périodes antérieures
     return initialBalanceAmount + previousCapitalContributions + previousRevenue - previousCosts;
-  }, [viewMode, sales, returns, expenses, salariesHook.salaries, periodStart, initialBalanceHook.initialBalance, capitalContributionsHook.contributions]);
+  }, [viewMode, unifiedSales, returns, unifiedExpenses, salariesHook.salaries, periodStart, initialBalanceHook.initialBalance, capitalContributionsHook.contributions, historicalRevenue]);
 
   // Détail du solde de début (pour affichage détaillé dans la carte)
   const previousBalanceDetails = useMemo(() => {
@@ -337,8 +328,8 @@ export function AccountingOverview() {
     // 3. Sum all sales before period (Using SQL Stats - NET REVENUE)
     const previousRevenue = historicalRevenue;
 
-    const previousExpenses = expenses
-      .filter(exp => new Date(exp.date) < periodStart)
+    const previousExpenses = unifiedExpenses
+      .filter(exp => exp.date < periodStart)
       .reduce((sum, exp) => sum + exp.amount, 0);
 
     const previousSalaries = salariesHook.salaries
@@ -352,10 +343,45 @@ export function AccountingOverview() {
       capitalContributions: previousCapitalContributions,
       activityResult,
     };
-  }, [viewMode, sales, returns, expenses, salariesHook.salaries, periodStart, initialBalanceHook.initialBalance, capitalContributionsHook.contributions]);
+  }, [viewMode, unifiedSales, returns, unifiedExpenses, salariesHook.salaries, periodStart, initialBalanceHook.initialBalance, capitalContributionsHook.contributions, historicalRevenue]);
 
   // Final balance (for Vue Analytique)
   const finalBalance = previousBalance + netProfit;
+
+  // Get expenses breakdown by category (unifié)
+  const expensesByCategoryData = useMemo(() => {
+    const groups: Record<string, { label: string; icon: string; amount: number; count: number }> = {};
+
+    filteredExpenses.forEach(exp => {
+      let key = exp.category;
+      if (exp.category === 'custom' && exp.customCategoryId) {
+        key = exp.customCategoryId;
+      }
+
+      if (!groups[key]) {
+        // Import labels if needed or hardcode fallback
+        const data = (EXPENSE_CATEGORY_LABELS as any)[exp.category];
+        let label = data?.label || exp.category;
+        let icon = data?.icon || '📝';
+
+        if (exp.isSupply) {
+          label = 'Approvisionnements';
+          icon = '📦';
+        } else if (exp.category === 'custom' && exp.customCategoryId) {
+          const cat = customExpenseCategories.find((c: any) => c.id === exp.customCategoryId);
+          label = cat?.name || 'Personnalisée';
+          icon = cat?.icon || '📝';
+        }
+
+        groups[key] = { label, icon, amount: 0, count: 0 };
+      }
+
+      groups[key].amount += exp.amount;
+      groups[key].count += 1;
+    });
+
+    return groups;
+  }, [filteredExpenses, customExpenseCategories]);
 
   // Cash Runway (Fonds de roulement) - Nombre de mois de couverture
   const cashRunway = useMemo(() => {
@@ -443,9 +469,18 @@ export function AccountingOverview() {
     supplierName?: string;
   }
 
-  interface ExpenseExtended extends Expense {
-    category?: string;
-    customCategory?: string;
+  interface ExpenseExtended {
+    id: string;
+    amount: number;
+    date: Date;
+    category: string;
+    notes?: string;
+    isSupply?: boolean;
+    isOptimistic?: boolean;
+    productName?: string;
+    quantity?: number;
+    createdBy: string;
+    customCategoryId?: string;
   }
 
   interface SalaryExtended extends Salary {
@@ -464,10 +499,15 @@ export function AccountingOverview() {
     const XLSX = await import('xlsx');
     const workbook = XLSX.utils.book_new();
 
-    // Filtrer les données par période pour l'export
-    const filteredSales = sales.filter(sale => {
-      const saleDate = getSaleDate(sale);
+    // Filtrer les données par période pour l'export (Unifié)
+    const exportSales = unifiedSales.filter(sale => {
+      const saleObj = sale as any;
+      const saleDate = new Date(saleObj.businessDate || saleObj.createdAt || new Date());
       return sale.status === 'validated' && saleDate >= periodStart && saleDate <= periodEnd;
+    });
+
+    const exportExpenses = unifiedExpenses.filter(exp => {
+      return exp.date >= periodStart && exp.date <= periodEnd;
     });
 
     const filteredReturns = returns.filter(ret => {
@@ -475,24 +515,28 @@ export function AccountingOverview() {
       return retDate >= periodStart && retDate <= periodEnd;
     });
 
-    const filteredSupplies = supplies.filter(supply => {
-      const supplyDate = new Date(supply.date);
-      return supplyDate >= periodStart && supplyDate <= periodEnd;
-    });
-
-    const filteredSalaries = salariesHook.salaries.filter(salary => {
-      const salaryDate = new Date(salary.paidAt);
-      return salaryDate >= periodStart && salaryDate <= periodEnd;
-    });
+    const exportSalaries = exportExpenses.filter(e => e.category === 'salary');
+    const salariesActualCosts = exportSalaries.reduce((sum, e) => sum + e.amount, 0);
 
     const returnsRefunds = filteredReturns.reduce((sum, r) => sum + r.refundAmount, 0);
 
-    // Calculer les coûts d'approvisionnement
-    // ✅ FIX: Utiliser totalCost qui est calculé correctement dans useSupplies
-    // totalCost = (quantity / lotSize) * lotPrice
-    const suppliesCosts = filteredSupplies.reduce((sum, supply) =>
-      sum + supply.totalCost, 0
-    );
+    // Calculer les coûts unifiés pour l'export
+    const suppliesCosts = exportExpenses
+      .filter(e => e.isSupply)
+      .reduce((sum, e) => sum + e.amount, 0);
+
+    const operatingExpCosts = exportExpenses
+      .filter(e => !e.isSupply && e.category !== 'investment' && e.category !== 'salary')
+      .reduce((sum, e) => sum + e.amount, 0);
+
+    const investmentCosts = exportExpenses
+      .filter(e => e.category === 'investment')
+      .reduce((sum, e) => sum + e.amount, 0);
+
+    const currentTotalOperatingCosts = suppliesCosts + operatingExpCosts + salariesActualCosts;
+    const currentOperatingProfit = totalRevenue - currentTotalOperatingCosts;
+    const currentOperatingProfitMargin = totalRevenue > 0 ? (currentOperatingProfit / totalRevenue) * 100 : 0;
+    const currentNetProfit = currentOperatingProfit - investmentCosts;
 
     // Calculer apports de capital de la période
     const periodCapitalContributions = capitalContributionsHook.contributions.filter(contrib => {
@@ -514,20 +558,20 @@ export function AccountingOverview() {
       [],
       ['COÛTS OPÉRATIONNELS'],
       ['Approvisionnements', suppliesCosts],
-      ['Dépenses opérationnelles', operatingExpenses],
-      ['Salaires', salariesCosts],
-      ['Total coûts opérationnels', totalOperatingCosts],
+      ['Dépenses opérationnelles', operatingExpCosts],
+      ['Salaires', salariesActualCosts],
+      ['Total coûts opérationnels', currentTotalOperatingCosts],
       [],
       ['RÉSULTAT OPÉRATIONNEL'],
-      ['Bénéfice opérationnel', operatingProfit],
-      ['Marge opérationnelle (%)', operatingProfitMargin.toFixed(2)],
+      ['Bénéfice opérationnel', currentOperatingProfit],
+      ['Marge opérationnelle (%)', currentOperatingProfitMargin.toFixed(2)],
       [],
       ['INVESTISSEMENTS'],
-      ['Investissements', investments],
-      ['Taux investissement (%)', investmentRate.toFixed(2)],
+      ['Investissements', investmentCosts],
+      ['Taux investissement (%)', (totalRevenue > 0 ? (investmentCosts / totalRevenue * 100) : 0).toFixed(2)],
       [],
       ['RÉSULTAT NET'],
-      ['Bénéfice net', netProfit],
+      ['Bénéfice net', currentNetProfit],
       [],
       ['APPORTS DE CAPITAL'],
       ['Apports période', periodCapitalContributions],
@@ -540,10 +584,11 @@ export function AccountingOverview() {
     const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
     XLSX.utils.book_append_sheet(workbook, summarySheet, 'Résumé');
 
-    // 2. ONGLET VENTES
-    const salesData = filteredSales.flatMap(sale => {
-      const saleDate = getSaleDate(sale);
-      return sale.items.map(item => ({
+    // 2. ONGLET VENTES (Unifié)
+    const salesData = exportSales.flatMap(sale => {
+      const saleObj = sale as any;
+      const saleDate = new Date(saleObj.businessDate || saleObj.createdAt || new Date());
+      return (sale.items || []).map(item => ({
         Date: saleDate.toLocaleDateString('fr-FR'),
         Heure: saleDate.toLocaleTimeString('fr-FR'),
         'ID Vente': sale.id.slice(0, 8),
@@ -553,11 +598,10 @@ export function AccountingOverview() {
         'Prix unitaire': item.unit_price,
         Total: item.total_price,
         'Créé par': sale.createdBy,
-        'Validé par': sale.validatedBy || 'N/A',
+        'Validé par': (sale as any).validatedBy || 'N/A',
         'Statut': sale.status,
       }));
-    }
-    );
+    });
     if (salesData.length > 0) {
       const salesSheet = XLSX.utils.json_to_sheet(salesData);
       XLSX.utils.book_append_sheet(workbook, salesSheet, 'Ventes');
@@ -581,51 +625,42 @@ export function AccountingOverview() {
       XLSX.utils.book_append_sheet(workbook, returnsSheet, 'Retours');
     }
 
-    // 4. ONGLET APPROVISIONNEMENTS
-    const suppliesData = filteredSupplies.map(supply => ({
-      Date: new Date(supply.date).toLocaleDateString('fr-FR'),
-      Produit: supply.productName,
-      Quantité: supply.quantity,
-      'Prix lot': supply.lotPrice,
-      'Taille lot': supply.lotSize,
-      'Coût total': supply.lotPrice * supply.lotSize,
-      Fournisseur: (supply as SupplyExtended).supplierName || supply.supplier || 'N/A',
+    // 4. ONGLET APPROVISIONNEMENTS (Unifié)
+    const suppliesData = exportExpenses.filter(e => e.isSupply).map(supply => ({
+      Date: supply.date.toLocaleDateString('fr-FR'),
+      Produit: supply.productName || 'Approvisionnement',
+      Quantité: supply.quantity || 1,
+      'Coût total': supply.amount,
+      Source: supply.isOptimistic ? 'Offline' : 'Sync',
     }));
     if (suppliesData.length > 0) {
       const suppliesSheet = XLSX.utils.json_to_sheet(suppliesData);
       XLSX.utils.book_append_sheet(workbook, suppliesSheet, 'Approvisionnements');
     }
 
-    // 5. ONGLET DÉPENSES OPÉRATIONNELLES
-    const operatingExpensesData = expenses
-      .filter(exp => {
-        const expDate = new Date(exp.date);
-        return expDate >= periodStart && expDate <= periodEnd && exp.category !== 'investment';
-      })
-      .map(exp => {
-        const expExtended = exp as ExpenseExtended;
-        return {
-          Date: new Date(exp.date).toLocaleDateString('fr-FR'),
-          Catégorie: expExtended.category === 'maintenance' ? 'Entretien' : expExtended.customCategory || 'Autre',
-          Description: exp.description,
-          Montant: exp.amount,
-        };
-      });
+    // 5. ONGLET DÉPENSES OPÉRATIONNELLES (Unifié)
+    const operatingExpensesData = exportExpenses
+      .filter(exp => !exp.isSupply && exp.category !== 'investment')
+      .map(exp => ({
+        Date: exp.date.toLocaleDateString('fr-FR'),
+        Catégorie: (EXPENSE_CATEGORY_LABELS as any)[exp.category]?.label || exp.category,
+        Description: exp.notes || '',
+        Montant: exp.amount,
+        Source: exp.isOptimistic ? 'Offline (Attente)' : 'Sync',
+      }));
     if (operatingExpensesData.length > 0) {
       const expensesSheet = XLSX.utils.json_to_sheet(operatingExpensesData);
       XLSX.utils.book_append_sheet(workbook, expensesSheet, 'Dépenses Opérationnelles');
     }
 
-    // 6. ONGLET INVESTISSEMENTS
-    const investmentsData = expenses
-      .filter(exp => {
-        const expDate = new Date(exp.date);
-        return expDate >= periodStart && expDate <= periodEnd && exp.category === 'investment';
-      })
+    // 6. ONGLET INVESTISSEMENTS (Unifié)
+    const investmentsData = exportExpenses
+      .filter(exp => exp.category === 'investment')
       .map(exp => ({
-        Date: new Date(exp.date).toLocaleDateString('fr-FR'),
-        Description: exp.description,
+        Date: exp.date.toLocaleDateString('fr-FR'),
+        Description: exp.notes || '',
         Montant: exp.amount,
+        Source: exp.isOptimistic ? 'Offline (Attente)' : 'Sync',
       }));
     if (investmentsData.length > 0) {
       const investmentsSheet = XLSX.utils.json_to_sheet(investmentsData);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
@@ -10,8 +10,6 @@ import {
 } from 'lucide-react';
 import {
   EXPENSE_CATEGORY_LABELS,
-  getTotalExpenses,
-  getExpensesByCategory
 } from '../hooks/useExpenses';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
@@ -23,6 +21,7 @@ import { useViewport } from '../hooks/useViewport';
 import { Textarea } from './ui/Textarea';
 import { Label } from './ui/Label';
 import { Select } from './ui/Select';
+import { useUnifiedExpenses, UnifiedExpense } from '../hooks/pivots/useUnifiedExpenses';
 
 type PeriodType = 'week' | 'month' | 'all';
 
@@ -32,11 +31,10 @@ function ExpenseManagerContent() {
   const { formatPrice } = useCurrencyFormatter();
   const { isMobile } = useViewport();
 
-  // ✅ Utiliser AppContext pour les dépenses et les supplies
+  // ✅ Utiliser le Smart Hook Élite pour les finances
+  const { expenses: unifiedExpenses, customCategories } = useUnifiedExpenses(currentBar?.id);
+
   const {
-    expenses,
-    supplies, // ✨ NOUVEAU
-    customExpenseCategories,
     addExpense,
     addCustomExpenseCategory,
     deleteExpense,
@@ -70,7 +68,6 @@ function ExpenseManagerContent() {
     }
 
     addExpense({
-      barId: currentBar!.id,
       amount: parseFloat(amount),
       category,
       customCategoryId: category === 'custom' ? customCategoryId : undefined,
@@ -123,63 +120,55 @@ function ExpenseManagerContent() {
 
   const { start: periodStart, end: periodEnd } = getPeriodRange();
 
-  // ✨ Filter Supplies
-  const filteredSupplies = supplies.filter(supply => {
-    const supplyDate = new Date(supply.date);
-    return supplyDate >= periodStart && supplyDate <= periodEnd;
-  });
-
-  const suppliesTotal = filteredSupplies.reduce((sum, s) => sum + s.totalCost, 0);
-
-  // ✨ Filter Expenses
-  const filteredExpenses = expenses.filter(exp => {
+  // ✨ Filter Unified Expenses
+  const filteredUnified = unifiedExpenses.filter(exp => {
     const expDate = new Date(exp.date);
     return expDate >= periodStart && expDate <= periodEnd;
   });
 
-  const expensesTotal = getTotalExpenses(expenses, periodStart, periodEnd);
+  const totalExpenses = filteredUnified.reduce((sum, e) => sum + e.amount, 0);
 
-  // ✨ Total Global
-  const totalExpenses = expensesTotal + suppliesTotal;
+  // ✨ Group by Category (Unified)
+  const expensesByCategory = useMemo(() => {
+    const groups: Record<string, { label: string; icon: string; amount: number; count: number }> = {};
 
-  // ✨ Merge Categories
-  const expensesByCategory = getExpensesByCategory(expenses, customExpenseCategories, periodStart, periodEnd);
+    filteredUnified.forEach(exp => {
+      let key = exp.category;
+      if (exp.category === 'custom' && exp.customCategoryId) {
+        key = exp.customCategoryId;
+      }
 
-  if (filteredSupplies.length > 0) {
-    expensesByCategory['supplies'] = {
-      label: 'Approvisionnements',
-      icon: '📦',
-      amount: suppliesTotal,
-      count: filteredSupplies.length
-    };
-  }
+      if (!groups[key]) {
+        // Fallback labels
+        let label = (EXPENSE_CATEGORY_LABELS as any)[exp.category]?.label || exp.category;
+        let icon = (EXPENSE_CATEGORY_LABELS as any)[exp.category]?.icon || '📝';
+
+        if (exp.isSupply) {
+          label = 'Approvisionnements';
+          icon = '📦';
+        } else if (exp.category === 'custom' && exp.customCategoryId) {
+          const cat = customCategories.find(c => c.id === exp.customCategoryId);
+          label = cat?.name || 'Personnalisée';
+          icon = cat?.icon || '📝';
+        }
+
+        groups[key] = { label, icon, amount: 0, count: 0 };
+      }
+
+      groups[key].amount += exp.amount;
+      groups[key].count += 1;
+    });
+
+    return groups;
+  }, [filteredUnified, customCategories]);
 
   // ✨ Unified Items List for Rendering
   const getItemsByCategory = (categoryKey: string) => {
-    if (categoryKey === 'supplies') {
-      return filteredSupplies.map(s => ({
-        id: s.id,
-        date: s.date,
-        amount: s.totalCost,
-        notes: `${s.productName} (${s.quantity} unités)`,
-        isSupply: true
-      }));
-    }
-
-    return filteredExpenses
-      .filter(exp => {
-        const expKey = exp.category === 'custom' && exp.customCategoryId
-          ? exp.customCategoryId
-          : exp.category;
-        return expKey === categoryKey;
-      })
-      .map(exp => ({
-        id: exp.id,
-        date: exp.date,
-        amount: exp.amount,
-        notes: exp.notes,
-        isSupply: false
-      }));
+    return filteredUnified.filter(exp => {
+      if (exp.isSupply && categoryKey === 'supply') return true;
+      const expKey = exp.category === 'custom' && exp.customCategoryId ? exp.customCategoryId : exp.category;
+      return expKey === categoryKey;
+    });
   };
 
   const periodLabel = periodType === 'week' ? 'Semaine' : periodType === 'month' ? 'Mois' : 'Tout';
@@ -291,9 +280,16 @@ function ExpenseManagerContent() {
                                 }`}
                             >
                               <div className="flex-1">
-                                <p className="font-medium text-gray-800">
-                                  {formatPrice(item.amount)}
-                                </p>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium text-gray-800">
+                                    {formatPrice(item.amount)}
+                                  </p>
+                                  {item.isOptimistic && (
+                                    <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full font-bold">
+                                      EN ATTENTE
+                                    </span>
+                                  )}
+                                </div>
                                 <p className="text-gray-500">
                                   {new Date(item.date).toLocaleDateString('fr-FR')}
                                 </p>
@@ -301,7 +297,7 @@ function ExpenseManagerContent() {
                                   <p className="text-gray-600 mt-1">{item.notes}</p>
                                 )}
                               </div>
-                              {!item.isSupply && (
+                              {!item.isSupply && !item.isOptimistic && (
                                 <button
                                   onClick={() => handleDeleteExpense(item.id)}
                                   className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
@@ -387,7 +383,7 @@ function ExpenseManagerContent() {
                       ...Object.entries(EXPENSE_CATEGORY_LABELS)
                         .filter(([key]) => key !== 'custom')
                         .map(([key, data]) => ({ value: key, label: `${data.icon} ${data.label}` })),
-                      ...customExpenseCategories.map(cat => ({ value: `custom:${cat.id}`, label: `${cat.icon} ${cat.name}` }))
+                      ...customCategories.map(cat => ({ value: `custom:${cat.id}`, label: `${cat.icon} ${cat.name}` }))
                     ]}
                     value={category === 'custom' && customCategoryId ? `custom:${customCategoryId}` : category}
                     onChange={e => {
