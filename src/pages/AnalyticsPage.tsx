@@ -1,16 +1,13 @@
 // src/pages/AnalyticsPage.tsx
-import { useMemo, Suspense } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, BarChart3 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { Button } from '../components/ui/Button';
-import { lazyWithRetry } from '../utils/lazyWithRetry';
-import { LoadingFallback } from '../components/LoadingFallback';
 import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
 
-// Lazy load AnalyticsCharts to defer recharts bundle
-const AnalyticsCharts = lazyWithRetry(() => import('../components/AnalyticsCharts'));
+import AnalyticsCharts from '../components/AnalyticsCharts';
 
 /**
  * Page Analytics - Wrapper pour AnalyticsCharts avec données
@@ -38,7 +35,7 @@ export default function AnalyticsPage() {
     sales
       .filter(s => s.status === 'validated')
       .forEach(sale => {
-        const date = new Date(sale.businessDate || sale.createdAt || sale.business_date || sale.created_at);
+        const date = new Date((sale as any).businessDate || (sale as any).createdAt || (sale as any).business_date || (sale as any).created_at);
         const key = date.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
         if (months[key]) {
           months[key].revenue += sale.total;
@@ -118,12 +115,10 @@ export default function AnalyticsPage() {
 
       {/* Charts */}
       <div className="bg-white rounded-2xl shadow-sm border border-brand-subtle p-6 min-h-[400px]" data-guide="analytics-charts">
-        <Suspense fallback={<LoadingFallback />}>
-          <AnalyticsCharts
-            data={chartData}
-            expensesByCategory={expensesByCategory}
-          />
-        </Suspense>
+        <AnalyticsCharts
+          data={chartData}
+          expensesByCategory={expensesByCategory}
+        />
       </div>
     </div>
   );

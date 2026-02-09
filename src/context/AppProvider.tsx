@@ -15,7 +15,9 @@ import {
     Return,
     User,
     Expense,
+    Supply,
     CartItem,
+    ExpenseCategoryCustom
 } from '../types';
 import { filterByBusinessDateRange, getCurrentBusinessDateString, dateToYYYYMMDD } from '../utils/businessDateHelpers';
 import { BUSINESS_DAY_CLOSE_HOUR } from '../constants/businessDay';
@@ -65,14 +67,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // ⚠️ PILLAR 3: Global queries DISABLED - Data now comes from Smart Hooks (useUnifiedStock, useUnifiedSales, useUnifiedReturns)
     // AppProvider now only provides mutations + legacy methods for backward compatibility
-    const categories: Category[] = useMemo(() => [], []);
-    const products: Product[] = useMemo(() => [], []);
-    const supplies = useMemo(() => [], []);
-    const sales: Sale[] = useMemo(() => [], []);
-    const returns: Return[] = useMemo(() => [], []);
-    const expenses: Expense[] = useMemo(() => [], []);
-    const customExpenseCategories = useMemo(() => [], []);
-    const allProductsStockInfo = useMemo(() => ({}), []);
+    const categories = useMemo<Category[]>(() => [], []);
+    const products = useMemo<Product[]>(() => [], []);
+    const supplies = useMemo<Supply[]>(() => [], []);
+    const sales = useMemo<Sale[]>(() => [], []);
+    const returns = useMemo<Return[]>(() => [], []);
+    const expenses = useMemo<Expense[]>(() => [], []);
+    const customExpenseCategories = useMemo<ExpenseCategoryCustom[]>(() => [], []);
+    const allProductsStockInfo = useMemo<Record<string, any>>(() => ({}), []);
 
     // React Query: Mutations (KEPT - still needed for operations)
     const salesMutations = useSalesMutations(barId);
@@ -161,9 +163,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, []);
     // --- END CART STATE & LOGIC ---
 
-    // Filtrage automatique (déjà fait par les hooks qui prennent barId)
-    const products = allProducts; // Déjà filtré par StockContext/useStockQueries
-    const supplies = allSupplies;
+    // Filtrage automatique (désactivé dans AppProvider - géré par Smart Hooks)
 
     const initializeBarData = useCallback(() => {
         // Plus nécessaire avec React Query qui fetch automatiquement
@@ -174,9 +174,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return categoryMutations.createCategory.mutateAsync({
             name: category.name,
             color: category.color,
-        }).then((data) => {
+        }).then((data: any) => {
             showNotification('success', `Catégorie "${category.name}" créée avec succès`, { duration: 3000 });
-            return data;
+            // Mapping DB -> App Type
+            const newCategory: Category = {
+                id: data.id,
+                name: data.custom_name || '',
+                color: data.custom_color || '#3B82F6',
+                barId: data.bar_id,
+                createdAt: new Date(data.created_at)
+            };
+            return newCategory;
         }).catch((error) => {
             showNotification('error', error.message || 'Erreur lors de la création de la catégorie', { duration: 5000 });
             throw error;
@@ -193,13 +201,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [categoryMutations, showNotification]);
 
     const addCategories = useCallback((categories: Omit<Category, 'id' | 'createdAt' | 'barId'>[]) => {
-        // Créer les catégories une par une
+        // Créer les catégories une par une et mapper les résultats
         return Promise.all(
             categories.map(cat =>
                 categoryMutations.createCategory.mutateAsync({
                     name: cat.name,
                     color: cat.color,
-                })
+                }).then((data: any) => ({
+                    id: data.id,
+                    name: data.custom_name || '',
+                    color: data.custom_color || '#3B82F6',
+                    barId: data.bar_id,
+                    createdAt: new Date(data.created_at)
+                } as Category))
             )
         )
             .then((results) => {

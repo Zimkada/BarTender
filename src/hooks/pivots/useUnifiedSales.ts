@@ -129,7 +129,21 @@ export const useUnifiedSales = (barId: string | undefined) => {
      */
     const stats = useMemo(() => {
         const today = new Date().toISOString().split('T')[0];
-        const todaySales = unifiedSales.filter((s: any) => (s.business_date || s.businessDate?.toISOString().split('T')[0]) === today || (s.created_at || s.createdAt?.toISOString())?.startsWith(today));
+
+        const todaySales = unifiedSales.filter((s: any) => {
+            // Helper pour extraire la date YYYY-MM-DD
+            const getDay = (date: any) => {
+                if (!date) return '';
+                if (typeof date === 'string') return date.split('T')[0];
+                if (date instanceof Date) return date.toISOString().split('T')[0];
+                return '';
+            };
+
+            const bDate = getDay(s.business_date || s.businessDate);
+            const cDate = getDay(s.created_at || s.createdAt);
+
+            return bDate === today || cDate === today;
+        });
 
         const totalRevenue = todaySales.reduce((sum, s) => sum + s.total, 0);
         const count = todaySales.length;

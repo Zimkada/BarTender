@@ -3,6 +3,7 @@ import { Suspense, lazy, useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { useAppContext } from '../context/AppContext';
+import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { ModalProvider, useModal } from '../context/ModalContext';
 import { useStockMutations } from '../hooks/mutations/useStockMutations';
 import { useNotifications } from '../components/Notifications';
@@ -36,7 +37,8 @@ const LazySupplyModal = lazy(() => import('../components/SupplyModal').then(m =>
 function RootLayoutContent() {
   const { isAuthenticated, currentSession } = useAuth();
   const { currentBar } = useBarContext();
-  const { categories, products, addCategory, updateCategory, linkCategory } = useAppContext();
+  const { products, categories } = useUnifiedStock(currentBar?.id);
+  const { addCategory, updateCategory, linkCategory } = useAppContext();
   const { addSupply, createProduct } = useStockMutations(currentBar?.id || '');
   const { showNotification } = useNotifications();
   const queryClient = useQueryClient();

@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { X, BarChart3, TrendingDown, TrendingUp, AlertTriangle } from 'lucide-react';
 import { Product, ADJUSTMENT_REASONS, AdjustmentReason } from '../types';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
-import { useAppContext } from '../context/AppContext';
+import { useBarContext } from '../context/BarContext';
+import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Category } from '../types';
 
 interface StockAdjustmentModalProps {
   isOpen: boolean;
@@ -23,9 +25,10 @@ export function StockAdjustmentModal({
   onSave,
   product
 }: StockAdjustmentModalProps) {
+  const { currentBar } = useBarContext();
   const { formatPrice } = useCurrencyFormatter();
-  const { categories } = useAppContext();
-  const categoryName = categories.find(c => c.id === product.categoryId)?.name || 'Inconnue';
+  const { categories } = useUnifiedStock(currentBar?.id);
+  const categoryName = (categories as Category[]).find(c => c.id === product.categoryId)?.name || 'Inconnue';
   const [formData, setFormData] = useState({
     delta: '',
     reason: 'inventory_count' as AdjustmentReason,

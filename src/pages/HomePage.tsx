@@ -18,9 +18,10 @@ import { ProductGridSkeleton } from '../components/skeletons';
 
 export default function HomePage() {
   // 1. Tous les hooks sont appelés inconditionnellement en haut
-  const { categories, addToCart } = useAppContext();
+  const { addToCart } = useAppContext();
   const { currentBar } = useBarContext();
   const stockManager = useUnifiedStock(currentBar?.id);
+  const { categories } = stockManager;
   const { sales, isLoading: isLoadingSales, refetch: refetchSales } = useUnifiedSales(currentBar?.id);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');

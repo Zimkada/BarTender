@@ -26,14 +26,19 @@ const COLORS = [
   '#10b981', // Emeraude
 ];
 
-const AnalyticsCharts = ({ data, expensesByCategory }) => {
+interface AnalyticsChartsProps {
+  data: any[];
+  expensesByCategory: any;
+}
+
+const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => {
   const [timeRange, setTimeRange] = useState(12);
 
   const filteredData = data.slice(-timeRange);
 
   const expenseData = Object.entries(expensesByCategory)
     .filter(([key]) => key !== 'investment')
-    .map(([, value]) => ({ name: value.label, value: value.amount }));
+    .map(([, value]) => ({ name: (value as any).label, value: (value as any).amount }));
 
   return (
     <div className="space-y-8">
@@ -54,7 +59,7 @@ const AnalyticsCharts = ({ data, expensesByCategory }) => {
       {/* Évolution Solde Cumulatif */}
       <div>
         <h3 className="font-semibold mb-4">Évolution de la Trésorerie</h3>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={300} minWidth={0}>
           <LineChart data={filteredData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis dataKey="name" stroke="#6b7280" />
@@ -87,7 +92,7 @@ const AnalyticsCharts = ({ data, expensesByCategory }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
         <div>
           <h3 className="font-semibold mb-4">Répartition des Dépenses Opérationnelles</h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={300} minWidth={0}>
             <PieChart>
               <Pie
                 data={expenseData}
@@ -114,7 +119,7 @@ const AnalyticsCharts = ({ data, expensesByCategory }) => {
         {/* Revenus vs Dépenses */}
         <div>
           <h3 className="font-semibold mb-4">Revenus vs. Coûts Opérationnels</h3>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={300} minWidth={0}>
             <BarChart data={filteredData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis dataKey="name" stroke="#6b7280" />
@@ -131,4 +136,5 @@ const AnalyticsCharts = ({ data, expensesByCategory }) => {
   );
 };
 
+export { AnalyticsCharts };
 export default AnalyticsCharts;

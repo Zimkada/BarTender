@@ -50,11 +50,13 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
     // 2. Local Computed Stats (Real-time)
     const todayReturns = getTodayReturns();
 
-    // 3. Filtered Data per Role
+    // 3. Filtered Data per Role (Restricted to TODAY'S sales via salesStats.sales)
+    const todaySales = salesStats.sales;
+
     const serverFilteredSales = useMemo(() => {
-        if (!isServerRole) return unifiedSales;
-        return (unifiedSales as any[]).filter(s => (s.soldBy || s.sold_by) === currentUserId);
-    }, [unifiedSales, isServerRole, currentUserId]);
+        if (!isServerRole) return todaySales;
+        return (todaySales as any[]).filter(s => (s.soldBy || s.sold_by) === currentUserId);
+    }, [todaySales, isServerRole, currentUserId]);
 
     const serverFilteredReturns = useMemo(() => {
         if (!isServerRole) return todayReturns;
@@ -107,7 +109,7 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
 
     // Calculate low stock products from unified stock info
     const lowStockProducts = useMemo(() => {
-        const threshold = currentBar?.settings?.lowStockThreshold ?? 5;
+        const threshold = (currentBar?.settings?.lowStockThreshold as number) ?? 5;
         return products
             .filter(p => {
                 const info = allProductsStockInfo[p.id];

@@ -27,9 +27,7 @@ import { lazyWithRetry } from '../utils/lazyWithRetry';
 import { LoadingFallback } from '../components/LoadingFallback';
 
 // Lazy load AnalyticsView to defer recharts bundle
-const AnalyticsView = lazyWithRetry(() =>
-    import('../features/Sales/SalesHistory/views/AnalyticsView').then(m => ({ default: m.AnalyticsView }))
-);
+import { AnalyticsView } from '../features/Sales/SalesHistory/views/AnalyticsView';
 
 import { SalesListView } from '../features/Sales/SalesHistory/views/SalesListView';
 import { SalesCardsView } from '../features/Sales/SalesHistory/views/SalesCardsView';
@@ -341,29 +339,27 @@ export default function SalesHistoryPage() {
                                 </div>
                             ) : (
                                 <div className="min-h-[500px]">
-                                    <Suspense fallback={<LoadingFallback />}>
-                                        <AnalyticsView
-                                            sales={filteredSales}
-                                            stats={stats}
-                                            formatPrice={formatPrice}
-                                            categories={categories}
-                                            products={products}
-                                            users={safeUsers}
-                                            barMembers={safeBarMembers}
-                                            timeRange={timeRange}
-                                            isMobile={isMobile}
-                                            returns={returns}
-                                            closeHour={closeHour}
-                                            startDate={startDate}
-                                            endDate={endDate}
-                                            topProductMetric={topProductMetric}
-                                            setTopProductMetric={setTopProductMetric}
-                                            topProductsLimit={topProductsLimit}
-                                            setTopProductsLimit={setTopProductsLimit}
-                                            isLoadingTopProducts={isLoadingTopProducts}
-                                            viewMode={viewMode}
-                                        />
-                                    </Suspense>
+                                    <AnalyticsView
+                                        sales={filteredSales}
+                                        stats={stats}
+                                        formatPrice={formatPrice}
+                                        categories={categories}
+                                        products={products}
+                                        users={safeUsers}
+                                        barMembers={safeBarMembers}
+                                        timeRange={timeRange}
+                                        isMobile={isMobile}
+                                        returns={returns}
+                                        closeHour={closeHour}
+                                        startDate={startDate}
+                                        endDate={endDate}
+                                        topProductMetric={topProductMetric}
+                                        setTopProductMetric={setTopProductMetric}
+                                        topProductsLimit={topProductsLimit}
+                                        setTopProductsLimit={setTopProductsLimit}
+                                        isLoadingTopProducts={isLoadingTopProducts}
+                                        viewMode={viewMode}
+                                    />
                                 </div>
                             )}
                         </div>

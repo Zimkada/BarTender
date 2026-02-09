@@ -15,10 +15,10 @@ interface ProductImportProps {
   onImportComplete?: () => void; // Added based on the new function signature
 }
 
-export function ProductImport({ onImportComplete, onClose, isOpen, inline = false }: ProductImportProps) {
+export function ProductImport({ onClose, isOpen, inline = false }: ProductImportProps) {
   const { currentBar } = useBarContext();
-  const { products: barProducts, addProducts } = useUnifiedStock(currentBar?.id);
-  const { categories, addCategories } = useAppContext();
+  const { products, categories, addProducts } = useUnifiedStock(currentBar?.id);
+  const { addCategories } = useAppContext();
   const { showSuccess, showError } = useFeedback();
   const [importedProducts, setImportedProducts] = useState<any[]>([]);
   const [fileName, setFileName] = useState<string | null>(null);
