@@ -1,9 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { useBarContext } from '../context/BarContext';
 import { useCacheWarming } from '../hooks/useViewMonitoring';
 import { useAuth } from '../context/AuthContext';
-import { useStock } from '../context/hooks/useStock';
-import { useStockManagement } from '../hooks/useStockManagement';
 import { useNotifications } from '../components/Notifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { realtimeService } from '../services/realtime/RealtimeService';
@@ -22,11 +20,7 @@ import {
 import { filterByBusinessDateRange, getCurrentBusinessDateString, dateToYYYYMMDD } from '../utils/businessDateHelpers';
 import { BUSINESS_DAY_CLOSE_HOUR } from '../constants/businessDay';
 
-// React Query Hooks
-import { useCategories } from '../hooks/queries/useStockQueries';
-import { useSales } from '../hooks/queries/useSalesQueries';
-import { useExpenses, useCustomExpenseCategories } from '../hooks/queries/useExpensesQueries';
-import { useReturns } from '../hooks/queries/useReturnsQueries';
+// React Query Hooks (Mutations only - data comes from Smart Hooks)
 import { useBarMembers } from '../hooks/queries/useBarMembers';
 
 import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
@@ -69,22 +63,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const barId = currentBar?.id || '';
     const { isSimplifiedMode } = useBarContext();
 
+    // ⚠️ PILLAR 3: Global queries DISABLED - Data now comes from Smart Hooks (useUnifiedStock, useUnifiedSales, useUnifiedReturns)
+    // AppProvider now only provides mutations + legacy methods for backward compatibility
+    const categories: Category[] = useMemo(() => [], []);
+    const products: Product[] = useMemo(() => [], []);
+    const supplies = useMemo(() => [], []);
+    const sales: Sale[] = useMemo(() => [], []);
+    const returns: Return[] = useMemo(() => [], []);
+    const expenses: Expense[] = useMemo(() => [], []);
+    const customExpenseCategories = useMemo(() => [], []);
+    const allProductsStockInfo = useMemo(() => ({}), []);
 
-    // React Query: Fetch data
-    const { data: categories = [] } = useCategories(barId);
-    const { products: allProducts, supplies: allSupplies } = useStock(); // From StockContext
-    const { data: sales = [] } = useSales(barId);
-    // 🚀 FIX: Désactiver polling pour returns/barMembers dans AppProvider (data synced via Broadcast+Realtime+Manual refresh)
-    const { data: returns = [] } = useReturns(barId, { refetchInterval: false });
-    const { data: expenses = [] } = useExpenses(barId);
-    const { data: customExpenseCategories = [] } = useCustomExpenseCategories(barId);
-
-    // React Query: Mutations
+    // React Query: Mutations (KEPT - still needed for operations)
     const salesMutations = useSalesMutations(barId);
     const expensesMutations = useExpensesMutations(barId);
     const returnsMutations = useReturnsMutations(barId);
     const categoryMutations = useCategoryMutations(barId);
-    const { allProductsStockInfo } = useStockManagement();
 
     // Notifications - MUST be declared before use in useEffect
     // Notifications - MUST be declared before use in useEffect
@@ -252,6 +246,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // --- PRODUCTS (Read Only) ---
     const getProductsByCategory = useCallback((categoryId: string) => products.filter(p => p.categoryId === categoryId), [products]);
+
+    /**
+     * @deprecated Use Smart Hooks instead: useUnifiedStock().products with allProductsStockInfo
+     * This method returns empty array now (Pillar 3: AppProvider cleanup)
+     */
     const getLowStockProducts = useCallback(() => {
         return products.filter(p => {
             const stockInfo = allProductsStockInfo[p.id];
@@ -259,6 +258,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return stockToCompare <= p.alertThreshold;
         });
     }, [products, allProductsStockInfo]);
+
     const getProductById = useCallback((id: string) => products.find(p => p.id === id), [products]);
 
     // --- SUPPLIES (Read Only) ---
@@ -513,6 +513,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const getReturnsBySale = useCallback((saleId: string) => returns.filter(r => r.saleId === saleId), [returns]);
     const getPendingReturns = useCallback(() => returns.filter(r => r.status === 'pending'), [returns]);
 
+    /**
+     * @deprecated Use Smart Hooks instead: useUnifiedReturns().getTodayReturns()
+     * This method returns empty array now (Pillar 3: AppProvider cleanup)
+     */
     const getTodayReturns = useCallback(() => {
         const closeHour = currentBar?.closingHour ?? BUSINESS_DAY_CLOSE_HOUR;
         const todayStr = getCurrentBusinessDateString(closeHour);
