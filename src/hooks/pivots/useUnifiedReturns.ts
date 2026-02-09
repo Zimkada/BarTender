@@ -23,9 +23,6 @@ interface UnifiedReturn extends Omit<Return, 'returnedAt' | 'businessDate'> {
     isOptimistic?: boolean;
 }
 
-// Toggle pour la migration
-export const USE_UNIFIED_RETURNS = true;
-
 export const useUnifiedReturns = (barId: string | undefined, closingHour?: number) => {
     const queryClient = useQueryClient();
     const { currentSession: session } = useAuth();

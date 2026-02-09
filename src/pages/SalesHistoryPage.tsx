@@ -11,7 +11,7 @@ import {
 import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
-import { useUnifiedSales, USE_UNIFIED_SALES } from '../hooks/pivots/useUnifiedSales';
+import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 import { useFeedback } from '../hooks/useFeedback';
@@ -49,9 +49,7 @@ type ViewMode = 'list' | 'cards' | 'analytics';
  */
 export default function SalesHistoryPage() {
     const { currentBar } = useBarContext();
-    const { sales: unifiedSales } = useUnifiedSales(currentBar?.id);
-    const contextSales = useAppContext().sales;
-    const sales = USE_UNIFIED_SALES ? unifiedSales : contextSales;
+    const { sales } = useUnifiedSales(currentBar?.id);
 
     const { categories, products, returns, getReturnsBySale } = useAppContext();
     const { barMembers } = useBarContext();

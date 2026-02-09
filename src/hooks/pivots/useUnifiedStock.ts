@@ -16,9 +16,6 @@ import { auditLogger } from '../../services/AuditLogger';
 import { toDbProduct, toDbProductForCreation } from '../../utils/productMapper';
 import type { Product, ProductStockInfo } from '../../types';
 
-// Toggle pour la migration (Option A du plan Elite)
-export const USE_UNIFIED_STOCK = true;
-
 export const useUnifiedStock = (barId: string | undefined) => {
     const queryClient = useQueryClient();
     const { currentSession: session } = useAuth();

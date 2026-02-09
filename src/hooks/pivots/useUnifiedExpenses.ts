@@ -12,8 +12,6 @@ import { useSalaries } from '../useSalaries';
 import { offlineQueue } from '../../services/offlineQueue';
 import { ExpenseCategory } from '../../types';
 
-export const USE_UNIFIED_EXPENSES = true; // Pilot Toggle
-
 export interface UnifiedExpense {
     id: string;
     amount: number;

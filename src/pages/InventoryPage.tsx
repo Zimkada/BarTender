@@ -6,8 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 // Hooks & Context
 import { useAuth } from '../context/AuthContext';
 import { useAppContext } from '../context/AppContext';
-import { useStockManagement } from '../hooks/useStockManagement';
-import { useUnifiedStock, USE_UNIFIED_STOCK } from '../hooks/pivots/useUnifiedStock';
+import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { useInventoryFilter } from '../hooks/useInventoryFilter';
 import { useInventoryActions } from '../hooks/useInventoryActions';
 import { useViewport } from '../hooks/useViewport';
@@ -36,10 +35,9 @@ type SortMode = 'category' | 'alphabetical' | 'stock';
 
 export default function InventoryPage() {
     const { currentBar } = useBarContext();
-    const stockHook = USE_UNIFIED_STOCK ? useUnifiedStock : useStockManagement;
 
-    // 1. Core Data (Pilot Toggle Elite v2)
-    const { products, getProductStockInfo, getAverageCostPerUnit, isLoading: isLoadingProducts } = stockHook(currentBar?.id);
+    // 1. Core Data (Unified Stock)
+    const { products, getProductStockInfo, getAverageCostPerUnit, isLoading: isLoadingProducts } = useUnifiedStock(currentBar?.id);
     const { categories } = useAppContext();
     const { currentSession } = useAuth();
     const { isMobile } = useViewport();

@@ -24,9 +24,6 @@ interface UnifiedSale extends Omit<Sale, 'createdAt' | 'validatedAt' | 'rejected
     isOptimistic?: boolean;
 }
 
-// Toggle pour la migration
-export const USE_UNIFIED_SALES = true;
-
 export const useUnifiedSales = (barId: string | undefined) => {
     const queryClient = useQueryClient();
     const { currentSession: session } = useAuth();

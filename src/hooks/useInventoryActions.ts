@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Product } from '../types';
-import { useStockManagement } from './useStockManagement';
-import { useUnifiedStock, USE_UNIFIED_STOCK } from './pivots/useUnifiedStock';
+import { useUnifiedStock } from './pivots/useUnifiedStock';
 import { useStockAdjustment } from './mutations/useStockAdjustment';
 import { useFeedback } from './useFeedback';
 import { useAuth } from '../context/AuthContext';
@@ -14,12 +13,8 @@ export function useInventoryActions() {
     const { addExpense } = useAppContext();
     const { showSuccess, showError } = useFeedback();
 
-    // 🛡️ Elite Stability: Always call both hooks to satisfy Rules of Hooks
-    const unified = useUnifiedStock(currentBar?.id);
-    const legacy = useStockManagement(); // Legacy hook uses context bar internally
-
-    // Pick the active functions based on Pilot Toggle
-    const { addProduct, updateProduct, deleteProduct, processSupply } = USE_UNIFIED_STOCK ? unified : legacy;
+    // Use unified stock hook directly (Pillar 3: Toggles removed)
+    const { addProduct, updateProduct, deleteProduct, processSupply } = useUnifiedStock(currentBar?.id);
 
     const stockAdjustmentMutation = useStockAdjustment();
 

@@ -7,7 +7,7 @@ import { useBarContext } from '../context/BarContext';
 import { Button } from '../components/ui/Button';
 import { lazyWithRetry } from '../utils/lazyWithRetry';
 import { LoadingFallback } from '../components/LoadingFallback';
-import { useUnifiedSales, USE_UNIFIED_SALES } from '../hooks/pivots/useUnifiedSales';
+import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
 
 // Lazy load AnalyticsCharts to defer recharts bundle
 const AnalyticsCharts = lazyWithRetry(() => import('../components/AnalyticsCharts'));
@@ -20,9 +20,7 @@ export default function AnalyticsPage() {
   const navigate = useNavigate();
   const { expenses } = useAppContext();
   const { currentBar } = useBarContext();
-  const { sales: unifiedSales } = useUnifiedSales(currentBar?.id);
-  const contextSales = useAppContext().sales;
-  const sales = USE_UNIFIED_SALES ? unifiedSales : contextSales;
+  const { sales } = useUnifiedSales(currentBar?.id);
 
   // Générer les données pour les graphiques (12 derniers mois)
   const chartData = useMemo(() => {
