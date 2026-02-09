@@ -17,7 +17,7 @@ import { offlineQueue } from './offlineQueue';
 import { supabase } from '../lib/supabase';
 import { BarsService } from './supabase/bars.service';
 import { broadcastService } from './broadcast/BroadcastService';
-import { buildCreateSaleParams, type CreateTicketParams, type PayTicketParams } from '../lib/supabase-rpc.types';
+import { buildCreateSaleParams, type CreateTicketParams, type PayTicketParams, toSupabaseJson } from '../lib/supabase-rpc.types';
 import { getErrorMessage } from '../utils/errorHandler';
 
 /**
@@ -195,9 +195,39 @@ class SyncManagerService {
         }
       }
 
-      // Synchroniser chaque opération séquentiellement
-      for (const operation of pendingOps) {
-        await this.syncOperation(operation);
+      // 🚀 BATCH ENGINE (Pillar 4): Group sequential operations
+      let i = 0;
+      while (i < pendingOps.length) {
+        const currentOp = pendingOps[i];
+
+        // Tenter de créer un batch de ventes
+        if (currentOp.type === 'CREATE_SALE') {
+          // Look ahead for more sales
+          const batch: SyncOperationCreateSale[] = [currentOp as SyncOperationCreateSale];
+          let j = i + 1;
+          const MAX_BATCH_SIZE = 20; // 🛡️ Safe limit for Postgres JSONB
+
+          while (
+            j < pendingOps.length &&
+            pendingOps[j].type === 'CREATE_SALE' &&
+            batch.length < MAX_BATCH_SIZE
+          ) {
+            batch.push(pendingOps[j] as SyncOperationCreateSale);
+            j++;
+          }
+
+          if (batch.length > 1) {
+            // Process as batch
+            console.log(`[SyncManager] Batching ${batch.length} sales...`);
+            await this.syncCreateSaleBatch(batch);
+            i += batch.length; // Skip processed items
+            continue;
+          }
+        }
+
+        // Fallback: Process individually
+        await this.syncOperation(currentOp);
+        i++;
       }
 
       console.log('[SyncManager] Sync completed');
@@ -239,32 +269,7 @@ class SyncManagerService {
         // 🛡️ Lock Flash (Phase 8): Alimenter la zone tampon (10s)
         // Cette logique est spécifique à CREATE_SALE
         if (operation.type === 'CREATE_SALE') {
-          const idempotencyKey = operation.payload.idempotency_key;
-
-          // Calculer le montant pour le buffer de transition (Phase 11.3)
-          const total = operation.payload.items?.reduce((sum: number, item) => {
-            return sum + (item.total_price || (item.unit_price * item.quantity) || 0);
-          }, 0) || 0;
-
-          const now = Date.now();
-          this.recentlySyncedKeys.set(idempotencyKey, {
-            total,
-            timestamp: now,
-            payload: operation.payload,
-            expiresAt: now + SyncManagerService.SYNC_KEYS_TTL_MS // ✅ Auto-expire après 5 min
-          });
-
-          // Clear previous timer for this key if it exists
-          if (this.timers.has(idempotencyKey)) {
-            clearTimeout(this.timers.get(idempotencyKey)!);
-          }
-
-          const timerId = setTimeout(() => {
-            this.recentlySyncedKeys.delete(idempotencyKey);
-            this.timers.delete(idempotencyKey);
-          }, 10000); // 🛡️ Fix V11.6: 10s suffisent grâce à l'idempotencyKey
-
-          this.timers.set(idempotencyKey, timerId);
+          this.addToRecentbuffer(operation.payload);
         }
 
 
@@ -552,6 +557,147 @@ class SyncManagerService {
         shouldRetry: true,
       };
     }
+  }
+
+  /**
+   * 🚀 BATCH SYNC: Synchronise un lot de ventes en une seule requête
+   */
+  private async syncCreateSaleBatch(operations: SyncOperationCreateSale[]): Promise<void> {
+    if (operations.length === 0) return;
+
+    const firstOp = operations[0];
+    const barId = firstOp.barId;
+
+    // Mark all as syncing
+    await Promise.all(operations.map(op => offlineQueue.updateOperationStatus(op.id, 'syncing')));
+
+    try {
+      // 1. Préparer le payload
+      const salesPayload = operations.map(op => {
+        const payload = op.payload;
+        let targetTicketId = payload.ticket_id;
+
+        // 🛡️ ID REDIRECTION (Phase 13)
+        if (targetTicketId && this.idMapping.has(targetTicketId)) {
+          targetTicketId = this.idMapping.get(targetTicketId)!;
+        }
+
+        return buildCreateSaleParams({
+          bar_id: barId, // Redondant mais requis par le builder
+          items: payload.items,
+          payment_method: payload.payment_method,
+          sold_by: payload.sold_by,
+          server_id: payload.server_id,
+          status: payload.status,
+          customer_name: payload.customer_name,
+          customer_phone: payload.customer_phone,
+          notes: payload.notes,
+          business_date: payload.business_date,
+          ticket_id: targetTicketId,
+        }, payload.idempotency_key);
+      });
+
+      // 2. Appeler le RPC Batch
+      // Note: params must match the SQL function signature: (p_bar_id, p_sales)
+      const { data, error } = await (supabase.rpc as any)('create_sales_batch', {
+        p_bar_id: barId,
+        p_sales: toSupabaseJson(salesPayload) // Ensure clean JSON
+      });
+
+      if (error) {
+        throw error; // Global failure (network, etc) -> Catch block handles retry logic for ALL
+      }
+
+      // 3. Traiter les résultats (Partial Success Handling)
+      // data is JSONB array of { idempotency_key, success, sale_id, error }
+      const results = data as unknown as Array<{
+        idempotency_key: string;
+        success: boolean;
+        sale_id?: string;
+        error?: string;
+      }>;
+
+      // Map back to operations via idempotency key
+      const resultsMap = new Map(results.map(r => [r.idempotency_key, r]));
+
+      for (const op of operations) {
+        const result = resultsMap.get(op.payload.idempotency_key);
+
+        if (result && result.success && result.sale_id) {
+          // ✅ SUCCÈS
+          await offlineQueue.updateOperationStatus(op.id, 'success');
+          await offlineQueue.removeOperation(op.id);
+
+          // Buffer logique (Lock Flash)
+          this.addToRecentbuffer(op.payload);
+
+          // Broadcast events (Optimized: trigger specific sale event)
+          this.dispatchDomainEvent('CREATE_SALE', barId);
+
+        } else {
+          // ❌ ÉCHEC INDIVIDUEL
+          const errorMsg = result?.error || 'Batch result missing';
+          console.error(`[SyncManager] Batch operation failed for ${op.id}: ${errorMsg}`);
+          await offlineQueue.updateOperationStatus(op.id, 'error', errorMsg);
+        }
+      }
+
+      console.log(`[SyncManager] Batch processed: ${results.filter(r => r.success).length}/${results.length} success`);
+
+      // Global broadcast for stock update (once per batch instead of N times)
+      if (broadcastService.isSupported()) {
+        broadcastService.broadcast({
+          event: 'UPDATE',
+          table: 'bar_products',
+          barId: barId,
+        });
+      }
+
+    } catch (error) {
+      // Global Failure (Network timeout, RPC crash)
+      // Retry ALL operations in the batch
+      console.error('[SyncManager] Batch RPC failed completely:', error);
+      const shouldRetry = this.shouldRetryError(error);
+      const errorMsg = getErrorMessage(error);
+
+      for (const op of operations) {
+        await offlineQueue.updateOperationStatus(
+          op.id,
+          'error',
+          errorMsg
+        );
+      }
+    }
+  }
+
+  /**
+   * Helper pour alimenter le buffer anti-flash (extrait de syncCreateSale)
+   */
+  private addToRecentbuffer(payload: SyncOperationCreateSale['payload']) {
+    const idempotencyKey = payload.idempotency_key;
+    const total = payload.items?.reduce((sum: number, item) => {
+      return sum + (item.total_price || (item.unit_price * item.quantity) || 0);
+    }, 0) || 0;
+
+    const now = Date.now();
+    this.recentlySyncedKeys.set(idempotencyKey, {
+      total,
+      timestamp: now,
+      payload: payload,
+      expiresAt: now + SyncManagerService.SYNC_KEYS_TTL_MS
+    });
+
+    // Clear previous timer
+    if (this.timers.has(idempotencyKey)) {
+      clearTimeout(this.timers.get(idempotencyKey)!);
+    }
+
+    const timerId = setTimeout(() => {
+      this.recentlySyncedKeys.delete(idempotencyKey);
+      this.timers.delete(idempotencyKey);
+    }, 10000);
+
+    this.timers.set(idempotencyKey, timerId);
   }
 
   /**
