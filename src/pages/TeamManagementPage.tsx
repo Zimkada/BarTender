@@ -101,7 +101,8 @@ export default function TeamManagementPage() {
       const result = await BarsService.addMemberExisting(
         currentBar!.id,
         { userId: selectedCandidateId || undefined, email: emailToUse || undefined },
-        selectedRole as 'gerant' | 'serveur'
+        selectedRole as 'gerant' | 'serveur',
+        currentSession?.userId || '' // ✅ Pass current user ID for audit
       );
 
       if (result.success) {

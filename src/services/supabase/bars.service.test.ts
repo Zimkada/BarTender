@@ -25,40 +25,48 @@ describe('BarsService', () => {
         vi.clearAllMocks();
     });
 
-    describe('addMemberExisting (Critical: Zod Validation)', () => {
+    describe('addMemberExisting (Critical: Lookup & V2)', () => {
         it('should return success when RPC returns valid successful response', async () => {
             // Mock RPC success
             (supabase.rpc as any).mockResolvedValue({
-                data: { success: true, message: 'User added' },
+                data: { success: true, member_id: 'new-mem-1' },
                 error: null,
             });
 
             const result = await BarsService.addMemberExisting(
                 'bar-1',
                 { email: 'test@example.com' },
-                'serveur'
+                'serveur',
+                'admin-1'
             );
 
             expect(result.success).toBe(true);
-            expect(result.message).toBe('User added');
-            expect(supabase.rpc).toHaveBeenCalledWith('add_bar_member_existing', expect.any(Object));
+            expect(result.message).toBe('Membre ajouté avec succès');
+            expect(supabase.rpc).toHaveBeenCalledWith('add_bar_member_lookup', {
+                p_bar_id: 'bar-1',
+                p_email: 'test@example.com',
+                p_role: 'serveur',
+                p_assigned_by_id: 'admin-1',
+                p_user_id: undefined
+            });
         });
 
-        it('should return failure when RPC returns valid error response', async () => {
-            // Mock RPC business error
+        it('should return failure when RPC returns business error', async () => {
+            // Mock RPC status failure
             (supabase.rpc as any).mockResolvedValue({
-                data: { success: false, error: 'User already exists' },
+                data: { success: false, error: 'Utilisateur introuvable' },
                 error: null,
             });
 
             const result = await BarsService.addMemberExisting(
                 'bar-1',
-                { email: 'exists@example.com' },
-                'serveur'
+                { email: 'unknown@example.com' },
+                'serveur',
+                'admin-1'
             );
 
             expect(result.success).toBe(false);
-            expect(result.error).toBe('User already exists');
+            expect(result.error).toBe('Utilisateur introuvable');
         });
 
         it('should throw error when RPC fails at network level', async () => {
@@ -71,31 +79,12 @@ describe('BarsService', () => {
             const result = await BarsService.addMemberExisting(
                 'bar-1',
                 { email: 'fail@example.com' },
-                'serveur'
+                'serveur',
+                'admin-1'
             );
 
-            // Implementation catches error and returns object with success: false
             expect(result.success).toBe(false);
             expect(result.error).toBe('Network Error');
-        });
-
-        it('should handle Zod validation error (Invalid response shape)', async () => {
-            // Mock RPC returning invalid shape (missing success field)
-            (supabase.rpc as any).mockResolvedValue({
-                data: { invalid_field: 'wtf' }, // Missing success
-                error: null,
-            });
-
-            // The service catches the Zod error and returns a formatted error
-            const result = await BarsService.addMemberExisting(
-                'bar-1',
-                { email: 'test@example.com' },
-                'serveur'
-            );
-
-            expect(result.success).toBe(false);
-            // Zod error message usually contains details about missing field
-            expect(result.error).toBeDefined();
         });
     });
 
@@ -144,63 +133,182 @@ describe('BarsService', () => {
     });
 
     describe('createBar', () => {
-        it('should create bar and assign owner', async () => {
-            const barData = { name: 'New Bar', owner_id: 'owner-1' };
-            const mockBar = { id: 'new-bar', name: 'New Bar', owner_id: 'owner-1' };
+        const mockBarData: any = {
+            name: 'New Bar',
+            owner_id: 'owner-123',
+            address: '123 Street',
+            phone: '1234567890',
+            logo_url: 'http://example.com/logo.png',
+            settings: { theme: 'dark' },
+        };
 
-            // Mock insert bar
-            const insertBarMock = vi.fn().mockReturnThis();
-            (supabase.from as any).mockReturnValueOnce({
-                insert: insertBarMock,
-                select: vi.fn().mockReturnThis(),
-                single: vi.fn().mockResolvedValue({ data: mockBar, error: null })
+        describe('createBar', () => {
+            const mockBarData: any = {
+                name: 'New Bar',
+                owner_id: 'owner-123',
+                address: '123 Street',
+                phone: '1234567890',
+                logo_url: 'http://example.com/logo.png',
+                settings: { theme: 'dark' },
+            };
+
+            it('should create a bar successfully using atomic RPC (no secondary fetch)', async () => {
+                // Mock RPC returning FULL bar object (as per Phase 2 refactor)
+                const mockRpcResult = {
+                    success: true,
+                    id: 'new-bar-123',
+                    name: 'New Bar',
+                    owner_id: 'owner-123',
+                    address: '123 Street',
+                    phone: '1234567890',
+                    is_active: true,
+                    closing_hour: 6,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString(),
+                    settings: { theme: 'dark' }
+                };
+
+                // Mock RPC call
+                (supabase.rpc as any).mockResolvedValue({
+                    data: mockRpcResult,
+                    error: null,
+                });
+
+                // Ensure NO fetch is called
+                const selectMock = vi.fn();
+                (supabase.from as any).mockReturnValue({ select: selectMock });
+
+                const result = await BarsService.createBar(mockBarData);
+
+                // Verify RPC arguments (especially JSON settings)
+                expect(supabase.rpc).toHaveBeenCalledWith('setup_promoter_bar', expect.objectContaining({
+                    p_owner_id: mockBarData.owner_id,
+                    p_bar_name: mockBarData.name,
+                    // Settings should be passed (logic handles JSON.parse/stringify)
+                }));
+
+                // Verify result mapping
+                expect(result).toEqual(expect.objectContaining({
+                    id: 'new-bar-123',
+                    name: 'New Bar',
+                    settings: { theme: 'dark' }
+                }));
+
+                // Verify NO secondary fetch
+                expect(selectMock).not.toHaveBeenCalled();
             });
 
-            // Mock insert member (owner)
-            const insertMemberMock = vi.fn().mockResolvedValue({ error: null });
-            (supabase.from as any).mockReturnValueOnce({
-                insert: insertMemberMock
+            it('should throw error when RPC returns failure', async () => {
+                (supabase.rpc as any).mockResolvedValue({
+                    data: null,
+                    error: { message: 'RPC Error' },
+                });
+
+                await expect(BarsService.createBar(mockBarData)).rejects.toThrow('RPC Error');
             });
 
-            await BarsService.createBar(barData);
+            it('should throw "duplicate key" error as user friendly message', async () => {
+                (supabase.rpc as any).mockResolvedValue({
+                    data: null,
+                    error: { message: 'duplicate key value violates unique constraint' },
+                });
 
-            expect(insertBarMock).toHaveBeenCalled();
-            // Expect insert member to be called with correct role
-            expect(insertMemberMock).toHaveBeenCalledWith(expect.objectContaining({
-                role: 'promoteur',
-                user_id: 'owner-1'
-            }));
+                await expect(BarsService.createBar(mockBarData)).rejects.toThrow('Un bar avec ce nom existe déjà.');
+            });
+        });
+    });
+
+    describe('Member Management (New RPCs)', () => {
+
+        describe('addMember', () => {
+            it('should successfully add a member via RPC', async () => {
+                const mockResponse = { success: true, member_id: 'mem-123' };
+                (supabase.rpc as any).mockResolvedValue({ data: mockResponse, error: null });
+
+                const result = await BarsService.addMember('bar-1', 'user-1', 'serveur', 'admin-1');
+
+                expect(result).toEqual({ success: true, memberId: 'mem-123' });
+                expect(supabase.rpc).toHaveBeenCalledWith('add_bar_member_v2', {
+                    p_bar_id: 'bar-1',
+                    p_user_id: 'user-1',
+                    p_role: 'serveur',
+                    p_assigned_by_id: 'admin-1'
+                });
+            });
+
+            it('should handle business logic error from RPC', async () => {
+                const mockResponse = { success: false, error: 'Collision de nom' };
+                (supabase.rpc as any).mockResolvedValue({ data: mockResponse, error: null });
+
+                const result = await BarsService.addMember('bar-1', 'user-1', 'serveur', 'admin-1');
+
+                expect(result).toEqual({ success: false, error: 'Collision de nom' });
+            });
+
+            it('should handle network error', async () => {
+                (supabase.rpc as any).mockResolvedValue({ data: null, error: { message: 'Network fails' } });
+
+                const result = await BarsService.addMember('bar-1', 'user-1', 'serveur', 'admin-1');
+
+                expect(result.success).toBe(false);
+                expect(result.error).toContain('Network fails');
+            });
         });
 
-        it('should rollback bar creation if member assignment fails', async () => {
-            const barData = { name: 'Fail Bar', owner_id: 'owner-1' };
-            const mockBar = { id: 'fail-bar' };
+        describe('removeMember', () => {
+            it('should successfully remove a member via RPC', async () => {
+                const mockResponse = { success: true };
+                (supabase.rpc as any).mockResolvedValue({ data: mockResponse, error: null });
 
-            // 1. Bar creation success
-            (supabase.from as any).mockReturnValueOnce({
-                insert: vi.fn().mockReturnThis(),
-                select: vi.fn().mockReturnThis(),
-                single: vi.fn().mockResolvedValue({ data: mockBar, error: null })
+                const result = await BarsService.removeMember('bar-1', 'user-1', 'admin-1');
+
+                expect(result).toEqual({ success: true });
+                expect(supabase.rpc).toHaveBeenCalledWith('remove_bar_member_v2', {
+                    p_bar_id: 'bar-1',
+                    p_user_id_to_remove: 'user-1',
+                    p_removed_by_id: 'admin-1'
+                });
             });
 
-            // 2. Member assignment fails
-            (supabase.from as any).mockReturnValueOnce({
-                insert: vi.fn().mockResolvedValue({ error: { message: 'Member Error' } })
+            it('should handle permission error from RPC', async () => {
+                const mockResponse = { success: false, error: 'Permission denied' };
+                (supabase.rpc as any).mockResolvedValue({ data: mockResponse, error: null });
+
+                const result = await BarsService.removeMember('bar-1', 'user-1', 'admin-1');
+
+                expect(result).toEqual({ success: false, error: 'Permission denied' });
+            });
+        });
+
+        describe('canManageMembers', () => {
+            it('should return true when RPC returns true', async () => {
+                (supabase.rpc as any).mockResolvedValue({ data: true, error: null });
+
+                const result = await BarsService.canManageMembers('bar-1', 'user-1', 'create_server');
+
+                expect(result).toBe(true);
+                expect(supabase.rpc).toHaveBeenCalledWith('check_user_can_manage_members', {
+                    p_bar_id: 'bar-1',
+                    p_user_id: 'user-1',
+                    p_action: 'create_server'
+                });
             });
 
-            // 3. Rollback delete
-            const deleteMock = vi.fn().mockReturnThis();
-            const eqMock = vi.fn().mockResolvedValue({ error: null }); // Delete success
-            (supabase.from as any).mockReturnValueOnce({
-                delete: deleteMock,
-                eq: eqMock
+            it('should return false when RPC returns false', async () => {
+                (supabase.rpc as any).mockResolvedValue({ data: false, error: null });
+
+                const result = await BarsService.canManageMembers('bar-1', 'user-1', 'create_manager');
+
+                expect(result).toBe(false);
             });
 
-            await expect(BarsService.createBar(barData)).rejects.toThrow('Erreur lors de l\'assignation du propriétaire');
+            it('should return false on RPC error', async () => {
+                (supabase.rpc as any).mockResolvedValue({ data: null, error: { message: 'Error' } });
 
-            // Verify delete was called
-            expect(deleteMock).toHaveBeenCalled();
-            expect(eqMock).toHaveBeenCalledWith('id', 'fail-bar');
+                const result = await BarsService.canManageMembers('bar-1', 'user-1', 'create_server');
+
+                expect(result).toBe(false);
+            });
         });
     });
 });

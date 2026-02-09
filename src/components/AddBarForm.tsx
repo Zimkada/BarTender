@@ -13,6 +13,7 @@ interface AddBarFormProps {
   onSubmit: (data: AddBarFormData) => void | Promise<void>;
   loading: boolean;
   error: string | null;
+  disabled?: boolean;
 }
 
 /**
@@ -20,7 +21,7 @@ interface AddBarFormProps {
  * Utilisé par AddBarModal et potentiellement d'autres contextes
  * État minimal : formData + formErrors seulement
  */
-export function AddBarForm({ promoterName, onSubmit, loading, error }: AddBarFormProps) {
+export function AddBarForm({ promoterName, onSubmit, loading, error, disabled }: AddBarFormProps) {
   const [formData, setFormData] = useState<AddBarFormData>({
     barName: '',
     barAddress: '',
@@ -94,7 +95,7 @@ export function AddBarForm({ promoterName, onSubmit, loading, error }: AddBarFor
           value={formData.barName}
           onChange={(e) => setFormData(prev => ({ ...prev, barName: e.target.value }))}
           placeholder="Ex: Le Privilège"
-          disabled={loading}
+          disabled={loading || disabled}
         />
         {formErrors.barName && (
           <p className="text-red-500 text-xs mt-1">{formErrors.barName}</p>
@@ -109,7 +110,7 @@ export function AddBarForm({ promoterName, onSubmit, loading, error }: AddBarFor
           value={formData.barAddress}
           onChange={(e) => setFormData(prev => ({ ...prev, barAddress: e.target.value }))}
           placeholder="Ex: Cotonou, Bénin"
-          disabled={loading}
+          disabled={loading || disabled}
         />
         {formErrors.barAddress && (
           <p className="text-red-500 text-xs mt-1">{formErrors.barAddress}</p>
@@ -124,7 +125,7 @@ export function AddBarForm({ promoterName, onSubmit, loading, error }: AddBarFor
           value={formData.barPhone}
           onChange={(e) => setFormData(prev => ({ ...prev, barPhone: e.target.value }))}
           placeholder="Ex: 01 97 XX XX XX"
-          disabled={loading}
+          disabled={loading || disabled}
         />
         {formErrors.barPhone && (
           <p className="text-red-500 text-xs mt-1">{formErrors.barPhone}</p>
@@ -134,7 +135,7 @@ export function AddBarForm({ promoterName, onSubmit, loading, error }: AddBarFor
       {/* Submit Button */}
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || disabled}
         className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 text-white py-3 rounded-lg font-semibold hover:from-teal-700 hover:to-emerald-700 disabled:opacity-50 transition-all duration-200 transform hover:scale-[1.02]"
       >
         {loading ? 'Création en cours...' : 'Créer le bar'}

@@ -4,6 +4,7 @@ import { X, Building2, CheckCircle } from 'lucide-react';
 import { User } from '../types';
 import { AuthService } from '../services/supabase/auth.service';
 import { useBarContext } from '../context/BarContext';
+import { useNetworkStatus } from '../hooks/useNetworkStatus';
 import { Alert } from './ui/Alert';
 import { AddBarForm } from './AddBarForm';
 
@@ -21,6 +22,10 @@ interface AddBarModalProps {
  */
 export function AddBarModal({ isOpen, onClose, promoter, onSuccess }: AddBarModalProps) {
   const { refreshBars } = useBarContext();
+  const { isOnline } = useNetworkStatus();
+  // isOnline peut être undefined au premier rendu, on secure
+  const isOffline = isOnline === false;
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -124,13 +129,24 @@ export function AddBarModal({ isOpen, onClose, promoter, onSuccess }: AddBarModa
             )}
 
             {/* Form */}
+            {/* Form */}
             {!success && (
-              <AddBarForm
-                promoterName={promoter.name || 'Promoteur'}
-                onSubmit={handleSubmit}
-                loading={loading}
-                error={error}
-              />
+              <div className="space-y-4">
+                {/* Offline Warning */}
+                {isOffline && (
+                  <Alert variant="warning" title="Mode Hors Ligne">
+                    <p>La création de bar nécessite une connexion internet active.</p>
+                  </Alert>
+                )}
+
+                <AddBarForm
+                  promoterName={promoter.name || 'Promoteur'}
+                  onSubmit={handleSubmit}
+                  loading={loading}
+                  error={error}
+                  disabled={isOffline}
+                />
+              </div>
             )}
           </div>
 

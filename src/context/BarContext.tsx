@@ -352,136 +352,63 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [fetchWithRetry]);  // ✅ Deps ajoutée - React Hooks compliance
 
-  // ✨ NOUVEAU: Fonction pour charger les membres séparément
-  // 🔥 OPTIMISÉ: Précharge les mappings en parallèle pour résilience offline
+
+  /* ------------------------------------------------------------------
+   * REFRESH MEMBERS (OPTIMIZED)
+   * ------------------------------------------------------------------ */
   const refreshMembers = useCallback(async (targetBarId: string) => {
     if (!targetBarId || targetBarId === 'admin_global') return;
 
     try {
-      // 🔥 OPTIMISATION: Chargement parallèle (mappings + members)
-      const results = await Promise.allSettled([
-        // 1️⃣ Charger les membres (logique existante)
-        (async (): Promise<BarMember[]> => {
-          try {
-            // Utilise le RPC étendu qui inclut owner et inactifs
-            const members = await AuthService.getBarMembers(targetBarId);
-            return members.map(m => ({
-              id: `${targetBarId}_${m.id}`,
-              userId: m.id,
-              barId: targetBarId,
-              role: m.role as UserRole,
-              assignedBy: '',
-              assignedAt: m.joined_at ? new Date(m.joined_at) : new Date(),
-              isActive: m.member_is_active,
-              user: {
-                id: m.id,
-                username: m.username || '',
-                password: '',
-                name: m.name,
-                phone: m.phone,
-                email: m.email,
-                createdAt: m.created_at ? new Date(m.created_at) : new Date(),
-                isActive: m.is_active || false,
-                firstLogin: m.first_login ?? false,
-                avatarUrl: m.avatar_url || undefined,
-                lastLoginAt: m.last_login_at ? new Date(m.last_login_at) : undefined,
-                createdBy: undefined,
-                role: m.role as UserRole,
-              }
-            }));
-          } catch (err) {
-            console.error('[BarContext] Error loading members:', err);
-            return [];
-          }
-        })(),
+      // Stratégie "Smart":
+      // 1. Cache Local immédiat
+      const cachedMappings = OfflineStorage.getMappings(targetBarId) || [];
+      // (Pas de cache members générique dans OfflineStorage actuel, on fera avec)
 
-        // 2️⃣ ⭐ NOUVEAU: Précharger les mappings en parallèle (Cache Préventif)
-        (async (): Promise<any[]> => {
-          try {
-            // 2a. Cache immédiat (pattern cache-first)
-            const cachedMappings = OfflineStorage.getMappings(targetBarId);
+      // 2. Network Check
+      const { shouldBlock } = networkManager.getDecision();
 
-            // 2b. Vérifier connexion
-            const { shouldBlock } = networkManager.getDecision();
-            if (shouldBlock) {
-              console.log('[BarContext] ⚡ Offline mode: Using cached mappings');
-              return cachedMappings || [];
-            }
-
-            // 2c. Fetch réseau avec retry + timeout (5s par tentative, 3 tentatives max)
-            const serverMappings = await fetchWithRetry(
-              () => ServerMappingsService.getAllMappingsForBar(targetBarId),
-              3,    // 3 tentatives max (attempt 0, 1, 2)
-              5000  // 5s timeout par tentative
-            );
-
-            // 2d. Validation (au cas où la BDD retourne des données corrompues)
-            if (!Array.isArray(serverMappings)) {
-              console.error('[BarContext] Invalid mappings format from DB:', serverMappings);
-              return cachedMappings || [];
-            }
-
-            // 2e. Persister en cache
-            OfflineStorage.saveMappings(targetBarId, serverMappings);
-
-            if (serverMappings.length > 0) {
-              console.log(`[BarContext] ✓ Preloaded ${serverMappings.length} mappings for bar ${targetBarId}`);
-            } else {
-              console.warn(`[BarContext] ⚠️ No mappings found for bar ${targetBarId}`);
-            }
-
-            return serverMappings;
-          } catch (err) {
-            const error = err as Error;
-
-            if (error.message === 'FETCH_TIMEOUT') {
-              console.warn('[BarContext] ⏱️ Mappings fetch timeout after all retries, falling back to cache');
-            } else {
-              console.warn('[BarContext] ❌ Mappings preload failed (non-blocking):', error.message);
-            }
-
-            // Fallback: retourner cache validé ou array vide (non-bloquant)
-            const fallbackCache = OfflineStorage.getMappings(targetBarId);
-
-            if (fallbackCache && fallbackCache.length > 0) {
-              console.log(`[BarContext] 📦 Using ${fallbackCache.length} cached mappings as fallback`);
-              return fallbackCache;
-            }
-
-            console.warn('[BarContext] ⚠️ No cache available, returning empty array');
-            return [];
-          }
-        })()
+      // 3. Fetch Data (Fail-fast, pas de retry agressif 3x5s)
+      const [membersResult, mappingsResult] = await Promise.allSettled([
+        shouldBlock ? Promise.reject('Offline') : AuthService.getBarMembers(targetBarId),
+        shouldBlock ? Promise.resolve(cachedMappings) : ServerMappingsService.getAllMappingsForBar(targetBarId)
       ]);
 
-      // 3️⃣ Traiter les résultats
-      const [membersResult, mappingsResult] = results;
-
-      // Mettre à jour le state avec les membres
+      // Traitement Membres
       if (membersResult.status === 'fulfilled') {
-        setBarMembers(membersResult.value);
-      } else {
-        console.error('[BarContext] Members loading failed:', membersResult.reason);
-        setBarMembers([]);
+        const membersFn = membersResult.value.map(m => ({
+          id: `${targetBarId}_${m.id}`,
+          userId: m.id,
+          barId: targetBarId,
+          role: m.role as UserRole,
+          assignedBy: '',
+          assignedAt: m.joined_at ? new Date(m.joined_at) : new Date(),
+          isActive: m.member_is_active || false,
+          user: {
+            id: m.id,
+            username: m.username || '',
+            name: m.name,
+            email: m.email,
+            phone: m.phone,
+            role: m.role as UserRole,
+            // ... autres champs optionnels ...
+            createdAt: new Date(),
+            isActive: true
+          }
+        } as BarMember));
+        setBarMembers(membersFn);
       }
 
-      // Log des résultats mappings (debug amélioré)
+      // Traitement Mappings
       if (mappingsResult.status === 'fulfilled') {
-        // ✨ SECURITE RUNTIME (Fix Crash): Vérifier que c'est bien un tableau
         const mappings = Array.isArray(mappingsResult.value) ? mappingsResult.value : [];
-        const count = mappings.length;
-
-        if (count > 0) {
-          console.log(`[BarContext] ✅ Mappings ready: ${count} entries preloaded`);
-        } else {
-          console.warn('[BarContext] ⚠️ Mappings empty (no server mappings configured for this bar)');
+        if (mappings.length > 0 && !shouldBlock) {
+          OfflineStorage.saveMappings(targetBarId, mappings);
         }
-      } else {
-        console.error('[BarContext] ❌ Mappings preload failed:', mappingsResult.reason);
       }
 
     } catch (error) {
-      console.error('[BarContext] Error in refreshMembers:', error);
+      console.error('[BarContext] refreshMembers failed:', error);
     }
   }, []);
 
@@ -498,7 +425,6 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [currentBar?.id, refreshMembers]);
 
-
   // Helper pour obtenir les bars accessibles
   const getUserBars = useCallback(() => {
     return userBars;
@@ -512,8 +438,6 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return;
     }
 
-    // 🔧 FIX: Prioriser currentBarId (si défini manuellement via switchBar) AVANT currentSession.barId
-    // Cela permet au switching manuel de fonctionner correctement
     if (currentBarId) {
       const bar = bars.find(b => b.id === currentBarId);
       if (bar) {
@@ -525,7 +449,6 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     }
 
-    // Puis utiliser le barId de la session (fallback)
     if (currentSession.barId && currentSession.barId !== 'admin_global') {
       const sessionBar = bars.find(b => b.id === currentSession.barId);
       if (sessionBar) {
@@ -535,7 +458,6 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     }
 
-    // 💾 Essayer de restaurer depuis le cache offline si le promoteur a plusieurs bars
     const accessibleBars = getUserBars();
     if (accessibleBars.length > 1) {
       const savedBarId = OfflineStorage.getCurrentBarId();
@@ -549,7 +471,6 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     }
 
-    // Sinon, prendre le premier bar accessible
     if (accessibleBars.length > 0) {
       setCurrentBar(accessibleBars[0]);
       setCurrentBarId(accessibleBars[0].id);
@@ -571,17 +492,15 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         owner_id: ownerId,
         address: barData.address,
         phone: barData.phone,
-        settings: barData.settings as unknown as Json, // ✅ Type-safe: Json is Supabase's JSONB type
+        settings: barData.settings as unknown as Json,
         closing_hour: barData.closingHour,
       };
 
       const createdBar = await BarsService.createBar(newBarData);
       const newBar = createdBar;
 
-      // Rafraîchir la liste des bars
       await refreshBars();
 
-      // Log création bar
       auditLogger.log({
         event: 'BAR_CREATED',
         severity: 'info',
@@ -608,42 +527,32 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [currentSession, hasPermission, refreshBars]);
 
-  /* ------------------------------------------------------------------
-   * UPDATE BAR (OPTIMISTIC UI VERSION)
-   * ------------------------------------------------------------------ */
   const updateBar = useCallback(async (barId: string, updates: Partial<Bar>) => {
-    // Permission check
     if (!currentSession || !hasPermission('canManageBarInfo')) return;
 
     try {
       const oldBar = bars.find(b => b.id === barId);
       if (!oldBar) return;
 
-      // 1. Optimistic Update (Immediate Local State Change)
-      // On crée la nouvelle version de l'objet Bar en fusionnant les updates
       const optimisticBar: Bar = {
         ...oldBar,
         ...updates,
-        settings: { ...oldBar.settings, ...updates.settings } // Deep merge settings
+        settings: { ...oldBar.settings, ...updates.settings }
       };
 
-      // Appliquer immédiatement au State React
       setBars(prev => prev.map(b => b.id === barId ? optimisticBar : b));
       setUserBars(prev => prev.map(b => b.id === barId ? optimisticBar : b));
       if (currentBar?.id === barId) {
         setCurrentBar(optimisticBar);
       }
 
-      // 2. Persistance locale SYSTÉMATIQUE (Crucial pour éviter le revert offline)
       const currentCachedBars = OfflineStorage.getBars() || [];
       const updatedCachedBars = currentCachedBars.map(b => b.id === barId ? optimisticBar : b);
       OfflineStorage.saveBars(updatedCachedBars);
 
-      // 3. Persistance distante (Sync différée si offline/instable)
       const { shouldBlock } = networkManager.getDecision();
 
       if (shouldBlock) {
-        // Mode Hors Ligne : On met en file d'attente
         console.log('[BarContext] Offline update - queuing changes');
         await offlineQueue.addOperation(
           'UPDATE_BAR',
@@ -652,16 +561,14 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           currentSession.userId
         );
       } else {
-        // Mode En Ligne : On envoie au serveur
         console.log('[BarContext] Online update - sending to server');
 
-        // Mapper pour Supabase
         type BarUpdatePayload = Partial<BarUpdate & { theme_config?: unknown }>;
         const supabaseUpdates: BarUpdatePayload = {};
         if (updates.name) supabaseUpdates.name = updates.name;
         if (updates.address) supabaseUpdates.address = updates.address;
         if (updates.phone) supabaseUpdates.phone = updates.phone;
-        if (updates.settings) supabaseUpdates.settings = updates.settings as unknown as Json; // ✅ Type-safe: Json is Supabase's JSONB type
+        if (updates.settings) supabaseUpdates.settings = updates.settings as unknown as Json;
         if (updates.isActive !== undefined) supabaseUpdates.is_active = updates.isActive;
         if (updates.closingHour !== undefined) supabaseUpdates.closing_hour = updates.closingHour;
         if (updates.theme_config !== undefined) supabaseUpdates.theme_config = updates.theme_config;
@@ -670,21 +577,17 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           await BarsService.updateBar(barId, supabaseUpdates);
         } catch (serverError) {
           console.error('[BarContext] Server update failed, rolling back:', serverError);
-
-          // ⭐ ROLLBACK: Restaurer l'ancien état (React + LocalStorage)
-          const backupBars = bars; // 'bars' est déjà l'ancien array avant cette mutation
+          const backupBars = bars;
           setBars(backupBars);
           setUserBars(backupBars);
           if (currentBar?.id === barId) {
             setCurrentBar(oldBar);
           }
           OfflineStorage.saveBars(backupBars);
-
-          throw serverError; // Re-throw pour notification UI si géré plus haut
+          throw serverError;
         }
       }
 
-      // 3. Audit Log (Toujours, même si offline c'est géré par le logger interne qui a sa propre queue)
       auditLogger.log({
         event: 'BAR_UPDATED',
         severity: 'info',
@@ -717,11 +620,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const canAccessBar = useCallback((barId: string) => {
     if (!currentSession) return false;
-
-    // Le promoteur accède à tous ses bars
     if (isOwner(barId)) return true;
-
-    // Les autres accèdent seulement à leur bar assigné
     return barMembers.some(
       m => m.userId === currentSession.userId &&
         m.barId === barId &&
@@ -730,10 +629,6 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [currentSession, barMembers, isOwner]);
 
   const switchBar = useCallback(async (barId: string) => {
-    // Note: canAccessBar checks local barMembers which might be scoped to current bar.
-    // We trust isOwner first, then fallback to fetching.
-
-    // Trouver le bar dans la liste pour obtenir son nom
     const bar = bars.find(b => b.id === barId);
     if (!bar) {
       console.error('[BarContext] Bar not found in bars array:', barId);
@@ -742,18 +637,14 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     if (!currentSession) return;
 
-    // Déterminer le nouveau rôle
     let newRole: UserRole = currentSession.role;
 
-    // 1. Si Super Admin global, on garde Super Admin
     if (currentSession.role === 'super_admin') {
       newRole = 'super_admin';
     }
-    // 2. Si Owner du bar cible -> Promoteur
     else if (bar.ownerId === currentSession.userId) {
       newRole = 'promoteur';
     }
-    // 3. Sinon, il faut chercher le rôle dans la table bar_members
     else {
       try {
         const { data: member, error } = await supabase
@@ -769,23 +660,17 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         } else {
           console.warn('[BarContext] Could not find member role for bar:', barId, error);
           console.error('[BarContext] Access Denied: No membership found for this bar');
-          return; // Block access
+          return;
         }
       } catch (err) {
         console.error('[BarContext] Error fetching role during switch:', err);
       }
     }
 
-    // Mettre à jour le bar local
     setCurrentBarId(barId);
-
-    // 💾 Sauvegarder le bar sélectionné pour offline
     OfflineStorage.saveCurrentBarId(barId);
-
-    // Mettre à jour la session AuthContext avec le NOUVEAU RÔLE
     updateCurrentBar(barId, bar.name, newRole);
 
-    // 🔄 Rafraîchir les données du bar (pour isSetupComplete, settings, etc.)
     try {
       await refreshBars();
     } catch (error) {
@@ -793,11 +678,9 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [bars, updateCurrentBar, currentSession, refreshBars]);
 
-  // Gestion des membres
   const getBarMembers = useCallback(async (barId: string): Promise<(BarMember & { user: User })[]> => {
     try {
       const members = await AuthService.getBarMembers(barId);
-
       return members.map(m => ({
         id: `${barId}_${m.id}`,
         userId: m.id,
@@ -819,7 +702,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           avatarUrl: m.avatar_url || undefined,
           lastLoginAt: m.last_login_at ? new Date(m.last_login_at) : undefined,
           createdBy: undefined,
-          role: m.role as UserRole // ✨ FIX
+          role: m.role as UserRole
         }
       }));
     } catch (error) {
@@ -828,113 +711,65 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [currentSession]);
 
-  const addBarMember = useCallback(async (userId: string, role: UserRole): Promise<BarMember | null> => {
-    if (!currentSession || !currentBar) return null;
+  /* ------------------------------------------------------------------
+   * MEMBER MANAGEMENT (CENTRALIZED VIA SERVICE)
+   * ------------------------------------------------------------------ */
 
-    // Vérifier les permissions
-    if (role === 'gerant' && !hasPermission('canCreateManagers')) return null;
-    if (role === 'serveur' && !hasPermission('canCreateServers')) return null;
+  const addBarMember = useCallback(async (userId: string, role: UserRole): Promise<BarMember | null> => {
+    if (!currentBar || !currentSession) return null;
 
     try {
-      // 🛡️ 12.1 VALIDATION PRÉVENTIVE (Option C)
-      if (role === 'serveur') {
-        // On récupère le nom pour vérifier les collisions de mapping AVANT l'ajout
-        const { data: userData } = await supabase.from('users').select('name').eq('id', userId).single();
-        const userName = userData?.name?.trim();
+      // ✅ Utilisation du Service Centralisé
+      const result = await BarsService.addMember(currentBar.id, userId, role, currentSession.userId);
 
-        if (userName) {
-          const existingMappings = OfflineStorage.getMappings(currentBar.id) || [];
-          if (existingMappings.some(m => m.serverName === userName)) {
-            const errorMsg = `🛑 Conflit de nom : Un mapping pour "${userName}" existe déjà dans ce bar.`;
-            console.error('[BarContext]', errorMsg);
-            toast.error(errorMsg);
-            return null; // BLOQUE L'AJOUT
-          }
-        }
-      }
-
-      // Ajouter via Supabase
-      const insertData: BarMemberInsert = {
-        user_id: userId,
-        bar_id: currentBar.id,
-        role: role,
-        assigned_by: currentSession.userId,
-        is_active: true,
-      };
-
-      // ✅ Type-safe insert with Database schema
-      const { data, error } = await barMembersTable()
-        .insert(insertData)
-        .select()
-        .single();
-
-      if (error || !data) {
-        console.error('[BarContext] Error adding member:', error);
+      if (!result.success) {
+        toast.error(result.error || "Erreur lors de l'ajout");
         return null;
       }
 
-      const memberData = data as BarMemberRow;
+      toast.success("Membre ajouté avec succès");
+
+      // Refresh local state optimiste ou complet
+      // On reconstruit un objet membre temporaire pour l'UI immédiate
       const newMember: BarMember = {
-        id: memberData.id,
-        userId: memberData.user_id as string,
-        barId: memberData.bar_id,
-        role: memberData.role as UserRole,
-        assignedBy: memberData.assigned_by || currentSession.userId,
-        assignedAt: memberData.joined_at ? new Date(memberData.joined_at) : new Date(),
-        isActive: memberData.is_active ?? true,
+        id: `${currentBar.id}_${userId}`, // ID composite pour l'UI
+        userId,
+        barId: currentBar.id,
+        role,
+        assignedBy: currentSession.userId,
+        assignedAt: new Date(),
+        isActive: true
       };
 
-      // Rafraîchir les membres
       setBarMembers(prev => [...prev, newMember]);
 
-      // ✨ Auto-créer le mapping (On peut maintenant l'appeler sans peur car on a déjà validé)
-      if (role === 'serveur') {
-        autoCreateServerMapping(currentBar.id, userId).catch(err => {
-          console.error('[BarContext] Auto-mapping follow-up failed:', err);
-        });
-      }
+      // Late refresh pour les détails (nom, etc)
+      refreshMembers(currentBar.id);
 
       return newMember;
     } catch (error) {
       console.error('[BarContext] Error adding member:', error);
+      toast.error("Erreur inattendue");
       return null;
     }
-  }, [currentSession, currentBar, hasPermission]);
+  }, [currentBar, currentSession, refreshMembers]);
 
   const removeBarMember = useCallback(async (memberId: string): Promise<{ success: boolean; error?: string }> => {
-    if (!currentSession) return { success: false, error: 'No session' };
+    if (!currentSession || !currentBar) return { success: false, error: 'No session' };
 
     try {
+      // Trouver le membre pour avoir son vrai userId (memberId est composite parfois)
       const member = barMembers.find(m => m.id === memberId);
       if (!member) return { success: false, error: 'Member not found' };
 
-      // Seul le promoteur peut retirer des gérants
-      if (member.role === 'gerant' && !hasPermission('canCreateManagers')) {
-        return { success: false, error: 'No permission to remove managers' };
-      }
-      // Gérants et promoteurs peuvent retirer des serveurs
-      if (member.role === 'serveur' && !hasPermission('canCreateServers')) {
-        return { success: false, error: 'No permission to remove servers' };
+      // ✅ Utilisation du Service Centralisé
+      const result = await BarsService.removeMember(currentBar.id, member.userId, currentSession.userId);
+
+      if (!result.success) {
+        return { success: false, error: result.error };
       }
 
-      // 🔧 BUG FIX: memberId est un ID composé (barId_userId) pour affichage
-      // Mais la table bar_members utilise user_id + bar_id comme clé composite unique
-      // Solution: utiliser directement user_id et bar_id pour identifier et désactiver
-
-      const targetBarId = currentBar?.id || member.barId;
-
-      // ✅ Type-safe update with Database schema (soft delete using composite key)
-      const { error: updateError } = await barMembersTable()
-        .update({ is_active: false })
-        .eq('user_id', member.userId)
-        .eq('bar_id', targetBarId);
-
-      if (updateError) {
-        console.error('[BarContext] Supabase update error:', updateError);
-        return { success: false, error: updateError.message || 'Database update failed' };
-      }
-
-      // Mettre à jour localement
+      // Update UI immediat
       setBarMembers(prev => prev.map(m =>
         m.id === memberId ? { ...m, isActive: false } : m
       ));
@@ -942,32 +777,28 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return { success: true };
     } catch (error: any) {
       console.error('[BarContext] Error removing member:', error);
-      return { success: false, error: error.message || 'Unknown error occurred' };
+      return { success: false, error: error.message };
     }
-  }, [currentSession, hasPermission, barMembers, currentBar]);
+  }, [currentSession, currentBar, barMembers]);
 
   const updateBarMember = useCallback(async (memberId: string, updates: Partial<BarMember>) => {
-    if (!currentSession) return;
+    if (!currentSession || !currentBar) return;
 
-    try {
-      // Mapper les updates au format Supabase
-      const supabaseUpdates: BarMemberUpdate = {};
-      if (updates.role) supabaseUpdates.role = updates.role;
-      if (updates.isActive !== undefined) supabaseUpdates.is_active = updates.isActive;
+    // Pour l'instant on ne gère que le rôle via le service dédié
+    if (updates.role) {
+      const member = barMembers.find(m => m.id === memberId);
+      if (!member) return;
 
-      // ✅ Type-safe update with Database schema
-      await barMembersTable()
-        .update(supabaseUpdates)
-        .eq('id', memberId);
+      const result = await BarsService.updateMemberRole(currentBar.id, member.userId, updates.role, currentSession.userId);
 
-      // Mettre à jour localement
-      setBarMembers(prev => prev.map(member =>
-        member.id === memberId ? { ...member, ...updates } : member
-      ));
-    } catch (error) {
-      console.error('[BarContext] Error updating member:', error);
+      if (result.success) {
+        setBarMembers(prev => prev.map(m => m.id === memberId ? { ...m, role: updates.role } : m));
+        toast.success("Rôle mis à jour");
+      } else {
+        toast.error(result.error || "Erreur maj rôle");
+      }
     }
-  }, [currentSession, barMembers, currentBar]);
+  }, [currentSession, currentBar, barMembers]);
 
   const value: BarContextType = {
     bars,

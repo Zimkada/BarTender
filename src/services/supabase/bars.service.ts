@@ -91,49 +91,73 @@ export class BarsService {
   }
 
   /**
-   * Créer un nouveau bar
+   * Créer un nouveau bar via RPC atomique (Bar + Membre promoteur en 1 transaction)
+   * ✅ EXPERT FIX: RPC retourne les champs complets du bar, éliminant le besoin d'une 2e requête
    * Réservé aux promoteurs et super_admins
    */
   static async createBar(data: CreateBarData): Promise<Bar> {
     try {
-      // 1. Créer le bar
-      const { data: newBar, error: barError } = await supabase
-        .from('bars')
-        .insert({
-          name: data.name,
-          owner_id: data.owner_id,
-          address: data.address,
-          phone: data.phone,
-          logo_url: data.logo_url,
-          settings: data.settings as unknown as Json, // JSONB accepte unknown, sera validé au runtime
-          is_active: true,
-          closing_hour: data.closing_hour ?? 6,
-        })
-        .select()
-        .single();
+      const { data: result, error } = await supabase.rpc('setup_promoter_bar', {
+        p_owner_id: data.owner_id,
+        p_bar_name: data.name,
+        p_address: data.address || undefined,
+        p_phone: data.phone || undefined,
+        p_settings: (data.settings ? JSON.parse(JSON.stringify(data.settings)) : undefined) as unknown as Json,
+      });
 
-      if (barError || !newBar) {
-        throw new Error('Erreur lors de la création du bar');
+      if (error) {
+        // ✅ User-friendly error messages
+        if (error.message.includes('duplicate key') || error.message.includes('unique')) {
+          throw new Error('Un bar avec ce nom existe déjà.');
+        }
+        if (error.message.includes('Permission denied')) {
+          throw new Error('Seuls les super-admins peuvent créer des bars.');
+        }
+        if (error.message.includes('foreign key')) {
+          throw new Error('Propriétaire invalide. Veuillez vérifier l\'ID utilisateur.');
+        }
+        throw new Error(handleSupabaseError(error));
       }
 
-      // 2. Créer l'association bar_member pour le propriétaire
-      const { error: memberError } = await supabase
-        .from('bar_members')
-        .insert({
-          bar_id: newBar.id,
-          user_id: data.owner_id,
-          role: 'promoteur',
-          assigned_by: data.owner_id,
-          is_active: true,
-        });
-
-      if (memberError) {
-        // Rollback: supprimer le bar créé
-        await supabase.from('bars').delete().eq('id', newBar.id);
-        throw new Error('Erreur lors de l\'assignation du propriétaire');
+      // ✅ Type-safe result from RPC (now includes full bar record)
+      interface BarCreationResult {
+        success: boolean;
+        bar_id: string;
+        id: string;
+        name: string;
+        owner_id: string;
+        address: string | null;
+        phone: string | null;
+        logo_url: string | null;
+        settings: unknown;
+        is_active: boolean;
+        closing_hour: number;
+        created_at: string;
+        updated_at: string;
       }
 
-      return this.mapToBar(newBar);
+      const creationResult = result as unknown as BarCreationResult;
+
+      if (!creationResult?.success || !creationResult?.id) {
+        throw new Error('Erreur inattendue lors de la création du bar (RPC)');
+      }
+
+      // ✅ ATOMICITY: Directly map RPC result to Bar without 2nd fetch
+      // The bar record is already complete from the RPC response
+      return {
+        id: creationResult.id,
+        name: creationResult.name,
+        address: creationResult.address || undefined,
+        phone: creationResult.phone || undefined,
+        email: undefined, // RPC doesn't return email, kept for API compatibility
+        ownerId: creationResult.owner_id,
+        createdAt: new Date(creationResult.created_at),
+        isActive: creationResult.is_active,
+        closingHour: creationResult.closing_hour ?? 6,
+        settings: (creationResult.settings || {}) as BarSettings,
+        theme_config: undefined, // Not returned by RPC
+        isSetupComplete: false, // Newly created bars are not setup complete
+      };
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
@@ -563,43 +587,147 @@ export class BarsService {
   /**
    * Ajouter un membre existant au bar (par ID ou Email)
    */
+  /**
+   * Ajouter un membre existant au bar (par ID ou Email)
+   * Utilise le RPC de lookup V2 pour la sécurité
+   */
   static async addMemberExisting(
     barId: string,
     identifier: { userId?: string; email?: string },
-    role: 'gerant' | 'serveur'
+    role: 'gerant' | 'serveur',
+    assignedByUserId: string // ✅ Added required field for audit
   ): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
       const { data, error } = await supabase
-        .rpc('add_bar_member_existing', {
+        .rpc('add_bar_member_lookup', {
           p_bar_id: barId,
+          p_role: role,
+          p_assigned_by_id: assignedByUserId,
           p_user_id: identifier.userId ?? undefined,
-          p_email: identifier.email ?? undefined,
-          p_role: role
+          p_email: identifier.email ?? undefined
         });
 
       if (error) {
-        throw new Error(error.message);
+        throw error;
       }
 
-      // Cast the JSON result to a typed object
-      const result = AddMemberResultSchema.parse(data);
+      // Result is JSONB from add_bar_member_v2: { success, member_id, error }
+      const result = data as { success: boolean; member_id?: string; error?: string };
 
       if (!result.success) {
         return { success: false, error: result.error || 'Erreur inconnue' };
       }
 
-      return { success: true, message: result?.message };
+      return { success: true, message: 'Membre ajouté avec succès' };
     } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      console.error('Error adding existing member:', errorMessage);
-      return { success: false, error: errorMessage };
+      console.error('[BarsService] addMemberExisting error:', error);
+      return { success: false, error: getErrorMessage(error) };
     }
   }
 
   /**
-   * Assigner un membre utilisateur à un bar
-   * Support upsert pour éviter les doublons
-   * Utilisé par onboarding pour assigner des managers
+   * ✅ Ajouter ou Mettre à jour un membre (CENTRALISÉ, Atomic RPC)
+   * Gère: Permissions, Collision Mapping, Audit Log
+   */
+  static async addMember(
+    barId: string,
+    userId: string,
+    role: UserRole,
+    assignedByUserId: string
+  ): Promise<{ success: boolean; memberId?: string; error?: string }> {
+    try {
+      const { data, error } = await supabase.rpc('add_bar_member_v2', {
+        p_bar_id: barId,
+        p_user_id: userId,
+        p_role: role,
+        p_assigned_by_id: assignedByUserId
+      });
+
+      if (error) throw error;
+
+      // Data is JSONB due to RETURNS JSONB
+      // Supabase JS often auto-parses, but let's be safe
+      const result = data as { success: boolean; member_id?: string; error?: string };
+
+      if (!result.success) {
+        return { success: false, error: result.error };
+      }
+
+      return { success: true, memberId: result.member_id };
+    } catch (error) {
+      console.error('[BarsService] addMember error:', error);
+      return { success: false, error: getErrorMessage(error) };
+    }
+  }
+
+  /**
+   * ✅ Retirer un membre (CENTRALISÉ, Atomic RPC)
+   * Gère: Permissions, Soft Delete, Audit Log
+   */
+  static async removeMember(
+    barId: string,
+    userIdToRemove: string,
+    removedByUserId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { data, error } = await supabase.rpc('remove_bar_member_v2', {
+        p_bar_id: barId,
+        p_user_id_to_remove: userIdToRemove,
+        p_removed_by_id: removedByUserId
+      });
+
+      if (error) throw error;
+
+      const result = data as { success: boolean; error?: string };
+      if (!result.success) {
+        return { success: false, error: result.error };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('[BarsService] removeMember error:', error);
+      return { success: false, error: getErrorMessage(error) };
+    }
+  }
+
+  /**
+   * ✅ Changer le rôle d'un membre (Update)
+   * Wrapper autour de addMember (Upsert) pour sémantique claire
+   */
+  static async updateMemberRole(
+    barId: string,
+    userId: string,
+    newRole: UserRole,
+    updatedByUserId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    return this.addMember(barId, userId, newRole, updatedByUserId);
+  }
+
+  /**
+   * ✅ Vérifier permission (Source de vérité Serveur)
+   */
+  static async canManageMembers(
+    barId: string,
+    userId: string,
+    action: 'create_manager' | 'create_server' | 'remove_member'
+  ): Promise<boolean> {
+    try {
+      const { data, error } = await supabase.rpc('check_user_can_manage_members', {
+        p_bar_id: barId,
+        p_user_id: userId,
+        p_action: action
+      });
+
+      if (error) return false;
+      return !!data;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  /**
+   * Assigner un membre utilisateur à un bar (Legacy - Deprecated by addMember)
+   * @deprecated Use addMember instead
    */
   static async assignMemberToBar(
     barId: string,
@@ -607,22 +735,8 @@ export class BarsService {
     role: 'promoteur' | 'gerant' | 'serveur',
     assignedByUserId: string
   ): Promise<void> {
-    try {
-      const { error } = await supabase
-        .from('bar_members')
-        .upsert({
-          bar_id: barId,
-          user_id: userId,
-          role,
-          assigned_by: assignedByUserId,
-          is_active: true,
-        } as BarMemberInsert, { onConflict: 'bar_id,user_id' });
-
-      if (error) {
-        throw new Error(`Erreur lors de l'assignation du membre: ${error.message}`);
-      }
-    } catch (error) {
-      throw new Error(handleSupabaseError(error));
-    }
+    // Forward to new implementation for backward compat if called
+    const res = await this.addMember(barId, userId, role, assignedByUserId);
+    if (!res.success) throw new Error(res.error);
   }
 }

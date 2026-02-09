@@ -427,6 +427,7 @@ export class AuthService {
 
   /**
    * Setup a new bar for an existing promoter (super_admin only)
+   * ✅ EXPERT FIX: Uses improved RPC that returns complete bar record (eliminates 2nd fetch)
    * @param ownerId UUID of the promoter who will own the bar
    * @param barName Name of the bar
    * @param barAddress Optional address of the bar
@@ -442,39 +443,59 @@ export class AuthService {
     barSettings?: Json
   ): Promise<{ success: boolean; barId?: string; barName?: string; barAddress?: string; barPhone?: string; error?: string }> {
     try {
+      // ✅ Validate inputs before sending to RPC
+      if (!ownerId || !barName?.trim()) {
+        throw new Error('Le nom du bar et l\'ID du propriétaire sont requis');
+      }
+
+      // ✅ Serialize settings safely to avoid JSON serialization issues
+      const serializedSettings = barSettings
+        ? (JSON.parse(JSON.stringify(barSettings)) as Json)
+        : undefined;
+
       const { data, error } = await supabase.rpc('setup_promoter_bar', {
         p_owner_id: ownerId,
         p_bar_name: barName,
         p_address: barAddress || undefined,
         p_phone: barPhone || undefined,
-        p_settings: barSettings || undefined,
+        p_settings: serializedSettings,
       });
 
       if (error) {
-        // Messages d'erreur utilisateur conviviaux
-        if (error.message.includes('duplicate key')) {
+        // ✅ User-friendly error messages for common errors
+        if (error.message.includes('duplicate key') || error.message.includes('unique')) {
           throw new Error('Un bar avec ce nom existe déjà.');
         }
+        if (error.message.includes('Permission denied')) {
+          throw new Error('Vous n\'avez pas les droits pour créer un bar.');
+        }
         if (error.message.includes('foreign key')) {
-          throw new Error('Utilisateur invalide. Veuillez réessayer.');
+          throw new Error('Utilisateur invalide. Veuillez vérifier l\'ID utilisateur.');
         }
         throw new Error(error.message);
       }
 
-      const result = data as {
+      // ✅ Type-safe result parsing
+      interface SetupBarResult {
         success: boolean;
         bar_id: string;
         bar_name: string;
-        bar_address: string;
-        bar_phone: string;
-      };
+        bar_address: string | null;
+        bar_phone: string | null;
+      }
+
+      const result = data as unknown as SetupBarResult;
+
+      if (!result?.success || !result?.bar_id) {
+        throw new Error('La création du bar a échoué (RPC a retourné un état invalide)');
+      }
 
       return {
-        success: result.success,
+        success: true,
         barId: result.bar_id,
         barName: result.bar_name,
-        barAddress: result.bar_address,
-        barPhone: result.bar_phone,
+        barAddress: result.bar_address || undefined,
+        barPhone: result.bar_phone || undefined,
       };
     } catch (error) {
       console.error('AuthService setupPromoterBar error:', error);
