@@ -246,19 +246,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // --- PRODUCTS (Read Only) ---
     const getProductsByCategory = useCallback((categoryId: string) => products.filter(p => p.categoryId === categoryId), [products]);
-
-    /**
-     * @deprecated Use Smart Hooks instead: useUnifiedStock().products with allProductsStockInfo
-     * This method returns empty array now (Pillar 3: AppProvider cleanup)
-     */
-    const getLowStockProducts = useCallback(() => {
-        return products.filter(p => {
-            const stockInfo = allProductsStockInfo[p.id];
-            const stockToCompare = stockInfo ? stockInfo.availableStock : p.stock;
-            return stockToCompare <= p.alertThreshold;
-        });
-    }, [products, allProductsStockInfo]);
-
     const getProductById = useCallback((id: string) => products.find(p => p.id === id), [products]);
 
     // --- SUPPLIES (Read Only) ---
@@ -513,28 +500,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const getReturnsBySale = useCallback((saleId: string) => returns.filter(r => r.saleId === saleId), [returns]);
     const getPendingReturns = useCallback(() => returns.filter(r => r.status === 'pending'), [returns]);
 
-    /**
-     * @deprecated Use Smart Hooks instead: useUnifiedReturns().getTodayReturns()
-     * This method returns empty array now (Pillar 3: AppProvider cleanup)
-     */
-    const getTodayReturns = useCallback(() => {
-        const closeHour = currentBar?.closingHour ?? BUSINESS_DAY_CLOSE_HOUR;
-        const todayStr = getCurrentBusinessDateString(closeHour);
-
-        const todayReturnsList = filterByBusinessDateRange(returns, todayStr, todayStr, closeHour);
-
-        if (currentSession?.role === 'serveur') {
-            // ✨ MODE SWITCHING FIX: A server should see ALL their returns regardless of mode
-            // Check BOTH serverId (simplified mode) AND returnedBy (full mode)
-            // Source of truth: returnedBy is who created the return, serverId is the server
-            return todayReturnsList.filter(r =>
-                r.returnedBy === currentSession.userId || r.serverId === currentSession.userId
-            );
-        }
-        return todayReturnsList;
-    }, [returns, currentSession, currentBar]);
-
-
     // --- EXPENSES ---
     const addExpense = useCallback((expenseData: Omit<Expense, 'id' | 'barId' | 'createdAt'>) => {
         if (!hasPermission('canManageInventory') || !currentBar || !currentSession) return;
@@ -568,12 +533,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addCategory,
         linkCategory,
         addCategories, updateCategory, deleteCategory,
-        getProductsByCategory, getLowStockProducts, getProductById,
+        getProductsByCategory, getProductById,
         getSuppliesByProduct, getTotalCostByProduct, getAverageCostPerUnit,
         addSale, validateSale, rejectSale,
         getSalesByDate, getTodaySales, getTodayTotal, getSalesByUser,
         getServerRevenue, getServerReturns,
-        addReturn, updateReturn, deleteReturn, getReturnsBySale, getPendingReturns, getTodayReturns,
+        addReturn, updateReturn, deleteReturn, getReturnsBySale, getPendingReturns,
         addExpense, deleteExpense, addCustomExpenseCategory,
         updateSettings,
         initializeBarData,
@@ -582,12 +547,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         expenses, customExpenseCategories,
         cart, addToCart, updateCartQuantity, removeFromCart, clearCart,
         addCategory, linkCategory, addCategories, updateCategory, deleteCategory,
-        getProductsByCategory, getLowStockProducts, getProductById,
+        getProductsByCategory, getProductById,
         getSuppliesByProduct, getTotalCostByProduct, getAverageCostPerUnit,
         addSale, validateSale, rejectSale,
         getSalesByDate, getTodaySales, getTodayTotal, getSalesByUser,
         getServerRevenue, getServerReturns,
-        addReturn, updateReturn, deleteReturn, getReturnsBySale, getPendingReturns, getTodayReturns,
+        addReturn, updateReturn, deleteReturn, getReturnsBySale, getPendingReturns,
         addExpense, deleteExpense, addCustomExpenseCategory,
         updateSettings, initializeBarData
     ]);

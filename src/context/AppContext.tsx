@@ -37,7 +37,6 @@ export interface AppContextType {
 
   // Produits (lecture seule - mutations via StockContext)
   getProductsByCategory: (categoryId: string) => Product[];
-  getLowStockProducts: () => Product[];
   getProductById: (id: string) => Product | undefined;
 
   // Approvisionnements
@@ -63,7 +62,6 @@ export interface AppContextType {
   deleteReturn: (returnId: string) => void;
   getReturnsBySale: (saleId: string) => Return[];
   getPendingReturns: () => Return[];
-  getTodayReturns: () => Return[];
 
   // Dépenses
   expenses: Expense[];
