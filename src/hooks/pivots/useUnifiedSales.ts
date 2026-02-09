@@ -1,0 +1,162 @@
+/**
+ * useUnifiedSales.ts - Smart Hook (Mission Elite)
+ * Unifie les ventes Online (Supabase) et Offline (IndexedDB).
+ * Gère le dédoublonnage strict par idempotency_key.
+ */
+
+import { useMemo, useEffect, useCallback } from 'react';
+import { useQuery, useQueryClient } from '@tantml:react-query';
+import { useSales, salesKeys } from '../queries/useSalesQueries';
+import { useAuth } from '../useAuth';
+import { offlineQueue } from '../../services/offlineQueue';
+import { syncManager } from '../../services/SyncManager';
+import { SalesService } from '../../services/supabase/SalesService';
+import type { Sale, OfflineSale, SaleItem } from '../../types';
+
+/**
+ * Type pour les ventes unifiées (online + offline)
+ * Inclut les champs en snake_case et camelCase pour compatibilité
+ */
+interface UnifiedSale extends Omit<Sale, 'createdAt' | 'validatedAt' | 'rejectedAt'> {
+    created_at: string;
+    business_date: string;
+    idempotency_key: string;
+    isOptimistic?: boolean;
+}
+
+// Toggle pour la migration
+export const USE_UNIFIED_SALES = true;
+
+export const useUnifiedSales = (barId: string | undefined) => {
+    const queryClient = useQueryClient();
+    const { currentSession: session } = useAuth();
+
+    // 1. Ventes Online (via React Query)
+    const { data: onlineSales = [], isLoading: isLoadingOnline } = useSales(barId);
+
+    // 2. Ventes Offline (via IndexedDB)
+    const { data: offlineSales = [], refetch: refetchOffline, isLoading: isLoadingOffline } = useQuery({
+        queryKey: ['offline-sales-list', barId],
+        networkMode: 'always',
+        queryFn: async (): Promise<UnifiedSale[]> => {
+            if (!barId) return [];
+            const ops = await offlineQueue.getOperations({
+                status: 'pending',
+                barId
+            });
+
+            return ops
+                .filter(op => op.type === 'CREATE_SALE')
+                .map(op => {
+                    const payload = op.payload;
+                    const subtotal = payload.items.reduce((sum, item) => sum + item.total_price, 0);
+                    const createdAt = new Date(op.timestamp).toISOString();
+
+                    const unifiedSale: UnifiedSale = {
+                        id: op.id,
+                        barId: payload.bar_id,
+                        items: payload.items as SaleItem[],
+                        total: subtotal,
+                        currency: 'XAF',
+                        status: payload.status as any,
+                        soldBy: payload.sold_by,
+                        createdBy: payload.sold_by,
+                        created_at: createdAt,
+                        business_date: payload.business_date || createdAt.split('T')[0],
+                        idempotency_key: payload.idempotency_key,
+                        idempotencyKey: payload.idempotency_key,
+                        paymentMethod: payload.payment_method,
+                        isOptimistic: true
+                    };
+
+                    return unifiedSale;
+                });
+        },
+        enabled: !!barId
+    });
+
+    // 🚀 Réactivité : Écoute des événements typés
+    useEffect(() => {
+        const handleSync = (e: any) => {
+            if (e.detail?.barId === barId || !e.detail?.barId) {
+                refetchOffline();
+                queryClient.invalidateQueries({ queryKey: salesKeys.list(barId || '') });
+                queryClient.invalidateQueries({ queryKey: salesKeys.stats(barId || '') });
+            }
+        };
+
+        window.addEventListener('sales-synced', handleSync);
+        window.addEventListener('queue-updated', handleSync);
+
+        return () => {
+            window.removeEventListener('sales-synced', handleSync);
+            window.removeEventListener('queue-updated', handleSync);
+        };
+    }, [barId, refetchOffline, queryClient]);
+
+    /**
+     * 🔴 Hash-Based Memoization (Mission Elite)
+     * Stabilise la référence via un hash du contenu réel
+     */
+    const salesHash = useMemo(() => {
+        return JSON.stringify({
+            online: onlineSales.map(s => `${s.id}-${s.total}`),
+            offline: offlineSales.map(s => s.idempotency_key || s.id)
+        });
+    }, [onlineSales, offlineSales]);
+
+    /**
+     * 🔴 FUSION & DÉDOUBLONNAGE (Cœur du Smart Hook)
+     */
+    const unifiedSales = useMemo(() => {
+        const recentlySyncedKeys = syncManager.getRecentlySyncedKeys();
+
+        // Filtrer les ventes offline qui sont déjà arrivées sur le serveur (basé sur le tampon de 5min)
+        const filteredOffline = offlineSales.filter(s => {
+            if (!s.idempotency_key) return true;
+            return !recentlySyncedKeys.has(s.idempotency_key);
+        });
+
+        // Fusionner et trier par date décroissante
+        const combined = [...filteredOffline, ...onlineSales];
+
+        return combined.sort((a, b) => {
+            const dateA = (a as any).created_at || (a as Sale).createdAt;
+            const dateB = (b as any).created_at || (b as Sale).createdAt;
+            return new Date(dateB).getTime() - new Date(dateA).getTime();
+        });
+    }, [salesHash]); // ← Dépendance STABLE via le hash
+
+    /**
+     * 📊 STATISTIQUES CONSOLIDÉES
+     */
+    const stats = useMemo(() => {
+        const today = new Date().toISOString().split('T')[0];
+        const todaySales = unifiedSales.filter(s => s.business_date === today || s.created_at.startsWith(today));
+
+        const totalRevenue = todaySales.reduce((sum, s) => sum + s.total, 0);
+        const count = todaySales.length;
+
+        return {
+            todayTotal: totalRevenue,
+            todayCount: count,
+            sales: todaySales
+        };
+    }, [unifiedSales]);
+
+    // Mutations
+    const addSale = useCallback(async (saleData: any) => {
+        return SalesService.createSale(saleData, { canWorkOffline: true, userId: session?.userId });
+    }, [session]);
+
+    return {
+        sales: unifiedSales,
+        stats,
+        isLoading: isLoadingOnline || isLoadingOffline,
+        addSale,
+        refetch: () => {
+            refetchOffline();
+            queryClient.invalidateQueries({ queryKey: salesKeys.all });
+        }
+    };
+};

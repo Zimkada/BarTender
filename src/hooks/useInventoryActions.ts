@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Product } from '../types';
 import { useStockManagement } from './useStockManagement';
+import { useUnifiedStock, USE_UNIFIED_STOCK } from './pivots/useUnifiedStock';
 import { useStockAdjustment } from './mutations/useStockAdjustment';
 import { useFeedback } from './useFeedback';
 import { useAuth } from '../context/AuthContext';
@@ -8,12 +9,15 @@ import { useBarContext } from '../context/BarContext';
 import { useAppContext } from '../context/AppContext';
 
 export function useInventoryActions() {
-    const { addProduct, updateProduct, deleteProduct, processSupply } = useStockManagement();
-    const stockAdjustmentMutation = useStockAdjustment();
-    const { showSuccess, showError } = useFeedback();
     const { currentBar } = useBarContext();
     const { currentSession } = useAuth();
     const { addExpense } = useAppContext();
+    const { showSuccess, showError } = useFeedback();
+
+    // Smart Hook selection (compile-time constant, safe for Rules of Hooks)
+    const stockHook = USE_UNIFIED_STOCK ? useUnifiedStock : useStockManagement;
+    const { addProduct, updateProduct, deleteProduct, processSupply } = stockHook(currentBar?.id);
+    const stockAdjustmentMutation = useStockAdjustment();
 
     // Modal States
     const [showProductModal, setShowProductModal] = useState(false);
