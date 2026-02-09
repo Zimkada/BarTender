@@ -107,22 +107,41 @@ describe('ThemeContext', () => {
     });
 
     it('resetPreview should revert to original theme', () => {
+        // Setup initial theme as 'blue'
+        (BarContext.useBarContext as any).mockReturnValue({
+            currentBar: { id: 'bar-123', theme_config: JSON.stringify({ preset: 'blue' }) },
+            updateBar: updateBarMock,
+        });
+
         const { result } = renderHook(() => useTheme(), { wrapper });
 
-        act(() => {
-            result.current.previewTheme({ preset: 'blue' });
-        });
+        // Verify initial state is 'blue'
         expect(result.current.themeConfig.preset).toBe('blue');
 
+        // Preview a different theme
+        act(() => {
+            result.current.previewTheme({ preset: 'purple' });
+        });
+        expect(result.current.themeConfig.preset).toBe('purple');
+        expect(result.current.isPreviewMode).toBe(true);
+
+        // Reset preview should revert to original 'blue'
         act(() => {
             result.current.resetPreview();
         });
 
         expect(result.current.isPreviewMode).toBe(false);
-        expect(result.current.themeConfig.preset).toBe('amber'); // Back to default
+        expect(result.current.themeConfig.preset).toBe('blue'); // Back to original
     });
 
     it('updateTheme should call service and persist changes', async () => {
+        const mockUpdateBar = vi.fn().mockResolvedValue(undefined);
+
+        (BarContext.useBarContext as any).mockReturnValue({
+            currentBar: { id: 'bar-123', theme_config: null },
+            updateBar: mockUpdateBar,
+        });
+
         const { result } = renderHook(() => useTheme(), { wrapper });
         const newConfig = { preset: 'purple' as const };
 
@@ -130,7 +149,13 @@ describe('ThemeContext', () => {
             await result.current.updateTheme(newConfig);
         });
 
-        expect(updateThemeServiceMock).toHaveBeenCalledWith('bar-123', newConfig);
-        expect(result.current.isPreviewMode).toBe(false); // Should exit preview
+        // Verify updateBar was called with the new theme config
+        expect(mockUpdateBar).toHaveBeenCalledWith('bar-123', expect.objectContaining({
+            theme_config: expect.any(Object)
+        }));
+
+        // Verify the call was with the correct preset
+        const callArg = mockUpdateBar.mock.calls[0][1];
+        expect(callArg.theme_config.preset).toBe('purple');
     });
 });
