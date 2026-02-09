@@ -14,9 +14,13 @@ export function useInventoryActions() {
     const { addExpense } = useAppContext();
     const { showSuccess, showError } = useFeedback();
 
-    // Smart Hook selection (compile-time constant, safe for Rules of Hooks)
-    const stockHook = USE_UNIFIED_STOCK ? useUnifiedStock : useStockManagement;
-    const { addProduct, updateProduct, deleteProduct, processSupply } = stockHook(currentBar?.id);
+    // 🛡️ Elite Stability: Always call both hooks to satisfy Rules of Hooks
+    const unified = useUnifiedStock(currentBar?.id);
+    const legacy = useStockManagement(); // Legacy hook uses context bar internally
+
+    // Pick the active functions based on Pilot Toggle
+    const { addProduct, updateProduct, deleteProduct, processSupply } = USE_UNIFIED_STOCK ? unified : legacy;
+
     const stockAdjustmentMutation = useStockAdjustment();
 
     // Modal States
@@ -116,7 +120,7 @@ export function useInventoryActions() {
         supplier: string;
     }) => {
         try {
-            await processSupply(supplyData, (expenseData) => {
+            await (processSupply as any)(supplyData, (expenseData: any) => {
                 addExpense(expenseData);
             });
             showSuccess('Approvisionnement effectué avec succès');
