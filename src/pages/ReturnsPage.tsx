@@ -11,6 +11,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getMobileAnimationProps } from "../utils/disableAnimationsOnMobile";
 import { useAppContext } from "../context/AppContext";
 import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
+import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
+import { useUnifiedReturns } from '../hooks/pivots/useUnifiedReturns';
 import { useBarContext } from "../context/BarContext";
 import { useAuth } from "../context/AuthContext";
 import { useCurrencyFormatter } from "../hooks/useBeninCurrency";
@@ -42,10 +44,11 @@ import { ReturnsStats } from "../components/returns/ReturnsStats";
 import { AnimatedCounter } from "../components/AnimatedCounter";
 
 export default function ReturnsPage() {
-  const { sales, returns, addReturn, updateReturn, getReturnsBySale } =
-    useAppContext();
+  const { addReturn, updateReturn } = useAppContext();
   const { currentBar, barMembers, operatingMode } = useBarContext();
   const { products, increasePhysicalStock, consignments } = useUnifiedStock(currentBar?.id);
+  const { sales } = useUnifiedSales(currentBar?.id);
+  const { returns, getReturnsBySale } = useUnifiedReturns(currentBar?.id, currentBar?.closingHour);
   const users = Array.isArray(barMembers)
     ? (barMembers.map((m) => m.user).filter(Boolean) as User[])
     : [];
@@ -568,6 +571,7 @@ export default function ReturnsPage() {
                   canReturnSale={canReturnSale}
                   closeHour={closeHour}
                   consignments={consignments}
+                  getReturnsBySale={getReturnsBySale}
                 />
               </div>
             )}
@@ -648,6 +652,7 @@ export default function ReturnsPage() {
                   canReturnSale={canReturnSale}
                   closeHour={closeHour}
                   consignments={consignments}
+                  getReturnsBySale={getReturnsBySale}
                 />
               </motion.div>
             )}

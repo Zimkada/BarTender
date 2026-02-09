@@ -40,6 +40,7 @@ interface CreateReturnFormProps {
   canReturnSale: (sale: Sale) => { allowed: boolean; reason: string };
   closeHour: number;
   consignments: any[];
+  getReturnsBySale: (saleId: string) => any[];
 }
 
 export function CreateReturnForm({
@@ -52,8 +53,9 @@ export function CreateReturnForm({
   canReturnSale,
 
   consignments,
+  getReturnsBySale,
 }: CreateReturnFormProps) {
-  const { getReturnsBySale, products } = useAppContext();
+  const { products } = useAppContext();
   const { barMembers } = useBarContext();
   const { formatPrice } = useCurrencyFormatter();
   const { showError } = useFeedback();

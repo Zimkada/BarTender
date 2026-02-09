@@ -9,6 +9,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUnifiedSales } from '../../hooks/pivots/useUnifiedSales';
 import { useBarContext } from '../../context/BarContext';
+import { useAppContext } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { useFeedback } from '../../hooks/useFeedback';
@@ -22,6 +23,10 @@ import { Label } from '../ui/Label';
 import { Input } from '../ui/Input';
 import { SelectionCard } from '../ui/SelectionCard';
 import { FormStepper } from '../ui/FormStepper';
+import {
+    getBusinessDate,
+    getCurrentBusinessDateString
+} from '../../utils/businessDateHelpers';
 
 interface CreateConsignmentFormProps {
     consignments: Consignment[];
@@ -71,15 +76,27 @@ export function CreateConsignmentForm({
     }, [barExpirationDays]);
 
     // --- DATA DERIVATION ---
-    const todaySales = useMemo(() => {
-        const today = new Date().toISOString().split('T')[0];
-        // Note: businessDate est géré dans useUnifiedSales.stats, mais on peut filtrer ici pour rester local
-        return allSales.filter(s => s.business_date === today || (s as any).created_at?.startsWith(today));
-    }, [allSales]);
+    const availableSales = useMemo(() => {
+        // 🔒 STRICT: Correspondance exacte avec la Journée Commerciale actuelle
+        // Corrige les problèmes de décalage horaire (UTC vs Local) et assure que seuls
+        // les tickets de la journée active sont consignables.
+        const currentBusinessDate = getCurrentBusinessDateString(currentBar?.closingHour);
+
+        return allSales
+            .filter(s => {
+                if (s.status !== 'validated') return false;
+
+                // Le helper gère correctement le dual-casing (businessDate vs business_date)
+                // et la conversion Date/String pour une comparaison fiable "YYYY-MM-DD"
+                const sDate = getBusinessDate(s, currentBar?.closingHour);
+                return sDate === currentBusinessDate;
+            })
+            .sort((a, b) => new Date(b.created_at || b.createdAt).getTime() - new Date(a.created_at || a.createdAt).getTime());
+    }, [allSales, currentBar?.closingHour]);
 
     const filteredSales = useMemo(() => {
         if (!currentBar || !session) return [];
-        let filtered = todaySales;
+        let filtered = availableSales;
 
         if (filterSeller !== 'all') {
             filtered = filtered.filter(sale => sale.soldBy === filterSeller);
@@ -93,20 +110,18 @@ export function CreateConsignmentForm({
             );
         }
 
-        return [...filtered].sort((a, b) =>
-            new Date(b.validatedAt || b.createdAt).getTime() - new Date(a.validatedAt || a.createdAt).getTime()
-        );
-    }, [todaySales, filterSeller, searchTerm, currentBar, session]);
+        return [...filtered];
+    }, [availableSales, filterSeller, searchTerm, currentBar, session]);
 
     const sellersWithSales = useMemo(() => {
-        if (!currentBar || !session || !Array.isArray(todaySales) || !Array.isArray(users)) return [];
-        const sellerIds = new Set(todaySales.map(sale => sale.soldBy).filter(Boolean));
+        if (!currentBar || !session || !Array.isArray(availableSales) || !Array.isArray(users)) return [];
+        const sellerIds = new Set(availableSales.map(sale => sale.soldBy).filter(Boolean));
         return users.filter(user => sellerIds.has(user.id));
-    }, [todaySales, users, currentBar, session]);
+    }, [availableSales, users, currentBar, session]);
 
     const selectedSale = useMemo(() =>
-        todaySales.find(s => s.id === selectedSaleId),
-        [todaySales, selectedSaleId]
+        availableSales.find(s => s.id === selectedSaleId),
+        [availableSales, selectedSaleId]
     );
 
     const selectedProductItem = useMemo(() =>
