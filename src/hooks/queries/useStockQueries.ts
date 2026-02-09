@@ -21,18 +21,43 @@ type SupplyWithProduct = SupplyRow & {
 
 /**
  * ✅ Type guard to validate supply has expected structure
+ * 🛡️ DEFENSIVE: Validates both existence AND type of joined data
  */
 const isSupplyWithProduct = (supply: unknown): supply is SupplyWithProduct => {
     if (!supply || typeof supply !== 'object') return false;
     const s = supply as Record<string, unknown>;
+
+    // Validate bar_product join is either null OR has valid display_name string
+    const hasBarProduct = !s.bar_product || (
+        typeof s.bar_product === 'object' &&
+        s.bar_product !== null &&
+        'display_name' in s.bar_product &&
+        typeof (s.bar_product as any).display_name === 'string' // ✅ Type check added
+    );
+
     return (
         typeof s.id === 'string' &&
         typeof s.bar_id === 'string' &&
         typeof s.product_id === 'string' &&
         typeof s.quantity === 'number' &&
-        typeof s.unit_cost === 'number'
+        typeof s.unit_cost === 'number' &&
+        hasBarProduct // ✅ Now validates type too
     );
 };
+
+/**
+ * 🔧 Realtime Fallback Polling Configuration
+ * Used when Realtime subscription fails or is unavailable
+ *
+ * Products: 30s - Most critical, needs freshest data (POS, stock checks)
+ * Supplies: 60s - Less critical, typically viewed in admin/inventory screens
+ * Consignments: 60s - Less critical, viewed in specific workflows
+ */
+const REALTIME_FALLBACK_INTERVALS = {
+    products: 30000,      // 30s - High priority
+    supplies: 60000,      // 60s - Medium priority
+    consignments: 60000,  // 60s - Medium priority
+} as const;
 
 // Clés de requête pour l'invalidation
 export const stockKeys = {
@@ -51,8 +76,9 @@ export const useProducts = (barId: string | undefined) => {
         barId: barId || undefined,
         enabled: !!barId,
         staleTime: CACHE_STRATEGY.products.staleTime,
-        refetchInterval: 30000,
-        queryKeysToInvalidate: [stockKeys.products(barId || '')] // 🚀 FIX: Invalidate specific stock keys
+        refetchInterval: REALTIME_FALLBACK_INTERVALS.products,
+        queryKeysToInvalidate: [stockKeys.products(barId || '')], // 🚀 FIX: Invalidate specific stock keys
+        // windowEvents: ['stock-synced'] // 🚫 REMOVED: Managed by SyncManager OR Realtime (avoid double invalidation)
     });
 
     // Standard query for fetching products
@@ -67,7 +93,7 @@ export const useProducts = (barId: string | undefined) => {
         staleTime: CACHE_STRATEGY.products.staleTime,
         gcTime: CACHE_STRATEGY.products.gcTime,
         networkMode: 'always', // 🛡️ CRITIQUE: Permet l'accès au cache stock offline
-        refetchInterval: smartSync.isSynced ? false : 30000, // 🚀 Hybride: Realtime si connecté, sinon polling 30s
+        refetchInterval: smartSync.isRealtimeConnected ? false : REALTIME_FALLBACK_INTERVALS.products, // 🚀 Hybride: Polling OFF si Realtime connected
     });
 };
 
@@ -76,12 +102,12 @@ const mapProducts = (dbProducts: BarProductWithDetails[]): Product[] => {
     return dbProducts.map(p => ({
         id: p.id,
         barId: p.bar_id,
-        name: p.display_name || p.local_name || p.name, // Fallback chain
-        volume: p.volume || p.global_product?.volume || p.product_volume || '', // ✨ Fixed: Check local volume first
+        name: p.display_name, // Computed by service
+        volume: p.volume || '', // Should exist on BarProduct (check schema if not)
         price: p.price,
         stock: p.stock ?? 0,
         categoryId: p.local_category_id || '',
-        image: p.display_image || p.local_image || p.official_image || undefined,
+        image: p.display_image || undefined, // Computed by service
         alertThreshold: p.alert_threshold ?? 0,
         createdAt: new Date(p.created_at || Date.now()),
         currentAverageCost: p.current_average_cost ?? 0, // ✨ Added CUMP field
@@ -96,11 +122,16 @@ export const useSupplies = (barId: string | undefined) => {
         barId: barId || undefined,
         enabled: !!barId,
         staleTime: CACHE_STRATEGY.products.staleTime,
-        refetchInterval: 60000,
+        refetchInterval: REALTIME_FALLBACK_INTERVALS.supplies,
         queryKeysToInvalidate: [
             stockKeys.supplies(barId || ''),
-            stockKeys.products(barId || '')
-        ]
+            stockKeys.products(barId || '') // ⚠️ CUMP DEPENDENCY: Supply arrival updates product.current_average_cost
+                                              // If backend updates bar_products.current_average_cost via trigger,
+                                              // Realtime on 'bar_products' (ligne 57) would catch it anyway.
+                                              // This invalidation is DEFENSIVE but creates minor performance overhead.
+                                              // TODO: Consider removing if backend trigger + Realtime proves reliable.
+        ],
+        // windowEvents: ['stock-synced'] // 🚫 REMOVED: Managed by SyncManager OR Realtime (avoid double invalidation)
     });
 
     return useApiQuerySimple(
@@ -131,7 +162,7 @@ export const useSupplies = (barId: string | undefined) => {
             staleTime: CACHE_STRATEGY.products.staleTime,
             gcTime: CACHE_STRATEGY.products.gcTime,
             networkMode: 'always', // 🛡️ CRITIQUE
-            refetchInterval: smartSync.isSynced ? false : 60000, // 🚀 Hybride: Realtime ou polling 60s
+            refetchInterval: smartSync.isRealtimeConnected ? false : 60000, // 🚀 Hybride: Polling OFF si Realtime connected
         }
     );
 };
@@ -151,11 +182,15 @@ export const useConsignments = (barId: string | undefined) => {
         barId: barId || undefined,
         enabled: !!barId,
         staleTime: CACHE_STRATEGY.products.staleTime,
-        refetchInterval: 60000,
+        refetchInterval: REALTIME_FALLBACK_INTERVALS.consignments,
         queryKeysToInvalidate: [
             stockKeys.consignments(barId || ''),
-            stockKeys.products(barId || '') // Les consignations impactent le calcul du stock dispo
-        ]
+            stockKeys.products(barId || '') // ✅ JUSTIFIED: Consignments directly affect availableStock calculation
+                                              // availableStock = physicalStock - consignedQuantity
+                                              // When consignment is claimed/forfeited, availableStock changes
+                                              // This invalidation is NECESSARY for UI consistency
+        ],
+        // windowEvents: ['consignments-synced'] // 🚫 REMOVED: Managed by SyncManager OR Realtime (avoid double invalidation)
     });
 
     return useApiQuerySimple(
@@ -201,7 +236,7 @@ export const useConsignments = (barId: string | undefined) => {
             staleTime: CACHE_STRATEGY.products.staleTime,
             gcTime: CACHE_STRATEGY.products.gcTime,
             networkMode: 'always', // 🛡️ CRITIQUE
-            refetchInterval: smartSync.isSynced ? false : 60000,
+            refetchInterval: smartSync.isRealtimeConnected ? false : 60000,
         }
     );
 };

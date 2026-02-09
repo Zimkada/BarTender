@@ -11,11 +11,31 @@
  * Result: Maximum freshness with minimum Supabase cost
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRealtimeSubscription } from './useRealtimeSubscription';
 import { useBroadcastSync } from './useBroadcastSync';
 import { broadcastService } from '../services/broadcast/BroadcastService';
+import { useDebouncedCallback } from 'use-debounce';
+
+/**
+ * 🛡️ DEFENSIVE: Safe debounce with fallback
+ * If use-debounce library fails, falls back to direct callback
+ */
+const useSafeDebounce = <T extends (...args: any[]) => any>(
+  callback: T,
+  delay: number
+): T & { cancel?: () => void } => {
+  try {
+    return useDebouncedCallback(callback, delay);
+  } catch (error) {
+    console.error('[SmartSync] Debounce library failed, using direct callback:', error);
+    // Fallback: return callback as-is with noop cancel
+    const fallback = callback as T & { cancel?: () => void };
+    fallback.cancel = () => {};
+    return fallback;
+  }
+};
 
 interface UseSmartSyncConfig {
   table: string;
@@ -29,6 +49,12 @@ interface UseSmartSyncConfig {
    * If not provided, it will fallback to a best-guess based on [table, barId].
    */
   queryKeysToInvalidate?: readonly (readonly unknown[])[];
+
+  /**
+   * Optional: List of custom window events to listen to for local invalidation.
+   * Useful for SyncManager integration (e.g. 'sales-synced', 'stock-synced').
+   */
+  windowEvents?: string[];
 }
 
 /**
@@ -69,18 +95,60 @@ export function useSmartSync(config: UseSmartSyncConfig) {
     queryKeysToInvalidate: keys,
     fallbackPollingInterval: refetchInterval,
     onMessage: (payload) => {
-      console.log(`[SmartSync] Realtime change detected for ${table}:`, payload.event);
+      const p = payload as any; // Cast to any since Realtime payload structure varies
+      console.log(`[SmartSync] Realtime change detected for ${table}:`, p.event);
       // When Realtime message received, broadcast to other tabs
       if (broadcastSupported) {
-        broadcast(payload.event === 'DELETE' ? 'DELETE' : payload.event, payload.new || payload.old);
+        broadcast(p.event === 'DELETE' ? 'DELETE' : p.event, p.new || p.old);
       }
       syncStatusRef.current = 'realtime';
     },
     onError: (error) => {
-      console.warn(`[SmartSync] Realtime error for ${table}:`, error.message);
+      const err = error as Error;
+      console.warn(`[SmartSync] Realtime error for ${table}:`, err.message || error);
       syncStatusRef.current = 'polling';
     },
   });
+
+  // 3. Set up Local Window Event Listener (SYNC MANAGER - same tab sync)
+  // 🚀 Debounce to prevent render storms from rapid SyncManager events
+  const handleWindowEvent = useSafeDebounce((e: Event) => {
+    const customEvent = e as CustomEvent;
+    // If event has barId detail, check if it matches
+    if (barId && customEvent.detail?.barId && customEvent.detail.barId !== barId) {
+      return;
+    }
+
+    console.log(`[SmartSync] Local window event detected (debounced): ${e.type}`);
+    // Invalidate queries
+    if (keys.length > 0) {
+      keys.forEach(key => queryClient.invalidateQueries({ queryKey: key }));
+    }
+  }, 100); // 100ms debounce
+
+  // 🛡️ FIX MEMORY LEAK: Stable reference to prevent listener accumulation on re-renders
+  // Without this, each re-render would add a NEW listener but removeEventListener
+  // wouldn't remove the OLD ones because handleWindowEvent reference changes
+  const stableHandlerRef = useRef(handleWindowEvent);
+  stableHandlerRef.current = handleWindowEvent;
+
+  useEffect(() => {
+    if (!config.windowEvents || config.windowEvents.length === 0) return;
+
+    // Use stable reference that won't change between renders
+    const listener = (e: Event) => stableHandlerRef.current(e);
+
+    config.windowEvents.forEach((event: string) => {
+      window.addEventListener(event, listener);
+    });
+
+    return () => {
+      handleWindowEvent.cancel(); // Cancel any pending debounce
+      config.windowEvents.forEach((event: string) => {
+        window.removeEventListener(event, listener); // ✅ Same listener reference!
+      });
+    };
+  }, [config.windowEvents]); // ✅ handleWindowEvent NOT in deps - prevents re-run
 
   // Initialize broadcast service with query client
   useEffect(() => {

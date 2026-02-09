@@ -1,4 +1,4 @@
-import { useQuery, UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
+import { useQuery, UseQueryOptions, UseQueryResult, QueryKey } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 
 /**
@@ -22,14 +22,15 @@ interface UseApiQueryOptions<TData, TError = Error>
 }
 
 export function useApiQuery<TData = unknown, TError = Error>(
-  queryKey: any[],
+  queryKey: QueryKey,
   queryFn: (impersonatingUserId?: string) => Promise<TData>,
   options?: UseApiQueryOptions<TData, TError>
 ): UseQueryResult<TData, TError> {
-  const { isImpersonating, currentSession } = useAuth();
+  const { currentSession } = useAuth(); // Removed isImpersonating temporarily
 
   // Get impersonating user ID if in impersonation mode
-  const impersonatingUserId = isImpersonating ? currentSession?.userId : undefined;
+  // TODO: Restore this when AuthContext supports impersonation
+  const impersonatingUserId = undefined; // isImpersonating ? currentSession?.userId : undefined;
 
   // Call queryFn with impersonatingUserId parameter
   const wrappedQueryFn = () => queryFn(impersonatingUserId);
@@ -46,7 +47,7 @@ export function useApiQuery<TData = unknown, TError = Error>(
  * Use this when the query function doesn't accept impersonatingUserId parameter
  */
 export function useApiQuerySimple<TData = unknown, TError = Error>(
-  queryKey: any[],
+  queryKey: QueryKey,
   queryFn: () => Promise<TData>,
   options?: UseApiQueryOptions<TData, TError>
 ): UseQueryResult<TData, TError> {

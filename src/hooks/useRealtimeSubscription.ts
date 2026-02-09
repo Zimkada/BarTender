@@ -109,10 +109,10 @@ export function useRealtimeSubscription(config: UseRealtimeSubscriptionConfig) {
     }
 
     // For polling fallback, we'll rely on React Query's staleTime
-    // and refetchInterval instead of manual polling to avoid duplication
-    // This allows the application to continue using normal query mechanisms
-    console.log(
-      `[Realtime] Polling fallback active for ${config.table} - relying on React Query`,
+    // and refetchInterval instead of manual polling to avoid duplication.
+    // However, we should signal that Realtime is DOWN.
+    console.warn(
+      `[Realtime] ⚠️ Connection lost for ${config.table}. Falling back to polling strategy (via React Query refetchInterval).`,
     );
   }, [config.table]);
 

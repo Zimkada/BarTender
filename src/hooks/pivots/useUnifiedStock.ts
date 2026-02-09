@@ -109,7 +109,8 @@ export const useUnifiedStock = (barId: string | undefined) => {
         const handleSync = (e: any) => {
             if (e.detail?.barId === barId || !e.detail?.barId) {
                 refetchOfflineSales();
-                queryClient.invalidateQueries({ queryKey: stockKeys.products(barId || '') });
+                // Products invalidation is now handled automatically by useSmartSync inside useProducts
+                // queryClient.invalidateQueries({ queryKey: stockKeys.products(barId || '') });
             }
         };
 
