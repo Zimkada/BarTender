@@ -17,7 +17,7 @@ import { BackButton } from '../ui/BackButton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { useCurrencyFormatter } from '../../hooks/useCurrencyFormatter';
+import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 
 interface PromotionFormProps {
     isOpen: boolean;
@@ -29,8 +29,7 @@ interface PromotionFormProps {
 
 export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: PromotionFormProps) {
     const { currentBar } = useBarContext();
-    const { categories } = useAppContext();
-    const { products, getProductStockInfo } = useUnifiedStock(currentBar?.id); // Replaced useStockManagement with useUnifiedStock
+    const { products, categories, getProductStockInfo } = useUnifiedStock(currentBar?.id);
     const { formatPrice } = useCurrencyFormatter(); // Added useCurrencyFormatter
     const { showNotification } = useNotifications();
     const { currentSession } = useAuth();
