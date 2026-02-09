@@ -95,20 +95,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const { data: barMembers = [] } = useBarMembers(barId, { refetchInterval: false });
 
     const settings = defaultSettings;
-    const users: User[] = barMembers.map(member => ({
+    const users: User[] = useMemo(() => barMembers.map(member => ({
         id: member.user.id,
         username: member.user.username,
         name: member.user.name,
         email: member.user.email,
         phone: member.user.phone,
-        role: member.role, // Assuming role is available on BarMember
+        role: member.role,
         isActive: member.isActive,
         firstLogin: member.user.firstLogin,
         lastLoginAt: member.user.lastLoginAt,
         createdAt: member.user.createdAt,
         createdBy: member.user.createdBy,
         avatarUrl: member.user.avatarUrl,
-    }));
+    })), [barMembers]);
 
     // --- CART STATE & LOGIC ---
     const [cart, setCart] = useState<CartItem[]>([]);
@@ -557,10 +557,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // TODO: Implement settings mutation
     }, []);
 
-    const value: AppContextType = {
+    const value: AppContextType = useMemo(() => ({
         categories, products, supplies, sales, returns, settings, users,
         expenses, customExpenseCategories,
-        cart, addToCart, updateCartQuantity, removeFromCart, clearCart, // NEW: Add cart state and functions
+        cart, addToCart, updateCartQuantity, removeFromCart, clearCart,
         addCategory,
         linkCategory,
         addCategories, updateCategory, deleteCategory,
@@ -573,7 +573,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addExpense, deleteExpense, addCustomExpenseCategory,
         updateSettings,
         initializeBarData,
-    };
+    }), [
+        categories, products, supplies, sales, returns, settings, users,
+        expenses, customExpenseCategories,
+        cart, addToCart, updateCartQuantity, removeFromCart, clearCart,
+        addCategory, linkCategory, addCategories, updateCategory, deleteCategory,
+        getProductsByCategory, getLowStockProducts, getProductById,
+        getSuppliesByProduct, getTotalCostByProduct, getAverageCostPerUnit,
+        addSale, validateSale, rejectSale,
+        getSalesByDate, getTodaySales, getTodayTotal, getSalesByUser,
+        getServerRevenue, getServerReturns,
+        addReturn, updateReturn, deleteReturn, getReturnsBySale, getPendingReturns, getTodayReturns,
+        addExpense, deleteExpense, addCustomExpenseCategory,
+        updateSettings, initializeBarData
+    ]);
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
