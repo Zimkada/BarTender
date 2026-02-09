@@ -8,7 +8,8 @@ import type {
   SyncOperationCreateSale,
   SyncOperationUpdateBar,
   SyncOperationCreateTicket,
-  SyncOperationPayTicket
+  SyncOperationPayTicket,
+  MutationType
 } from '../types/sync';
 import { DEFAULT_RETRY_CONFIG } from '../types/sync';
 import { networkManager } from './NetworkManager';
@@ -266,8 +267,12 @@ class SyncManagerService {
           this.timers.set(idempotencyKey, timerId);
         }
 
+
         await offlineQueue.removeOperation(operation.id);
         console.log(`[SyncManager] Operation ${operation.id} synced successfully`);
+
+        // 🚀 Dispatcher l'événement de domaine (Elite Mission)
+        this.dispatchDomainEvent(operation.type, operation.barId);
       } else {
         // Échec: marquer comme error et planifier retry si applicable
         await offlineQueue.updateOperationStatus(
@@ -291,6 +296,36 @@ class SyncManagerService {
         'error',
         errorMessage || 'Sync exception'
       );
+    }
+  }
+
+  /**
+   * 🚀 Dispatcher d'événements typés (Mission Elite)
+   * Permet aux Smart Hooks d'écouter uniquement les changements qui les concernent.
+   */
+  private dispatchDomainEvent(type: MutationType, barId?: string): void {
+    const domainEvents: Record<string, string> = {
+      'CREATE_SALE': 'sales-synced',
+      'UPDATE_BAR': 'bar-synced',
+      'CREATE_TICKET': 'tickets-synced',
+      'PAY_TICKET': 'tickets-synced',
+      'UPDATE_PRODUCT': 'stock-synced',
+      'CREATE_PRODUCT': 'stock-synced',
+      'DELETE_PRODUCT': 'stock-synced',
+      'ADD_SUPPLY': 'stock-synced',
+      'CREATE_RETURN': 'returns-synced',
+      'UPDATE_RETURN': 'returns-synced',
+      'CREATE_CONSIGNMENT': 'consignments-synced',
+      'CLAIM_CONSIGNMENT': 'consignments-synced',
+      'FORFEIT_CONSIGNMENT': 'consignments-synced',
+      'ADD_EXPENSE': 'expenses-synced',
+      'ADD_SALARY': 'expenses-synced'
+    };
+
+    const eventName = domainEvents[type];
+    if (eventName) {
+      console.log(`[SyncManager] Dispatching domain event: ${eventName} (from ${type})`);
+      window.dispatchEvent(new CustomEvent(eventName, { detail: { barId, type } }));
     }
   }
 
