@@ -414,12 +414,6 @@ class SyncManagerService {
     }
   }
 
-  /**
-   * 🗺️ ID-Mapping Table (Phase 13)
-   * Permet de traduire les IDs temporaires générés offline en IDs réels du serveur
-   * pendant le cycle de synchronisation.
-   */
-  private idMapping: Map<string, string> = new Map();
 
   /**
    * Synchronise une opération selon son type
@@ -743,7 +737,6 @@ class SyncManagerService {
       // Global Failure (Network timeout, RPC crash)
       // Retry ALL operations in the batch
       console.error('[SyncManager] Batch RPC failed completely:', error);
-      const shouldRetry = this.shouldRetryError(error);
       const errorMsg = getErrorMessage(error);
 
       for (const op of operations) {
