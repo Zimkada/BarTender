@@ -116,7 +116,7 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
         if (currentBar) {
             loadStats();
         }
-    }, [currentBar, products]);
+    }, [currentBar]);
 
     const orderSuggestions = useMemo(() => {
         return productStats

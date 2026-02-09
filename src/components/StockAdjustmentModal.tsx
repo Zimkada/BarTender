@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, BarChart3, TrendingDown, TrendingUp, AlertTriangle } from 'lucide-react';
 import { Product, ADJUSTMENT_REASONS, AdjustmentReason } from '../types';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
+import { useAppContext } from '../context/AppContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface StockAdjustmentModalProps {
@@ -23,6 +24,8 @@ export function StockAdjustmentModal({
   product
 }: StockAdjustmentModalProps) {
   const { formatPrice } = useCurrencyFormatter();
+  const { categories } = useAppContext();
+  const categoryName = categories.find(c => c.id === product.categoryId)?.name || 'Inconnue';
   const [formData, setFormData] = useState({
     delta: '',
     reason: 'inventory_count' as AdjustmentReason,
@@ -96,7 +99,7 @@ export function StockAdjustmentModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[1000] p-4"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
@@ -132,7 +135,7 @@ export function StockAdjustmentModal({
                 <p className="text-base font-semibold text-gray-800">{product.name}</p>
                 <p className="text-sm text-gray-600 mt-1">
                   Volume: <span className="font-medium">{product.volume}</span> |
-                  Catégorie: <span className="font-medium">{product.categoryName}</span>
+                  Catégorie: <span className="font-medium">{categoryName}</span>
                 </p>
               </motion.div>
 

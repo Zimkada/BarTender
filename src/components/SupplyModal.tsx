@@ -31,8 +31,12 @@ export function SupplyModal({ isOpen, onClose, onSave, products, inline = false,
     supplier: '',
   });
 
+  // 🛡️ wasOpen Ref: Ensures the form only resets when explicitly OPENED (from closed state)
+  // This prevents data loss when 'products' array reference changes due to React Query refetch
+  const wasOpen = React.useRef(false);
+
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !wasOpen.current) {
       setFormData({
         productId: initialProductId || products[0]?.id || '',
         quantity: initialQuantity ? initialQuantity.toString() : '',
@@ -41,7 +45,8 @@ export function SupplyModal({ isOpen, onClose, onSave, products, inline = false,
         supplier: '',
       });
     }
-  }, [isOpen, products, initialProductId, initialQuantity]);
+    wasOpen.current = isOpen;
+  }, [isOpen, products.length, initialProductId, initialQuantity]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -214,7 +219,7 @@ export function SupplyModal({ isOpen, onClose, onSave, products, inline = false,
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-[1000] p-4"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}

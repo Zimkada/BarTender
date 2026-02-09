@@ -60,12 +60,14 @@ export function CreateConsignmentForm({
     const [filterSeller, setFilterSeller] = useState<string>('all');
     const [expirationDays, setExpirationDays] = useState(currentBar?.settings?.consignmentExpirationDays ?? 7);
 
-    // Update expiration days when bar settings change
+    // 🛡️ Extract nested dependency to prevent unnecessary re-renders
+    // when currentBar.settings object reference changes but value stays same
+    const barExpirationDays = currentBar?.settings?.consignmentExpirationDays ?? 7;
+
+    // Update expiration days when bar's expiration setting actually changes
     useEffect(() => {
-        if (currentBar?.settings?.consignmentExpirationDays) {
-            setExpirationDays(currentBar.settings.consignmentExpirationDays);
-        }
-    }, [currentBar?.settings?.consignmentExpirationDays]);
+        setExpirationDays(barExpirationDays);
+    }, [barExpirationDays]);
 
     // --- DATA DERIVATION ---
     const todaySales = getTodaySales();

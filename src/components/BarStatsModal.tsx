@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -115,7 +115,7 @@ export default function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalPro
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000] flex items-center justify-center p-4"
         onClick={onClose}
       >
         <motion.div
@@ -136,8 +136,8 @@ export default function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalPro
             <div className="flex items-center gap-3">
               <Award className="w-6 h-6 md:w-8 md:h-8" />
               <div>
-                  <h2 className="text-xl md:text-2xl font-bold">Statistiques Détaillées</h2>
-                  <p className="text-purple-100 text-sm md:text-base">{bar.name}</p>
+                <h2 className="text-xl md:text-2xl font-bold">Statistiques Détaillées</h2>
+                <p className="text-purple-100 text-sm md:text-base">{bar.name}</p>
                 <p className="text-purple-200 text-xs mt-0.5">
                   {bar.isActive ? '✅ Actif' : '❌ Suspendu'} • {bar.address}
                 </p>
@@ -154,9 +154,9 @@ export default function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalPro
               </div>
             )}
             {!isLoading && !stats && (
-               <div className="text-center p-8">
-                 <p className="text-red-500">Impossible de charger les statistiques.</p>
-               </div>
+              <div className="text-center p-8">
+                <p className="text-red-500">Impossible de charger les statistiques.</p>
+              </div>
             )}
             {!isLoading && stats && (
               <>
@@ -234,7 +234,7 @@ export default function BarStatsModal({ isOpen, onClose, bar }: BarStatsModalPro
                     <div className="bg-white rounded-lg p-3 border border-gray-200"><p className="text-xs text-gray-500 mb-1">Ventes 30j</p><p className="text-lg font-bold text-gray-900">{stats.sales_30d}</p></div>
                   </div>
                 </section>
-                
+
                 {/* Top Products */}
                 <section>
                   <div className="flex items-center gap-2 mb-4">

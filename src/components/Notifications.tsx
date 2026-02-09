@@ -75,11 +75,10 @@ const NotificationsContainer: React.FC = () => {
 
   return (
     <div
-      className={`fixed z-50 ${
-        isMobile
+      className={`fixed z-[2000] ${isMobile
           ? 'top-20 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)]' // Mobile: top center
           : 'bottom-4 right-4' // Desktop: bottom right
-      }`}
+        }`}
     >
       <AnimatePresence>
         {notifications.map((notification) => (

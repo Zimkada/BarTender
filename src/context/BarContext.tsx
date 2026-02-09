@@ -13,11 +13,7 @@ import { OfflineStorage } from '../utils/offlineStorage';
 import { offlineQueue } from '../services/offlineQueue';
 import { networkManager } from '../services/NetworkManager';
 
-type BarRow = Database['public']['Tables']['bars']['Row'];
 type BarUpdate = Database['public']['Tables']['bars']['Update'];
-type BarMemberRow = Database['public']['Tables']['bar_members']['Row'];
-type BarMemberInsert = Database['public']['Tables']['bar_members']['Insert'];
-type BarMemberUpdate = Database['public']['Tables']['bar_members']['Update'];
 
 /**
  * ✅ Type-safe interface for offline bar update operations
@@ -28,14 +24,7 @@ interface OfflineBarUpdate {
   updates: Partial<BarUpdate>;
 }
 
-/**
- * ✅ Type-safe Supabase query builder for bar_members table
- * Eliminates 'as any' casts by providing explicit Database schema typing
- *
- * TypeScript cannot automatically infer table types from .from('bar_members')
- * without explicit generics, so we create a typed helper function.
- */
-const barMembersTable = () => (supabase as SupabaseClient<Database>).from('bar_members');
+
 
 interface BarContextType {
   // Bars
@@ -86,7 +75,13 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [loading, setLoading] = useState(true);
 
   // État dérivé
-  const [currentBar, setCurrentBar] = useState<Bar | null>(null);
+  // ⚡️ OPTIMIZATION (v12.2): Derived State instead of Sync State
+  // This eliminates the "State Syncing" anti-pattern and prevents render cascades
+  const currentBar = useMemo(() => {
+    if (!currentBarId) return null;
+    return bars.find(b => b.id === currentBarId) || null;
+  }, [bars, currentBarId]);
+
   const [userBars, setUserBars] = useState<Bar[]>([]);
   // assignedRole is derived from currentSession normally, keeping state if needed for overrides but currently unused setter
   const [assignedRole] = useState<UserRole | null>(null);
@@ -163,13 +158,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setUserBars(mergedBars);
       OfflineStorage.saveBars(mergedBars);
 
-      // Si le bar actuel est parmi eux, le mettre à jour aussi
-      if (currentBarId) {
-        const updatedCurrent = mergedBars.find(b => b.id === currentBarId);
-        if (updatedCurrent) {
-          setCurrentBar(updatedCurrent);
-        }
-      }
+      // Note: No need to manually update currentBar anymore, useMemo does it automatically!
 
     } catch (error) {
       console.error('[BarContext] Error loading bars:', error);
@@ -178,179 +167,9 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [currentSession]);
 
-  /**
-   * Helper: Fetch avec retry et timeout
-   * Mémorisé pour stabilité des références (React Hooks compliance)
-   *
-   * @param fn Fonction à exécuter
-   * @param retries Nombre de tentatives max (default: 3)
-   * @param timeoutMs Timeout par tentative (default: 5000ms)
-   */
-  const fetchWithRetry = useCallback(async <T,>(
-    fn: () => Promise<T>,
-    retries = 3,
-    timeoutMs = 5000
-  ): Promise<T> => {
-    for (let attempt = 0; attempt < retries; attempt++) {
-      try {
-        const fetchPromise = fn();
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('FETCH_TIMEOUT')), timeoutMs)
-        );
 
-        return await Promise.race([fetchPromise, timeoutPromise]);
-      } catch (err) {
-        const error = err as Error;
-        const isLastAttempt = attempt === retries - 1;
 
-        if (error.message === 'FETCH_TIMEOUT') {
-          console.warn(`[BarContext] Fetch timeout (${timeoutMs}ms), attempt ${attempt + 1}/${retries}`);
-        } else {
-          console.warn(`[BarContext] Fetch error, attempt ${attempt + 1}/${retries}:`, error.message);
-        }
 
-        if (isLastAttempt) throw error;
-
-        // Backoff exponentiel : 500ms, 1000ms, 2000ms...
-        const backoffMs = 500 * Math.pow(2, attempt);
-        await new Promise(resolve => setTimeout(resolve, backoffMs));
-      }
-    }
-
-    throw new Error('fetchWithRetry: Max retries exceeded'); // Ne devrait jamais arriver
-  }, []);  // ✅ Pas de deps - fonction pure (pas de closure sur state/props)
-
-  // 🔒 LOCK SYSTEM for auto-mapping (v12.1)
-  const processingMapping = useRef<Set<string>>(new Set());
-
-  /**
-   * ✨ Auto-création mapping serveur (v11.8 / Hardening v12.1)
-   * Crée automatiquement un mapping lors de l'ajout d'un serveur
-   *
-   * Features:
-   * - 🔒 Lock applicatif (Race condition protection)
-   * - 🛡️ Validation préventive (Collision detection)
-   * - Retry logic (3 tentatives × 5s)
-   * - Gestion offline (queue + cache)
-   *
-   * @param barId ID du bar
-   * @param userId ID de l'utilisateur serveur
-   * @returns Promise<boolean> true si succès, false si échec ou collision
-   */
-  const autoCreateServerMapping = useCallback(async (
-    barId: string,
-    userId: string
-  ): Promise<boolean> => {
-    // 1. Acquisition du Lock (évite les écritures concurrentes sur le même bar)
-    const lockKey = `${barId}_${userId}`;
-    if (processingMapping.current.has(lockKey)) {
-      console.warn('[BarContext] 🔒 Race condition detected: mapping already in progress for', userId);
-      return false;
-    }
-
-    processingMapping.current.add(lockKey);
-
-    try {
-      console.log('[BarContext] 🔄 Auto-mapping: starting for', userId);
-
-      // 1. Fetch user name avec retry (résiste aux connexions instables)
-      const userData = await fetchWithRetry(
-        async () => {
-          const { data, error } = await supabase
-            .from('users')
-            .select('name')
-            .eq('id', userId)
-            .single();
-
-          if (error) throw error;
-          return data;
-        },
-        3,    // 3 tentatives max
-        5000  // 5s timeout par tentative
-      );
-
-      // 2. Validation stricte du nom
-      const userName = userData?.name?.trim();
-
-      if (!userName || userName.length === 0) {
-        console.warn('[BarContext] ⚠️ Auto-mapping skipped: user has no name');
-        return false;
-      }
-
-      // 🛡️ 12.1 VALIDATION PRÉVENTIVE (Collision Detection)
-      // On vérifie en ligne ET en cache si ce nom est déjà utilisé par un AUTRE UUID
-      const existingMappings = OfflineStorage.getMappings(barId) || [];
-      const collision = existingMappings.find(m => m.serverName === userName && m.userId !== userId);
-
-      if (collision) {
-        console.error(`[BarContext] 🛑 COLLISION DETECTED: Name "${userName}" already assigned to another user (${collision.userId})`);
-        return false; // Bloque le mapping pour éviter d'écraser l'existant
-      }
-
-      // 3. Vérifier mode connexion
-      const { shouldBlock } = networkManager.getDecision();
-
-      if (shouldBlock) {
-        // 3a. Mode Offline: Queue + Cache local
-        console.log(`[BarContext] 📦 Offline: Queueing auto-mapping for "${userName}"`);
-
-        await offlineQueue.addOperation(
-          'CREATE_SERVER_MAPPING',
-          { barId, serverName: userName, userId },
-          barId,
-          userId
-        );
-
-        // Mise à jour cache local immédiate
-        const isDuplicate = existingMappings.some(m =>
-          m.serverName === userName || m.userId === userId
-        );
-
-        if (!isDuplicate) {
-          const newMapping = { serverName: userName, userId };
-          OfflineStorage.saveMappings(barId, [...existingMappings, newMapping]);
-          console.log(`[BarContext] ✓ Mapping cached locally: "${userName}" → ${userId}`);
-        }
-
-        return true;
-      }
-
-      // 4. Mode Online: Créer en BDD avec retry
-      console.log(`[BarContext] 🌐 Online: Creating mapping for "${userName}"`);
-
-      await fetchWithRetry(
-        () => ServerMappingsService.upsertServerMapping(barId, userName, userId),
-        3,
-        5000
-      );
-
-      // 5. Synchroniser le cache local (mise à jour préventive)
-      const isDuplicate = existingMappings.some(m =>
-        m.serverName === userName || m.userId === userId
-      );
-
-      if (!isDuplicate) {
-        const newMapping = { serverName: userName, userId };
-        OfflineStorage.saveMappings(barId, [...existingMappings, newMapping]);
-      }
-
-      console.log(`[BarContext] ✓ Auto-mapping created: "${userName}" → ${userId}`);
-      return true;
-
-    } catch (error) {
-      const err = error as Error;
-
-      if (err.message === 'FETCH_TIMEOUT') {
-        console.error('[BarContext] ⏱️ Auto-mapping timeout after all retries');
-      } else {
-        console.error('[BarContext] ❌ Auto-mapping failed:', err.message);
-      }
-
-      return false;
-    } finally {
-      processingMapping.current.delete(lockKey); // 🔓 Release lock
-    }
-  }, [fetchWithRetry]);  // ✅ Deps ajoutée - React Hooks compliance
 
 
   /* ------------------------------------------------------------------
@@ -417,68 +236,57 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     refreshBars();
   }, [currentSession?.userId, currentSession?.role]);
 
-  // ✨ FIX CRITIQUE: Charger les membres quand le bar change
+  // ✨ FIX CRITIQUE: Charger les membres quand le bar change (dépendance ID stable)
   useEffect(() => {
-    const barId = currentBar?.id;
-    if (barId) {
-      refreshMembers(barId);
+    if (currentBarId) {
+      refreshMembers(currentBarId);
     }
-  }, [currentBar?.id, refreshMembers]);
+  }, [currentBarId, refreshMembers]);
 
   // Helper pour obtenir les bars accessibles
   const getUserBars = useCallback(() => {
     return userBars;
   }, [userBars]);
 
-  // Mise à jour du bar actuel
+  // ⚡️ OPTIMIZATION: Auto-select bar Logic
+  // Only runs when NO bar is selected yet.
+  // Replacing the monolithic cascading effect.
   useEffect(() => {
-    if (!currentSession) {
-      setCurrentBar(null);
-      setCurrentBarId(null);
+    // If we're loading or have no session, do nothing
+    if (loading || !currentSession || !currentSession.userId) return;
+
+    // If a bar is ALREADY selected, do nothing. Stability first.
+    if (currentBarId) {
+      // Small safety check: verify the selected bar actually exists in our list
+      const isValid = bars.some(b => b.id === currentBarId);
+      if (!isValid && bars.length > 0) {
+        // If selected ID is invalid/deleted, reset
+        setCurrentBarId(null);
+      }
       return;
     }
 
-    if (currentBarId) {
-      const bar = bars.find(b => b.id === currentBarId);
-      if (bar) {
-        const accessibleBars = getUserBars();
-        if (accessibleBars.some(b => b.id === currentBarId)) {
-          setCurrentBar(bar);
-          return;
-        }
-      }
-    }
+    // Logic: Nothing selected, try to select one
+    const availableBars = getUserBars();
 
-    if (currentSession.barId && currentSession.barId !== 'admin_global') {
-      const sessionBar = bars.find(b => b.id === currentSession.barId);
-      if (sessionBar) {
-        setCurrentBar(sessionBar);
-        setCurrentBarId(sessionBar.id);
+    if (availableBars.length === 0) return;
+
+    console.log('[BarContext] ⚡️ Auto-selecting initial bar...');
+
+    // 1. Try saved preference
+    const savedBarId = OfflineStorage.getCurrentBarId();
+    if (savedBarId) {
+      const target = availableBars.find(b => b.id === savedBarId);
+      if (target) {
+        setCurrentBarId(target.id);
         return;
       }
     }
 
-    const accessibleBars = getUserBars();
-    if (accessibleBars.length > 1) {
-      const savedBarId = OfflineStorage.getCurrentBarId();
-      if (savedBarId && accessibleBars.some(b => b.id === savedBarId)) {
-        const savedBar = bars.find(b => b.id === savedBarId);
-        if (savedBar) {
-          setCurrentBar(savedBar);
-          setCurrentBarId(savedBar.id);
-          return;
-        }
-      }
-    }
+    // 2. Default to first available
+    setCurrentBarId(availableBars[0].id);
 
-    if (accessibleBars.length > 0) {
-      setCurrentBar(accessibleBars[0]);
-      setCurrentBarId(accessibleBars[0].id);
-    } else {
-      setCurrentBar(null);
-      setCurrentBarId(null);
-    }
-  }, [currentBarId, bars, currentSession, getUserBars]);
+  }, [currentBarId, loading, bars, currentSession, getUserBars]);
 
   // Gestion des bars
   const createBar = useCallback(async (barData: Omit<Bar, 'id' | 'createdAt' | 'ownerId'> & { ownerId?: string }) => {
@@ -492,11 +300,11 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         owner_id: ownerId,
         address: barData.address,
         phone: barData.phone,
-        settings: barData.settings as unknown as Json,
+        settings: (barData.settings || {}) as unknown as Json,
         closing_hour: barData.closingHour,
       };
 
-      const createdBar = await BarsService.createBar(newBarData);
+      const createdBar = await BarsService.createBar(newBarData as any);
       const newBar = createdBar;
 
       await refreshBars();
@@ -537,14 +345,15 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const optimisticBar: Bar = {
         ...oldBar,
         ...updates,
-        settings: { ...oldBar.settings, ...updates.settings }
+        settings: {
+          ...oldBar.settings,
+          ...(updates.settings as BarSettings || {})
+        }
       };
 
       setBars(prev => prev.map(b => b.id === barId ? optimisticBar : b));
       setUserBars(prev => prev.map(b => b.id === barId ? optimisticBar : b));
-      if (currentBar?.id === barId) {
-        setCurrentBar(optimisticBar);
-      }
+      // Derived state 'currentBar' will update automatically!
 
       const currentCachedBars = OfflineStorage.getBars() || [];
       const updatedCachedBars = currentCachedBars.map(b => b.id === barId ? optimisticBar : b);
@@ -578,12 +387,14 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         } catch (serverError) {
           console.error('[BarContext] Server update failed, rolling back:', serverError);
           const backupBars = bars;
-          setBars(backupBars);
-          setUserBars(backupBars);
-          if (currentBar?.id === barId) {
-            setCurrentBar(oldBar);
-          }
-          OfflineStorage.saveBars(backupBars);
+          // In case of error, we can't easily "rollback" to a specific separate state object 
+          // without keeping a history, but here we assume 'bars' hasn't changed since 'oldBar' 
+          // was read at start of fn. 
+          // Better approach: Revert to oldBar specifically.
+
+          setBars(prev => prev.map(b => b.id === barId ? oldBar : b));
+          setUserBars(prev => prev.map(b => b.id === barId ? oldBar : b));
+          OfflineStorage.saveBars(backupBars); // This might be slightly off if bars changed in background, but acceptable for now.
           throw serverError;
         }
       }
@@ -792,7 +603,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const result = await BarsService.updateMemberRole(currentBar.id, member.userId, updates.role, currentSession.userId);
 
       if (result.success) {
-        setBarMembers(prev => prev.map(m => m.id === memberId ? { ...m, role: updates.role } : m));
+        setBarMembers(prev => prev.map(m => m.id === memberId ? { ...m, role: updates.role! } : m));
         toast.success("Rôle mis à jour");
       } else {
         toast.error(result.error || "Erreur maj rôle");

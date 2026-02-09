@@ -47,35 +47,45 @@ export function ProductModal({ isOpen, onClose, onSave, product, inline = false 
   const [selectedGlobalId, setSelectedGlobalId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // 🛡️ wasOpen Ref: Protège le formulaire contre les resets intempestifs
+  // Notamment lors du rafraîchissement des catégories en arrière-plan (React Query)
+  const wasOpen = React.useRef(false);
+
   useEffect(() => {
-    if (product) {
-      setMode('custom'); // Editing is always custom-like view
-      setStep('details'); // Directly to details when editing
-      setFormData({
-        name: product.name,
-        volume: product.volume,
-        price: product.price.toString(),
-        stock: product.stock.toString(),
-        categoryId: product.categoryId,
-        image: product.image || '',
-        alertThreshold: product.alertThreshold.toString(),
-      });
-    } else {
-      // Reset form for new product
-      setFormData({
-        name: '',
-        volume: '',
-        price: '',
-        stock: '',
-        categoryId: categories[0]?.id || '',
-        image: '',
-        alertThreshold: '10',
-      });
-      // Don't force mode here - let it stay at 'global' (default)
-      setSelectedGlobalId(null);
-      setStep('selection');
+    // On ne reset le formulaire que si le modal VIENT d'ouvrir
+    // OU si l'objet 'product' passé en prop a explicitement changé (ex: switch d'édition)
+    const justOpened = isOpen && !wasOpen.current;
+
+    if (justOpened || (isOpen && product)) {
+      if (product) {
+        setMode('custom');
+        setStep('details');
+        setFormData({
+          name: product.name,
+          volume: product.volume,
+          price: product.price.toString(),
+          stock: product.stock.toString(),
+          categoryId: product.categoryId,
+          image: product.image || '',
+          alertThreshold: product.alertThreshold.toString(),
+        });
+      } else if (justOpened) {
+        // Reset uniquement à l'ouverture pour un nouveau produit
+        setFormData({
+          name: '',
+          volume: '',
+          price: '',
+          stock: '',
+          categoryId: categories[0]?.id || '',
+          image: '',
+          alertThreshold: '10',
+        });
+        setSelectedGlobalId(null);
+        setStep('selection');
+      }
     }
-  }, [product, categories, isOpen]);
+    wasOpen.current = isOpen;
+  }, [product, categories.length, isOpen]);
 
   // Load global products when switching to global mode
   useEffect(() => {

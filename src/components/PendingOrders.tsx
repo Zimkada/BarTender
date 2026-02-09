@@ -5,6 +5,8 @@ import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { Sale, SaleItem } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EnhancedButton } from './EnhancedButton';
+import { getCurrentBusinessDateString, getBusinessDate } from '../utils/businessDateHelpers';
+import { useBarContext } from '../context/BarContext';
 
 interface PendingOrdersProps {
   isOpen: boolean;
@@ -52,20 +54,31 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
 
   if (!currentSession) return null;
 
+  const { currentBar } = useBarContext();
+  const closeHour = currentBar?.closingHour ?? 6;
+  const currentBusinessDate = getCurrentBusinessDateString(closeHour);
+
   // Déterminer si l'utilisateur est gérant/promoteur
-  const isManager = currentSession.role === 'gerant' || currentSession.role === 'promoteur';
+  const isManager = currentSession.role === 'gerant' || currentSession.role === 'promoteur' || currentSession.role === 'super_admin';
   const isServer = currentSession.role === 'serveur';
 
   // Filtrer les ventes en attente selon le rôle
   const pendingSales = sales.filter((sale: Sale) => {
     if (sale.status !== 'pending') return false;
 
-    // Gérant voit toutes les ventes
+    // ✅ Règle de la journée commerciale : on ne montre que les ventes du jour actuel
+    // Cela masque automatiquement les reliquats oubliés des jours précédents (pollution)
+    const saleBusinessDate = getBusinessDate(sale, closeHour);
+    const isCurrentDay = saleBusinessDate === currentBusinessDate;
+
+    if (!isCurrentDay) return false;
+
+    // Gérant/Admin voit toutes les ventes de la journée
     if (isManager) return true;
 
-    // Serveur voit uniquement ses propres ventes récentes
+    // Serveur voit uniquement ses propres ventes de la journée
     if (isServer) {
-      return sale.soldBy === currentSession.userId && isSaleRecent(sale.createdAt);
+      return sale.soldBy === currentSession.userId;
     }
 
     return false;
@@ -96,7 +109,7 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[1000] p-4"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -120,105 +133,105 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
               </motion.button>
             </div>
 
-              <div className="flex-1 overflow-y-auto p-5 space-y-4">
-                {pendingSales.length === 0 ? (
-                  <div className="text-center py-20">
-                    <Check size={48} className="text-green-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-700 mb-2">Aucune vente en attente</h3>
-                    <p className="text-gray-500">Tout est à jour. Excellent travail !</p>
-                  </div>
-                ) : (
-                  pendingSales.map((sale: Sale) => (
-                    <motion.div
-                      key={sale.id}
-                      layout
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="bg-white rounded-xl p-4 shadow-md border border-gray-100 hover:border-amber-300 transition-colors"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
-                            <User className="text-amber-500" size={24} />
-                          </div>
-                          <div>
-                            <h3 className="font-bold text-gray-800">
-                              {getUserName(sale.createdBy, users)}
-                            </h3>
-                            <p className="text-sm text-gray-500">
-                              {new Date(sale.createdAt).toLocaleTimeString('fr-FR', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                              })}
-                              {` • ${sale.items.length} type(s) d'article`}
-                            </p>
-                          </div>
+            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {pendingSales.length === 0 ? (
+                <div className="text-center py-20">
+                  <Check size={48} className="text-green-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-700 mb-2">Aucune vente en attente</h3>
+                  <p className="text-gray-500">Tout est à jour. Excellent travail !</p>
+                </div>
+              ) : (
+                pendingSales.map((sale: Sale) => (
+                  <motion.div
+                    key={sale.id}
+                    layout
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="bg-white rounded-xl p-4 shadow-md border border-gray-100 hover:border-amber-300 transition-colors"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+                          <User className="text-amber-500" size={24} />
                         </div>
-                        <div className="flex flex-col gap-2">
-                          {/* Timer pour serveurs */}
-                          {isServer && canServerCancel(sale) && (
-                            <div className="flex items-center gap-1 text-xs text-amber-600">
-                              <AlertCircle size={12} />
-                              <span>Annulation possible: {getTimeRemaining(sale.createdAt)}</span>
-                            </div>
+                        <div>
+                          <h3 className="font-bold text-gray-800">
+                            {getUserName(sale.createdBy, users)}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            {new Date(sale.createdAt).toLocaleTimeString('fr-FR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                            {` • ${sale.items.length} type(s) d'article`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        {/* Timer pour serveurs */}
+                        {isServer && canServerCancel(sale) && (
+                          <div className="flex items-center gap-1 text-xs text-amber-600">
+                            <AlertCircle size={12} />
+                            <span>Annulation possible: {getTimeRemaining(sale.createdAt)}</span>
+                          </div>
+                        )}
+
+                        {/* Boutons d'action */}
+                        <div className="flex items-center gap-2">
+                          {/* Bouton Annuler - Visible pour: manager OU serveur (si c'est sa vente < 10min) */}
+                          {(isManager || canServerCancel(sale)) && (
+                            <EnhancedButton
+                              onClick={() => handleReject(sale.id)}
+                              className="bg-red-100 text-red-700 hover:bg-red-200"
+                              size="sm"
+                              icon={<X size={16} />}
+                            >
+                              Annuler
+                            </EnhancedButton>
                           )}
 
-                          {/* Boutons d'action */}
-                          <div className="flex items-center gap-2">
-                            {/* Bouton Annuler - Visible pour: manager OU serveur (si c'est sa vente < 10min) */}
-                            {(isManager || canServerCancel(sale)) && (
-                              <EnhancedButton
-                                onClick={() => handleReject(sale.id)}
-                                className="bg-red-100 text-red-700 hover:bg-red-200"
-                                size="sm"
-                                icon={<X size={16} />}
-                              >
-                                Annuler
-                              </EnhancedButton>
-                            )}
-
-                            {/* Bouton Valider - Uniquement pour managers */}
-                            {isManager && (
-                              <EnhancedButton
-                                onClick={() => handleValidate(sale.id)}
-                                className="bg-green-100 text-green-700 hover:bg-green-200"
-                                size="sm"
-                                icon={<Check size={16} />}
-                              >
-                                Valider
-                              </EnhancedButton>
-                            )}
-                          </div>
+                          {/* Bouton Valider - Uniquement pour managers */}
+                          {isManager && (
+                            <EnhancedButton
+                              onClick={() => handleValidate(sale.id)}
+                              className="bg-green-100 text-green-700 hover:bg-green-200"
+                              size="sm"
+                              icon={<Check size={16} />}
+                            >
+                              Valider
+                            </EnhancedButton>
+                          )}
                         </div>
                       </div>
+                    </div>
 
-                      <div className="space-y-2 mb-4 pl-4 border-l-2 border-amber-200">
-                        {sale.items.map((item: SaleItem, index: number) => (
-                          <div key={index} className="flex items-center justify-between text-sm ml-4">
-                            <div className="flex items-center gap-2">
-                              <ShoppingBag size={14} className="text-gray-600" />
-                              <span className="font-medium text-gray-700">{item.quantity}x</span>
-                              <span>{item.product_name} ({item.product_volume})</span>
-                            </div>
-                            <span className="font-semibold text-gray-800">
-                              {formatPrice(item.total_price)}
-                            </span>
+                    <div className="space-y-2 mb-4 pl-4 border-l-2 border-amber-200">
+                      {sale.items.map((item: SaleItem, index: number) => (
+                        <div key={index} className="flex items-center justify-between text-sm ml-4">
+                          <div className="flex items-center gap-2">
+                            <ShoppingBag size={14} className="text-gray-600" />
+                            <span className="font-medium text-gray-700">{item.quantity}x</span>
+                            <span>{item.product_name} ({item.product_volume})</span>
                           </div>
-                        ))}
-                      </div>
+                          <span className="font-semibold text-gray-800">
+                            {formatPrice(item.total_price)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
 
-                      <div className="flex justify-between items-center pt-3 border-t border-gray-200 mt-3">
-                        <span className="text-gray-800 font-bold text-lg">Total à encaisser:</span>
-                        <span className="text-amber-600 font-bold text-xl">
-                          {formatPrice(sale.total)}
-                        </span>
-                      </div>
-                    </motion.div>
-                  )))
-                }
-              </div>
-            </motion.div>
+                    <div className="flex justify-between items-center pt-3 border-t border-gray-200 mt-3">
+                      <span className="text-gray-800 font-bold text-lg">Total à encaisser:</span>
+                      <span className="text-amber-600 font-bold text-xl">
+                        {formatPrice(sale.total)}
+                      </span>
+                    </div>
+                  </motion.div>
+                )))
+              }
+            </div>
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
