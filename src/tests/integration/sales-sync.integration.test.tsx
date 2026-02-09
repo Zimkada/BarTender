@@ -15,8 +15,18 @@ import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { ReactNode } from 'react';
 import { useUnifiedSales } from '../../hooks/pivots/useUnifiedSales';
 
+const { mockUseSales, mockOfflineQueue, mockSyncManager } = vi.hoisted(() => ({
+  mockUseSales: vi.fn(),
+  mockOfflineQueue: {
+    getOperations: vi.fn(),
+  },
+  mockSyncManager: {
+    getRecentlySyncedKeys: vi.fn(),
+  },
+}));
+
 vi.mock('../../hooks/queries/useSalesQueries', () => ({
-  useSales: vi.fn(),
+  useSales: mockUseSales,
   salesKeys: { all: ['sales'] },
 }));
 
@@ -27,20 +37,16 @@ vi.mock('../../context/AuthContext', () => ({
 }));
 
 vi.mock('../../services/offlineQueue', () => ({
-  offlineQueue: {
-    getOperations: vi.fn(),
-  },
+  offlineQueue: mockOfflineQueue,
 }));
 
 vi.mock('../../services/SyncManager', () => ({
-  syncManager: {
-    getRecentlySyncedKeys: vi.fn(),
-  },
+  syncManager: mockSyncManager,
 }));
 
 vi.mock('../../utils/businessDateHelpers', () => ({
   getCurrentBusinessDateString: vi.fn(() => '2025-02-09'),
-  filterByBusinessDateRange: vi.fn((items, start, end) => items),
+  filterByBusinessDateRange: vi.fn((items, _start, _end) => items),
 }));
 
 const createWrapper = () => {
@@ -66,8 +72,6 @@ describe('Sales Sync Integration', () => {
 
   describe('🔄 Online + Offline Fusion', () => {
     it('should merge online and offline sales correctly', async () => {
-      const { useSales } = await import('../../hooks/queries/useSalesQueries');
-      const { offlineQueue } = await import('../../services/offlineQueue');
 
       const onlineSales = [
         {
@@ -93,12 +97,12 @@ describe('Sales Sync Integration', () => {
         },
       ];
 
-      (useSales as any).mockReturnValue({
+      mockUseSales.mockReturnValue({
         data: onlineSales,
         isLoading: false,
       });
 
-      (offlineQueue.getOperations as any).mockResolvedValue(offlineOperations);
+      mockOfflineQueue.getOperations.mockResolvedValue(offlineOperations);
 
       const { result } = renderHook(
         () => useUnifiedSales(barId, closingHour),
@@ -117,9 +121,6 @@ describe('Sales Sync Integration', () => {
     });
 
     it('should not double-count synced operations', async () => {
-      const { useSales } = await import('../../hooks/queries/useSalesQueries');
-      const { offlineQueue } = await import('../../services/offlineQueue');
-      const { syncManager } = await import('../../services/SyncManager');
 
       const onlineSales = [
         {
@@ -144,15 +145,15 @@ describe('Sales Sync Integration', () => {
         },
       ];
 
-      (useSales as any).mockReturnValue({
+      mockUseSales.mockReturnValue({
         data: onlineSales,
         isLoading: false,
       });
 
-      (offlineQueue.getOperations as any).mockResolvedValue(offlineOperations);
+      mockOfflineQueue.getOperations.mockResolvedValue(offlineOperations);
 
       // Mark key-1 as synced
-      (syncManager.getRecentlySyncedKeys as any).mockReturnValue(
+      mockSyncManager.getRecentlySyncedKeys.mockReturnValue(
         new Set(['key-1'])
       );
 
@@ -172,8 +173,6 @@ describe('Sales Sync Integration', () => {
 
   describe('📊 Stats After Sync', () => {
     it('should recalculate stats when sync completes', async () => {
-      const { useSales } = await import('../../hooks/queries/useSalesQueries');
-      const { offlineQueue } = await import('../../services/offlineQueue');
 
       const sales = [
         {
@@ -190,12 +189,12 @@ describe('Sales Sync Integration', () => {
         },
       ];
 
-      (useSales as any).mockReturnValue({
+      mockUseSales.mockReturnValue({
         data: sales,
         isLoading: false,
       });
 
-      (offlineQueue.getOperations as any).mockResolvedValue([]);
+      mockOfflineQueue.getOperations.mockResolvedValue([]);
 
       const { result } = renderHook(
         () => useUnifiedSales(barId, closingHour),
@@ -215,8 +214,6 @@ describe('Sales Sync Integration', () => {
 
   describe('🔑 Idempotency Key Handling', () => {
     it('should prevent duplicate sales with same idempotency key', async () => {
-      const { useSales } = await import('../../hooks/queries/useSalesQueries');
-      const { offlineQueue } = await import('../../services/offlineQueue');
 
       const sale = {
         id: 'sale-1',
@@ -227,12 +224,12 @@ describe('Sales Sync Integration', () => {
       };
 
       // Same sale in both online and offline
-      (useSales as any).mockReturnValue({
+      mockUseSales.mockReturnValue({
         data: [sale],
         isLoading: false,
       });
 
-      (offlineQueue.getOperations as any).mockResolvedValue([
+      mockOfflineQueue.getOperations.mockResolvedValue([
         {
           type: 'CREATE_SALE',
           payload: { ...sale, id: 'temp-offline' },
@@ -258,8 +255,6 @@ describe('Sales Sync Integration', () => {
 
   describe('📅 Business Date Filtering', () => {
     it('should only include sales from current business day', async () => {
-      const { useSales } = await import('../../hooks/queries/useSalesQueries');
-      const { offlineQueue } = await import('../../services/offlineQueue');
 
       const sales = [
         {
@@ -276,12 +271,12 @@ describe('Sales Sync Integration', () => {
         },
       ];
 
-      (useSales as any).mockReturnValue({
+      mockUseSales.mockReturnValue({
         data: sales,
         isLoading: false,
       });
 
-      (offlineQueue.getOperations as any).mockResolvedValue([]);
+      mockOfflineQueue.getOperations.mockResolvedValue([]);
 
       const { result } = renderHook(
         () => useUnifiedSales(barId, closingHour),
@@ -300,10 +295,8 @@ describe('Sales Sync Integration', () => {
 
   describe('⚠️ Edge Cases', () => {
     it('should handle empty offline queue', async () => {
-      const { useSales } = await import('../../hooks/queries/useSalesQueries');
-      const { offlineQueue } = await import('../../services/offlineQueue');
 
-      (useSales as any).mockReturnValue({
+      mockUseSales.mockReturnValue({
         data: [
           {
             id: 'sale-1',
@@ -315,7 +308,7 @@ describe('Sales Sync Integration', () => {
         isLoading: false,
       });
 
-      (offlineQueue.getOperations as any).mockResolvedValue([]);
+      mockOfflineQueue.getOperations.mockResolvedValue([]);
 
       const { result } = renderHook(
         () => useUnifiedSales(barId, closingHour),
@@ -330,15 +323,13 @@ describe('Sales Sync Integration', () => {
     });
 
     it('should handle undefined barId gracefully', async () => {
-      const { useSales } = await import('../../hooks/queries/useSalesQueries');
-      const { offlineQueue } = await import('../../services/offlineQueue');
 
-      (useSales as any).mockReturnValue({
+      mockUseSales.mockReturnValue({
         data: [],
         isLoading: false,
       });
 
-      (offlineQueue.getOperations as any).mockResolvedValue([]);
+      mockOfflineQueue.getOperations.mockResolvedValue([]);
 
       const { result } = renderHook(
         () => useUnifiedSales(undefined, closingHour),
@@ -350,15 +341,13 @@ describe('Sales Sync Integration', () => {
     });
 
     it('should handle null sales data', async () => {
-      const { useSales } = await import('../../hooks/queries/useSalesQueries');
-      const { offlineQueue } = await import('../../services/offlineQueue');
 
-      (useSales as any).mockReturnValue({
+      mockUseSales.mockReturnValue({
         data: null,
         isLoading: false,
       });
 
-      (offlineQueue.getOperations as any).mockResolvedValue([]);
+      mockOfflineQueue.getOperations.mockResolvedValue([]);
 
       const { result } = renderHook(
         () => useUnifiedSales(barId, closingHour),
@@ -370,17 +359,15 @@ describe('Sales Sync Integration', () => {
   });
 
   describe('🔄 Refetch Behavior', () => {
-    it('should expose refetch function for manual sync', () => {
-      const { useSales } = await import('../../hooks/queries/useSalesQueries');
-      const { offlineQueue } = await import('../../services/offlineQueue');
+    it('should expose refetch function for manual sync', async () => {
 
-      (useSales as any).mockReturnValue({
+      mockUseSales.mockReturnValue({
         data: [],
         isLoading: false,
         refetch: vi.fn(),
       });
 
-      (offlineQueue.getOperations as any).mockResolvedValue([]);
+      mockOfflineQueue.getOperations.mockResolvedValue([]);
 
       const { result } = renderHook(
         () => useUnifiedSales(barId, closingHour),

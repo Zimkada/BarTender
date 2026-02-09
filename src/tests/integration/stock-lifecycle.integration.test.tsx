@@ -14,11 +14,38 @@ import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { ReactNode } from 'react';
 import { useUnifiedStock } from '../../hooks/pivots/useUnifiedStock';
 
-// Mock implementations - must be initialized with default values
-const mockUseProducts = vi.fn(() => ({ data: [], isLoading: false }));
-const mockUseSupplies = vi.fn(() => ({ data: [], isLoading: false }));
-const mockUseConsignments = vi.fn(() => ({ data: [], isLoading: false }));
-const mockUseCategories = vi.fn(() => ({ data: [], isLoading: false }));
+const {
+  mockUseProducts,
+  mockUseSupplies,
+  mockUseConsignments,
+  mockUseCategories,
+  mockUseStockMutations,
+  mockOfflineQueue,
+  mockSyncManager
+} = vi.hoisted(() => ({
+  mockUseProducts: vi.fn(() => ({ data: [], isLoading: false })) as any,
+  mockUseSupplies: vi.fn(() => ({ data: [], isLoading: false })) as any,
+  mockUseConsignments: vi.fn(() => ({ data: [], isLoading: false })) as any,
+  mockUseCategories: vi.fn(() => ({ data: [], isLoading: false })) as any,
+  mockUseStockMutations: vi.fn(() => ({
+    createProduct: { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(true) },
+    updateProduct: { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(true) },
+    deleteProduct: { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(true) },
+    adjustStock: { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(true) },
+    addSupply: { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(true) },
+    createConsignment: { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(true) },
+    claimConsignment: { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(true) },
+    forfeitConsignment: { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(true) },
+    expireConsignments: { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(true) },
+    validateSale: { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(true) },
+  })) as any,
+  mockOfflineQueue: {
+    getOperations: vi.fn(() => Promise.resolve([])),
+  },
+  mockSyncManager: {
+    getRecentlySyncedKeys: vi.fn(() => new Map()),
+  }
+}));
 
 vi.mock('../../hooks/queries/useStockQueries', () => ({
   useProducts: mockUseProducts,
@@ -26,13 +53,6 @@ vi.mock('../../hooks/queries/useStockQueries', () => ({
   useConsignments: mockUseConsignments,
   useCategories: mockUseCategories,
   stockKeys: { all: ['stock'] },
-}));
-
-const mockUseStockMutations = vi.fn(() => ({
-  createProduct: { mutateAsync: vi.fn().mockResolvedValue(true) },
-  updateProduct: { mutateAsync: vi.fn().mockResolvedValue(true) },
-  deleteProduct: { mutateAsync: vi.fn().mockResolvedValue(true) },
-  adjustStock: { mutateAsync: vi.fn().mockResolvedValue(true) },
 }));
 
 vi.mock('../../hooks/mutations/useStockMutations', () => ({
@@ -46,15 +66,11 @@ vi.mock('../../context/AuthContext', () => ({
 }));
 
 vi.mock('../../services/offlineQueue', () => ({
-  offlineQueue: {
-    getOperations: vi.fn(() => Promise.resolve([])),
-  },
+  offlineQueue: mockOfflineQueue,
 }));
 
 vi.mock('../../services/SyncManager', () => ({
-  syncManager: {
-    getRecentlySyncedKeys: vi.fn(() => new Map()),
-  },
+  syncManager: mockSyncManager,
 }));
 
 const createWrapper = () => {
@@ -74,10 +90,16 @@ describe('Stock Lifecycle Integration', () => {
   beforeEach(() => {
     mockProducts = [];
     mockMutations = {
-      createProduct: { mutateAsync: vi.fn().mockResolvedValue(true) },
-      updateProduct: { mutateAsync: vi.fn().mockResolvedValue(true) },
-      deleteProduct: { mutateAsync: vi.fn().mockResolvedValue(true) },
-      adjustStock: { mutateAsync: vi.fn().mockResolvedValue(true) },
+      createProduct: { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(true) },
+      updateProduct: { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(true) },
+      deleteProduct: { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(true) },
+      adjustStock: { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(true) },
+      addSupply: { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(true) },
+      createConsignment: { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(true) },
+      claimConsignment: { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(true) },
+      forfeitConsignment: { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(true) },
+      expireConsignments: { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(true) },
+      validateSale: { mutate: vi.fn(), mutateAsync: vi.fn().mockResolvedValue(true) },
     };
   });
 
@@ -99,35 +121,37 @@ describe('Stock Lifecycle Integration', () => {
       // Initially empty
       expect(result.current.products.length).toBe(0);
 
-      // Add product
-      await expect(
-        result.current.addProduct({
-          name: 'Heineken',
-          sku: 'HEIN-001',
-          stock: 100,
-          price: 5.5,
-          barId,
-        })
-      ).resolves.toBeDefined();
+      const newProduct = {
+        name: 'Heineken',
+        volume: '33cl',
+        price: 5.5,
+        stock: 100,
+        categoryId: 'cat-1',
+        alertThreshold: 10,
+        barId,
+      };
+
+      await expect(result.current.addProduct(newProduct)).resolves.toBeDefined();
     });
 
     it('should update product stock when adjusted', async () => {
-      const { useProducts } = await import('../../hooks/queries/useStockQueries');
-      const { useStockMutations } = await import('../../hooks/mutations/useStockMutations');
 
       const initialProduct = {
         id: 'prod-1',
         name: 'Heineken',
+        volume: '33cl',
+        categoryId: 'cat-1',
+        alertThreshold: 5,
         stock: 100,
         barId,
       };
 
-      (useProducts as any).mockReturnValue({
+      mockUseProducts.mockReturnValue({
         data: [initialProduct],
         isLoading: false,
       });
 
-      (useStockMutations as any).mockReturnValue(mockMutations);
+      mockUseStockMutations.mockReturnValue(mockMutations);
 
       const { result } = renderHook(() => useUnifiedStock(barId), {
         wrapper: createWrapper(),
@@ -144,21 +168,19 @@ describe('Stock Lifecycle Integration', () => {
       expect(mockMutations.adjustStock.mutateAsync).toHaveBeenCalledWith(
         expect.objectContaining({
           productId: 'prod-1',
-          quantity: 10,
+          delta: 10,
         })
       );
     });
 
     it('should delete product when requested', async () => {
-      const { useProducts } = await import('../../hooks/queries/useStockQueries');
-      const { useStockMutations } = await import('../../hooks/mutations/useStockMutations');
 
-      (useProducts as any).mockReturnValue({
-        data: [{ id: 'prod-1', name: 'Heineken', stock: 100, barId }],
+      mockUseProducts.mockReturnValue({
+        data: [{ id: 'prod-1', name: 'Heineken', volume: '33cl', categoryId: 'cat-1', alertThreshold: 5, stock: 100, barId }],
         isLoading: false,
       });
 
-      (useStockMutations as any).mockReturnValue(mockMutations);
+      mockUseStockMutations.mockReturnValue(mockMutations);
 
       const { result } = renderHook(() => useUnifiedStock(barId), {
         wrapper: createWrapper(),
@@ -166,50 +188,49 @@ describe('Stock Lifecycle Integration', () => {
 
       await result.current.deleteProduct('prod-1');
 
-      expect(mockMutations.deleteProduct.mutateAsync).toHaveBeenCalledWith(
-        expect.objectContaining({ productId: 'prod-1' })
-      );
+      expect(mockMutations.deleteProduct.mutateAsync).toHaveBeenCalledWith('prod-1');
     });
   });
 
   describe('🎁 Consignment Lifecycle', () => {
     it('should create and track consignment', async () => {
-      const { useConsignments } = await import('../../hooks/queries/useStockQueries');
-      const { useStockMutations } = await import('../../hooks/mutations/useStockMutations');
 
-      (useConsignments as any).mockReturnValue({
+      mockUseConsignments.mockReturnValue({
         data: [],
         isLoading: false,
       });
 
-      (useStockMutations as any).mockReturnValue(mockMutations);
+      mockUseStockMutations.mockReturnValue(mockMutations);
 
       const { result } = renderHook(() => useUnifiedStock(barId), {
         wrapper: createWrapper(),
       });
 
       const consignmentData = {
+        saleId: 'sale-1',
         productId: 'prod-1',
+        productName: 'Heineken',
+        productVolume: '33cl',
         quantity: 50,
-        expiryDate: '2025-12-31',
-        supplierName: 'Distributor Inc',
+        totalAmount: 250,
+        expiresAt: '2025-12-31',
         barId,
       };
 
       await result.current.createConsignment(consignmentData);
 
-      expect(mockMutations.createProduct.mutateAsync).toHaveBeenCalled();
+      expect(mockMutations.createConsignment.mutateAsync).toHaveBeenCalled();
     });
 
     it('should claim consignment and reduce available quantity', async () => {
-      const { useConsignments } = await import('../../hooks/queries/useStockQueries');
-      const { useStockMutations } = await import('../../hooks/mutations/useStockMutations');
 
-      (useConsignments as any).mockReturnValue({
+      mockUseConsignments.mockReturnValue({
         data: [
           {
             id: 'consign-1',
             productId: 'prod-1',
+            productName: 'Heineken',
+            productVolume: '33cl',
             quantity: 50,
             status: 'active',
             barId,
@@ -218,25 +239,27 @@ describe('Stock Lifecycle Integration', () => {
         isLoading: false,
       });
 
-      (useStockMutations as any).mockReturnValue(mockMutations);
+      mockUseStockMutations.mockReturnValue(mockMutations);
 
       const { result } = renderHook(() => useUnifiedStock(barId), {
         wrapper: createWrapper(),
       });
 
-      await result.current.claimConsignment('consign-1', 30);
+      await result.current.claimConsignment('consign-1');
 
-      expect(mockMutations.updateProduct.mutateAsync).toHaveBeenCalled();
+      expect(mockMutations.claimConsignment.mutateAsync).toHaveBeenCalled();
     });
 
     it('should forfeit unclaimed consignment', async () => {
-      const { useConsignments } = await import('../../hooks/queries/useStockQueries');
-      const { useStockMutations } = await import('../../hooks/mutations/useStockMutations');
 
-      (useConsignments as any).mockReturnValue({
+      mockUseConsignments.mockReturnValue({
         data: [
           {
             id: 'consign-1',
+            productId: 'prod-1',
+            productName: 'Heineken',
+            productVolume: '33cl',
+            quantity: 50,
             status: 'active',
             barId,
           },
@@ -244,7 +267,7 @@ describe('Stock Lifecycle Integration', () => {
         isLoading: false,
       });
 
-      (useStockMutations as any).mockReturnValue(mockMutations);
+      mockUseStockMutations.mockReturnValue(mockMutations);
 
       const { result } = renderHook(() => useUnifiedStock(barId), {
         wrapper: createWrapper(),
@@ -252,61 +275,57 @@ describe('Stock Lifecycle Integration', () => {
 
       await result.current.forfeitConsignment('consign-1');
 
-      expect(mockMutations.deleteProduct.mutateAsync).toHaveBeenCalled();
+      expect(mockMutations.forfeitConsignment.mutateAsync).toHaveBeenCalled();
     });
   });
 
   describe('📥 Supply Processing', () => {
     it('should process supply and update stock', async () => {
-      const { useSupplies } = await import('../../hooks/queries/useStockQueries');
-      const { useStockMutations } = await import('../../hooks/mutations/useStockMutations');
 
-      (useSupplies as any).mockReturnValue({
+      mockUseSupplies.mockReturnValue({
         data: [],
         isLoading: false,
       });
 
-      (useStockMutations as any).mockReturnValue(mockMutations);
+      mockUseStockMutations.mockReturnValue(mockMutations);
 
       const { result } = renderHook(() => useUnifiedStock(barId), {
         wrapper: createWrapper(),
       });
 
       const supplyData = {
-        items: [
-          { productId: 'prod-1', quantity: 50, cost: 2.5 },
-          { productId: 'prod-2', quantity: 100, cost: 1.2 },
-        ],
-        supplierName: 'Main Distributor',
-        barId,
+        productId: 'prod-1',
+        quantity: 50,
+        lotSize: 24,
+        lotPrice: 40,
+        supplier: 'Main Distributor',
       };
 
-      await result.current.processSupply(supplyData);
+      const mockOnExpense = vi.fn();
+      await result.current.processSupply(supplyData, mockOnExpense);
 
-      expect(mockMutations.createProduct.mutateAsync).toHaveBeenCalled();
+      expect(mockMutations.addSupply.mutateAsync).toHaveBeenCalled();
     });
   });
 
   describe('🔄 Batch Operations', () => {
     it('should add multiple products in batch', async () => {
-      const { useProducts } = await import('../../hooks/queries/useStockQueries');
-      const { useStockMutations } = await import('../../hooks/mutations/useStockMutations');
 
-      (useProducts as any).mockReturnValue({
+      mockUseProducts.mockReturnValue({
         data: [],
         isLoading: false,
       });
 
-      (useStockMutations as any).mockReturnValue(mockMutations);
+      mockUseStockMutations.mockReturnValue(mockMutations);
 
       const { result } = renderHook(() => useUnifiedStock(barId), {
         wrapper: createWrapper(),
       });
 
       const products = [
-        { name: 'Beer 1', sku: 'B1', stock: 100, price: 5, barId },
-        { name: 'Beer 2', sku: 'B2', stock: 200, price: 6, barId },
-        { name: 'Beer 3', sku: 'B3', stock: 150, price: 5.5, barId },
+        { name: 'Beer 1', categoryId: 'cat-1', volume: '33cl', alertThreshold: 10, stock: 100, price: 5, barId },
+        { name: 'Beer 2', categoryId: 'cat-1', volume: '33cl', alertThreshold: 10, stock: 200, price: 6, barId },
+        { name: 'Beer 3', categoryId: 'cat-1', volume: '33cl', alertThreshold: 10, stock: 150, price: 5.5, barId },
       ];
 
       await result.current.addProducts(products);
@@ -317,21 +336,24 @@ describe('Stock Lifecycle Integration', () => {
 
   describe('⚠️ Error Handling', () => {
     it('should handle add product failure gracefully', async () => {
-      const { useStockMutations } = await import('../../hooks/mutations/useStockMutations');
 
-      (useStockMutations as any).mockReturnValue({
+      mockUseStockMutations.mockReturnValue({
         createProduct: {
+          mutate: vi.fn(),
           mutateAsync: vi
             .fn()
             .mockRejectedValue(new Error('Database error')),
         },
-        updateProduct: { mutateAsync: vi.fn() },
-        deleteProduct: { mutateAsync: vi.fn() },
-        adjustStock: { mutateAsync: vi.fn() },
+        updateProduct: { mutate: vi.fn(), mutateAsync: vi.fn() },
+        deleteProduct: { mutate: vi.fn(), mutateAsync: vi.fn() },
+        adjustStock: { mutate: vi.fn(), mutateAsync: vi.fn() },
+        processSupply: { mutate: vi.fn(), mutateAsync: vi.fn() },
+        createConsignment: { mutate: vi.fn(), mutateAsync: vi.fn() },
+        claimConsignment: { mutate: vi.fn(), mutateAsync: vi.fn() },
+        forfeitConsignment: { mutate: vi.fn(), mutateAsync: vi.fn() },
       });
 
-      const { useProducts } = await import('../../hooks/queries/useStockQueries');
-      (useProducts as any).mockReturnValue({
+      mockUseProducts.mockReturnValue({
         data: [],
         isLoading: false,
       });
@@ -343,7 +365,9 @@ describe('Stock Lifecycle Integration', () => {
       await expect(
         result.current.addProduct({
           name: 'Beer',
-          sku: 'B1',
+          categoryId: 'cat-1',
+          volume: '33cl',
+          alertThreshold: 10,
           stock: 100,
           price: 5,
           barId,

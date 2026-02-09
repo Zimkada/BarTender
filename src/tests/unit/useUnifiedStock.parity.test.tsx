@@ -9,59 +9,76 @@ import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { ReactNode } from 'react';
 import { useUnifiedStock } from '../../hooks/pivots/useUnifiedStock';
 
-// 1. Mock dependencies
-const mockProducts = [
-    { id: 'prod-1', name: 'Heineken', stock: 10, barId: 'bar-123' },
-    { id: 'prod-2', name: 'Coca Cola', stock: 50, barId: 'bar-123' }
-];
-
-const mockOfflineSales = [
-    {
-        type: 'CREATE_SALE',
-        payload: {
-            id: 'offline-sale-1',
-            idempotency_key: 'key-1',
-            items: [
-                { product_id: 'prod-1', quantity: 2 }, // Sold 2 Heinekens offline
-                { product_id: 'prod-2', quantity: 5 }  // Sold 5 Coca Colas offline
-            ]
-        }
+const {
+    mockUseProducts,
+    mockUseSupplies,
+    mockUseConsignments,
+    mockUseCategories,
+    mockUseStockMutations,
+    mockUseAuth,
+    mockOfflineQueue,
+    mockSyncManager
+} = vi.hoisted(() => ({
+    mockUseProducts: vi.fn(() => ({
+        data: [
+            { id: 'prod-1', name: 'Heineken', stock: 10, barId: 'bar-123' },
+            { id: 'prod-2', name: 'Coca Cola', stock: 50, barId: 'bar-123' }
+        ], isLoading: false
+    })),
+    mockUseSupplies: vi.fn(() => ({ data: [], isLoading: false })),
+    mockUseConsignments: vi.fn(() => ({ data: [], isLoading: false })),
+    mockUseCategories: vi.fn(() => ({ data: [], isLoading: false })),
+    mockUseStockMutations: vi.fn(() => ({
+        createProduct: { mutate: vi.fn(), mutateAsync: vi.fn() },
+        updateProduct: { mutate: vi.fn(), mutateAsync: vi.fn() },
+        deleteProduct: { mutate: vi.fn(), mutateAsync: vi.fn() },
+        adjustStock: { mutate: vi.fn(), mutateAsync: vi.fn() },
+    })),
+    mockUseAuth: vi.fn(() => ({
+        currentSession: { userId: 'user-123', role: 'gérant' },
+    })),
+    mockOfflineQueue: {
+        getOperations: vi.fn(() => Promise.resolve([
+            {
+                type: 'CREATE_SALE',
+                payload: {
+                    id: 'offline-sale-1',
+                    idempotency_key: 'key-1',
+                    items: [
+                        { product_id: 'prod-1', total_price: 11, quantity: 2 },
+                        { product_id: 'prod-2', total_price: 5, quantity: 5 }
+                    ]
+                }
+            }
+        ])),
+    },
+    mockSyncManager: {
+        getRecentlySyncedKeys: vi.fn(() => new Set()),
     }
-];
+}));
 
 vi.mock('../../hooks/queries/useStockQueries', () => ({
-    useProducts: vi.fn(() => ({ data: mockProducts, isLoading: false })),
-    useSupplies: vi.fn(() => ({ data: [], isLoading: false })),
-    useConsignments: vi.fn(() => ({ data: [], isLoading: false })),
-    useCategories: vi.fn(() => ({ data: [], isLoading: false })),
+    useProducts: mockUseProducts,
+    useSupplies: mockUseSupplies,
+    useConsignments: mockUseConsignments,
+    useCategories: mockUseCategories,
     stockKeys: { all: ['stock'], products: () => ['stock', 'products'] },
 }));
 
 vi.mock('../../hooks/mutations/useStockMutations', () => ({
-    useStockMutations: vi.fn(() => ({
-        createProduct: { mutate: vi.fn() },
-        updateProduct: { mutate: vi.fn() },
-        deleteProduct: { mutate: vi.fn() },
-        adjustStock: { mutate: vi.fn() },
-    })),
+    useStockMutations: mockUseStockMutations,
 }));
 
 vi.mock('../../context/AuthContext', () => ({
-    useAuth: vi.fn(() => ({
-        currentSession: { userId: 'user-123', role: 'gérant' },
-    })),
+    useAuth: mockUseAuth,
 }));
 
 vi.mock('../../services/offlineQueue', () => ({
-    offlineQueue: {
-        getOperations: vi.fn(() => Promise.resolve(mockOfflineSales)),
-    },
+    offlineQueue: mockOfflineQueue,
 }));
 
 vi.mock('../../services/SyncManager', () => ({
-    syncManager: {
-        getRecentlySyncedKeys: vi.fn(() => new Set()), // No keys synced yet
-    },
+    syncManager: mockSyncManager,
 }));
 
 vi.mock('../../utils/calculations', () => ({
@@ -113,8 +130,7 @@ describe('useUnifiedStock Parity Test', () => {
 
     it('should ignore already synced operations', async () => {
         // Mock SyncManager to say 'key-1' is already synced
-        const { syncManager } = await import('../../services/SyncManager');
-        (syncManager.getRecentlySyncedKeys as any).mockReturnValue(new Set(['key-1']));
+        mockSyncManager.getRecentlySyncedKeys.mockReturnValue(new Set(['key-1']));
 
         const { result, rerender } = renderHook(() => useUnifiedStock(barId), {
             wrapper: createWrapper(),

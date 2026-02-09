@@ -16,47 +16,54 @@ import { ReactNode } from 'react';
 import { useUnifiedSales } from '../../hooks/pivots/useUnifiedSales';
 import { useUnifiedReturns } from '../../hooks/pivots/useUnifiedReturns';
 
-// Mock setup with role configuration
-const mockAuthContext = (role: string) => {
-  return {
-    currentSession: {
-      userId: 'user-123',
-      role: role,
-      userName: role === 'serveur' ? 'Jean' : 'Manager',
-    },
-  };
-};
+const {
+  mockUseSales,
+  mockUseReturns,
+  mockUseAuth,
+  mockOfflineQueue,
+  mockSyncManager,
+  mockBusinessDateHelpers
+} = vi.hoisted(() => ({
+  mockUseSales: vi.fn(() => ({ data: [], isLoading: false })),
+  mockUseReturns: vi.fn(() => ({ data: [], isLoading: false })),
+  mockUseAuth: vi.fn(() => ({
+    currentSession: { userId: 'user-123', role: 'serveur', userName: 'Jean' },
+  })),
+  mockOfflineQueue: {
+    getOperations: vi.fn(() => Promise.resolve([])),
+  },
+  mockSyncManager: {
+    getRecentlySyncedKeys: vi.fn(() => new Map()),
+  },
+  mockBusinessDateHelpers: {
+    getCurrentBusinessDateString: vi.fn(() => '2025-02-09'),
+    filterByBusinessDateRange: vi.fn((items) => items),
+  }
+}));
 
 vi.mock('../../hooks/queries/useSalesQueries', () => ({
-  useSales: vi.fn(),
+  useSales: mockUseSales,
   salesKeys: { all: ['sales'] },
 }));
 
 vi.mock('../../hooks/queries/useReturnsQueries', () => ({
-  useReturns: vi.fn(),
+  useReturns: mockUseReturns,
   returnKeys: { all: ['returns'] },
 }));
 
 vi.mock('../../context/AuthContext', () => ({
-  useAuth: vi.fn(() => mockAuthContext('serveur')), // Default to serveur
+  useAuth: mockUseAuth,
 }));
 
 vi.mock('../../services/offlineQueue', () => ({
-  offlineQueue: {
-    getOperations: vi.fn(() => Promise.resolve([])),
-  },
+  offlineQueue: mockOfflineQueue,
 }));
 
 vi.mock('../../services/SyncManager', () => ({
-  syncManager: {
-    getRecentlySyncedKeys: vi.fn(() => new Map()),
-  },
+  syncManager: mockSyncManager,
 }));
 
-vi.mock('../../utils/businessDateHelpers', () => ({
-  getCurrentBusinessDateString: vi.fn(() => '2025-02-09'),
-  filterByBusinessDateRange: vi.fn((items) => items),
-}));
+vi.mock('../../utils/businessDateHelpers', () => mockBusinessDateHelpers);
 
 const createWrapper = () => {
   const queryClient = new QueryClient({
@@ -72,13 +79,12 @@ describe('RBAC Filtering Integration', () => {
 
   describe('👤 Serveur Role Restrictions', () => {
     beforeEach(() => {
-      const { useAuth } = require('../../context/AuthContext');
-      (useAuth as any).mockReturnValue(mockAuthContext('serveur'));
+      mockUseAuth.mockReturnValue({
+        currentSession: { userId: 'user-123', role: 'serveur', userName: 'Jean' },
+      });
     });
 
     it('should only show serveur their own sales', async () => {
-      const { useSales } = await import('../../hooks/queries/useSalesQueries');
-
       const allSales = [
         {
           id: 'sale-1',
@@ -96,7 +102,7 @@ describe('RBAC Filtering Integration', () => {
         },
       ];
 
-      (useSales as any).mockReturnValue({
+      mockUseSales.mockReturnValue({
         data: allSales,
         isLoading: false,
       });
@@ -121,8 +127,6 @@ describe('RBAC Filtering Integration', () => {
     });
 
     it('should restrict return visibility for serveur', async () => {
-      const { useReturns } = await import('../../hooks/queries/useReturnsQueries');
-
       const allReturns = [
         {
           id: 'return-1',
@@ -138,7 +142,7 @@ describe('RBAC Filtering Integration', () => {
         },
       ];
 
-      (useReturns as any).mockReturnValue({
+      mockUseReturns.mockReturnValue({
         data: allReturns,
         isLoading: false,
       });
@@ -159,13 +163,12 @@ describe('RBAC Filtering Integration', () => {
 
   describe('👨‍💼 Gérant Role Permissions', () => {
     beforeEach(() => {
-      const { useAuth } = require('../../context/AuthContext');
-      (useAuth as any).mockReturnValue(mockAuthContext('gérant'));
+      mockUseAuth.mockReturnValue({
+        currentSession: { userId: 'user-123', role: 'gérant', userName: 'Manager' },
+      });
     });
 
     it('should show gérant all sales regardless of user', async () => {
-      const { useSales } = await import('../../hooks/queries/useSalesQueries');
-
       const allSales = [
         {
           id: 'sale-1',
@@ -190,7 +193,7 @@ describe('RBAC Filtering Integration', () => {
         },
       ];
 
-      (useSales as any).mockReturnValue({
+      mockUseSales.mockReturnValue({
         data: allSales,
         isLoading: false,
       });
@@ -209,8 +212,6 @@ describe('RBAC Filtering Integration', () => {
     });
 
     it('should allow gérant to see all returns', async () => {
-      const { useReturns } = await import('../../hooks/queries/useReturnsQueries');
-
       const allReturns = [
         {
           id: 'return-1',
@@ -226,7 +227,7 @@ describe('RBAC Filtering Integration', () => {
         },
       ];
 
-      (useReturns as any).mockReturnValue({
+      mockUseReturns.mockReturnValue({
         data: allReturns,
         isLoading: false,
       });
@@ -245,9 +246,7 @@ describe('RBAC Filtering Integration', () => {
     });
 
     it('should allow gérant to approve returns', async () => {
-      const { useReturns } = await import('../../hooks/queries/useReturnsQueries');
-
-      (useReturns as any).mockReturnValue({
+      mockUseReturns.mockReturnValue({
         data: [
           {
             id: 'return-1',
@@ -275,12 +274,11 @@ describe('RBAC Filtering Integration', () => {
   describe('🔐 Cross-Role Visibility', () => {
     it('should prevent data leakage between roles', async () => {
       // Serveur view
-      const { useAuth: useAuthMock } = require('../../context/AuthContext');
-      (useAuthMock as any).mockReturnValue(mockAuthContext('serveur'));
+      mockUseAuth.mockReturnValue({
+        currentSession: { userId: 'user-123', role: 'serveur', userName: 'Jean' },
+      });
 
-      const { useSales } = await import('../../hooks/queries/useSalesQueries');
-
-      (useSales as any).mockReturnValue({
+      mockUseSales.mockReturnValue({
         data: [
           {
             id: 'confidential-1',
@@ -310,12 +308,11 @@ describe('RBAC Filtering Integration', () => {
 
   describe('📊 Stats by Role', () => {
     it('serveur stats should only include own sales', async () => {
-      const { useAuth: useAuthMock } = require('../../context/AuthContext');
-      (useAuthMock as any).mockReturnValue(mockAuthContext('serveur'));
+      mockUseAuth.mockReturnValue({
+        currentSession: { userId: 'user-123', role: 'serveur', userName: 'Jean' },
+      });
 
-      const { useSales } = await import('../../hooks/queries/useSalesQueries');
-
-      (useSales as any).mockReturnValue({
+      mockUseSales.mockReturnValue({
         data: [
           {
             id: 'sale-1',
@@ -349,10 +346,9 @@ describe('RBAC Filtering Integration', () => {
     });
 
     it('gérant stats should include all sales', async () => {
-      const { useAuth: useAuthMock } = require('../../context/AuthContext');
-      (useAuthMock as any).mockReturnValue(mockAuthContext('gérant'));
-
-      const { useSales } = await import('../../hooks/queries/useSalesQueries');
+      mockUseAuth.mockReturnValue({
+        currentSession: { userId: 'user-123', role: 'gérant', userName: 'Manager' },
+      });
 
       const sales = [
         {
@@ -371,7 +367,7 @@ describe('RBAC Filtering Integration', () => {
         },
       ];
 
-      (useSales as any).mockReturnValue({
+      mockUseSales.mockReturnValue({
         data: sales,
         isLoading: false,
       });
