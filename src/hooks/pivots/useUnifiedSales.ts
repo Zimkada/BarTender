@@ -7,21 +7,22 @@
 import { useMemo, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSales, salesKeys } from '../queries/useSalesQueries';
-import { useAuth } from '../useAuth';
+import { useAuth } from '../../context/AuthContext';
 import { offlineQueue } from '../../services/offlineQueue';
 import { syncManager } from '../../services/SyncManager';
-import { SalesService } from '../../services/supabase/SalesService';
-import type { Sale, OfflineSale, SaleItem } from '../../types';
+import { SalesService } from '../../services/supabase/sales.service';
+import type { Sale, SaleItem } from '../../types';
 
 /**
  * Type pour les ventes unifiées (online + offline)
  * Inclut les champs en snake_case et camelCase pour compatibilité
  */
-interface UnifiedSale extends Omit<Sale, 'createdAt' | 'validatedAt' | 'rejectedAt'> {
+interface UnifiedSale extends Omit<Sale, 'createdAt' | 'validatedAt' | 'rejectedAt' | 'businessDate'> {
     created_at: string;
     business_date: string;
     idempotency_key: string;
     isOptimistic?: boolean;
+    businessDate?: Date; // Facultatif pour compatibilité temporaire si besoin
 }
 
 export const useUnifiedSales = (barId: string | undefined) => {
@@ -61,8 +62,7 @@ export const useUnifiedSales = (barId: string | undefined) => {
                         created_at: createdAt,
                         business_date: payload.business_date || createdAt.split('T')[0],
                         idempotency_key: payload.idempotency_key,
-                        idempotencyKey: payload.idempotency_key,
-                        paymentMethod: payload.payment_method,
+                        paymentMethod: payload.payment_method as any,
                         isOptimistic: true
                     };
 
@@ -117,9 +117,9 @@ export const useUnifiedSales = (barId: string | undefined) => {
         // Fusionner et trier par date décroissante
         const combined = [...filteredOffline, ...onlineSales];
 
-        return combined.sort((a, b) => {
-            const dateA = (a as any).created_at || (a as Sale).createdAt;
-            const dateB = (b as any).created_at || (b as Sale).createdAt;
+        return combined.sort((a: any, b: any) => {
+            const dateA = a.created_at || a.createdAt;
+            const dateB = b.created_at || b.createdAt;
             return new Date(dateB).getTime() - new Date(dateA).getTime();
         });
     }, [salesHash]); // ← Dépendance STABLE via le hash
@@ -129,7 +129,7 @@ export const useUnifiedSales = (barId: string | undefined) => {
      */
     const stats = useMemo(() => {
         const today = new Date().toISOString().split('T')[0];
-        const todaySales = unifiedSales.filter(s => s.business_date === today || s.created_at.startsWith(today));
+        const todaySales = unifiedSales.filter((s: any) => (s.business_date || s.businessDate?.toISOString().split('T')[0]) === today || (s.created_at || s.createdAt?.toISOString())?.startsWith(today));
 
         const totalRevenue = todaySales.reduce((sum, s) => sum + s.total, 0);
         const count = todaySales.length;
