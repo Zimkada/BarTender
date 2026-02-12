@@ -3,10 +3,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FormStepper } from "../ui/FormStepper";
 import { Search, Minus, Plus, User as UserIcon, RotateCcw } from "lucide-react";
 import { useAppContext } from "../../context/AppContext";
+import { Product } from "../../types";
+import { SwapProductSelector } from "./SwapProductSelector";
 import { useBarContext } from "../../context/BarContext";
 import { useCurrencyFormatter } from "../../hooks/useBeninCurrency";
 import { useFeedback } from "../../hooks/useFeedback";
 import { useViewport } from "../../hooks/useViewport";
+import { useUnifiedStock } from "../../hooks/pivots/useUnifiedStock";
 import {
   User,
   Sale,
@@ -55,10 +58,12 @@ export function CreateReturnForm({
   consignments,
   getReturnsBySale,
 }: CreateReturnFormProps) {
-  const { products } = useAppContext();
+  const { currentBar } = useBarContext();
+  const { products } = useUnifiedStock(currentBar?.id);
+  const { provideExchange } = useAppContext();
   const { barMembers } = useBarContext();
   const { formatPrice } = useCurrencyFormatter();
-  const { showError } = useFeedback();
+  const { showError, showSuccess } = useFeedback();
   const { isMobile } = useViewport();
 
   const users: User[] = barMembers
@@ -67,11 +72,14 @@ export function CreateReturnForm({
 
   const [selectedProduct, setSelectedProduct] = useState<SaleItem | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [reason, setReason] = useState<ReturnReason>("defective");
+  const [reason, setReason] = useState<ReturnReason>("wrong_item");
   const [notes, setNotes] = useState("");
   const [showOtherReasonDialog, setShowOtherReasonDialog] = useState(false);
   const [filterSeller, setFilterSeller] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [swapProduct, setSwapProduct] = useState<Product | null>(null);
+  const [isSelectingSwapProduct, setIsSelectingSwapProduct] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); // 🛡️ Verrouillage UI
 
 
   const getAlreadyReturned = (productId: string): number => {
@@ -137,7 +145,7 @@ export function CreateReturnForm({
   }, [returnableSales, users]);
 
   const handleSubmit = async () => {
-    if (!selectedSale || !selectedProduct) return;
+    if (!selectedSale || !selectedProduct || isSubmitting) return;
 
     const productId = selectedProduct.product_id;
     if (!productId) {
@@ -147,6 +155,57 @@ export function CreateReturnForm({
 
     if (reason === "other") {
       setShowOtherReasonDialog(true);
+      return;
+    }
+
+    // ✨ MAGIC SWAP : Si échange mais pas encore de produit choisi
+    if (reason === "exchange" && !swapProduct) {
+      setIsSelectingSwapProduct(true);
+      return;
+    }
+
+    if (reason === "exchange" && swapProduct) {
+      console.log('[CreateReturnForm] 🔄 EXCHANGE FLOW STARTED', {
+        selectedSale: selectedSale.id,
+        selectedProduct: selectedProduct.product_id,
+        swapProduct: swapProduct.id,
+        quantity,
+        reason
+      });
+
+      setIsSubmitting(true); // 🛡️ Verrouillage
+      try {
+        console.log('[CreateReturnForm] Calling provideExchange...');
+        await provideExchange({
+          saleId: selectedSale.id,
+          productId: selectedProduct.product_id,
+          productName: selectedProduct.product_name,
+          productVolume: selectedProduct.product_volume || "",
+          quantitySold: selectedProduct.quantity,
+          quantityReturned: quantity,
+          reason: "exchange",
+          notes: notes || undefined,
+          returnedAt: new Date(),
+          refundAmount: quantity * selectedProduct.unit_price,
+          isRefunded: false,
+          autoRestock: true,
+          manualRestockRequired: false,
+        }, swapProduct, selectedSale.ticketId || (selectedSale as any).ticket_id); // ✅ Pass ticketId for chaining
+        console.log('[CreateReturnForm] ✅ Exchange SUCCESS');
+        showSuccess("✨ Échange effectué avec succès !");
+        onCancel(); // Close form on success
+      } catch (err) {
+        console.error('[CreateReturnForm] ❌ Exchange FAILED:', err);
+        console.error('[CreateReturnForm] Error details:', {
+          message: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined
+        });
+        showError("Erreur lors de l'échange. Veuillez réessayer.");
+        // Ne PAS fermer le formulaire pour permettre une nouvelle tentative
+      } finally {
+        setIsSubmitting(false); // 🛡️ Déverrouillage
+        console.log('[CreateReturnForm] Exchange flow ended');
+      }
       return;
     }
 
@@ -188,6 +247,32 @@ export function CreateReturnForm({
 
   return (
     <>
+      <AnimatePresence>
+        {isSelectingSwapProduct && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] bg-gray-900/40 backdrop-blur-sm p-4 sm:p-8 flex items-center justify-center"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="w-full max-w-4xl h-[80vh]"
+            >
+              <SwapProductSelector
+                onSelect={(product) => {
+                  setSwapProduct(product);
+                  setIsSelectingSwapProduct(false);
+                }}
+                onCancel={() => setIsSelectingSwapProduct(false)}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <OtherReasonDialog
         isOpen={showOtherReasonDialog}
         onConfirm={handleOtherReasonConfirm}
@@ -562,15 +647,92 @@ export function CreateReturnForm({
                             <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Quantité</span>
                             <span className="font-black text-gray-900">{quantity} unités</span>
                           </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Unitaire</span>
-                            <span className="font-mono font-black text-gray-900">{formatPrice(selectedProduct.unit_price)}</span>
+
+                          {reason === 'exchange' && (
+                            <div className="pt-6 mt-2 border-t border-gray-100">
+                              <div className="flex items-center justify-between mb-4">
+                                <span className="text-[10px] text-purple-600 font-black uppercase tracking-[0.2em]">Flux Magic Swap</span>
+                                <div className="px-2 py-0.5 bg-purple-50 rounded text-[9px] font-black text-purple-600 border border-purple-100 uppercase tracking-tighter">
+                                  Échange premium
+                                </div>
+                              </div>
+
+                              {swapProduct ? (
+                                <div className="bg-gradient-to-br from-purple-50/50 to-white p-5 rounded-2xl border border-purple-100 shadow-sm relative overflow-hidden group">
+                                  {/* Glassmorphism accent */}
+                                  <div className="absolute top-0 right-0 w-24 h-24 bg-purple-200/20 blur-2xl rounded-full -mr-12 -mt-12 pointer-events-none" />
+
+                                  <div className="relative z-10 flex flex-col gap-3">
+                                    <div className="flex justify-between items-start">
+                                      <div className="flex flex-col gap-0.5 max-w-[70%]">
+                                        <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest">Article de remplacement</span>
+                                        <span className="font-black text-gray-900 text-sm truncate uppercase tracking-tight">{swapProduct.name}</span>
+                                      </div>
+                                      <span className="font-mono font-black text-purple-700 text-sm bg-white px-2 py-1 rounded-lg shadow-sm border border-purple-50">
+                                        {formatPrice(swapProduct.price)}
+                                      </span>
+                                    </div>
+
+                                    <button
+                                      onClick={() => setIsSelectingSwapProduct(true)}
+                                      className="flex items-center gap-2 text-[10px] font-black text-purple-600 hover:text-purple-700 transition-colors uppercase tracking-wider group/btn w-fit"
+                                    >
+                                      <span className="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center group-hover/btn:bg-purple-200 transition-all">
+                                        <RotateCcw size={10} strokeWidth={3} />
+                                      </span>
+                                      Changer l'article
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setIsSelectingSwapProduct(true)}
+                                  className="w-full group relative flex flex-col items-center justify-center py-8 px-6 rounded-2xl border-2 border-dashed border-purple-200 bg-white hover:bg-purple-50/50 hover:border-purple-300 transition-all duration-300"
+                                >
+                                  <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mb-3 group-hover:scale-110 transition-transform shadow-sm">
+                                    <Plus size={24} strokeWidth={3} />
+                                  </div>
+                                  <span className="text-xs font-black text-purple-700 uppercase tracking-[0.15em]">Choisir l'article</span>
+                                  <p className="text-[9px] text-purple-400 font-bold mt-1 uppercase tracking-tighter">Entrée en stock de l'ancien produit auto</p>
+                                </button>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="flex justify-between items-center py-2">
+                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Prix unitaire d'origine</span>
+                            <span className="font-mono font-black text-gray-700 text-sm">{formatPrice(selectedProduct.unit_price)}</span>
                           </div>
-                          <div className="pt-4 border-t border-gray-200/50 flex flex-col items-end">
-                            <span className="text-[9px] font-black text-brand-primary uppercase tracking-[0.2em] mb-1">Total à rembourser</span>
-                            <span className="text-3xl font-black text-gray-900 font-mono tracking-tighter">
-                              {formatPrice(quantity * selectedProduct.unit_price)}
-                            </span>
+
+                          <div className="pt-6 border-t border-brand-primary/10 flex flex-col items-end gap-1">
+                            {reason === 'exchange' && swapProduct ? (
+                              <>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <div className={`w-2 h-2 rounded-full ${(swapProduct.price - selectedProduct.unit_price) >= 0 ? "bg-orange-500 animate-pulse" : "bg-emerald-500"}`} />
+                                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Écart à régulariser</span>
+                                </div>
+                                <div className="flex flex-col items-end">
+                                  <span className={`text-3xl font-black font-mono tracking-tighter leading-none ${(swapProduct.price - selectedProduct.unit_price) > 0 ? "text-orange-600" : (swapProduct.price - selectedProduct.unit_price) < 0 ? "text-emerald-600" : "text-gray-900"
+                                    }`}>
+                                    {formatPrice(quantity * (swapProduct.price - selectedProduct.unit_price))}
+                                  </span>
+                                  <p className="text-[9px] font-bold text-gray-400 mt-2 uppercase tracking-tight italic bg-gray-50 px-2 py-1 rounded">
+                                    {(swapProduct.price - selectedProduct.unit_price) > 0
+                                      ? "Le client doit verser l'écart"
+                                      : (swapProduct.price - selectedProduct.unit_price) < 0
+                                        ? "Rembourser la différence au client"
+                                        : "Échange à valeur égale - Pas de flux"}
+                                  </p>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em] mb-1">Total à rembourser</span>
+                                <span className="text-4xl font-black text-gray-900 font-mono tracking-tighter">
+                                  {formatPrice(quantity * selectedProduct.unit_price)}
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -589,6 +751,7 @@ export function CreateReturnForm({
                             {reason === 'wrong_item' && "Correction: Remis en stock"}
                             {reason === 'customer_change' && "Client: Remis en stock"}
                             {reason === 'expired' && "Périmé: Pas de remise en stock"}
+                            {reason === 'exchange' && "Magic Swap: Échange + Remise en stock"}
                             {reason === 'other' && "Audit requis"}
                           </span>
                         </div>
@@ -600,12 +763,13 @@ export function CreateReturnForm({
                         whileHover={{ scale: 1.02, y: -2 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={handleSubmit}
-                        disabled={!reason}
-                        className="w-full py-4 rounded-2xl font-black text-white shadow-xl shadow-brand-primary/30 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider text-xs"
-                        style={{ background: 'var(--brand-gradient)' }}
+                        disabled={!reason || (reason === 'exchange' && !swapProduct)}
+                        className={`w-full py-4 rounded-2xl font-black text-white shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider text-xs ${reason === 'exchange' ? "shadow-purple-200" : "shadow-brand-primary/30"
+                          }`}
+                        style={{ background: reason === 'exchange' ? 'linear-gradient(135deg, #9333ea 0%, #7e22ce 100%)' : 'var(--brand-gradient)' }}
                       >
-                        <RotateCcw size={18} strokeWidth={3} />
-                        Confirmer le retour
+                        <RotateCcw size={18} strokeWidth={3} className={reason === 'exchange' ? "animate-spin-slow" : ""} />
+                        {reason === 'exchange' ? "Finaliser l'échange" : "Confirmer le retour"}
                       </motion.button>
 
                       <button

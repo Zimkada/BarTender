@@ -1,4 +1,4 @@
-import { Package, X } from "lucide-react";
+import { Package, X, RotateCcw, ArrowLeftRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { Return, ReturnReason, ReturnReasonConfig, User } from "../../types";
 
@@ -6,6 +6,8 @@ interface ReturnCardProps {
   returnItem: Return;
   returnReasons: Record<ReturnReason, ReturnReasonConfig>;
   serverUser: User | null;
+  initiatorUser?: User | null; // ✨ Nouveau
+  validatorUser?: User | null; // ✨ Nouveau
   isReadOnly: boolean;
   isMobile: boolean;
   formatPrice: (amount: number) => string;
@@ -51,6 +53,8 @@ export function ReturnCard({
   returnItem,
   returnReasons,
   serverUser,
+  initiatorUser,
+  validatorUser,
   isReadOnly,
   isMobile,
   formatPrice,
@@ -98,12 +102,36 @@ export function ReturnCard({
               {serverUser && (
                 <div className="flex items-center gap-1.5 bg-purple-50 px-2 py-1 rounded-full border border-purple-100/50 shrink-0">
                   <span className="text-[9px] font-black text-purple-600 uppercase tracking-tighter">
-                    Serveur: {serverUser.name}
+                    Vendeur: {serverUser.name}
+                  </span>
+                </div>
+              )}
+              {initiatorUser && initiatorUser.id !== serverUser?.id && (
+                <div className="flex items-center gap-1.5 bg-blue-50 px-2 py-1 rounded-full border border-blue-100/50 shrink-0">
+                  <span className="text-[9px] font-black text-blue-600 uppercase tracking-tighter">
+                    Initié par: {initiatorUser.name}
+                  </span>
+                </div>
+              )}
+              {validatorUser && (
+                <div className="flex items-center gap-1.5 bg-amber-50 px-2 py-1 rounded-full border border-amber-100/50 shrink-0">
+                  <span className="text-[9px] font-black text-amber-600 uppercase tracking-tighter">
+                    {returnItem.status === 'rejected' ? 'Rejeté' : 'Validé'} par: {validatorUser.name}
                   </span>
                 </div>
               )}
             </div>
           </div>
+
+          {/* Badge Échange si le retour est lié à une vente de remplacement */}
+          {(returnItem as any).linkedSaleId && (
+            <div className="bg-orange-50 border border-orange-100 rounded-md px-3 py-2 mb-4">
+              <p className="text-xs text-orange-700 font-bold flex items-center gap-1.5">
+                <ArrowLeftRight size={14} />
+                Retour lié à la vente de remplacement #{((returnItem as any).linkedSaleId as string).slice(-6).toUpperCase()}
+              </p>
+            </div>
+          )}
 
           {/* Droite: Chiffres Clés (Remboursement & Qté) */}
           <div className="flex items-center justify-between lg:justify-end gap-10 pt-5 lg:pt-0 border-t lg:border-t-0 lg:border-l border-dashed border-gray-100 lg:pl-8 shrink-0">
@@ -156,9 +184,16 @@ export function ReturnCard({
               </span>
             )}
 
-            {!returnItem.isRefunded && returnItem.refundAmount === 0 && (
+            {!returnItem.isRefunded && returnItem.refundAmount === 0 && !returnItem.linkedSaleId && (
               <span className="text-[9px] font-black bg-gray-50 text-gray-500 border border-gray-100 px-2.5 py-1.5 rounded-lg uppercase tracking-wider italic">
                 Sans flux financier
+              </span>
+            )}
+
+            {returnItem.linkedSaleId && (
+              <span className="text-[9px] font-black bg-purple-50 text-purple-700 border border-purple-100/50 px-2.5 py-1.5 rounded-lg uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
+                <RotateCcw size={11} className="text-purple-500" strokeWidth={3} />
+                Échange Magic Swap
               </span>
             )}
           </div>

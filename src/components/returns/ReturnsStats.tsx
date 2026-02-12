@@ -25,7 +25,7 @@ export function ReturnsStats({ returns, returnReasons }: ReturnsStatsProps) {
     const stats = useMemo(() => {
         const totalReturnsCount = returns.length;
         const validatedReturns = returns.filter(
-            (r) => r.status === "approved" || r.status === "restocked",
+            (r) => r.status === "approved" || r.status === "validated" || r.status === "restocked",
         );
         const pendingReturns = returns.filter((r) => r.status === "pending");
 
@@ -258,12 +258,12 @@ export function ReturnsStats({ returns, returnReasons }: ReturnsStatsProps) {
                                         animate={{ width: `${item.percentage}%` }}
                                         transition={{ duration: 1.2, ease: "circOut" }}
                                         className={`h-full rounded-full ${item.color === "red"
-                                                ? "bg-gradient-to-r from-red-600 to-red-400 shadow-sm shadow-red-200"
-                                                : item.color === "amber" || item.color === "orange"
-                                                    ? "bg-gradient-to-r from-brand-primary to-amber-300 shadow-sm shadow-brand-subtle"
-                                                    : item.color === "blue"
-                                                        ? "bg-gradient-to-r from-blue-600 to-blue-400 shadow-sm shadow-blue-200"
-                                                        : "bg-gradient-to-r from-purple-600 to-purple-400 shadow-sm shadow-purple-200"
+                                            ? "bg-gradient-to-r from-red-600 to-red-400 shadow-sm shadow-red-200"
+                                            : item.color === "amber" || item.color === "orange"
+                                                ? "bg-gradient-to-r from-brand-primary to-amber-300 shadow-sm shadow-brand-subtle"
+                                                : item.color === "blue"
+                                                    ? "bg-gradient-to-r from-blue-600 to-blue-400 shadow-sm shadow-blue-200"
+                                                    : "bg-gradient-to-r from-purple-600 to-purple-400 shadow-sm shadow-purple-200"
                                             }`}
                                     />
                                 </div>

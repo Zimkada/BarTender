@@ -17,7 +17,7 @@ export const useReturns = (barId: string | undefined, options?: { refetchInterva
             if (!barId) return [];
             const dbReturns = await ReturnsService.getReturns(barId);
 
-            return dbReturns.map((r: DBReturn) => ({
+            return dbReturns.map((r: DBReturn): Return => ({
                 id: r.id,
                 barId: r.bar_id,
                 saleId: r.sale_id,
@@ -26,15 +26,17 @@ export const useReturns = (barId: string | undefined, options?: { refetchInterva
                 productVolume: r.product_volume,
                 quantitySold: r.quantity_sold,
                 quantityReturned: r.quantity_returned,
-                reason: r.reason as any, // Typed in DB as string, mapped to union
+                reason: r.reason as any,
                 returnedBy: r.returned_by,
                 serverId: r.server_id || undefined,
-                server_id: r.server_id || undefined, // Snake_case alias for DB compatibility
+                server_id: r.server_id || undefined,
                 returnedAt: new Date(r.returned_at),
-                businessDate: r.business_date ? new Date(r.business_date) : new Date(r.returned_at),
+                // ✅ FIX V12: Robust String-based Business Date (anti-timezone shift)
+                businessDate: r.business_date || r.returned_at.split('T')[0],
+                business_date: r.business_date || undefined,
                 refundAmount: Number(r.refund_amount) || 0,
                 isRefunded: r.is_refunded || false,
-                status: (r.status as 'pending' | 'validated' | 'rejected') || 'pending',
+                status: (r.status as 'pending' | 'approved' | 'rejected' | 'restocked') || 'pending',
                 autoRestock: r.auto_restock || false,
                 manualRestockRequired: r.manual_restock_required || false,
                 restockedAt: r.restocked_at ? new Date(r.restocked_at) : undefined,
@@ -42,7 +44,12 @@ export const useReturns = (barId: string | undefined, options?: { refetchInterva
                 customRefund: r.custom_refund || undefined,
                 customRestock: r.custom_restock || undefined,
                 originalSeller: r.original_seller || undefined,
-                operatingModeAtCreation: r.operating_mode_at_creation || undefined,
+                operatingModeAtCreation: r.operating_mode_at_creation as 'full' | 'simplified' | undefined,
+                validatedBy: r.validated_by || undefined,
+                rejectedBy: r.rejected_by || undefined,
+                validated_by: r.validated_by || undefined,
+                rejected_by: r.rejected_by || undefined,
+                linkedSaleId: r.linked_sale_id || undefined,
             }));
         },
         enabled: !!barId,
