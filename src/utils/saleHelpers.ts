@@ -50,3 +50,26 @@ export function formatSaleTime(sale: Sale, shortFormat = true): string {
     ...(shortFormat ? {} : { second: '2-digit' })
   });
 }
+
+/**
+ * Vérifie si un retour est confirmé et doit impacter les finances (CA Net)
+ * 
+ * Un retour est "confirmé" s'il est remboursé ET validé par un gérant.
+ * Statuts acceptés : 'approved', 'restocked'.
+ * 
+ * @param ret - Objet retour (supporte snake_case de la DB et camelCase du frontend)
+ * @returns true si le retour est confirmé
+ */
+export function isConfirmedReturn(ret: any): boolean {
+  if (!ret) return false;
+
+  const isRefunded = ret.isRefunded || ret.is_refunded;
+  const reason = ret.reason;
+  const status = ret.status;
+
+  // Un retour est confirmé s'il est remboursé (cash) OU s'il s'agit d'un échange (Magic Swap)
+  // ET qu'il est validé par un gérant.
+  const isFinancialImpact = !!isRefunded || reason === 'exchange';
+
+  return isFinancialImpact && (status === 'approved' || status === 'validated' || status === 'restocked');
+}

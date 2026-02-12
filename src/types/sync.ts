@@ -61,6 +61,7 @@ export interface CreateSalePayload {
   business_date?: string | null;
   ticket_id?: string | null;
   idempotency_key: string;
+  source_return_id?: string | null; // ✨ NOUVEAU: Traçabilité Échange
 }
 
 /**

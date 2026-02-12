@@ -297,15 +297,15 @@ export interface Sale {
   rejectedBy?: string;    // ID du gérant qui a rejeté la demande
 
   // Timestamps pour l'audit
-  createdAt: Date;        // Date de création par le serveur
-  validatedAt?: Date;     // Date de validation par le gérant
-  rejectedAt?: Date;      // Date de rejet par le gérant
+  createdAt: Date | string;        // Date de création par le serveur
+  validatedAt?: Date | string;     // Date de validation par le gérant
+  rejectedAt?: Date | string;      // Date de rejet par le gérant
   cancelledBy?: string;   // ID de qui a annulé la vente validée
-  cancelledAt?: Date;     // Timestamp de l'annulation
+  cancelledAt?: Date | string;     // Timestamp de l'annulation
   cancelReason?: string;  // Raison libre fournie par l'annuleur
 
   // ✅ NOUVEAU : Date commerciale (synchronisée avec DB)
-  businessDate: Date;
+  businessDate: Date | string;
 
   // Optionnel, pour le mode simplifié ou pour référence
   assignedTo?: string;    // En mode simplifié : nom du serveur qui a servi (ex: "Marie")
@@ -319,6 +319,7 @@ export interface Sale {
   notes?: string; // ✨ Notes sur la vente
   idempotencyKey?: string; // 🛡️ Clé anti-doublon (V11.5)
   isOptimistic?: boolean; // ⭐ Indique une vente créée hors-ligne (UI Optimiste)
+  sourceReturnId?: string; // 🔄 ID du retour qui a financé cet échange (Magic Swap)
 }
 
 // ===== TICKETS (BONS) =====
@@ -415,7 +416,7 @@ export interface StockAdjustment {
 }
 
 // ===== RETOURS =====
-export type ReturnReason = 'defective' | 'wrong_item' | 'customer_change' | 'expired' | 'other';
+export type ReturnReason = 'defective' | 'wrong_item' | 'customer_change' | 'expired' | 'exchange' | 'other';
 
 export interface ReturnReasonConfig {
   label: string;
@@ -439,10 +440,10 @@ export interface Return {
   returnedBy: string; // userId
   serverId?: string;  // ✨ NOUVEAU: UUID du serveur assigné (mode switching support)
   returnedAt: Date;
-  businessDate: Date; // ✅ NOUVEAU : Date commerciale (synchronisée avec DB)
+  businessDate: Date | string; // ✅ NOUVEAU : Date commerciale (synchronisée avec DB) - string YYYY-MM-DD preferred
   refundAmount: number;
   isRefunded: boolean; // ✅ Le client a-t-il été remboursé ?
-  status: 'pending' | 'approved' | 'rejected' | 'restocked';
+  status: 'pending' | 'approved' | 'validated' | 'rejected' | 'restocked';
   autoRestock: boolean;
   manualRestockRequired: boolean;
   restockedAt?: Date;
@@ -455,9 +456,17 @@ export interface Return {
   // ✅ NOUVEAU : Traçabilité vendeur original
   originalSeller?: string;  // userId du vendeur qui a créé la vente originale
 
+  // ✅ NOUVEAU : Traçabilité validation/rejet
+  validatedBy?: string;     // userId du gérant qui a approuvé
+  rejectedBy?: string;      // userId du gérant qui a rejeté
+
   // ✨ NOUVEAU : Mode opérationnel à la création (pour gérer le switching de mode)
   operatingModeAtCreation?: 'full' | 'simplified'; // Mode lors de la création du retour
+  business_date?: string; // ✅ Alias snake_case pour compatibility filtrage
   server_id?: string; // Alias snake_case pour compatibility DB
+  validated_by?: string; // Alias snake_case
+  rejected_by?: string; // Alias snake_case
+  linkedSaleId?: string; // 🔄 ID de la vente de remplacement (Magic Swap)
 }
 
 // ===== CONSIGNATIONS =====
@@ -484,10 +493,10 @@ export interface Consignment {
   totalAmount: number;            // Montant total (quantity × prix vente)
 
   // Dates
-  createdAt: Date;                // Date consignation
-  expiresAt: Date;                // Date expiration (7-30j configurable)
-  claimedAt?: Date;               // Date récupération
-  businessDate: Date;            // ✅ NOUVEAU : Date commerciale (synchronisée avec DB)
+  createdAt: Date | string;                // Date consignation
+  expiresAt: Date | string;                // Date expiration (7-30j configurable)
+  claimedAt?: Date | string;               // Date récupération
+  businessDate: Date | string;            // ✅ NOUVEAU : Date commerciale (synchronisée avec DB)
 
   // Statut
   status: ConsignmentStatus;

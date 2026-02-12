@@ -61,17 +61,23 @@ export function dateToYYYYMMDD(date: Date): string {
 export function getBusinessDate(
     item: {
         businessDate?: Date | string;
+        business_date?: Date | string;
         createdAt?: Date | string;
         validatedAt?: Date | string;
         returnedAt?: Date | string;
     },
     closeHour: number = BUSINESS_DAY_CLOSE_HOUR
 ): string {
-    // Priorité 1 : businessDate (calculée par backend OU frontend)
-    if (item.businessDate) {
-        const date = typeof item.businessDate === 'string'
-            ? new Date(item.businessDate)
-            : item.businessDate;
+    // Priorité 1 : businessDate (camelCase) ou business_date (snake_case)
+    const bDate = item.businessDate || item.business_date;
+    if (bDate) {
+        // 🧪 FIX V12.3: Robust YYYY-MM-DD parsing (no timezone shifts)
+        if (typeof bDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(bDate)) {
+            return bDate;
+        }
+        const date = typeof bDate === 'string'
+            ? new Date(bDate)
+            : bDate;
         return dateToYYYYMMDD(date);
     }
 
@@ -83,7 +89,12 @@ export function getBusinessDate(
         throw new Error('Item must have businessDate, validatedAt, createdAt, or returnedAt');
     }
 
-    const date = typeof sourceDate === 'string' ? new Date(sourceDate) : sourceDate;
+    // 🧪 FIX: Avoid timezone shifts when creating Date from YYYY-MM-DD string
+    // If sourceDate is a YYYY-MM-DD string, parse it as UTC to prevent local timezone interpretation issues.
+    // Otherwise, let new Date() handle it (e.g., ISO strings with Z or Date objects).
+    const date = typeof sourceDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(sourceDate)
+        ? new Date(sourceDate + 'T00:00:00Z') // Parse as UTC to avoid local timezone shifts
+        : new Date(sourceDate);
     const businessDate = calculateBusinessDate(date, closeHour);
     return dateToYYYYMMDD(businessDate);
 }
@@ -99,6 +110,7 @@ export function getBusinessDate(
  */
 export function filterByBusinessDateRange<T extends {
     businessDate?: Date | string;
+    business_date?: Date | string;
     createdAt?: Date | string;
     validatedAt?: Date | string;
     returnedAt?: Date | string;

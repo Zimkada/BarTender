@@ -40,6 +40,7 @@ export interface CreateSaleIdempotentParams {
   p_notes?: string;
   p_business_date?: string;
   p_ticket_id?: string;
+  p_source_return_id?: string; // ✨ NOUVEAU: Pour la traçabilité échange
 }
 
 /**
@@ -93,6 +94,7 @@ export function buildCreateSaleParams(
     notes?: string | null;
     business_date?: string | null;
     ticket_id?: string | null;
+    source_return_id?: string | null;
   },
   idempotencyKey: string
 ): CreateSaleIdempotentParams {
@@ -109,5 +111,6 @@ export function buildCreateSaleParams(
     p_notes: data.notes || undefined,
     p_business_date: data.business_date || undefined,
     p_ticket_id: data.ticket_id || undefined,
+    p_source_return_id: (data as any).source_return_id || (data as any).sourceReturnId || undefined,
   };
 }

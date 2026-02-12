@@ -1,4 +1,5 @@
 import { filterByBusinessDateRange } from './businessDateHelpers';
+import { getSaleDate, isConfirmedReturn } from './saleHelpers';
 import {
     type ValidatedCalculableSale,
     type ValidatedReturn,
@@ -160,7 +161,7 @@ export const calculateRevenueStatsPure = ({
     const saleCount = filteredSales.length + deduplicatedOfflineQueue.length + transitionCount;
 
     // 6. Returns Calculation
-    let baseReturns = returns.filter(r => r.isRefunded && (r.status === 'approved' || r.status === 'restocked'));
+    let baseReturns = returns.filter(isConfirmedReturn);
 
     if (isServerRole) {
         // Source of truth: serverId is the server who made the original sale
