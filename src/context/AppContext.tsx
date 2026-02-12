@@ -13,11 +13,8 @@ import {
 } from '../types';
 
 export interface AppContextType {
-  // État
-  categories: Category[];
-  products: Product[];
-  supplies: Supply[];
-  sales: Sale[];
+  // L'ÉTAT DES DONNÉES EST MAINTENANT GÉRÉ PAR LES SMART HOOKS (useUnifiedSales, etc.)
+  // Le contexte ne fournit plus que les paramètres globaux et les membres du bar.
   settings: AppSettings;
   users: User[];
 
@@ -55,16 +52,14 @@ export interface AppContextType {
   getServerRevenue: (userId: string, startDate?: Date, endDate?: Date) => number;
   getServerReturns: (userId: string) => Return[];
 
-  // Retours
-  returns: Return[];
+  // Retours (État géré par useUnifiedReturns)
   addReturn: (returnData: Omit<Return, 'id' | 'barId'>) => void;
   updateReturn: (returnId: string, updates: Partial<Return>) => void;
   deleteReturn: (returnId: string) => void;
-  getReturnsBySale: (saleId: string) => Return[];
   getPendingReturns: () => Return[];
+  provideExchange: (returnData: any, swapProduct: Product, ticketId?: string) => Promise<void>;
 
-  // Dépenses
-  expenses: Expense[];
+  // Dépenses (État géré par useUnifiedExpenses)
   customExpenseCategories: ExpenseCategoryCustom[];
   addExpense: (expenseData: Omit<Expense, 'id' | 'barId' | 'createdAt'>) => void;
   deleteExpense: (expenseId: string) => void;
