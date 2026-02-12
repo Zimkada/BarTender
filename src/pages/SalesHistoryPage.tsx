@@ -1,4 +1,4 @@
-import { useState, useMemo, Suspense } from 'react';
+import { useState, useMemo } from 'react';
 import {
     Search,
     Download,
@@ -8,10 +8,10 @@ import {
     List as ListIcon
 } from 'lucide-react';
 
-import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
+import { useUnifiedReturns } from '../hooks/pivots/useUnifiedReturns';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 import { useFeedback } from '../hooks/useFeedback';
@@ -23,9 +23,6 @@ import { Sale, User, getPermissionsByRole } from '../types';
 import { useSalesFilters } from '../features/Sales/SalesHistory/hooks/useSalesFilters';
 import { useSalesStats } from '../features/Sales/SalesHistory/hooks/useSalesStats';
 import { useSalesExport } from '../features/Sales/SalesHistory/hooks/useSalesExport';
-import { lazyWithRetry } from '../utils/lazyWithRetry';
-import { LoadingFallback } from '../components/LoadingFallback';
-
 // Lazy load AnalyticsView to defer recharts bundle
 import { AnalyticsView } from '../features/Sales/SalesHistory/views/AnalyticsView';
 
@@ -48,8 +45,8 @@ type ViewMode = 'list' | 'cards' | 'analytics';
 export default function SalesHistoryPage() {
     const { currentBar } = useBarContext();
     const { sales } = useUnifiedSales(currentBar?.id);
-    const { categories, consignments } = useUnifiedStock(currentBar?.id);
-    const { products, returns, getReturnsBySale } = useAppContext();
+    const { products, categories, consignments } = useUnifiedStock(currentBar?.id);
+    const { returns, getReturnsBySale: getReturnsBySaleFromHook } = useUnifiedReturns(currentBar?.id, currentBar?.closingHour);
     const { barMembers } = useBarContext();
     const { formatPrice } = useCurrencyFormatter();
     const { currentSession } = useAuth();
@@ -148,6 +145,13 @@ export default function SalesHistoryPage() {
             showError(error.message || 'Erreur lors de l\'annulation');
         }
     };
+
+    // ✨ FIX: Fonction pour obtenir les retours filtrés d'une vente
+    // Utilise filteredReturns (déjà filtrés par date) au lieu de tous les retours
+    const getFilteredReturnsBySale = (saleId: string) => {
+        return filteredReturns.filter(r => r.saleId === saleId);
+    };
+
 
     const tabsConfig = [
         { id: 'list', label: isMobile ? 'Tableau' : 'Tableau des ventes', icon: ListIcon },
@@ -323,7 +327,7 @@ export default function SalesHistoryPage() {
                                         sales={filteredSales}
                                         formatPrice={formatPrice}
                                         onViewDetails={setSelectedSale}
-                                        getReturnsBySale={getReturnsBySale}
+                                        getReturnsBySale={getFilteredReturnsBySale}
                                         users={safeUsers}
                                     />
                                 </div>
@@ -333,7 +337,7 @@ export default function SalesHistoryPage() {
                                         sales={filteredSales}
                                         formatPrice={formatPrice}
                                         onViewDetails={setSelectedSale}
-                                        getReturnsBySale={getReturnsBySale}
+                                        getReturnsBySale={getFilteredReturnsBySale}
                                         users={safeUsers}
                                     />
                                 </div>
@@ -374,8 +378,9 @@ export default function SalesHistoryPage() {
                 onClose={() => setSelectedSale(null)}
                 canCancel={canCancelSales}
                 onCancelSale={handleCancelSale}
-                hasReturns={selectedSale ? (getReturnsBySale(selectedSale.id).length > 0) : false}
+                hasReturns={selectedSale ? (getReturnsBySaleFromHook(selectedSale.id).length > 0) : false}
                 hasConsignments={selectedSale ? consignments.some(c => c.saleId === selectedSale.id && ['active', 'claimed'].includes(c.status)) : false}
+                returns={selectedSale ? getReturnsBySaleFromHook(selectedSale.id) : []}
                 serverName={selectedSale ? (() => {
                     if (selectedSale.assignedTo) return selectedSale.assignedTo;
                     const serverId = selectedSale.serverId || selectedSale.soldBy;

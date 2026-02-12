@@ -27,7 +27,9 @@ import {
 import {
   getBusinessDate,
   getCurrentBusinessDateString,
+  dateToYYYYMMDD,
 } from "../utils/businessDateHelpers";
+import { isConfirmedReturn } from "../utils/saleHelpers";
 import { useViewport } from "../hooks/useViewport";
 import { TabbedPageHeader } from "../components/common/PageHeader/patterns/TabbedPageHeader";
 import { Input } from "../components/ui/Input";
@@ -46,7 +48,7 @@ import { AnimatedCounter } from "../components/AnimatedCounter";
 export default function ReturnsPage() {
   const { addReturn, updateReturn } = useAppContext();
   const { currentBar, barMembers, operatingMode } = useBarContext();
-  const { products, increasePhysicalStock, consignments } = useUnifiedStock(currentBar?.id);
+  const { increasePhysicalStock, consignments } = useUnifiedStock(currentBar?.id);
   const { sales } = useUnifiedSales(currentBar?.id);
   const { returns, getReturnsBySale } = useUnifiedReturns(currentBar?.id, currentBar?.closingHour);
   const users = Array.isArray(barMembers)
@@ -58,8 +60,13 @@ export default function ReturnsPage() {
   const { isMobile } = useViewport();
 
   // ✨ Déterminer si l'utilisateur peut créer des retours
-  // Seuls gérants/promoteurs peuvent créer et valider les retours
-  const isReadOnly = currentSession?.role === "serveur";
+  // Les serveurs peuvent maintenant créer des demandes en mode complet, 
+  // mais seuls gérants/promoteurs peuvent valider.
+  // En mode simplifié, les serveurs ne peuvent ni vendre ni retourner.
+  const isServer = currentSession?.role === "serveur";
+  const { isSimplifiedMode } = useBarContext();
+  const canCreate = !isServer || !isSimplifiedMode;
+  const isReadOnly = isServer;
 
   // ✨ Navigation par onglets
   const [activeTab, setActiveTab] = useState<"list" | "create" | "stats">("list");
@@ -87,16 +94,15 @@ export default function ReturnsPage() {
     filteredReturns: filteredReturnsByFilters,
   } = useSalesFilters({
     sales,
-    returns,
+    returns: returns as any[],
     currentSession,
     closeHour,
   });
 
-  // ✨ Analytics calculés pour le header/liste
   const todayRefundedAmount = useMemo(() => {
     const today = getCurrentBusinessDateString(closeHour);
     return returns
-      .filter(r => getBusinessDate(r, closeHour) === today && r.status !== 'rejected')
+      .filter(r => getBusinessDate(r, closeHour) === today && isConfirmedReturn(r))
       .reduce((sum, r) => sum + r.refundAmount, 0);
   }, [returns, closeHour]);
 
@@ -238,6 +244,32 @@ export default function ReturnsPage() {
     // Source of truth: soldBy is the business attribution
     const serverId = sale.soldBy;
 
+    console.log('[ReturnsPage] calling addReturn with data:', {
+      saleId,
+      productId,
+      productName,
+      productVolume,
+      quantitySold: item.quantity,
+      quantityReturned: quantity,
+      reason,
+      returnedBy: currentSession.userId,
+      refundAmount: finalRefund ? productPrice * quantity : 0,
+      isRefunded: finalRefund,
+      status: "pending",
+      autoRestock: finalRestock,
+      manual_restock_required: !finalRestock,
+      notes,
+      customRefund: reason === "other" ? customRefund : undefined,
+      customRestock: reason === "other" ? customRestock : undefined,
+      originalSeller: sale.soldBy,
+      // ✅ FIX: Always normalize to YYYY-MM-DD string
+      businessDate: typeof sale.businessDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(sale.businessDate)
+        ? sale.businessDate  // Already YYYY-MM-DD
+        : dateToYYYYMMDD(typeof sale.businessDate === 'string' ? new Date(sale.businessDate) : sale.businessDate),
+      serverId,
+      operatingModeAtCreation: operatingMode,
+    });
+
     addReturn({
       saleId,
       productId,
@@ -257,7 +289,10 @@ export default function ReturnsPage() {
       customRefund: reason === "other" ? customRefund : undefined,
       customRestock: reason === "other" ? customRestock : undefined,
       originalSeller: sale.soldBy,
-      businessDate: sale.businessDate,
+      // ✅ FIX: Always normalize to YYYY-MM-DD string
+      businessDate: typeof sale.businessDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(sale.businessDate)
+        ? sale.businessDate  // Already YYYY-MM-DD
+        : dateToYYYYMMDD(typeof sale.businessDate === 'string' ? new Date(sale.businessDate) : sale.businessDate),
       serverId, // ✨ NUEVO: Passer le server_id résolu
       // ✨ MODE SWITCHING SUPPORT: Store current operating mode
       operatingModeAtCreation: operatingMode,
@@ -276,7 +311,7 @@ export default function ReturnsPage() {
           r.saleId === saleId &&
           r.productId === productId &&
           r.quantityReturned === quantity &&
-          r.status === "pending",
+          r.status === "pending" || r.status === "approved" || r.status === "restocked",
       );
       if (newestReturn) {
         setLastCreatedReturnId(newestReturn.id);
@@ -295,6 +330,7 @@ export default function ReturnsPage() {
   ): boolean => {
     const validTransitions: Record<Return["status"], Return["status"][]> = {
       pending: ["approved", "rejected"],
+      validated: ["restocked", "rejected"], // Legacy support
       approved: ["restocked", "rejected"],
       rejected: [], // Terminal state
       restocked: [], // Terminal state
@@ -344,6 +380,7 @@ export default function ReturnsPage() {
 
     updateReturn(returnId, {
       status: newStatus,
+      validatedBy: currentSession?.userId, // ✨ Traçabilité
       restockedAt: returnItem.autoRestock ? new Date() : undefined,
     });
   };
@@ -394,19 +431,24 @@ export default function ReturnsPage() {
       return;
     }
 
-    updateReturn(returnId, { status: "rejected" });
+    updateReturn(returnId, {
+      status: "rejected",
+      rejectedBy: currentSession?.userId // ✨ Traçabilité
+    });
     showSuccess("Retour rejeté");
   };
 
-  // ✨ Apply additional status filter on top of hook-filtered returns
   const filteredReturns = filteredReturnsByFilters.filter((returnItem) => {
     const matchesStatus =
-      filterStatus === "all" || returnItem.status === filterStatus;
+      filterStatus === "all" ||
+      (filterStatus === "approved"
+        ? returnItem.status === "approved" || returnItem.status === "validated" || returnItem.status === "restocked"
+        : returnItem.status === filterStatus);
     return matchesStatus;
   });
 
   const tabsConfig = [
-    ...(!isReadOnly
+    ...(canCreate
       ? [
         {
           id: "create",
@@ -539,9 +581,11 @@ export default function ReturnsPage() {
                       return (
                         <ReturnCard
                           key={returnItem.id}
-                          returnItem={returnItem}
+                          returnItem={returnItem as Return}
                           returnReasons={returnReasons}
                           serverUser={serverUser}
+                          initiatorUser={users.find(u => u.id === returnItem.returnedBy) || null}
+                          validatorUser={users.find(u => u.id === ((returnItem as Return).validatedBy || (returnItem as Return).validated_by || (returnItem as Return).rejectedBy || (returnItem as Return).rejected_by)) || null}
                           isReadOnly={isReadOnly}
                           isMobile={true}
                           formatPrice={formatPrice}
@@ -555,7 +599,7 @@ export default function ReturnsPage() {
                 )}
               </div>
             ) : showStats ? (
-              <ReturnsStats returns={filteredReturnsByFilters} returnReasons={returnReasons} />
+              <ReturnsStats returns={filteredReturnsByFilters as any} returnReasons={returnReasons} />
             ) : (
               <div>
                 <CreateReturnForm
@@ -608,9 +652,11 @@ export default function ReturnsPage() {
                       return (
                         <ReturnCard
                           key={returnItem.id}
-                          returnItem={returnItem}
+                          returnItem={returnItem as any}
                           returnReasons={returnReasons}
                           serverUser={serverUser}
+                          initiatorUser={users.find(u => u.id === returnItem.returnedBy) || null}
+                          validatorUser={users.find(u => u.id === (returnItem.validatedBy || returnItem.validated_by || returnItem.rejectedBy || returnItem.rejected_by)) || null}
                           isReadOnly={isReadOnly}
                           isMobile={false}
                           formatPrice={formatPrice}
@@ -630,7 +676,7 @@ export default function ReturnsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
               >
-                <ReturnsStats returns={filteredReturnsByFilters} returnReasons={returnReasons} />
+                <ReturnsStats returns={filteredReturnsByFilters as any} returnReasons={returnReasons} />
               </motion.div>
             ) : (
               <motion.div

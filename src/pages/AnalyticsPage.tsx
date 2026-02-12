@@ -6,6 +6,7 @@ import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { Button } from '../components/ui/Button';
 import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
+import { useUnifiedExpenses } from '../hooks/pivots/useUnifiedExpenses';
 
 import AnalyticsCharts from '../components/AnalyticsCharts';
 
@@ -15,9 +16,9 @@ import AnalyticsCharts from '../components/AnalyticsCharts';
  */
 export default function AnalyticsPage() {
   const navigate = useNavigate();
-  const { expenses } = useAppContext();
   const { currentBar } = useBarContext();
   const { sales } = useUnifiedSales(currentBar?.id);
+  const { expenses } = useUnifiedExpenses(currentBar?.id);
 
   // Générer les données pour les graphiques (12 derniers mois)
   const chartData = useMemo(() => {
