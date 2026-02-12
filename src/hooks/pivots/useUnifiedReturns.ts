@@ -12,20 +12,27 @@ import { offlineQueue } from '../../services/offlineQueue';
 import { syncManager } from '../../services/SyncManager';
 import { filterByBusinessDateRange, getCurrentBusinessDateString } from '../../utils/businessDateHelpers';
 import { BUSINESS_DAY_CLOSE_HOUR } from '../../constants/businessDay';
+import { useRealtimeReturns } from '../useRealtimeReturns';
 import type { Return } from '../../types';
 
 /**
  * Type pour les retours unifiés (online + offline)
  */
-interface UnifiedReturn extends Omit<Return, 'returnedAt' | 'businessDate'> {
+export interface UnifiedReturn extends Omit<Return, 'returnedAt' | 'businessDate'> {
     returned_at: string;
     business_date: string;
     isOptimistic?: boolean;
+    // Compatibilité
+    returnedAt: Date | string;
+    businessDate: Date | string;
 }
 
 export const useUnifiedReturns = (barId: string | undefined, closingHour?: number) => {
     const queryClient = useQueryClient();
     const { currentSession: session } = useAuth();
+
+    // 🚀 Real-time synchronization for returns (cross-device + cross-tab)
+    useRealtimeReturns({ barId: barId || '', enabled: !!barId });
 
     // 1. Retours Online (via React Query)
     const { data: onlineReturns = [], isLoading: isLoadingOnline } = useReturns(barId, { refetchInterval: false });
@@ -42,35 +49,37 @@ export const useUnifiedReturns = (barId: string | undefined, closingHour?: numbe
             });
 
             return ops
-                .filter(op => op.type === 'ADD_RETURN')
+                .filter(op => op.type === 'CREATE_RETURN')
                 .map(op => {
-                    const payload = op.payload;
+                    const payload = op.payload as any;
                     const returnedAt = new Date(op.timestamp).toISOString();
 
                     const unifiedReturn: UnifiedReturn = {
                         id: op.id,
-                        barId: payload.barId || barId,
-                        saleId: payload.saleId,
-                        productId: payload.productId,
-                        productName: payload.productName,
-                        productVolume: payload.productVolume || '',
-                        quantitySold: payload.quantitySold,
-                        quantityReturned: payload.quantityReturned,
-                        reason: payload.reason,
-                        returnedBy: payload.returnedBy,
-                        serverId: payload.serverId,
+                        barId: payload.bar_id || (barId as string),
+                        saleId: payload.sale_id,
+                        productId: payload.product_id,
+                        productName: payload.product_name,
+                        productVolume: payload.product_volume || '',
+                        quantitySold: payload.quantity_sold,
+                        quantityReturned: payload.quantity_returned,
+                        reason: payload.reason as any,
+                        returnedBy: payload.returned_by,
+                        serverId: payload.server_id,
                         returned_at: returnedAt,
-                        business_date: payload.businessDate || returnedAt.split('T')[0],
-                        refundAmount: payload.refundAmount,
-                        isRefunded: payload.isRefunded,
-                        status: payload.status || 'pending',
-                        autoRestock: payload.autoRestock || false,
-                        manualRestockRequired: payload.manualRestockRequired || false,
-                        notes: payload.notes,
-                        customRefund: payload.customRefund,
-                        customRestock: payload.customRestock,
-                        originalSeller: payload.originalSeller,
-                        operatingModeAtCreation: payload.operatingModeAtCreation,
+                        returnedAt: returnedAt, // Standardized
+                        business_date: payload.business_date || returnedAt.split('T')[0],
+                        businessDate: payload.business_date || returnedAt.split('T')[0], // Standardized
+                        refundAmount: payload.refund_amount,
+                        isRefunded: payload.is_refunded,
+                        status: (payload.status || 'pending') as any,
+                        autoRestock: payload.auto_restock || false,
+                        manualRestockRequired: payload.manual_restock_required || false,
+                        notes: payload.notes || undefined,
+                        customRefund: payload.custom_refund,
+                        customRestock: payload.custom_restock,
+                        originalSeller: payload.original_seller,
+                        operatingModeAtCreation: payload.operating_mode_at_creation,
                         isOptimistic: true
                     };
 
@@ -104,8 +113,8 @@ export const useUnifiedReturns = (barId: string | undefined, closingHour?: numbe
      */
     const returnsHash = useMemo(() => {
         return JSON.stringify({
-            online: onlineReturns.map(r => `${r.id}-${r.quantityReturned}`),
-            offline: offlineReturns.map(r => r.id)
+            online: onlineReturns.map(r => `${r.id}-${r.quantityReturned}-${r.status}`),
+            offline: offlineReturns.map(r => `${r.id}-${r.status}`)
         });
     }, [onlineReturns, offlineReturns]);
 
@@ -139,15 +148,17 @@ export const useUnifiedReturns = (barId: string | undefined, closingHour?: numbe
         const todayStr = getCurrentBusinessDateString(closeHour);
 
         // Adapter les dates pour filterByBusinessDateRange
-        const returnsWithDates = unifiedReturns.map(r => ({
-            ...r,
-            returnedAt: (r as any).returned_at
-                ? new Date((r as any).returned_at)
-                : (r as Return).returnedAt,
-            businessDate: (r as any).business_date
-                ? new Date((r as any).business_date)
-                : (r as Return).businessDate
-        }));
+        const returnsWithDates = unifiedReturns.map((r): Return => {
+            if ('isOptimistic' in r) {
+                // Return instance in unified list is either online (mapped) or offline (raw payload)
+                return {
+                    ...r,
+                    returnedAt: new Date(r.returned_at),
+                    businessDate: r.business_date ? new Date(r.business_date) : new Date(r.returned_at)
+                } as Return;
+            }
+            return r as Return;
+        });
 
         const todayReturnsList = filterByBusinessDateRange(
             returnsWithDates,
@@ -159,7 +170,12 @@ export const useUnifiedReturns = (barId: string | undefined, closingHour?: numbe
         if (session?.role === 'serveur') {
             // Server sees only their own returns (mode switching support)
             return todayReturnsList.filter(r =>
-                r.returnedBy === session.userId || r.serverId === session.userId
+                r.returnedBy === session.userId ||
+                r.serverId === session.userId ||
+                (r as any).validatedBy === session.userId ||
+                (r as any).rejectedBy === session.userId ||
+                (r as any).validated_by === session.userId ||
+                (r as any).rejected_by === session.userId
             );
         }
 

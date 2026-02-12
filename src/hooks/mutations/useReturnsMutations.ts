@@ -3,12 +3,16 @@ import { ReturnsService } from '../../services/supabase/returns.service';
 import { returnKeys } from '../queries/useReturnsQueries';
 import { stockKeys } from '../queries/useStockQueries';
 import { statsKeys } from '../queries/useStatsQueries';
+import { broadcastService } from '../../services/broadcast/BroadcastService';
+import { getCurrentBusinessDateString } from '../../utils/businessDateHelpers';
+import { BUSINESS_DAY_CLOSE_HOUR } from '../../constants/businessDay';
 
 export const useReturnsMutations = (barId: string) => {
     const queryClient = useQueryClient();
 
     const createReturn = useMutation({
         mutationFn: async (data: any) => {
+            console.log('[useReturnsMutations] preparing return data:', data);
             const returnData = {
                 bar_id: data.barId,
                 sale_id: data.saleId,
@@ -19,7 +23,7 @@ export const useReturnsMutations = (barId: string) => {
                 quantity_returned: data.quantityReturned,
                 reason: data.reason,
                 returned_by: data.returnedBy,
-                server_id: data.server_id || null,
+                server_id: data.serverId || data.server_id || null,
                 returned_at: data.returnedAt instanceof Date
                     ? data.returnedAt.toISOString()
                     : (data.returnedAt || new Date().toISOString()),
@@ -34,14 +38,28 @@ export const useReturnsMutations = (barId: string) => {
                 original_seller: data.originalSeller || null,
                 // ✨ MODE SWITCHING SUPPORT: Store operating mode at creation
                 operating_mode_at_creation: data.operatingModeAtCreation || 'simplified',
-                business_date: data.businessDate,
+                business_date: data.businessDate || getCurrentBusinessDateString(BUSINESS_DAY_CLOSE_HOUR),
+                id: data.id, // ✨ Support ID pré-généré pour le Magic Swap
             };
+            console.log('[useReturnsMutations] calling ReturnsService.createReturn with:', returnData);
             return ReturnsService.createReturn(returnData);
         },
         onSuccess: (newReturn) => {
+            console.log('[useReturnsMutations] creation SUCCESS:', newReturn);
             import('react-hot-toast').then(({ default: toast }) => {
                 toast.success('Retour enregistré');
             });
+
+            // 🚀 Broadcast to other tabs/devices for instant sync
+            if (broadcastService.isSupported()) {
+                broadcastService.broadcast({
+                    event: 'INSERT',
+                    table: 'returns',
+                    barId,
+                    data: newReturn
+                });
+            }
+
             queryClient.invalidateQueries({ queryKey: returnKeys.list(barId) });
             // Invalider aussi le CA si le retour est remboursé
             if (newReturn.is_refunded) {
@@ -49,8 +67,8 @@ export const useReturnsMutations = (barId: string) => {
             }
         },
         onError: (error: any) => {
+            console.error('[useReturnsMutations] creation ERROR:', error);
             const errorMessage = error?.message || 'Erreur lors de la création du retour';
-            console.error('createReturn error:', error);
             import('react-hot-toast').then(({ default: toast }) => {
                 toast.error(errorMessage);
             });
@@ -64,6 +82,25 @@ export const useReturnsMutations = (barId: string) => {
             import('react-hot-toast').then(({ default: toast }) => {
                 toast.success('Retour mis à jour');
             });
+
+            // 🚀 Broadcast to other tabs/devices for instant sync
+            if (broadcastService.isSupported()) {
+                broadcastService.broadcast({
+                    event: 'UPDATE',
+                    table: 'returns',
+                    barId,
+                    data: updatedReturn
+                });
+                // Also broadcast stock update if restocked
+                if (updatedReturn.status === 'restocked') {
+                    broadcastService.broadcast({
+                        event: 'UPDATE',
+                        table: 'bar_products',
+                        barId
+                    });
+                }
+            }
+
             queryClient.invalidateQueries({ queryKey: returnKeys.list(barId) });
             // Invalider stats/CA si le statut change ou si c'est un remboursement
             if (updatedReturn.is_refunded || updatedReturn.status === 'restocked') {
@@ -82,10 +119,21 @@ export const useReturnsMutations = (barId: string) => {
 
     const deleteReturn = useMutation({
         mutationFn: ReturnsService.deleteReturn,
-        onSuccess: () => {
+        onSuccess: (_data, returnId) => {
             import('react-hot-toast').then(({ default: toast }) => {
                 toast.success('Retour supprimé');
             });
+
+            // 🚀 Broadcast to other tabs/devices for instant sync
+            if (broadcastService.isSupported()) {
+                broadcastService.broadcast({
+                    event: 'DELETE',
+                    table: 'returns',
+                    barId,
+                    data: { id: returnId }
+                });
+            }
+
             queryClient.invalidateQueries({ queryKey: returnKeys.list(barId) });
             // Invalider aussi les stats au cas où le retour était remboursé
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });

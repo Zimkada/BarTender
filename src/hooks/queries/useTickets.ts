@@ -5,9 +5,11 @@ import { useSales } from './useSalesQueries';
 import type { Ticket, Sale, SaleItem } from '../../types';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 import { useServerMappings } from '../useServerMappings';
+import { useAuth } from '../../context/AuthContext';
 import { SalesService, type OfflineSale } from '../../services/supabase/sales.service';
 import { syncManager } from '../../services/SyncManager';
 import { offlineQueue } from '../../services/offlineQueue';
+import { useUnifiedReturns } from '../pivots/useUnifiedReturns';
 
 // ===== Type-Safe Declarations =====
 
@@ -71,12 +73,17 @@ export interface TicketWithSummary extends Ticket {
  */
 export function useTickets(barId: string | undefined) {
     const queryClient = useQueryClient();
+    const { currentSession } = useAuth();
+    const isServerRole = currentSession?.role === 'serveur';
 
     // Ventes déjà dans le cache — used pour le join client-side
     const { data: sales = [] } = useSales(barId);
 
     // Mappings serveurs pour résoudre les noms
     const { mappings = [] } = useServerMappings(barId);
+
+    // 🔄 Retours unifiés (Online + Offline) pour déduction
+    const { returns = [] } = useUnifiedReturns(barId);
 
     // 📊 Offline Cache (Phase 13)
     const [offlineQueueSales, setOfflineQueueSales] = useState<OfflineSale[]>([]);
@@ -102,22 +109,25 @@ export function useTickets(barId: string | undefined) {
                     op.type === 'CREATE_TICKET' &&
                     (op.status === 'pending' || op.status === 'syncing' || op.status === 'error')
                 )
-                .map(op => ({
-                    id: op.payload.temp_id,
-                    bar_id: op.barId,
-                    status: 'open',
-                    created_by: op.payload.created_by,
-                    server_id: op.payload.server_id || null,
-                    created_at: new Date(op.timestamp).toISOString(),
-                    paid_at: null,
-                    paid_by: null,
-                    payment_method: null,
-                    ticket_number: 0, // 0 = "En attente"
-                    notes: op.payload.notes || null,
-                    table_number: op.payload.table_number || null,
-                    customer_name: op.payload.customer_name || null,
-                    isOptimistic: true
-                } as TicketRow));
+                .map(op => {
+                    const payload = op.payload as any;
+                    return {
+                        id: payload.temp_id,
+                        bar_id: op.barId,
+                        status: 'open',
+                        created_by: payload.created_by,
+                        server_id: payload.server_id || null,
+                        created_at: new Date(op.timestamp).toISOString(),
+                        paid_at: null,
+                        paid_by: null,
+                        payment_method: null,
+                        ticket_number: 0, // 0 = "En attente"
+                        notes: payload.notes || null,
+                        table_number: payload.table_number || null,
+                        customer_name: payload.customer_name || null,
+                        isOptimistic: true
+                    } as TicketRow;
+                });
 
             setPendingTickets(optimisticTickets);
 
@@ -169,8 +179,16 @@ export function useTickets(barId: string | undefined) {
         // 2. Fusionner avec les tickets optimistes
         const allBaseTickets = [...filteredServerTickets, ...pendingTickets];
 
+        // 3. Filtrage par serveur pour les rôles 'serveur'
+        const visibleTickets = isServerRole
+            ? allBaseTickets.filter(t =>
+                t.server_id === currentSession?.userId ||
+                t.created_by === currentSession?.userId
+            )
+            : allBaseTickets;
+
         // ✅ Type-safe cast to access isOptimistic flag from offline tickets
-        return allBaseTickets.map(t => ({
+        return visibleTickets.map(t => ({
             id: t.id,
             barId: t.bar_id,
             status: t.status as 'open' | 'paid',
@@ -222,17 +240,37 @@ export function useTickets(barId: string | undefined) {
             // 3. Fusionner les deux listes
             const allTicketSales = [...onlineTicketSales, ...offlineTicketSales];
 
-            // 4. Agrégation des produits sur toutes les ventes du ticket
+            // 4. Récupérer les retours liés à ces ventes (non rejetés)
+            const saleIds = new Set(allTicketSales.map(s => s.id));
+            const relatedReturns = returns.filter(r =>
+                saleIds.has(r.saleId) && r.status !== 'rejected'
+            );
+
+            // 5. Agrégation des produits sur toutes les ventes du ticket (NET)
             const productMap = new Map<string, number>();
             let totalAmount = 0;
 
-            // ✅ Type-safe aggregation with dual-casing support for online/offline sales
+            // ✅ Somme brute des ventes
             allTicketSales.forEach(sale => {
                 totalAmount += (sale as UnifiedSale).total || 0;
                 (sale.items || []).forEach((item: SaleItemWithDualCasing) => {
                     const name = item.product_name || item.productName || 'Produit';
                     productMap.set(name, (productMap.get(name) || 0) + (item.quantity || 1));
                 });
+            });
+
+            // 📉 Déduction des retours
+            relatedReturns.forEach(ret => {
+                totalAmount -= ret.refundAmount || 0;
+                const name = ret.productName || 'Produit';
+                const currentQty = productMap.get(name) || 0;
+                const newQty = Math.max(0, currentQty - ret.quantityReturned);
+
+                if (newQty > 0) {
+                    productMap.set(name, newQty);
+                } else {
+                    productMap.delete(name);
+                }
             });
 
             // Label : top 3 produits par quantité
@@ -250,12 +288,12 @@ export function useTickets(barId: string | undefined) {
             return {
                 ...ticket,
                 productSummary,
-                totalAmount,
+                totalAmount: Math.max(0, totalAmount), // Sécurité anti-négatif
                 salesCount: allTicketSales.length,
                 serverName
             };
         });
-    }, [tickets, sales, mappings, offlineQueueSales]);
+    }, [tickets, sales, mappings, offlineQueueSales, returns]);
 
     const refetchTickets = async () => {
         // 1. Force refresh offline data immediately (no debounce) but don't block

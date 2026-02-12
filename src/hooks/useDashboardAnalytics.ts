@@ -166,6 +166,8 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
         sales: serverFilteredSales,
         pendingSales,
         returns: serverFilteredReturns,
+        validatedReturnsCount: serverFilteredReturns.filter(r => r.status === 'approved' || r.status === 'restocked').length,
+        pendingReturnsCount: serverFilteredReturns.filter(r => r.status === 'pending').length,
         consignments: serverFilteredConsignments,
         lowStockProducts,
         todayTotal: todayTotal,

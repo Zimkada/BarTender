@@ -16,12 +16,16 @@ import type { Sale, SaleItem } from '../../types';
  * Type pour les ventes unifiées (online + offline)
  * Inclut les champs en snake_case et camelCase pour compatibilité
  */
-interface UnifiedSale extends Omit<Sale, 'createdAt' | 'validatedAt' | 'rejectedAt' | 'businessDate'> {
+export interface UnifiedSale extends Omit<Sale, 'createdAt' | 'validatedAt' | 'rejectedAt' | 'businessDate'> {
     created_at: string;
     business_date: string;
     idempotency_key: string;
     isOptimistic?: boolean;
-    businessDate?: Date; // Facultatif pour compatibilité temporaire si besoin
+    // Compatibilité pour éviter les erreurs de compilation dans les composants
+    createdAt: Date | string;
+    businessDate: Date | string;
+    validatedAt?: Date | string;
+    rejectedAt?: Date | string;
 }
 
 export const useUnifiedSales = (barId: string | undefined) => {
@@ -58,7 +62,9 @@ export const useUnifiedSales = (barId: string | undefined) => {
                         soldBy: payload.sold_by,
                         createdBy: payload.sold_by,
                         created_at: createdAt,
+                        createdAt: createdAt, // Standardized
                         business_date: payload.business_date || createdAt.split('T')[0],
+                        businessDate: payload.business_date || createdAt.split('T')[0], // Standardized
                         idempotency_key: payload.idempotency_key,
                         paymentMethod: payload.payment_method as any,
                         isOptimistic: true

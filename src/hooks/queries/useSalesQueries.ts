@@ -103,6 +103,7 @@ const mapSalesData = (dbSales: DBSale[]): Sale[] => {
             // 🛡️ Fix V12: Safe access thanks to DBSale
             ticketId: s.ticket_id || undefined,
             idempotencyKey: s.idempotency_key || undefined,
+            sourceReturnId: s.source_return_id || undefined,
         };
     });
 };

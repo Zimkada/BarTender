@@ -24,10 +24,10 @@ type SaleRow = Database['public']['Tables']['sales']['Row'];
  */
 interface SaleRowExtended extends SaleRow {
     isOptimistic?: boolean;
-    ticket_id?: string | null;
-    customer_name?: string | null;
-    customer_phone?: string | null;
-    notes?: string | null;
+    customer_name: string | null;
+    customer_phone: string | null;
+    notes: string | null;
+    source_return_id: string | null;
 }
 
 /**
@@ -130,7 +130,7 @@ export const useSalesMutations = (barId: string) => {
                 : (currentSession?.userId || '');
 
             const role = currentSession?.role;
-            const isManagerOrAdmin = role === 'admin' || role === 'gerant';
+            const isManagerOrAdmin = role === 'super_admin' || role === 'promoteur' || role === 'gerant';
 
             // 🛡️ DECISION CRITIQUE (V11.4): Une vente offline par un gérant/admin est VALIDÉE par défaut.
             // Cela évite qu'elle ne disparaisse du CA global après synchronisation.
@@ -152,18 +152,25 @@ export const useSalesMutations = (barId: string) => {
 
             const salePayload = {
                 bar_id: barId,
-                items: itemsFormatted,
+                items: itemsFormatted as unknown as SaleItem[],
                 payment_method: saleData.ticketId ? 'ticket' : (saleData.paymentMethod || 'cash'),
                 sold_by: soldByValue,
-                server_id: saleData.serverId || null,
-                ticket_id: saleData.ticketId || null,
-                validated_by: validatedByValue,
-                status: finalStatus,
+                server_id: saleData.serverId || undefined,
+                ticket_id: saleData.ticketId || undefined,
+                validated_by: validatedByValue || undefined,
+                status: finalStatus as 'pending' | 'validated',
                 customer_name: saleDataExtended.customerName,
                 customer_phone: saleDataExtended.customerPhone,
                 notes: saleDataExtended.notes,
                 business_date: formattedBusinessDate,
+                source_return_id: (saleData as any).sourceReturnId || undefined,
+                idempotency_key: (saleData as any).idempotencyKey || undefined // 🛡️ Fix : Toujours passer la clé si fournie
             };
+
+            console.log('[useSalesMutations] payload prepared for SalesService:', {
+                ...salePayload,
+                items_count: salePayload.items.length
+            });
 
             console.log('[useSalesMutations] payload prepared', salePayload);
 

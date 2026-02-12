@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
+import { UnifiedReturn } from './pivots/useUnifiedReturns';
 import { Sale, Return, User, BarMember } from '../types';
 import { dateToYYYYMMDD, getBusinessDate } from '../utils/businessDateHelpers';
+import { isConfirmedReturn } from '../utils/saleHelpers';
 
 export type UserPerformanceStat = {
     userId: string;
@@ -13,7 +15,7 @@ export type UserPerformanceStat = {
 
 interface UseTeamPerformanceProps {
     sales: Sale[];
-    returns: Return[];
+    returns: (Return | UnifiedReturn)[];
     users: User[];
     barMembers: BarMember[];
     startDate?: Date;
@@ -90,8 +92,7 @@ export function useTeamPerformance({
             const performanceSaleIds = new Set(sales.map(s => s.id));
 
             relevantReturns = returns.filter(r => {
-                if (r.status !== 'approved' && r.status !== 'restocked') return false;
-                if (!r.isRefunded) return false;
+                if (!isConfirmedReturn(r)) return false;
 
                 // 🔒 IMPORTANT: Seulement retours des ventes affichées (si on veut être strict sur la période d'analyse)
                 // OU si on veut tous les retours REMBOURSÉS durant cette période (indépendamment de quand la vente a eu lieu) ?
@@ -106,9 +107,7 @@ export function useTeamPerformance({
         } else {
             // Mode "DailyDashboard" (pas de date range explicite, on assume les retours du jour)
             // On filtre quand même sur le statut
-            relevantReturns = returns.filter(r =>
-                (r.status === 'approved' || r.status === 'restocked') && r.isRefunded
-            );
+            relevantReturns = returns.filter(isConfirmedReturn);
         }
 
         // Déduire les retours du revenue de chaque vendeur
@@ -143,7 +142,10 @@ export function useTeamPerformance({
                     };
                 }
 
-                userStats[serverId].revenue -= ret.refundAmount;
+                const refundAmt = (ret as any).refundAmount || (ret as any).refund_amount || 0;
+                const quantRet = (ret as any).quantityReturned || (ret as any).quantity_returned || 0;
+                userStats[serverId].revenue -= Number(refundAmt);
+                userStats[serverId].items -= Number(quantRet);
             }
         });
 

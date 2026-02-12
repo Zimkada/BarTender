@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { SalesService, type OfflineSale } from '../services/supabase/sales.service';
-import { ReturnsService, type DBReturn } from '../services/supabase/returns.service';
+import { ReturnsService, DBReturn } from '../services/supabase/returns.service';
+import { isConfirmedReturn } from '../utils/saleHelpers';
 import { getCurrentBusinessDateString } from '../utils/businessDateHelpers';
 import { calculateRevenueStats } from '../utils/revenueCalculator';
 import { statsKeys } from './queries/useStatsQueries';
@@ -40,10 +40,14 @@ interface InternalStats {
     isStale: boolean;
 }
 
+import { useUnifiedSales } from './pivots/useUnifiedSales';
+import { useUnifiedReturns } from './pivots/useUnifiedReturns';
+
 export function useRevenueStats(options: { startDate?: string; endDate?: string; enabled?: boolean } = {}): RevenueStats {
     const { currentBar } = useBarContext();
-    const { sales, returns } = useAppContext();
     const { currentSession } = useAuth();
+    const { sales } = useUnifiedSales(currentBar?.id);
+    const { returns } = useUnifiedReturns(currentBar?.id, currentBar?.closingHour);
 
     const currentBarId = currentBar?.id || '';
     const isServerRole = currentSession?.role === 'serveur';
@@ -74,8 +78,6 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
     }, [currentBarId, startDate, endDate, isServerRole, currentSession?.userId]);
 
     const calculateLocalStats = useCallback((customOfflineSales?: OfflineSale[]): InternalStats => {
-        if (!sales || !returns) return { netRevenue: 0, grossRevenue: 0, refundsTotal: 0, saleCount: 0, averageSale: 0, isStale: true };
-
         const closeHour = currentBar?.closingHour ?? 6;
 
         // On utilise soit les ventes passées en paramètre (frais), soit le state (si dispo)
@@ -114,13 +116,19 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
             let serverRawData;
             try {
                 // 🛡️ RÉCUPÉRATION DIRECTE (V11.5): On récupère les lignes pour sommer nous-mêmes
-                const { data, error } = await supabase
+                let query = supabase
                     .from('sales')
                     .select('total, status, sold_by, business_date, idempotency_key')
                     .eq('bar_id', currentBarId)
                     .eq('status', 'validated')
                     .gte('business_date', dStart?.toISOString().split('T')[0] || '')
                     .lte('business_date', dEnd?.toISOString().split('T')[0] || '');
+
+                if (isServerRole && currentSession?.userId) {
+                    query = query.or(`sold_by.eq.${currentSession.userId},server_id.eq.${currentSession.userId}`);
+                }
+
+                const { data, error } = await query;
 
                 if (error) throw error;
                 serverRawData = data;
@@ -176,7 +184,7 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
                 .catch(() => []);
 
             const filteredReturns = (returnsData as DBReturn[])
-                .filter((r) => r.is_refunded && (r.status === 'approved' || r.status === 'restocked'));
+                .filter(isConfirmedReturn);
 
             const refundsTotal = filteredReturns.reduce((sum: number, r) => sum + Number(r.refund_amount), 0);
             const netRevenue = grossRevenue - refundsTotal;
