@@ -18,8 +18,9 @@ import { useAppContext } from '../context/AppContext';
 import { EXPENSE_CATEGORY_LABELS } from '../hooks/useExpenses';
 import { useInitialBalance } from '../hooks/useInitialBalance';
 import { useCapitalContributions } from '../hooks/useCapitalContributions';
-import { useBeninCurrency } from '../hooks/useBeninCurrency'; // Changed to common hook
+import { useBeninCurrency } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
+import { isConfirmedReturn } from '../utils/saleHelpers';
 // Lazy load charts to reduce initial bundle size (saves ~110 KB gzipped)
 const AnalyticsCharts = lazy(() => import('./AnalyticsCharts'));
 
@@ -29,8 +30,9 @@ import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
 import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
 import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { useUnifiedExpenses } from '../hooks/pivots/useUnifiedExpenses';
+import { useUnifiedReturns } from '../hooks/pivots/useUnifiedReturns';
 import { ACCOUNTING_FILTERS, TIME_RANGE_CONFIGS } from '../config/dateFilters';
-import type { Return, Supply, Expense, Salary } from '../types';
+import type { Return, Supply, Expense, Salary, Consignment } from '../types';
 
 export function AccountingOverview() {
   const { currentSession } = useAuth();
@@ -52,13 +54,15 @@ export function AccountingOverview() {
   });
 
   // ✅ Utiliser les Smart Hooks Élite pour les finances unifiées
+  // Données de base unifiées
   const { sales: unifiedSales } = useUnifiedSales(currentBar?.id);
-  const { expenses: unifiedExpenses } = useUnifiedExpenses(currentBar?.id);
   const { consignments } = useUnifiedStock(currentBar?.id);
+  const { expenses: unifiedExpenses } = useUnifiedExpenses(currentBar?.id);
 
   const initialBalanceHook = useInitialBalance(currentBar?.id);
   const capitalContributionsHook = useCapitalContributions(currentBar?.id);
-  const { returns, customExpenseCategories } = useAppContext();
+  const { returns: unifiedReturns } = useUnifiedReturns(currentBar?.id, currentBar?.closingHour);
+  const { customExpenseCategories } = useAppContext();
 
   // ✨ Filtrage Centralisé Local des données unifiées
   const filteredSales = useMemo(() => {
@@ -78,11 +82,11 @@ export function AccountingOverview() {
 
   // ✨ Calcul des KPIs Financiers Unifiés
   const totalRevenue = useMemo(() => {
-    return filteredSales.reduce((sum, s) => sum + s.total, 0);
+    return filteredSales.reduce((sum: number, s: any) => sum + s.total, 0);
   }, [filteredSales]);
 
   const totalCosts = useMemo(() => {
-    return filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+    return filteredExpenses.reduce((sum: number, e: any) => sum + e.amount, 0);
   }, [filteredExpenses]);
 
   const [viewMode, setViewMode] = useState<'tresorerie' | 'analytique'>('tresorerie');
@@ -162,8 +166,8 @@ export function AccountingOverview() {
   // ✨ Calcul des Salaires (Unifié)
   const salariesCosts = useMemo(() => {
     return filteredExpenses
-      .filter(e => e.category === 'salary')
-      .reduce((sum, e) => sum + e.amount, 0);
+      .filter((e: any) => e.category === 'salary')
+      .reduce((sum: number, e: any) => sum + e.amount, 0);
   }, [filteredExpenses]);
 
   // ✨ Calcul des Approvisionnements (Unifié)
@@ -176,8 +180,8 @@ export function AccountingOverview() {
   // ✨ Dépenses Opérationnelles (Unifié - Hors salaires et appro)
   const operatingExpenses = useMemo(() => {
     return filteredExpenses
-      .filter(e => !e.isSupply && e.category !== 'investment' && e.category !== 'salary')
-      .reduce((sum, e) => sum + e.amount, 0);
+      .filter((e: Expense) => !e.isSupply && e.category !== 'investment' && e.category !== 'salary')
+      .reduce((sum: number, e: Expense) => sum + e.amount, 0);
   }, [filteredExpenses]);
 
   // ✨ Investissements (Unifié)
@@ -201,10 +205,6 @@ export function AccountingOverview() {
 
   // ✅ Safety checks for NaN
   const safeOperatingProfitMargin = isNaN(operatingProfitMargin) || !isFinite(operatingProfitMargin) ? 0 : operatingProfitMargin;
-
-  // Usage informatif des sous-totaux pour l'export Excel 
-  // (On les garde ici pour la clarté mais on les préfixe si inutilisés dans le JSX)
-  const _financesUnifiees = { operatingExpenses, suppliesCosts };
 
   // CALCULATIONS - KPIs and Chart Data
   const {
@@ -307,14 +307,19 @@ export function AccountingOverview() {
     // MAIS pour le "previousCosts" total, on peut juste sommer unifiedExpenses.
 
     const previousCosts = unifiedExpenses
-      .filter(exp => exp.date < periodStart)
-      .reduce((sum, exp) => sum + exp.amount, 0);
+      .filter((exp: any) => exp.date < periodStart)
+      .reduce((sum: number, exp: any) => sum + exp.amount, 0);
 
+    const previousReturnsRefunds = unifiedReturns
+      .filter(r => {
+        const rDate = new Date(r.returnedAt);
+        return rDate < periodStart && isConfirmedReturn(r);
+      })
+      .reduce((sum, r) => sum + r.refundAmount, 0);
 
-
-    // ✅ Total = Solde initial + Apports capital + (Revenus - Coûts) des périodes antérieures
-    return initialBalanceAmount + previousCapitalContributions + previousRevenue - previousCosts;
-  }, [viewMode, unifiedSales, returns, unifiedExpenses, periodStart, initialBalanceHook.initialBalance, capitalContributionsHook.contributions, historicalRevenue]);
+    // ✅ Total = Solde initial + Apports capital + (Revenus - Coûts - Retours) des périodes antérieures
+    return initialBalanceAmount + previousCapitalContributions + previousRevenue - previousCosts - previousReturnsRefunds;
+  }, [viewMode, unifiedSales, unifiedReturns, unifiedExpenses, periodStart, initialBalanceHook.initialBalance, capitalContributionsHook.contributions, historicalRevenue]);
 
   // Détail du solde de début (pour affichage détaillé dans la carte)
   const previousBalanceDetails = useMemo(() => {
@@ -323,12 +328,9 @@ export function AccountingOverview() {
     const initialBalanceAmount = initialBalanceHook.getInitialBalanceAmount();
     const previousCapitalContributions = capitalContributionsHook.getTotalContributions(periodStart);
 
-    // 3. Sum all sales before period (Using SQL Stats - NET REVENUE)
-    const previousRevenue = historicalRevenue;
-
     const previousTotalCosts = unifiedExpenses
-      .filter(exp => exp.date < periodStart)
-      .reduce((sum, exp) => sum + exp.amount, 0);
+      .filter((exp: any) => exp.date < periodStart)
+      .reduce((sum: number, exp: any) => sum + exp.amount, 0);
 
     const activityResult = previousRevenue - previousTotalCosts;
 
@@ -337,7 +339,7 @@ export function AccountingOverview() {
       capitalContributions: previousCapitalContributions,
       activityResult,
     };
-  }, [viewMode, unifiedSales, returns, unifiedExpenses, periodStart, initialBalanceHook.initialBalance, capitalContributionsHook.contributions, historicalRevenue]);
+  }, [viewMode, unifiedSales, unifiedReturns, unifiedExpenses, periodStart, initialBalanceHook.initialBalance, capitalContributionsHook.contributions, historicalRevenue]);
 
   // Final balance (for Vue Analytique)
   const finalBalance = previousBalance + netProfit;
@@ -458,19 +460,7 @@ export function AccountingOverview() {
   interface ReturnWithQuantity extends Return {
     quantity?: number;
   }
-
-  interface SupplyExtended extends Supply {
-    supplierName?: string;
-  }
-
-  interface ExpenseExtended {
-    id: string;
-    amount: number;
-    date: Date;
-    category: string;
-    notes?: string;
-    isSupply?: boolean;
-    isOptimistic?: boolean;
+  interface ExpenseExtended extends Expense {
     productName?: string;
     quantity?: number;
     createdBy: string;
@@ -504,7 +494,7 @@ export function AccountingOverview() {
       return exp.date >= periodStart && exp.date <= periodEnd;
     });
 
-    const filteredReturns = returns.filter(ret => {
+    const filteredReturns = unifiedReturns.filter(ret => {
       const retDate = new Date(ret.returnedAt);
       return retDate >= periodStart && retDate <= periodEnd;
     });
@@ -512,7 +502,7 @@ export function AccountingOverview() {
     const exportSalaries = exportExpenses.filter(e => e.category === 'salary');
     const salariesActualCosts = exportSalaries.reduce((sum, e) => sum + e.amount, 0);
 
-    const returnsRefunds = filteredReturns.reduce((sum, r) => sum + r.refundAmount, 0);
+    const returnsRefunds = filteredReturns.filter(isConfirmedReturn).reduce((sum, r) => sum + r.refundAmount, 0);
 
     // Calculer les coûts unifiés pour l'export
     const suppliesCosts = exportExpenses

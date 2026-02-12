@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Printer } from 'lucide-react';
 import { SalesService } from '../../services/supabase/sales.service';
+import { ReturnsService } from '../../services/supabase/returns.service';
 import { TicketRow } from '../../services/supabase/tickets.service';
 import { useBarContext } from '../../context/BarContext';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
@@ -30,6 +31,7 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
     const { currentBar } = useBarContext();
     const { formatPrice } = useCurrencyFormatter();
     const [sales, setSales] = useState<any[]>([]);
+    const [returns, setReturns] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -41,9 +43,10 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
             setIsLoading(true);
             Promise.all([
                 SalesService.getSalesByTicketId(ticketId),
-                SalesService.getOfflineSalesByTicketId(ticketId)
+                SalesService.getOfflineSalesByTicketId(ticketId),
+                currentBar ? ReturnsService.getReturns(currentBar.id) : Promise.resolve([])
             ])
-                .then(([onlineData, offlineData]) => {
+                .then(([onlineData, offlineData, returnsData]) => {
                     if (!isMounted) return;
                     // Déduplication flash utilisant les idempotency keys de la file d'attente
                     const recentlySyncedMap = syncManager.getRecentlySyncedKeys();
@@ -55,7 +58,16 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
                         return true;
                     });
 
-                    setSales([...onlineData, ...filteredOffline]);
+                    const allSales = [...onlineData, ...filteredOffline];
+                    setSales(allSales);
+
+                    // Filtrer les retours pour ne garder que ceux liés aux ventes de ce ticket
+                    const saleIds = allSales.map(s => s.id);
+                    const relatedReturns = returnsData.filter((r: any) =>
+                        saleIds.includes(r.sale_id || r.saleId)
+                    );
+                    setReturns(relatedReturns);
+
                     setIsLoading(false);
                 })
                 .catch((e: any) => {
@@ -82,12 +94,13 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
             window.removeEventListener('queue-updated', handleUpdate);
             window.removeEventListener('sync-completed', handleUpdate);
         };
-    }, [ticketId]);
+    }, [ticketId, currentBar]);
 
     // Aggregate items and payment methods across all sales on this ticket
     const allItems: AggregatedItem[] = [];
     const paymentMethods = new Set<string>();
     let grandTotal = 0;
+    let totalRefunds = 0;
 
     sales.forEach(sale => {
         grandTotal += (sale.total || 0);
@@ -109,6 +122,26 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
             }
         });
     });
+
+    // 📉 Déduire les retours de l'agrégation des articles
+    returns.forEach(ret => {
+        totalRefunds += (ret.refund_amount || ret.refundAmount || 0);
+        const name = ret.product_name || ret.productName || 'Produit';
+        const existing = allItems.find(i => i.name === name);
+        if (existing) {
+            existing.qty = Math.max(0, existing.qty - (ret.quantity_returned || ret.quantityReturned || 0));
+            existing.total = Math.max(0, existing.total - (ret.refund_amount || ret.refundAmount || 0));
+
+            // Si la quantité devient 0, on pourrait supprimer l'article, 
+            // mais il vaut mieux le garder s'il a été partiellement retourné.
+            // Si totalement retourné (qty=0), on le filtrera après.
+        }
+    });
+
+    // Filtrer les articles dont la quantité est 0 (totalement retournés)
+    const filteredItems = allItems.filter(item => item.qty > 0);
+
+    const netTotal = grandTotal - totalRefunds;
 
     const paymentLabels: Record<string, string> = {
         cash: 'Espèces',
@@ -203,7 +236,7 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
                                         <span className="text-right">Total</span>
                                     </div>
                                     <div className="space-y-1.5">
-                                        {allItems.map((item, i) => (
+                                        {filteredItems.map((item, i) => (
                                             <div key={i} className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 text-[11px] text-gray-800 px-1">
                                                 <span className="font-black">{item.name}</span>
                                                 <span className="text-right text-gray-500">{item.qty}</span>
@@ -216,10 +249,26 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
 
                                 <div className="border-t border-dashed border-gray-200" />
 
-                                {/* Grand total */}
-                                <div className="flex items-center justify-between px-1">
-                                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">NET À PAYER</span>
-                                    <span className="text-xl font-black text-brand-dark font-mono">{formatPrice(grandTotal)}</span>
+                                {/* Totaux avec déduction des retours */}
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between px-1">
+                                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Sous-total</span>
+                                        <span className="text-sm font-bold text-gray-700 font-mono">{formatPrice(grandTotal)}</span>
+                                    </div>
+
+                                    {totalRefunds > 0 && (
+                                        <div className="flex items-center justify-between px-1 text-red-600">
+                                            <span className="text-[10px] font-black uppercase tracking-widest">Remboursements ({returns.length})</span>
+                                            <span className="text-sm font-bold font-mono">-{formatPrice(totalRefunds)}</span>
+                                        </div>
+                                    )}
+
+                                    <div className="border-t border-gray-200 pt-2" />
+
+                                    <div className="flex items-center justify-between px-1">
+                                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">NET À PAYER</span>
+                                        <span className="text-xl font-black text-brand-dark font-mono">{formatPrice(netTotal)}</span>
+                                    </div>
                                 </div>
 
                                 {/* Payment methods */}

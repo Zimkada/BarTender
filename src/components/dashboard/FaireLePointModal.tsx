@@ -152,6 +152,7 @@ export function FaireLePointModal({ tickets, onClose }: FaireLePointModalProps) 
 
                                                 <div className="flex flex-col items-end gap-2">
                                                     <div className="text-right leading-none">
+                                                        <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1 block">Net à payer</span>
                                                         <span className="text-sm font-black text-brand-dark font-mono block">{formatPrice(ticket.totalAmount)}</span>
                                                         <span className="text-[9px] font-black text-gray-400 uppercase mt-1 inline-block">({ticket.salesCount} ventes)</span>
                                                     </div>
@@ -216,7 +217,7 @@ export function FaireLePointModal({ tickets, onClose }: FaireLePointModalProps) 
                                                                     className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                                                                     size="sm"
                                                                 >
-                                                                    {isProcessingPayment ? '...' : `Confirmer ${formatPrice(ticket.totalAmount)}`}
+                                                                    {isProcessingPayment ? '...' : `Encaisser ${formatPrice(ticket.totalAmount)} Net`}
                                                                 </Button>
                                                             </div>
                                                         </div>

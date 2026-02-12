@@ -16,6 +16,7 @@ interface DashboardSummaryProps {
     pendingSalesCount: number;
     totalItems: number;
     returnsCount: number;
+    pendingReturnsCount: number;
     consignmentsCount: number;
     lowStockProducts: Product[];
     topProductsList: { name: string; qty: number }[];
@@ -41,6 +42,7 @@ export function DashboardSummary({
     pendingSalesCount,
     totalItems,
     returnsCount,
+    pendingReturnsCount,
     consignmentsCount,
     lowStockProducts,
     topProductsList,
@@ -120,8 +122,8 @@ export function DashboardSummary({
                         </div>
                         <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Retours</span>
                     </div>
-                    <div className="text-xl font-black text-gray-900">{returnsCount}</div>
-                    <p className="text-[10px] text-gray-500 font-medium mt-1">Traités ce jour</p>
+                    <AnimatedCounter value={returnsCount} className="text-xl font-black text-gray-900" />
+                    <p className="text-[10px] text-gray-500 font-medium mt-1">{pendingReturnsCount} en attente</p>
                 </div>
 
                 <div className="bg-white rounded-[2rem] p-4 shadow-sm border-2 border-brand-primary/60 hover:shadow-md transition-shadow">

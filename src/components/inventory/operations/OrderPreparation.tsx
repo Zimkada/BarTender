@@ -7,7 +7,8 @@ import {
     TrendingDown,
     Check,
     Download,
-    X
+    X,
+    Plus
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useCurrencyFormatter } from '../../../hooks/useBeninCurrency';
@@ -15,10 +16,14 @@ import { useViewport } from '../../../hooks/useViewport';
 import { useBarContext } from '../../../context/BarContext';
 import { useFeedback } from '../../../hooks/useFeedback';
 import { useUnifiedStock } from '../../../hooks/pivots/useUnifiedStock';
+import { useOrderCart, OrderItem } from '../../../hooks/useOrderCart';
 import { EnhancedButton } from '../../EnhancedButton';
 import { ForecastingService, ProductSalesStats, OrderSuggestion } from '../../../services/supabase/forecasting.service';
 import { BackButton } from '../../ui/BackButton';
 import { Button } from '../../ui/Button';
+import { ProductSelector } from './ProductSelector';
+import { OrderCartDrawer } from './OrderCartDrawer';
+import { replaceAccents } from '../../../utils/stringFormatting';
 
 interface StockAlert {
     id: string;
@@ -43,8 +48,13 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
     const { formatPrice } = useCurrencyFormatter();
     const { isMobile } = useViewport();
     const { currentBar } = useBarContext();
-    const { showError } = useFeedback();
-    const { products, getProductStockInfo } = useUnifiedStock(currentBar?.id);
+    const { showError, showSuccess } = useFeedback();
+    const { products, categories, getProductStockInfo } = useUnifiedStock(currentBar?.id);
+
+    // Cart system
+    const orderCart = useOrderCart();
+    const [isProductSelectorOpen, setIsProductSelectorOpen] = useState(false);
+    const [isCartOpen, setIsCartOpen] = useState(false);
 
     const [alerts, setAlerts] = useState<StockAlert[]>([]);
     const [productStats, setProductStats] = useState<ProductSalesStats[]>([]);
@@ -182,6 +192,176 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
         XLSX.writeFile(wb, `bon_commande_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
+    // Nouvelles fonctions pour le panier de commande
+    const exportCartToExcel = async () => {
+        if (orderCart.items.length === 0) {
+            showError('❌ Le panier est vide');
+            return;
+        }
+
+        try {
+            const XLSX = await import('xlsx');
+
+            const exportData = orderCart.items.map((item, index) => {
+                const totalLots = Math.floor(item.quantity / item.lotSize);
+                const totalCost = totalLots * item.lotPrice;
+                const costPerUnit = item.quantity > 0 ? totalCost / item.quantity : 0;
+                const remainder = item.quantity % item.lotSize;
+
+                return {
+                    'N°': index + 1,
+                    'Produit': item.productName,
+                    'Volume': item.productVolume,
+                    'Qté totale': item.quantity,
+                    'Unités/lot': item.lotSize,
+                    'Nb lots': totalLots,
+                    'Unités résiduelles': remainder,
+                    'Prix/lot (FCFA)': item.lotPrice,
+                    'Coût total (FCFA)': totalCost,
+                    'Coût/unité (FCFA)': Math.round(costPerUnit),
+                    'Fournisseur': item.supplier || 'À définir'
+                };
+            });
+
+            const totalRow: any = {
+                'N°': '',
+                'Produit': 'TOTAL COMMANDE',
+                'Volume': '',
+                'Qté totale': orderCart.calculations.totalUnits,
+                'Unités/lot': '',
+                'Nb lots': orderCart.calculations.totalLots,
+                'Unités résiduelles': '',
+                'Prix/lot (FCFA)': '',
+                'Coût total (FCFA)': orderCart.calculations.totalCost,
+                'Coût/unité (FCFA)': Math.round(orderCart.calculations.averageCostPerUnit),
+                'Fournisseur': ''
+            };
+
+            exportData.push(totalRow);
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(exportData);
+
+            ws['!cols'] = [
+                { wch: 4 }, { wch: 30 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 8 },
+                { wch: 12 }, { wch: 15 }, { wch: 18 }, { wch: 15 }, { wch: 20 }
+            ];
+
+            const fileName = `bon_commande_${currentBar?.name?.replace(/\s/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+            XLSX.utils.book_append_sheet(wb, ws, "Bon de commande");
+            XLSX.writeFile(wb, fileName);
+
+            showSuccess('📊 Bon de commande exporté');
+        } catch (error) {
+            console.error('Error exporting to Excel:', error);
+            showError('❌ Erreur lors de l\'export Excel');
+        }
+    };
+
+    const exportCartToWhatsApp = async () => {
+        if (orderCart.items.length === 0) {
+            showError('❌ Le panier est vide');
+            return;
+        }
+
+        try {
+            const barName = currentBar?.name || 'Mon Bar';
+            const dateStr = new Date().toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            });
+
+            let msg = `*BON DE COMMANDE - ${barName.toUpperCase()}*\\n`;
+            msg += `_${dateStr}_\\n\\n`;
+            msg += `---------------------------\\n`;
+            msg += `*PRODUITS A COMMANDER*\\n\\n`;
+
+            orderCart.items.forEach((item, index) => {
+                const lots = Math.floor(item.quantity / item.lotSize);
+                const totalItemCost = lots * item.lotPrice;
+                const remainder = item.quantity % item.lotSize;
+
+                msg += `${index + 1}. *${item.productName}* (${item.productVolume})\\n`;
+                msg += `   Qte: ${item.quantity} unites (${lots} lots de ${item.lotSize}`;
+                if (remainder > 0) {
+                    msg += ` + ${remainder}`;
+                }
+                msg += `)\\n`;
+                msg += `   Fournisseur: ${item.supplier || '_A definir_'}\\n`;
+                msg += `   Cout: *${formatPrice(totalItemCost)}*\\n\\n`;
+            });
+
+            msg += `---------------------------\\n`;
+            msg += `*RESUME COMMANDE*\\n`;
+            msg += `- Articles: ${orderCart.calculations.totalItems}\\n`;
+            msg += `- Lots totaux: ${orderCart.calculations.totalLots}\\n`;
+            msg += `- *TOTAL: ${formatPrice(orderCart.calculations.totalCost)}*\\n\\n`;
+            msg += `_Fichier Excel detaille disponible sur demande_\\n\\n`;
+            msg += `---------------------------\\n`;
+            msg += `_Genere via BarTender_`;
+
+            const asciiMsg = replaceAccents(msg);
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(asciiMsg)}`;
+
+            const newWindow = window.open(whatsappUrl, '_blank');
+
+            if (!newWindow) {
+                showError('❌ Impossible d\'ouvrir WhatsApp. Vérifiez les pop-ups.');
+                return;
+            }
+
+            showSuccess('📱 Message exporté vers WhatsApp');
+        } catch (error) {
+            console.error('Error exporting to WhatsApp:', error);
+            showError('❌ Erreur lors de l\'export WhatsApp');
+        }
+    };
+
+    // Handlers pour le panier
+    const handleAddToCart = (product: any, quantity: number) => {
+        const orderItem: OrderItem = {
+            productId: product.id,
+            productName: product.name,
+            productVolume: product.volume,
+            quantity,
+            lotSize: 24, // Valeur par défaut
+            lotPrice: product.price * 24, // Approximation
+            supplier: '',
+            isAiSuggestion: false
+        };
+        orderCart.addItem(orderItem);
+        showSuccess(`➕ ${product.name} ajouté au panier`);
+        // On n'ouvre pas le panier automatiquement pour permettre de continuer la sélection
+        // mais on peut donner un feedback visuel ou ouvrir si c'est le premier item en mobile
+        if (isMobile && orderCart.items.length === 0) {
+            setIsCartOpen(true);
+        }
+    };
+
+    const handleAddSuggestionToCart = (suggestion: OrderSuggestion) => {
+        const orderItem: OrderItem = {
+            productId: suggestion.productId,
+            productName: suggestion.productName,
+            productVolume: suggestion.productVolume,
+            quantity: suggestion.suggestedQuantity,
+            lotSize: 24,
+            lotPrice: suggestion.estimatedCost / Math.ceil(suggestion.suggestedQuantity / 24),
+            supplier: '',
+            isAiSuggestion: true,
+            suggestedQuantity: suggestion.suggestedQuantity
+        };
+        orderCart.addItem(orderItem);
+        showSuccess(`✨ ${suggestion.productName} ajouté au panier`);
+    };
+
+    const handleAddAllSuggestions = () => {
+        orderCart.addAllSuggestions(orderSuggestions);
+        showSuccess(`✨ ${orderSuggestions.length} suggestions ajoutées au panier`);
+    };
+
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 min-h-[600px] flex flex-col">
             <div className="flex items-center justify-between mb-6 border-b border-gray-50 pb-4">
@@ -193,6 +373,36 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
                         <h2 className="text-lg font-bold text-gray-900">Préparation Commandes</h2>
                         <p className="text-xs text-gray-500">Intelligence de stocks et suggestions d'achat</p>
                     </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="relative">
+                        <EnhancedButton
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setIsCartOpen(true)}
+                            icon={<ShoppingCart size={18} />}
+                            className="relative"
+                        >
+                            {orderCart.items.length > 0 && (
+                                <motion.span
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white shadow-sm"
+                                >
+                                    {orderCart.items.length}
+                                </motion.span>
+                            )}
+                        </EnhancedButton>
+                    </div>
+                    <EnhancedButton
+                        variant="primary"
+                        size="sm"
+                        onClick={() => setIsProductSelectorOpen(true)}
+                        icon={<Plus size={16} />}
+                        className="hidden sm:flex"
+                    >
+                        Ajouter produit
+                    </EnhancedButton>
                 </div>
             </div>
 
@@ -206,16 +416,15 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
                         {isMobile ? (
                             <div className="flex flex-col gap-4">
                                 <div className="bg-brand-subtle p-3 rounded-xl">
-                                    <button
+                                    <EnhancedButton
+                                        variant={showOrderSuggestions ? 'info' : 'primary'}
                                         onClick={() => setShowOrderSuggestions(!showOrderSuggestions)}
-                                        className={`w-full px-4 py-3 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors mb-3 ${showOrderSuggestions
-                                            ? 'bg-white text-brand-primary border-2 border-brand-primary'
-                                            : 'bg-brand-primary text-white'
-                                            }`}
+                                        icon={<ShoppingCart size={18} />}
+                                        className="w-full rounded-xl font-bold mb-3 shadow-lg"
+                                        animation="bounce"
                                     >
-                                        <ShoppingCart size={18} />
                                         {showOrderSuggestions ? 'Voir alertes stock' : `Suggestions de commande (${orderSuggestions.length})`}
-                                    </button>
+                                    </EnhancedButton>
 
                                     {!showOrderSuggestions && (
                                         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
@@ -224,16 +433,16 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
                                                 { value: 'new', label: 'Nouvelles' },
                                                 { value: 'resolved', label: 'Ignorées' }
                                             ].map((filter) => (
-                                                <button
+                                                <EnhancedButton
                                                     key={filter.value}
+                                                    variant={filterStatus === filter.value ? 'primary' : 'secondary'}
+                                                    size="sm"
                                                     onClick={() => setFilterStatus(filter.value as 'all' | 'new' | 'resolved')}
-                                                    className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-sm font-medium transition-colors ${filterStatus === filter.value
-                                                        ? 'bg-brand-primary text-white'
-                                                        : 'bg-white text-gray-700'
-                                                        }`}
+                                                    className={`rounded-xl whitespace-nowrap text-xs h-9 min-h-0 min-w-0 px-5 font-bold ${filterStatus === filter.value ? 'shadow-lg shadow-brand-primary/20' : 'bg-white border border-gray-100'}`}
+                                                    animation="bounce"
                                                 >
                                                     {filter.label}
-                                                </button>
+                                                </EnhancedButton>
                                             ))}
                                         </div>
                                     )}
@@ -259,7 +468,16 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
                                             <EmptySuggestionsState />
                                         ) : (
                                             <>
-                                                <div className="flex justify-end mb-2">
+                                                <div className="flex justify-between items-center gap-2 mb-2">
+                                                    <EnhancedButton
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        onClick={handleAddAllSuggestions}
+                                                        icon={<ShoppingCart size={14} />}
+                                                        className="text-xs px-3 py-1.5"
+                                                    >
+                                                        Tout ajouter au panier
+                                                    </EnhancedButton>
                                                     <EnhancedButton
                                                         variant="primary"
                                                         size="sm"
@@ -296,6 +514,7 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
                                                             updated_at: new Date().toISOString()
                                                         }, suggestion.suggestedQuantity)}
                                                         onBackToAlert={() => setShowOrderSuggestions(false)}
+                                                        onAddToCart={() => handleAddSuggestionToCart(suggestion)}
                                                     />
                                                 ))}
                                             </>
@@ -402,6 +621,7 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
                                                                 avg_purchase_cost: 0,
                                                                 updated_at: new Date().toISOString()
                                                             }, suggestion.suggestedQuantity)}
+                                                            onAddToCart={() => handleAddSuggestionToCart(suggestion)}
                                                         />
                                                     ))}
                                                 </div>
@@ -414,6 +634,42 @@ export function OrderPreparation({ onBack, onSupplyClick }: OrderPreparationProp
                     </div>
                 )}
             </div>
+
+            {/* Product Selector Modal */}
+            <ProductSelector
+                isOpen={isProductSelectorOpen}
+                onClose={() => setIsProductSelectorOpen(false)}
+                products={products}
+                categories={categories}
+                onAddToCart={handleAddToCart}
+            />
+
+            {/* Floating Action Button (Mobile only) - Harmonized with brand theme */}
+            <div className="sm:hidden fixed bottom-32 right-6 z-50">
+                <EnhancedButton
+                    variant="primary"
+                    size="lg"
+                    onClick={() => setIsProductSelectorOpen(true)}
+                    icon={<Plus size={28} />}
+                    className="rounded-full w-16 h-16 shadow-2xl shadow-brand-primary/40 border-4 border-white"
+                    animation="pulse"
+                >
+                    {""}
+                </EnhancedButton>
+            </div>
+
+            {/* Order Cart Drawer */}
+            <OrderCartDrawer
+                isOpen={isCartOpen || (orderCart.items.length > 0 && !isMobile && !isProductSelectorOpen)}
+                onClose={() => setIsCartOpen(false)}
+                items={orderCart.items}
+                calculations={orderCart.calculations}
+                onUpdateItem={orderCart.updateItem}
+                onRemoveItem={orderCart.removeItem}
+                onClearCart={orderCart.clearCart}
+                onExportExcel={exportCartToExcel}
+                onExportWhatsApp={exportCartToWhatsApp}
+            />
         </div>
     );
 }
@@ -553,12 +809,14 @@ function OrderSuggestionCard({
     suggestion,
     formatPrice,
     onSupply,
-    onBackToAlert
+    onBackToAlert,
+    onAddToCart
 }: {
     suggestion: OrderSuggestion;
     formatPrice: (price: number) => string;
     onSupply: () => void;
     onBackToAlert?: () => void;
+    onAddToCart?: () => void;
 }) {
     const getUrgencyConfig = (urgency: OrderSuggestion['urgency']) => {
         switch (urgency) {
@@ -604,18 +862,31 @@ function OrderSuggestionCard({
                 </div>
             </div>
 
-            <div className="pt-3 border-t border-gray-50 flex items-center justify-between gap-2">
-                <div className="shrink-0 flex flex-col">
-                    <span className="block text-gray-400 text-[9px] uppercase font-black mb-0.5">Coût estimé</span>
-                    <span className="font-bold text-gray-900 text-sm">{formatPrice(suggestion.estimatedCost)}</span>
+            <div className="pt-3 border-t border-gray-50">
+                <div className="flex items-center justify-between mb-2">
+                    <div className="shrink-0 flex flex-col">
+                        <span className="block text-gray-400 text-[9px] uppercase font-black mb-0.5">Coût estimé</span>
+                        <span className="font-bold text-gray-900 text-sm">{formatPrice(suggestion.estimatedCost)}</span>
+                    </div>
                 </div>
 
-                <div className="flex-1 flex justify-end">
+                <div className="flex gap-2">
+                    {onAddToCart && (
+                        <EnhancedButton
+                            variant="secondary"
+                            onClick={onAddToCart}
+                            size="sm"
+                            icon={<ShoppingCart size={14} />}
+                            className="text-xs px-3 py-1.5 h-8 flex-1"
+                        >
+                            Panier
+                        </EnhancedButton>
+                    )}
                     <EnhancedButton
                         variant="primary"
                         onClick={onSupply}
                         size="sm"
-                        className="text-xs px-4 py-1.5 h-8 bg-brand-primary hover:bg-brand-primary/90 text-white shadow-sm font-bold w-full sm:w-auto"
+                        className="text-xs px-4 h-9 font-bold flex-1"
                     >
                         Approvisionner
                     </EnhancedButton>

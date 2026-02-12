@@ -108,9 +108,12 @@ export function BonStrip({ tickets }: BonStripProps) {
 
                                 <p className="text-[10px] font-black text-gray-700 truncate mb-2">{ticket.productSummary}</p>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-xs font-black text-brand-dark font-mono truncate mr-2">
-                                        {formatPrice(ticket.totalAmount)}
-                                    </span>
+                                    <div className="flex flex-col">
+                                        <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest leading-none mb-0.5">Net à payer</span>
+                                        <span className="text-xs font-black text-brand-dark font-mono truncate mr-2">
+                                            {formatPrice(ticket.totalAmount)}
+                                        </span>
+                                    </div>
                                     <span className="text-[9px] font-black text-gray-400 whitespace-nowrap">
                                         ({ticket.salesCount} ventes)
                                     </span>
