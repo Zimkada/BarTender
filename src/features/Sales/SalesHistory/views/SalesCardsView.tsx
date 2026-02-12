@@ -1,7 +1,7 @@
-import { Eye, RotateCcw, User as UserIcon } from 'lucide-react';
+import { Eye, RotateCcw, User as UserIcon, ArrowLeftRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Sale, User } from '../../../../types';
-import { getSaleDate } from '../../../../utils/saleHelpers';
+import { isConfirmedReturn } from '../../../../utils/saleHelpers';
 
 interface SalesCardsViewProps {
     sales: Sale[];
@@ -51,7 +51,7 @@ export function SaleCard({
     // Calculer le montant des retours remboursés
     const saleReturns = getReturnsBySale ? getReturnsBySale(sale.id) : [];
     const refundedAmount = saleReturns
-        .filter(r => r.isRefunded && (r.status === 'approved' || r.status === 'restocked'))
+        .filter(isConfirmedReturn)
         .reduce((sum, r) => sum + r.refundAmount, 0);
 
     const netAmount = sale.total - refundedAmount;
@@ -91,13 +91,32 @@ export function SaleCard({
                             {seller && <><span className="text-gray-300">•</span> <UserIcon size={10} /> {seller.name}</>}
                         </span>
                     </div>
-                    <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${getStatusColor(sale.status)}`}>
-                        {sale.status === 'validated' ? 'Payé' : sale.status === 'cancelled' ? 'Annulée' : sale.status}
+                    <div className="flex gap-1.5">
+                        {/* Badge Échange si la vente est liée à un retour */}
+                        {(sale as any).sourceReturnId && (
+                            <div className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-orange-100 text-orange-700 flex items-center gap-1">
+                                <ArrowLeftRight size={10} />
+                                Échange
+                            </div>
+                        )}
+                        <div className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${getStatusColor(sale.status)}`}>
+                            {sale.status === 'validated' ? 'Payé' : sale.status === 'cancelled' ? 'Annulée' : sale.status}
+                        </div>
                     </div>
                 </div>
 
                 {/* Divider dashed */}
                 <div className="border-b border-dashed border-gray-200 my-3" />
+
+                {/* Lien vers retour source si échange */}
+                {(sale as any).sourceReturnId && (
+                    <div className="bg-orange-50 border border-orange-100 rounded-md px-2 py-1.5 mb-2">
+                        <p className="text-[10px] text-orange-700 font-medium flex items-center gap-1">
+                            <ArrowLeftRight size={10} />
+                            Vente de remplacement pour retour #{((sale as any).sourceReturnId as string).slice(-6).toUpperCase()}
+                        </p>
+                    </div>
+                )}
 
                 {/* Product Summary */}
                 <div className="space-y-1.5 min-h-[50px]">

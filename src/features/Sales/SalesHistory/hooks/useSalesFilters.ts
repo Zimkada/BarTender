@@ -2,10 +2,11 @@ import { useState, useMemo } from 'react';
 import { useDateRangeFilter } from '../../../../hooks/useDateRangeFilter';
 import { dateToYYYYMMDD, filterByBusinessDateRange } from '../../../../utils/businessDateHelpers';
 import type { Sale, SaleItem, Return } from '../../../../types';
+import { UnifiedReturn } from '../../../../hooks/pivots/useUnifiedReturns';
 
 interface UseSalesFiltersProps {
     sales: Sale[];
-    returns?: Return[]; // Optional: for returns filtering
+    returns?: (Return | UnifiedReturn)[]; // Optional: for returns filtering
     currentSession: any; // UserSession type would be better if available
     closeHour: number;
     statusFilter?: 'validated' | 'rejected' | 'cancelled';
@@ -61,8 +62,8 @@ export function useSalesFilters({ sales, returns = [], currentSession, closeHour
             const getDate = (s: Sale) =>
                 new Date(
                     (s.status === 'cancelled' && s.cancelledAt) ? s.cancelledAt :
-                    (s.status === 'rejected'  && s.rejectedAt)  ? s.rejectedAt  :
-                    s.validatedAt || s.createdAt
+                        (s.status === 'rejected' && s.rejectedAt) ? s.rejectedAt :
+                            s.validatedAt || s.createdAt
                 );
             return getDate(b).getTime() - getDate(a).getTime();
         });
@@ -86,10 +87,18 @@ export function useSalesFilters({ sales, returns = [], currentSession, closeHour
         // B. Appliquer le filtre de date
         const startDateStr = dateToYYYYMMDD(startDate);
         const endDateStr = dateToYYYYMMDD(endDate);
+
         const filtered = filterByBusinessDateRange(baseReturns, startDateStr, endDateStr, closeHour);
 
-        // C. Tri final
-        return filtered.sort((a, b) => new Date(b.returnedAt).getTime() - new Date(a.returnedAt).getTime());
+        // C. Tri final : Priorité au statut 'pending', puis date décroissante (robuste online/offline)
+        return filtered.sort((a, b) => {
+            if (a.status === 'pending' && b.status !== 'pending') return -1;
+            if (a.status !== 'pending' && b.status === 'pending') return 1;
+
+            const dateA = new Date((a as any).returnedAt || (a as any).returned_at).getTime();
+            const dateB = new Date((b as any).returnedAt || (b as any).returned_at).getTime();
+            return dateB - dateA;
+        });
     }, [returns, startDate, endDate, currentSession, closeHour]);
 
     return {

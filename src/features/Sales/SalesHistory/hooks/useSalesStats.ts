@@ -1,11 +1,12 @@
-
 import { useState, useMemo, useEffect } from 'react';
 import { AnalyticsService, TopProduct } from '../../../../services/supabase/analytics.service';
+import { UnifiedReturn } from '../../../../hooks/pivots/useUnifiedReturns';
 import type { Sale, Return, Bar } from '../../../../types';
+import { isConfirmedReturn } from '../../../../utils/saleHelpers';
 
 interface UseSalesStatsProps {
     filteredSales: Sale[];
-    returns: Return[];
+    returns: (Return | UnifiedReturn)[];
     timeRange: string;
     startDate: Date;
     endDate: Date;
@@ -69,23 +70,27 @@ export function useSalesStats({
         // 1. Total des ventes brutes
         const grossRevenue = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
 
-        // 2. Déduire les retours remboursés des ventes affichées
-        const saleIds = new Set(filteredSales.map(s => s.id));
+        // 2. Déduire les retours remboursés de la période
+        // Note: Les returns passés en props sont déjà filtrés par date dans useSalesFilters
         const refundedReturns = returns
-            .filter(r =>
-                saleIds.has(r.saleId) &&
-                r.isRefunded &&
-                (r.status === 'approved' || r.status === 'restocked')
-            )
+            .filter(isConfirmedReturn)
             .reduce((sum, r) => sum + r.refundAmount, 0);
 
         // 3. CA NET = Ventes brutes - Retours remboursés
         const totalRevenue = grossRevenue - refundedReturns;
 
-        // 4. Nombre total d'articles
-        const totalItems = filteredSales.reduce((sum, sale) =>
+        // 4. Nombre total d'articles vendus (NET)
+        // Somme brute des articles vendus
+        const grossItems = filteredSales.reduce((sum, sale) =>
             sum + sale.items.reduce((sum, item) => sum + item.quantity, 0), 0
         );
+
+        // Déduction des articles retournés (confirmés)
+        const returnedItems = returns
+            .filter(isConfirmedReturn)
+            .reduce((sum, r: any) => sum + (r.quantityReturned || r.quantity_returned || 0), 0);
+
+        const totalItems = Math.max(0, grossItems - returnedItems);
 
         // 5. KPI contextuel selon la période
         let kpiValue = 0;

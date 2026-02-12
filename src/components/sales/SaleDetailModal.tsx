@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Receipt, Clock, User, CheckCircle2, AlertTriangle, Ban } from 'lucide-react';
+import { X, Receipt, Clock, User, CheckCircle2, AlertTriangle, Ban, RotateCcw } from 'lucide-react';
 import { Sale } from '../../types';
 import { Button } from '../ui/Button';
 
@@ -13,9 +13,10 @@ interface SaleDetailModalProps {
     hasConsignments?: boolean; // ✨ NEW
     onCancelSale?: (saleId: string, reason: string) => Promise<void>;
     serverName?: string;
+    returns?: any[]; // ✨ NEW: Liste des retours pour calculer le montant net
 }
 
-export function SaleDetailModal({ sale, formatPrice, onClose, canCancel, hasReturns, hasConsignments, onCancelSale, serverName }: SaleDetailModalProps) {
+export function SaleDetailModal({ sale, formatPrice, onClose, canCancel, hasReturns, hasConsignments, onCancelSale, serverName, returns }: SaleDetailModalProps) {
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
     const [isCancelling, setIsCancelling] = useState(false);
@@ -222,6 +223,29 @@ export function SaleDetailModal({ sale, formatPrice, onClose, canCancel, hasRetu
                                     transform: 'rotate(180deg) translateY(-2px)'
                                 }}>
                             </div>
+
+                            {/* Affichage des retours et montant net si applicable */}
+                            {hasReturns && returns && returns.length > 0 && (() => {
+                                const refundedAmount = returns.reduce((sum, r) => sum + (r.refundAmount || 0), 0);
+                                const netAmount = sale.total - refundedAmount;
+                                return (
+                                    <>
+                                        <div className="flex justify-between items-center text-sm text-gray-500 border-t border-gray-100 pt-2">
+                                            <span className="flex items-center gap-1">
+                                                <RotateCcw size={12} />
+                                                Remboursements ({returns.length})
+                                            </span>
+                                            <span className="text-red-600 font-semibold">-{formatPrice(refundedAmount)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center mt-2 pt-2 border-t-2 border-dashed border-gray-200">
+                                            <span className="text-lg font-black text-gray-900 uppercase">Total Net</span>
+                                            <span className="text-xl font-bold font-mono text-gray-900 bg-green-50 px-2 py-0.5 rounded border border-green-200">
+                                                {formatPrice(netAmount)}
+                                            </span>
+                                        </div>
+                                    </>
+                                );
+                            })()}
                         </div>
 
                         {/* Status Footer */}

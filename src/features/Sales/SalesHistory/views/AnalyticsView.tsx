@@ -1,8 +1,9 @@
 // src/features/Sales/SalesHistory/views/AnalyticsView.tsx
 import { useMemo } from 'react';
-import { useAppContext } from '../../../../context/AppContext';
+import { useBarContext } from '../../../../context/BarContext';
+import { useUnifiedSales } from '../../../../hooks/pivots/useUnifiedSales';
 import { dateToYYYYMMDD, filterByBusinessDateRange } from '../../../../utils/businessDateHelpers';
-import { getSaleDate } from '../../../../utils/saleHelpers';
+import { getSaleDate, isConfirmedReturn } from '../../../../utils/saleHelpers';
 import { TopProductsChart } from '../../../../components/analytics/TopProductsChart';
 import { useTeamPerformance } from '../../../../hooks/useTeamPerformance';
 import { TeamPerformanceChart } from '../../../../components/analytics/TeamPerformanceChart';
@@ -45,7 +46,7 @@ import { useTheme } from '../../../../context/ThemeContext';
 import { ThemeService } from '../../../../services/theme.service';
 
 // NOTE: Chart colors are now dynamic inside the component
-
+import { UnifiedReturn } from '../../../../hooks/pivots/useUnifiedReturns';
 
 interface AnalyticsViewProps {
   sales: Sale[];
@@ -57,7 +58,7 @@ interface AnalyticsViewProps {
   barMembers: BarMember[];
   timeRange: string;
   isMobile: boolean;
-  returns: Return[];
+  returns: (Return | UnifiedReturn)[];
   closeHour: number;
   startDate: Date;
   endDate: Date;
@@ -95,7 +96,8 @@ export function AnalyticsView({
   const safeUsers = users || [];
   const safeBarMembers = barMembers || [];
 
-  const { sales: allSales } = useAppContext();
+  const { currentBar } = useBarContext();
+  const { sales: allSales } = useUnifiedSales(currentBar?.id);
   const { themeConfig } = useTheme();
 
   // Génération dynamique des couleurs du graphique basée sur le thème actif
@@ -113,9 +115,8 @@ export function AnalyticsView({
     ];
   }, [themeConfig]);
 
-  // Helper pour calculer le CA NET d'une vente (après déduction des retours remboursés)
   const getSaleNetRevenue = (sale: Sale): number => {
-    const saleReturns = returns.filter(r => r.saleId === sale.id && r.isRefunded && (r.status === 'approved' || r.status === 'restocked'));
+    const saleReturns = returns.filter(r => r.saleId === sale.id && isConfirmedReturn(r));
     const refundAmount = saleReturns.reduce((sum, r) => sum + r.refundAmount, 0);
     return sale.total - refundAmount;
   };
@@ -148,7 +149,7 @@ export function AnalyticsView({
     const prevGrossRevenue = previousPeriodSales.reduce((sum, s) => sum + s.total, 0);
     const prevSaleIds = new Set(previousPeriodSales.map(s => s.id));
     const prevRefunds = returns
-      .filter(r => prevSaleIds.has(r.saleId) && r.isRefunded && (r.status === 'approved' || r.status === 'restocked'))
+      .filter(r => prevSaleIds.has(r.saleId) && isConfirmedReturn(r))
       .reduce((sum, r) => sum + r.refundAmount, 0);
     const prevRevenue = prevGrossRevenue - prevRefunds;
 
@@ -240,7 +241,7 @@ export function AnalyticsView({
       if (sale.status !== 'validated') return;
 
       // Calcul du net pour cette vente (total - retours associés)
-      const saleReturns = returns.filter(r => r.saleId === sale.id && r.isRefunded && (r.status === 'approved' || r.status === 'restocked'));
+      const saleReturns = returns.filter(r => r.saleId === sale.id && isConfirmedReturn(r));
       const refundAmount = saleReturns.reduce((sum, r) => sum + r.refundAmount, 0);
       const saleNet = sale.total - refundAmount;
 
@@ -249,7 +250,7 @@ export function AnalyticsView({
 
       sale.items.forEach((item: any) => {
         const productId = item.product?.id || item.product_id;
-        const product = _products.find(p => p.id === productId);
+        const product = (_products || []).find(p => p.id === productId);
         const categoryId = product?.categoryId;
 
         const category = categories.find(c => c.id === categoryId);

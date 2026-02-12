@@ -1,13 +1,14 @@
 import { useCallback } from 'react';
+import { UnifiedReturn } from '../../../../hooks/pivots/useUnifiedReturns';
 import { Sale, SaleItem, Return, User, BarMember, Category, Product } from '../../../../types';
 import { getSaleDate } from '../../../../utils/saleHelpers';
 import { useNotifications } from '../../../../components/Notifications';
 
 interface UseSalesExportProps {
     filteredSales: Sale[];
-    filteredReturns: Return[];
+    filteredReturns: (Return | UnifiedReturn)[];
     sales: Sale[]; // Needed to find original sale for returns/consignments
-    returns: Return[]; // Needed to find all returns related to sales
+    returns: (Return | UnifiedReturn)[]; // Needed to find all returns related to sales
     products: Product[];
     categories: Category[];
     users: User[];
@@ -66,7 +67,7 @@ export function useSalesExport({
                     'Type': 'Vente',
                     'Mode': operationMode,
                     'Date': saleDate.toLocaleDateString('fr-FR'),
-                    'Heure': saleTimestamp.toLocaleTimeString('fr-FR'),
+                    'Heure': new Date(saleTimestamp).toLocaleTimeString('fr-FR'),
                     'ID Transaction': sale.id.slice(-6),
                     'Produit': name,
                     'Catégorie': category?.name || 'Non classé',

@@ -1,6 +1,6 @@
 import { Eye } from 'lucide-react';
 import { Sale, User } from '../../../../types';
-import { getSaleDate } from '../../../../utils/saleHelpers';
+import { getSaleDate, isConfirmedReturn } from '../../../../utils/saleHelpers';
 import { EnhancedButton } from '../../../../components/EnhancedButton';
 import { useViewport } from '../../../../hooks/useViewport';
 
@@ -35,7 +35,7 @@ export function SalesListView({
                     const saleReturns = getReturnsBySale(sale.id);
                     const hasReturns = saleReturns.length > 0;
                     const refundedAmount = saleReturns
-                        .filter(r => r.isRefunded && (r.status === 'approved' || r.status === 'restocked'))
+                        .filter(isConfirmedReturn)
                         .reduce((sum, r) => sum + r.refundAmount, 0);
 
                     const netAmount = sale.total - refundedAmount;
@@ -104,7 +104,7 @@ export function SalesListView({
                         // Calculer le montant des retours remboursés
                         const saleReturns = getReturnsBySale(sale.id);
                         const refundedAmount = saleReturns
-                            .filter(r => r.isRefunded && (r.status === 'approved' || r.status === 'restocked'))
+                            .filter(isConfirmedReturn)
                             .reduce((sum, r) => sum + r.refundAmount, 0);
 
                         const netAmount = sale.total - refundedAmount;
