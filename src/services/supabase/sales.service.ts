@@ -11,6 +11,7 @@ import { toSupabaseJson } from '../../lib/supabase-rpc.types';
 export type DBSale = Database['public']['Tables']['sales']['Row'] & {
   idempotency_key?: string;
   ticket_id?: string;
+  source_return_id?: string;
   seller?: { name: string };
   validator?: { name: string };
 };
@@ -39,6 +40,7 @@ export interface CreateSaleData {
   notes?: string;
   business_date?: string;
   ticket_id?: string;
+  source_return_id?: string;
 }
 
 export interface OfflineSale {
@@ -125,7 +127,8 @@ export class SalesService {
           p_customer_phone: data.customer_phone ?? undefined,
           p_notes: data.notes ?? undefined,
           p_business_date: data.business_date ?? undefined,
-          p_ticket_id: data.ticket_id ?? undefined
+          p_ticket_id: data.ticket_id ?? undefined,
+          p_source_return_id: data.source_return_id ?? undefined
         }
       ).single();
 
@@ -202,6 +205,7 @@ export class SalesService {
         business_date: data.business_date || null,
         ticket_id: data.ticket_id || null,
         idempotency_key: idempotencyKey,
+        source_return_id: data.source_return_id || null, // ✨ Fix : Traçabilité Échange
       },
       data.bar_id,
       options?.userId || data.sold_by

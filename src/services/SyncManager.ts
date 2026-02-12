@@ -6,6 +6,7 @@ import type {
   SyncResult,
   RetryConfig,
   SyncOperationCreateSale,
+  SyncOperationCreateReturn,
   SyncOperationUpdateBar,
   SyncOperationCreateTicket,
   SyncOperationPayTicket,
@@ -423,6 +424,9 @@ class SyncManagerService {
       case 'CREATE_SALE':
         return this.syncCreateSale(operation);
 
+      case 'CREATE_RETURN':
+        return this.syncCreateReturn(operation);
+
       case 'CREATE_TICKET':
         return this.syncCreateTicket(operation);
 
@@ -573,6 +577,7 @@ class SyncManagerService {
           notes: payload.notes,
           business_date: payload.business_date,
           ticket_id: targetTicketId,
+          source_return_id: payload.source_return_id,
         },
         payload.idempotency_key
       );
@@ -634,6 +639,67 @@ class SyncManagerService {
   }
 
   /**
+   * Synchronise un retour créé offline
+   * Pattern: Clone de syncCreateSale adapté pour returns table
+   */
+  private async syncCreateReturn(operation: SyncOperationCreateReturn): Promise<SyncResult> {
+    try {
+      const payload = operation.payload;
+
+      // Appel direct Supabase (retours = table simple, pas besoin de RPC)
+      const { data, error } = await supabase
+        .from('returns')
+        .insert(payload)
+        .select()
+        .single();
+
+      if (error) {
+        console.error(`[SyncManager] Supabase error for operation ${operation.id}:`, error);
+        return {
+          success: false,
+          operationId: operation.id,
+          error: error.message || error.code,
+          shouldRetry: this.shouldRetryError(error),
+        };
+      }
+
+      const returnId = data?.id || 'unknown';
+      console.log(`[SyncManager] Return synced successfully: ${returnId}`);
+
+      // 🚀 Broadcast cross-tab (Clone du pattern ventes ligne 604)
+      if (broadcastService.isSupported()) {
+        broadcastService.broadcast({
+          event: 'INSERT',
+          table: 'returns',
+          barId: payload.bar_id,
+          data: data,
+        });
+
+        // Notifier aussi le changement de stock (retours remettent en stock)
+        broadcastService.broadcast({
+          event: 'UPDATE',
+          table: 'bar_products',
+          barId: payload.bar_id,
+        });
+      }
+
+      return {
+        success: true,
+        operationId: operation.id,
+      };
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      console.error(`[SyncManager] Exception syncing return:`, errorMessage);
+      return {
+        success: false,
+        operationId: operation.id,
+        error: errorMessage,
+        shouldRetry: true,
+      };
+    }
+  }
+
+  /**
    * 🚀 BATCH SYNC: Synchronise un lot de ventes en une seule requête
    */
   private async syncCreateSaleBatch(operations: SyncOperationCreateSale[]): Promise<void> {
@@ -668,6 +734,7 @@ class SyncManagerService {
           notes: payload.notes,
           business_date: payload.business_date,
           ticket_id: targetTicketId,
+          source_return_id: payload.source_return_id,
         }, payload.idempotency_key);
       });
 
