@@ -1,25 +1,21 @@
 import { useState, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
-import { Product, StockAdjustment, Supply, Return, Sale, Consignment } from '../types';
-import { calculateBusinessDate, dateToYYYYMMDD } from '../utils/businessDateHelpers';
+import { Product } from '../types';
+import { getErrorMessage } from '../utils/errorHandler';
+import type {
+    HistoricalStockRecord,
+    FetchedMovements,
+    SaleRowMinimal,
+    SupplyRowMinimal,
+    StockAdjustmentRowMinimal,
+    ReturnRowMinimal,
+    ConsignmentRowMinimal,
+    SaleItemDB
+} from './useInventoryHistory.types';
 
-// Types pour l'historique
-export interface HistoricalStockRecord {
-    productId: string;
-    productName: string;
-    currentStock: number; // Stock à l'instant T (réel)
-    historicalStock: number; // Stock reconstruit à T-x
-    movements: {
-        sales: number;
-        supplies: number;
-        adjustments: number;
-        returns: number;
-        consignments: number;
-    };
-    // Détails pour audit
-    auditTrail: string[];
-}
+// Re-export for backward compatibility
+export type { HistoricalStockRecord } from './useInventoryHistory.types';
 
 interface UseInventoryHistoryProps {
     barId: string;
@@ -32,61 +28,84 @@ export function useInventoryHistory({ barId, products }: UseInventoryHistoryProp
 
     /**
      * Récupère tous les mouvements depuis une date cible jusqu'à maintenant
+     * ⚠️ Type-safe avec gestion d'erreur explicite
      */
-    const fetchMovements = useCallback(async (targetDate: Date, now: Date) => {
+    const fetchMovements = useCallback(async (targetDate: Date, now: Date): Promise<FetchedMovements> => {
         const targetISO = targetDate.toISOString();
         const nowISO = now.toISOString();
 
         // 1. Ventes (Sales) - Uniquement validées
-        const { data: sales } = await supabase
+        const { data: sales, error: salesError } = await supabase
             .from('sales')
-            .select('items')
+            .select('id, items, validated_at')
             .eq('bar_id', barId)
             .eq('status', 'validated')
-            .gte('validated_at', targetISO) // Validées après la date cible
+            .gte('validated_at', targetISO)
             .lte('validated_at', nowISO);
 
+        if (salesError) {
+            throw new Error(`Erreur chargement ventes: ${getErrorMessage(salesError)}`);
+        }
+
         // 2. Approvisionnements (Supplies)
-        const { data: supplies } = await supabase
+        const { data: supplies, error: suppliesError } = await supabase
             .from('supplies')
-            .select('*')
+            .select('id, product_id, quantity, created_at')
             .eq('bar_id', barId)
             .gte('created_at', targetISO)
             .lte('created_at', nowISO);
 
+        if (suppliesError) {
+            throw new Error(`Erreur chargement approvisionnements: ${getErrorMessage(suppliesError)}`);
+        }
+
         // 3. Ajustements (Stock Adjustments)
-        const { data: adjustments } = await supabase
+        const { data: adjustments, error: adjustmentsError } = await supabase
             .from('stock_adjustments')
-            .select('*')
+            .select('id, product_id, delta, adjusted_at')
             .eq('bar_id', barId)
             .gte('adjusted_at', targetISO)
             .lte('adjusted_at', nowISO);
 
+        if (adjustmentsError) {
+            throw new Error(`Erreur chargement ajustements: ${getErrorMessage(adjustmentsError)}`);
+        }
+
         // 4. Retours (Returns) - Uniquement ceux remis en stock
-        const { data: returns } = await supabase
+        const { data: returns, error: returnsError } = await supabase
             .from('returns')
-            .select('*')
+            .select('id, product_id, quantity_returned, restocked_at')
             .eq('bar_id', barId)
             .eq('status', 'restocked')
             .gte('restocked_at', targetISO)
             .lte('restocked_at', nowISO);
 
-        // 5. Consignations (Consignments)
-        // Pour le stock physique, une consignation active est une sortie.
-        // On cherche celles créées après la date cible.
-        const { data: consignments } = await supabase
+        if (returnsError) {
+            throw new Error(`Erreur chargement retours: ${getErrorMessage(returnsError)}`);
+        }
+
+        // 5. Consignations (Consignments) - UNIQUEMENT celles RÉCUPÉRÉES (claimed)
+        // ⚠️ FIX CRITIQUE: La création de consignation ne touche PAS product.stock
+        // Seul le CLAIM (récupération client) décrémente le stock
+        // Les consignations expired/forfeited retournent au stock vendable sans toucher product.stock
+        const { data: consignments, error: consignmentsError } = await supabase
             .from('consignments')
-            .select('*')
+            .select('id, product_id, quantity, status, claimed_at')
             .eq('bar_id', barId)
-            .gte('created_at', targetISO)
-            .lte('created_at', nowISO);
+            .eq('status', 'claimed')  // ✅ SEULES les consignations récupérées
+            .gte('claimed_at', targetISO)
+            .lte('claimed_at', nowISO);
+
+        if (consignmentsError) {
+            throw new Error(`Erreur chargement consignations: ${getErrorMessage(consignmentsError)}`);
+        }
 
         return {
-            sales: sales || [],
-            supplies: supplies || [],
-            adjustments: adjustments || [],
-            returns: returns || [],
-            consignments: consignments || []
+            sales: (sales || []) as SaleRowMinimal[],
+            supplies: (supplies || []) as SupplyRowMinimal[],
+            adjustments: (adjustments || []) as StockAdjustmentRowMinimal[],
+            returns: (returns || []) as ReturnRowMinimal[],
+            consignments: (consignments || []) as ConsignmentRowMinimal[]
         };
     }, [barId]);
 
@@ -122,22 +141,25 @@ export function useInventoryHistory({ barId, products }: UseInventoryHistoryProp
                 });
             });
 
-            // --- INVERSION DU TEMPS ---
+            // --- INVERSION DU TEMPS (TIME TRAVEL) ---
+            // Formule: Stock(T) = Stock(now) - Entrées + Sorties
 
             // 1. Inverser les VENTES (On RAJOUTE ce qui a été vendu)
-            movements.sales.forEach((sale: any) => {
-                sale.items.forEach((item: any) => {
+            // Vente = sortie → pour revenir en arrière, on rajoute
+            movements.sales.forEach((sale) => {
+                const items = sale.items as SaleItemDB[];
+                items.forEach((item) => {
                     const record = inventoryMap.get(item.product_id);
                     if (record) {
-                        record.historicalStock += item.quantity; // + Vente
+                        record.historicalStock += item.quantity; // + Vente annulée
                         record.movements.sales += item.quantity;
-                        // record.auditTrail.push(`+ ${item.quantity} (Vente annulée)`);
                     }
                 });
             });
 
             // 2. Inverser les APPROVISIONNEMENTS (On SOUSTRAIT ce qui est entré)
-            movements.supplies.forEach((supply: any) => {
+            // Approv = entrée → pour revenir en arrière, on soustrait
+            movements.supplies.forEach((supply) => {
                 const record = inventoryMap.get(supply.product_id);
                 if (record) {
                     record.historicalStock -= supply.quantity; // - Approv
@@ -146,16 +168,19 @@ export function useInventoryHistory({ barId, products }: UseInventoryHistoryProp
             });
 
             // 3. Inverser les AJUSTEMENTS (On INVERSE le delta)
-            movements.adjustments.forEach((adj: any) => {
+            // Ajustement +5 → Stock(T) = Stock(now) - 5
+            // Ajustement -3 → Stock(T) = Stock(now) + 3
+            movements.adjustments.forEach((adj) => {
                 const record = inventoryMap.get(adj.product_id);
                 if (record) {
-                    record.historicalStock -= adj.delta; // - (+5) = -5 ; - (-3) = +3
+                    record.historicalStock -= adj.delta;
                     record.movements.adjustments += adj.delta;
                 }
             });
 
             // 4. Inverser les RETOURS REMIS EN STOCK (On SOUSTRAIT ce qui est revenu)
-            movements.returns.forEach((ret: any) => {
+            // Retour = entrée → pour revenir en arrière, on soustrait
+            movements.returns.forEach((ret) => {
                 const record = inventoryMap.get(ret.product_id);
                 if (record) {
                     record.historicalStock -= ret.quantity_returned; // - Retour
@@ -163,12 +188,15 @@ export function useInventoryHistory({ barId, products }: UseInventoryHistoryProp
                 }
             });
 
-            // 5. Inverser les CONSIGNATIONS (On RAJOUTE car c'était sorti)
-            // Une consignation active = stock en moins. Si elle a été faite après T, on la remet.
-            movements.consignments.forEach((cons: any) => {
+            // 5. Inverser les CONSIGNATIONS RÉCUPÉRÉES (On RAJOUTE car stock a été décrémenté)
+            // ⚠️ FIX CRITIQUE: SEULES les consignations 'claimed' touchent product.stock
+            // Claim = sortie (client récupère) → pour revenir en arrière, on rajoute
+            // Note: Les consignations expired/forfeited ne sont PAS dans cette liste
+            // car elles ne décrément jamais product.stock (voir useStockMutations.ts:321-334)
+            movements.consignments.forEach((cons) => {
                 const record = inventoryMap.get(cons.product_id);
                 if (record) {
-                    record.historicalStock += cons.quantity; // + Consignation annulée
+                    record.historicalStock += cons.quantity; // + Claim annulé
                     record.movements.consignments += cons.quantity;
                 }
             });
@@ -177,8 +205,9 @@ export function useInventoryHistory({ barId, products }: UseInventoryHistoryProp
             return Array.from(inventoryMap.values());
 
         } catch (error) {
-            console.error("Erreur calcul historique", error);
-            throw error;
+            console.error("Erreur calcul historique:", error);
+            const errorMessage = getErrorMessage(error);
+            throw new Error(`Échec du calcul historique: ${errorMessage}`);
         } finally {
             setIsCalculating(false);
         }

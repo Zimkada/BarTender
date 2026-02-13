@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import * as XLSX from 'xlsx';
 import { Product, ProductStockInfo, Category } from '../types';
 import { useInventoryHistory } from './useInventoryHistory';
 import { dateToYYYYMMDD } from '../utils/businessDateHelpers';
+import { getErrorMessage } from '../utils/errorHandler';
+import { useNotifications } from './useNotifications';
 
 interface UseInventoryExportProps {
     barId: string;
@@ -21,6 +22,7 @@ export function useInventoryExport({
 }: UseInventoryExportProps) {
     const { calculateHistoricalStock, isCalculating } = useInventoryHistory({ barId, products });
     const [isExporting, setIsExporting] = useState(false);
+    const { showNotification } = useNotifications();
 
     const exportToExcel = async (
         mode: 'current' | 'historical',
@@ -29,7 +31,14 @@ export function useInventoryExport({
     ) => {
         setIsExporting(true);
         try {
-            let data: any[] = [];
+            // ✅ Lazy load XLSX library (saves ~142KB gzipped on initial bundle)
+            const XLSX = await import('xlsx');
+
+            interface ExportRow {
+                [key: string]: string | number;
+            }
+
+            let data: ExportRow[] = [];
             let title = '';
             let subtitle = '';
 
@@ -40,7 +49,11 @@ export function useInventoryExport({
             if (mode === 'historical' && targetDate) {
                 // --- MODE HISTORIQUE (TIME TRAVEL) ---
                 title = `INVENTAIRE HISTORIQUE RECONSTITUÉ`;
-                subtitle = `Date Cible : ${targetDate.toLocaleDateString('fr-FR')} 06:00 | Généré le ${dateStr} à ${timeStr}`;
+
+                // ✅ FIX: Display actual target time, not hardcoded "06:00"
+                const targetDateStr = targetDate.toLocaleDateString('fr-FR');
+                const targetTimeStr = targetDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                subtitle = `Date Cible : ${targetDateStr} ${targetTimeStr} | Généré le ${dateStr} à ${timeStr}`;
 
                 // 1. Lancer le calcul lourd
                 const historicalRecords = await calculateHistoricalStock(targetDate);
@@ -49,7 +62,9 @@ export function useInventoryExport({
                 data = historicalRecords.map(record => {
                     const product = products.find(p => p.id === record.productId);
                     const category = categories.find(c => c.id === product?.categoryId);
-                    const stockInfo = getStockInfo(record.productId);
+
+                    // ✅ FIX CRITIQUE: Use currentAverageCost (CUMP), NOT sale price
+                    const costPrice = product?.currentAverageCost ?? 0;
 
                     return {
                         'Catégorie': category?.name || 'Sans catégorie',
@@ -57,7 +72,7 @@ export function useInventoryExport({
                         'Volume': product?.volume || '-',
 
                         // Colonnes Clés
-                        'Stock Calculé (Théorique)': record.historicalStock,
+                        'Stock Calculé (T)': record.historicalStock,
                         'Stock Actuel (Réel)': record.currentStock,
 
                         // Audit Mouvements (Transition T -> Maintenant)
@@ -65,10 +80,12 @@ export function useInventoryExport({
                         'Approv. depuis T': record.movements.supplies,
                         'Ajust. depuis T': record.movements.adjustments,
                         'Retours depuis T': record.movements.returns,
+                        'Consign. récup. depuis T': record.movements.consignments, // ✅ NEW column
 
                         // Infos Prix
-                        'P.Achat': product?.price || 0, // Fallback si pas de costPrice
-                        'Valeur Stock (Est.)': record.historicalStock * (product?.price || 0)
+                        'Prix Achat CUMP': costPrice,
+                        'Prix Vente': product?.price || 0,
+                        'Valeur Stock (Achat)': record.historicalStock * costPrice
                     };
                 });
 
@@ -86,6 +103,9 @@ export function useInventoryExport({
                     const consigned = stockInfo?.consignedStock ?? 0;
                     const available = stockInfo?.availableStock ?? product.stock;
 
+                    // ✅ Use CUMP (cost price), not sale price for valuation
+                    const costPrice = product.currentAverageCost ?? 0;
+
                     return {
                         'Catégorie': category?.name || 'Sans catégorie',
                         'Produit': product.name,
@@ -97,8 +117,10 @@ export function useInventoryExport({
                         'Disponible Vente': available,
 
                         // Valeurs
+                        'Prix Achat CUMP': costPrice,
                         'Prix Vente': product.price,
-                        'Valeur Vente Totale': physical * product.price,
+                        'Valeur Stock (Achat)': physical * costPrice,
+                        'Valeur Stock (Vente)': physical * product.price,
 
                         // Colonnes pour pointage manuel
                         'Stock Compté (Manuel)': '',
@@ -110,20 +132,39 @@ export function useInventoryExport({
 
             // 3. Génération du Fichier Excel
             const wb = XLSX.utils.book_new();
-
-            // Worksheet
             const ws = XLSX.utils.json_to_sheet(data);
 
-            // Styling Header (Hack via cell styles impossible en version community basic, on fait du contenu)
+            // Auto-size columns for better readability
+            const headers = Object.keys(data[0] || {});
+            const columnWidths: { wch: number }[] = [];
+
+            headers.forEach((header, colIndex) => {
+                let maxWidth = header.length;
+                data.forEach((row) => {
+                    const cellValue = String(row[header] || '');
+                    maxWidth = Math.max(maxWidth, cellValue.length);
+                });
+                columnWidths[colIndex] = { wch: Math.min(maxWidth + 2, 50) };
+            });
+
+            ws['!cols'] = columnWidths;
+
             XLSX.utils.book_append_sheet(wb, ws, "Inventaire");
 
             // Sauvegarde
-            const fileName = `Inventaire_${barName}_${mode}_${dateStr}.xlsx`;
+            const modeLabel = mode === 'historical' ? 'historique' : 'actuel';
+            const fileName = `Inventaire_${barName}_${modeLabel}_${dateStr}.xlsx`;
             XLSX.writeFile(wb, fileName);
 
+            // ✅ Success notification
+            showNotification('success', `Export Excel généré : ${fileName}`);
+
         } catch (error) {
-            console.error("Erreur export Excel", error);
-            alert("Erreur lors de la génération de l'export.");
+            console.error("Erreur export Excel:", error);
+            const errorMessage = getErrorMessage(error);
+
+            // ✅ FIX: Use notification system instead of alert()
+            showNotification('error', `Erreur lors de la génération de l'export: ${errorMessage}`);
         } finally {
             setIsExporting(false);
         }

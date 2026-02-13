@@ -144,6 +144,7 @@ export function InventoryExportModal({
                                 <label className="text-xs font-medium text-gray-600">Date Cible</label>
                                 <input
                                     type="date"
+                                    max={new Date().toISOString().split('T')[0]} // ✅ Bloquer dates futures
                                     value={targetDate}
                                     onChange={(e) => setTargetDate(e.target.value)}
                                     className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
