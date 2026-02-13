@@ -94,20 +94,20 @@ export const RoleDetectedStep: React.FC = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4">
-      <div className="backdrop-blur-xl bg-white/80 border border-white/40 shadow-2xl rounded-2xl p-6 md:p-10 ring-1 ring-black/5 relative overflow-hidden">
+      <div className="backdrop-blur-xl bg-white/80 border border-white/40 shadow-2xl rounded-2xl p-5 md:p-10 ring-1 ring-black/5 relative overflow-hidden">
 
         {/* Decorative Top Gradient */}
         <div className="absolute top-0 left-0 w-full h-1.5 bg-[image:var(--brand-gradient)]" />
 
         {/* Header */}
-        <div className="text-center mb-10">
-          <div className="inline-block p-6 rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] shadow-inner mb-6">
-            <div className="text-6xl animate-bounce-slow">{roleInfo.icon}</div>
+        <div className="text-center mb-6 md:mb-10">
+          <div className="inline-block p-4 md:p-6 rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] shadow-inner mb-4 md:mb-6">
+            <div className="text-5xl md:text-6xl animate-bounce-slow">{roleInfo.icon}</div>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),10%)] mb-3">
+          <h1 className="text-xl md:text-4xl font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),10%)] mb-3 leading-tight">
             Vous êtes configuré en tant que <span className="bg-clip-text text-transparent bg-[image:var(--brand-gradient)]">{roleInfo.title}</span>
           </h1>
-          <p className="mt-2 text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] text-lg font-medium max-w-2xl mx-auto">
+          <p className="mt-2 text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] text-base md:text-lg font-medium max-w-2xl mx-auto">
             {roleInfo.description}
           </p>
         </div>

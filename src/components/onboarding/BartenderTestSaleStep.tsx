@@ -57,13 +57,13 @@ export const BartenderTestSaleStep: React.FC = () => {
             <CheckCircle2 size={56} className="text-white" />
           </motion.div>
 
-          <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tighter drop-shadow-sm">Certification Terminée !</h1>
-          <p className="text-white/90 text-xl font-medium max-w-lg mx-auto leading-relaxed">
+          <h1 className="text-2xl md:text-5xl font-black mb-3 md:mb-4 tracking-tighter drop-shadow-sm leading-tight">Certification Terminée !</h1>
+          <p className="text-white/90 text-base md:text-xl font-medium max-w-lg mx-auto leading-relaxed px-4 md:px-0">
             Félicitations. Vous avez complété avec succès votre formation BarTender Academy.
           </p>
         </div>
 
-        <div className="p-8 md:p-12 space-y-12 bg-[hsl(var(--brand-hue),var(--brand-saturation),99%)]">
+        <div className="p-6 md:p-12 space-y-8 md:space-y-12 bg-[hsl(var(--brand-hue),var(--brand-saturation),99%)]">
           {/* Summary Box */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <GlassCard className="p-6 text-center">

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
+import { useBar } from '../../context/BarContext';
 import { LoadingButton } from '../ui/LoadingButton';
 import { Beer, ShoppingBag, Banknote, CheckCircle2, ChevronRight, AlertTriangle, Plus, Minus, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,6 +15,9 @@ type DemoPhase =
 
 export const BartenderDemoStep: React.FC = () => {
   const { completeStep, nextStep } = useOnboarding();
+  const { currentBar } = useBar();
+  const currency = currentBar?.settings?.currency || 'FCFA';
+
   const [phase, setPhase] = useState<DemoPhase>('intro');
   const [loading, setLoading] = useState(false);
 
@@ -111,8 +115,8 @@ export const BartenderDemoStep: React.FC = () => {
           transition={{ duration: 20, repeat: Infinity }}
           className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"
         />
-        <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-3 tracking-tight drop-shadow-sm">{title}</h1>
-        <p className="text-white/90 text-lg font-medium max-w-lg mx-auto leading-relaxed">{subtitle}</p>
+        <h1 className="text-2xl md:text-4xl font-extrabold text-white mb-3 tracking-tight drop-shadow-sm">{title}</h1>
+        <p className="text-white/90 text-sm md:text-lg font-medium max-w-lg mx-auto leading-relaxed">{subtitle}</p>
       </div>
     );
   };
@@ -136,8 +140,8 @@ export const BartenderDemoStep: React.FC = () => {
                   <Zap className="text-[hsl(var(--brand-hue),var(--brand-saturation),60%)] w-12 h-12" fill="currentColor" />
                 </div>
                 <div className="space-y-3">
-                  <h2 className="text-3xl font-black text-slate-800 tracking-tight">Vendez à la vitesse de l'éclair</h2>
-                  <p className="text-slate-600 leading-relaxed font-medium">
+                  <h2 className="text-2xl md:text-3xl font-black text-slate-800 tracking-tight">Vendez à la vitesse de l'éclair</h2>
+                  <p className="text-sm md:text-slate-600 leading-relaxed font-medium">
                     Une application lente fait perdre des clients. BarTender est conçu pour la rapidité. On essaye ?
                   </p>
                 </div>
@@ -184,18 +188,19 @@ export const BartenderDemoStep: React.FC = () => {
                         addToCart('p1', 'Heineken', 1000);
                         if (phase === 'picking') setPhase('adjusting');
                       }}
-                      className={`relative p-6 rounded-2xl border-2 text-left transition-all ${phase === 'picking'
+                      className={`relative p-4 md:p-6 rounded-2xl border-2 text-left transition-all ${phase === 'picking'
                         ? 'bg-white border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] shadow-lg ring-4 ring-[hsl(var(--brand-hue),var(--brand-saturation),80%)]/30 animate-float'
                         : 'bg-white border-transparent shadow-sm'
                         }`}
                     >
-                      <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-4 text-green-600">
-                        <Beer size={28} />
+                      <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 rounded-xl flex items-center justify-center mb-3 md:mb-4 text-green-600">
+                        <Beer size={24} />
                       </div>
-                      <div className="font-bold text-slate-800">Heineken</div>
-                      <div className="text-sm text-slate-400">1 000 FCFA</div>
-                      <div className="absolute top-4 right-4 text-blue-500">
-                        <Plus size={20} />
+                      <div className="font-bold text-sm md:text-base text-slate-800">Heineken</div>
+                      <div className="font-bold text-sm md:text-base text-slate-800">Heineken</div>
+                      <div className="text-[10px] md:text-sm text-slate-400">1 000 {currency}</div>
+                      <div className="absolute top-3 right-3 md:top-4 md:right-4 text-blue-500">
+                        <Plus size={16} />
                       </div>
                     </motion.button>
 
@@ -208,16 +213,17 @@ export const BartenderDemoStep: React.FC = () => {
                         setShowStockWarning(true);
                         addToCart('p2', 'Coca Cola', 600);
                       }}
-                      className={`relative p-6 rounded-2xl border-2 text-left transition-all bg-white shadow-sm border-transparent ${phase === 'adjusting' ? 'border-amber-400 ring-4 ring-amber-100' : ''
+                      className={`relative p-4 md:p-6 rounded-2xl border-2 text-left transition-all bg-white shadow-sm border-transparent ${phase === 'adjusting' ? 'border-amber-400 ring-4 ring-amber-100' : ''
                         }`}
                     >
-                      <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-4 text-red-600 font-black">
+                      <div className="w-10 h-10 md:w-12 md:h-12 bg-red-100 rounded-xl flex items-center justify-center mb-3 md:mb-4 text-red-600 font-black text-sm">
                         Co
                       </div>
-                      <div className="font-bold text-slate-800">Coca Cola</div>
-                      <div className="text-sm text-slate-400">600 FCFA</div>
+                      <div className="font-bold text-sm md:text-base text-slate-800">Coca Cola</div>
+                      <div className="font-bold text-sm md:text-base text-slate-800">Coca Cola</div>
+                      <div className="text-[10px] md:text-sm text-slate-400">600 {currency}</div>
                       {phase === 'alert_stock' && (
-                        <div className="absolute top-2 right-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <div className="absolute top-2 right-2 bg-amber-500 text-white text-[8px] md:text-[10px] font-bold px-1.5 md:px-2 py-0.5 rounded-full flex items-center gap-1">
                           STOCK BAS
                         </div>
                       )}
@@ -277,7 +283,7 @@ export const BartenderDemoStep: React.FC = () => {
                             <p className="text-xs font-bold uppercase tracking-wider">Panier Vide</p>
                           </div>
                         ) : (
-                          cart.map((item, idx) => (
+                          cart.map((item) => (
                             <motion.div
                               key={item.id}
                               initial={{ opacity: 0, x: -10 }}
@@ -286,7 +292,10 @@ export const BartenderDemoStep: React.FC = () => {
                             >
                               <div>
                                 <div className="font-bold text-slate-800 text-sm">{item.name}</div>
-                                <div className="text-[10px] text-slate-400 font-mono italic">{item.price} FCFA / unité</div>
+                                <div>
+                                  <div className="font-bold text-slate-800 text-sm">{item.name}</div>
+                                  <div className="text-[10px] text-slate-400 font-mono italic">{item.price} {currency} / unité</div>
+                                </div>
                               </div>
                               <div className="flex items-center gap-3">
                                 <button
@@ -312,7 +321,10 @@ export const BartenderDemoStep: React.FC = () => {
                     <div className="p-5 bg-slate-50 border-t border-slate-200 space-y-4">
                       <div className="flex justify-between items-end">
                         <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Net</span>
-                        <span className="text-2xl font-black text-[hsl(var(--brand-hue),var(--brand-saturation),60%)] tracking-tighter">{cartTotal.toLocaleString()} FCFA</span>
+                        <div className="flex justify-between items-end">
+                          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Net</span>
+                          <span className="text-2xl font-black text-[hsl(var(--brand-hue),var(--brand-saturation),60%)] tracking-tighter">{cartTotal.toLocaleString()} {currency}</span>
+                        </div>
                       </div>
 
                       <button
@@ -348,8 +360,8 @@ export const BartenderDemoStep: React.FC = () => {
                   </motion.div>
                 </div>
                 <div className="space-y-3">
-                  <h2 className="text-3xl font-black text-slate-800">C'est validé !</h2>
-                  <p className="text-slate-500 max-w-sm mx-auto font-medium">
+                  <h2 className="text-2xl md:text-3xl font-black text-slate-800">C'est validé !</h2>
+                  <p className="text-sm md:text-base text-slate-500 max-w-sm mx-auto font-medium">
                     Vous avez maîtrisé le processus de vente BarTender. Prêt à faire exploser le chiffre d'affaires ?
                   </p>
                 </div>

@@ -32,17 +32,17 @@ export const ManagerRoleConfirmStep: React.FC = () => {
     <div className="w-full max-w-2xl mx-auto px-4">
       <div className="bg-white rounded-lg shadow-md p-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Bienvenue, Gérant !</h1>
-          <p className="mt-2 text-gray-600">
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Bienvenue, Gérant !</h1>
+          <p className="mt-2 text-sm md:text-base text-gray-600">
             Vous avez été ajouté au bar <strong>{barName}</strong>
           </p>
         </div>
 
         {/* Role Overview */}
         <form onSubmit={handleConfirm} className="space-y-6">
-          <div className="p-6 bg-blue-50 border border-blue-200 rounded-lg">
-            <h2 className="text-lg font-semibold text-blue-900 mb-4">Votre Rôle : Gérant</h2>
+          <div className="p-4 md:p-6 bg-blue-50 border border-blue-200 rounded-lg">
+            <h2 className="text-base md:text-lg font-semibold text-blue-900 mb-3 md:mb-4">Votre Rôle : Gérant</h2>
 
             <div className="space-y-3">
               <div className="flex items-start gap-3">
@@ -73,8 +73,8 @@ export const ManagerRoleConfirmStep: React.FC = () => {
           </div>
 
           {/* Delegable Tasks */}
-          <div className="p-6 bg-amber-50 border border-amber-200 rounded-lg">
-            <h2 className="text-lg font-semibold text-amber-900 mb-4">💡 Vous pouvez aider le propriétaire</h2>
+          <div className="p-4 md:p-6 bg-amber-50 border border-amber-200 rounded-lg">
+            <h2 className="text-base md:text-lg font-semibold text-amber-900 mb-3 md:mb-4">💡 Vous pouvez aider le propriétaire</h2>
             <p className="text-sm text-amber-800 mb-3">
               Le propriétaire peut vous demander de configurer certaines tâches pour le bar :
             </p>

@@ -40,6 +40,7 @@ import { BartenderTestSaleStep } from './BartenderTestSaleStep';
 
 // Progress indicator
 import { OnboardingProgressBar } from './OnboardingProgressBar';
+import { LoadingFallback } from '../LoadingFallback';
 
 // Configuration des étapes propriétaire avec redirection
 const OWNER_REDIRECT_STEPS: Record<string, RedirectStepConfig> = {
@@ -100,8 +101,11 @@ export const OnboardingFlow: React.FC = () => {
     userRole,
     barId: contextBarId,
     nextStep, // We need nextStep for the RedirectStep callback
+    completeOnboarding, // Needed for final step persistence
+    barIsAlreadySetup, // Needed to check context mode
+    isHydrating // Consuming hydration state
   } = useOnboarding();
-  const { currentSession } = useAuth();
+  const { currentSession, refreshSession } = useAuth(); // Destructure refreshSession
   const { currentBar, barMembers } = useBar();
 
   // Check if user has permission to access onboarding
@@ -135,8 +139,11 @@ export const OnboardingFlow: React.FC = () => {
       return;
     }
 
-    // If already initialized, don't re-initialize
-    if (userId) return;
+    // Guard: Prevent re-initialization ONLY if we are in the correct mode.
+    // We are in OnboardingFlow (Setup), so we expect barIsAlreadySetup to be FALSE.
+    // If context is initialized (userId) AND barIsAlreadySetup is FALSE, we are good to keep state.
+    // If barIsAlreadySetup is TRUE (Training residue), we MUST re-initialize.
+    if (userId && barIsAlreadySetup === false) return;
 
     if (currentSession && currentBar && barMembers) {
       // Determine role: use bar member role if found, prioritize owner role if user is bar owner
@@ -223,7 +230,17 @@ export const OnboardingFlow: React.FC = () => {
               </h1>
               <p className="text-gray-600 mb-8 text-lg">Votre bar est prêt à être utilisé.</p>
               <button
-                onClick={() => navigate('/dashboard', { replace: true })}
+                onClick={async () => {
+                  try {
+                    await completeOnboarding();
+                    console.log('Onboarding marked as complete');
+                    await refreshSession(); // Refresh session to update UI (hide banner)
+                    console.log('Session refreshed');
+                  } catch (e) {
+                    console.error("Erreur lors de la complétion:", e);
+                  }
+                  navigate('/dashboard', { replace: true });
+                }}
                 className="px-8 py-3 bg-[image:var(--brand-gradient)] text-white font-semibold rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
               >
                 Aller au Dashboard
@@ -253,7 +270,11 @@ export const OnboardingFlow: React.FC = () => {
 
       {/* Step content */}
       <div className="py-12 relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        {renderStep()}
+        {isHydrating ? (
+          <LoadingFallback />
+        ) : (
+          renderStep()
+        )}
       </div>
     </div>
   );

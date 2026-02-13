@@ -73,7 +73,7 @@ export class OnboardingCompletionService {
             .from('bar_members')
             .select('*', { count: 'exact', head: true })
             .eq('bar_id', barId)
-            .eq('role', 'gérant')
+            .eq('role', 'gerant')
             .eq('is_active', true);
 
         if (error) {
@@ -102,5 +102,14 @@ export class OnboardingCompletionService {
             barDetailsComplete: !!(bar?.name && bar?.address),
             productsAdded: (await this.checkProductsAdded(barId)).complete,
         };
+    }
+
+    /**
+     * Vérifie si le bar a une configuration minimale viable (au moins 1 produit avec stock)
+     * Utilisé pour valider le setup complet
+     */
+    static async checkMinimumViableSetup(barId: string): Promise<boolean> {
+        const { complete } = await this.checkStockInitialized(barId);
+        return complete;
     }
 }

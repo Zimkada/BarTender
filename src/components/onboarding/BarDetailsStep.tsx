@@ -15,24 +15,21 @@ import type { BarSettings } from '../../types';
 interface ExtendedBarSettings extends BarSettings {
   businessDayCloseHour?: number; // Business day closing hour (for revenue calculation)
   contact?: string; // Contact information (phone/email)
+  // currency is already in BarSettings as string (required)
 }
 
 interface BarDetailsFormData {
   barName: string;
   location: string;
   closingHour: number;
+  // Use UI-specific type for local state, mapped to DB type on save/load
   operatingMode: 'full' | 'simplifié';
   contact?: string;
+  currency: string;
 }
 
-/**
- * ✅ Type-safe payload for BarsService.updateBar()
- */
-interface BarUpdatePayload {
-  name: string;
-  address: string;
-  settings: ExtendedBarSettings;
-}
+// Removed BarUpdatePayload interface as we cast to any/unknown for the service call or allow implicit typing
+
 
 export const BarDetailsStep: React.FC = () => {
   const navigate = useNavigate();
@@ -47,10 +44,11 @@ export const BarDetailsStep: React.FC = () => {
     barName: savedData?.barName || currentBar?.name || '',
     location: savedData?.location || formatAddress(currentBar?.address),
     closingHour: savedData?.closingHour || currentBar?.closingHour || 6,
+    // Map DB 'simplified' -> UI 'simplifié'
     operatingMode: savedData?.operatingMode ||
-      (currentBar?.settings?.operatingMode === 'simplified' ? 'simplifié' :
-        currentBar?.settings?.operatingMode === 'full' ? 'full' : 'simplifié'),
+      (currentBar?.settings?.operatingMode === 'full' ? 'full' : 'simplifié'),
     contact: savedData?.contact || currentBar?.email || '',
+    currency: savedData?.currency || currentBar?.settings?.currency || 'XOF',
   });
 
   const validate = (): boolean => {
@@ -100,16 +98,22 @@ export const BarDetailsStep: React.FC = () => {
       };
 
       // ✅ Type-safe update payload with explicit interface
-      const updatePayload: BarUpdatePayload = {
+      // ✅ Map UI 'simplifié' -> DB 'simplified'
+      const dbOperatingMode = formData.operatingMode === 'full' ? 'full' : 'simplified';
+
+      // ✅ Type-safe update payload
+      const updatePayload = {
         name: formData.barName,
         address: formData.location,
         // Note: contact/email is stored in settings, not as a separate column
         settings: {
           ...currentSettings,
           businessDayCloseHour: formData.closingHour,
-          operatingMode: formData.operatingMode,
+          operatingMode: dbOperatingMode,
           contact: formData.contact, // Store contact in settings
-        },
+          currency: formData.currency, // Store currency
+          currencySymbol: formData.currency === 'EUR' ? '€' : formData.currency === 'USD' ? '$' : 'FCFA', // Simple mapping
+        } as ExtendedBarSettings,
       };
 
       await BarsService.updateBar(currentBar.id, updatePayload);
@@ -207,6 +211,26 @@ export const BarDetailsStep: React.FC = () => {
             {errors.location && (
               <p className="mt-1 text-sm text-red-600">{errors.location}</p>
             )}
+          </div>
+
+          {/* Currency */}
+          <div>
+            <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-1">
+              Devise *
+            </label>
+            <select
+              id="currency"
+              name="currency"
+              value={formData.currency}
+              onChange={handleChange}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[hsl(var(--brand-hue),var(--brand-saturation),80%)] focus:border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] focus:outline-none transition-all duration-200 ${errors.currency ? 'border-red-500 focus:ring-red-200' : 'border-gray-200'
+                }`}
+            >
+              <option value="XOF">Franc CFA (XOF)</option>
+              <option value="EUR">Euro (€)</option>
+              <option value="USD">Dollar ($)</option>
+            </select>
+            <p className="mt-1 text-xs text-gray-500">La devise utilisée pour vos rapports financiers.</p>
           </div>
 
           {/* Contact Email */}
@@ -328,17 +352,20 @@ export const BarDetailsStep: React.FC = () => {
                       currencySymbol: 'FCFA',
                     };
 
-                    // ✅ Type-safe update payload with explicit interface
-                    const updatePayload: BarUpdatePayload = {
+                    const dbOperatingMode = formData.operatingMode === 'full' ? 'full' : 'simplified';
+
+                    const updatePayload = {
                       name: formData.barName,
                       address: formData.location,
                       // Note: contact/email is stored in settings, not as a separate column
                       settings: {
                         ...currentSettings,
                         businessDayCloseHour: formData.closingHour,
-                        operatingMode: formData.operatingMode,
+                        operatingMode: dbOperatingMode,
                         contact: formData.contact, // Store contact in settings
-                      },
+                        currency: formData.currency,
+                        currencySymbol: formData.currency === 'EUR' ? '€' : formData.currency === 'USD' ? '$' : 'FCFA',
+                      } as ExtendedBarSettings,
                     };
 
                     await BarsService.updateBar(currentBar.id, updatePayload);

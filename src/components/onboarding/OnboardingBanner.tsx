@@ -7,25 +7,32 @@
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, ChevronRight, Clock } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { useBar } from '../../context/BarContext';
 
 export const OnboardingBanner: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { currentSession } = useAuth();
   const { currentBar } = useBar();
   const [isDismissed, setIsDismissed] = useState(false);
   const [deferredUntil, setDeferredUntil] = useState<number | null>(null);
 
   // Show banner if:
-  // 1. Bar exists AND Bar is not setup complete
-  // 2. Not dismissed by user
-  // 3. Deferral period not active
-  // 4. User is NOT currently on the onboarding page
-  // 5. User is NOT currently in an active redirection step (mode=onboarding)
+  // 1. User has permission (Promoteur or Gérant)
+  // 2. Bar exists AND Bar is not setup complete
+  // 3. Not dismissed by user
+  // 4. Deferral period not active
+  // 5. User is NOT currently on the onboarding page
+  // 6. User is NOT currently in an active redirection step (mode=onboarding)
   const isOnOnboardingPage = location.pathname === '/onboarding';
   const isActiveOnboardingMode = new URLSearchParams(location.search).get('mode') === 'onboarding';
 
+  const userRole = currentSession?.role;
+  const canConfigure = userRole === 'promoteur' || userRole === 'gerant';
+
   const shouldShow =
+    canConfigure &&
     currentBar &&
     !currentBar.isSetupComplete &&  // Only show if bar needs configuration
     !isOnOnboardingPage &&
@@ -35,9 +42,9 @@ export const OnboardingBanner: React.FC = () => {
 
   // Load deferral state from localStorage on mount
   useEffect(() => {
-    if (!currentBar?.id) return;
+    if (!currentBar?.id || !currentSession?.userId) return;
 
-    const storageKey = `onboarding_deferred_${currentBar.id}`;
+    const storageKey = `onboarding_deferred_${currentBar.id}_${currentSession.userId}`;
     const stored = localStorage.getItem(storageKey);
     if (stored) {
       const deferUntilTime = parseInt(stored, 10);
@@ -49,7 +56,40 @@ export const OnboardingBanner: React.FC = () => {
         setIsDismissed(false);
       }
     }
-  }, [currentBar?.id]);
+  }, [currentBar?.id, currentSession?.userId]);
+
+  // Auto-Resolution Check:
+  // If the bar is NOT marked as complete, check if it actually MEETS the requirements (e.g. added stock via Inventory).
+  // If yes, auto-complete it and hide the banner.
+  useEffect(() => {
+    if (!shouldShow || !currentBar?.id) return;
+
+    const checkAndResolve = async () => {
+      try {
+        const { OnboardingCompletionService } = await import('../../services/onboarding/completionTracking.service');
+        const isViable = await OnboardingCompletionService.checkMinimumViableSetup(currentBar.id);
+
+        if (isViable) {
+          console.log('✨ [OnboardingBanner] Auto-resolving setup completion (Assets detected)');
+          // Mark as complete in DB
+          // Note: Ideally we should use a service method, but here we can do a direct call or use context if available.
+          // Since we are inside a component, we rely on Supabase direct call to avoid context circular dependency complexity relative to this specific isolated requirement.
+          const { supabase } = await import('../../lib/supabase');
+          await supabase
+            .from('bars')
+            .update({ is_setup_complete: true })
+            .eq('id', currentBar.id);
+
+          // Force hide locally to avoid wait for real-time update
+          setIsDismissed(true);
+        }
+      } catch (err) {
+        console.error('Failed auto-resolution check', err);
+      }
+    };
+
+    checkAndResolve();
+  }, [shouldShow, currentBar?.id]);
 
   if (!shouldShow) {
     return null;
@@ -60,10 +100,10 @@ export const OnboardingBanner: React.FC = () => {
   };
 
   const handleDeferSetup = () => {
-    if (!currentBar?.id) return;
+    if (!currentBar?.id || !currentSession?.userId) return;
 
     const deferUntil = Date.now() + 24 * 60 * 60 * 1000;
-    const storageKey = `onboarding_deferred_${currentBar.id}`;
+    const storageKey = `onboarding_deferred_${currentBar.id}_${currentSession.userId}`;
     localStorage.setItem(storageKey, String(deferUntil));
 
     setDeferredUntil(deferUntil);

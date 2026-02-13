@@ -33,9 +33,9 @@ export const ManagerCheckStaffStep: React.FC = () => {
     <div className="w-full max-w-2xl mx-auto px-4">
       <div className="bg-white rounded-lg shadow-md p-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Statut de l'Équipe</h1>
-          <p className="mt-2 text-gray-600">
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Statut de l'Équipe</h1>
+          <p className="mt-2 text-sm md:text-base text-gray-600">
             Vérifiez si votre équipe de serveurs est configurée
           </p>
         </div>

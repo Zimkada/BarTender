@@ -15,45 +15,11 @@ import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
  * - Bartender: 5 steps (Welcome → Role → Intro → Demo → Test Sale)
  */
 export const OnboardingProgressBar: React.FC = () => {
-  const { currentStep, userRole } = useOnboarding();
+  const { currentStep, userRole, stepSequence } = useOnboarding();
 
-  // Memoize step sequence based on role (only recalculate when role changes)
-  const stepSequence = useMemo(() => {
-    switch (userRole) {
-      case 'promoteur':
-      case 'owner':
-        return [
-          OnboardingStep.WELCOME,
-          OnboardingStep.ROLE_DETECTED,
-          OnboardingStep.OWNER_BAR_DETAILS,
-          OnboardingStep.OWNER_ADD_MANAGERS,
-          OnboardingStep.OWNER_SETUP_STAFF,
-          OnboardingStep.OWNER_ADD_PRODUCTS,
-          OnboardingStep.OWNER_STOCK_INIT,
-          OnboardingStep.OWNER_REVIEW,
-        ];
-      case 'gerant':
-      case 'manager':
-        return [
-          OnboardingStep.WELCOME,
-          OnboardingStep.ROLE_DETECTED,
-          OnboardingStep.MANAGER_ROLE_CONFIRM,
-          OnboardingStep.MANAGER_CHECK_STAFF,
-          OnboardingStep.MANAGER_TOUR,
-        ];
-      case 'serveur':
-      case 'bartender':
-        return [
-          OnboardingStep.WELCOME,
-          OnboardingStep.ROLE_DETECTED,
-          OnboardingStep.BARTENDER_INTRO,
-          OnboardingStep.BARTENDER_DEMO,
-          OnboardingStep.BARTENDER_TEST_SALE,
-        ];
-      default:
-        return [];
-    }
-  }, [userRole]);
+  // Removed: Local stepSequence calculation. 
+  // We now use the single source of truth from OnboardingContext to ensure
+  // the progress bar matches the actual flow (including Setup vs Training variations).
 
   // If no valid role yet, don't render (loading state)
   if (stepSequence.length === 0) return null;

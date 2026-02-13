@@ -1,17 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GraduationCap, ArrowRight, X } from 'lucide-react';
+import { GraduationCap, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export const WelcomeTrainingCard: React.FC = () => {
-    const { currentSession } = useAuth();
+    const { currentSession, refreshSession } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [isVisible, setIsVisible] = useState(true);
 
+    // Persistance du rejet dans localStorage
+    const storageKey = `training_dismissed_${currentSession?.userId}`;
+
+    // Écouter le retour de formation pour mise à jour immédiate
+    useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        if (searchParams.get('training_completed') === 'true') {
+            console.log("🎓 Training completion detected via URL, refreshing session...");
+            refreshSession().then(() => {
+                // Nettoyer l'URL
+                navigate('/dashboard', { replace: true });
+            });
+            setIsVisible(false); // Hide immediately while refreshing
+        }
+    }, [location.search, refreshSession, navigate]);
+
+    useEffect(() => {
+        if (!currentSession?.userId) return;
+        const dismissed = localStorage.getItem(storageKey);
+        if (dismissed === 'true') {
+            setIsVisible(false);
+        }
+    }, [currentSession?.userId, storageKey]);
+
     // Si l'utilisateur a déjà complété l'onboarding, on n'affiche rien
-    // Note: On vérifie aussi s'il n'a pas cliqué sur "Plus tard" dans cette session (local state)
-    // Pour une persistance plus longue, on utiliserait localStorage
     if (!currentSession || currentSession.hasCompletedOnboarding) {
         return null;
     }
@@ -23,8 +46,8 @@ export const WelcomeTrainingCard: React.FC = () => {
 
     const handleDismiss = () => {
         setIsVisible(false);
-        // Optionnel: Sauvegarder dans localStorage pour ne plus montrer aujourd'hui
-        // localStorage.setItem('training_dismissed', Date.now().toString());
+        // Sauvegarder le rejet pour cette session/utilisateur
+        localStorage.setItem(storageKey, 'true');
     };
 
     if (!isVisible) return null;
@@ -78,14 +101,6 @@ export const WelcomeTrainingCard: React.FC = () => {
                         </button>
                     </div>
                 </div>
-
-                {/* Close Button (Discrete) */}
-                <button
-                    onClick={handleDismiss}
-                    className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-2 hover:bg-black/5 rounded-full transition-colors"
-                >
-                    <X size={16} />
-                </button>
             </motion.div>
         </AnimatePresence>
     );

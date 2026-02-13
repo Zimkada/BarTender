@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
+import { OnboardingCompletionService } from '../services/onboarding/completionTracking.service';
 
 /**
  * Onboarding Step Enum
@@ -67,6 +68,7 @@ export interface OnboardingState {
   startedAt: string | null;
   lastUpdatedAt: string | null;
   navigationDirection: 'forward' | 'backward';
+  isHydrating: boolean;
 }
 
 /**
@@ -82,8 +84,10 @@ export interface OnboardingContextType extends OnboardingState {
   skipTour: () => void;
   completeStep: (step: OnboardingStep, data?: any) => void;
   completeOnboarding: () => void;
+  completeTraining: () => Promise<void>;
   updateStepData: (step: OnboardingStep, data: any) => void;
   resetOnboarding: () => void;
+  stepSequence: OnboardingStep[];
 }
 
 const defaultState: OnboardingState = {
@@ -99,6 +103,7 @@ const defaultState: OnboardingState = {
   startedAt: null,
   lastUpdatedAt: null,
   navigationDirection: 'forward',
+  isHydrating: false,
 };
 
 export const OnboardingContext = createContext<OnboardingContextType | undefined>(
@@ -123,9 +128,8 @@ function getStepSequence(role: UserRole | null, barIsAlreadySetup: boolean = fal
       if (isTrainingOnly) {
         // [NEW] Training path for Owner/Promoteuer in a running bar
         // Reuses the Manager Academy tour which is comprehensive
+        // Removed generic intro steps (WELCOME, ROLE_DETECTED) for direct access
         sequence = [
-          OnboardingStep.WELCOME,
-          OnboardingStep.ROLE_DETECTED,
           OnboardingStep.MANAGER_TOUR,
         ];
       } else {
@@ -147,10 +151,8 @@ function getStepSequence(role: UserRole | null, barIsAlreadySetup: boolean = fal
     case 'manager':
       if (isTrainingOnly) {
         // Training path for Manager in a running bar
+        // Removed generic intro steps for direct access
         sequence = [
-          OnboardingStep.WELCOME,
-          OnboardingStep.ROLE_DETECTED,
-          OnboardingStep.MANAGER_ROLE_CONFIRM,
           OnboardingStep.MANAGER_TOUR,
         ];
       } else {
@@ -172,13 +174,24 @@ function getStepSequence(role: UserRole | null, barIsAlreadySetup: boolean = fal
 
     case 'serveur':
     case 'bartender':
-      sequence = [
-        OnboardingStep.WELCOME,
-        OnboardingStep.ROLE_DETECTED,
-        OnboardingStep.BARTENDER_INTRO,
-        OnboardingStep.BARTENDER_DEMO,
-        OnboardingStep.BARTENDER_TEST_SALE,
-      ];
+      if (isTrainingOnly) {
+        // Training path for Bartender in a running bar
+        // Removed generic intro steps for direct access
+        sequence = [
+          OnboardingStep.BARTENDER_INTRO,
+          OnboardingStep.BARTENDER_DEMO,
+          OnboardingStep.BARTENDER_TEST_SALE,
+        ];
+      } else {
+        // Onboarding path for Bartender (similar structure but keeping intro for consistence if needed, though they usually join existing bars)
+        sequence = [
+          OnboardingStep.WELCOME,
+          OnboardingStep.ROLE_DETECTED,
+          OnboardingStep.BARTENDER_INTRO,
+          OnboardingStep.BARTENDER_DEMO,
+          OnboardingStep.BARTENDER_TEST_SALE,
+        ];
+      }
       break;
 
     default:
@@ -218,36 +231,38 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
   const [state, setState] = useState<OnboardingState>(defaultState);
 
   // Reset onboarding state when barId changes (user switched bars)
-  useEffect(() => {
-    if (state.barId) {
-      // When bar changes, reset all onboarding state to allow re-initialization
-      // This ensures each bar has its own independent onboarding state
-      // The database flag (is_setup_complete) is the source of truth for display
-      updateState({
-        currentStep: OnboardingStep.WELCOME,
-        completedSteps: [],
-        stepData: {},
-        isComplete: false,
-      });
-    }
-  }, [state.barId]);
+  // [FIX] Removed useEffect that caused race condition resetting step to WELCOME
+  // The reset is now handled explicitly in updateBarId
 
   // Hydrate stepData from database when barId changes (resuming onboarding)
   useEffect(() => {
     if (!state.barId) return;
 
+    let isCancelled = false;
+
+    // Start hydration
+    if (!state.isHydrating) {
+      updateState({ isHydrating: true });
+    }
+
     const hydrateFromDatabase = async () => {
       try {
         const { data: bar } = await supabase
           .from('bars')
-          .select('name, address, settings')
+          .select('name, address, settings, is_setup_complete')
           .eq('id', state.barId!)
           .single();
 
+        if (isCancelled) return;
+
         // Build stepData from database
         const hydratedStepData: StepData = {};
+        let dbIsSetupComplete = false;
 
         if (bar) {
+          // Sync setup status from DB (Source of Truth)
+          dbIsSetupComplete = !!bar.is_setup_complete;
+
           // ✅ Type-safe settings extraction with Record<string, unknown>
           const settings = (bar.settings as Record<string, unknown> | null) || {};
           const businessDayCloseHour = typeof settings.businessDayCloseHour === 'number'
@@ -267,14 +282,27 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
         // Note: Products, Staff, and Stock data are no longer loaded into context
         // because we now use RedirectSteps that check DB state directly via CompletionService
 
-        // Update state with hydrated data
-        updateState({ stepData: hydratedStepData });
+        // Update state with hydrated data and release loading
+        if (!isCancelled) {
+          updateState({
+            stepData: hydratedStepData,
+            barIsAlreadySetup: dbIsSetupComplete, // Fixes Flicker: Enforce DB truth
+            isHydrating: false
+          });
+        }
       } catch (error) {
-        console.error('Failed to hydrate onboarding data from database:', error);
+        if (!isCancelled) {
+          console.error('Failed to hydrate onboarding data from database:', error);
+          updateState({ isHydrating: false });
+        }
       }
     };
 
     hydrateFromDatabase();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [state.barId]);
 
   const updateState = (updates: Partial<OnboardingState>) => {
@@ -291,13 +319,18 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     const safeBarId = barId ? String(barId) : '';
     const safeRole = (role ? String(role) : 'serveur') as UserRole;
 
+    // Calculate initial step based on sequence (dynamic start)
+    // This allows Training Mode to skip generic intro steps
+    const sequence = getStepSequence(safeRole, barIsAlreadySetup);
+    const initialStep = sequence.length > 0 ? sequence[0] : OnboardingStep.WELCOME;
+
     updateState({
       isActive: true,
       userId: safeUserId,
       barId: safeBarId,
       userRole: safeRole,
       barIsAlreadySetup: barIsAlreadySetup,
-      currentStep: OnboardingStep.WELCOME,
+      currentStep: initialStep, // Dynamic start step
       completedSteps: [],
       stepData: {},
       isComplete: false,
@@ -309,8 +342,19 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
   // Update barId when user switches bars (triggers hydration and reset)
   const updateBarId = (newBarId: string) => {
     const safeBarId = newBarId ? String(newBarId) : null;
+
+    // Explicitly reset state when bar changes
     updateState({
       barId: safeBarId,
+      currentStep: OnboardingStep.WELCOME,
+      completedSteps: [],
+      stepData: {},
+      isComplete: false,
+      isHydrating: true, // Show loading immediately
+      // Do NOT reset barIsAlreadySetup to 'false' blindly if we want to avoid layout shift,
+      // but 'false' is safer than keeping the old bar's status.
+      // The hydration effect will correct it in <500ms.
+      barIsAlreadySetup: false,
     });
   };
 
@@ -360,6 +404,37 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     });
   };
 
+  const completeTraining = async () => {
+    if (!state.userId || !state.userRole) return;
+
+    try {
+      // Get latest training version for user's role
+      const { data: latestVersion } = await supabase
+        .from('training_versions')
+        .select('version')
+        .eq('role', state.userRole)
+        .order('version', { ascending: false })
+        .limit(1)
+        .single();
+
+      const currentVersion = latestVersion?.version || 1;
+
+      // Update user record with certification
+      await supabase
+        .from('users')
+        .update({
+          has_completed_onboarding: true,
+          onboarding_completed_at: new Date().toISOString(),
+          training_version_completed: currentVersion
+        })
+        .eq('id', state.userId);
+
+      console.log(`🎓 Training certified for user ${state.userId}, version ${currentVersion}`);
+    } catch (error) {
+      console.error('❌ Error persisting training completion:', error);
+    }
+  };
+
   const completeOnboarding = async () => {
     // Update context state
     updateState({
@@ -367,33 +442,28 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
       currentStep: OnboardingStep.COMPLETE,
     });
 
-    // Persist completion to database with versioning
-    if (state.userId && state.userRole) {
+    // Mark Training as complete too (if you set up, you are certified)
+    await completeTraining();
+
+    // Persist bar-level setup completion
+    if (state.barId) {
       try {
-        // Get latest training version for user's role
-        const { data: latestVersion } = await supabase
-          .from('training_versions')
-          .select('version')
-          .eq('role', state.userRole)
-          .order('version', { ascending: false })
-          .limit(1)
-          .single();
+        // Enforce Minimum Viable Setup Logic:
+        // Only mark bar as complete if it has at least 1 product with stock.
+        // Otherwise, leave it as incomplete (Banner will persist).
+        const hasMinimumViableSetup = await OnboardingCompletionService.checkMinimumViableSetup(state.barId);
 
-        const currentVersion = latestVersion?.version || 1;
-
-        // Update user record
-        await supabase
-          .from('users')
-          .update({
-            has_completed_onboarding: true,
-            onboarding_completed_at: new Date().toISOString(),
-            training_version_completed: currentVersion
-          })
-          .eq('id', state.userId);
-
-        console.log(`✅ Onboarding completed for user ${state.userId}, version ${currentVersion}`);
+        if (hasMinimumViableSetup) {
+          await supabase
+            .from('bars')
+            .update({ is_setup_complete: true })
+            .eq('id', state.barId);
+          console.log(`✅ Bar ${state.barId} setup marked as complete (Minimum Viable Setup Verified)`);
+        } else {
+          console.warn(`⚠️ Bar ${state.barId} setup NOT marked as complete (No stock found). Banner will persist.`);
+        }
       } catch (error) {
-        console.error('❌ Error persisting onboarding completion:', error);
+        console.error('❌ Error persisting bar setup completion:', error);
       }
     }
   };
@@ -422,8 +492,10 @@ export const OnboardingProvider: React.FC<OnboardingProviderProps> = ({ children
     skipTour,
     completeStep,
     completeOnboarding,
+    completeTraining,
     updateStepData,
     resetOnboarding,
+    stepSequence: getStepSequence(state.userRole, state.barIsAlreadySetup),
   };
 
   return (

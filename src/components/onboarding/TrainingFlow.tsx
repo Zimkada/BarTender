@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
 import { useAuth } from '../../context/AuthContext';
@@ -26,24 +26,26 @@ export const TrainingFlow: React.FC = () => {
         userRole,
         initializeOnboarding,
         updateBarId,
+        completeTraining,
         userId,
         barId: contextBarId
     } = useOnboarding();
-    const { currentSession } = useAuth();
+    const { currentSession, refreshSession } = useAuth();
     const { currentBar, barMembers } = useBar(); // Destructured currentBar and barMembers from useBar
 
     // Initialize Onboarding Context for Training
+    const initializationAttempted = useRef(false);
+
     useEffect(() => {
         if (!currentSession?.userId || !currentBar?.id) return;
+
+        // Prevent double initialization or re-initialization on state updates
+        if (initializationAttempted.current) return;
 
         // Sync bar ID if needed
         if (contextBarId !== currentBar.id) {
             updateBarId(currentBar.id);
         }
-
-        // If context is already initialized for the CURRENT user, don't re-init
-        // This prevents stale state ("Promoter") from persisting when logging in as a "Server"
-        if (userId && userId === String(currentSession.userId)) return;
 
         // Determine role and init
         const userBarMember = barMembers?.find(
@@ -60,6 +62,7 @@ export const TrainingFlow: React.FC = () => {
 
         // Force "Training Mode" by passing true for barIsAlreadySetup
         // This ensures getStepSequence returns the training path
+        // We initialize to ensure we start at the beginning of the training sequence
         initializeOnboarding(
             String(currentSession.userId),
             String(currentBar.id),
@@ -67,17 +70,13 @@ export const TrainingFlow: React.FC = () => {
             true // Force barIsAlreadySetup = true for Training Flow
         );
 
+        initializationAttempted.current = true;
+
     }, [currentSession, currentBar, barMembers, userId, contextBarId, initializeOnboarding, updateBarId]);
 
     // Redirect to dashboard if completed
-    useEffect(() => {
-        if (currentStep === OnboardingStep.COMPLETE) {
-            const timer = setTimeout(() => {
-                navigate('/dashboard', { replace: true });
-            }, 1000);
-            return () => clearTimeout(timer);
-        }
-    }, [currentStep, navigate]);
+    // [FIX] Removed auto-redirect logic that was causing a loop.
+    // User must explicitly click "Back to Dashboard" to complete the process.
 
     // Render appropriate educational component
     const renderStep = () => {
@@ -117,7 +116,17 @@ export const TrainingFlow: React.FC = () => {
                             <h2 className="text-3xl font-bold mb-3 text-[hsl(var(--brand-hue),var(--brand-saturation),10%)]">Formation Terminée !</h2>
                             <p className="text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] mb-6">Vous maîtrisez maintenant les bases.</p>
                             <button
-                                onClick={() => navigate('/dashboard')}
+                                onClick={async () => {
+                                    try {
+                                        await completeTraining();
+                                        await refreshSession();
+                                        // Force UI refresh via URL param
+                                        navigate('/dashboard?training_completed=true', { replace: true });
+                                    } catch (err) {
+                                        console.error("Error finalizing training:", err);
+                                        navigate('/dashboard', { replace: true });
+                                    }
+                                }}
                                 className="w-full py-3 rounded-xl bg-[image:var(--brand-gradient)] text-white font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
                             >
                                 Retour au tableau de bord

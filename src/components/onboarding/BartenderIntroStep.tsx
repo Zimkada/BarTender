@@ -51,12 +51,12 @@ export const BartenderIntroStep: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg border border-white/30"
+            className="w-16 h-16 md:w-20 md:h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4 md:mb-6 shadow-lg border border-white/30"
           >
-            <Star className="text-white w-10 h-10 fill-current" />
+            <Star className="text-white w-8 h-8 md:w-10 md:h-10 fill-current" />
           </motion.div>
-          <h1 className="text-3xl md:text-5xl font-black text-white mb-4 tracking-tight drop-shadow-md">Bienvenue chez {barName}</h1>
-          <p className="text-white/90 text-lg font-medium max-w-lg mx-auto leading-relaxed">
+          <h1 className="text-2xl md:text-5xl font-black text-white mb-3 md:mb-4 tracking-tight drop-shadow-md leading-tight">Bienvenue chez {barName}</h1>
+          <p className="text-white/90 text-sm md:text-lg font-medium max-w-lg mx-auto leading-relaxed px-4 md:px-0">
             Vous commencez aujourd'hui une nouvelle aventure. Voici comment BarTender va vous aider à briller.
           </p>
         </div>
@@ -126,8 +126,8 @@ export const BartenderIntroStep: React.FC = () => {
             <div className="absolute top-0 right-0 p-4 opacity-5">
               <Users size={120} />
             </div>
-            <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <Star size={20} className="text-amber-400 fill-current" />
+            <h3 className="text-lg md:text-xl font-bold mb-4 md:mb-6 flex items-center gap-2">
+              <Star size={18} className="text-amber-400 fill-current" />
               Votre travail en 3 gestes :
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">

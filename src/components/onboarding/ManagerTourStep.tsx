@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useOnboarding, OnboardingStep } from '../../context/OnboardingContext';
+import { useBar } from '../../context/BarContext';
 import { LoadingButton } from '../ui/LoadingButton';
 import { ShoppingCart, ArrowRight, AlertCircle, ShieldCheck, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -21,6 +22,9 @@ type DemoPhase =
 
 export const ManagerTourStep: React.FC = () => {
   const { completeStep, nextStep } = useOnboarding();
+  const { currentBar } = useBar();
+  const currency = currentBar?.settings?.currency || 'FCFA';
+
   const [phase, setPhase] = useState<DemoPhase>('intro');
   const [loading, setLoading] = useState(false);
 
@@ -223,15 +227,15 @@ export const ManagerTourStep: React.FC = () => {
                   <div className="space-y-3">
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-gray-500 font-medium">2x Coca-Cola</span>
-                      <span className="font-bold text-gray-900">1 000 FCFA</span>
+                      <span className="font-bold text-gray-900">1 000 {currency}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-gray-500 font-medium">1x Beaufort</span>
-                      <span className="font-bold text-gray-900">600 FCFA</span>
+                      <span className="font-bold text-gray-900">600 {currency}</span>
                     </div>
                     <div className="pt-4 border-t-2 border-dashed border-gray-100 flex justify-between items-baseline">
                       <span className="text-lg font-bold text-gray-900">Total</span>
-                      <span className="text-2xl font-black text-[hsl(var(--brand-hue),var(--brand-saturation),50%)]">1 600 FCFA</span>
+                      <span className="text-2xl font-black text-[hsl(var(--brand-hue),var(--brand-saturation),50%)]">1 600 {currency}</span>
                     </div>
                   </div>
 
@@ -379,7 +383,7 @@ export const ManagerTourStep: React.FC = () => {
                         <div className="w-10 h-10 bg-[hsl(var(--brand-hue),var(--brand-saturation),95%)] rounded-full flex items-center justify-center font-black text-[hsl(var(--brand-hue),var(--brand-saturation),60%)]">R</div>
                         <div className="text-left">
                           <div className="font-black text-gray-900">Rose</div>
-                          <div className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">2x Flag • 1 000 FCFA</div>
+                          <div className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">2x Flag • 1 000 {currency}</div>
                         </div>
                       </div>
                       {phase === 'full_validate' && (

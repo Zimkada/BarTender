@@ -16,16 +16,16 @@ export const WelcomeStep: React.FC = () => {
   if (isTrainingMode) {
     return (
       <div className="w-full max-w-4xl mx-auto px-4">
-        <div className="backdrop-blur-xl bg-white/80 border border-white/40 shadow-2xl rounded-2xl p-6 md:p-10 ring-1 ring-black/5 relative overflow-hidden text-center">
+        <div className="backdrop-blur-xl bg-white/80 border border-white/40 shadow-2xl rounded-2xl p-5 md:p-10 ring-1 ring-black/5 relative overflow-hidden text-center">
           {/* Decorative Top Gradient */}
           <div className="absolute top-0 left-0 w-full h-2 bg-[image:var(--brand-gradient)]" />
 
           {/* Logo/Header */}
-          <div className="mb-6 md:mb-8">
-            <div className="inline-block mb-4 md:mb-6 p-4 rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] shadow-inner">
-              <div className="text-4xl md:text-5xl">🎓</div>
+          <div className="mb-4 md:mb-8">
+            <div className="inline-block mb-3 md:mb-6 p-3 md:p-4 rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] shadow-inner">
+              <div className="text-3xl md:text-5xl">🎓</div>
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),10%)] mb-2">Bienvenue dans l'Académie</h1>
+            <h1 className="text-2xl md:text-4xl font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),10%)] mb-2">Bienvenue dans l'Académie</h1>
             <p className="text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] text-base md:text-lg font-medium">
               Formation rapide pour maîtriser l'application
             </p>
@@ -101,16 +101,16 @@ export const WelcomeStep: React.FC = () => {
   // Configuration mode: Original welcome for new bar setup
   return (
     <div className="w-full max-w-4xl mx-auto px-4">
-      <div className="backdrop-blur-xl bg-white/80 border border-white/40 shadow-2xl rounded-2xl p-6 md:p-10 ring-1 ring-black/5 relative overflow-hidden text-center">
+      <div className="backdrop-blur-xl bg-white/80 border border-white/40 shadow-2xl rounded-2xl p-5 md:p-10 ring-1 ring-black/5 relative overflow-hidden text-center">
         {/* Decorative Top Gradient */}
         <div className="absolute top-0 left-0 w-full h-2 bg-[image:var(--brand-gradient)]" />
 
         {/* Logo/Header */}
-        <div className="mb-6 md:mb-8">
-          <div className="inline-block mb-4 md:mb-6 p-4 rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] shadow-inner">
-            <div className="text-4xl md:text-5xl">🍹</div>
+        <div className="mb-4 md:mb-8">
+          <div className="inline-block mb-3 md:mb-6 p-3 md:p-4 rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] shadow-inner">
+            <div className="text-3xl md:text-5xl">🍹</div>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),10%)] mb-2">Bienvenue sur BarTender</h1>
+          <h1 className="text-2xl md:text-4xl font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),10%)] mb-2">Bienvenue sur BarTender</h1>
           <p className="text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] text-base md:text-lg font-medium">
             Votre solution de gestion de bar, simplifiée
           </p>
