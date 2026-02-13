@@ -3,6 +3,7 @@ import { Sale, User } from '../../../../types';
 import { getSaleDate, isConfirmedReturn } from '../../../../utils/saleHelpers';
 import { EnhancedButton } from '../../../../components/EnhancedButton';
 import { useViewport } from '../../../../hooks/useViewport';
+import { isToday } from 'date-fns';
 
 interface SalesListViewProps {
     sales: Sale[];
@@ -25,7 +26,11 @@ export function SalesListView({
         return (
             <div className="space-y-0 divide-y divide-gray-100 border-t border-b border-gray-100 bg-white">
                 {sales.map(sale => {
-                    const time = new Date(sale.validatedAt || sale.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                    const saleDate = getSaleDate(sale);
+                    const timeStr = new Date(sale.validatedAt || sale.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                    const dateStr = isToday(saleDate) ? '' : `${saleDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} • `;
+                    const time = <span>{dateStr}{timeStr}</span>;
+
                     const itemCount = sale.items.reduce((sum, item) => sum + item.quantity, 0);
 
                     // Seller

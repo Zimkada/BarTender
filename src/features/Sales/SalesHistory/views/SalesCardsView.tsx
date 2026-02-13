@@ -1,7 +1,8 @@
 import { Eye, RotateCcw, User as UserIcon, ArrowLeftRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Sale, User } from '../../../../types';
-import { isConfirmedReturn } from '../../../../utils/saleHelpers';
+import { isConfirmedReturn, getSaleDate } from '../../../../utils/saleHelpers';
+import { isToday } from 'date-fns';
 
 interface SalesCardsViewProps {
     sales: Sale[];
@@ -87,8 +88,15 @@ export function SaleCard({
                     <div className="flex flex-col">
                         <span className="font-mono text-xs text-gray-400 font-bold tracking-widest">#{sale.id.slice(-6)}</span>
                         <span className="text-xs font-medium text-gray-500 flex items-center gap-1 mt-0.5">
-                            {new Date(sale.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                            {seller && <><span className="text-gray-300">•</span> <UserIcon size={10} /> {seller.name}</>}
+                            {(() => {
+                                const saleDate = getSaleDate(sale);
+                                const dateStr = isToday(saleDate)
+                                    ? ''
+                                    : `${saleDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} • `;
+                                const timeStr = new Date(sale.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                                return <span>{dateStr}{timeStr}</span>;
+                            })()}
+                            {seller && <><span className="text-gray-300 mx-1">•</span> <UserIcon size={10} /> {seller.name}</>}
                         </span>
                     </div>
                     <div className="flex gap-1.5">
