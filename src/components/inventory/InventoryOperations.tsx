@@ -6,6 +6,7 @@ import { Product, ProductStockInfo, Category } from '../../types';
 import { InventoryAddForm } from './operations/InventoryAddForm';
 import { InventorySupplyForm } from './operations/InventorySupplyForm';
 import { OrderPreparation } from './operations/OrderPreparation';
+import { OrderFinalization } from './operations/OrderFinalization';
 import { BackButton } from '../ui/BackButton';
 
 // Lazy load
@@ -21,7 +22,7 @@ interface InventoryOperationsProps {
     isProductImportEnabled: boolean;
 }
 
-type OperationMode = 'menu' | 'add' | 'supply' | 'import' | 'order-prep';
+type OperationMode = 'menu' | 'add' | 'supply' | 'import' | 'order-prep' | 'order-finalize';
 
 export function InventoryOperations({
     lowStockProducts,
@@ -141,11 +142,17 @@ export function InventoryOperations({
                         {mode === 'order-prep' && (
                             <OrderPreparation
                                 onBack={handleBack}
-                                onSupplyClick={(product, quantity) => {
-                                    setSupplyInitialData({ productId: product.productId, quantity });
-                                    setMode('supply');
-                                }}
+                                onGoToFinalization={() => setMode('order-finalize')}
                             />
+                        )}
+                        {mode === 'order-finalize' && (
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <BackButton onClick={() => setMode('order-prep')} />
+                                    <h2 className="text-lg font-bold text-gray-900">Finalisation Commande</h2>
+                                </div>
+                                <OrderFinalization />
+                            </div>
                         )}
                         {mode === 'import' && (
                             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 min-h-[400px]">

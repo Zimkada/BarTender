@@ -40,7 +40,6 @@ export const ForecastingService = {
      * car elle est créée dynamiquement via migration SQL.
      */
     async getProductSalesStats(barId: string): Promise<ProductSalesStats[]> {
-        // @ts-expect-error - Vue matérialisée product_sales_stats non incluse dans les types générés
         const { data, error } = await supabase
             .from('product_sales_stats')
             .select('*')
@@ -51,6 +50,64 @@ export const ForecastingService = {
 
         // ✅ Type-safe return with explicit ProductSalesStats[] interface
         return (data as ProductSalesStats[]) || [];
+    },
+
+    /**
+     * Récupère TOUS les produits actifs avec leurs stats (si dispos)
+     * Pour s'assurer que le catalogue est complet même pour les produits sans ventes.
+     */
+    async getAllProductsWithStats(barId: string): Promise<ProductSalesStats[]> {
+        // 1. Récupérer les stats existantes
+        const stats = await this.getProductSalesStats(barId);
+        const statsMap = new Map(stats.map(s => [s.product_id, s]));
+
+        // 2. Récupérer TOUS les produits actifs du bar
+        const { data: products, error } = await supabase
+            .from('bar_products')
+            .select(`
+                *,
+                global_products (
+                    name,
+                    volume
+                )
+            `)
+            .eq('bar_id', barId)
+            .eq('is_active', true);
+
+        if (error) throw error;
+
+        // 3. Fusionner
+        return products.map(product => {
+            // Si on a déjà des stats, on les utilise (elles contiennent déjà le stock à jour normalement)
+            if (statsMap.has(product.id)) {
+                return statsMap.get(product.id)!;
+            }
+
+            // Sinon on crée une entrée "vierge"
+            const productName = product.local_name || product.global_products?.name || 'Produit inconnu';
+            const productVolume = product.volume || product.global_products?.volume || '-';
+
+            return {
+                product_id: product.id,
+                bar_id: product.bar_id,
+                product_name: productName,
+                product_volume: productVolume,
+                current_stock: product.stock,
+                alert_threshold: product.alert_threshold,
+                cost_price: product.current_average_cost || 0, // Fallback si null
+                selling_price: product.price,
+                product_created_at: product.created_at,
+                days_with_sales: 0,
+                total_transactions: 0,
+                total_sold_30d: 0,
+                daily_average: 0,
+                days_since_creation: 0, // Sera recalculé si besoin, ou considéré comme nouveau
+                last_sale_date: null,
+                days_without_sale: null,
+                avg_purchase_cost: product.current_average_cost || 0,
+                updated_at: new Date().toISOString()
+            } as ProductSalesStats;
+        }).sort((a, b) => a.product_name.localeCompare(b.product_name)); // Tri alphabétique par défaut
     },
 
     /**
@@ -127,7 +184,6 @@ export const ForecastingService = {
      * car elle est créée dynamiquement via migration SQL.
      */
     async refreshStats(): Promise<void> {
-        // @ts-expect-error - RPC refresh_product_sales_stats non incluse dans les types générés
         const { error } = await supabase.rpc('refresh_product_sales_stats');
         if (error) throw error;
     }
