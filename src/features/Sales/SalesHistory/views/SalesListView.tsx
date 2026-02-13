@@ -28,8 +28,7 @@ export function SalesListView({
                 {sales.map(sale => {
                     const saleDate = getSaleDate(sale);
                     const timeStr = new Date(sale.validatedAt || sale.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-                    const dateStr = isToday(saleDate) ? '' : `${saleDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} • `;
-                    const time = <span>{dateStr}{timeStr}</span>;
+                    const dateStr = isToday(saleDate) ? '' : saleDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
 
                     const itemCount = sale.items.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -53,8 +52,8 @@ export function SalesListView({
                         >
                             {/* Left: Time & ID */}
                             <div className="flex flex-col w-12 shrink-0">
-                                <span className="text-sm font-bold text-gray-900">{time}</span>
-                                <span className="text-[10px] text-gray-400 font-mono">#{sale.id.slice(-4)}</span>
+                                <span className="text-sm font-bold text-gray-900 leading-tight">{timeStr}</span>
+                                <span className="text-[10px] text-gray-400 font-mono leading-tight">#{sale.id.slice(-4)}</span>
                             </div>
 
                             {/* Middle: Details */}
@@ -68,13 +67,16 @@ export function SalesListView({
                                 </div>
                             </div>
 
-                            {/* Right: Amount */}
+                            {/* Right: Date & Amount */}
                             <div className="text-right shrink-0">
-                                <div className={`font-mono font-bold text-sm ${hasReturns ? 'text-amber-600' : 'text-gray-900'}`}>
+                                {dateStr && (
+                                    <div className="text-[10px] font-bold text-gray-400 leading-tight mb-0.5">{dateStr}</div>
+                                )}
+                                <div className={`font-mono font-bold text-sm leading-tight ${hasReturns ? 'text-amber-600' : 'text-gray-900'}`}>
                                     {formatPrice(netAmount)}
                                 </div>
                                 {hasReturns && (
-                                    <div className="text-[10px] text-red-500 font-medium">-{formatPrice(refundedAmount)}</div>
+                                    <div className="text-[10px] text-red-500 font-medium leading-tight">-{formatPrice(refundedAmount)}</div>
                                 )}
                             </div>
                         </div>

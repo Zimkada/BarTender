@@ -91,8 +91,9 @@ export function DataFreshnessIndicator({
  */
 export function DataFreshnessIndicatorCompact({
     viewName,
-    onRefreshComplete
-}: Omit<DataFreshnessIndicatorProps, 'showRefreshButton' | 'className'>) {
+    onRefreshComplete,
+    className = ''
+}: Omit<DataFreshnessIndicatorProps, 'showRefreshButton'>) {
     const { freshness, isLoading } = useViewFreshness(viewName);
     const { refresh, isRefreshing } = useViewRefresh(viewName);
 
@@ -121,6 +122,7 @@ export function DataFreshnessIndicatorCompact({
         transition-all duration-200
         ${isStale ? 'text-amber-600 hover:bg-amber-50' : 'text-gray-500 hover:bg-gray-50'}
         ${isRefreshing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
+        ${className}
       `}
             title={`Dernière mise à jour: il y a ${minutesOld} min`}
         >

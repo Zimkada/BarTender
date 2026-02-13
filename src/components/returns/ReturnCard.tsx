@@ -193,7 +193,7 @@ export function ReturnCard({
             {returnItem.linkedSaleId && (
               <span className="text-[9px] font-black bg-purple-50 text-purple-700 border border-purple-100/50 px-2.5 py-1.5 rounded-lg uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
                 <RotateCcw size={11} className="text-purple-500" strokeWidth={3} />
-                Échange Magic Swap
+                Échange Produit
               </span>
             )}
           </div>

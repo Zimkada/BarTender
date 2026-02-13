@@ -11,7 +11,7 @@ export const returnReasons: Record<ReturnReason, ReturnReasonConfig> = {
   },
   exchange: {
     label: "Échange",
-    description: "Magic Swap : Remplace par un autre article",
+    description: "Remplace par un autre article",
     icon: "🔄",
     color: "purple",
     autoRestock: true, // L'ancien revient en stock

@@ -114,7 +114,6 @@ export function useSalaries(barId: string) {
 
   return {
     salaries,
-    isLoading,
     addSalary,
     deleteSalary,
     getMemberSalaries,

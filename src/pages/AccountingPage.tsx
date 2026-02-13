@@ -30,11 +30,6 @@ export default function AccountingPage() {
         );
     }
 
-    const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
-        { id: 'overview', label: 'Vue d\'ensemble', icon: <BarChart3 size={18} /> },
-        { id: 'expenses', label: 'Dépenses', icon: <Receipt size={18} /> },
-        { id: 'salaries', label: 'Salaires', icon: <DollarSign size={18} /> },
-    ];
 
     return (
         <div className="max-w-7xl mx-auto">
@@ -44,7 +39,7 @@ export default function AccountingPage() {
                 subtitle="Suivez vos revenus, dépenses et gérez les salaires de l'équipe."
                 icon={<DollarSign size={24} />}
                 tabs={[
-                    { id: 'overview', label: 'Vue d\'ensemble', icon: BarChart3 },
+                    { id: 'overview', label: 'Pilotage', icon: BarChart3 },
                     { id: 'expenses', label: 'Dépenses', icon: Receipt },
                     { id: 'salaries', label: 'Salaires', icon: DollarSign },
                 ]}

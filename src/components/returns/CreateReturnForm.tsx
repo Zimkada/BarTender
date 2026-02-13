@@ -651,7 +651,7 @@ export function CreateReturnForm({
                           {reason === 'exchange' && (
                             <div className="pt-6 mt-2 border-t border-gray-100">
                               <div className="flex items-center justify-between mb-4">
-                                <span className="text-[10px] text-purple-600 font-black uppercase tracking-[0.2em]">Flux Magic Swap</span>
+                                <span className="text-[10px] text-purple-600 font-black uppercase tracking-[0.2em]">Flux Échange Produit</span>
                                 <div className="px-2 py-0.5 bg-purple-50 rounded text-[9px] font-black text-purple-600 border border-purple-100 uppercase tracking-tighter">
                                   Échange premium
                                 </div>
@@ -751,7 +751,7 @@ export function CreateReturnForm({
                             {reason === 'wrong_item' && "Correction: Remis en stock"}
                             {reason === 'customer_change' && "Client: Remis en stock"}
                             {reason === 'expired' && "Périmé: Pas de remise en stock"}
-                            {reason === 'exchange' && "Magic Swap: Échange + Remise en stock"}
+                            {reason === 'exchange' && "Échange + Remise en stock"}
                             {reason === 'other' && "Audit requis"}
                           </span>
                         </div>
