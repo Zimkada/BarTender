@@ -55,7 +55,7 @@ export function ReturnReasonSelector({
     };
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" data-guide="returns-reasons">
             {Object.entries(reasons).map(([key, config]) => {
                 const isSelected = selectedReason === key;
                 const reasonKey = key as ReturnReason;

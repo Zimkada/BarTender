@@ -801,7 +801,7 @@ export const MANAGE_RETURNS_GUIDE: GuideTour = {
       emoji: '⚙️',
       title: 'Comprendre les Types de Retours',
       description:
-        '**5 types de retours** disponibles, chacun avec des règles automatiques : **Défectueux** (remboursé, pas restocké) | **Erreur article** (remboursé + restocké) | **Non consommé** (pas remboursé, restocké) | **Périmé** (remboursé, pas restocké) | **Autre** (manuel - vous décidez).',
+        '**6 types de retours** disponibles, chacun avec des règles automatiques : **Défectueux** (remboursé, pas restocké) | **Erreur article** (remboursé + restocké) | **Non consommé** (pas remboursé, restocké) | **Périmé** (remboursé, pas restocké) | **Échange** (restocké + remplacement) | **Autre** (manuel).',
       elementSelector: '[data-guide="returns-reasons"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
@@ -809,8 +809,25 @@ export const MANAGE_RETURNS_GUIDE: GuideTour = {
         '🔴 **Défectueux**: Produit détruit → Remboursement OUI | Restock NON',
         '🟡 **Erreur article**: Mauvais produit servi → Remboursement OUI | Restock OUI',
         '🔵 **Non consommé**: Client a changé d\'avis → Remboursement NON | Restock OUI',
-        '🟣 **Périmé**: Produit expiré → Remboursement OUI | Restock NON',
+        '🟣 **Échange**: Remplace par un autre article → Pas de cash | Restock OUI',
         '⚪ **Autre**: Cas spéciaux → Vous décidez remboursement ET restock',
+      ],
+    },
+
+    {
+      id: 'step-exchange',
+      emoji: '🔄',
+      title: 'Échange de Produit (Ancien Magic Swap)',
+      description:
+        'L\'**Échange** est la méthode royale pour corriger une erreur sans rembourser de cash. Sélectionnez le motif **Échange**, puis choisissez l\'**article de remplacement**. Le système calcule automatiquement l\'**écart de prix** et remet l\'ancien produit en stock.',
+      elementSelector: '[data-guide="returns-exchange-summary"]',
+      position: 'top',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '✨ **Flux Continu** : Retourne l\'ancien ET commande le nouveau en 1 clic',
+        '⚖️ **Régularisation** : Affiche clairement si le client doit payer un surplus ou être remboursé',
+        '📦 **Stock Auto** : L\'ancien produit est automatiquement réintégré à l\'inventaire',
+        '🔒 **Sécurisé** : Enregistré comme une opération liée à la vente originale',
       ],
     },
 
