@@ -107,7 +107,7 @@ export const GuideButton: React.FC<{ showOnlyOnHomePage?: boolean }> = ({ showOn
   }
 
   return (
-    <div className="fixed top-[160px] right-4 z-40 md:top-[200px] md:right-6">
+    <div className="fixed top-[130px] md:top-[160px] right-4 z-40 lg:top-[200px] lg:right-6">
       {/* Popover */}
       <div className="relative">
         <GuideSuggestionsPopover

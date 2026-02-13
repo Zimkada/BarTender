@@ -125,16 +125,16 @@ export const GuideTourModal: React.FC = () => {
               exit="exit"
             >
               {/* Header with close button */}
-              <div className="flex items-center justify-between px-8 py-5 border-b border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] flex-shrink-0 bg-white/40">
-                <div className="flex items-center gap-4">
+              <div className="flex items-center justify-between px-5 md:px-8 py-4 md:py-5 border-b border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] flex-shrink-0 bg-white/40">
+                <div className="flex items-center gap-3 md:gap-4">
                   {activeTour.emoji && (
-                    <span className="text-3xl p-2 bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] rounded-xl border border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] shadow-sm">
+                    <span className="text-2xl md:text-3xl p-2 bg-[hsl(var(--brand-hue),var(--brand-saturation),96%)] rounded-xl border border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] shadow-sm">
                       {activeTour.emoji}
                     </span>
                   )}
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900 tracking-tight">{activeTour.title}</h2>
-                    <p className="text-xs text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] font-medium uppercase tracking-wider mt-0.5">
+                    <h2 className="text-lg md:text-xl font-bold text-gray-900 tracking-tight leading-tight">{activeTour.title}</h2>
+                    <p className="text-[10px] md:text-xs text-[hsl(var(--brand-hue),var(--brand-saturation),40%)] font-medium uppercase tracking-wider mt-0.5">
                       {activeTour.estimatedDuration} min • Guide Interactif
                     </p>
                   </div>
@@ -149,15 +149,15 @@ export const GuideTourModal: React.FC = () => {
               </div>
 
               {/* Progress bar */}
-              <div className="px-8 pt-6 flex-shrink-0">
+              <div className="px-5 md:px-8 pt-4 md:pt-6 flex-shrink-0">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-gray-700 font-medium">
+                  <span className="text-xs md:text-sm text-gray-700 font-medium">
                     Étape <span className="text-[hsl(var(--brand-hue),var(--brand-saturation),45%)] font-bold">{currentStepIndex + 1}</span> sur{' '}
                     <span className="font-bold">{activeTour.steps.length}</span>
                   </span>
-                  <span className="text-xs text-gray-500 font-medium">{Math.round(progress)}%</span>
+                  <span className="text-[10px] md:text-xs text-gray-500 font-medium">{Math.round(progress)}%</span>
                 </div>
-                <div className="h-2 bg-[hsl(var(--brand-hue),var(--brand-saturation),94%)] rounded-full overflow-hidden border border-black/5">
+                <div className="h-1.5 md:h-2 bg-[hsl(var(--brand-hue),var(--brand-saturation),94%)] rounded-full overflow-hidden border border-black/5">
                   <motion.div
                     className="h-full bg-[image:var(--brand-gradient)] shadow-lg"
                     animate={{ width: `${progress}%` }}
@@ -175,31 +175,31 @@ export const GuideTourModal: React.FC = () => {
                 animate="visible"
               >
                 {/* Step title */}
-                <div className="flex items-start gap-4">
-                  {currentStep.emoji && <span className="text-2xl flex-shrink-0 mt-1">{currentStep.emoji}</span>}
-                  <h3 className="text-2xl font-bold text-gray-900 leading-tight">{currentStep.title}</h3>
+                <div className="flex items-start gap-3 md:gap-4">
+                  {currentStep.emoji && <span className="text-xl md:text-2xl flex-shrink-0 mt-0.5 md:mt-1">{currentStep.emoji}</span>}
+                  <h3 className="text-lg md:text-2xl font-bold text-gray-900 leading-tight">{currentStep.title}</h3>
                 </div>
 
                 {/* Step description */}
-                <div className="text-lg text-gray-600 leading-relaxed max-w-lg">
+                <div className="text-base md:text-lg text-gray-600 leading-relaxed max-w-lg">
                   {/* Wrapping in div instead of p to avoid nesting issues if formattedText causes block elements (though it returns strong) */}
                   <p>{renderFormattedText(currentStep.description)}</p>
                 </div>
 
                 {/* Media */}
                 {currentStep.media && (
-                  <div className="my-6 rounded-xl overflow-hidden shadow-lg ring-1 ring-black/5">
+                  <div className="my-4 md:my-6 rounded-xl overflow-hidden shadow-lg ring-1 ring-black/5">
                     {currentStep.media.type === 'image' && (
                       <img
                         src={currentStep.media.url}
                         alt={currentStep.media.alt}
-                        className="w-full h-auto max-h-56 object-cover hover:scale-105 transition duration-700"
+                        className="w-full h-auto max-h-40 md:max-h-56 object-cover hover:scale-105 transition duration-700"
                       />
                     )}
                     {currentStep.media.type === 'video' && (
                       <video
                         src={currentStep.media.url}
-                        className="w-full h-auto max-h-56 object-cover"
+                        className="w-full h-auto max-h-40 md:max-h-56 object-cover"
                         controls
                       />
                     )}
@@ -208,16 +208,16 @@ export const GuideTourModal: React.FC = () => {
 
                 {/* Pro tips - Brand Themed */}
                 {currentStep.tips && currentStep.tips.length > 0 && (
-                  <div className="mt-6 p-5 bg-[hsl(var(--brand-hue),var(--brand-saturation),98%)] border border-[hsl(var(--brand-hue),var(--brand-saturation),85%)] rounded-xl relative overflow-hidden">
+                  <div className="mt-4 md:mt-6 p-4 md:p-5 bg-[hsl(var(--brand-hue),var(--brand-saturation),98%)] border border-[hsl(var(--brand-hue),var(--brand-saturation),85%)] rounded-xl relative overflow-hidden">
                     {/* Decorative gradient blob */}
                     <div className="absolute top-0 right-0 w-32 h-32 bg-[image:var(--brand-gradient)] opacity-5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
 
-                    <p className="text-sm font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),30%)] mb-3 flex items-center gap-2 relative z-10">
+                    <p className="text-xs md:text-sm font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),30%)] mb-2 md:mb-3 flex items-center gap-2 relative z-10">
                       💡 Astuces Pro
                     </p>
-                    <ul className="text-sm text-[hsl(var(--brand-hue),var(--brand-saturation),25%)] space-y-2 relative z-10">
-                      {currentStep.tips.map((tip, idx) => (
-                        <li key={idx} className="flex items-start gap-2.5">
+                    <ul className="text-xs md:text-sm text-[hsl(var(--brand-hue),var(--brand-saturation),25%)] space-y-1.5 md:space-y-2 relative z-10">
+                      {currentStep.tips.map((tip: string, idx: number) => (
+                        <li key={idx} className="flex items-start gap-2">
                           <span className="text-[hsl(var(--brand-hue),var(--brand-saturation),50%)] mt-0.5 font-bold">✓</span>
                           <span className="leading-relaxed">{renderFormattedText(tip)}</span>
                         </li>
@@ -271,9 +271,9 @@ export const GuideTourModal: React.FC = () => {
               )}
 
               {/* Footer with buttons - Glass Effect */}
-              <div className="px-8 py-5 border-t border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] bg-white/60 backdrop-blur-md flex gap-4 flex-shrink-0">
+              <div className="px-5 md:px-8 py-4 md:py-5 border-t border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] bg-white/60 backdrop-blur-md flex gap-2 md:gap-4 flex-shrink-0">
                 {!isFirstStep && (
-                  <Button variant="outline" onClick={prevStep} disabled={isLoading} className="border-gray-300 hover:bg-gray-50">
+                  <Button variant="outline" onClick={prevStep} disabled={isLoading} className="border-gray-300 hover:bg-gray-50 flex-1 md:flex-none">
                     ← Retour
                   </Button>
                 )}
@@ -282,7 +282,7 @@ export const GuideTourModal: React.FC = () => {
                   variant="ghost"
                   onClick={skipTour}
                   disabled={isLoading}
-                  className="ml-auto text-gray-500 hover:text-gray-900 hover:bg-black/5"
+                  className="ml-auto text-gray-500 hover:text-gray-900 hover:bg-black/5 hidden xs:inline-flex"
                 >
                   Fermer
                 </Button>
@@ -290,7 +290,7 @@ export const GuideTourModal: React.FC = () => {
                 <Button
                   onClick={isLastStep ? completeTour : nextStep}
                   disabled={isLoading}
-                  className="gap-2 shadow-lg hover:shadow-xl transition-all bg-[image:var(--brand-gradient)] text-white border-0 hover:brightness-110"
+                  className="gap-2 shadow-lg hover:shadow-xl transition-all bg-[image:var(--brand-gradient)] text-white border-0 hover:brightness-110 flex-1 md:flex-none"
                 >
                   {isLoading && <Spinner className="h-4 w-4 text-white" />}
                   {isLastStep ? 'Terminer' : 'Suivant →'}

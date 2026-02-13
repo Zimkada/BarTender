@@ -9,7 +9,8 @@ interface UseSalesFiltersProps {
     returns?: (Return | UnifiedReturn)[]; // Optional: for returns filtering
     currentSession: any; // UserSession type would be better if available
     closeHour: number;
-    statusFilter?: 'validated' | 'rejected' | 'cancelled';
+    // Interface
+    statusFilter?: 'validated' | 'rejected' | 'cancelled' | 'all';
 }
 
 export function useSalesFilters({ sales, returns = [], currentSession, closeHour, statusFilter }: UseSalesFiltersProps) {
@@ -29,14 +30,18 @@ export function useSalesFilters({ sales, returns = [], currentSession, closeHour
         const isServer = currentSession?.role === 'serveur';
 
         // A. Filtrage initial basé sur le rôle et le statut actif
-        const activeStatus = statusFilter || 'validated';
+        // Si 'all', on ne filtre pas par statut (on prend tout)
+        // Si undefined, on par défaut sur 'validated' (comportement historique)
+        const activeStatus = statusFilter === 'all' ? undefined : (statusFilter || 'validated');
+
         const baseSales = sales.filter(sale => {
             if (isServer) {
                 // Serveurs : toujours leurs propres ventes validées (pills non visibles pour eux)
                 return sale.status === 'validated' && sale.soldBy === currentSession.userId;
             } else {
                 // Gérant/Promoteur/Admin: filtrer par le statut sélectionné via les pills
-                return sale.status === activeStatus;
+                // Si activeStatus est undefined (donc 'all' sélectionné), on retourne true
+                return activeStatus ? sale.status === activeStatus : true;
             }
         });
 

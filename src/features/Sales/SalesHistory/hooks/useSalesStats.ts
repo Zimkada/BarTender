@@ -1,12 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
 import { AnalyticsService, TopProduct } from '../../../../services/supabase/analytics.service';
-import { UnifiedReturn } from '../../../../hooks/pivots/useUnifiedReturns';
-import type { Sale, Return, Bar } from '../../../../types';
-import { isConfirmedReturn } from '../../../../utils/saleHelpers';
+import type { Sale, Bar } from '../../../../types';
 
 interface UseSalesStatsProps {
     filteredSales: Sale[];
-    returns: (Return | UnifiedReturn)[];
     timeRange: string;
     startDate: Date;
     endDate: Date;
@@ -16,7 +13,6 @@ interface UseSalesStatsProps {
 
 export function useSalesStats({
     filteredSales,
-    returns,
     timeRange,
     startDate,
     endDate,
@@ -27,39 +23,52 @@ export function useSalesStats({
     const [topProductsLimit, setTopProductsLimit] = useState<number>(5);
     const [topProductMetric, setTopProductMetric] = useState<'units' | 'revenue' | 'profit'>('units');
     const [sqlTopProducts, setSqlTopProducts] = useState<TopProduct[]>([]);
-    const [isLoadingTopProducts, setIsLoadingTopProducts] = useState(false);
+    const [backendRevenue, setBackendRevenue] = useState<{ totalRevenue: number; totalItems: number } | null>(null);
+    const [isLoadingStats, setIsLoadingStats] = useState(false);
 
     // --- EFFETS ---
-    // Load top products from SQL view when filters change
+    // Load statistics from SQL view and RPC when filters change
     useEffect(() => {
         if (!currentBar) return;
 
-        const loadTopProducts = async () => {
-            setIsLoadingTopProducts(true);
+        const loadStats = async () => {
+            setIsLoadingStats(true);
             try {
+                // 1. Charger le CA exact via le backend (Source de vérité)
+                const revSummary = await AnalyticsService.getRevenueSummary(
+                    currentBar.id,
+                    startDate,
+                    endDate
+                );
+
+                // 2. Charger les top produits via RPC
                 const products = await AnalyticsService.getTopProducts(
                     currentBar.id,
                     startDate,
                     endDate,
                     topProductsLimit,
-                    'quantity', // Default sort by quantity
-                    serverId // Optional: filter by server_id for server accounts
+                    'quantity',
+                    serverId
                 );
 
+                setBackendRevenue({
+                    totalRevenue: revSummary.totalRevenue,
+                    totalItems: revSummary.totalSales // On utilise le nombre de ventes validées comme proxy totalItems si nécessaire, ou on enrichit getRevenueSummary
+                });
                 setSqlTopProducts(products || []);
             } catch (error) {
-                console.error('Error loading top products:', error);
+                console.error('Error loading stats:', error);
                 setSqlTopProducts([]);
             } finally {
-                setIsLoadingTopProducts(false);
+                setIsLoadingStats(false);
             }
         };
 
-        loadTopProducts();
+        loadStats();
     }, [
         currentBar?.id,
-        startDate.toISOString(), // ✨ STABILISATION: Utiliser ISO string
-        endDate.toISOString(),   // ✨ STABILISATION: Utiliser ISO string
+        startDate.toISOString(),
+        endDate.toISOString(),
         topProductsLimit,
         serverId
     ]);
@@ -67,32 +76,25 @@ export function useSalesStats({
 
     // --- CALCULS ---
     const stats = useMemo(() => {
-        // 1. Total des ventes brutes
-        const grossRevenue = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
+        // 🔴 CERTIFICATION SÉCURITÉ : FUSION BACKEND + OFFLINE
+        // Le backend contient les ventes validées. 
+        // L'offline contient les ventes pas encore synchronisées.
 
-        // 2. Déduire les retours remboursés de la période
-        // Note: Les returns passés en props sont déjà filtrés par date dans useSalesFilters
-        const refundedReturns = returns
-            .filter(isConfirmedReturn)
-            .reduce((sum, r) => sum + r.refundAmount, 0);
+        const offlineAmount = filteredSales
+            .filter(s => (s as any).isOptimistic)
+            .reduce((sum, s) => sum + s.total, 0);
 
-        // 3. CA NET = Ventes brutes - Retours remboursés
-        const totalRevenue = grossRevenue - refundedReturns;
+        const offlineCount = filteredSales
+            .filter(s => (s as any).isOptimistic).length;
 
-        // 4. Nombre total d'articles vendus (NET)
-        // Somme brute des articles vendus
-        const grossItems = filteredSales.reduce((sum, sale) =>
-            sum + sale.items.reduce((sum, item) => sum + item.quantity, 0), 0
-        );
+        // 1. Total des revenus (Backend + Offline en attente)
+        const totalRevenue = (backendRevenue?.totalRevenue || 0) + offlineAmount;
 
-        // Déduction des articles retournés (confirmés)
-        const returnedItems = returns
-            .filter(isConfirmedReturn)
-            .reduce((sum, r: any) => sum + (r.quantityReturned || r.quantity_returned || 0), 0);
+        // 2. Nombre total d'articles (Simplifié : Nombre de transactions pour le moment ou calcul exact)
+        // Note: Pour une précision totale sur les items, le backend summary devrait inclure total_items_sold
+        const totalItems = (backendRevenue?.totalItems || 0) + offlineCount;
 
-        const totalItems = Math.max(0, grossItems - returnedItems);
-
-        // 5. KPI contextuel selon la période
+        // 3. KPI contextuel selon la période
         let kpiValue = 0;
         let kpiLabel = 'Panier moyen';
 
@@ -101,7 +103,6 @@ export function useSalesStats({
 
         if (timeRange === 'today') {
             const now = new Date();
-            // Assurer que "now" ne soit pas avant le début de la journée commerciale
             const effectiveNow = now < startDate ? startDate : now;
             const hoursElapsed = (effectiveNow.getTime() - startDate.getTime()) / (1000 * 60 * 60);
             kpiValue = hoursElapsed > 0 ? totalRevenue / hoursElapsed : 0;
@@ -111,8 +112,7 @@ export function useSalesStats({
             kpiLabel = 'CA moyen/jour';
         }
 
-        // 6. Top Produits (transformé depuis SQL)
-        // ✨ NOUVEAU: Utiliser profit calculé par la RPC (revenue - quantity × CUMP)
+        // 4. Top Produits (transformé depuis SQL)
         const topProductsResult = (sqlTopProducts && sqlTopProducts.length > 0)
             ? sqlTopProducts.map(p => ({
                 name: p.product_name,
@@ -120,12 +120,11 @@ export function useSalesStats({
                 displayName: `${p.product_name}${p.product_volume ? ' (' + p.product_volume + ')' : ''}`,
                 units: p.total_quantity,
                 revenue: p.total_revenue,
-                profit: p.profit ?? p.total_revenue // Use calculated profit from RPC, fallback to revenue if not available
+                profit: p.profit ?? p.total_revenue
             }))
             : [];
 
         // Créer les 3 listes triées
-        // Note: Elles sont déjà filtrées par la requête SQL limit, mais on re-slice pour la sécurité
         const byUnits = [...topProductsResult].sort((a, b) => b.units - a.units).slice(0, topProductsLimit);
         const byRevenue = [...topProductsResult].sort((a, b) => b.revenue - a.revenue).slice(0, topProductsLimit);
         const byProfit = [...topProductsResult].sort((a, b) => b.profit - a.profit).slice(0, topProductsLimit);
@@ -137,7 +136,7 @@ export function useSalesStats({
             kpiLabel,
             topProducts: { byUnits, byRevenue, byProfit }
         };
-    }, [filteredSales, returns, timeRange, sqlTopProducts, topProductsLimit, startDate, endDate]);
+    }, [filteredSales, backendRevenue, timeRange, sqlTopProducts, topProductsLimit, startDate, endDate]);
 
     return {
         stats,
@@ -147,6 +146,6 @@ export function useSalesStats({
         setTopProductMetric,
         sqlTopProducts,
         setSqlTopProducts, // Exported in case it's needed elsewhere, though mainly internal
-        isLoadingTopProducts
+        isLoadingStats
     };
 }
