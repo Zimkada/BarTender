@@ -186,6 +186,7 @@ export default function InventoryPage() {
                                         onClick={() => setShowSuspicious(!showSuspicious)}
                                         variant={showSuspicious ? "destructive" : "outline"}
                                         size="sm"
+                                        data-guide="inventory-filter-suspicious"
                                         className={cn(
                                             "gap-1.5 font-bold transition-all text-xs",
                                             showSuspicious ? "shadow-md shadow-red-200" : "text-gray-500 hover:text-red-500 hover:border-red-300"
@@ -201,6 +202,7 @@ export default function InventoryPage() {
 
                                 <Button
                                     onClick={() => setIsExportModalOpen(true)}
+                                    data-guide="inventory-export-btn"
                                     className="bg-gray-900 text-white hover:bg-gray-800 shadow-sm gap-2"
                                 >
                                     <Zap className="w-4 h-4 text-amber-500" />

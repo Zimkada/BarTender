@@ -83,6 +83,7 @@ export function InventoryOperations({
 
                             <button
                                 onClick={() => setMode('order-prep')}
+                                data-guide="inventory-order-prep-btn"
                                 className="group p-6 bg-white rounded-2xl border-2 border-transparent hover:border-orange-400 shadow-sm transition-all text-left flex items-start gap-4 active:scale-95"
                             >
                                 <div className="p-3 bg-orange-100 text-orange-600 rounded-xl group-hover:scale-110 transition-transform relative">

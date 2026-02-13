@@ -534,7 +534,40 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       tips: [
         '🔍 Recherche instantanée par nom de produit',
         '📂 Trier par : Catégorie, Alphabétique, ou Niveau de stock',
+        '🚨 **Filtre Suspects** : Isole instantanément les anomalies (stocks négatifs)',
         '✅ Les filtres se combinent pour des résultats précis',
+      ],
+    },
+
+    {
+      id: 'step-suspicious',
+      emoji: '🚨',
+      title: 'Détecter les Anomalies (Filtre Suspects)',
+      description:
+        'Le bouton **Suspects** est votre outil de contrôle critique. Il filtre tous les produits présentant des incohérences : stock physique négatif ou vente à découvert. Un inventaire sain ne devrait afficher aucun résultat ici. Utilisez-le quotidiennement pour corriger les erreurs de saisie.',
+      elementSelector: '[data-guide="inventory-filter-suspicious"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '🔴 Stock négatif = Erreur de saisie d\'approv ou vente fantôme',
+        '⚠️ Traitez les suspects avant de fermer la caisse',
+        '🔧 Cliquez sur le produit pour ajuster le stock manuellement',
+      ],
+    },
+
+    {
+      id: 'step-export',
+      emoji: 'Excel',
+      title: 'Exporter votre Inventaire (Valorisation)',
+      description:
+        'Besoin d\'un rapport externe ou d\'un pointage papier ? Le bouton **Export Inventaire** génère un fichier Excel complet. Il inclut : stock physique, stock consigné, et surtout la **valorisation au CUMP** (Prix d\'achat moyen). Option : export actuel ou historique (Time Travel).',
+      elementSelector: '[data-guide="inventory-export-btn"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '📊 Valeur Stock = Stock Physique × Prix d\'Achat Moyen (CUMP)',
+        '📅 **Time Travel** : Reconstituez l\'état du stock à n\'importe quelle date passée',
+        '📝 Colonnes vides incluses pour le comptage manuel sur papier',
       ],
     },
 
@@ -632,6 +665,37 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
         '📊 Format Excel : 4 colonnes minimum (nom, prix, catégorie, stock)',
         '⚡ Gain temps énorme pour initialisation de 50+ produits',
         '✅ Détection automatique des doublons et erreurs',
+      ],
+    },
+
+    {
+      id: 'step-order-prep',
+      emoji: '🤖',
+      title: 'Refondation : Préparation de Commande Assistée',
+      description:
+        'Ne commandez plus au hasard ! Ce module analyse vos 30 derniers jours de vente pour suggérer les quantités idéales. Il détecte automatiquement les ruptures imminentes et les produits en alerte.',
+      elementSelector: '[data-guide="inventory-order-prep-btn"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '✨ **Suggestions IA** : Basées sur votre rythme réel de consommation',
+        '📦 Filtrez par "Suggestions" pour voir uniquement ce qu\'il manque',
+        '🛒 Créez un brouillon fluide avant de finaliser la commande',
+      ],
+    },
+
+    {
+      id: 'step-order-finalize',
+      emoji: '🛒',
+      title: 'Finalisation et Conditionnement',
+      description:
+        'Dans la phase de finalisation, ajustez vos conditionnements (lots de 12, 24, etc.). Le système stabilise les prix unitaires pour garantir une comptabilité exacte, même si vos fournisseurs changent de format de lot.',
+      position: 'center',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '⚖️ Prix unitaire constant = Protection de vos marges',
+        '🔄 Synchronisation multi-onglets : ne perdez jamais votre brouillon',
+        '✅ Validation finale = Mise à jour instantanée du stock attendu',
       ],
     },
 
