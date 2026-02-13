@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase';
 import { CacheManagerService } from '../services/cacheManager.service';
 import { OfflineStorage } from '../utils/offlineStorage';
 import { networkManager } from '../services/NetworkManager';
+import { notificationService } from '../services/NotificationService';
 
 interface AuthContextType {
   currentSession: UserSession | null;
@@ -42,6 +43,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (currentSession?.userId === '1') {
       console.warn('[AuthContext] Detected invalid legacy session (ID=1), clearing...');
       setCurrentSession(null);
+    }
+  }, [currentSession?.userId]);
+
+  // 🔔 Initialiser le service de notifications avec l'utilisateur courant
+  useEffect(() => {
+    if (currentSession?.userId) {
+      notificationService.initForUser(currentSession.userId);
+    } else {
+      notificationService.clearSession();
     }
   }, [currentSession?.userId]);
 

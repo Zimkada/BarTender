@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useBarContext } from '../context/BarContext';
+import { useAuth } from '../context/AuthContext';
 
 export interface OrderDraftItem {
     productId: string;
@@ -21,15 +22,18 @@ const STORAGE_KEY_PREFIX = 'bartender_order_draft_';
 
 export function useOrderDraft() {
     const { currentBar } = useBarContext();
+    const { currentSession } = useAuth();
     const barId = currentBar?.id;
-    const storageKey = `${STORAGE_KEY_PREFIX}${barId}`;
+    const userId = currentSession?.userId;
+    // Scoped to Bar AND User to prevent shared device leaks
+    const storageKey = `${STORAGE_KEY_PREFIX}${barId}_${userId}`;
 
     const [items, setItems] = useState<OrderDraftItem[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
 
     // Charger le brouillon au démarrage & écouter les changements inter-onglets
     useEffect(() => {
-        if (!barId) return;
+        if (!barId || !userId) return;
 
         const loadFromStorage = () => {
             try {
@@ -62,11 +66,11 @@ export function useOrderDraft() {
 
         window.addEventListener('storage', handleStorageChange);
         return () => window.removeEventListener('storage', handleStorageChange);
-    }, [barId, storageKey]);
+    }, [barId, userId, storageKey]);
 
     // Sauvegarder automatiquement lors des changements (sans déclencher de boucle infinie locale)
     useEffect(() => {
-        if (!barId || !isLoaded) return;
+        if (!barId || !userId || !isLoaded) return;
 
         const state: OrderDraftState = {
             items,

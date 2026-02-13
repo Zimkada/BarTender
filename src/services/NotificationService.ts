@@ -2,7 +2,7 @@
 import { AdminNotification, NotificationType, NotificationPriority } from '../types';
 import { auditLogger } from './AuditLogger';
 
-const NOTIFICATIONS_KEY = 'admin_notifications';
+const NOTIFICATIONS_KEY_PREFIX = 'admin_notifications_';
 const MAX_NOTIFICATIONS = 200;
 const NOTIFICATION_RETENTION_DAYS = 30;
 
@@ -20,16 +20,40 @@ interface CreateNotificationParams {
 class NotificationServiceClass {
   private notifications: AdminNotification[] = [];
   private listeners: Array<() => void> = [];
+  private currentUserId: string | null = null;
 
   constructor() {
+    // Initial load will be done when user identity is set
+  }
+
+  // Initialiser le service pour l'utilisateur courant
+  initForUser(userId: string): void {
+    if (this.currentUserId === userId) return;
+
+    this.currentUserId = userId;
     this.loadNotifications();
     this.cleanupOldNotifications();
+  }
+
+  // Nettoyer service (logout)
+  clearSession(): void {
+    this.currentUserId = null;
+    this.notifications = [];
+    this.notifyListeners();
+  }
+
+  private getStorageKey(): string | null {
+    if (!this.currentUserId) return null;
+    return `${NOTIFICATIONS_KEY_PREFIX}${this.currentUserId}`;
   }
 
   // Charger notifications depuis localStorage
   private loadNotifications(): void {
     try {
-      const stored = localStorage.getItem(NOTIFICATIONS_KEY);
+      const key = this.getStorageKey();
+      if (!key) return;
+
+      const stored = localStorage.getItem(key);
       if (stored) {
         this.notifications = JSON.parse(stored).map((notif: any) => ({
           ...notif,
@@ -45,7 +69,10 @@ class NotificationServiceClass {
   // Sauvegarder notifications
   private saveNotifications(): void {
     try {
-      localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(this.notifications));
+      const key = this.getStorageKey();
+      if (!key) return;
+
+      localStorage.setItem(key, JSON.stringify(this.notifications));
       this.notifyListeners();
     } catch (error) {
       console.error('Error saving notifications:', error);
@@ -54,7 +81,8 @@ class NotificationServiceClass {
       if (error instanceof DOMException && error.name === 'QuotaExceededError') {
         this.pruneOldNotifications(100);
         try {
-          localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(this.notifications));
+          const key = this.getStorageKey();
+          if (key) localStorage.setItem(key, JSON.stringify(this.notifications));
         } catch (retryError) {
           console.error('Failed to save even after pruning:', retryError);
         }
@@ -212,7 +240,8 @@ class NotificationServiceClass {
   // Supprimer toutes les notifications
   deleteAll(): void {
     this.notifications = [];
-    localStorage.removeItem(NOTIFICATIONS_KEY);
+    const key = this.getStorageKey();
+    if (key) localStorage.removeItem(key);
     this.notifyListeners();
     console.warn('[NOTIFICATION] All notifications deleted');
   }
