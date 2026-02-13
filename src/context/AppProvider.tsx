@@ -441,18 +441,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     total_price: swapProduct.price * returnData.quantityReturned,
                     product_volume: swapProduct.volume || undefined
                 }],
-                // @ts-ignore - sourceReturnId est bien supporté dans useSalesMutations
-                sourceReturnId: finalReturnId,
+                sourceReturnId: finalReturnId, // 🛡️ FIX P2: Magic Swap traçabilité (typage correct, interface Sale L322)
                 idempotencyKey: saleIdempotencyKey, // ✅ Clé fixe pour protéger des retries
                 serverId: serverId || undefined,
                 status: (currentSession.role === 'promoteur' || currentSession.role === 'gerant') ? 'validated' : 'pending',
                 paymentMethod: 'cash',
                 ticketId: ticketId || undefined, // ✅ Rattachement au bon original si présent
-                notes: `Échange Magic Swap (Source: Retour #${finalReturnId.slice(0, 8)})`
+                notes: `Échange Produit (Source: Retour #${finalReturnId.slice(0, 8)})`
             });
 
             console.log('[AppProvider.provideExchange] Exchange completed successfully');
-            toast.success("✨ Échange Magic Swap créé avec succès !");
+            toast.success("✨ Échange Produit effectué avec succès !");
         } catch (error) {
             console.error('[AppProvider.provideExchange] CRITICAL FAILURE:', {
                 error,
@@ -461,6 +460,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 returnId,
                 saleIdempotencyKey
             });
+
+            // 🛡️ FIX P1: Rollback best-effort - supprimer le retour orphelin pour éviter stock gonflé
+            try {
+                console.log('[AppProvider.provideExchange] Attempting rollback: deleting orphan return', returnId);
+                await returnsMutations.deleteReturn.mutateAsync(returnId);
+                console.log('[AppProvider.provideExchange] Rollback successful');
+            } catch (rollbackError) {
+                console.error('[AppProvider.provideExchange] Rollback failed (non-blocking):', rollbackError);
+                // Non-bloquant : on log mais on ne re-throw pas
+            }
+
             throw error;
         }
     }, [currentBar, currentSession, returnsMutations, salesMutations]);

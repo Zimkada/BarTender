@@ -124,11 +124,11 @@ export function ReturnCard({
           </div>
 
           {/* Badge Échange si le retour est lié à une vente de remplacement */}
-          {(returnItem as any).linkedSaleId && (
+          {returnItem.linkedSaleId && (
             <div className="bg-orange-50 border border-orange-100 rounded-md px-3 py-2 mb-4">
               <p className="text-xs text-orange-700 font-bold flex items-center gap-1.5">
                 <ArrowLeftRight size={14} />
-                Retour lié à la vente de remplacement #{((returnItem as any).linkedSaleId as string).slice(-6).toUpperCase()}
+                Retour lié à la vente de remplacement #{returnItem.linkedSaleId.slice(-6).toUpperCase()}
               </p>
             </div>
           )}

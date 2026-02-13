@@ -8,6 +8,7 @@ import { useRevenueStats } from '../hooks/useRevenueStats';
 import { useTeamPerformance } from '../hooks/useTeamPerformance';
 import { useBarMembers } from './queries/useBarMembers';
 import { getCurrentBusinessDateString } from '../utils/businessDateHelpers';
+import { isConfirmedReturn } from '../utils/saleHelpers'; // 🛡️ FIX P1: Import helper
 import { AnalyticsService } from '../services/supabase/analytics.service';
 import { useQuery } from '@tanstack/react-query';
 import type { Sale, SaleItem, Consignment } from '../types';
@@ -149,7 +150,8 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
 
         const todaySaleIds = new Set(serverFilteredSales.map(s => s.id));
         serverFilteredReturns.forEach(ret => {
-            if (!ret.isRefunded || (ret.status !== 'approved' && ret.status !== 'restocked')) return;
+            // 🛡️ FIX P1: Utiliser isConfirmedReturn() pour inclure les échanges (reason='exchange')
+            if (!isConfirmedReturn(ret)) return;
             if (!todaySaleIds.has(ret.saleId)) return;
             const product = productMap.get(ret.productId);
             if (product) product.qty -= ret.quantityReturned;

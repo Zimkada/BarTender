@@ -329,6 +329,7 @@ const mapSaleRowToSale = (savedSaleRow: SaleRow): Sale => {
         paymentMethod: savedSaleRow.payment_method as PaymentMethod,
         customerName: rowExtended.customer_name || undefined,
         customerPhone: rowExtended.customer_phone || undefined,
-        notes: rowExtended.notes || undefined
+        notes: rowExtended.notes || undefined,
+        sourceReturnId: rowExtended.source_return_id || undefined, // 🛡️ FIX P2: Magic Swap traçabilité
     };
 };

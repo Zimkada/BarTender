@@ -158,7 +158,7 @@ export function CreateReturnForm({
       return;
     }
 
-    // ✨ MAGIC SWAP : Si échange mais pas encore de produit choisi
+    // ✨ Échange Produit : Si échange mais pas encore de produit choisi
     if (reason === "exchange" && !swapProduct) {
       setIsSelectingSwapProduct(true);
       return;
@@ -192,7 +192,7 @@ export function CreateReturnForm({
           manualRestockRequired: false,
         }, swapProduct, selectedSale.ticketId || (selectedSale as any).ticket_id); // ✅ Pass ticketId for chaining
         console.log('[CreateReturnForm] ✅ Exchange SUCCESS');
-        showSuccess("✨ Échange effectué avec succès !");
+        showSuccess("✨ Échange Produit effectué avec succès !");
         onCancel(); // Close form on success
       } catch (err) {
         console.error('[CreateReturnForm] ❌ Exchange FAILED:', err);

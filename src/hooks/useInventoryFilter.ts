@@ -8,6 +8,7 @@ interface UseInventoryFilterProps {
     categories: Category[];
     searchTerm: string;
     sortMode: SortMode;
+    showSuspiciousOnly?: boolean; // ✨ Nouveau filtre
     getProductStockInfo: (id: string) => ProductStockInfo | null;
 }
 
@@ -16,13 +17,33 @@ export function useInventoryFilter({
     categories,
     searchTerm,
     sortMode,
+    showSuspiciousOnly = false,
     getProductStockInfo
 }: UseInventoryFilterProps) {
 
-    const filteredProducts = useMemo(
-        () => !searchTerm.trim() ? products : searchProducts(products, searchTerm),
-        [products, searchTerm]
-    );
+    const filteredProducts = useMemo(() => {
+        let result = products;
+
+        // 1. Filtre Recherche
+        if (searchTerm.trim()) {
+            result = searchProducts(result, searchTerm);
+        }
+
+        // 2. Filtre Suspicious (Anomalies)
+        if (showSuspiciousOnly) {
+            result = result.filter(p => {
+                const stockInfo = getProductStockInfo(p.id);
+                if (!stockInfo) return false;
+
+                // CRITÈRE D'ANOMALIE :
+                // - Stock physique négatif (Impossible)
+                // - Stock disponible négatif (Vente à découvert)
+                return stockInfo.physicalStock < 0 || stockInfo.availableStock < 0;
+            });
+        }
+
+        return result;
+    }, [products, searchTerm, showSuspiciousOnly, getProductStockInfo]);
 
     const sortedProducts = useMemo(
         () => sortProducts(filteredProducts, sortMode, categories),
@@ -39,6 +60,8 @@ export function useInventoryFilter({
     );
 
     const categoryStats = useMemo(() => {
+        // Stats basées sur l'ensemble des produits (ou filtrés ? standard = global)
+        // Ici on garde les stats globales pour l'onglet stats
         return categories.map(cat => {
             const catProducts = products.filter(p => p.categoryId === cat.id);
             const catAlerts = catProducts.filter(p => {
@@ -59,6 +82,11 @@ export function useInventoryFilter({
     return {
         sortedProducts,
         lowStockProducts,
-        categoryStats
+        categoryStats,
+        // On retourne le compte de suspects pour info éventuelle
+        suspiciousCount: products.filter(p => {
+            const info = getProductStockInfo(p.id);
+            return info && (info.physicalStock < 0 || info.availableStock < 0);
+        }).length
     };
 }

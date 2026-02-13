@@ -119,6 +119,7 @@ export const ReturnSchema = z.preprocess(mapReturnToCamel, z.object({
     serverId: z.string().uuid().optional().nullable(),
     returnedAt: z.string().datetime().or(z.date()),
     businessDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.date()),
+    reason: z.string().optional(), // ✅ FIX P0: CRITIQUE pour isConfirmedReturn()
 }));
 
 export const MinimalOfflineSaleSchema = z.preprocess(mapSaleToCamel, z.object({

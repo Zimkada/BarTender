@@ -1,11 +1,10 @@
 import { useState, Suspense, lazy, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Package, BarChart3, Zap } from 'lucide-react';
+import { Package, BarChart3, Zap, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Hooks & Context
 import { useAuth } from '../context/AuthContext';
-import { useAppContext } from '../context/AppContext';
 import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { useInventoryFilter } from '../hooks/useInventoryFilter';
 import { useInventoryActions } from '../hooks/useInventoryActions';
@@ -22,10 +21,13 @@ import { SearchBar } from '../components/common/SearchBar';
 import { ConfirmationModal } from '../components/common/ConfirmationModal';
 import { StockAdjustmentModal } from '../components/StockAdjustmentModal';
 import { InventoryList } from '../components/inventory/InventoryList';
+import { InventoryExportModal } from '../components/inventory/InventoryExportModal';
 import { InventoryOperations } from '../components/inventory/InventoryOperations';
 import { InventoryStats } from '../components/inventory/InventoryStats';
 import { OnboardingBreadcrumb } from '../components/onboarding/ui/OnboardingBreadcrumb';
 import { ProductGridSkeleton } from '../components/skeletons';
+import { Button } from '../components/ui/Button'; // ✨ Import Button
+import { cn } from '../lib/utils';
 
 // Lazy load
 const ProductModal = lazy(() => import('../components/ProductModal').then(m => ({ default: m.ProductModal })));
@@ -67,6 +69,8 @@ export default function InventoryPage() {
     }, [initialTab]);
     const [searchTerm, setSearchTerm] = useState('');
     const [sortMode, setSortMode] = useState<SortMode>('category');
+    const [showSuspicious, setShowSuspicious] = useState(false); // ✨ State Filtre Suspects
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
     // 3. Logic Hooks
     const {
@@ -78,6 +82,7 @@ export default function InventoryPage() {
         categories,
         searchTerm,
         sortMode,
+        showSuspiciousOnly: showSuspicious,
         getProductStockInfo
     });
 
@@ -155,23 +160,52 @@ export default function InventoryPage() {
                                 />
                                 <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide sm:pb-0">
                                     {[
-                                        { mode: 'category' as SortMode, icon: '📁', label: 'Catégorie' },
+                                        { mode: 'category' as SortMode, icon: '📁', label: isMobile ? 'Cat' : 'Catégorie' },
                                         { mode: 'alphabetical' as SortMode, icon: '🔤', label: 'Nom' },
                                         { mode: 'stock' as SortMode, icon: '⚠️', label: 'Stock' }
                                     ].map(({ mode, icon, label }) => (
-                                        <button
+                                        <Button
                                             key={mode}
                                             onClick={() => setSortMode(mode)}
-                                            className={`px-3 py-1.5 rounded-lg whitespace-nowrap text-xs font-semibold transition-all border flex items-center gap-1.5 ${sortMode === mode
-                                                ? 'glass-action-button-active-2026 shadow-sm'
-                                                : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
-                                                }`}
+                                            variant="ghost"
+                                            size="sm"
+                                            className={cn(
+                                                "gap-1.5 text-xs font-semibold transition-all border",
+                                                sortMode === mode
+                                                    ? "glass-action-button-active-2026 shadow-sm"
+                                                    : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                                            )}
                                         >
                                             <span>{icon}</span>
-                                            {label}
-                                        </button>
+                                            <span>{label}</span>
+                                        </Button>
                                     ))}
+
+                                    {/* ✨ Bouton Filtre Suspects (Aligné dans le groupe) */}
+                                    <Button
+                                        onClick={() => setShowSuspicious(!showSuspicious)}
+                                        variant={showSuspicious ? "destructive" : "outline"}
+                                        size="sm"
+                                        className={cn(
+                                            "gap-1.5 font-bold transition-all text-xs",
+                                            showSuspicious ? "shadow-md shadow-red-200" : "text-gray-500 hover:text-red-500 hover:border-red-300"
+                                        )}
+                                    >
+                                        <AlertCircle className={cn("w-4 h-4", showSuspicious ? "text-white" : "text-red-500")} />
+                                        <span>Suspects</span>
+                                    </Button>
                                 </div>
+
+                                {/* Séparateur Actions */}
+                                <div className="w-px h-8 bg-gray-200 hidden sm:block" />
+
+                                <Button
+                                    onClick={() => setIsExportModalOpen(true)}
+                                    className="bg-gray-900 text-white hover:bg-gray-800 shadow-sm gap-2"
+                                >
+                                    <Zap className="w-4 h-4 text-amber-500" />
+                                    <span>Export Inventaire</span>
+                                </Button>
                             </div>
 
                             {/* Liste Produits */}
@@ -273,6 +307,16 @@ export default function InventoryPage() {
                     isLoading={isDeleting}
                 />
             </Suspense>
+            {/* Modal d'export */}
+            <InventoryExportModal
+                isOpen={isExportModalOpen}
+                onClose={() => setIsExportModalOpen(false)}
+                barId={currentSession?.barId || ''}
+                barName={currentSession?.barName || 'Bar'}
+                products={products}
+                categories={categories}
+                getStockInfo={getProductStockInfo}
+            />
         </div>
     );
 }

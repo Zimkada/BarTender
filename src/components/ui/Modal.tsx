@@ -18,6 +18,9 @@ export interface ModalProps {
   footer?: React.ReactNode;
   icon?: React.ReactNode;
   headerClassName?: string;
+  className?: string;
+  titleClassName?: string;
+  footerClassName?: string;
 }
 
 const sizeClasses = {
@@ -41,6 +44,9 @@ export const Modal: React.FC<ModalProps> = ({
   footer,
   icon,
   headerClassName,
+  className,
+  titleClassName,
+  footerClassName,
 }) => {
   const modalRef = React.useRef<HTMLDivElement>(null);
 
@@ -130,7 +136,8 @@ export const Modal: React.FC<ModalProps> = ({
             transition={{ duration: 0.2 }}
             className={cn(
               'relative z-10 w-full bg-white rounded-lg shadow-xl max-h-[90vh] flex flex-col',
-              sizeClasses[size]
+              sizeClasses[size],
+              className
             )}
             role="dialog"
             aria-modal="true"
@@ -149,7 +156,7 @@ export const Modal: React.FC<ModalProps> = ({
                     {title && (
                       <h2
                         id="modal-title"
-                        className="text-lg font-semibold text-gray-900"
+                        className={cn("text-lg font-semibold text-gray-900", titleClassName)}
                       >
                         {title}
                       </h2>
@@ -181,7 +188,10 @@ export const Modal: React.FC<ModalProps> = ({
 
             {/* Footer */}
             {footer && (
-              <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+              <div className={cn(
+                "flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50 flex-shrink-0",
+                footerClassName
+              )}>
                 {footer}
               </div>
             )}
