@@ -8,6 +8,7 @@ import { useMemo, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useReturns, returnKeys } from '../queries/useReturnsQueries';
 import { useAuth } from '../../context/AuthContext';
+import { useBarContext } from '../../context/BarContext';
 import { offlineQueue } from '../../services/offlineQueue';
 import { syncManager } from '../../services/SyncManager';
 import { filterByBusinessDateRange, getCurrentBusinessDateString } from '../../utils/businessDateHelpers';
@@ -30,12 +31,32 @@ export interface UnifiedReturn extends Omit<Return, 'returnedAt' | 'businessDate
 export const useUnifiedReturns = (barId: string | undefined, closingHour?: number) => {
     const queryClient = useQueryClient();
     const { currentSession: session } = useAuth();
+    const { currentBar } = useBarContext();
 
     // 🚀 Real-time synchronization for returns (cross-device + cross-tab)
     useRealtimeReturns({ barId: barId || '', enabled: !!barId });
 
-    // 1. Retours Online (via React Query)
-    const { data: onlineReturns = [], isLoading: isLoadingOnline } = useReturns(barId, { refetchInterval: false });
+    // 🔴 LOGIQUE DE TIERING (Certification Sécurité)
+    const returnsOptions = useMemo((): { startDate?: string; refetchInterval: false } => {
+        if (!currentBar?.settings?.dataTier || currentBar.settings.dataTier === 'lite') {
+            return { refetchInterval: false };
+        }
+
+        const now = new Date();
+        if (currentBar.settings.dataTier === 'balanced') {
+            now.setMonth(now.getMonth() - 6);
+        } else if (currentBar.settings.dataTier === 'enterprise') {
+            now.setDate(now.getDate() - 30);
+        }
+
+        return {
+            startDate: now.toISOString().split('T')[0],
+            refetchInterval: false
+        };
+    }, [currentBar?.settings?.dataTier]);
+
+    // 1. Retours Online (via React Query) avec options de tiering
+    const { data: onlineReturns = [], isLoading: isLoadingOnline } = useReturns(barId, returnsOptions);
 
     // 2. Retours Offline (via IndexedDB)
     const { data: offlineReturns = [], refetch: refetchOffline, isLoading: isLoadingOffline } = useQuery({

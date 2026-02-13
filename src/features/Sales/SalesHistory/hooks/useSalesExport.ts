@@ -13,6 +13,10 @@ interface UseSalesExportProps {
     categories: Category[];
     users: User[];
     barMembers: BarMember[];
+    barId?: string; // ✨ NOUVEAU: Pour fetch intégral
+    startDate?: string; // ✨ NOUVEAU
+    endDate?: string; // ✨ NOUVEAU
+    statusFilter?: string; // ✨ NOUVEAU
 }
 
 export function useSalesExport({
@@ -23,12 +27,52 @@ export function useSalesExport({
     products,
     categories,
     users,
-    barMembers
+    barMembers,
+    barId,
+    startDate,
+    endDate,
+    statusFilter
 }: UseSalesExportProps) {
     const { showNotification } = useNotifications();
 
     const exportSales = useCallback(async (format: 'csv' | 'excel') => {
-        if (filteredSales.length === 0 && filteredReturns.length === 0) {
+        // ✨ NOUVEAU: Certification Perfection - Fetch intégral si besoin
+        let salesToExport = filteredSales;
+        let finalReturnsToExport = filteredReturns;
+
+        // Si on est en mode Data Tier (limitée), on fetch tout pour l'export
+        const isDataLimited = barId && (startDate || endDate);
+
+        if (isDataLimited) {
+            try {
+                // Import dynamique pour éviter de charger les services si pas d'export
+                const { SalesService } = await import('../../../../services/supabase/sales.service');
+                const { ReturnsService } = await import('../../../../services/supabase/returns.service');
+                const { mapSalesData } = await import('../../../../hooks/queries/useSalesQueries');
+                const { mapReturnData } = await import('../../../../hooks/queries/useReturnsQueries');
+
+                showNotification('info', "Génération d'un rapport intégral (Ceci peut prendre quelques secondes)...");
+
+                const [fullSales, fullReturns] = await Promise.all([
+                    SalesService.getBarSales(barId, {
+                        startDate,
+                        endDate,
+                        status: statusFilter === 'all' ? undefined : (statusFilter || 'validated')
+                    }),
+                    ReturnsService.getReturns(barId, startDate, endDate)
+                ]);
+
+                salesToExport = mapSalesData(fullSales);
+                finalReturnsToExport = mapReturnData(fullReturns);
+
+                showNotification('success', "Données récupérées. Génération du fichier...");
+            } catch (e) {
+                console.error("Erreur lors du fetch intégral pour export", e);
+                showNotification('info', "L'exportation pourrait être incomplète suite à une erreur réseau.");
+            }
+        }
+
+        if (salesToExport.length === 0 && finalReturnsToExport.length === 0) {
             showNotification('error', "Aucune donnée à exporter");
             return;
         }
@@ -37,7 +81,7 @@ export function useSalesExport({
         const exportData: any[] = [];
 
         // 1. Ajouter toutes les ventes
-        filteredSales.forEach(sale => {
+        salesToExport.forEach(sale => {
             // Source of truth: soldBy is the business attribution
             const serverUserId = sale.soldBy;
             const user = users.find(u => u.id === serverUserId);
@@ -85,15 +129,8 @@ export function useSalesExport({
             });
         });
 
-        // 2. Ajouter les retours (soit filtrés s'ils sont passés, soit ceux associés aux ventes filtrées)
-        // Option A: Utiliser filteredReturns si disponible
-        // Option B: Calculer les retours liés aux ventes filtrées si filteredReturns est vide/non-utilisé
-        const returnsToExport = filteredReturns.length > 0 ? filteredReturns : [];
-
-        // Si filteredReturns est vide mais qu'on a des ventes, on pourrait vouloir exporter les retours liés aux ventes (comportement original)
-        // Mais pour la cohérence, utilisons filteredReturns qui est maintenant géré par le hook de filtre
-
-        returnsToExport.forEach(ret => {
+        // 2. Ajouter les retours
+        finalReturnsToExport.forEach(ret => {
             // Récupérer le produit via productId
             const product = products.find(p => p.id === ret.productId);
             if (!product) {
