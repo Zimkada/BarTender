@@ -584,6 +584,12 @@ export function AccountingOverview() {
         'Créé par': sale.createdBy,
         'Validé par': (sale as any).validatedBy || 'N/A',
         'Statut': sale.status,
+        'Mode de paiement': (sale as any).paymentMethod === 'mobile_money' ? 'Mobile Money' :
+          (sale as any).paymentMethod === 'credit' ? 'Crédit' :
+            (sale as any).paymentMethod === 'ticket' ? 'Ticket (Ancien)' :
+              (sale as any).paymentMethod === 'card' ? 'Carte Bancaire' :
+                (sale as any).paymentMethod === 'offert' ? 'Offert' : 'Espèces',
+
       }));
     });
     if (salesData.length > 0) {
