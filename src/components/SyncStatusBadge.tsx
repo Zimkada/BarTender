@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Wifi,
+  // Wifi, // Unused
   WifiOff,
   RefreshCw,
   AlertCircle,
@@ -39,7 +39,8 @@ interface SyncStatusBadgeProps {
  */
 export const SyncStatusBadge: React.FC<SyncStatusBadgeProps> = ({
   compact = false,
-  position = 'header',
+  // position is currently unused but kept for API compatibility
+  // position = 'header',
 }) => {
   const {
     networkStatus,
@@ -53,7 +54,7 @@ export const SyncStatusBadge: React.FC<SyncStatusBadgeProps> = ({
     hasPending,
     retryAll,
     forceNetworkCheck,
-    getErrors,
+    errors,
   } = useSyncStatus();
 
   const [showTooltip, setShowTooltip] = useState(false);
@@ -104,11 +105,6 @@ export const SyncStatusBadge: React.FC<SyncStatusBadgeProps> = ({
       forceNetworkCheck();
     }
   };
-
-  /**
-   * Récupère les erreurs pour affichage
-   */
-  const errors = getErrors();
 
   return (
     <>

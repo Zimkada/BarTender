@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Salary, BarMember } from '../types';
 import { useDataStore } from './useDataStore';
 import { useBarContext } from '../context/BarContext';
@@ -6,7 +5,6 @@ import { useAuth } from '../context/AuthContext';
 
 export function useSalaries(barId: string) {
   const [salaries, setSalaries] = useDataStore<Salary[]>(`salaries_${barId}`, []);
-  const [isLoading, setIsLoading] = useState(false);
   const { currentBar } = useBarContext();
   const { currentSession } = useAuth();
 
@@ -30,10 +28,21 @@ export function useSalaries(barId: string) {
     // 1. Optimistic update
     setSalaries([...salaries, newSalary]);
 
-    // 2. Enqueue pour sync
+    // 2. Enqueue pour sync (System A - Modern)
     if (currentBar && currentSession) {
-      import('../services/SyncQueue').then(({ syncQueue }) => {
-        syncQueue.enqueue('ADD_SALARY', newSalary, currentBar.id, currentSession.userId);
+      import('../services/offlineQueue').then(({ offlineQueue }) => {
+        // 🛡️ Mapping explicite : Frontend (camelCase) -> DB (snake_case)
+        const payload = {
+          bar_id: currentBar.id,
+          member_id: newSalary.memberId,
+          amount: newSalary.amount,
+          period: newSalary.period,
+          paid_at: newSalary.paidAt.toISOString(),
+          created_by: currentSession.userId,
+          created_at: newSalary.createdAt.toISOString()
+        };
+
+        offlineQueue.addOperation('ADD_SALARY', payload as any, currentBar.id, currentSession.userId);
       });
     }
 

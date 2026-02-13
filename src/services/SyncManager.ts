@@ -10,6 +10,7 @@ import type {
   SyncOperationUpdateBar,
   SyncOperationCreateTicket,
   SyncOperationPayTicket,
+  SyncOperationAddSalary,
   MutationType
 } from '../types/sync';
 import { DEFAULT_RETRY_CONFIG } from '../types/sync';
@@ -436,6 +437,9 @@ class SyncManagerService {
       case 'UPDATE_BAR':
         return this.syncUpdateBar(operation);
 
+      case 'ADD_SALARY':
+        return this.syncAddSalary(operation);
+
       default:
         console.warn(`[SyncManager] Unimplemented operation type: ${operation.type}`);
         return {
@@ -690,6 +694,58 @@ class SyncManagerService {
     } catch (error) {
       const errorMessage = getErrorMessage(error);
       console.error(`[SyncManager] Exception syncing return:`, errorMessage);
+      return {
+        success: false,
+        operationId: operation.id,
+        error: errorMessage,
+        shouldRetry: true,
+      };
+    }
+  }
+
+  /**
+   * Synchronise un salaire créé offline
+   */
+  private async syncAddSalary(operation: SyncOperationAddSalary): Promise<SyncResult> {
+    try {
+      const payload = operation.payload;
+
+      // Appel direct Supabase
+      const { data, error } = await supabase
+        .from('salaries')
+        .insert(payload)
+        .select()
+        .single();
+
+      if (error) {
+        console.error(`[SyncManager] Supabase error for operation ${operation.id}:`, error);
+        return {
+          success: false,
+          operationId: operation.id,
+          error: error.message || error.code,
+          shouldRetry: this.shouldRetryError(error),
+        };
+      }
+
+      console.log(`[SyncManager] Salary synced successfully: ${data?.id}`);
+
+      // 🚀 Broadcast cross-tab
+      if (broadcastService.isSupported()) {
+        broadcastService.broadcast({
+          event: 'INSERT',
+          table: 'salaries',
+          barId: payload.bar_id,
+          data: data,
+        });
+      }
+
+      return {
+        success: true,
+        operationId: operation.id,
+      };
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      console.error(`[SyncManager] Exception syncing salary:`, errorMessage);
       return {
         success: false,
         operationId: operation.id,

@@ -72,6 +72,7 @@ export type UpdateReturnPayload = { id: string; updates: TableUpdate<'returns'> 
 export type CreateConsignmentPayload = TableInsert<'consignments'>;
 export type UpdateConsignmentPayload = { id: string; status: string; updates?: TableUpdate<'consignments'> };
 export type AddExpensePayload = TableInsert<'expenses'>;
+export type AddSalaryPayload = TableInsert<'salaries'>;
 export type AddSupplyPayload = TableInsert<'supplies'>;
 export type UpdateProductPayload = { id: string; updates: TableUpdate<'bar_products'> };
 export type CreateProductPayload = TableInsert<'bar_products'>;
@@ -132,7 +133,8 @@ export type SyncOperationCreateReturn = SyncOperationBase & { type: 'CREATE_RETU
 export type SyncOperationUpdateReturn = SyncOperationBase & { type: 'UPDATE_RETURN'; payload: UpdateReturnPayload };
 export type SyncOperationCreateConsignment = SyncOperationBase & { type: 'CREATE_CONSIGNMENT'; payload: CreateConsignmentPayload };
 export type SyncOperationUpdateConsignment = SyncOperationBase & { type: 'CLAIM_CONSIGNMENT' | 'FORFEIT_CONSIGNMENT'; payload: UpdateConsignmentPayload };
-export type SyncOperationAddExpense = SyncOperationBase & { type: 'ADD_EXPENSE' | 'ADD_SALARY'; payload: AddExpensePayload };
+export type SyncOperationAddExpense = SyncOperationBase & { type: 'ADD_EXPENSE'; payload: AddExpensePayload };
+export type SyncOperationAddSalary = SyncOperationBase & { type: 'ADD_SALARY'; payload: AddSalaryPayload };
 export type SyncOperationAddSupply = SyncOperationBase & { type: 'ADD_SUPPLY'; payload: AddSupplyPayload };
 export type SyncOperationUpdateProduct = SyncOperationBase & { type: 'UPDATE_PRODUCT'; payload: UpdateProductPayload };
 export type SyncOperationCreateProduct = SyncOperationBase & { type: 'CREATE_PRODUCT'; payload: CreateProductPayload };
@@ -152,6 +154,7 @@ export type SyncOperation =
   | SyncOperationCreateConsignment
   | SyncOperationUpdateConsignment
   | SyncOperationAddExpense
+  | SyncOperationAddSalary
   | SyncOperationAddSupply
   | SyncOperationUpdateProduct
   | SyncOperationCreateProduct
