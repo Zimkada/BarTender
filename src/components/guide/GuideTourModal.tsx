@@ -169,7 +169,7 @@ export const GuideTourModal: React.FC = () => {
               {/* Content */}
               <motion.div
                 key={`step-${currentStepIndex}`}
-                className="flex-1 overflow-y-auto px-8 py-6 space-y-6 scrollbar-bottom"
+                className="flex-1 overflow-y-auto px-8 py-6 space-y-6 scrollbar-premium"
                 variants={contentVariants}
                 initial="hidden"
                 animate="visible"

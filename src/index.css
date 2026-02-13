@@ -248,10 +248,8 @@
    📜 UTILITIES
    ======================================== */
 
-/* Horizontal scrollbar at bottom */
+/* Horizontal scrollbar styling (can be combined with overflow-x-auto) */
 .scrollbar-bottom {
-  overflow-x: auto;
-  overflow-y: hidden;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: #9ca3af #f3f4f6;
@@ -272,6 +270,29 @@
 
 .scrollbar-bottom::-webkit-scrollbar-thumb:hover {
   background: #6b7280;
+}
+
+/* Premium Vertical Scrollbar (Vision 2026) */
+.scrollbar-premium {
+  scrollbar-width: thin;
+  scrollbar-color: hsla(var(--brand-hue), var(--brand-saturation), 45%, 0.3) transparent;
+}
+
+.scrollbar-premium::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-premium::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-premium::-webkit-scrollbar-thumb {
+  background: hsla(var(--brand-hue), var(--brand-saturation), 45%, 0.2);
+  border-radius: 10px;
+}
+
+.scrollbar-premium::-webkit-scrollbar-thumb:hover {
+  background: hsla(var(--brand-hue), var(--brand-saturation), 45%, 0.4);
 }
 
 .cyber-button-shadow {
