@@ -50,7 +50,7 @@ const OWNER_REDIRECT_STEPS: Record<string, RedirectStepConfig> = {
     icon: '🍻',
     targetRoute: '/inventory?mode=onboarding&task=add-products&tab=operations', // Fixed to operations where "Add Product" button is located
     completionCheck: OnboardingCompletionService.checkProductsAdded,
-    isMandatory: true,
+    isMandatory: false, // Modification: Rendre non obligatoire pour permettre de passer
     delegationHint: 'Vous pouvez aussi demander à votre gérant de faire cette tâche',
   },
   [OnboardingStep.OWNER_STOCK_INIT]: {

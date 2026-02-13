@@ -74,7 +74,7 @@ export const ManagerTourStep: React.FC = () => {
         break;
       case 'sim_success':
         title = "Vente Réussie !";
-        subtitle = "Mapping parfait, Afi peut être fière.";
+        subtitle = "Liaison parfaite, Afi peut être fière.";
         break;
       case 'full_intro':
       case 'full_validate':
@@ -89,16 +89,18 @@ export const ManagerTourStep: React.FC = () => {
         break;
     }
 
+    const isSimulation = phase.startsWith('sim') || phase.startsWith('full');
+
     return (
-      <div className={`p-8 text-center transition-all duration-700 bg-[image:var(--brand-gradient)] relative overflow-hidden`}>
+      <div className={`${isSimulation ? 'p-6 py-4' : 'p-8'} text-center transition-all duration-700 bg-[image:var(--brand-gradient)] relative overflow-hidden`}>
         {/* Animated background element */}
         <motion.div
           animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0] }}
           transition={{ duration: 20, repeat: Infinity }}
           className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"
         />
-        <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-3 tracking-tight drop-shadow-sm">{title}</h1>
-        <p className="text-white/90 text-lg font-medium max-w-lg mx-auto leading-relaxed">{subtitle}</p>
+        <h1 className={`${isSimulation ? 'text-xl md:text-2xl' : 'text-2xl md:text-4xl'} font-extrabold text-white mb-2 tracking-tight drop-shadow-sm`}>{title}</h1>
+        <p className={`text-white/90 ${isSimulation ? 'text-xs md:text-sm' : 'text-sm md:text-lg'} font-medium max-w-lg mx-auto leading-relaxed`}>{subtitle}</p>
       </div>
     );
   };
@@ -106,7 +108,7 @@ export const ManagerTourStep: React.FC = () => {
   // --- SCENARIO 1: SIMPLIFIED MODE ---
   const renderSimplifiedScenario = () => {
     return (
-      <div className="flex flex-col h-full py-4 text-center">
+      <div className="flex flex-col h-full py-4 text-center justify-center">
         <AnimatePresence mode="wait">
           {phase === 'sim_intro' && (
             <motion.div
@@ -120,22 +122,22 @@ export const ManagerTourStep: React.FC = () => {
                 <ShoppingCart className="text-[hsl(var(--brand-hue),var(--brand-saturation),60%)] w-10 h-10" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-bold text-gray-900">Le Mode Simplifié</h3>
-                <p className="text-gray-600 max-w-sm mx-auto leading-relaxed">
+                <h3 className="text-xl md:text-2xl font-bold text-gray-900">Le Mode Simplifié</h3>
+                <p className="text-sm md:text-gray-600 max-w-sm mx-auto leading-relaxed px-4 md:px-0">
                   Centralisez tout sur un seul appareil. Idéal si vos serveurs n'ont pas de smartphone ou pour un service rapide au comptoir.
                 </p>
               </div>
               <div className="bg-white p-4 rounded-xl shadow-sm border border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] flex items-start gap-3 text-left max-w-sm mx-auto">
                 <ShieldCheck className="text-[hsl(var(--brand-hue),var(--brand-saturation),50%)] shrink-0 mt-1" size={20} />
                 <p className="text-sm text-[hsl(var(--brand-hue),var(--brand-saturation),30%)]">
-                  Le <strong>Mapping</strong> est le "pont" : il lie les noms de serveurs que vous sélectionnez au comptoir aux comptes réels des serveurs pour le calcul automatique du CA.
+                  Le <strong>Nom d'affichage</strong> est le "pont" : il lie les noms de serveurs que vous sélectionnez au comptoir aux comptes réels des serveurs pour le calcul automatique du CA.
                 </p>
               </div>
               <button
                 onClick={() => setPhase('sim_mapping')}
                 className="group px-8 py-3 bg-[image:var(--brand-gradient)] text-white rounded-xl font-bold hover:brightness-110 transition-all shadow-lg hover:shadow-[hsl(var(--brand-hue),var(--brand-saturation),50%)]/40 flex items-center gap-2 mx-auto"
               >
-                Maîtriser le Mapping <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                Comprendre le "Nom d'affichage" <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </button>
             </motion.div>
           )}
@@ -148,18 +150,18 @@ export const ManagerTourStep: React.FC = () => {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
-              <GlassCard className="p-6 max-w-sm mx-auto">
+              <GlassCard className="p-6 max-w-md mx-auto">
                 <h4 className="font-bold text-gray-800 mb-2 text-sm uppercase tracking-widest flex items-center justify-center gap-2">
-                  <Zap size={14} className="text-[hsl(var(--brand-hue),var(--brand-saturation),50%)]" /> Le Mapping des Serveurs
+                  <Zap size={14} className="text-[hsl(var(--brand-hue),var(--brand-saturation),50%)]" /> Le Nom d'affichage
                 </h4>
                 <div className="mb-6 p-2 bg-[hsl(var(--brand-hue),var(--brand-saturation),95%)] rounded-lg border border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] flex flex-col items-center gap-1">
                   <div className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),50%)] animate-pulse" />
-                    <span className="text-[10px] font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),60%)] uppercase">Paramètres &gt; Onglet Gestion</span>
+                    <span className="text-[10px] font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),60%)] uppercase">Paramètres &gt; Onglet Configuration de gestion</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--brand-hue),var(--brand-saturation),50%)] animate-pulse" />
-                    <span className="text-[10px] font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),60%)] uppercase">Gestion Équipe &gt; Onglet Caisses</span>
+                    <span className="text-[10px] font-bold text-[hsl(var(--brand-hue),var(--brand-saturation),60%)] uppercase">Gestion d'équipe &gt; Onglet Nom sur vente</span>
                   </div>
                 </div>
                 <div className="space-y-3">
@@ -200,7 +202,7 @@ export const ManagerTourStep: React.FC = () => {
               key="sim-action"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="w-full max-w-sm mx-auto"
+              className="w-full max-w-md mx-auto"
             >
               <div className="bg-white border-2 border-[hsl(var(--brand-hue),var(--brand-saturation),90%)] rounded-3xl shadow-2xl overflow-hidden">
                 <div className="bg-[hsl(var(--brand-hue),var(--brand-saturation),95%)]/50 p-4 border-b flex justify-between items-center">
@@ -310,7 +312,7 @@ export const ManagerTourStep: React.FC = () => {
   // --- SCENARIO 2: FULL MODE (Pending Orders) ---
   const renderFullScenario = () => {
     return (
-      <div className="flex flex-col h-full py-4 text-center">
+      <div className="flex flex-col h-full py-4 text-center justify-center">
         <AnimatePresence mode="wait">
           {phase === 'full_intro' && (
             <motion.div
@@ -348,7 +350,7 @@ export const ManagerTourStep: React.FC = () => {
               key="full-action"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="w-full max-w-sm mx-auto space-y-4"
+              className="w-full max-w-md mx-auto space-y-4"
             >
               <div className="bg-gray-100/50 p-3 rounded-xl border border-dashed border-gray-300 flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">
                 <Zap size={10} /> Tableau de Bord / Commandes
@@ -456,8 +458,8 @@ export const ManagerTourStep: React.FC = () => {
                     🏆
                   </motion.div>
                   <div className="space-y-2">
-                    <h2 className="text-3xl font-black text-gray-900">Félicitations !</h2>
-                    <p className="text-gray-500 font-medium">
+                    <h2 className="text-2xl md:text-3xl font-black text-gray-900">Félicitations !</h2>
+                    <p className="text-sm md:text-gray-500 font-medium px-4 md:px-0">
                       Vous avez complété votre formation avec succès. Votre bar est prêt pour l'excellence.
                     </p>
                   </div>
@@ -485,22 +487,22 @@ export const ManagerTourStep: React.FC = () => {
         <div className="p-6 md:p-10 bg-[hsl(var(--brand-hue),var(--brand-saturation),99%)] flex-1 relative">
           {phase === 'intro' && (
             <div className="flex flex-col items-center justify-center h-full space-y-10">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl px-4">
-                <GlassCard className="p-8 group border border-white/50 hover:border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] transition-all cursor-default relative overflow-hidden">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 w-full max-w-2xl px-4">
+                <GlassCard className="p-5 md:p-8 group border border-white/50 hover:border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] transition-all cursor-default relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                     <ShoppingCart size={80} />
                   </div>
-                  <div className="text-[hsl(var(--brand-hue),var(--brand-saturation),50%)] mb-3 text-2xl font-black tracking-tighter">1. MODE SIMPLIFIÉ</div>
-                  <p className="text-[hsl(var(--brand-hue),var(--brand-saturation),30%)] text-sm font-medium leading-relaxed">
+                  <div className="text-[hsl(var(--brand-hue),var(--brand-saturation),50%)] mb-2 md:mb-3 text-xl md:text-2xl font-black tracking-tighter uppercase">1. MODE SIMPLIFIÉ</div>
+                  <p className="text-[hsl(var(--brand-hue),var(--brand-saturation),30%)] text-xs md:text-sm font-medium leading-relaxed">
                     Tout le monde utilise le même appareil (caisse centrale). Vous sélectionnez manuellement qui a vendu.
                   </p>
                 </GlassCard>
-                <GlassCard className="p-8 group border border-white/50 hover:border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] transition-all cursor-default relative overflow-hidden">
+                <GlassCard className="p-5 md:p-8 group border border-white/50 hover:border-[hsl(var(--brand-hue),var(--brand-saturation),60%)] transition-all cursor-default relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                     <ShieldCheck size={80} />
                   </div>
-                  <div className="text-[hsl(var(--brand-hue),var(--brand-saturation),50%)] mb-3 text-2xl font-black tracking-tighter">2. MODE COMPLET</div>
-                  <p className="text-[hsl(var(--brand-hue),var(--brand-saturation),30%)] text-sm font-medium leading-relaxed">
+                  <div className="text-[hsl(var(--brand-hue),var(--brand-saturation),50%)] mb-2 md:mb-3 text-xl md:text-2xl font-black tracking-tighter uppercase">2. MODE COMPLET</div>
+                  <p className="text-[hsl(var(--brand-hue),var(--brand-saturation),30%)] text-xs md:text-sm font-medium leading-relaxed">
                     Chaque serveur a son propre accès. Vous recevez, validez ou rejetez leurs commandes depuis votre poste.
                   </p>
                 </GlassCard>

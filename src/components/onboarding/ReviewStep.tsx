@@ -7,6 +7,7 @@ import { useBar } from '../../context/BarContext';
 import { LoadingButton } from '../ui/LoadingButton';
 import { OnboardingService } from '../../services/supabase/onboarding.service';
 import { supabase } from '../../lib/supabase';
+import { formatAddress } from '../../utils/stringFormatting';
 
 
 export const ReviewStep: React.FC = () => {
@@ -160,9 +161,9 @@ export const ReviewStep: React.FC = () => {
     <div className="w-full max-w-2xl mx-auto px-4">
       <div className="bg-white rounded-lg shadow-md p-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Prêt à Lancer ?</h1>
-          <p className="mt-2 text-gray-600">
+        <div className="mb-8 p-6 md:p-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Prêt à Lancer ?</h1>
+          <p className="mt-2 text-sm md:text-base text-gray-600">
             Vérifiez votre configuration et lancez votre bar
           </p>
         </div>
@@ -185,7 +186,7 @@ export const ReviewStep: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs font-medium text-gray-600">Localisation</p>
-                  <p className="text-sm text-gray-900">{barDetails?.location || currentBar?.address || 'N/A'}</p>
+                  <p className="text-sm text-gray-900">{formatAddress(barDetails?.location || currentBar?.address || 'N/A')}</p>
                 </div>
                 <div>
                   <p className="text-xs font-medium text-gray-600">Mode</p>
