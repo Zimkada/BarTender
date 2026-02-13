@@ -261,19 +261,25 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
 
                 {/* Grid */}
                 <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 flex-1 content-start">
-                    {displayItems.map((item: any) => {
-                        const qty = getDraftQuantity(item.product_id || item.productId);
+                    {displayItems.map((item) => {
+                        // Mapping explicite des IDs pour éviter confusion entre stats et produits bruts
+                        const pid = item.product_id;
+                        const pname = item.product_name;
+                        const pvol = item.product_volume;
+                        const pstock = item.current_stock;
+
+                        const qty = getDraftQuantity(pid);
                         const isSelected = qty > 0;
 
-                        const stockInfo = getProductStockInfo(item.product_id);
-                        const availableStock = stockInfo?.availableStock ?? item.current_stock;
+                        const stockInfo = getProductStockInfo(pid);
+                        const availableStock = stockInfo?.availableStock ?? pstock;
                         const suggestion = ForecastingService.calculateOrderSuggestion(item, coverageDays, availableStock);
                         const hasSuggestion = suggestion.suggestedQuantity > 0;
 
                         return (
                             <motion.div
                                 layout
-                                key={item.product_id || item.productId}
+                                key={pid}
                                 className={cn(
                                     "p-4 rounded-2xl border transition-all relative overflow-hidden group hover:shadow-md",
                                     isSelected
@@ -288,8 +294,8 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
                                 )}
 
                                 <div className="mb-3">
-                                    <h4 className="font-bold text-gray-900 line-clamp-1">{item.product_name || item.productName}</h4>
-                                    <p className="text-xs text-gray-500">{item.product_volume || item.productVolume}</p>
+                                    <h4 className="font-bold text-gray-900 line-clamp-1">{pname}</h4>
+                                    <p className="text-xs text-gray-500">{pvol}</p>
                                 </div>
 
                                 {/* Suggestion Badge */}
@@ -323,7 +329,7 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
                                         {isSelected ? (
                                             <>
                                                 <button
-                                                    onClick={() => handleDecrement(item.product_id || item.productId)}
+                                                    onClick={() => handleDecrement(pid)}
                                                     className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-gray-100 text-gray-600 active:scale-95 transition-transform"
                                                 >
                                                     <Minus size={14} />

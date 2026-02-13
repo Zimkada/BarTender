@@ -255,11 +255,21 @@ export function OrderFinalization() {
                                         />
                                     </td>
                                     <td className="px-4 py-4 text-right font-bold text-gray-900">
-                                        {formatPrice(
-                                            (item.lotPrice > 0 && item.lotSize > 0)
+                                        {(() => {
+                                            const total = (item.lotPrice > 0 && item.lotSize > 0)
                                                 ? (item.quantity / item.lotSize) * item.lotPrice
-                                                : item.quantity * item.unitPrice
-                                        )}
+                                                : item.quantity * item.unitPrice;
+
+                                            if (total === 0) {
+                                                return (
+                                                    <div className="flex items-center justify-end gap-1 text-orange-500 font-medium">
+                                                        <AlertCircle className="w-4 h-4" />
+                                                        <span className="text-xs">Prix manquant</span>
+                                                    </div>
+                                                );
+                                            }
+                                            return formatPrice(total);
+                                        })()}
                                     </td>
                                     <td className="px-4 py-4">
                                         <button

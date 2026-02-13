@@ -27,25 +27,44 @@ export function useOrderDraft() {
     const [items, setItems] = useState<OrderDraftItem[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // Charger le brouillon au démarrage
+    // Charger le brouillon au démarrage & écouter les changements inter-onglets
     useEffect(() => {
         if (!barId) return;
 
-        try {
-            const savedDraft = localStorage.getItem(storageKey);
-            if (savedDraft) {
-                const parsed: OrderDraftState = JSON.parse(savedDraft);
-                // Optionnel: vérifier la validité / expiration du brouillon ici
-                setItems(parsed.items || []);
+        const loadFromStorage = () => {
+            try {
+                const savedDraft = localStorage.getItem(storageKey);
+                if (savedDraft) {
+                    const parsed: OrderDraftState = JSON.parse(savedDraft);
+                    setItems(parsed.items || []);
+                }
+            } catch (error) {
+                console.error('Erreur chargement brouillon:', error);
+            } finally {
+                setIsLoaded(true);
             }
-        } catch (error) {
-            console.error('Erreur lors du chargement du brouillon de commande:', error);
-        } finally {
-            setIsLoaded(true);
-        }
+        };
+
+        // Chargement initial
+        loadFromStorage();
+
+        // Écouteur pour la synchro multi-onglets
+        const handleStorageChange = (e: StorageEvent) => {
+            if (e.key === storageKey && e.newValue) {
+                // On ne charge que si la valeur a changé et n'est pas nulle
+                const parsed: OrderDraftState = JSON.parse(e.newValue);
+                setItems(parsed.items || []);
+            } else if (e.key === storageKey && !e.newValue) {
+                // Si la clé a été supprimée (clearDraft dans un autre onglet)
+                setItems([]);
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
     }, [barId, storageKey]);
 
-    // Sauvegarder automatiquement lors des changements
+    // Sauvegarder automatiquement lors des changements (sans déclencher de boucle infinie locale)
     useEffect(() => {
         if (!barId || !isLoaded) return;
 
@@ -60,7 +79,6 @@ export function useOrderDraft() {
         setItems(prev => {
             const existingIndex = prev.findIndex(i => i.productId === newItem.productId);
             if (existingIndex >= 0) {
-                // Mise à jour si existe déjà
                 const updated = [...prev];
                 updated[existingIndex] = {
                     ...updated[existingIndex],
@@ -72,7 +90,7 @@ export function useOrderDraft() {
             // Nouveau
             return [...prev, {
                 supplier: '',
-                lotSize: 24, // Défaut
+                lotSize: 24,
                 lotPrice: 0,
                 unitPrice: 0,
                 ...newItem
@@ -86,11 +104,35 @@ export function useOrderDraft() {
 
             const updatedItem = { ...item, ...updates };
 
-            // Recalcul automatique des prix cohérents si nécessaire
-            if (updates.lotPrice !== undefined && updatedItem.lotSize > 0) {
-                updatedItem.unitPrice = updatedItem.lotPrice / updatedItem.lotSize;
-            } else if (updates.unitPrice !== undefined) {
-                updatedItem.lotPrice = updatedItem.unitPrice * updatedItem.lotSize;
+            // --- LOGIQUE DE COHÉRENCE DES PRIX ---
+            // Règle d'Or : Le Prix Unitaire est la base, sauf si on modifie explicitement le Prix du Lot.
+
+            // Cas 1 : Modification de la TAILLE DU LOT
+            // -> On recalcule le Prix du Lot (Prix Lot = Prix Unitaire * Taille Lot)
+            // -> On garde le Prix Unitaire constant (c'est la constante physique du produit)
+            if (updates.lotSize !== undefined) {
+                const newSize = updates.lotSize;
+                if (newSize > 0) {
+                    updatedItem.lotPrice = updatedItem.unitPrice * newSize;
+                } else {
+                    updatedItem.lotPrice = 0; // Taille invalide -> Prix lot invalide
+                }
+            }
+            // Cas 2 : Modification du PRIX DU LOT
+            // -> On recalcule le Prix Unitaire (Prix Unitaire = Prix Lot / Taille Lot)
+            else if (updates.lotPrice !== undefined) {
+                const newLotPrice = updates.lotPrice;
+                if (updatedItem.lotSize > 0) {
+                    updatedItem.unitPrice = newLotPrice / updatedItem.lotSize;
+                }
+            }
+            // Cas 3 : Modification du PRIX UNITAIRE
+            // -> On recalcule le Prix du Lot (Prix Lot = Prix Unitaire * Taille Lot)
+            else if (updates.unitPrice !== undefined) {
+                const newUnitPrice = updates.unitPrice;
+                if (updatedItem.lotSize > 0) {
+                    updatedItem.lotPrice = newUnitPrice * updatedItem.lotSize;
+                }
             }
 
             return updatedItem;
