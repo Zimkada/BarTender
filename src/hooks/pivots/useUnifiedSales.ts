@@ -10,6 +10,8 @@ import { useSales, salesKeys } from '../queries/useSalesQueries';
 import { offlineQueue } from '../../services/offlineQueue';
 import { syncManager } from '../../services/SyncManager';
 import { useSalesMutations } from '../mutations/useSalesMutations';
+import { useBarContext } from '../../context/BarContext';
+import { getCurrentBusinessDateString } from '../../utils/businessDateHelpers';
 import type { Sale, SaleItem } from '../../types';
 
 /**
@@ -28,11 +30,38 @@ export interface UnifiedSale extends Omit<Sale, 'createdAt' | 'validatedAt' | 'r
     rejectedAt?: Date | string;
 }
 
-export const useUnifiedSales = (barId: string | undefined) => {
+export const useUnifiedSales = (barId: string | undefined, searchTerm?: string) => {
     const queryClient = useQueryClient();
+    const { currentBar } = useBarContext();
 
-    // 1. Ventes Online (via React Query)
-    const { data: onlineSales = [], isLoading: isLoadingOnline } = useSales(barId);
+    // 🔴 LOGIQUE DE TIERING (Certification Sécurité)
+    const salesOptions = useMemo(() => {
+        // ✨ NOUVEAU: Recherche "Backend-Failover" (Certification Perfection)
+        // Si on a un terme de recherche (min 3 caractères), on ignore les tiers pour chercher partout
+        if (searchTerm && searchTerm.length >= 3) {
+            return { searchTerm };
+        }
+
+        if (!currentBar?.settings?.dataTier || currentBar.settings.dataTier === 'lite') {
+            return undefined;
+        }
+
+        const now = new Date();
+        if (currentBar.settings.dataTier === 'balanced') {
+            // 6 mois glissants
+            now.setMonth(now.getMonth() - 6);
+        } else if (currentBar.settings.dataTier === 'enterprise') {
+            // 30 jours glissants
+            now.setDate(now.getDate() - 30);
+        }
+
+        return {
+            startDate: now.toISOString().split('T')[0]
+        };
+    }, [currentBar?.settings?.dataTier, searchTerm]);
+
+    // 1. Ventes Online (via React Query) avec options de tiering
+    const { data: onlineSales = [], isLoading: isLoadingOnline } = useSales(barId, salesOptions);
 
     // 2. Ventes Offline (via IndexedDB)
     const { data: offlineSales = [], refetch: refetchOffline, isLoading: isLoadingOffline } = useQuery({
@@ -132,7 +161,9 @@ export const useUnifiedSales = (barId: string | undefined) => {
      * 📊 STATISTIQUES CONSOLIDÉES
      */
     const stats = useMemo(() => {
-        const today = new Date().toISOString().split('T')[0];
+        // ✨ FIX: Utiliser la date commerciale (respectant l'heure de clôture)
+        // Sinon les ventes après minuit ne sont pas comptées dans "Aujourd'hui"
+        const today = getCurrentBusinessDateString(currentBar?.closingHour);
 
         const todaySales = unifiedSales.filter((s: any) => {
             // Helper pour extraire la date YYYY-MM-DD
@@ -144,9 +175,8 @@ export const useUnifiedSales = (barId: string | undefined) => {
             };
 
             const bDate = getDay(s.business_date || s.businessDate);
-            const cDate = getDay(s.created_at || s.createdAt);
-
-            return bDate === today || cDate === today;
+            // Comparaison sur date commerciale
+            return bDate === today;
         });
 
         const totalRevenue = todaySales.reduce((sum, s) => sum + s.total, 0);

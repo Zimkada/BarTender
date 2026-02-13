@@ -28,7 +28,7 @@ export const salesKeys = {
     stats: (barId: string) => [...salesKeys.all, 'stats', barId] as const,
 };
 
-export const useSales = (barId: string | undefined) => {
+export const useSales = (barId: string | undefined, options?: { startDate?: string; endDate?: string; searchTerm?: string }) => {
     const isEnabled = !!barId;
 
     // 🔧 PHASE 1-2: SmartSync pour sales (INSERT car nouvelles ventes)
@@ -46,11 +46,11 @@ export const useSales = (barId: string | undefined) => {
     });
 
     return useQuery({
-        queryKey: salesKeys.list(barId || '') as any,
+        queryKey: [...salesKeys.list(barId || ''), options] as any,
         networkMode: 'always', // 🛡️ CRITIQUE: Permet l'accès au cache même offline
         queryFn: async (): Promise<Sale[]> => {
             if (!barId) return [];
-            const dbSales = await SalesService.getBarSales(barId);
+            const dbSales = await SalesService.getBarSales(barId, options);
             // Plus besoin de cast complexe, getBarSales retourne DBSale[]
             return mapSalesData(dbSales);
         },
@@ -64,7 +64,7 @@ export const useSales = (barId: string | undefined) => {
 
 // Helper to map DB sales to frontend type
 // 🛡️ Fix V12: Typed input instead of any[]
-const mapSalesData = (dbSales: DBSale[]): Sale[] => {
+export const mapSalesData = (dbSales: DBSale[]): Sale[] => {
     return dbSales.map(s => {
         // 🛡️ Validation Runtime des items (Critical Path)
         // On sécurise les items mal formés qui pourraient crasher l'UI

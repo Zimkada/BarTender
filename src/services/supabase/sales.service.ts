@@ -356,6 +356,7 @@ export class SalesService {
     status?: string;
     startDate?: string;
     endDate?: string;
+    searchTerm?: string; // ✨ NOUVEAU: Recherche textuelle
     limit?: number;
     offset?: number;
   }): Promise<DBSale[]> {
@@ -372,6 +373,14 @@ export class SalesService {
     if (options?.status) query = query.eq('status', options.status);
     if (options?.startDate) query = query.gte('business_date', options.startDate);
     if (options?.endDate) query = query.lte('business_date', options.endDate);
+
+    // ✨ NOUVEAU: Recherche textuelle (Failover)
+    if (options?.searchTerm) {
+      const term = `%${options.searchTerm}%`;
+      // Recherche sur ID, nom du client ou notes
+      query = query.or(`id.ilike.${term},customer_name.ilike.${term},notes.ilike.${term}`);
+    }
+
     if (options?.limit) query = query.limit(options.limit);
     if (options?.offset) query = query.range(options.offset, options.offset + (options.limit || 50) - 1);
 
