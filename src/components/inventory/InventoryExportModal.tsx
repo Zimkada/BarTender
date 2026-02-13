@@ -6,6 +6,8 @@ import { useInventoryExport } from '../../hooks/useInventoryExport';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
+import { useBarContext } from '../../context/BarContext';
+import { getCurrentBusinessDateString } from '../../utils/businessDateHelpers';
 
 interface InventoryExportModalProps {
     isOpen: boolean;
@@ -26,8 +28,9 @@ export function InventoryExportModal({
     categories,
     getStockInfo
 }: InventoryExportModalProps) {
+    const { currentBar } = useBarContext();
     const [mode, setMode] = useState<'current' | 'historical'>('current');
-    const [targetDate, setTargetDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [targetDate, setTargetDate] = useState<string>(getCurrentBusinessDateString(currentBar?.closingHour));
     const [targetTime, setTargetTime] = useState<string>('06:00');
 
     const { exportToExcel, isExporting } = useInventoryExport({
@@ -144,7 +147,7 @@ export function InventoryExportModal({
                                 <label className="text-xs font-medium text-gray-600">Date Cible</label>
                                 <input
                                     type="date"
-                                    max={new Date().toISOString().split('T')[0]} // ✅ Bloquer dates futures
+                                    max={getCurrentBusinessDateString(currentBar?.closingHour)} // ✅ Bloquer dates futures
                                     value={targetDate}
                                     onChange={(e) => setTargetDate(e.target.value)}
                                     className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"

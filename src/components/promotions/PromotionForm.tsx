@@ -18,6 +18,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
+import { getCurrentBusinessDateString } from '../../utils/businessDateHelpers';
 
 interface PromotionFormProps {
     isOpen: boolean;
@@ -37,7 +38,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [type, setType] = useState<PromotionType>('reduction_produit');
-    const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+    const [startDate, setStartDate] = useState(getCurrentBusinessDateString(currentBar?.closingHour));
     const [endDate, setEndDate] = useState('');
 
     // Values
@@ -79,7 +80,7 @@ export function PromotionForm({ isOpen, onClose, onSave, promotion, onCancel }: 
         setName('');
         setDescription('');
         setType('reduction_produit');
-        setStartDate(new Date().toISOString().split('T')[0]);
+        setStartDate(getCurrentBusinessDateString(currentBar?.closingHour));
         setEndDate('');
         setDiscountPercentage(10);
         setDiscountAmount(0);

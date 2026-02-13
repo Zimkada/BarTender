@@ -11,7 +11,7 @@ import { getCurrentBusinessDateString } from '../utils/businessDateHelpers';
 import { isConfirmedReturn } from '../utils/saleHelpers'; // 🛡️ FIX P1: Import helper
 import { AnalyticsService } from '../services/supabase/analytics.service';
 import { useQuery } from '@tanstack/react-query';
-import type { Sale, SaleItem, Consignment } from '../types';
+import type { Sale, SaleItem } from '../types';
 
 export function useDashboardAnalytics(currentBarId: string | undefined) {
     const { currentSession } = useAuth();
@@ -19,7 +19,7 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
 
     // 🚀 Smart Hooks (Elite Mission) - Complete Migration
     const { allProductsStockInfo, consignments, products } = useUnifiedStock(currentBarId);
-    const { sales: unifiedSales, stats: salesStats } = useUnifiedSales(currentBarId);
+    const { sales: unifiedSales } = useUnifiedSales(currentBarId);
     const { getTodayReturns } = useUnifiedReturns(currentBarId, currentBar?.closingHour);
 
     // Bar Members for users data
@@ -31,7 +31,7 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
     })), [barMembers]);
 
     // Dates
-    const todayDateStr = useMemo(() => getCurrentBusinessDateString(), []);
+    const todayDateStr = useMemo(() => getCurrentBusinessDateString(currentBar?.closingHour), [currentBar?.closingHour]);
 
     // Role helpers
     const isServerRole = currentSession?.role === 'serveur';
@@ -52,11 +52,25 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
     const todayReturns = getTodayReturns();
 
     // 3. Filtered Data per Role (Restricted to TODAY'S sales via salesStats.sales)
-    const todaySales = salesStats.sales;
+    const todaySales = useMemo(() => {
+        return unifiedSales.filter((s: any) => {
+            // Helper pour extraire la date YYYY-MM-DD
+            const getDay = (date: any) => {
+                if (!date) return '';
+                if (typeof date === 'string') return date.split('T')[0];
+                if (date instanceof Date) return date.toISOString().split('T')[0];
+                return '';
+            };
+
+            const bDate = getDay(s.business_date || s.businessDate);
+            // 🛡️ FIX P1: Comparer avec la date COMMERCIALE (todayDateStr) et non calendaire
+            return bDate === todayDateStr;
+        });
+    }, [unifiedSales, todayDateStr]);
 
     const serverFilteredSales = useMemo(() => {
         if (!isServerRole) return todaySales;
-        return (todaySales || []).filter(s => (s?.soldBy || s?.sold_by) === currentUserId);
+        return (todaySales || []).filter(s => s.soldBy === currentUserId);
     }, [todaySales, isServerRole, currentUserId]);
 
     const serverFilteredReturns = useMemo(() => {
@@ -84,10 +98,10 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
             if (!isServerRole) return true;
 
             // Servers see only their own recent sales
-            const isOwn = (s?.soldBy || s?.sold_by) === currentUserId;
+            const isOwn = s.soldBy === currentUserId;
             if (!isOwn) return false;
 
-            const time = new Date(s?.created_at || s?.createdAt).getTime();
+            const time = new Date(s.createdAt).getTime();
             return (now - time) < TEN_MINUTES_MS;
         });
     }, [unifiedSales, isServerRole, currentUserId]);

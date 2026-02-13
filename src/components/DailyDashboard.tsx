@@ -60,7 +60,9 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
 
   const exportToWhatsApp = () => {
     const barName = currentBar?.name || 'Mon Bar';
-    const dateStr = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    const dateStr = analytics.todayDateStr
+      ? new Date(analytics.todayDateStr).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+      : new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
     let msg = `*RAPPORT JOURNALIER - ${barName.toUpperCase()}*\n`;
     msg += `_${dateStr}_\n\n`;

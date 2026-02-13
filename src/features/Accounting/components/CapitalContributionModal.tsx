@@ -6,6 +6,8 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { useCurrencyFormatter } from '../../../hooks/useBeninCurrency';
 import { CapitalSource } from '../../../types';
+import { useBarContext } from '../../../context/BarContext';
+import { getCurrentBusinessDateString } from '../../../utils/businessDateHelpers';
 
 interface CapitalContributionModalProps {
     open: boolean;
@@ -20,10 +22,11 @@ export const CapitalContributionModal: React.FC<CapitalContributionModalProps> =
     onSubmit,
     existingContributions
 }) => {
+    const { currentBar } = useBarContext();
     const { formatPrice } = useCurrencyFormatter();
     const [form, setForm] = React.useState({
         amount: '',
-        date: new Date().toISOString().split('T')[0],
+        date: getCurrentBusinessDateString(currentBar?.closingHour),
         description: '',
         source: 'owner' as CapitalSource,
         sourceDetails: ''
@@ -34,7 +37,7 @@ export const CapitalContributionModal: React.FC<CapitalContributionModalProps> =
         // Reset form handled by parent typically, but we can reset here on close/submit if needed
         setForm({
             amount: '',
-            date: new Date().toISOString().split('T')[0],
+            date: getCurrentBusinessDateString(currentBar?.closingHour),
             description: '',
             source: 'owner',
             sourceDetails: ''

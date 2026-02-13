@@ -8,6 +8,8 @@ import { Textarea } from '../../../components/ui/Textarea';
 import { Label } from '../../../components/ui/Label';
 import { ExpenseCategory } from '../../../types';
 import { EXPENSE_CATEGORY_LABELS } from '../../../hooks/useExpenses';
+import { useBarContext } from '../../../context/BarContext';
+import { getCurrentBusinessDateString } from '../../../utils/businessDateHelpers';
 
 interface ExpenseFormModalProps {
     open: boolean;
@@ -22,11 +24,12 @@ export const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({
     onSubmit,
     customCategories
 }) => {
+    const { currentBar } = useBarContext();
     const [form, setForm] = React.useState({
         amount: '',
         category: 'water' as ExpenseCategory,
         customCategoryId: '',
-        date: new Date().toISOString().split('T')[0],
+        date: getCurrentBusinessDateString(currentBar?.closingHour),
         notes: ''
     });
 
@@ -37,7 +40,7 @@ export const ExpenseFormModal: React.FC<ExpenseFormModalProps> = ({
             amount: '',
             category: 'water',
             customCategoryId: '',
-            date: new Date().toISOString().split('T')[0],
+            date: getCurrentBusinessDateString(currentBar?.closingHour),
             notes: ''
         });
     };
