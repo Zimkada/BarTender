@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
     Search,
     Download,
@@ -44,9 +44,8 @@ type ViewMode = 'list' | 'cards' | 'analytics';
  */
 export default function SalesHistoryPage() {
     const { currentBar } = useBarContext();
-    const { sales } = useUnifiedSales(currentBar?.id);
     const { products, categories, consignments } = useUnifiedStock(currentBar?.id);
-    const { returns, getReturnsBySale: getReturnsBySaleFromHook } = useUnifiedReturns(currentBar?.id, currentBar?.closingHour);
+    const { returns: unifiedReturns, getReturnsBySale: getReturnsBySaleFromHook } = useUnifiedReturns(currentBar?.id, currentBar?.closingHour);
     const { barMembers } = useBarContext();
     const { formatPrice } = useCurrencyFormatter();
     const { currentSession } = useAuth();
@@ -71,15 +70,21 @@ export default function SalesHistoryPage() {
             .filter((u): u is User => !!u);
     }, [safeBarMembers]);
 
-    const [viewMode, setViewMode] = useState<ViewMode>('list');
+    const [viewMode, setViewMode] = useState<ViewMode>(isMobile ? 'cards' : 'analytics');
     const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
     const [exportFormat, setExportFormat] = useState<'csv' | 'excel'>('excel');
+    const [serverSearchTerm, setServerSearchTerm] = useState<string>(''); // ✨ NOUVEAU: Failover Search
 
-    // Permission: annulation de ventes
     const canCancelSales = currentSession
         ? getPermissionsByRole(currentSession.role).canCancelSales
         : false;
-    const [statusFilter, setStatusFilter] = useState<'validated' | 'rejected' | 'cancelled'>('validated');
+    const [statusFilter, setStatusFilter] = useState<'validated' | 'rejected' | 'cancelled' | 'all'>('validated');
+
+    // ✨ NOUVEAU: Ventes & Retours Unifiés (Certification Perfection)
+    const {
+        sales: unifiedSales,
+        isLoading: isLoadingSales
+    } = useUnifiedSales(currentBar?.id, serverSearchTerm);
 
     // HOOK: Filtrage (Ventes & Retours)
     const {
@@ -94,11 +99,11 @@ export default function SalesHistoryPage() {
         filteredSales,
         filteredReturns // ✨ MODE SWITCHING FIX: Get filtered returns from hook
     } = useSalesFilters({
-        sales: sales as any,
-        returns, // Pass returns to filter them by server
+        sales: unifiedSales as any, // Use unifiedSales
+        returns: unifiedReturns, // Use unifiedReturns
         currentSession,
         closeHour,
-        statusFilter
+        statusFilter // Pass 'all' directly to the hook
     });
 
     // ✨ Filter metrics for servers
@@ -112,10 +117,9 @@ export default function SalesHistoryPage() {
         setTopProductsLimit,
         topProductMetric,
         setTopProductMetric,
-        isLoadingTopProducts
+        isLoadingStats
     } = useSalesStats({
         filteredSales,
-        returns: filteredReturns, // ✨ MODE SWITCHING FIX: Use filtered returns instead of all returns
         timeRange,
         startDate,
         endDate,
@@ -127,14 +131,22 @@ export default function SalesHistoryPage() {
     const { exportSales } = useSalesExport({
         filteredSales: filteredSales as any,
         filteredReturns,
-        sales: sales as any,
-        returns,
+        sales: unifiedSales as any,
+        returns: unifiedReturns,
         products,
         categories,
         users: safeUsers,
-        barMembers: safeBarMembers
+        barMembers: safeBarMembers,
+        barId: currentBar?.id, // ✨ REQUIRED for integral export
+        startDate: startDate?.toISOString().split('T')[0],
+        endDate: endDate?.toISOString().split('T')[0],
+        statusFilter, // Pass 'all' directly to handle it inside the hook
     });
 
+    // ✨ Effacement automatique de la recherche serveur si on efface le terme
+    useEffect(() => {
+        if (!searchTerm) setServerSearchTerm('');
+    }, [searchTerm]);
 
     // Handler: annulation de vente
     const handleCancelSale = async (saleId: string, reason: string) => {
@@ -167,7 +179,11 @@ export default function SalesHistoryPage() {
                     subtitle={
                         <span>
                             Consultez l'historique détaillé de vos transactions et analysez la performance de votre établissement.
-                            {!isMobile && <span className="ml-2 text-brand-primary font-bold">• {filteredSales.length} ventes</span>}
+                            {!isMobile && (
+                                <span className="ml-2 text-brand-primary font-bold">
+                                    • {isLoadingStats ? '...' : stats.totalItems} ventes
+                                </span>
+                            )}
                         </span>
                     }
                     icon={<TrendingUp size={24} />}
@@ -212,6 +228,28 @@ export default function SalesHistoryPage() {
                     }
                 />
 
+                {/* ✨ SIGNALÉTIQUE DATA TIERS (Certification Perfection) */}
+                {currentBar?.settings?.dataTier && currentBar.settings.dataTier !== 'lite' && (
+                    <div className="bg-brand-primary/5 border-b border-brand-primary/10 px-4 py-2 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-[11px] text-brand-primary font-medium">
+                            <TrendingUp size={14} />
+                            <span>
+                                Affichage optimisé ({currentBar.settings.dataTier.toUpperCase()}) :
+                                {currentBar.settings.dataTier === 'balanced' ? ' 6 derniers mois' : ' 30 derniers jours'} chargés.
+                            </span>
+                        </div>
+                        <button
+                            onClick={() => {
+                                setTimeRange('last_365days');
+                                showSuccess('Chargement de l\'historique étendu...');
+                            }}
+                            className="text-[10px] bg-brand-primary text-white px-2 py-0.5 rounded hover:bg-brand-dark transition-colors font-bold uppercase"
+                        >
+                            Voir plus
+                        </button>
+                    </div>
+                )}
+
                 {/* ==================== FILTERS AREA ==================== */}
                 <div className="bg-white border-b border-gray-200 p-4 shadow-sm z-10" data-guide="sales-filters">
                     <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
@@ -226,6 +264,14 @@ export default function SalesHistoryPage() {
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="w-full pl-9 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                                 />
+                                {searchTerm && filteredSales.length === 0 && !isLoadingSales && serverSearchTerm !== searchTerm && (
+                                    <button
+                                        onClick={() => setServerSearchTerm(searchTerm)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] bg-brand-primary text-white px-2 py-0.5 rounded hover:bg-brand-dark transition-all animate-pulse"
+                                    >
+                                        Serveur ?
+                                    </button>
+                                )}
                             </div>
                             {/* Unified Period Filter */}
                             <PeriodFilter
@@ -246,10 +292,10 @@ export default function SalesHistoryPage() {
                                             <button
                                                 key={status}
                                                 onClick={() => setStatusFilter(status)}
-                                                className={`px-3 py-2 h-10 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all flex-1 min-w-[80px] ${statusFilter === status
+                                                className={`px - 3 py - 2 h - 10 rounded - xl text - [10px] font - black uppercase tracking - tight transition - all flex - 1 min - w - [80px] ${statusFilter === status
                                                     ? 'glass-action-button-active-2026 shadow-md shadow-brand-subtle'
                                                     : 'glass-action-button-2026 text-gray-400 hover:text-brand-primary'
-                                                    }`}
+                                                    } `}
                                             >
                                                 {labels[status]}
                                             </button>
@@ -267,13 +313,13 @@ export default function SalesHistoryPage() {
                                     <div className="flex bg-gray-100 rounded-lg p-1">
                                         <button
                                             onClick={() => setExportFormat('excel')}
-                                            className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${exportFormat === 'excel' ? 'bg-green-600 text-white shadow-md' : 'text-gray-500'}`}
+                                            className={`px - 3 py - 1 rounded - md text - [10px] font - bold transition - all ${exportFormat === 'excel' ? 'bg-green-600 text-white shadow-md' : 'text-gray-500'} `}
                                         >
                                             XLS
                                         </button>
                                         <button
                                             onClick={() => setExportFormat('csv')}
-                                            className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${exportFormat === 'csv' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500'}`}
+                                            className={`px - 3 py - 1 rounded - md text - [10px] font - bold transition - all ${exportFormat === 'csv' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500'} `}
                                         >
                                             CSV
                                         </button>
@@ -282,10 +328,10 @@ export default function SalesHistoryPage() {
                                     <Button
                                         onClick={() => exportSales(exportFormat)}
                                         size="sm"
-                                        className={`h-8 px-4 flex items-center gap-2 text-xs font-bold rounded-lg shadow-sm transition-all ${filteredSales.length === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${exportFormat === 'excel'
+                                        className={`h - 8 px - 4 flex items - center gap - 2 text - xs font - bold rounded - lg shadow - sm transition - all ${filteredSales.length === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${exportFormat === 'excel'
                                             ? 'bg-green-600 text-white hover:bg-green-700'
                                             : 'bg-blue-600 text-white hover:bg-blue-700'
-                                            }`}
+                                            } `}
                                     >
                                         <Download size={14} />
                                         Exporter
@@ -353,7 +399,7 @@ export default function SalesHistoryPage() {
                                         barMembers={safeBarMembers}
                                         timeRange={timeRange}
                                         isMobile={isMobile}
-                                        returns={returns}
+                                        returns={unifiedReturns}
                                         closeHour={closeHour}
                                         startDate={startDate}
                                         endDate={endDate}
@@ -361,7 +407,7 @@ export default function SalesHistoryPage() {
                                         setTopProductMetric={setTopProductMetric}
                                         topProductsLimit={topProductsLimit}
                                         setTopProductsLimit={setTopProductsLimit}
-                                        isLoadingTopProducts={isLoadingTopProducts}
+                                        isLoadingTopProducts={isLoadingStats}
                                         viewMode={viewMode}
                                     />
                                 </div>
