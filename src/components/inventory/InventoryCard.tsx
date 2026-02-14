@@ -35,7 +35,7 @@ export function InventoryCard({
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:border-amber-200 transition-colors">
             <div className="p-4 relative"> {/* Relative for absolute positioning */}
                 <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1 min-w-0 pr-8"> {/* Padding pour éviter overlap avec bouton centré */}
+                    <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                             <h2 className="font-bold text-gray-900 truncate">{product.name}</h2>
                         </div>
@@ -44,15 +44,6 @@ export function InventoryCard({
                             {categoryName}
                         </span>
                     </div>
-
-                    {/* ✨ Bouton Historique Centré (Design "Premium") */}
-                    <button
-                        onClick={() => onHistory(product)}
-                        className="absolute left-1/2 top-4 -translate-x-1/2 p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all"
-                        title="Voir historique"
-                    >
-                        <History size={18} />
-                    </button>
 
                     <div className="text-right">
                         <div className={`text-lg font-black ${isLowStock ? 'text-red-500' : 'text-gray-900'}`}>
@@ -97,6 +88,15 @@ export function InventoryCard({
                     >
                         <BarChart3 size={14} className="mr-1.5" />
                         Ajuster
+                    </Button>
+                    <Button
+                        onClick={() => onHistory(product)}
+                        variant="ghost"
+                        size="icon"
+                        className="text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+                        title="Voir historique"
+                    >
+                        <History size={16} />
                     </Button>
                     <Button
                         onClick={() => onDelete(product)}
