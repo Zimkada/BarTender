@@ -148,16 +148,16 @@ export function AnalyticsView({
     // 1. Calculer CA NET de la période actuelle (brut - retours remboursés)
     const currentRevenue = sales.reduce((sum, s) => {
       // Pour les stats, on ne compte que les ventes validées (ou optimistes qui le seront)
-      if (s.status !== 'validated' && !(s as any).isOptimistic) return sum;
+      if (s.status !== 'validated' && !s.isOptimistic) return sum;
       return sum + getSaleNetRevenue(s);
     }, 0);
 
     const currentItems = sales.reduce((sum, s) => {
-      if (s.status !== 'validated' && !(s as any).isOptimistic) return sum;
+      if (s.status !== 'validated' && !s.isOptimistic) return sum;
       return sum + s.items.reduce((itemSum, item) => itemSum + item.quantity, 0);
     }, 0);
 
-    const currentCount = sales.filter(s => s.status === 'validated' || (s as any).isOptimistic).length;
+    const currentCount = sales.filter(s => s.status === 'validated' || s.isOptimistic).length;
 
     // 2. Calculer CA NET de la période précédente (pour la tendance)
     const prevGrossRevenue = previousPeriodSales.reduce((sum, s) => sum + s.total, 0);
@@ -275,8 +275,8 @@ export function AnalyticsView({
       // Pro-rata du net sur les items (simplification: on applique le ratio net/brut à chaque item)
       const ratio = sale.total > 0 ? saleNet / sale.total : 0;
 
-      sale.items.forEach((item: any) => {
-        const productId = item.product?.id || item.product_id;
+      sale.items.forEach((item) => {
+        const productId = item.product_id;
         const product = (_products || []).find(p => p.id === productId);
         const categoryId = product?.categoryId;
 
