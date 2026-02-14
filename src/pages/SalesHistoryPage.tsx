@@ -16,6 +16,7 @@ import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 import { useFeedback } from '../hooks/useFeedback';
 import { DataFreshnessIndicatorCompact } from '../components/DataFreshnessIndicator';
+import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
 import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
 import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { SALES_HISTORY_FILTERS } from '../config/dateFilters';
@@ -79,21 +80,25 @@ export default function SalesHistoryPage() {
         ? getPermissionsByRole(currentSession.role).canCancelSales
         : false;
     const [statusFilter, setStatusFilter] = useState<'validated' | 'rejected' | 'cancelled' | 'all'>('validated');
+    const [isTieringIgnored, setIsTieringIgnored] = useState(false);
+
+    // ✨ NOUVEAU: Pilotage temporel centralisé (Certification Elite)
+    const dateFilter = useDateRangeFilter({
+        defaultRange: 'today',
+        includeBusinessDay: true,
+        closeHour
+    });
+
+    const { timeRange, setTimeRange, startDate, endDate, updateCustomRange, customRange } = dateFilter;
 
     // ✨ NOUVEAU: Ventes & Retours Unifiés (Certification Perfection)
     const {
         sales: unifiedSales,
         isLoading: isLoadingSales
-    } = useUnifiedSales(currentBar?.id, serverSearchTerm, timeRange);
+    } = useUnifiedSales(currentBar?.id, serverSearchTerm, timeRange, isTieringIgnored);
 
     // HOOK: Filtrage (Ventes & Retours)
     const {
-        timeRange,
-        setTimeRange,
-        startDate,
-        endDate,
-        updateCustomRange,
-        customRange,
         searchTerm,
         setSearchTerm,
         filteredSales,
@@ -103,7 +108,9 @@ export default function SalesHistoryPage() {
         returns: unifiedReturns, // Use unifiedReturns
         currentSession,
         closeHour,
-        statusFilter // Pass 'all' directly to the hook
+        statusFilter, // Pass 'all' directly to the hook
+        externalStartDate: startDate,
+        externalEndDate: endDate,
     });
 
     // ✨ Filter metrics for servers
@@ -148,6 +155,13 @@ export default function SalesHistoryPage() {
         if (!searchTerm) setServerSearchTerm('');
     }, [searchTerm]);
 
+    // ✨ Reset ignoreTiering if timeRange changes back to short periods
+    useEffect(() => {
+        if (timeRange && ['today', 'yesterday', 'last_7days', 'last_30days'].includes(timeRange)) {
+            setIsTieringIgnored(false);
+        }
+    }, [timeRange]);
+
     // Handler: annulation de vente
     const handleCancelSale = async (saleId: string, reason: string) => {
         try {
@@ -161,7 +175,7 @@ export default function SalesHistoryPage() {
     // ✨ FIX: Fonction pour obtenir les retours filtrés d'une vente
     // Utilise filteredReturns (déjà filtrés par date) au lieu de tous les retours
     const getFilteredReturnsBySale = (saleId: string) => {
-        return filteredReturns.filter(r => r.saleId === saleId);
+        return filteredReturns.filter((r: any) => r.saleId === saleId);
     };
 
 
@@ -240,6 +254,7 @@ export default function SalesHistoryPage() {
                         </div>
                         <button
                             onClick={() => {
+                                setIsTieringIgnored(true);
                                 setTimeRange('last_365days');
                                 showSuccess('Chargement de l\'historique étendu...');
                             }}

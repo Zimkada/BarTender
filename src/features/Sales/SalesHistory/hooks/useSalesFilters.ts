@@ -1,53 +1,48 @@
 import { useState, useMemo } from 'react';
-import { useDateRangeFilter } from '../../../../hooks/useDateRangeFilter';
 import { dateToYYYYMMDD, filterByBusinessDateRange } from '../../../../utils/businessDateHelpers';
 import type { Sale, SaleItem, Return } from '../../../../types';
 import { UnifiedReturn } from '../../../../hooks/pivots/useUnifiedReturns';
 
 interface UseSalesFiltersProps {
     sales: Sale[];
-    returns?: (Return | UnifiedReturn)[]; // Optional: for returns filtering
-    currentSession: any; // UserSession type would be better if available
+    returns?: (Return | UnifiedReturn)[];
+    currentSession: any;
     closeHour: number;
-    // Interface
     statusFilter?: 'validated' | 'rejected' | 'cancelled' | 'all';
+    // ✨ NOUVEAU: Contrôle externe
+    externalStartDate: Date;
+    externalEndDate: Date;
 }
 
-export function useSalesFilters({ sales, returns = [], currentSession, closeHour, statusFilter }: UseSalesFiltersProps) {
+export function useSalesFilters({
+    sales,
+    returns = [],
+    currentSession,
+    closeHour,
+    statusFilter,
+    externalStartDate,
+    externalEndDate
+}: UseSalesFiltersProps) {
     const [searchTerm, setSearchTerm] = useState('');
-
-    // 1. Hook de filtrage temporel
-    const dateFilter = useDateRangeFilter({
-        defaultRange: 'today',
-        includeBusinessDay: true,
-        closeHour
-    });
-
-    const { startDate, endDate } = dateFilter;
 
     // 2. Filtrage des ventes
     const filteredSales = useMemo(() => {
         const isServer = currentSession?.role === 'serveur';
 
         // A. Filtrage initial basé sur le rôle et le statut actif
-        // Si 'all', on ne filtre pas par statut (on prend tout)
-        // Si undefined, on par défaut sur 'validated' (comportement historique)
         const activeStatus = statusFilter === 'all' ? undefined : (statusFilter || 'validated');
 
         const baseSales = sales.filter(sale => {
             if (isServer) {
-                // Serveurs : toujours leurs propres ventes validées (pills non visibles pour eux)
                 return sale.status === 'validated' && sale.soldBy === currentSession.userId;
             } else {
-                // Gérant/Promoteur/Admin: filtrer par le statut sélectionné via les pills
-                // Si activeStatus est undefined (donc 'all' sélectionné), on retourne true
                 return activeStatus ? sale.status === activeStatus : true;
             }
         });
 
         // B. Appliquer le filtre de date
-        const startDateStr = dateToYYYYMMDD(startDate);
-        const endDateStr = dateToYYYYMMDD(endDate);
+        const startDateStr = dateToYYYYMMDD(externalStartDate);
+        const endDateStr = dateToYYYYMMDD(externalEndDate);
         const filtered = filterByBusinessDateRange(baseSales, startDateStr, endDateStr, closeHour);
 
         // C. Filtre par recherche
@@ -72,7 +67,7 @@ export function useSalesFilters({ sales, returns = [], currentSession, closeHour
                 );
             return getDate(b).getTime() - getDate(a).getTime();
         });
-    }, [sales, startDate, endDate, searchTerm, currentSession, closeHour, statusFilter]);
+    }, [sales, externalStartDate, externalEndDate, searchTerm, currentSession, closeHour, statusFilter]);
 
     // 3. Filtrage des retours
     const filteredReturns = useMemo(() => {
@@ -81,21 +76,18 @@ export function useSalesFilters({ sales, returns = [], currentSession, closeHour
         // A. Filtrage initial basé sur le rôle et le mode opérationnel
         const baseReturns = returns.filter(returnItem => {
             if (isServer) {
-                // ✨ MODE SWITCHING FIX: A server should see ALL their returns regardless of mode
-                // Check BOTH server_id (simplified mode) AND returnedBy (full mode)
-                // This ensures data visibility persists across mode switches
                 return returnItem.server_id === currentSession.userId || returnItem.returnedBy === currentSession.userId;
             }
-            return true; // Gérant/Admin: voir tous les retours
+            return true;
         });
 
         // B. Appliquer le filtre de date
-        const startDateStr = dateToYYYYMMDD(startDate);
-        const endDateStr = dateToYYYYMMDD(endDate);
+        const startDateStr = dateToYYYYMMDD(externalStartDate);
+        const endDateStr = dateToYYYYMMDD(externalEndDate);
 
         const filtered = filterByBusinessDateRange(baseReturns, startDateStr, endDateStr, closeHour);
 
-        // C. Tri final : Priorité au statut 'pending', puis date décroissante (robuste online/offline)
+        // C. Tri final : Priorité au statut 'pending', puis date décroissante
         return filtered.sort((a, b) => {
             if (a.status === 'pending' && b.status !== 'pending') return -1;
             if (a.status !== 'pending' && b.status === 'pending') return 1;
@@ -104,10 +96,9 @@ export function useSalesFilters({ sales, returns = [], currentSession, closeHour
             const dateB = new Date((b as any).returnedAt || (b as any).returned_at).getTime();
             return dateB - dateA;
         });
-    }, [returns, startDate, endDate, currentSession, closeHour]);
+    }, [returns, externalStartDate, externalEndDate, currentSession, closeHour]);
 
     return {
-        ...dateFilter,
         searchTerm,
         setSearchTerm,
         filteredSales,

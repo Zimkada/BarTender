@@ -11,7 +11,7 @@ import { offlineQueue } from '../../services/offlineQueue';
 import { syncManager } from '../../services/SyncManager';
 import { useSalesMutations } from '../mutations/useSalesMutations';
 import { useBarContext } from '../../context/BarContext';
-import { getCurrentBusinessDateString } from '../../utils/businessDateHelpers';
+import { getCurrentBusinessDateString, calculateBusinessDate, dateToYYYYMMDD } from '../../utils/businessDateHelpers';
 import type { Sale, SaleItem } from '../../types';
 
 /**
@@ -30,20 +30,30 @@ export interface UnifiedSale extends Omit<Sale, 'createdAt' | 'validatedAt' | 'r
     rejectedAt?: Date | string;
 }
 
-export const useUnifiedSales = (barId: string | undefined, searchTerm?: string, timeRange?: string) => {
+export const useUnifiedSales = (
+    barId: string | undefined,
+    searchTerm?: string,
+    timeRange?: string,
+    ignoreTiering: boolean = false
+) => {
     const queryClient = useQueryClient();
     const { currentBar } = useBarContext();
     const closeHour = currentBar?.closingHour ?? 6;
 
     // 🔴 LOGIQUE DE TIERING (Certification Sécurité & Précision)
     const salesOptions = useMemo(() => {
+        // ✨ NOUVEAU: Débrayage explicite (Certification Elite)
+        if (ignoreTiering) {
+            return undefined;
+        }
+
         // ✨ NOUVEAU: Recherche "Backend-Failover"
         // Si on a un terme de recherche (min 3 caractères), on ignore les tiers
         if (searchTerm && searchTerm.length >= 3) {
             return { searchTerm };
         }
 
-        // ✨ NOUVEAU: Débrayage via UI (Bouton "Voir plus" ou période étendue)
+        // ✨ NOUVEAU: Débrayage via UI (Période étendue)
         // Si l'utilisateur a explicitement demandé une période au-delà du mois, on ignore le tiering par défaut
         if (timeRange && !['today', 'yesterday', 'last_7days', 'last_30days'].includes(timeRange)) {
             return undefined;
