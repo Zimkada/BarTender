@@ -222,23 +222,24 @@ export class StockService {
             };
 
             // 1. Fetch all sources in parallel
+            // Note: We fetch all sales for the bar/period and filter in JS because JSONB .contains 
+            // can trigger "invalid input syntax" errors in some Postgres/PostgREST versions.
             const [sales, supplies, consignments, adjustments] = await Promise.all([
-                // A. Sales (Items)
+                // A. Sales
                 applyFilters(
                     supabase
-                        .from('sale_items')
-                        .select('*, sale:sales!inner(business_date, created_at, ticket_id, sold_by, users!sales_sold_by_fkey(name))')
-                        .eq('product_id', productId)
-                        .eq('sale.bar_id', barId)
+                        .from('sales')
+                        .select('*, users!sales_sold_by_fkey(name)')
+                        .eq('bar_id', barId)
                         .order('created_at', { ascending: false }),
-                    'sale.created_at'
+                    'created_at'
                 ),
 
-                // B. Supplies
+                // B. Supplies (No users FK for supplied_by in schema)
                 applyFilters(
                     supabase
                         .from('supplies')
-                        .select('*, users!supplies_created_by_fkey(name)')
+                        .select('*')
                         .eq('product_id', productId)
                         .eq('bar_id', barId)
                         .order('created_at', { ascending: false }),
@@ -275,38 +276,43 @@ export class StockService {
 
             // 2. Normalize Data
             const timeline = [
-                // Sales
-                ...(sales.data || []).map(s => ({
-                    id: s.id,
-                    type: 'sale',
-                    date: new Date((s.sale as any).created_at),
-                    delta: -s.quantity, // Sale decreases stock
-                    label: 'Vente',
-                    user: (s.sale as any).users?.name || 'Inconnu',
-                    details: `Ticket #${(s.sale as any).ticket_id || '??'}`,
-                    price: s.unit_price,
-                    notes: (s.sale as any).business_date
-                })),
+                // Sales - Filtered in JS for reliability
+                ...(sales.data || [])
+                    .filter((s: any) => (s.items as any[] || []).some(i => i.product_id === productId))
+                    .flatMap((s: any) => {
+                        const item = (s.items as any[]).find(i => i.product_id === productId);
+                        return [{
+                            id: s.id,
+                            type: 'sale',
+                            date: new Date(s.created_at),
+                            delta: -item.quantity,
+                            label: 'Vente',
+                            user: (s as any).users?.name || 'Inconnu',
+                            details: `Ticket #${s.ticket_id || '??'}`,
+                            price: item.unit_price,
+                            notes: s.business_date
+                        }];
+                    }),
 
                 // Supplies
-                ...(supplies.data || []).map(s => ({
+                ...(supplies.data || []).map((s: any) => ({
                     id: s.id,
                     type: 'supply',
                     date: new Date(s.created_at),
-                    delta: s.quantity, // Supply increases stock
+                    delta: s.quantity,
                     label: 'Approvisionnement',
-                    user: (s as any).users?.name || 'Inconnu',
-                    details: s.supplier || 'Fournisseur Inconnu',
-                    price: s.lot_price,
-                    notes: `Coût: ${s.total_cost}`
+                    user: s.supplied_by || 'Admin', // String column, no join
+                    details: s.supplier_name || 'Fournisseur Inconnu',
+                    price: s.unit_cost,
+                    notes: `Total: ${s.total_cost}`
                 })),
 
                 // Consignments
-                ...(consignments.data || []).map(c => ({
+                ...(consignments.data || []).map((c: any) => ({
                     id: c.id,
                     type: 'consignment',
                     date: new Date(c.created_at),
-                    delta: -c.quantity, // Consignment decreases physical stock (moved to outside)
+                    delta: -c.quantity,
                     label: `Consignation (${c.status})`,
                     user: (c as any).users?.name || 'Inconnu',
                     details: c.customer_name || 'Client',
@@ -315,7 +321,7 @@ export class StockService {
                 })),
 
                 // Adjustments
-                ...(adjustments.data || []).map(a => ({
+                ...(adjustments.data || []).map((a: any) => ({
                     id: a.id,
                     type: 'adjustment',
                     date: new Date(a.adjusted_at),

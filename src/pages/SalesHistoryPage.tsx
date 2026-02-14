@@ -292,7 +292,7 @@ export default function SalesHistoryPage() {
                                             <button
                                                 key={status}
                                                 onClick={() => setStatusFilter(status)}
-                                                className={`px - 3 py - 2 h - 10 rounded - xl text - [10px] font - black uppercase tracking - tight transition - all flex - 1 min - w - [80px] ${statusFilter === status
+                                                className={`px-3 py-2 h-10 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all flex-1 min-w-[80px] ${statusFilter === status
                                                     ? 'glass-action-button-active-2026 shadow-md shadow-brand-subtle'
                                                     : 'glass-action-button-2026 text-gray-400 hover:text-brand-primary'
                                                     } `}
@@ -313,13 +313,13 @@ export default function SalesHistoryPage() {
                                     <div className="flex bg-gray-100 rounded-lg p-1">
                                         <button
                                             onClick={() => setExportFormat('excel')}
-                                            className={`px - 3 py - 1 rounded - md text - [10px] font - bold transition - all ${exportFormat === 'excel' ? 'bg-green-600 text-white shadow-md' : 'text-gray-500'} `}
+                                            className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${exportFormat === 'excel' ? 'bg-green-600 text-white shadow-md' : 'text-gray-500'} `}
                                         >
                                             XLS
                                         </button>
                                         <button
                                             onClick={() => setExportFormat('csv')}
-                                            className={`px - 3 py - 1 rounded - md text - [10px] font - bold transition - all ${exportFormat === 'csv' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500'} `}
+                                            className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${exportFormat === 'csv' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500'} `}
                                         >
                                             CSV
                                         </button>
@@ -328,7 +328,7 @@ export default function SalesHistoryPage() {
                                     <Button
                                         onClick={() => exportSales(exportFormat)}
                                         size="sm"
-                                        className={`h - 8 px - 4 flex items - center gap - 2 text - xs font - bold rounded - lg shadow - sm transition - all ${filteredSales.length === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${exportFormat === 'excel'
+                                        className={`h-8 px-4 flex items-center gap-2 text-xs font-bold rounded-lg shadow-sm transition-all ${filteredSales.length === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${exportFormat === 'excel'
                                             ? 'bg-green-600 text-white hover:bg-green-700'
                                             : 'bg-blue-600 text-white hover:bg-blue-700'
                                             } `}

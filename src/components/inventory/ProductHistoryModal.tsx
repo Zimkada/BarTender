@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Modal } from '../ui/Modal';
 import { useBarContext } from '../../context/BarContext';
+import { useAuth } from '../../context/AuthContext';
 import { StockService } from '../../services/supabase/stock.service';
 import { Product } from '../../types';
 import { Spinner } from '../ui/Spinner';
@@ -13,8 +14,7 @@ import {
     ShoppingCart,
     Truck,
     User,
-    Calendar,
-    ArrowRight
+    Calendar
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -90,7 +90,7 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
         }
     };
 
-    const getBadgeColor = (type: string, delta: number) => {
+    const getBadgeColor = (delta: number) => {
         if (delta > 0) return 'bg-green-100 text-green-700 border-green-200';
         if (delta < 0) return 'bg-red-50 text-red-700 border-red-100'; // Sales are negative stock
         return 'bg-gray-100 text-gray-700 border-gray-200';
@@ -169,7 +169,7 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
                                             </div>
                                         </div>
 
-                                        <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1 ${getBadgeColor(event.type, event.delta)}`}>
+                                        <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1 ${getBadgeColor(event.delta)}`}>
                                             {event.delta > 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
                                             {event.delta > 0 ? '+' : ''}{event.delta}
                                         </span>
@@ -178,7 +178,17 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
                                     <div className="flex items-center justify-between text-xs mt-2 pt-2 border-t border-gray-50">
                                         <div className="flex items-center gap-1.5 text-gray-600 bg-gray-50 px-2 py-1 rounded">
                                             <User size={12} />
-                                            <span className="font-medium">{event.user}</span>
+                                            <span className="font-medium">
+                                                {/* ✨ PRIVACY: Anonymiser pour les serveurs si ce n'est pas eux */}
+                                                {(() => {
+                                                    const { currentSession } = useAuth();
+                                                    const isServer = currentSession?.role === 'serveur';
+                                                    if (isServer && event.user !== currentSession.userName && event.user !== 'Inconnu') {
+                                                        return 'Collègue';
+                                                    }
+                                                    return event.user;
+                                                })()}
+                                            </span>
                                         </div>
 
                                         <div className="text-gray-500 font-mono">

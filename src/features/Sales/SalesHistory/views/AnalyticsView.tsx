@@ -143,9 +143,23 @@ export function AnalyticsView({
     return { previousPeriodSales: previous };
   }, [allSales, startDate, endDate, closeHour]);
 
-  // KPIs avec tendances
+  // KPIs avec tendances (Calculés sur la donnée RÉELLE filtrée pour réactivité maximale)
   const kpis = useMemo(() => {
-    // Calculer CA NET de la période précédente (brut - retours remboursés)
+    // 1. Calculer CA NET de la période actuelle (brut - retours remboursés)
+    const currentRevenue = sales.reduce((sum, s) => {
+      // Pour les stats, on ne compte que les ventes validées (ou optimistes qui le seront)
+      if (s.status !== 'validated' && !(s as any).isOptimistic) return sum;
+      return sum + getSaleNetRevenue(s);
+    }, 0);
+
+    const currentItems = sales.reduce((sum, s) => {
+      if (s.status !== 'validated' && !(s as any).isOptimistic) return sum;
+      return sum + s.items.reduce((itemSum, item) => itemSum + item.quantity, 0);
+    }, 0);
+
+    const currentCount = sales.filter(s => s.status === 'validated' || (s as any).isOptimistic).length;
+
+    // 2. Calculer CA NET de la période précédente (pour la tendance)
     const prevGrossRevenue = previousPeriodSales.reduce((sum, s) => sum + s.total, 0);
     const prevSaleIds = new Set(previousPeriodSales.map(s => s.id));
     const prevRefunds = returns
@@ -158,17 +172,30 @@ export function AnalyticsView({
       sum + s.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0
     );
 
-    const revenueChange = prevRevenue > 0 ? ((stats.totalRevenue - prevRevenue) / prevRevenue) * 100 : (stats.totalRevenue > 0 ? 100 : 0);
-    const salesChange = prevCount > 0 ? ((sales.length - prevCount) / prevCount) * 100 : (sales.length > 0 ? 100 : 0);
-    const itemsChange = prevItems > 0 ? ((stats.totalItems - prevItems) / prevItems) * 100 : (stats.totalItems > 0 ? 100 : 0);
+    // 3. Calculer les variations
+    const revenueChange = prevRevenue > 0 ? ((currentRevenue - prevRevenue) / prevRevenue) * 100 : (currentRevenue > 0 ? 100 : 0);
+    const salesChange = prevCount > 0 ? ((currentCount - prevCount) / prevCount) * 100 : (currentCount > 0 ? 100 : 0);
+    const itemsChange = prevItems > 0 ? ((currentItems - prevItems) / prevItems) * 100 : (currentItems > 0 ? 100 : 0);
+
+    // 4. Recalculer le KPI (moyenne heure/jour) sur la donnée fraîche
+    const dayCount = Math.max(1, Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+    let currentKpiValue = 0;
+    if (timeRange === 'today') {
+      const now = new Date();
+      const effectiveNow = now < startDate ? startDate : now;
+      const hoursElapsed = (effectiveNow.getTime() - startDate.getTime()) / (1000 * 60 * 60);
+      currentKpiValue = hoursElapsed > 0 ? currentRevenue / hoursElapsed : 0;
+    } else {
+      currentKpiValue = currentRevenue / dayCount;
+    }
 
     return {
-      revenue: { value: stats.totalRevenue, change: revenueChange },
-      salesCount: { value: sales.length, change: salesChange },
-      kpi: { value: stats.kpiValue, label: stats.kpiLabel, change: 0 },
-      items: { value: stats.totalItems, change: itemsChange }
+      revenue: { value: currentRevenue, change: revenueChange },
+      salesCount: { value: currentCount, change: salesChange },
+      kpi: { value: currentKpiValue, label: stats.kpiLabel, change: 0 },
+      items: { value: currentItems, change: itemsChange }
     };
-  }, [sales, stats, previousPeriodSales, returns]);
+  }, [sales, stats.kpiLabel, previousPeriodSales, returns, startDate, endDate, timeRange]);
 
   // Données pour graphique d'évolution - granularité adaptative
   const evolutionChartData = useMemo(() => {
