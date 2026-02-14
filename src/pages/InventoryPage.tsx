@@ -28,9 +28,10 @@ import { OnboardingBreadcrumb } from '../components/onboarding/ui/OnboardingBrea
 import { ProductGridSkeleton } from '../components/skeletons';
 import { Button } from '../components/ui/Button'; // ✨ Import Button
 import { cn } from '../lib/utils';
-
 // Lazy load
 const ProductModal = lazy(() => import('../components/ProductModal').then(m => ({ default: m.ProductModal })));
+// ✨ Lazy load History Modal
+import { ProductHistoryModal } from '../components/inventory/ProductHistoryModal';
 
 type ViewMode = 'products' | 'operations' | 'stats';
 type SortMode = 'category' | 'alphabetical' | 'stock';
@@ -71,6 +72,7 @@ export default function InventoryPage() {
     const [sortMode, setSortMode] = useState<SortMode>('category');
     const [showSuspicious, setShowSuspicious] = useState(false); // ✨ State Filtre Suspects
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [viewingHistoryProduct, setViewingHistoryProduct] = useState<Product | null>(null); // ✨ State History
 
     // 3. Logic Hooks
     const {
@@ -105,6 +107,11 @@ export default function InventoryPage() {
         handleDeleteConfirm,
         handleSupply
     } = useInventoryActions();
+
+    // ✨ Handler pour l'historique
+    const handleViewHistory = (product: Product) => {
+        setViewingHistoryProduct(product);
+    };
 
     // 4. Config
     const inventoryGuideId = currentSession?.role === 'gerant' ? 'manager-inventory' : 'manage-inventory';
@@ -166,12 +173,15 @@ export default function InventoryPage() {
                                     ].map(({ mode, icon, label }) => (
                                         <Button
                                             key={mode}
-                                            onClick={() => setSortMode(mode)}
+                                            onClick={() => {
+                                                setSortMode(mode);
+                                                setShowSuspicious(false); // ✨ Reset suspects when sorting
+                                            }}
                                             variant="ghost"
                                             size="sm"
                                             className={cn(
                                                 "gap-1.5 text-xs font-semibold transition-all border",
-                                                sortMode === mode
+                                                sortMode === mode && !showSuspicious // Only active if NOT in suspicious mode
                                                     ? "glass-action-button-active-2026 shadow-sm"
                                                     : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
                                             )}
@@ -222,6 +232,7 @@ export default function InventoryPage() {
                                     onEdit={handleEditProduct}
                                     onAdjust={handleAdjustStock}
                                     onDelete={handleDeleteClick}
+                                    onHistory={handleViewHistory} // ✨ Pass history handler
                                     searchTerm={searchTerm}
                                 />
                             )}
@@ -309,7 +320,7 @@ export default function InventoryPage() {
                     isLoading={isDeleting}
                 />
             </Suspense>
-            {/* Modal d'export */}
+            {/* Modale d'export */}
             <InventoryExportModal
                 isOpen={isExportModalOpen}
                 onClose={() => setIsExportModalOpen(false)}
@@ -319,6 +330,15 @@ export default function InventoryPage() {
                 categories={categories}
                 getStockInfo={getProductStockInfo}
             />
+
+            {/* ✨ Modale d'Historique Produit */}
+            {viewingHistoryProduct && (
+                <ProductHistoryModal
+                    isOpen={true}
+                    onClose={() => setViewingHistoryProduct(null)}
+                    product={viewingHistoryProduct}
+                />
+            )}
         </div>
     );
 }

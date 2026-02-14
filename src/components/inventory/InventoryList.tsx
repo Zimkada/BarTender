@@ -11,6 +11,7 @@ interface InventoryListProps {
     onEdit: (product: Product) => void;
     onAdjust: (product: Product) => void;
     onDelete: (product: Product) => void;
+    onHistory: (product: Product) => void; // ✨ New Prop
     searchTerm: string;
 }
 
@@ -22,6 +23,7 @@ export function InventoryList({
     onEdit,
     onAdjust,
     onDelete,
+    onHistory, // ✨ Destructure
     searchTerm
 }: InventoryListProps) {
 
@@ -64,6 +66,7 @@ export function InventoryList({
                         onEdit={onEdit}
                         onAdjust={onAdjust}
                         onDelete={onDelete}
+                        onHistory={onHistory} // ✨ Pass to card
                     />
                 );
             })}

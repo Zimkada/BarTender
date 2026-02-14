@@ -7,6 +7,7 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { cn } from '../../lib/utils';
 import { useBarContext } from '../../context/BarContext';
+import { useAuth } from '../../context/AuthContext';
 import { getCurrentBusinessDateString } from '../../utils/businessDateHelpers';
 
 interface InventoryExportModalProps {
@@ -29,6 +30,7 @@ export function InventoryExportModal({
     getStockInfo
 }: InventoryExportModalProps) {
     const { currentBar } = useBarContext();
+    const { currentSession } = useAuth(); // ✅ Get session for role check
     const [mode, setMode] = useState<'current' | 'historical'>('current');
     const [targetDate, setTargetDate] = useState<string>(getCurrentBusinessDateString(currentBar?.closingHour));
     const [targetTime, setTargetTime] = useState<string>('06:00');
@@ -113,18 +115,21 @@ export function InventoryExportModal({
                         <span className="font-medium">État Actuel</span>
                     </button>
 
-                    <button
-                        onClick={() => setMode('historical')}
-                        className={cn(
-                            "p-4 rounded-xl border flex flex-col items-center gap-2 transition-all",
-                            mode === 'historical'
-                                ? "bg-blue-50 border-blue-200 text-blue-700 shadow-sm"
-                                : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300"
-                        )}
-                    >
-                        <Calendar className="w-6 h-6" />
-                        <span className="font-medium">Historique</span>
-                    </button>
+                    {/* ✅ Restricted to Promoters Only */}
+                    {['promoteur', 'super_admin'].includes(currentSession?.role || '') && (
+                        <button
+                            onClick={() => setMode('historical')}
+                            className={cn(
+                                "p-4 rounded-xl border flex flex-col items-center gap-2 transition-all",
+                                mode === 'historical'
+                                    ? "bg-blue-50 border-blue-200 text-blue-700 shadow-sm"
+                                    : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300"
+                            )}
+                        >
+                            <Calendar className="w-6 h-6" />
+                            <span className="font-medium">Historique</span>
+                        </button>
+                    )}
                 </div>
 
                 {/* Historical Options */}

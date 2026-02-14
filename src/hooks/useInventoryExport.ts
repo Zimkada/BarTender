@@ -3,7 +3,7 @@ import { Product, ProductStockInfo, Category } from '../types';
 import { useInventoryHistory } from './useInventoryHistory';
 import { dateToYYYYMMDD } from '../utils/businessDateHelpers';
 import { getErrorMessage } from '../utils/errorHandler';
-import { useNotifications } from './useNotifications';
+import { useFeedback } from './useFeedback';
 
 interface UseInventoryExportProps {
     barId: string;
@@ -22,7 +22,7 @@ export function useInventoryExport({
 }: UseInventoryExportProps) {
     const { calculateHistoricalStock, isCalculating } = useInventoryHistory({ barId, products });
     const [isExporting, setIsExporting] = useState(false);
-    const { showNotification } = useNotifications();
+    const { showSuccess, showError } = useFeedback();
 
     const exportToExcel = async (
         mode: 'current' | 'historical',
@@ -152,19 +152,26 @@ export function useInventoryExport({
             XLSX.utils.book_append_sheet(wb, ws, "Inventaire");
 
             // Sauvegarde
-            const modeLabel = mode === 'historical' ? 'historique' : 'actuel';
-            const fileName = `Inventaire_${barName}_${modeLabel}_${dateStr}.xlsx`;
+            // ✅ FIX: Explicit naming for clarity
+            const modeLabel = mode === 'historical' ? 'RECONSTITUTION' : 'PHYSIQUE';
+
+            // ✅ FIX: Use target date for filename if historical, otherwise use generation date
+            const fileDateStr = (mode === 'historical' && targetDate)
+                ? dateToYYYYMMDD(targetDate)
+                : dateStr;
+
+            const fileName = `Inventaire_${barName}_${modeLabel}_${fileDateStr}.xlsx`;
             XLSX.writeFile(wb, fileName);
 
             // ✅ Success notification
-            showNotification('success', `Export Excel généré : ${fileName}`);
+            showSuccess(`Export Excel généré : ${fileName}`);
 
         } catch (error) {
             console.error("Erreur export Excel:", error);
             const errorMessage = getErrorMessage(error);
 
             // ✅ FIX: Use notification system instead of alert()
-            showNotification('error', `Erreur lors de la génération de l'export: ${errorMessage}`);
+            showError(`Erreur lors de la génération de l'export: ${errorMessage}`);
         } finally {
             setIsExporting(false);
         }

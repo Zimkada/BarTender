@@ -1,4 +1,4 @@
-import { Edit, BarChart3, Trash2 } from 'lucide-react';
+import { Edit, BarChart3, Trash2, History } from 'lucide-react'; // ✨ Import History
 import { Product, ProductStockInfo } from '../../types';
 import { Button } from '../ui/Button';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
@@ -12,6 +12,7 @@ interface InventoryCardProps {
     onEdit: (product: Product) => void;
     onAdjust: (product: Product) => void;
     onDelete: (product: Product) => void;
+    onHistory: (product: Product) => void; // ✨ New Prop
 }
 
 export function InventoryCard({
@@ -22,7 +23,8 @@ export function InventoryCard({
     categoryName,
     onEdit,
     onAdjust,
-    onDelete
+    onDelete,
+    onHistory // ✨ Destructure
 }: InventoryCardProps) {
     const { formatPrice } = useCurrencyFormatter();
     const currentStock = stockInfo?.physicalStock ?? 0;
@@ -31,15 +33,27 @@ export function InventoryCard({
 
     return (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:border-amber-200 transition-colors">
-            <div className="p-4">
+            <div className="p-4 relative"> {/* Relative for absolute positioning */}
                 <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1 min-w-0">
-                        <h2 className="font-bold text-gray-900 truncate">{product.name}</h2>
+                    <div className="flex-1 min-w-0 pr-8"> {/* Padding pour éviter overlap avec bouton centré */}
+                        <div className="flex items-center gap-2">
+                            <h2 className="font-bold text-gray-900 truncate">{product.name}</h2>
+                        </div>
                         <p className="text-sm text-gray-500">{product.volume || 'Format non spécifié'}</p>
                         <span className="inline-block mt-2 px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-bold rounded uppercase tracking-wider">
                             {categoryName}
                         </span>
                     </div>
+
+                    {/* ✨ Bouton Historique Centré (Design "Premium") */}
+                    <button
+                        onClick={() => onHistory(product)}
+                        className="absolute left-1/2 top-4 -translate-x-1/2 p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all"
+                        title="Voir historique"
+                    >
+                        <History size={18} />
+                    </button>
+
                     <div className="text-right">
                         <div className={`text-lg font-black ${isLowStock ? 'text-red-500' : 'text-gray-900'}`}>
                             {currentStock}

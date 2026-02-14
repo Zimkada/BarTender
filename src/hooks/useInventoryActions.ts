@@ -89,6 +89,11 @@ export function useInventoryActions() {
     };
 
     const handleDeleteClick = (product: Product) => {
+        // 🛡️ SÉCURITÉ : Bloquer les gérants pour protéger l'historique
+        if (['gerant', 'serveur'].includes(currentSession?.role || '')) {
+            showError("Action Refusée : Seul le Promoteur peut supprimer un produit (Risque de perte d'historique). Veuillez le contacter.");
+            return;
+        }
         setProductToDelete(product);
     };
 

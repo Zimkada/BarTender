@@ -187,4 +187,152 @@ export class StockService {
             throw new Error(handleSupabaseError(error));
         }
     }
+
+    // =====================================================
+    // PRODUCT HISTORY (TIMELINE)
+    // =====================================================
+
+    /**
+     * Aggregates all movements for a specific product to build a timeline
+     */
+    static async getProductHistory(
+        barId: string,
+        productId: string,
+        options: {
+            limit?: number;
+            startDate?: Date;
+            endDate?: Date;
+        } = {}
+    ): Promise<any[]> {
+        try {
+            const { limit = 50, startDate, endDate } = options;
+
+            // Helper to apply date filters
+            const applyFilters = (query: any, dateField: string) => {
+                if (startDate) query = query.gte(dateField, startDate.toISOString());
+                if (endDate) query = query.lte(dateField, endDate.toISOString());
+                // Only apply limit if NO date filter is set (or strict limit requested)
+                // If user asks for a date range, we want ALL items in that range generally
+                if (!startDate && !endDate) {
+                    query = query.limit(limit);
+                } else {
+                    query = query.limit(1000); // Safety cap for date range
+                }
+                return query;
+            };
+
+            // 1. Fetch all sources in parallel
+            const [sales, supplies, consignments, adjustments] = await Promise.all([
+                // A. Sales (Items)
+                applyFilters(
+                    supabase
+                        .from('sale_items')
+                        .select('*, sale:sales!inner(business_date, created_at, ticket_id, sold_by, users!sales_sold_by_fkey(name))')
+                        .eq('product_id', productId)
+                        .eq('sale.bar_id', barId)
+                        .order('created_at', { ascending: false }),
+                    'sale.created_at'
+                ),
+
+                // B. Supplies
+                applyFilters(
+                    supabase
+                        .from('supplies')
+                        .select('*, users!supplies_created_by_fkey(name)')
+                        .eq('product_id', productId)
+                        .eq('bar_id', barId)
+                        .order('created_at', { ascending: false }),
+                    'created_at'
+                ),
+
+                // C. Consignments
+                applyFilters(
+                    supabase
+                        .from('consignments')
+                        .select('*, users!consignments_created_by_fkey(name)')
+                        .eq('product_id', productId)
+                        .eq('bar_id', barId)
+                        .order('created_at', { ascending: false }),
+                    'created_at'
+                ),
+
+                // D. Adjustments
+                applyFilters(
+                    supabase
+                        .from('stock_adjustments')
+                        .select('*, users!stock_adjustments_adjusted_by_fkey(name)')
+                        .eq('product_id', productId)
+                        .eq('bar_id', barId)
+                        .order('adjusted_at', { ascending: false }),
+                    'adjusted_at'
+                )
+            ]);
+
+            if (sales.error) throw sales.error;
+            if (supplies.error) throw supplies.error;
+            if (consignments.error) throw consignments.error;
+            if (adjustments.error) throw adjustments.error;
+
+            // 2. Normalize Data
+            const timeline = [
+                // Sales
+                ...(sales.data || []).map(s => ({
+                    id: s.id,
+                    type: 'sale',
+                    date: new Date((s.sale as any).created_at),
+                    delta: -s.quantity, // Sale decreases stock
+                    label: 'Vente',
+                    user: (s.sale as any).users?.name || 'Inconnu',
+                    details: `Ticket #${(s.sale as any).ticket_id || '??'}`,
+                    price: s.unit_price,
+                    notes: (s.sale as any).business_date
+                })),
+
+                // Supplies
+                ...(supplies.data || []).map(s => ({
+                    id: s.id,
+                    type: 'supply',
+                    date: new Date(s.created_at),
+                    delta: s.quantity, // Supply increases stock
+                    label: 'Approvisionnement',
+                    user: (s as any).users?.name || 'Inconnu',
+                    details: s.supplier || 'Fournisseur Inconnu',
+                    price: s.lot_price,
+                    notes: `Coût: ${s.total_cost}`
+                })),
+
+                // Consignments
+                ...(consignments.data || []).map(c => ({
+                    id: c.id,
+                    type: 'consignment',
+                    date: new Date(c.created_at),
+                    delta: -c.quantity, // Consignment decreases physical stock (moved to outside)
+                    label: `Consignation (${c.status})`,
+                    user: (c as any).users?.name || 'Inconnu',
+                    details: c.customer_name || 'Client',
+                    price: 0,
+                    notes: c.status
+                })),
+
+                // Adjustments
+                ...(adjustments.data || []).map(a => ({
+                    id: a.id,
+                    type: 'adjustment',
+                    date: new Date(a.adjusted_at),
+                    delta: a.delta,
+                    label: `Ajustement (${a.reason})`,
+                    user: (a as any).users?.name || 'Inconnu',
+                    details: a.reason,
+                    price: 0,
+                    notes: a.notes
+                }))
+            ];
+
+            // 3. Sort by Date Descending
+            return timeline.sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, limit);
+
+        } catch (error) {
+            throw new Error(handleSupabaseError(error));
+        }
+    }
 }
