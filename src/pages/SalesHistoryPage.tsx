@@ -84,7 +84,7 @@ export default function SalesHistoryPage() {
     const {
         sales: unifiedSales,
         isLoading: isLoadingSales
-    } = useUnifiedSales(currentBar?.id, serverSearchTerm);
+    } = useUnifiedSales(currentBar?.id, serverSearchTerm, timeRange);
 
     // HOOK: Filtrage (Ventes & Retours)
     const {

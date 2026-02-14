@@ -30,35 +30,44 @@ export interface UnifiedSale extends Omit<Sale, 'createdAt' | 'validatedAt' | 'r
     rejectedAt?: Date | string;
 }
 
-export const useUnifiedSales = (barId: string | undefined, searchTerm?: string) => {
+export const useUnifiedSales = (barId: string | undefined, searchTerm?: string, timeRange?: string) => {
     const queryClient = useQueryClient();
     const { currentBar } = useBarContext();
+    const closeHour = currentBar?.closingHour ?? 6;
 
-    // 🔴 LOGIQUE DE TIERING (Certification Sécurité)
+    // 🔴 LOGIQUE DE TIERING (Certification Sécurité & Précision)
     const salesOptions = useMemo(() => {
-        // ✨ NOUVEAU: Recherche "Backend-Failover" (Certification Perfection)
-        // Si on a un terme de recherche (min 3 caractères), on ignore les tiers pour chercher partout
+        // ✨ NOUVEAU: Recherche "Backend-Failover"
+        // Si on a un terme de recherche (min 3 caractères), on ignore les tiers
         if (searchTerm && searchTerm.length >= 3) {
             return { searchTerm };
+        }
+
+        // ✨ NOUVEAU: Débrayage via UI (Bouton "Voir plus" ou période étendue)
+        // Si l'utilisateur a explicitement demandé une période au-delà du mois, on ignore le tiering par défaut
+        if (timeRange && !['today', 'yesterday', 'last_7days', 'last_30days'].includes(timeRange)) {
+            return undefined;
         }
 
         if (!currentBar?.settings?.dataTier || currentBar.settings.dataTier === 'lite') {
             return undefined;
         }
 
-        const now = new Date();
+        // 🔴 CALCUL PIVOT SUR BUSINESS DATE (Fin de décalage minuit-6h)
+        const businessDatePivot = calculateBusinessDate(new Date(), closeHour);
+
         if (currentBar.settings.dataTier === 'balanced') {
-            // 6 mois glissants
-            now.setMonth(now.getMonth() - 6);
+            // 6 mois glissants depuis la date commerciale
+            businessDatePivot.setMonth(businessDatePivot.getMonth() - 6);
         } else if (currentBar.settings.dataTier === 'enterprise') {
-            // 30 jours glissants
-            now.setDate(now.getDate() - 30);
+            // 30 jours glissants depuis la date commerciale
+            businessDatePivot.setDate(businessDatePivot.getDate() - 30);
         }
 
         return {
-            startDate: now.toISOString().split('T')[0]
+            startDate: dateToYYYYMMDD(businessDatePivot)
         };
-    }, [currentBar?.settings?.dataTier, searchTerm]);
+    }, [currentBar?.settings?.dataTier, searchTerm, timeRange, closeHour]);
 
     // 1. Ventes Online (via React Query) avec options de tiering
     const { data: onlineSales = [], isLoading: isLoadingOnline } = useSales(barId, salesOptions);
