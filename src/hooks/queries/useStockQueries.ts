@@ -114,22 +114,20 @@ const mapProducts = (dbProducts: BarProductWithDetails[]): Product[] => {
     }));
 };
 
-export const useSupplies = (barId: string | undefined) => {
+export const useSupplies = (barId: string | undefined, options: { enabled?: boolean } = {}) => {
+    const { enabled = true } = options;
+
     // 🔧 PHASE 1-2: SmartSync pour supplies
     const smartSync = useSmartSync({
         table: 'supplies',
         event: 'INSERT',
         barId: barId || undefined,
-        enabled: !!barId,
+        enabled: !!barId && enabled, // 🛡️ Expert Fix: Only sync if enabled
         staleTime: CACHE_STRATEGY.products.staleTime,
         refetchInterval: REALTIME_FALLBACK_INTERVALS.supplies,
         queryKeysToInvalidate: [
             stockKeys.supplies(barId || ''),
-            stockKeys.products(barId || '') // ⚠️ CUMP DEPENDENCY: Supply arrival updates product.current_average_cost
-                                              // If backend updates bar_products.current_average_cost via trigger,
-                                              // Realtime on 'bar_products' (ligne 57) would catch it anyway.
-                                              // This invalidation is DEFENSIVE but creates minor performance overhead.
-                                              // TODO: Consider removing if backend trigger + Realtime proves reliable.
+            stockKeys.products(barId || '') // ⚠️ CUMP DEPENDENCY
         ],
         // windowEvents: ['stock-synced'] // 🚫 REMOVED: Managed by SyncManager OR Realtime (avoid double invalidation)
     });
@@ -158,11 +156,11 @@ export const useSupplies = (barId: string | undefined) => {
                 }));
         },
         {
-            enabled: !!barId,
+            enabled: !!barId && enabled, // 🛡️ Expert Fix: Support lazy loading
             staleTime: CACHE_STRATEGY.products.staleTime,
             gcTime: CACHE_STRATEGY.products.gcTime,
             networkMode: 'always', // 🛡️ CRITIQUE
-            refetchInterval: smartSync.isRealtimeConnected ? false : 60000, // 🚀 Hybride: Polling OFF si Realtime connected
+            refetchInterval: (smartSync.isRealtimeConnected || !enabled) ? false : 60000,
         }
     );
 };
@@ -186,9 +184,9 @@ export const useConsignments = (barId: string | undefined) => {
         queryKeysToInvalidate: [
             stockKeys.consignments(barId || ''),
             stockKeys.products(barId || '') // ✅ JUSTIFIED: Consignments directly affect availableStock calculation
-                                              // availableStock = physicalStock - consignedQuantity
-                                              // When consignment is claimed/forfeited, availableStock changes
-                                              // This invalidation is NECESSARY for UI consistency
+            // availableStock = physicalStock - consignedQuantity
+            // When consignment is claimed/forfeited, availableStock changes
+            // This invalidation is NECESSARY for UI consistency
         ],
         // windowEvents: ['consignments-synced'] // 🚫 REMOVED: Managed by SyncManager OR Realtime (avoid double invalidation)
     });

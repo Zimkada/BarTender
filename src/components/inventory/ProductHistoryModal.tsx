@@ -39,6 +39,7 @@ interface TimelineEvent {
 
 export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistoryModalProps) {
     const { currentBar } = useBarContext();
+    const { currentSession } = useAuth(); // ✨ Fix: Top level hook
     const [history, setHistory] = useState<TimelineEvent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -181,9 +182,11 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
                                             <span className="font-medium">
                                                 {/* ✨ PRIVACY: Anonymiser pour les serveurs si ce n'est pas eux */}
                                                 {(() => {
-                                                    const { currentSession } = useAuth();
+                                                    // ✨ Fix: Use top-level hook reference
                                                     const isServer = currentSession?.role === 'serveur';
-                                                    if (isServer && event.user !== currentSession.userName && event.user !== 'Inconnu') {
+                                                    const currentUserName = currentSession?.userName;
+
+                                                    if (isServer && event.user !== currentUserName && event.user !== 'Inconnu') {
                                                         return 'Collègue';
                                                     }
                                                     return event.user;

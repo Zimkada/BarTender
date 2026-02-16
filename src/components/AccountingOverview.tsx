@@ -14,6 +14,7 @@ import { useInitialBalance } from '../hooks/useInitialBalance';
 import { useCapitalContributions } from '../hooks/useCapitalContributions';
 import { useViewport } from '../hooks/useViewport';
 import { isConfirmedReturn } from '../utils/saleHelpers';
+import { dateToYYYYMMDD } from '../utils/businessDateHelpers';
 import { AccountingKPIs } from '../features/Accounting/components/AccountingKPIs';
 import { InitialBalanceModal } from '../features/Accounting/components/InitialBalanceModal';
 import { CapitalContributionModal } from '../features/Accounting/components/CapitalContributionModal';
@@ -49,9 +50,16 @@ export function AccountingOverview() {
   });
 
   // ✅ Utiliser les Smart Hooks Élite pour les finances unifiées
-  const { sales: unifiedSales } = useUnifiedSales(currentBar?.id);
+  // 🛡️ Expert Fix: Passer les filtres de période au hook pour filtrage serveur
+  const { sales: unifiedSales } = useUnifiedSales(currentBar?.id, {
+    startDate: dateToYYYYMMDD(periodStart),
+    endDate: dateToYYYYMMDD(periodEnd)
+  });
   useUnifiedStock(currentBar?.id);
-  const { expenses: unifiedExpenses } = useUnifiedExpenses(currentBar?.id);
+  const { expenses: unifiedExpenses } = useUnifiedExpenses(currentBar?.id, {
+    startDate: dateToYYYYMMDD(periodStart),
+    endDate: dateToYYYYMMDD(periodEnd)
+  });
 
   const initialBalanceHook = useInitialBalance(currentBar?.id);
   const capitalContributionsHook = useCapitalContributions(currentBar?.id);

@@ -26,16 +26,24 @@ export class ExpensesService {
     }
 
     /**
-     * Récupérer les dépenses d'un bar
+     * Récupérer les dépenses d'un bar avec filtrage optionnel
      */
-    static async getExpenses(barId: string): Promise<Expense[]> {
+    static async getExpenses(barId: string, options?: { startDate?: string; endDate?: string }): Promise<Expense[]> {
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('expenses')
                 .select('*')
                 .eq('bar_id', barId)
                 .order('expense_date', { ascending: false });
 
+            if (options?.startDate) {
+                query = query.gte('expense_date', options.startDate);
+            }
+            if (options?.endDate) {
+                query = query.lte('expense_date', options.endDate);
+            }
+
+            const { data, error } = await query;
             if (error) throw error;
             return data || [];
         } catch (error) {

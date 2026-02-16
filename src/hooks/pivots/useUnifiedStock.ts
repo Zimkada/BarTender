@@ -7,7 +7,7 @@
 import { useMemo, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
-import { useProducts, useSupplies, useConsignments, useCategories, stockKeys } from '../queries/useStockQueries';
+import { useProducts, useSupplies, useConsignments, useCategories } from '../queries/useStockQueries';
 import { useStockMutations } from '../mutations/useStockMutations';
 import { offlineQueue } from '../../services/offlineQueue';
 import { syncManager } from '../../services/SyncManager';
@@ -34,13 +34,21 @@ export interface CreateConsignmentData {
     businessDate: string;
 }
 
-export const useUnifiedStock = (barId: string | undefined) => {
+export interface UnifiedStockOptions {
+    skipSupplies?: boolean;
+}
+
+export const useUnifiedStock = (barId: string | undefined, options: UnifiedStockOptions = {}) => {
+    const { skipSupplies = false } = options;
     const queryClient = useQueryClient();
     const { currentSession: session } = useAuth();
 
     // 1. Queries de base (React Query)
     const { data: products = [], isLoading: isLoadingProducts } = useProducts(barId);
-    const { data: supplies = [], isLoading: isLoadingSupplies } = useSupplies(barId);
+
+    // 🛡️ Expert Fix: Lazy load supplies history
+    const { data: supplies = [], isLoading: isLoadingSupplies } = useSupplies(barId, { enabled: !skipSupplies });
+
     const { data: consignments = [], isLoading: isLoadingConsignments } = useConsignments(barId);
     const { data: categories = [], isLoading: isLoadingCategories } = useCategories(barId);
 
@@ -170,12 +178,18 @@ export const useUnifiedStock = (barId: string | undefined) => {
     }, [allProductsStockInfo]);
 
     const getAverageCostPerUnit = useCallback((productId: string): number => {
+        // 🛡️ Expert Optimization: Primary source = cached value in Product object
+        const product = products.find(p => p.id === productId);
+
+        // If supplies are loaded (Operations tab), the calculated value is more precise for recent changes
+        // Otherwise, use the server-cached currentAverageCost
         const productSupplies = supplies.filter(s => s.productId === productId);
-        if (productSupplies.length === 0) return 0;
+        if (productSupplies.length === 0) return product?.currentAverageCost || 0;
+
         const totalCost = productSupplies.reduce((sum, s) => sum + s.totalCost, 0);
         const totalQuantity = productSupplies.reduce((sum, s) => sum + s.quantity, 0);
-        return totalQuantity > 0 ? totalCost / totalQuantity : 0;
-    }, [supplies]);
+        return totalQuantity > 0 ? totalCost / totalQuantity : (product?.currentAverageCost || 0);
+    }, [supplies, products]);
 
     // ===== LOGIQUE DE CONSIGNATION =====
 

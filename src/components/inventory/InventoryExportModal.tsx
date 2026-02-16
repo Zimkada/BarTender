@@ -147,24 +147,24 @@ export function InventoryExportModal({
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
+                        <div className="flex items-center gap-4">
+                            <div className="flex-1 space-y-2">
                                 <label className="text-xs font-medium text-gray-600">Date Cible</label>
                                 <input
                                     type="date"
-                                    max={getCurrentBusinessDateString(currentBar?.closingHour)} // ✅ Bloquer dates futures
+                                    max={getCurrentBusinessDateString(currentBar?.closingHour)}
                                     value={targetDate}
                                     onChange={(e) => setTargetDate(e.target.value)}
-                                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                                 />
                             </div>
-                            <div className="space-y-2">
+                            <div className="flex-1 space-y-2">
                                 <label className="text-xs font-medium text-gray-600">Heure (Début Jr.)</label>
                                 <input
                                     type="time"
                                     value={targetTime}
                                     onChange={(e) => setTargetTime(e.target.value)}
-                                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full bg-white border border-gray-300 rounded-lg px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                                 />
                             </div>
                         </div>

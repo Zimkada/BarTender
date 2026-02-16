@@ -31,10 +31,10 @@ export interface UnifiedExpense {
  * Hook Central pour la Gestion Unifiée des Flux Sortants
  * Combine Expenses, Supplies, et Salaries (Online + Offline)
  */
-export function useUnifiedExpenses(barId: string | undefined) {
+export function useUnifiedExpenses(barId: string | undefined, options: { startDate?: string; endDate?: string } = {}) {
 
     // 1. Online Data
-    const { data: onlineExpenses = [] } = useExpenses(barId);
+    const { data: onlineExpenses = [] } = useExpenses(barId, options);
     const { data: onlineSupplies = [] } = useSupplies(barId);
     const { data: customCategories = [] } = useCustomExpenseCategories(barId);
     const { salaries: onlineSalaries = [] } = useSalaries(barId || '');

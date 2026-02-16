@@ -2,7 +2,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, BarChart3 } from 'lucide-react';
-import { useAppContext } from '../context/AppContext';
 import { useBarContext } from '../context/BarContext';
 import { Button } from '../components/ui/Button';
 import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
@@ -17,8 +16,25 @@ import AnalyticsCharts from '../components/AnalyticsCharts';
 export default function AnalyticsPage() {
   const navigate = useNavigate();
   const { currentBar } = useBarContext();
-  const { sales } = useUnifiedSales(currentBar?.id);
-  const { expenses } = useUnifiedExpenses(currentBar?.id);
+
+  // 🛡️ Expert Fix: Inject 12-month filter to avoid loading full bar history
+  const analyticsFilters = useMemo(() => {
+    const end = new Date();
+    const start = new Date();
+    start.setMonth(start.getMonth() - 12);
+    start.setDate(1); // Start of month
+
+    // Convert to YYYY-MM-DD
+    const formatDate = (d: Date) => d.toISOString().split('T')[0];
+
+    return {
+      startDate: formatDate(start),
+      endDate: formatDate(end)
+    };
+  }, []);
+
+  const { sales } = useUnifiedSales(currentBar?.id, analyticsFilters);
+  const { expenses } = useUnifiedExpenses(currentBar?.id, analyticsFilters);
 
   // Générer les données pour les graphiques (12 derniers mois)
   const chartData = useMemo(() => {

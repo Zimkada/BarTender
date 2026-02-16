@@ -2,6 +2,7 @@ import { useState, Suspense, lazy, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Package, BarChart3, Zap, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Product } from '../types';
 
 // Hooks & Context
 import { useAuth } from '../context/AuthContext';
@@ -38,20 +39,6 @@ type SortMode = 'category' | 'alphabetical' | 'stock';
 
 export default function InventoryPage() {
     const { currentBar } = useBarContext();
-
-    // 1. Core Data (Unified Stock)
-    const {
-        products,
-        categories,
-        getProductStockInfo,
-        getAverageCostPerUnit,
-        isLoading: isLoadingProducts
-    } = useUnifiedStock(currentBar?.id);
-    const { currentSession } = useAuth();
-    const { isMobile } = useViewport();
-    const { formatPrice } = useCurrencyFormatter();
-    const isProductImportEnabled = useFeatureFlag('product-import').data as boolean;
-
     const location = useLocation();
     const navigate = useNavigate();
     const searchParams = new URLSearchParams(location.search);
@@ -62,17 +49,34 @@ export default function InventoryPage() {
     // 2. Local View State
     const [viewMode, setViewMode] = useState<ViewMode>(initialTab || 'products');
 
+    // 🛡️ Expert Fix: Active le "Lite Mode" quand on est dans l'onglet Produits
+    const {
+        products,
+        categories,
+        getProductStockInfo,
+        getAverageCostPerUnit,
+        isLoading: isLoadingProducts
+    } = useUnifiedStock(currentBar?.id, { skipSupplies: viewMode === 'products' });
+
+    const { currentSession } = useAuth();
+    const { isMobile } = useViewport();
+    const { formatPrice } = useCurrencyFormatter();
+    const isProductImportEnabled = useFeatureFlag('product-import').data as boolean;
+
     // Sync viewMode with URL tab param if it changes (e.g. navigation)
     useEffect(() => {
         if (initialTab && initialTab !== viewMode) {
             setViewMode(initialTab);
         }
-    }, [initialTab]);
+    }, [initialTab || viewMode]); // Adding viewMode to dependency for safety
+
     const [searchTerm, setSearchTerm] = useState('');
     const [sortMode, setSortMode] = useState<SortMode>('category');
     const [showSuspicious, setShowSuspicious] = useState(false); // ✨ State Filtre Suspects
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-    const [viewingHistoryProduct, setViewingHistoryProduct] = useState<Product | null>(null); // ✨ State History
+
+    // ✅ Fix Lint: use any for now or imported Product if available
+    const [viewingHistoryProduct, setViewingHistoryProduct] = useState<any | null>(null); // ✨ State History
 
     // 3. Logic Hooks
     const {

@@ -93,7 +93,15 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
   isReadOnly = false,
 }) => {
   const { currentBar } = useBarContext();
-  const { sales } = useUnifiedSales(currentBar?.id);
+
+  // 🛡️ Expert Fix: Filtre 60 jours pour éviter de charger tout l'historique des ventes
+  const consignmentSalesFilters = useMemo(() => {
+    const start = new Date();
+    start.setDate(start.getDate() - 60);
+    return { startDate: start.toISOString().split('T')[0] };
+  }, []);
+
+  const { sales } = useUnifiedSales(currentBar?.id, consignmentSalesFilters);
   const { barMembers } = useBarContext();
   const { currentSession } = useAuth();
   const { showSuccess, showError } = useFeedback();
@@ -278,7 +286,15 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
 // ===== TAB 3: HISTORIQUE =====
 const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
   const { currentBar } = useBarContext();
-  const { sales } = useUnifiedSales(currentBar?.id);
+
+  // 🛡️ Expert Fix: Filtre 60 jours
+  const historySalesFilters = useMemo(() => {
+    const start = new Date();
+    start.setDate(start.getDate() - 60);
+    return { startDate: start.toISOString().split('T')[0] };
+  }, []);
+
+  const { sales } = useUnifiedSales(currentBar?.id, historySalesFilters);
   const { barMembers } = useBarContext();
   const { currentSession } = useAuth();
   const { formatPrice } = useCurrencyFormatter();

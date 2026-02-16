@@ -9,12 +9,12 @@ export const expenseKeys = {
     categories: (barId: string) => [...expenseKeys.all, 'categories', barId] as const,
 };
 
-export const useExpenses = (barId: string | undefined) => {
+export const useExpenses = (barId: string | undefined, options?: { startDate?: string; endDate?: string }) => {
     return useQuery({
-        queryKey: expenseKeys.list(barId || ''),
+        queryKey: [...expenseKeys.list(barId || ''), options],
         queryFn: async (): Promise<Expense[]> => {
             if (!barId) return [];
-            const dbExpenses = await ExpensesService.getExpenses(barId);
+            const dbExpenses = await ExpensesService.getExpenses(barId, options);
 
             return dbExpenses.map(e => ({
                 id: e.id,
@@ -22,9 +22,8 @@ export const useExpenses = (barId: string | undefined) => {
                 category: e.category as any,
                 customCategoryId: e.custom_category_id || undefined,
                 amount: e.amount,
-                description: e.description || '',
-                receiptUrl: e.receipt_url || undefined,
-                createdBy: e.recorded_by,
+                description: e.description || e.notes || '',
+                createdBy: e.created_by,
                 date: new Date(e.expense_date),
                 createdAt: new Date(e.created_at),
             }));
@@ -47,11 +46,9 @@ export const useCustomExpenseCategories = (barId: string | undefined) => {
                 id: c.id,
                 barId: c.bar_id,
                 name: c.name,
-                description: c.description || undefined,
-                icon: 'tag', // Default icon if not in DB
-                color: c.color,
+                icon: c.icon || 'tag',
                 createdAt: new Date(c.created_at),
-                createdBy: '', // Info manquante dans le modèle actuel
+                createdBy: '',
             }));
         },
         enabled: !!barId,
