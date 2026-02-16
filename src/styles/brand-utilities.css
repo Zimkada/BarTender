@@ -6,13 +6,9 @@
 
 /* Bouton Brand - Gradient Premium */
 .btn-brand {
-    background: #f59e0b;
-    /* Fallback Legacy (Amber-500) */
-    background: var(--brand-gradient);
+    background: var(--brand-gradient, #666);
     color: white;
-    box-shadow: 0 8px 20px -4px rgba(245, 158, 11, 0.4);
-    /* Fallback */
-    box-shadow: 0 8px 20px -4px var(--brand-shadow);
+    box-shadow: 0 8px 20px -4px var(--brand-shadow, rgba(0, 0, 0, 0.2));
     border: none;
     transition: all 0.2s ease;
 }
@@ -29,13 +25,9 @@
 
 /* Bouton Brand Large - Pour CTAs majeurs */
 .btn-brand-lg {
-    background: #f59e0b;
-    /* Fallback */
-    background: var(--brand-gradient);
+    background: var(--brand-gradient, #666);
     color: white;
-    box-shadow: 0 10px 30px -5px rgba(245, 158, 11, 0.4);
-    /* Fallback */
-    box-shadow: 0 10px 30px -5px var(--brand-shadow);
+    box-shadow: 0 10px 30px -5px var(--brand-shadow, rgba(0, 0, 0, 0.2));
     border: none;
     transition: all 0.2s ease;
 }
@@ -53,8 +45,6 @@
 
 /* Texte Brand */
 .text-brand-primary {
-    color: #f59e0b;
-    /* Fallback */
     color: var(--brand-primary);
 }
 
@@ -64,8 +54,6 @@
 
 /* Backgrounds Brand */
 .bg-brand-primary {
-    background-color: #f59e0b;
-    /* Fallback */
     background-color: var(--brand-primary);
 }
 

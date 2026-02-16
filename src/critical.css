@@ -1,13 +1,9 @@
 /* Critical loading styles - Palette harmonisée avec page d'authentification */
 :root {
-  /* DYNAMIC LOADER THEME
-     Ces variables utilisent les valeurs injectées par le script bloquant dans index.html.
-     Fallback sur Amber (28, 65%) si le script échoue. */
-  --beer-bg: hsl(var(--brand-hue, 28), var(--brand-saturation, 65%), 98%);
-
-  --beer-primary: hsl(var(--brand-hue, 28), var(--brand-saturation, 65%), 50%);
-
-  --beer-highlight: hsl(var(--brand-hue, 28), var(--brand-saturation, 65%), 60%);
+  /* DYNAMIC LOADER THEME - Neutral Fallback (Off-White 98%) */
+  --beer-bg: hsl(var(--brand-hue, 0), var(--brand-saturation, 0%), 98%);
+  --beer-primary: hsl(var(--brand-hue, 0), var(--brand-saturation, 0%), 40%);
+  --beer-highlight: hsl(var(--brand-hue, 0), var(--brand-saturation, 0%), 50%);
 }
 
 html,
@@ -39,7 +35,7 @@ body {
 .app-loader .spinner {
   width: 48px;
   height: 48px;
-  border: 4px solid rgba(245, 158, 11, 0.2);
+  border: 4px solid rgba(0, 0, 0, 0.05);
   border-top: 4px solid var(--beer-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;

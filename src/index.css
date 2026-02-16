@@ -23,7 +23,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 20 14.3% 4.1%;
 
-    --primary: 38 92% 50%;
+    --primary: 0 0% 40%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 40 38% 95%;
@@ -40,7 +40,7 @@
 
     --border: 20 5.9% 90%;
     --input: 20 5.9% 90%;
-    --ring: 38 92% 50%;
+    --ring: 0 0% 40%;
 
     --radius: 0.5rem;
 
@@ -48,20 +48,20 @@
     --glass-opacity: 0.7;
     --glass-blur: 12px;
 
-    /* 🎨 Couleurs d'ombre harmonisées */
-    --shadow-orange-light: hsla(38, 92%, 40%, 0.1);
-    --shadow-orange-medium: hsla(38, 92%, 35%, 0.2);
-    --shadow-orange-strong: hsla(38, 92%, 30%, 0.35);
+    /* 🎨 Couleurs d'ombre harmonisées (Neutres) */
+    --shadow-brand-light: rgba(0, 0, 0, 0.05);
+    --shadow-brand-medium: rgba(0, 0, 0, 0.1);
+    --shadow-brand-strong: rgba(0, 0, 0, 0.2);
 
     /* ═══════════════════════════════════════════════════════════
        🎨 BRAND COLOR SYSTEM - Couleur Personnalisable
        Modifier --brand-hue pour changer toute l'identité visuelle
        ═══════════════════════════════════════════════════════════ */
 
-    /* Teinte de base (0-360) - Valeurs Initiales par Défaut (Amber) */
+    /* Teinte de base (0-360) - Valeurs Initiales par Défaut (Neutre) */
     /* Ces valeurs sont OVERRIDÉES par le script dans index.html avant le paint */
-    --brand-hue: 28;
-    --brand-saturation: 65%;
+    --brand-hue: 0;
+    --brand-saturation: 0%;
 
     /* Luminosités pour le gradient premium (Match les couleurs réelles du thème Amber) */
     --brand-light: 55%;
@@ -119,7 +119,7 @@
   box-shadow:
     0 20px 50px -10px hsla(var(--brand-hue), var(--brand-saturation), 25%, 0.55),
     0 8px 20px -5px hsla(var(--brand-hue), var(--brand-saturation), 35%, 0.35),
-    inset 0 1px 0 hsla(45, 100%, 90%, 0.3);
+    inset 0 1px 0 hsla(0, 0%, 100%, 0.3);
 }
 
 /* Effet Shimmer de luxe */
@@ -204,17 +204,17 @@
 
 /* 🍊 Bouton Orange Glass */
 .glass-orange-2026 {
-  background: linear-gradient(135deg, hsla(var(--brand-hue), 95%, 60%, 0.45) 0%, hsla(var(--brand-hue), 95%, 50%, 0.6) 100%);
+  background: linear-gradient(135deg, hsla(var(--brand-hue), var(--brand-saturation), 60%, 0.45) 0%, hsla(var(--brand-hue), var(--brand-saturation), 50%, 0.6) 100%);
   backdrop-filter: blur(8px);
-  border: 1px solid hsla(var(--brand-hue), 95%, 70%, 0.4);
-  box-shadow: 0 6px 15px -3px hsla(var(--brand-hue), 95%, 45%, 0.35), inset 0 1px hsla(0, 0%, 100%, 0.3);
+  border: 1px solid hsla(var(--brand-hue), var(--brand-saturation), 70%, 0.4);
+  box-shadow: 0 6px 15px -3px hsla(var(--brand-hue), var(--brand-saturation), 45%, 0.35), inset 0 1px hsla(0, 0%, 100%, 0.3);
 }
 
 /* 🎨 Boutons d'Action PageHeader */
 .glass-action-button-2026 {
   background: linear-gradient(135deg,
-    hsla(var(--brand-hue), var(--brand-saturation), 96%, 0.9) 0%,
-    hsla(var(--brand-hue), var(--brand-saturation), 92%, 0.85) 100%) !important;
+      hsla(var(--brand-hue), var(--brand-saturation), 96%, 0.9) 0%,
+      hsla(var(--brand-hue), var(--brand-saturation), 92%, 0.85) 100%) !important;
   backdrop-filter: blur(8px) !important;
   border: 1px solid hsla(var(--brand-hue), var(--brand-saturation), 50%, 0.25) !important;
   color: var(--brand-text) !important;
@@ -227,8 +227,8 @@
 
 .glass-action-button-2026:hover {
   background: linear-gradient(135deg,
-    hsla(var(--brand-hue), var(--brand-saturation), 90%, 0.95) 0%,
-    hsla(var(--brand-hue), var(--brand-saturation), 85%, 0.9) 100%) !important;
+      hsla(var(--brand-hue), var(--brand-saturation), 90%, 0.95) 0%,
+      hsla(var(--brand-hue), var(--brand-saturation), 85%, 0.9) 100%) !important;
   border: 1px solid hsla(var(--brand-hue), var(--brand-saturation), 50%, 0.45) !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 8px 20px -4px var(--brand-shadow) !important;

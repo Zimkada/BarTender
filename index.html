@@ -6,7 +6,7 @@
 
   <!-- PWA Meta Tags -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
-  <meta name="theme-color" content="#f59e0b" />
+  <meta name="theme-color" content="#ffffff" />
   <meta name="color-scheme" content="light" />
 
   <!-- PWA Manifest -->
@@ -62,7 +62,7 @@
   <!-- 🎨 THEME LOADER CRITIQUE (BLOCKING SCRIPT) -->
   <!-- Doit être le dernier élément du <head> pour garantir l'exécution avant le rendu du <body> -->
   <!-- Lit le cache 'bartender_theme_cache' (plus light que 'bartender_bars') pour injecter les couleurs AVANT le paint -->
-  <script>(function(){try{let h,s;const c=localStorage.getItem('bartender_theme_cache');if(c){const t=JSON.parse(c);h=t.hue;s=t.saturation}else{const r=localStorage.getItem('bartender_bars'),i=localStorage.getItem('bartender_current_bar_id');if(r&&i){const b=JSON.parse(r).find(x=>x.id===i);if(b&&b.theme_config&&b.theme_config.preset){const p={'sunset':{h:28,s:'65%'},'sky':{h:200,s:'90%'},'mojito':{h:150,s:'60%'},'midnight':{h:245,s:'70%'},'lavender':{h:270,s:'70%'},'ocean':{h:220,s:'80%'},'forest':{h:145,s:'65%'},'minimal':{h:220,s:'10%'}};const q=p[b.theme_config.preset]||p['sunset'];h=q.h;s=q.s}}}if(h!==undefined){const r=document.documentElement;r.style.setProperty('--brand-hue',h);r.style.setProperty('--brand-saturation',s);try{const m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',`hsl(${h},${s},45%)`)}catch(e){}}}catch(e){}})();</script>
+  <script>(function(){try{let h,s,l;const c=localStorage.getItem('bartender_theme_cache');if(c){const t=JSON.parse(c);h=t.hue;s=t.saturation;l=t.lightness}else{const r=localStorage.getItem('bartender_bars'),i=localStorage.getItem('bartender_current_bar_id');if(r&&i){const b=JSON.parse(r).find(x=>x.id===i);if(b&&b.theme_config&&b.theme_config.preset){const p={'sunset':{h:28,s:'65%',l:'50%'},'sky':{h:200,s:'90%',l:'50%'},'mojito':{h:150,s:'60%',l:'50%'},'midnight':{h:245,s:'70%',l:'50%'},'lavender':{h:270,s:'70%',l:'50%'},'ocean':{h:220,s:'80%',l:'50%'},'forest':{h:145,s:'65%',l:'50%'},'minimal':{h:220,s:'10%',l:'50%'}};const q=p[b.theme_config.preset]||p['sunset'];h=q.h;s=q.s;l=q.l}}}if(h!==undefined){const r=document.documentElement;r.style.setProperty('--brand-hue',h);r.style.setProperty('--brand-saturation',s);try{const m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',`hsl(${h},${s},${l||'45%'})`)}catch(e){}}}catch(e){}})();</script>
 </head>
 
 <body>
@@ -70,7 +70,7 @@
   <div id="root">
     <div class="app-loader">
       <div class="spinner"></div>
-      <div>Chargement BarTender...</div>
+      <div>BarTender Pro</div>
     </div>
   </div>
 

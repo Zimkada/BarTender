@@ -107,7 +107,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
         // 🎨 Injecter les variables HSL pour le design system CSS
         // Cela permet aux bordures, gradients, ombres de s'adapter dynamiquement
-        const { hue, saturation } = hexToHSL(primaryColor);
+        const { hue, saturation, lightness } = hexToHSL(primaryColor);
         document.documentElement.style.setProperty('--brand-hue', hue.toString());
         document.documentElement.style.setProperty('--brand-saturation', `${saturation}%`);
 
@@ -121,6 +121,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
                 const simpleCache = {
                     hue: hue.toString(),
                     saturation: `${saturation}%`,
+                    lightness: `${lightness}%`,
                     preset: activeThemeConfig.preset // Ajout crucial pour le contexte React
                 };
                 localStorage.setItem('bartender_theme_cache', JSON.stringify(simpleCache));
