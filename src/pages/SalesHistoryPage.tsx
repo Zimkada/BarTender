@@ -95,7 +95,15 @@ export default function SalesHistoryPage() {
     const {
         sales: unifiedSales,
         isLoading: isLoadingSales
-    } = useUnifiedSales(currentBar?.id, serverSearchTerm, timeRange, isTieringIgnored);
+    } = useUnifiedSales(currentBar?.id, {
+        searchTerm: serverSearchTerm,
+        timeRange,
+        // ✨ HYBRID FILTERING: Pass filters to hook
+        startDate: startDate?.toISOString().split('T')[0],
+        endDate: endDate?.toISOString().split('T')[0],
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        ignoreTiering: isTieringIgnored
+    });
 
     // HOOK: Filtrage (Ventes & Retours)
     const {

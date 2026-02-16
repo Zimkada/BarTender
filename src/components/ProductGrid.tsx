@@ -39,12 +39,13 @@ export function ProductGrid({
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
-      {products.map((product) => (
+      {products.map((product, index) => (
         <ProductCard
           key={product.id}
           product={product}
           availableStock={getProductStockInfo(product.id)?.availableStock}
           onAddToCart={() => onAddToCart(product)}
+          priority={index < 4} // ✨ Optimisation LCP: Charge les 4 premières images en priorité
         />
       ))}
     </div>

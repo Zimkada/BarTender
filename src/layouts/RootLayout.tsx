@@ -19,9 +19,10 @@ import { Header } from '../components/Header';
 import { MobileNavigation } from '../components/MobileNavigation';
 import { MobileSidebar } from '../components/MobileSidebar'; // NEW
 import { Cart } from '../components/Cart';
-import { GuideButton } from '../components/guide/GuideButton'; // Phase 1.5
-import { GuideTourModal } from '../components/guide/GuideTourModal'; // Phase 1.5
-import { OnboardingBanner } from '../components/onboarding/OnboardingBanner'; // UX Improvement 1
+// Phase 1.5 & UX Improvements - Lazy Loaded
+const LazyGuideButton = lazy(() => import('../components/guide/GuideButton').then(m => ({ default: m.GuideButton })));
+const LazyGuideTourModal = lazy(() => import('../components/guide/GuideTourModal').then(m => ({ default: m.GuideTourModal })));
+const LazyOnboardingBanner = lazy(() => import('../components/onboarding/OnboardingBanner').then(m => ({ default: m.OnboardingBanner })));
 import { LoadingFallback } from '../components/LoadingFallback';
 import { LazyLoadErrorBoundary } from '../components/LazyLoadErrorBoundary';
 // import { UserManagement } from '../components/UserManagement'; // Removed
@@ -167,7 +168,9 @@ function RootLayoutContent() {
     <div className="min-h-screen bg-gradient-to-br from-brand-subtle to-brand-subtle pb-16 md:pb-0">
       <OfflineBanner /> {/* Phase 1: Offline Resilience */}
       <UpdateNotification />
-      <OnboardingBanner /> {/* UX Improvement 1: Show setup banner */}
+      <Suspense fallback={null}>
+        <LazyOnboardingBanner /> {/* UX Improvement 1: Show setup banner */}
+      </Suspense>
       <Header
         onShowQuickSale={() => openModal('QUICK_SALE')}
         onShowProductModal={() => openModal('PRODUCT')}
@@ -191,8 +194,10 @@ function RootLayoutContent() {
         onToggle={() => setIsCartOpen(!isCartOpen)}
       />
 
-      <GuideButton /> {/* Phase 1.5: Floating guide button */}
-      <GuideTourModal /> {/* Phase 1.5: Guide modal visible everywhere */}
+      <Suspense fallback={null}>
+        <LazyGuideButton /> {/* Phase 1.5: Floating guide button */}
+        <LazyGuideTourModal /> {/* Phase 1.5: Guide modal visible everywhere */}
+      </Suspense>
 
       <MobileSidebar
         isOpen={isMobileSidebarOpen}

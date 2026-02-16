@@ -30,12 +30,27 @@ export interface UnifiedSale extends Omit<Sale, 'createdAt' | 'validatedAt' | 'r
     rejectedAt?: Date | string;
 }
 
+export interface UseUnifiedSalesOptions {
+    searchTerm?: string;
+    timeRange?: string;
+    startDate?: string;
+    endDate?: string;
+    status?: string;
+    ignoreTiering?: boolean;
+}
+
 export const useUnifiedSales = (
     barId: string | undefined,
-    searchTerm?: string,
-    timeRange?: string,
-    ignoreTiering: boolean = false
+    options: UseUnifiedSalesOptions = {}
 ) => {
+    const {
+        searchTerm,
+        timeRange,
+        startDate,
+        endDate,
+        status,
+        ignoreTiering = false
+    } = options;
     const queryClient = useQueryClient();
     const { currentBar } = useBarContext();
     const closeHour = currentBar?.closingHour ?? 6;
@@ -74,10 +89,14 @@ export const useUnifiedSales = (
             businessDatePivot.setDate(businessDatePivot.getDate() - 30);
         }
 
+        // ✨ HYBRID FILTERING: Propagate filters to backend
         return {
-            startDate: dateToYYYYMMDD(businessDatePivot)
+            startDate: startDate || dateToYYYYMMDD(businessDatePivot),
+            endDate,
+            status,
+            searchTerm
         };
-    }, [currentBar?.settings?.dataTier, searchTerm, timeRange, closeHour]);
+    }, [currentBar?.settings?.dataTier, searchTerm, timeRange, closeHour, startDate, endDate, status]);
 
     // 1. Ventes Online (via React Query) avec options de tiering
     const { data: onlineSales = [], isLoading: isLoadingOnline } = useSales(barId, salesOptions);

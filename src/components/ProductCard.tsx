@@ -10,9 +10,10 @@ interface ProductCardProps {
   product: Product;
   onAddToCart: (product: Product) => void;
   availableStock?: number;
+  priority?: boolean; // ✨ Pour l'optimisation LCP
 }
 
-export function ProductCard({ product, onAddToCart, availableStock }: ProductCardProps) {
+export function ProductCard({ product, onAddToCart, availableStock, priority = false }: ProductCardProps) {
   const { formatPrice } = useCurrencyFormatter();
 
   // Priorité au stock "calculé" (disponible) s'il est fourni, sinon stock physique
@@ -92,6 +93,7 @@ export function ProductCard({ product, onAddToCart, availableStock }: ProductCar
               width={150}
               height={150}
               className="w-full h-full object-contain mix-blend-multiply"
+              priority={priority} // ✨ LCP Optimization
             />
           ) : (
             <div className="w-10 h-10 bg-brand-subtle rounded-2xl flex items-center justify-center text-brand-primary/30">

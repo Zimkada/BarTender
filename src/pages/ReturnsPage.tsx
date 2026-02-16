@@ -39,6 +39,7 @@ import {
   SALES_HISTORY_FILTERS,
 } from "../config/dateFilters";
 import { useSalesFilters } from "../features/Sales/SalesHistory/hooks/useSalesFilters";
+import { useDateRangeFilter } from "../hooks/useDateRangeFilter";
 import { returnReasons } from "../config/returnReasons";
 import { ReturnCard } from "../components/returns/ReturnCard";
 import { CreateReturnForm } from "../components/returns/CreateReturnForm";
@@ -83,12 +84,20 @@ export default function ReturnsPage() {
 
   const closeHour = currentBar?.closingHour ?? 6;
 
-  // ✨ NEW: Use shared filtering hook for period + server filtering
+  // ✨ NEW: Use shared filtering hook for period
   const {
     timeRange,
     setTimeRange,
     customRange,
     updateCustomRange,
+    startDate,
+    endDate,
+  } = useDateRangeFilter({
+    defaultRange: 'today'
+  });
+
+  // ✨ NEW: Filter Returns using centralized hook
+  const {
     searchTerm,
     setSearchTerm,
     filteredReturns: filteredReturnsByFilters,
@@ -97,6 +106,8 @@ export default function ReturnsPage() {
     returns: returns as any[],
     currentSession,
     closeHour,
+    externalStartDate: startDate,
+    externalEndDate: endDate,
   });
 
   const todayRefundedAmount = useMemo(() => {
@@ -263,9 +274,11 @@ export default function ReturnsPage() {
       customRestock: reason === "other" ? customRestock : undefined,
       originalSeller: sale.soldBy,
       // ✅ FIX: Always normalize to YYYY-MM-DD string
-      businessDate: typeof sale.businessDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(sale.businessDate)
-        ? sale.businessDate  // Already YYYY-MM-DD
-        : dateToYYYYMMDD(typeof sale.businessDate === 'string' ? new Date(sale.businessDate) : sale.businessDate),
+      businessDate: sale.businessDate
+        ? (typeof sale.businessDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(sale.businessDate)
+          ? sale.businessDate  // Already YYYY-MM-DD
+          : dateToYYYYMMDD(typeof sale.businessDate === 'string' ? new Date(sale.businessDate) : sale.businessDate))
+        : getCurrentBusinessDateString(closeHour),
       serverId,
       operatingModeAtCreation: operatingMode,
     });
@@ -290,9 +303,11 @@ export default function ReturnsPage() {
       customRestock: reason === "other" ? customRestock : undefined,
       originalSeller: sale.soldBy,
       // ✅ FIX: Always normalize to YYYY-MM-DD string
-      businessDate: typeof sale.businessDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(sale.businessDate)
-        ? sale.businessDate  // Already YYYY-MM-DD
-        : dateToYYYYMMDD(typeof sale.businessDate === 'string' ? new Date(sale.businessDate) : sale.businessDate),
+      businessDate: sale.businessDate
+        ? (typeof sale.businessDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(sale.businessDate)
+          ? sale.businessDate  // Already YYYY-MM-DD
+          : dateToYYYYMMDD(typeof sale.businessDate === 'string' ? new Date(sale.businessDate) : sale.businessDate))
+        : getCurrentBusinessDateString(closeHour),
       serverId, // ✨ NUEVO: Passer le server_id résolu
       // ✨ MODE SWITCHING SUPPORT: Store current operating mode
       operatingModeAtCreation: operatingMode,

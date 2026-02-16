@@ -28,7 +28,7 @@ export const salesKeys = {
     stats: (barId: string) => [...salesKeys.all, 'stats', barId] as const,
 };
 
-export const useSales = (barId: string | undefined, options?: { startDate?: string; endDate?: string; searchTerm?: string }) => {
+export const useSales = (barId: string | undefined, options?: { startDate?: string; endDate?: string; searchTerm?: string; status?: string }) => {
     const isEnabled = !!barId;
 
     // 🔧 PHASE 1-2: SmartSync pour sales (INSERT car nouvelles ventes)
