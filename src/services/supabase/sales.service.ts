@@ -236,98 +236,66 @@ export class SalesService {
     };
   }
 
-  static async validateSale(saleId: string, validatedBy: string): Promise<Sale> {
-    const { data, error } = await supabase
-      .from('sales')
-      .update({
-        status: 'validated',
-        validated_by: validatedBy,
-        validated_at: new Date().toISOString(),
-      })
-      .eq('id', saleId)
-      .select()
-      .single();
+  static async validateSale(id: string, validatedBy: string): Promise<void> {
+    try {
+      // ✅ Expert Fix: Use atomic RPC to ensure both status update AND stock decrement succeed
+      const { error } = await supabase.rpc('validate_sale' as any, {
+        p_sale_id: id,
+        p_validated_by: validatedBy
+      });
 
-    if (error || !data) throw new Error(handleSupabaseError(error));
-    return data;
+      if (error) throw error;
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
   }
 
-  static async rejectSale(saleId: string, validatedBy: string): Promise<Sale> {
-    const { data: sale } = await supabase
-      .from('sales')
-      .select('items')
-      .eq('id', saleId)
-      .single();
+  static async rejectSale(id: string, rejectedBy: string): Promise<void> {
+    try {
+      // ✅ Expert Fix: Use atomic RPC to handle both status update AND
+      // conditional stock restoration (only if it was validated)
+      const { error } = await supabase.rpc('reject_sale' as any, {
+        p_sale_id: id,
+        p_rejected_by: rejectedBy
+      });
 
-    if (!sale) throw new Error('Vente introuvable');
-
-    const items = sale.items as SaleItem[];
-    for (const item of items) {
-      await ProductsService.incrementStock(item.product_id, item.quantity);
+      if (error) throw error;
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
     }
-
-    const { data, error } = await supabase
-      .from('sales')
-      .update({
-        status: 'rejected',
-        rejected_by: validatedBy,
-        rejected_at: new Date().toISOString(),
-      })
-      .eq('id', saleId)
-      .eq('status', 'pending')
-      .select()
-      .maybeSingle();
-
-    if (error || !data) throw new Error(handleSupabaseError(error || 'Impossible d\'annuler cette vente'));
-    return data;
   }
 
-  static async cancelSale(saleId: string, cancelledBy: string, reason: string): Promise<Sale> {
-    const { data: sale } = await supabase
-      .from('sales')
-      .select('items')
-      .eq('id', saleId)
-      .single();
+  static async cancelSale(saleId: string, cancelledBy: string, reason: string): Promise<void> {
+    try {
 
-    if (!sale) throw new Error('Vente introuvable');
+      // Fetch barId for audit log
+      const { data: saleData } = await supabase.from('sales').select('bar_id').eq('id', saleId).single();
+      const barId = saleData?.bar_id || 'unknown';
 
-    const { count: returnCount } = await supabase.from('returns').select('id', { count: 'exact', head: true }).eq('sale_id', saleId);
-    if (returnCount && returnCount > 0) throw new Error('Impossible d\'annuler cette vente car elle contient des retours produits.');
+      // ✅ Expert Fix: Atomic RPC for Cancellation
+      const { data, error } = await supabase.rpc('cancel_sale' as any, {
+        p_sale_id: saleId,
+        p_cancelled_by: cancelledBy,
+        p_reason: reason
+      });
 
-    const { count: consCount } = await supabase.from('consignments').select('id', { count: 'exact', head: true }).eq('sale_id', saleId).in('status', ['active', 'claimed']);
-    if (consCount && consCount > 0) throw new Error('Impossible d\'annuler cette vente car elle contient des consignations actives.');
+      if (error) throw error;
+      const result = data as any;
+      if (!result.success) throw new Error(result.message);
 
-    const items = sale.items as SaleItem[];
-    for (const item of items) {
-      await ProductsService.incrementStock(item.product_id, item.quantity);
+      // Audit logs are handled after success
+      await auditLogger.log({
+        event: 'SALE_CANCELLED',
+        severity: 'warning',
+        barId: barId,
+        description: `Vente annulée - Raison: ${reason}`,
+        relatedEntityId: saleId,
+        relatedEntityType: 'sale',
+        metadata: { reason }
+      });
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
     }
-
-    const { data, error } = await supabase
-      .from('sales')
-      .update({
-        status: 'cancelled',
-        cancelled_by: cancelledBy,
-        cancelled_at: new Date().toISOString(),
-        cancel_reason: reason,
-      })
-      .eq('id', saleId)
-      .eq('status', 'validated')
-      .select()
-      .maybeSingle();
-
-    if (error || !data) throw new Error(handleSupabaseError(error || 'Impossible d\'annuler cette vente'));
-
-    await auditLogger.log({
-      event: 'SALE_CANCELLED',
-      severity: 'warning',
-      barId: data.bar_id,
-      description: `Vente annulée - Raison: ${reason}`,
-      relatedEntityId: saleId,
-      relatedEntityType: 'sale',
-      metadata: { total: data.total, reason }
-    });
-
-    return data;
   }
 
   static async deleteSale(saleId: string): Promise<void> {

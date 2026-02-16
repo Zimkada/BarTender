@@ -35,7 +35,7 @@ export const useStockMutations = (barId?: string) => {
         onSuccess: () => {
             const barId = currentBar?.id;
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.success('Produit créé avec succès');
+                toast.success('Produit créé avec succès');
             });
             if (barId) {
                 invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
@@ -52,7 +52,7 @@ export const useStockMutations = (barId?: string) => {
         onSuccess: (data, variables) => {
             const barId = currentBar?.id;
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.success('Produit mis à jour');
+                toast.success('Produit mis à jour');
             });
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets
@@ -80,7 +80,7 @@ export const useStockMutations = (barId?: string) => {
         onSuccess: (data, id) => {
             const barId = currentBar?.id;
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.success('Produit supprimé');
+                toast.success('Produit supprimé');
             });
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets
@@ -114,7 +114,7 @@ export const useStockMutations = (barId?: string) => {
         onSuccess: (data, variables) => {
             const barId = currentBar?.id;
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.success('Stock mis à jour');
+                toast.success('Stock mis à jour');
             });
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets
@@ -133,7 +133,7 @@ export const useStockMutations = (barId?: string) => {
         },
         onError: (err: any) => {
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.error(`Erreur mise à jour stock: ${err.message}`);
+                toast.error(`Erreur mise à jour stock: ${err.message}`);
             });
         }
     });
@@ -169,7 +169,7 @@ export const useStockMutations = (barId?: string) => {
         onSuccess: (data, variables) => {
             const barId = currentBar?.id;
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.success('Approvisionnement enregistré et CUMP mis à jour !');
+                toast.success('Approvisionnement enregistré et CUMP mis à jour !');
             });
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets
@@ -196,7 +196,7 @@ export const useStockMutations = (barId?: string) => {
         },
         onError: (err: any) => {
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.error(`Erreur: ${err.message}`);
+                toast.error(`Erreur: ${err.message}`);
             });
         }
     });
@@ -246,7 +246,7 @@ export const useStockMutations = (barId?: string) => {
         onSuccess: (newConsignment) => {
             const barId = currentBar?.id;
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.success('Consignation créée');
+                toast.success('Consignation créée');
             });
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets
@@ -273,7 +273,7 @@ export const useStockMutations = (barId?: string) => {
         },
         onError: (err: any) => {
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.error(`Erreur: ${err.message}`);
+                toast.error(`Erreur: ${err.message}`);
             });
         }
     });
@@ -289,7 +289,7 @@ export const useStockMutations = (barId?: string) => {
         onSuccess: (consignment, variables) => {
             const barId = currentBar?.id;
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.success('Consignation réclamée');
+                toast.success('Consignation réclamée');
             });
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets
@@ -324,7 +324,7 @@ export const useStockMutations = (barId?: string) => {
         onSuccess: async () => {
             const barId = currentBar?.id;
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.success('Consignation abandonnée (stock réintégré)');
+                toast.success('Consignation abandonnée (stock réintégré)');
             });
             if (barId) {
                 invalidateStockQuery(queryClient, stockKeys.consignments(barId), barId);
@@ -341,7 +341,7 @@ export const useStockMutations = (barId?: string) => {
         onSuccess: async (data) => {
             const barId = currentBar?.id;
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.success(`${data.length} consignation(s) marquée(s) comme expirée(s)`);
+                toast.success(`${data.length} consignation(s) marquée(s) comme expirée(s)`);
             });
             if (barId) {
                 await queryClient.refetchQueries({ queryKey: stockKeys.consignments(barId) });
@@ -349,7 +349,7 @@ export const useStockMutations = (barId?: string) => {
         },
         onError: (err: any) => {
             import('react-hot-toast').then(({ default: toast }) => {
-              toast.error(`Erreur lors de l'expiration: ${err.message}`);
+                toast.error(`Erreur lors de l'expiration: ${err.message}`);
             });
         }
     });
@@ -357,24 +357,22 @@ export const useStockMutations = (barId?: string) => {
     // --- SALES ---
 
     const validateSale = useMutation({
-        mutationFn: async (items: Array<{ product: { id: string; name: string }; quantity: number }>) => {
-            const promises = items.map(item =>
-                ProductsService.decrementStock(item.product.id, item.quantity)
-            );
-            await Promise.all(promises);
+        mutationFn: async ({ id, validatedBy }: { id: string, validatedBy: string }) => {
+            const { SalesService } = await import('../../services/supabase/sales.service');
+            return SalesService.validateSale(id, validatedBy);
         },
-        onSuccess: (data, items) => {
+        onSuccess: (data, variables) => {
             const barId = currentBar?.id;
+            import('react-hot-toast').then(({ default: toast }) => {
+                toast.success('Vente validée et stock décrémenté');
+            });
 
             // 🚀 PHASE 3-4: Broadcast aux autres onglets
             if (barId && broadcastService.isSupported()) {
-                items.forEach(item => {
-                    broadcastService.broadcast({
-                        event: 'UPDATE',
-                        table: 'bar_products',
-                        barId,
-                        data: { id: item.product.id },
-                    });
+                broadcastService.broadcast({
+                    event: 'UPDATE',
+                    table: 'bar_products',
+                    barId,
                 });
             }
 

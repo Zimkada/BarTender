@@ -160,9 +160,16 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
                                                 {getIcon(event.type)}
                                             </span>
                                             <div>
-                                                <h4 className="text-sm font-bold text-gray-900 capitalize">
-                                                    {event.label}
-                                                </h4>
+                                                <div className="flex items-center gap-1.5">
+                                                    <h4 className="text-sm font-bold text-gray-900 capitalize">
+                                                        {event.label}
+                                                    </h4>
+                                                    {(event as any).status === 'pending' && (
+                                                        <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase">
+                                                            En attente
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <p className="text-xs text-gray-500 flex items-center gap-1">
                                                     <Calendar size={10} />
                                                     {format(event.date, "d MMM yyyy 'à' HH:mm", { locale: fr })}

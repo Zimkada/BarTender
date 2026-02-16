@@ -11,6 +11,7 @@ import { replaceAccents } from '../utils/stringFormatting';
 
 // Hook & Sub-components
 import { useDashboardAnalytics } from '../hooks/useDashboardAnalytics';
+import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
 import { DashboardSummary } from './dashboard/tabs/DashboardSummary';
 import { DashboardOrders } from './dashboard/tabs/DashboardOrders';
 import { DashboardPerformance } from './dashboard/tabs/DashboardPerformance';
@@ -25,7 +26,7 @@ interface DailyDashboardProps {
  * Refactoré : Shell léger qui orchestre les onglets
  */
 export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) {
-  const { validateSale, rejectSale, users } = useAppContext();
+  const { users } = useAppContext();
   const { currentBar } = useBarContext();
   const { currentSession } = useAuth();
   const { formatPrice } = useCurrencyFormatter();
@@ -35,13 +36,14 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
 
   // Architecture: Data fetching & Business Logic centralized in Hook
   const analytics = useDashboardAnalytics(currentBar?.id);
+  const { validateSale: validateMutation, rejectSale: rejectMutation } = useSalesMutations(currentBar?.id || '');
 
   // Actions
-  const handleValidateSale = (id: string) => currentSession && validateSale(id, currentSession.userId);
-  const handleRejectSale = (id: string) => currentSession && rejectSale(id, currentSession.userId);
+  const handleValidateSale = (id: string) => currentSession && validateMutation.mutate({ id, validatorId: currentSession.userId });
+  const handleRejectSale = (id: string) => currentSession && rejectMutation.mutate({ id, rejectorId: currentSession.userId });
   const handleValidateAll = (list: Sale[]) => {
     if (currentSession && list.length && confirm(`Valider ${list.length} ventes ?`)) {
-      list.forEach(s => validateSale(s.id, currentSession.userId));
+      list.forEach(s => validateMutation.mutate({ id: s.id, validatorId: currentSession.userId }));
     }
   };
 
@@ -154,6 +156,7 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
             isServerRole={analytics.isServerRole}
             currentUserId={currentSession?.userId || ''}
             formatPrice={formatPrice}
+            processingId={validateMutation.isPending ? validateMutation.variables?.id : (rejectMutation.isPending ? rejectMutation.variables?.id : null)}
           />
         </motion.div>
       )}

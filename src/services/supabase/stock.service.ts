@@ -304,11 +304,12 @@ export class StockService {
                             type: 'sale' as const,
                             date: new Date(s.created_at || ''),
                             delta: -item.quantity,
-                            label: 'Vente',
+                            label: s.status === 'pending' ? 'Vente (En attente)' : 'Vente',
                             user: s.users?.name || 'Inconnu',
                             details: `Ticket #${s.ticket_id || '??'}`,
                             price: item.unit_price,
-                            notes: s.business_date
+                            notes: s.business_date,
+                            status: s.status // 🔥 Added status field
                         }];
                     }),
 

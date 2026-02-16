@@ -67,6 +67,14 @@ export interface PayTicketParams {
 }
 
 /**
+ * Paramètres pour validate_sale RPC
+ */
+export interface ValidateSaleParams {
+  p_sale_id: string;
+  p_validated_by: string;
+}
+
+/**
  * Paramètres pour create_stock_adjustment RPC
  */
 export interface CreateStockAdjustmentParams {

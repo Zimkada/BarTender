@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { EnhancedButton } from './EnhancedButton';
 import { getCurrentBusinessDateString, getBusinessDate } from '../utils/businessDateHelpers';
 import { useBarContext } from '../context/BarContext';
+import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
+import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
 
 interface PendingOrdersProps {
   isOpen: boolean;
@@ -43,18 +45,22 @@ const getTimeRemaining = (createdAt: Date): string => {
 
 export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
   const {
-    sales,
     users,
-    validateSale,
-    rejectSale,
   } = useAppContext();
+  const { currentBar } = useBarContext();
+  const barId = currentBar?.id || '';
+
+  // 🚀 Utiliser useUnifiedSales pour les données
+  const { sales } = useUnifiedSales(barId);
+
+  // Utiliser les mutations directement pour avoir accès aux états de chargement
+  const { validateSale: validateMutation, rejectSale: rejectMutation } = useSalesMutations(barId);
 
   const { currentSession } = useAuth();
   const { formatPrice } = useCurrencyFormatter();
 
   if (!currentSession) return null;
 
-  const { currentBar } = useBarContext();
   const closeHour = currentBar?.closingHour ?? 6;
   const currentBusinessDate = getCurrentBusinessDateString(closeHour);
 
@@ -86,18 +92,24 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
 
   const handleValidate = async (saleId: string) => {
     if (!currentSession) return;
-    await validateSale(saleId, currentSession.userId);
+    await validateMutation.mutateAsync({ id: saleId, validatorId: currentSession.userId });
   };
 
   const handleReject = async (saleId: string) => {
     if (!currentSession) return;
-    await rejectSale(saleId, currentSession.userId);
+    await rejectMutation.mutateAsync({ id: saleId, rejectorId: currentSession.userId });
+  };
+
+  // Déterminer si une mutation est en cours pour une vente spécifique
+  const isProcessing = (saleId: string) => {
+    return (validateMutation.isPending && validateMutation.variables?.id === saleId) ||
+      (rejectMutation.isPending && rejectMutation.variables?.id === saleId);
   };
 
   // Déterminer si un serveur peut annuler une vente spécifique
   const canServerCancel = (sale: Sale): boolean => {
     if (!isServer) return false;
-    return sale.soldBy === currentSession.userId && isSaleRecent(sale.createdAt);
+    return sale.soldBy === currentSession.userId && isSaleRecent(new Date(sale.createdAt));
   };
 
   if (!isOpen) return null;
@@ -173,7 +185,7 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
                         {isServer && canServerCancel(sale) && (
                           <div className="flex items-center gap-1 text-xs text-amber-600">
                             <AlertCircle size={12} />
-                            <span>Annulation possible: {getTimeRemaining(sale.createdAt)}</span>
+                            <span>Annulation possible: {getTimeRemaining(new Date(sale.createdAt))}</span>
                           </div>
                         )}
 
@@ -186,6 +198,8 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
                               className="bg-red-100 text-red-700 hover:bg-red-200"
                               size="sm"
                               icon={<X size={16} />}
+                              loading={rejectMutation.isPending && rejectMutation.variables?.id === sale.id}
+                              disabled={isProcessing(sale.id)}
                             >
                               Annuler
                             </EnhancedButton>
@@ -198,6 +212,8 @@ export function PendingOrders({ isOpen, onClose }: PendingOrdersProps) {
                               className="bg-green-100 text-green-700 hover:bg-green-200"
                               size="sm"
                               icon={<Check size={16} />}
+                              loading={validateMutation.isPending && validateMutation.variables?.id === sale.id}
+                              disabled={isProcessing(sale.id)}
                             >
                               Valider
                             </EnhancedButton>

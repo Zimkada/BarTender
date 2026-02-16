@@ -11,6 +11,7 @@ import { useProducts, useSupplies, useConsignments, useCategories } from '../que
 import { useStockMutations } from '../mutations/useStockMutations';
 import { offlineQueue } from '../../services/offlineQueue';
 import { syncManager } from '../../services/SyncManager';
+import { supabase } from '../../lib/supabase';
 import { calculateAvailableStock } from '../../utils/calculations';
 import { toDbProduct, toDbProductForCreation } from '../../utils/productMapper';
 import type { Product, ProductStockInfo, Supply, Expense } from '../../types';
@@ -103,11 +104,30 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
                 barId: barId
             });
             return ops
-                .filter(op => op.type === 'CREATE_SALE')
-                .map(op => op.payload);
+                .filter((op: any) => op.type === 'CREATE_SALE')
+                .map((op: any) => op.payload);
         },
         enabled: !!barId,
         staleTime: 5000,
+    });
+
+    // 🛡️ Expert Fix (Certification): Fetch server-side pending sales
+    // These are sales that were synced but not yet validated. 
+    // They must be deducted from availableStock to prevent overselling.
+    const { data: serverPendingSales = [] } = useQuery({
+        queryKey: ['server-pending-sales-for-stock', barId],
+        queryFn: async () => {
+            if (!barId) return [];
+            const { data, error } = await supabase
+                .from('sales')
+                .select('id, items, idempotency_key')
+                .eq('bar_id', barId)
+                .eq('status', 'pending');
+            if (error) throw error;
+            return data || [];
+        },
+        enabled: !!barId,
+        staleTime: 30000,
     });
 
     // 🚀 Réactivité : Écoute des événements typés Pilier 0
@@ -138,9 +158,10 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
         return JSON.stringify({
             p: products.map(p => `${p.id}-${p.stock}`),
             c: consignments.filter(c => c.status === 'active').map(c => `${c.id}-${c.quantity}`),
-            o: offlineSales.map(s => s.idempotency_key)
+            o: offlineSales.map((s: any) => s.idempotency_key),
+            s: serverPendingSales.map((s: any) => s.id)
         });
-    }, [products, consignments, offlineSales]);
+    }, [products, consignments, offlineSales, serverPendingSales]);
 
     const allProductsStockInfo = useMemo(() => {
         const infoMap: Record<string, ProductStockInfo> = {};
@@ -156,9 +177,30 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
             }
         });
 
-        offlineSales.forEach(sale => {
-            if (sale.idempotency_key && recentlySyncedKeys.has(sale.idempotency_key)) return;
-            sale.items.forEach(item => {
+        // Track used inventory keys to avoid double-counting (offline vs synced)
+        const accountedIdempotencyKeys = new Set<string>();
+
+        // 1. Deduct Offline Sales
+        offlineSales.forEach((sale: any) => {
+            if (sale.idempotency_key) {
+                if (recentlySyncedKeys.has(sale.idempotency_key)) return;
+                accountedIdempotencyKeys.add(sale.idempotency_key);
+            }
+
+            sale.items.forEach((item: any) => {
+                if (infoMap[item.product_id]) {
+                    infoMap[item.product_id].availableStock -= item.quantity;
+                }
+            });
+        });
+
+        // 2. Deduct Server Pending Sales (The missing gap)
+        serverPendingSales.forEach((sale: any) => {
+            // Avoid double counting if it's still in the offline queue (unlikely but possible during sync)
+            if (sale.idempotency_key && accountedIdempotencyKeys.has(sale.idempotency_key)) return;
+
+            const items = sale.items as any[];
+            items.forEach((item: any) => {
                 if (infoMap[item.product_id]) {
                     infoMap[item.product_id].availableStock -= item.quantity;
                 }

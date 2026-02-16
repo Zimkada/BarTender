@@ -13,6 +13,7 @@ interface DashboardOrdersProps {
     isServerRole: boolean;
     currentUserId: string;
     formatPrice: (amount: number) => string;
+    processingId?: string | null;
 }
 
 export function DashboardOrders({
@@ -23,7 +24,8 @@ export function DashboardOrders({
     onValidateAll,
     isServerRole,
     currentUserId,
-    formatPrice
+    formatPrice,
+    processingId
 }: DashboardOrdersProps) {
     const [expandedSales, setExpandedSales] = useState<Set<string>>(new Set());
     const showBulkValidation = !isServerRole;
@@ -39,7 +41,7 @@ export function DashboardOrders({
     // Déterminer si un serveur peut annuler une vente spécifique
     const canServerCancel = (sale: Sale): boolean => {
         if (!isServerRole) return false;
-        return sale.soldBy === currentUserId && isSaleRecent(sale.createdAt);
+        return sale.soldBy === currentUserId && isSaleRecent(new Date(sale.createdAt));
     };
 
     const toggleExpanded = (saleId: string) => {
@@ -183,22 +185,30 @@ export function DashboardOrders({
                                                     {(canValidate || canCancel) && (
                                                         <div className="flex items-center gap-2 flex-shrink-0">
                                                             {canValidate && (
-                                                                <button
+                                                                <EnhancedButton
                                                                     onClick={() => onValidate(sale.id)}
-                                                                    className="w-9 h-9 bg-emerald-500 text-white rounded-full shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 active:scale-90 transition-all flex items-center justify-center"
-                                                                    title="Valider"
+                                                                    variant="success"
+                                                                    size="sm"
+                                                                    className="w-9 h-9 !p-0 rounded-full shadow-lg shadow-emerald-500/20 active:scale-90 transition-all flex items-center justify-center"
+                                                                    loading={processingId === sale.id}
+                                                                    disabled={!!processingId}
+                                                                    icon={<Check size={16} strokeWidth={3} />}
                                                                 >
-                                                                    <Check size={16} strokeWidth={3} />
-                                                                </button>
+                                                                    {''}
+                                                                </EnhancedButton>
                                                             )}
                                                             {canCancel && (
-                                                                <button
+                                                                <EnhancedButton
                                                                     onClick={() => onReject(sale.id)}
-                                                                    className="w-9 h-9 bg-red-50 text-red-500 rounded-full hover:bg-red-500 hover:text-white active:scale-90 transition-all flex items-center justify-center border border-red-100"
-                                                                    title="Rejeter"
+                                                                    variant="secondary"
+                                                                    size="sm"
+                                                                    className="w-9 h-9 !p-0 bg-red-50 text-red-500 rounded-full hover:bg-red-500 hover:text-white active:scale-90 transition-all flex items-center justify-center border border-red-100"
+                                                                    loading={processingId === sale.id}
+                                                                    disabled={!!processingId}
+                                                                    icon={<X size={16} strokeWidth={3} />}
                                                                 >
-                                                                    <X size={16} strokeWidth={3} />
-                                                                </button>
+                                                                    {''}
+                                                                </EnhancedButton>
                                                             )}
                                                         </div>
                                                     )}
@@ -254,7 +264,7 @@ export function DashboardOrders({
                         </div>
                     );
                 })}
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }

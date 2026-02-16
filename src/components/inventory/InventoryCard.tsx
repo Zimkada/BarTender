@@ -47,9 +47,16 @@ export function InventoryCard({
 
                     <div className="text-right">
                         <div className={`text-lg font-black ${isLowStock ? 'text-red-500' : 'text-gray-900'}`}>
-                            {currentStock}
+                            {availableStock}
                         </div>
-                        <div className="text-xs text-accessible-gray font-bold uppercase">Stock</div>
+                        <div className="text-[10px] text-accessible-gray font-bold uppercase leading-tight">
+                            Disponible
+                        </div>
+                        {currentStock !== availableStock && (
+                            <div className="text-[10px] text-blue-500 font-medium mt-0.5">
+                                Physique: {currentStock}
+                            </div>
+                        )}
                     </div>
                 </div>
 
