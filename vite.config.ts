@@ -27,7 +27,7 @@ export default defineConfig({
         name: 'BarTender - Gestion de Bar',
         short_name: 'BarTender',
         description: 'Application de gestion complète pour bars et restaurants avec suivi des stocks, ventes et analytics',
-        theme_color: '#ffffff',
+        theme_color: '#f59e0b',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
@@ -41,28 +41,30 @@ export default defineConfig({
             purpose: 'any'
           },
           {
-            src: '/icons/icon-192x192-maskable.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'maskable'
-          },
-          {
             src: '/icons/icon-512x512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any'
           },
           {
-            src: '/icons/icon-512x512-maskable.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'maskable'
-          },
-          {
             src: '/icons/apple-touch-icon.png',
             sizes: '180x180',
             type: 'image/png',
             purpose: 'any'
+          }
+        ],
+        screenshots: [
+          {
+            src: '/icons/screenshot-icon-390x844.png',
+            sizes: '390x844',
+            type: 'image/png',
+            form_factor: 'narrow'
+          },
+          {
+            src: '/icons/screenshot-icon-1280x720.png',
+            sizes: '1280x720',
+            type: 'image/png',
+            form_factor: 'wide'
           }
         ],
         categories: ['business', 'productivity', 'finance'],
