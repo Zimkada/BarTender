@@ -1,16 +1,34 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { PromotionsService } from '../services/supabase/promotions.service';
 import { Promotion, Product } from '../types';
 import { FEATURES } from '../config/features';
+import { useRealtimePromotions } from './useRealtimePromotions';
 
 /**
  * Hook pour gérer les promotions actives et calculer les prix
  * Réutilisable dans Cart, ServerCart, QuickSale
+ * ✅ Synchronisation temps réel activée
  */
 export function usePromotions(barId: string | undefined) {
     const [promotions, setPromotions] = useState<Promotion[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    // ✅ Realtime synchronization
+    const { isConnected: realtimeConnected, error: realtimeError } = useRealtimePromotions({
+        barId: barId || '',
+        enabled: !!barId && FEATURES.PROMOTIONS_ENABLED
+    });
+
+    // Log realtime connection status
+    useEffect(() => {
+        if (realtimeError) {
+            console.warn('[usePromotions] Realtime error, falling back to polling:', realtimeError.message);
+        }
+        if (realtimeConnected) {
+            console.log('[usePromotions] ✅ Realtime connected');
+        }
+    }, [realtimeConnected, realtimeError]);
 
     // Charger les promotions actives
     useEffect(() => {
@@ -131,7 +149,7 @@ export function usePromotions(barId: string | undefined) {
         }
 
         const result = calculatePrice(product, quantity);
-        return result.promotion;
+        return result.appliedPromotion;
     }, [promotions, calculatePrice]);
 
     return {
@@ -144,6 +162,8 @@ export function usePromotions(barId: string | undefined) {
         reload: loadPromotions,
         // Statistiques utiles
         activePromotionsCount: promotions.length,
-        isEnabled: FEATURES.PROMOTIONS_ENABLED
+        isEnabled: FEATURES.PROMOTIONS_ENABLED,
+        // ✅ Realtime connection status
+        realtimeConnected
     };
 }
