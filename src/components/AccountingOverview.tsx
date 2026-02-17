@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, Suspense, lazy } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   DollarSign,
   Download,
@@ -29,7 +30,15 @@ import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
 import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { useUnifiedExpenses } from '../hooks/pivots/useUnifiedExpenses';
 import { useUnifiedReturns } from '../hooks/pivots/useUnifiedReturns';
+import {
+  useDailyAnalytics,
+  useRevenueAnalytics,
+  useExpensesAnalytics,
+  useSalariesAnalytics,
+  analyticsKeys
+} from '../hooks/queries/useAnalyticsQueries';
 import { ACCOUNTING_FILTERS } from '../config/dateFilters';
+
 
 export function AccountingOverview() {
   const { currentSession } = useAuth();
@@ -66,6 +75,44 @@ export function AccountingOverview() {
   const { returns: unifiedReturns } = useUnifiedReturns(currentBar?.id, currentBar?.closingHour);
   const { customExpenseCategories } = useAppContext();
 
+  // 📈 PHASE 4: RECOVERY ANALYTICS (React Query Driven)
+  // Replaces manual state + useEffect with reactive queries
+
+  // 1. Current Charts Data (12 months)
+  const chartStart = useMemo(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 12);
+    d.setDate(1);
+    return d;
+  }, []);
+  const chartEnd = useMemo(() => new Date(), []);
+
+  const { data: chartStats = [] } = useDailyAnalytics(currentBar?.id, chartStart, chartEnd, 'month');
+  const { data: chartExpenses = [] } = useExpensesAnalytics(currentBar?.id, chartStart, chartEnd, 'month');
+  const { data: chartSalaries = [] } = useSalariesAnalytics(currentBar?.id, chartStart, chartEnd, 'month');
+
+  // 2. Growth Analysis (Previous Period)
+  const prevPeriodRange = useMemo(() => {
+    const prevStart = new Date(periodStart);
+    prevStart.setMonth(prevStart.getMonth() - 1);
+    prevStart.setDate(1);
+    const prevEnd = new Date(prevStart.getFullYear(), prevStart.getMonth() + 1, 0);
+    return { start: prevStart, end: prevEnd };
+  }, [periodStart]);
+
+  const { data: prevPeriodStats = [] } = useDailyAnalytics(currentBar?.id, prevPeriodRange.start, prevPeriodRange.end, 'day');
+
+  // 3. Historical Data for Balance
+  const historyRange = useMemo(() => {
+    const start = new Date('2020-01-01');
+    const end = new Date(periodStart);
+    end.setDate(end.getDate() - 1);
+    return { start, end };
+  }, [periodStart]);
+
+  const { data: historicalRevenueData } = useRevenueAnalytics(currentBar?.id, historyRange.start, historyRange.end);
+  const historicalRevenue = historicalRevenueData?.totalRevenue || 0;
+
   // ✨ Filtrage Centralisé Local des données unifiées
   const filteredSales = useMemo(() => {
     return unifiedSales.filter(s => {
@@ -91,61 +138,6 @@ export function AccountingOverview() {
   // Modals state
   const [showInitialBalanceModal, setShowInitialBalanceModal] = useState(false);
   const [showCapitalContributionModal, setShowCapitalContributionModal] = useState(false);
-
-  // Analytics State (pour les données NON-REVENU)
-  const [prevPeriodStats, setPrevPeriodStats] = useState<DailySalesSummary[]>([]);
-  const [chartStats, setChartStats] = useState<DailySalesSummary[]>([]);
-  const [historicalRevenue, setHistoricalRevenue] = useState(0);
-  const [chartExpenses, setChartExpenses] = useState<ExpensesSummary[]>([]);
-  const [chartSalaries, setChartSalaries] = useState<SalariesSummary[]>([]);
-
-  // Load ancillary analytics data
-  useEffect(() => {
-    if (currentBar && periodStart && periodEnd) {
-      loadAncillaryAnalyticsData();
-    }
-  }, [currentBar, periodStart, periodEnd]);
-
-  const loadAncillaryAnalyticsData = async () => {
-    if (!currentBar) return;
-    try {
-      // Previous Period Stats (for Growth)
-      const prevPeriodDate = new Date(periodStart);
-      prevPeriodDate.setMonth(prevPeriodDate.getMonth() - 1);
-      const prevStart = new Date(prevPeriodDate.getFullYear(), prevPeriodDate.getMonth(), 1);
-      const prevEnd = new Date(prevPeriodDate.getFullYear(), prevPeriodDate.getMonth() + 1, 0);
-      const prev = await AnalyticsService.getDailySummary(currentBar.id, prevStart, prevEnd, 'day');
-      setPrevPeriodStats(prev);
-
-      // Chart Stats (12 months)
-      const chartStart = new Date();
-      chartStart.setMonth(chartStart.getMonth() - 12);
-      chartStart.setDate(1);
-      const chartEnd = new Date();
-      const chartDataRaw = await AnalyticsService.getDailySummary(currentBar.id, chartStart, chartEnd, 'month');
-      setChartStats(chartDataRaw);
-
-      // Historical Revenue (for Balance) - All time up to periodStart
-      const historyStart = new Date('2020-01-01');
-      const historyEnd = new Date(periodStart);
-      historyEnd.setDate(historyEnd.getDate() - 1);
-
-      if (historyEnd > historyStart) {
-        const history = await AnalyticsService.getRevenueSummary(currentBar.id, historyStart, historyEnd);
-        setHistoricalRevenue(history.totalRevenue);
-      } else {
-        setHistoricalRevenue(0);
-      }
-      const chartExpensesData = await AnalyticsService.getExpensesSummary(currentBar.id, chartStart, chartEnd, 'month');
-      setChartExpenses(chartExpensesData);
-      const chartSalariesData = await AnalyticsService.getSalariesSummary(currentBar.id, chartStart, chartEnd, 'month');
-      setChartSalaries(chartSalariesData);
-
-    } catch (error) {
-      console.error("Error loading ancillary analytics:", error);
-    }
-  };
-
 
   // 💎 Indicateurs de Rentabilité Unifiés
   const investments = useMemo(() => {
@@ -391,6 +383,8 @@ export function AccountingOverview() {
     XLSX.writeFile(workbook, `Comptabilite_${periodLabel}.xlsx`);
   };
 
+  const queryClient = useQueryClient();
+
   if (!currentBar || !currentSession) return null;
 
   return (
@@ -404,10 +398,11 @@ export function AccountingOverview() {
             </h2>
             <DataFreshnessIndicatorCompact
               viewName="daily_sales_summary"
-              onRefreshComplete={loadAncillaryAnalyticsData}
+              onRefreshComplete={() => queryClient.invalidateQueries({ queryKey: analyticsKeys.all })}
               className="mt-1"
             />
           </div>
+
           <p className="text-gray-500 text-sm font-medium">
             {currentBar.name} • Comptabilité & Finances
           </p>

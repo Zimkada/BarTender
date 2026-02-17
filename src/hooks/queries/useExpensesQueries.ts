@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { ExpensesService } from '../../services/supabase/expenses.service';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
+import { useSmartSync } from '../useSmartSync';
 import type { Expense, ExpenseCategoryCustom } from '../../types';
+
 
 export const expenseKeys = {
     all: ['expenses'] as const,
@@ -10,6 +12,19 @@ export const expenseKeys = {
 };
 
 export const useExpenses = (barId: string | undefined, options?: { startDate?: string; endDate?: string }) => {
+    const isEnabled = !!barId;
+
+    // 🚀 PHASE 4: Realtime Expenses Sync
+    const smartSync = useSmartSync({
+        table: 'expenses',
+        event: '*',
+        barId: barId || undefined,
+        enabled: isEnabled,
+        staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
+        refetchInterval: 60000,
+        queryKeysToInvalidate: [expenseKeys.list(barId || '')]
+    });
+
     return useQuery({
         queryKey: [...expenseKeys.list(barId || ''), options],
         queryFn: async (): Promise<Expense[]> => {
@@ -28,10 +43,10 @@ export const useExpenses = (barId: string | undefined, options?: { startDate?: s
                 createdAt: new Date(e.created_at),
             }));
         },
-        enabled: !!barId,
+        enabled: isEnabled,
         staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
         gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
-        // No polling: invalidation on mutation only (expenses are infrequent admin operations)
+        refetchInterval: smartSync.isSynced ? false : 60000, // 🚀 Hybride: Realtime ou polling 60s
     });
 };
 
