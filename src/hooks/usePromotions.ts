@@ -1,65 +1,31 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { PromotionsService } from '../services/supabase/promotions.service';
-import { Promotion, Product } from '../types';
+import { Product } from '../types';
 import { FEATURES } from '../config/features';
-import { useRealtimePromotions } from './useRealtimePromotions';
+import { useActivePromotions } from './queries/usePromotionsQueries';
 
 /**
  * Hook pour gérer les promotions actives et calculer les prix
  * Réutilisable dans Cart, ServerCart, QuickSale
- * ✅ Synchronisation temps réel activée
+ * 
+ * ✅ V2: Migré vers React Query pour synchronisation temps réel automatique
+ * 
+ * @example
+ * ```typescript
+ * const { promotions, calculatePrice, hasPromotion } = usePromotions(barId);
+ * ```
  */
 export function usePromotions(barId: string | undefined) {
-    const [promotions, setPromotions] = useState<Promotion[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    // ✅ V2: Utilise React Query au lieu de useState
+    const {
+        data: promotions = [],
+        isLoading,
+        error: queryError,
+        refetch
+    } = useActivePromotions(barId);
 
-    // ✅ Realtime synchronization
-    const { isConnected: realtimeConnected, error: realtimeError } = useRealtimePromotions({
-        barId: barId || '',
-        enabled: !!barId && FEATURES.PROMOTIONS_ENABLED
-    });
-
-    // Log realtime connection status
-    useEffect(() => {
-        if (realtimeError) {
-            console.warn('[usePromotions] Realtime error, falling back to polling:', realtimeError.message);
-        }
-        if (realtimeConnected) {
-            console.log('[usePromotions] ✅ Realtime connected');
-        }
-    }, [realtimeConnected, realtimeError]);
-
-    // Charger les promotions actives
-    useEffect(() => {
-        if (!barId || !FEATURES.PROMOTIONS_ENABLED) {
-            setIsLoading(false);
-            return;
-        }
-        loadPromotions();
-    }, [barId]);
-
-    const loadPromotions = useCallback(async () => {
-        if (!barId) return;
-
-        setIsLoading(true);
-        setError(null);
-
-        try {
-            const data = await PromotionsService.getActivePromotions(barId);
-            setPromotions(data);
-
-            if (FEATURES.PROMOTIONS_DEBUG_LOGGING) {
-                console.log('[usePromotions] Loaded promotions:', data.length);
-            }
-        } catch (err) {
-            console.error('[usePromotions] Error loading promotions:', err);
-            setError('Impossible de charger les promotions');
-            setPromotions([]); // Fallback: continuer sans promotions
-        } finally {
-            setIsLoading(false);
-        }
-    }, [barId]);
+    // Convert React Query error to string for backward compatibility
+    const error = queryError ? (queryError as Error).message : null;
 
     /**
      * Calculer le meilleur prix pour un produit avec promotions applicables
@@ -143,7 +109,7 @@ export function usePromotions(barId: string | undefined) {
     /**
      * Obtenir la meilleure promotion pour un produit (sans calculer le prix)
      */
-    const getBestPromotion = useCallback((product: Product, quantity: number): Promotion | undefined => {
+    const getBestPromotion = useCallback((product: Product, quantity: number) => {
         if (!FEATURES.PROMOTIONS_ENABLED || promotions.length === 0) {
             return undefined;
         }
@@ -159,11 +125,9 @@ export function usePromotions(barId: string | undefined) {
         calculatePrice,
         hasPromotion,
         getBestPromotion,
-        reload: loadPromotions,
+        reload: refetch, // ✅ V2: refetch replaces loadPromotions
         // Statistiques utiles
         activePromotionsCount: promotions.length,
         isEnabled: FEATURES.PROMOTIONS_ENABLED,
-        // ✅ Realtime connection status
-        realtimeConnected
     };
 }
