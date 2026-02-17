@@ -163,38 +163,7 @@ export const useUnifiedSales = (
         };
     }, [barId, refetchOffline, queryClient]);
 
-    // 📡 RÉACTIVITÉ ÉLITE : Supabase Realtime (Multi-appareils)
-    useEffect(() => {
-        if (!barId) return;
 
-        const channel = supabase
-            .channel(`sales_changes_${barId}`)
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'sales',
-                    filter: `bar_id=eq.${barId}`
-                },
-                (payload: any) => {
-                    console.log('[useUnifiedSales] Realtime Update:', payload.eventType, payload.new?.id);
-                    // Invalidation intelligente pour forcer le rafraîchissement
-                    queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
-                    queryClient.invalidateQueries({ queryKey: salesKeys.stats(barId) });
-
-                    // Si un statut a changé (validation/rejet), rafraîchir aussi le stock
-                    if (payload.eventType === 'UPDATE' && payload.new?.status !== payload.old?.status) {
-                        queryClient.invalidateQueries({ queryKey: ['bar_products', barId] });
-                    }
-                }
-            )
-            .subscribe();
-
-        return () => {
-            channel.unsubscribe();
-        };
-    }, [barId, queryClient]);
 
     /**
      * 🔴 Hash-Based Memoization (Mission Elite)

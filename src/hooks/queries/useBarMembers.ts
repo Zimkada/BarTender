@@ -8,12 +8,28 @@ export const barMembersKeys = {
     list: (barId: string) => [...barMembersKeys.all, 'list', barId] as const,
 };
 
+import { useSmartSync } from '../useSmartSync';
+
 export const useBarMembers = (barId: string | undefined, options?: { refetchInterval?: number | false }) => {
+    const isEnabled = !!barId;
+
+    // 🔒 SECURITÉ & UX: SmartSync pour bar_members
+    // Permet la révocation instantanée des accès et l'ajout immédiat des nouveaux membres
+    const smartSync = useSmartSync({
+        table: 'bar_members',
+        event: '*', // 🚀 Écoute TOUS les changements (INSERT, UPDATE, DELETE)
+        barId: barId || undefined,
+        enabled: isEnabled,
+        staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
+        refetchInterval: 60000,
+        queryKeysToInvalidate: [barMembersKeys.list(barId || '')]
+    });
+
     return useQuery({
         queryKey: barMembersKeys.list(barId || ''),
         queryFn: async (): Promise<(BarMember & { user: AppUser })[]> => {
             if (!barId) return [];
-            
+
             // Appel à la fonction qui récupère les membres du bar via RPC
             const dbMembers = await AuthService.getBarMembers(barId);
 
@@ -31,7 +47,7 @@ export const useBarMembers = (barId: string | undefined, options?: { refetchInte
                 assignedBy: '', // Non fourni par le RPC 'get_bar_members', peut être null ou vide
                 assignedAt: new Date(m.joined_at),
                 isActive: m.member_is_active, // Statut du membership
-                
+
                 // Propriétés de l'utilisateur imbriqué (AppUser)
                 user: {
                     id: m.id,
@@ -41,16 +57,17 @@ export const useBarMembers = (barId: string | undefined, options?: { refetchInte
                     email: m.email || '',
                     createdAt: new Date(m.created_at || new Date()), // created_at est dans DbUser
                     createdBy: '', // Non fourni par le RPC 'get_bar_members', peut être null ou vide
-                    isActive: m.is_active, // Statut global de l'utilisateur
-                    firstLogin: m.first_login,
+                    isActive: m.is_active || false, // Statut global de l'utilisateur (fix null type)
+                    firstLogin: m.first_login || false, // fix boolean type safety
                     lastLoginAt: m.last_login_at ? new Date(m.last_login_at) : undefined,
                     role: m.role as UserRole, // Assurer que le rôle est aussi sur l'objet user imbriqué
                 }
             }));
         },
-        enabled: !!barId,
+        enabled: isEnabled,
         staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
         gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
-        refetchInterval: options?.refetchInterval !== undefined ? options.refetchInterval : 60000, // 60s polling by default, can be overridden
+        // 🚀 Hybride: Realtime ou polling 60s (ou valeur custom)
+        refetchInterval: smartSync.isSynced ? false : (options?.refetchInterval !== undefined ? options.refetchInterval : 60000),
     });
 };

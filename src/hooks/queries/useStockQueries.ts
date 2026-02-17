@@ -240,6 +240,19 @@ export const useConsignments = (barId: string | undefined) => {
 };
 
 export const useCategories = (barId: string | undefined) => {
+    const isEnabled = !!barId;
+
+    // 🚀 UI Consistency: Realtime Categories
+    const smartSync = useSmartSync({
+        table: 'bar_categories',
+        event: '*',
+        barId: barId || undefined,
+        enabled: isEnabled,
+        staleTime: CACHE_STRATEGY.categories.staleTime,
+        refetchInterval: REALTIME_FALLBACK_INTERVALS.products, // Même priorité que les produits
+        queryKeysToInvalidate: [stockKeys.categories(barId || '')]
+    });
+
     return useApiQuerySimple(
         stockKeys.categories(barId || ''),
         async (): Promise<Category[]> => {
@@ -260,9 +273,10 @@ export const useCategories = (barId: string | undefined) => {
             });
         },
         {
-            enabled: !!barId,
+            enabled: isEnabled,
             staleTime: CACHE_STRATEGY.categories.staleTime,
             gcTime: CACHE_STRATEGY.categories.gcTime,
+            refetchInterval: smartSync.isSynced ? false : REALTIME_FALLBACK_INTERVALS.products,
         }
     );
 };
