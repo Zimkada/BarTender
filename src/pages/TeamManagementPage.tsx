@@ -31,8 +31,8 @@ export default function TeamManagementPage() {
   const isOnboardingMode = searchParams.get('mode') === 'onboarding';
   const onboardingTask = searchParams.get('task');
 
-  const { hasPermission } = useAuth();
-  const { currentBar, barMembers, removeBarMember, refreshBars } = useBarContext();
+  const { hasPermission, currentSession } = useAuth();
+  const { currentBar, barMembers, refreshBars } = useBarContext();
   const { isMobile } = useViewport();
 
   // Guide ID for team management
@@ -119,6 +119,42 @@ export default function TeamManagementPage() {
       }
     } catch (err: any) {
       setError(err.message);
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string, memberName: string) => {
+    if (!currentBar || !currentSession) return;
+
+    if (!window.confirm(`Êtes-vous sûr de vouloir retirer ${memberName} de l'équipe ?`)) {
+      return;
+    }
+
+    setError('');
+    setSuccess('');
+
+    try {
+      // Trouver le membre pour obtenir son userId
+      const member = barMembers.find(m => m.id === memberId);
+      if (!member || !member.userId) {
+        setError('Membre introuvable');
+        return;
+      }
+
+      const result = await BarsService.removeMember(
+        currentBar.id,
+        member.userId, // userId, pas memberId
+        currentSession.userId // Qui fait la suppression
+      );
+
+      if (result.success) {
+        setSuccess(`${memberName} a été retiré de l'équipe`);
+        await refreshBars(); // Rafraîchir la liste des membres
+        setTimeout(() => setSuccess(''), 3000);
+      } else {
+        setError(result.error || 'Erreur lors de la suppression');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors de la suppression');
     }
   };
 
@@ -246,29 +282,6 @@ export default function TeamManagementPage() {
     }
   };
 
-  const handleRemoveMember = async (memberId: string, userName: string) => {
-    if (window.confirm(`Êtes - vous sûr de vouloir retirer ${userName} ?`)) {
-      try {
-        const result = await removeBarMember(memberId);
-
-        if (result.success) {
-          import('react-hot-toast').then(({ default: toast }) => {
-            toast.success(`✅ ${userName} a été retiré(e) de l'équipe`);
-          });
-        } else {
-          import('react-hot-toast').then(({ default: toast }) => {
-            toast.error(`❌ Erreur: ${result.error || 'Impossible de retirer le membre'}`);
-          });
-          console.error('[TeamManagement] Remove failed:', result.error);
-        }
-      } catch (error: any) {
-        import('react-hot-toast').then(({ default: toast }) => {
-          toast.error('❌ Une erreur est survenue lors du retrait du membre');
-        });
-        console.error('[TeamManagement] Remove error:', error);
-      }
-    }
-  };
 
   return (
     <div className="max-w-7xl mx-auto">
