@@ -96,7 +96,9 @@ export function useSmartSync(config: UseSmartSyncConfig) {
     table,
     event: event,
     filter: barId ? `bar_id=eq.${barId}` : undefined,
-    enabled: enabled && broadcastSupported,
+    // 🛡️ FIX: Disable subscription if barId is missing (filter would be invalid)
+    // This prevents Realtime subscription errors when barId is undefined
+    enabled: enabled && broadcastSupported && !!barId,
     queryKeysToInvalidate: keys,
     fallbackPollingInterval: refetchInterval,
     onMessage: (payload: any) => {
