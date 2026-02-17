@@ -25,7 +25,10 @@ export function usePromotions(barId: string | undefined) {
     } = useActivePromotions(barId);
 
     // Convert React Query error to string for backward compatibility
-    const error = queryError ? (queryError as Error).message : null;
+    // ✅ Defensive: handle non-Error types gracefully
+    const error = queryError
+        ? (queryError instanceof Error ? queryError.message : String(queryError))
+        : null;
 
     /**
      * Calculer le meilleur prix pour un produit avec promotions applicables
@@ -77,7 +80,9 @@ export function usePromotions(barId: string | undefined) {
             };
         } catch (err) {
             // ✅ FALLBACK : En cas d'erreur, retourner prix normal
-            console.error('[usePromotions] Error calculating price:', err);
+            if (FEATURES.PROMOTIONS_DEBUG_LOGGING) {
+                console.error('[usePromotions] Error calculating price:', err);
+            }
 
             const normalPrice = product.price * quantity;
             return {
