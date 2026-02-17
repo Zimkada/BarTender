@@ -5,11 +5,10 @@
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "theme_color": "#f59e0b",
-  "background_color": "#fef3c7",
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
   "lang": "fr",
   "scope": "/",
-
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
@@ -42,9 +41,11 @@
       "purpose": "any"
     }
   ],
-
-  "categories": ["business", "productivity", "finance"],
-
+  "categories": [
+    "business",
+    "productivity",
+    "finance"
+  ],
   "screenshots": [
     {
       "src": "/screenshot-mobile.png",
@@ -59,7 +60,6 @@
       "form_factor": "wide"
     }
   ],
-
   "shortcuts": [
     {
       "name": "Nouvelle Vente",
@@ -98,7 +98,6 @@
       ]
     }
   ],
-
   "share_target": {
     "action": "/share",
     "method": "POST",
@@ -110,19 +109,21 @@
       "files": [
         {
           "name": "reports",
-          "accept": ["text/plain", ".csv", ".pdf"]
+          "accept": [
+            "text/plain",
+            ".csv",
+            ".pdf"
+          ]
         }
       ]
     }
   },
-
   "protocol_handlers": [
     {
       "protocol": "web+bartender",
       "url": "/?action=%s"
     }
   ],
-
   "prefer_related_applications": false,
   "related_applications": [
     {
@@ -131,12 +132,10 @@
       "id": "com.bartender.app"
     }
   ],
-
   "capture_links": "new-client",
   "launch_handler": {
     "client_mode": "navigate-existing"
   },
-
   "edge_side_panel": {
     "preferred_width": 400
   }

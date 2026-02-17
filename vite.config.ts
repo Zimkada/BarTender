@@ -27,7 +27,7 @@ export default defineConfig({
         name: 'BarTender - Gestion de Bar',
         short_name: 'BarTender',
         description: 'Application de gestion complète pour bars et restaurants avec suivi des stocks, ventes et analytics',
-        theme_color: '#f59e0b',
+        theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
