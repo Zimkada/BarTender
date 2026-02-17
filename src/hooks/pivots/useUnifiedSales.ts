@@ -202,7 +202,7 @@ export const useUnifiedSales = (
      */
     const salesHash = useMemo(() => {
         return JSON.stringify({
-            online: (onlineSales || []).map(s => `${s.id}-${s.total}`),
+            online: (onlineSales || []).map(s => `${s.id}-${s.status}-${s.total}`),
             offline: offlineSales.map(s => s.idempotency_key || s.id)
         });
     }, [onlineSales, offlineSales]);

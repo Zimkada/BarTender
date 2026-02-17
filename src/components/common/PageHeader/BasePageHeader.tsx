@@ -26,8 +26,8 @@ const PageHeader: PageHeaderComponent = ({
     className
 }: PageHeaderProps) => {
     return (
-        <div className={`glass-page-header mb-4 sm:mb-6 overflow-hidden p-4 sm:p-6 transition-all duration-500 ${className || ''}`}>
-            <div className="flex flex-col gap-3 sm:gap-4">
+        <div className={`glass-page-header mb-4 sm:mb-6 overflow-hidden p-3 sm:p-5 transition-all duration-500 ${className || ''}`}>
+            <div className="flex flex-col gap-2 sm:gap-3">
                 {children}
             </div>
         </div>

@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Beer } from 'lucide-react';
 
@@ -23,13 +22,13 @@ export function SplashScreen({
                 : message;
 
     return (
-        <div className="fixed inset-0 bg-gradient-to-br from-brand-subtle to-brand-subtle flex flex-col items-center justify-center z-[9999]">
-            {/* Halo pulsant - Neutre par défaut, s'adapte au thème */}
+        <div className="fixed inset-0 bg-white flex flex-col items-center justify-center z-[9999]">
+            {/* Halo pulsant - Discret et Neutre */}
             <motion.div
-                className="absolute inset-0 bg-brand-primary/5 blur-3xl"
-                initial={{ opacity: 0.3 }}
-                animate={{ opacity: 0.5 }}
-                transition={{ duration: 2, repeat: Infinity, repeatType: 'reverse' }}
+                className="absolute inset-0 bg-slate-400/5 blur-3xl"
+                initial={{ opacity: 0.2 }}
+                animate={{ opacity: 0.4 }}
+                transition={{ duration: 3, repeat: Infinity, repeatType: 'reverse' }}
             />
 
             {/* Icône Beer avec glow */}
@@ -39,9 +38,9 @@ export function SplashScreen({
                 transition={{ delay: 0.2, duration: 0.6, type: 'spring' }}
                 className="relative"
             >
-                <div className="absolute inset-0 bg-brand-primary/20 blur-2xl rounded-full animate-pulse" />
-                <div className="relative bg-brand-gradient p-8 rounded-2xl shadow-2xl">
-                    <Beer className="w-20 h-20 text-white drop-shadow-2xl" />
+                <div className="absolute inset-0 bg-slate-400/10 blur-2xl rounded-full animate-pulse" />
+                <div className="relative bg-slate-50 border border-slate-200/60 p-8 rounded-2xl shadow-xl">
+                    <Beer className="w-20 h-20 text-slate-700 drop-shadow-md" />
                 </div>
             </motion.div>
 
@@ -52,10 +51,10 @@ export function SplashScreen({
                 transition={{ delay: 0.5, duration: 0.5 }}
                 className="mt-8 text-center"
             >
-                <h1 className="text-4xl font-bold text-brand-primary mb-2 tracking-tight drop-shadow-sm">
-                    BarTender <span className="opacity-80">Pro</span>
+                <h1 className="text-4xl font-bold text-slate-900 mb-2 tracking-tight">
+                    BarTender <span className="text-slate-400 font-medium">Pro</span>
                 </h1>
-                <p className="text-brand-primary/80 text-sm font-medium animate-pulse">
+                <p className="text-slate-500 text-sm font-medium">
                     {displayMessage}
                 </p>
             </motion.div>
@@ -79,12 +78,12 @@ export function SplashScreen({
                 />
             </motion.div>
 
-            {/* Effet reflet bas (neutre) */}
+            {/* Effet reflet bas (neutre et discret) */}
             <motion.div
-                className="absolute bottom-0 left-0 right-0 h-24 bg-brand-primary/5 backdrop-blur-sm"
-                initial={{ y: 30, opacity: 0 }}
-                animate={{ y: 0, opacity: 0.3 }}
-                transition={{ repeat: Infinity, repeatType: 'reverse', duration: 2.5 }}
+                className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-50 to-transparent opacity-50"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.5 }}
+                transition={{ duration: 2 }}
             />
         </div>
     );

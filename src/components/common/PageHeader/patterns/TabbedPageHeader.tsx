@@ -74,8 +74,8 @@ export function TabbedPageHeader({
             )}
 
             {/* Tabs Row */}
-            <div className="pt-2 sm:pt-4 border-t border-white/10 sm:border-none">
-                <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+            <div className="pt-1.5 sm:pt-3 border-t border-white/10 sm:border-none">
+                <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1">
                     {tabs.map(tab => {
                         const Icon = tab.icon;
                         const isActive = activeTab === tab.id;
@@ -84,7 +84,7 @@ export function TabbedPageHeader({
                                 key={tab.id}
                                 onClick={() => onTabChange(tab.id)}
                                 variant="ghost"
-                                className={`flex-1 py-2 sm:py-2.5 px-3 sm:px-5 font-bold text-xs sm:text-sm transition-all whitespace-nowrap uppercase tracking-widest rounded-lg ${isActive
+                                className={`flex-1 py-1.5 sm:py-2 px-2.5 sm:px-4 font-bold text-xs sm:text-sm transition-all whitespace-nowrap uppercase tracking-widest rounded-lg ${isActive
                                     ? 'glass-action-button-active-2026'
                                     : 'glass-action-button-2026 opacity-80'
                                     }`}

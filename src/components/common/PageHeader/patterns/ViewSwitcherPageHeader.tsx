@@ -30,14 +30,14 @@ export function ViewSwitcherPageHeader({
             <Button
                 onClick={() => onViewChange('list')}
                 variant="ghost"
-                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex-1 sm:flex-initial ${currentView === 'list' ? 'glass-action-button-active-2026' : 'glass-action-button-2026'}`}
+                className={`flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all flex-1 sm:flex-initial ${currentView === 'list' ? 'glass-action-button-active-2026' : 'glass-action-button-2026'}`}
             >
                 <List size={16} /> Liste
             </Button>
             <Button
                 onClick={() => onViewChange('analytics')}
                 variant="ghost"
-                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex-1 sm:flex-initial ${currentView === 'analytics' ? 'glass-action-button-active-2026' : 'glass-action-button-2026'}`}
+                className={`flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition-all flex-1 sm:flex-initial ${currentView === 'analytics' ? 'glass-action-button-active-2026' : 'glass-action-button-2026'}`}
             >
                 <BarChart3 size={16} /> Stats
             </Button>
