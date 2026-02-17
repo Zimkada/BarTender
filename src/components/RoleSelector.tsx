@@ -7,18 +7,18 @@ interface RoleSelectorProps {
 
 export function RoleSelector({ onSelectRole }: RoleSelectorProps) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-subtle to-brand-subtle flex items-center justify-center p-4">
-      <motion.div 
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="bg-gradient-to-br from-yellow-100 to-amber-100 backdrop-blur-sm border border-gray-700 rounded-xl p-8 w-full max-w-md"
+        className="bg-white shadow-xl border border-gray-100 rounded-xl p-8 w-full max-w-md"
       >
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">BarTender App</h1>
           <p className="text-gray-600">Choisissez votre interface</p>
         </div>
-        
+
         <div className="space-y-4">
           <motion.button
             onClick={() => onSelectRole('manager')}
@@ -36,7 +36,7 @@ export function RoleSelector({ onSelectRole }: RoleSelectorProps) {
               </div>
             </div>
           </motion.button>
-          
+
           <motion.button
             onClick={() => onSelectRole('server')}
             whileHover={{ scale: 1.02, y: -2 }}
