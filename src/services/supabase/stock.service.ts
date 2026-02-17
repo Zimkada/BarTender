@@ -10,6 +10,7 @@ type StockAdjustment = Database['public']['Tables']['stock_adjustments']['Row'];
 
 type JoinedSale = Database['public']['Tables']['sales']['Row'] & {
     users: { name: string } | null;
+    source_return_id?: string | null;
 };
 
 type JoinedConsignment = Database['public']['Tables']['consignments']['Row'] & {
@@ -17,6 +18,10 @@ type JoinedConsignment = Database['public']['Tables']['consignments']['Row'] & {
 };
 
 type JoinedAdjustment = StockAdjustment & {
+    users: { name: string } | null;
+};
+
+type JoinedReturn = Database['public']['Tables']['returns']['Row'] & {
     users: { name: string } | null;
 };
 
@@ -224,7 +229,7 @@ export class StockService {
             const toYYYYMMDD = (d: Date) => d.toISOString().split('T')[0];
 
             // 1. Fetch all sources in parallel
-            const [sales, supplies, consignments, adjustments] = await Promise.all([
+            const [sales, supplies, consignments, adjustments, returns] = await Promise.all([
                 // A. Sales (Use business_date and containment filter)
                 (() => {
                     let q = supabase
@@ -281,6 +286,20 @@ export class StockService {
                     if (startDate) q = q.gte('adjusted_at', startDate.toISOString());
                     if (endDate) q = q.lte('adjusted_at', endDate.toISOString());
                     return q.limit(limit);
+                })(),
+
+                // E. Returns (Use business_date or returned_at)
+                (() => {
+                    let q = supabase
+                        .from('returns')
+                        .select('*, users:users!returns_returned_by_fkey(name)')
+                        .eq('product_id', productId)
+                        .eq('bar_id', barId)
+                        .order('returned_at', { ascending: false });
+
+                    if (startDate) q = q.gte('business_date', toYYYYMMDD(startDate));
+                    if (endDate) q = q.lte('business_date', toYYYYMMDD(endDate));
+                    return q.limit(limit);
                 })()
             ]);
 
@@ -288,6 +307,7 @@ export class StockService {
             if (supplies.error) throw supplies.error;
             if (consignments.error) throw consignments.error;
             if (adjustments.error) throw adjustments.error;
+            if (returns.error) throw returns.error;
 
             // 2. Normalize Data
             const timeline = [
@@ -299,17 +319,19 @@ export class StockService {
                         const item = items.find(i => i.product_id === productId);
                         if (!item) return [];
 
+                        const isExchange = (s as any).source_return_id;
+
                         return [{
                             id: s.id,
                             type: 'sale' as const,
                             date: new Date(s.created_at || ''),
                             delta: -item.quantity,
-                            label: s.status === 'pending' ? 'Vente (En attente)' : 'Vente',
+                            label: isExchange ? 'Échange (Sortie)' : (s.status === 'pending' ? 'Vente (En attente)' : 'Vente'),
                             user: s.users?.name || 'Inconnu',
-                            details: `Ticket #${s.ticket_id || '??'}`,
+                            details: isExchange ? `Issu de l'Échange #${isExchange.slice(0, 8)}` : `Ticket #${s.ticket_id || '??'}`,
                             price: item.unit_price,
                             notes: s.business_date,
-                            status: s.status // 🔥 Added status field
+                            status: s.status
                         }];
                     }),
 
@@ -350,7 +372,27 @@ export class StockService {
                     details: a.reason,
                     price: 0,
                     notes: a.notes
-                }))
+                })),
+
+                // Returns
+                ...(returns.data as JoinedReturn[] || []).map(r => {
+                    // Seuls les retours approuvés/restockés augmentent le stock réellement
+                    // Mais on affiche tout pour traçabilité. Le delta est 0 si pas de remise en stock.
+                    const isEffectiveRestock = (r.status === 'approved' || r.status === 'restocked') && (r.auto_restock || r.manual_restock_required === false);
+
+                    return {
+                        id: r.id,
+                        type: 'return' as const,
+                        date: new Date(r.returned_at || ''),
+                        delta: isEffectiveRestock ? r.quantity_returned : 0,
+                        label: r.reason === 'exchange' ? 'Échange (Retour)' : `Retour (${r.reason})`,
+                        user: r.users?.name || 'Inconnu',
+                        details: r.reason === 'exchange' ? 'Produit retourné pour échange' : (r.notes || 'Retour client'),
+                        price: r.refund_amount / (r.quantity_returned || 1),
+                        notes: `Statut: ${r.status}`,
+                        source_id: r.sale_id
+                    };
+                })
             ];
 
             // 3. Sort by Date Descending

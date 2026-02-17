@@ -14,7 +14,8 @@ import {
     ShoppingCart,
     Truck,
     User,
-    Calendar
+    Calendar,
+    RotateCcw
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -27,7 +28,7 @@ interface ProductHistoryModalProps {
 
 interface TimelineEvent {
     id: string;
-    type: 'sale' | 'supply' | 'consignment' | 'adjustment';
+    type: 'sale' | 'supply' | 'consignment' | 'adjustment' | 'return';
     date: Date;
     delta: number;
     label: string;
@@ -87,6 +88,7 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
             case 'supply': return <Truck size={16} className="text-green-500" />;
             case 'consignment': return <Package size={16} className="text-purple-500" />;
             case 'adjustment': return <AlertTriangle size={16} className="text-orange-500" />;
+            case 'return': return <RotateCcw size={16} className="text-purple-600" />;
             default: return <History size={16} className="text-gray-500" />;
         }
     };
@@ -178,7 +180,7 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
                                         </div>
 
                                         <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1 ${getBadgeColor(event.delta)}`}>
-                                            {event.delta > 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                                            {event.delta > 0 ? <TrendingUp size={12} /> : event.delta < 0 ? <TrendingDown size={12} /> : <Package size={12} />}
                                             {event.delta > 0 ? '+' : ''}{event.delta}
                                         </span>
                                     </div>
