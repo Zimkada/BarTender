@@ -570,6 +570,21 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
         '📝 Colonnes vides incluses pour le comptage manuel sur papier',
       ],
     },
+    {
+      id: 'step-history',
+      emoji: '🕰️',
+      title: 'Historique Détaillé : La Timeline du Produit',
+      description:
+        'Pour chaque produit, accédez à une **Timeline complète** de tous les mouvements : ventes, approvisionnements, ajustements et **retours**. C\'est votre outil de traçabilité ultime pour comprendre chaque variation de stock.',
+      elementSelector: '[data-guide="inventory-history-btn"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '🔄 Tracabilité Totale : Voyez qui a fait quoi et quand',
+        '↩️ **Retours & Échanges** : Inclus nativement pour un audit fidèle',
+        '📊 Visualisez les tendances de stock au fil du temps',
+      ],
+    },
 
     {
       id: 'step-3',

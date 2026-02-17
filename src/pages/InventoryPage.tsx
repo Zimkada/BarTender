@@ -160,6 +160,7 @@ export default function InventoryPage() {
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                             className="space-y-4"
+                            data-guide="inventory-products"
                         >
                             {/* Toolbar (Search & Sort) */}
                             <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-3">
@@ -228,17 +229,19 @@ export default function InventoryPage() {
                             {isLoadingProducts ? (
                                 <ProductGridSkeleton count={isMobile ? 4 : 8} />
                             ) : (
-                                <InventoryList
-                                    products={sortedProducts}
-                                    categories={categories}
-                                    getProductStockInfo={getProductStockInfo}
-                                    getAverageCostPerUnit={getAverageCostPerUnit}
-                                    onEdit={handleEditProduct}
-                                    onAdjust={handleAdjustStock}
-                                    onDelete={handleDeleteClick}
-                                    onHistory={handleViewHistory} // ✨ Pass history handler
-                                    searchTerm={searchTerm}
-                                />
+                                <div data-guide="inventory-table">
+                                    <InventoryList
+                                        products={sortedProducts}
+                                        categories={categories}
+                                        getProductStockInfo={getProductStockInfo}
+                                        getAverageCostPerUnit={getAverageCostPerUnit}
+                                        onEdit={handleEditProduct}
+                                        onAdjust={handleAdjustStock}
+                                        onDelete={handleDeleteClick}
+                                        onHistory={handleViewHistory} // ✨ Pass history handler
+                                        searchTerm={searchTerm}
+                                    />
+                                </div>
                             )}
                         </motion.div>
                     )}
@@ -250,6 +253,7 @@ export default function InventoryPage() {
                             initial={{ opacity: 0, x: 20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -20 }}
+                            data-guide="inventory-operations"
                         >
                             <InventoryOperations
                                 lowStockProducts={lowStockProducts}
@@ -270,6 +274,7 @@ export default function InventoryPage() {
                             initial={{ opacity: 0, scale: 0.98 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.98 }}
+                            data-guide="inventory-stats"
                         >
                             <InventoryStats
                                 products={products}

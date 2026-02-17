@@ -55,6 +55,7 @@ export function InventoryOperations({
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <button
                                 onClick={() => setMode('add')}
+                                data-guide="inventory-add-btn"
                                 className="group p-6 bg-white rounded-2xl border-2 border-transparent hover:border-amber-400 shadow-sm transition-all text-left flex items-start gap-4 active:scale-95"
                             >
                                 <div className="p-3 bg-amber-100 text-amber-600 rounded-xl group-hover:scale-110 transition-transform">
@@ -69,6 +70,7 @@ export function InventoryOperations({
                             {isProductImportEnabled && (
                                 <button
                                     onClick={() => setMode('import')}
+                                    data-guide="inventory-import-btn"
                                     className="group p-6 bg-white rounded-2xl border-2 border-transparent hover:border-blue-400 shadow-sm transition-all text-left flex items-start gap-4 active:scale-95"
                                 >
                                     <div className="p-3 bg-blue-100 text-blue-600 rounded-xl group-hover:scale-110 transition-transform">
@@ -100,6 +102,7 @@ export function InventoryOperations({
 
                             <button
                                 onClick={() => setMode('supply')}
+                                data-guide="inventory-supply-btn"
                                 className="group p-6 bg-white rounded-2xl border-2 border-transparent hover:border-green-400 shadow-sm transition-all text-left flex items-start gap-4 active:scale-95"
                             >
                                 <div className="p-3 bg-green-100 text-green-600 rounded-xl group-hover:scale-110 transition-transform">

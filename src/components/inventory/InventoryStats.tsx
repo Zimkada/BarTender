@@ -22,7 +22,7 @@ export function InventoryStats({
 
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6" data-guide="inventory-stats">
             {/* Résumé Global */}
             {/* Résumé Global (Nouvelle version 4 cartes) */}
             <InventorySummaryCards products={products} formatPrice={formatPrice} />

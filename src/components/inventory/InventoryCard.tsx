@@ -102,6 +102,7 @@ export function InventoryCard({
                         size="icon"
                         className="text-gray-400 hover:text-blue-600 hover:bg-blue-50"
                         title="Voir historique"
+                        data-guide="inventory-history-btn"
                     >
                         <History size={16} />
                     </Button>
