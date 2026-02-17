@@ -1,9 +1,9 @@
 :root {
-  /* DYNAMIC LOADER THEME - Strict Neutral Fallback (Off-White 98%) */
-  /* On ignore var(--brand-saturation) pour forcer le 0% au démarrage critique */
-  --beer-bg: hsl(var(--brand-hue, 0), 0%, 98%);
-  --beer-primary: hsl(var(--brand-hue, 0), 0%, 40%);
-  --beer-highlight: hsl(var(--brand-hue, 0), 0%, 50%);
+  /* STRICT NEUTRAL LOADER - Pure White Background */
+  /* Valeurs fixes pour éviter toute contamination par le cache */
+  --beer-bg: hsl(0, 0%, 100%);
+  --beer-primary: hsl(0, 0%, 40%);
+  --beer-highlight: hsl(0, 0%, 50%);
 }
 
 html,
