@@ -54,7 +54,7 @@ interface BarContextType {
   refreshBars: () => Promise<void>;
 }
 
-const BarContext = createContext<BarContextType | undefined>(undefined);
+export const BarContext = createContext<BarContextType | undefined>(undefined);
 
 export const useBarContext = () => {
   const context = useContext(BarContext);

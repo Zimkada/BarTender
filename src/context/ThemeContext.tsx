@@ -15,8 +15,20 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
+// FIX: Import direct du Context pour éviter le throw automatique
+import { BarContext } from './BarContext';
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-    const { currentBar, updateBar } = useBarContext();
+    // 🛡️ SAFE CONTEXT ACCESS
+    // On accède au contexte directement pour éviter l'erreur fatale "must be used within"
+    // si le BarProvider a crashé (exemple: erreur IDB) ou n'est pas encore monté.
+    const barContext = useContext(BarContext);
+
+    // Si le contexte est absent, on continue en mode dégradé (Default Theme)
+    // Cela permet d'afficher les erreurs (ErrorFallback) correctement stylisées au lieu de crasher blanc.
+    const currentBar = barContext?.currentBar;
+    const updateBar = barContext?.updateBar || (async () => { });
+
     const { currentSession } = useAuth(); // Pour vérifier le rôle SuperAdmin
     const [previewConfig, setPreviewConfig] = useState<ThemeConfig | null>(null);
 
