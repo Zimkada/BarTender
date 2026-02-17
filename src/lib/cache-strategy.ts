@@ -36,6 +36,10 @@ export const CACHE_STRATEGY = {
         staleTime: 24 * ONE_HOUR,
         gcTime: 7 * ONE_DAY, // 1 semaine
     },
+    promotionsAndCategories: {
+        staleTime: 1 * ONE_HOUR,
+        gcTime: 24 * ONE_HOUR,
+    },
     settings: {
         staleTime: 24 * ONE_HOUR,
         gcTime: 7 * ONE_DAY,

@@ -11,7 +11,7 @@
  * Result: Maximum freshness with minimum Supabase cost
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRealtimeSubscription } from './useRealtimeSubscription';
 import { useBroadcastSync } from './useBroadcastSync';
@@ -27,12 +27,12 @@ const useSafeDebounce = <T extends (...args: any[]) => any>(
   delay: number
 ): T & { cancel?: () => void } => {
   try {
-    return useDebouncedCallback(callback, delay);
+    return useDebouncedCallback(callback, delay) as any;
   } catch (error) {
     console.error('[SmartSync] Debounce library failed, using direct callback:', error);
     // Fallback: return callback as-is with noop cancel
     const fallback = callback as T & { cancel?: () => void };
-    fallback.cancel = () => {};
+    fallback.cancel = () => { };
     return fallback;
   }
 };
@@ -85,30 +85,35 @@ export function useSmartSync(config: UseSmartSyncConfig) {
 
   // 2. Set up Realtime (COST - multi-tab/user sync)
   // Determine keys to invalidate (explicit or best-guess)
-  const keys: readonly (readonly unknown[])[] = queryKeysToInvalidate || (barId ? [[table, barId]] : [[table]]);
+  const keys: readonly (readonly unknown[])[] = useMemo(() =>
+    queryKeysToInvalidate || (barId ? [[table, barId]] : [[table]]),
+    [queryKeysToInvalidate, table, barId]
+  );
 
-  const realtimeSubscription = useRealtimeSubscription({
+  // 🛡️ STABILITY FIX: Memoize config to prevent infinite loop of unmount/remount
+  // in useRealtimeSubscription when useSmartSync re-renders
+  const realtimeConfig = useMemo(() => ({
     table,
     event: event,
     filter: barId ? `bar_id=eq.${barId}` : undefined,
     enabled: enabled && broadcastSupported,
     queryKeysToInvalidate: keys,
     fallbackPollingInterval: refetchInterval,
-    onMessage: (payload) => {
-      const p = payload as any; // Cast to any since Realtime payload structure varies
-      console.log(`[SmartSync] Realtime change detected for ${table}:`, p.event);
+    onMessage: (payload: any) => {
+      console.log(`[SmartSync] Realtime change detected for ${table}:`, payload.event);
       // When Realtime message received, broadcast to other tabs
       if (broadcastSupported) {
-        broadcast(p.event === 'DELETE' ? 'DELETE' : p.event, p.new || p.old);
+        broadcast(payload.event === 'DELETE' ? 'DELETE' : payload.event, payload.new || payload.old);
       }
       syncStatusRef.current = 'realtime';
     },
-    onError: (error) => {
-      const err = error as Error;
-      console.warn(`[SmartSync] Realtime error for ${table}:`, err.message || error);
+    onError: (error: any) => {
+      console.warn(`[SmartSync] Realtime error for ${table}:`, error.message || error);
       syncStatusRef.current = 'polling';
     },
-  });
+  }), [table, event, barId, enabled, broadcastSupported, keys, refetchInterval, broadcast]);
+
+  const realtimeSubscription = useRealtimeSubscription(realtimeConfig);
 
   // 3. Set up Local Window Event Listener (SYNC MANAGER - same tab sync)
   // 🚀 Debounce to prevent render storms from rapid SyncManager events
@@ -143,10 +148,12 @@ export function useSmartSync(config: UseSmartSyncConfig) {
     });
 
     return () => {
-      handleWindowEvent.cancel(); // Cancel any pending debounce
-      config.windowEvents.forEach((event: string) => {
-        window.removeEventListener(event, listener); // ✅ Same listener reference!
-      });
+      handleWindowEvent.cancel?.(); // ✅ Optional chaining for safety
+      if (config.windowEvents) {
+        config.windowEvents.forEach((event: string) => {
+          window.removeEventListener(event, listener); // ✅ Same listener reference!
+        });
+      }
     };
   }, [config.windowEvents]); // ✅ handleWindowEvent NOT in deps - prevents re-run
 

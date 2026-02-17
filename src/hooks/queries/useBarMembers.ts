@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { AuthService } from '../../services/supabase/auth.service';
-import { AppUser, BarMember, UserRole } from '../../types';
+import { User, BarMember, UserRole } from '../../types';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 
 export const barMembersKeys = {
@@ -10,8 +10,8 @@ export const barMembersKeys = {
 
 import { useSmartSync } from '../useSmartSync';
 
-export const useBarMembers = (barId: string | undefined, options?: { refetchInterval?: number | false }) => {
-    const isEnabled = !!barId;
+export const useBarMembers = (barId: string | undefined, options?: { refetchInterval?: number | false; enabled?: boolean }) => {
+    const isEnabled = !!barId && (options?.enabled !== false);
 
     // 🔒 SECURITÉ & UX: SmartSync pour bar_members
     // Permet la révocation instantanée des accès et l'ajout immédiat des nouveaux membres
@@ -27,7 +27,7 @@ export const useBarMembers = (barId: string | undefined, options?: { refetchInte
 
     return useQuery({
         queryKey: barMembersKeys.list(barId || ''),
-        queryFn: async (): Promise<(BarMember & { user: AppUser })[]> => {
+        queryFn: async (): Promise<(BarMember & { user: User })[]> => {
             if (!barId) return [];
 
             // Appel à la fonction qui récupère les membres du bar via RPC

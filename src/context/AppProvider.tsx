@@ -80,25 +80,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Notifications - MUST be declared before use in useEffect
     const { showNotification } = useNotifications();
 
-    // Bar Members
-    // 🚀 FIX: Désactiver polling (data synced via mutations + manual refresh)
-    const { data: barMembers = [] } = useBarMembers(barId, { refetchInterval: false });
+    // 🚀 INITIALISATION DES DONNÉES DE BASE (Conditionnée à l'authentification)
+    // On ne récupère les membres que si on a un bar ET une session
+    const { data: members = [] } = useBarMembers(barId, {
+        enabled: !!currentSession,
+        refetchInterval: false
+    });
 
     const settings = defaultSettings;
-    const users: User[] = useMemo(() => barMembers.map(member => ({
+    const users: User[] = useMemo(() => members.map(member => ({
         id: member.user.id,
         username: member.user.username,
         name: member.user.name,
-        email: member.user.email,
         phone: member.user.phone,
-        role: member.role,
-        isActive: member.isActive,
-        firstLogin: member.user.firstLogin,
-        lastLoginAt: member.user.lastLoginAt,
+        email: member.user.email,
         createdAt: member.user.createdAt,
         createdBy: member.user.createdBy,
-        avatarUrl: member.user.avatarUrl,
-    })), [barMembers]);
+        isActive: member.user.isActive,
+        firstLogin: member.user.firstLogin,
+        lastLoginAt: member.user.lastLoginAt,
+        role: member.user.role,
+        hasCompletedOnboarding: member.user.hasCompletedOnboarding,
+        onboardingCompletedAt: member.user.onboardingCompletedAt,
+        trainingVersionCompleted: member.user.trainingVersionCompleted
+    })), [members]);
 
     // --- CART STATE & LOGIC ---
     const [cart, setCart] = useState<CartItem[]>([]);

@@ -13,6 +13,7 @@ import { offlineQueue } from '../../services/offlineQueue';
 import { syncManager } from '../../services/SyncManager';
 import { supabase } from '../../lib/supabase';
 import { calculateAvailableStock } from '../../utils/calculations';
+import { useNotifications } from '../../components/Notifications';
 import { toDbProduct, toDbProductForCreation } from '../../utils/productMapper';
 import type { Product, ProductStockInfo, Supply, Expense } from '../../types';
 
@@ -43,15 +44,16 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
     const { skipSupplies = false } = options;
     const queryClient = useQueryClient();
     const { currentSession: session } = useAuth();
+    const { showNotification } = useNotifications();
 
     // 1. Queries de base (React Query)
-    const { data: products = [], isLoading: isLoadingProducts } = useProducts(barId);
+    const { data: products = [], isLoading: isLoadingProducts } = useProducts(barId, { enabled: !!session });
 
     // 🛡️ Expert Fix: Lazy load supplies history
-    const { data: supplies = [], isLoading: isLoadingSupplies } = useSupplies(barId, { enabled: !skipSupplies });
+    const { data: supplies = [], isLoading: isLoadingSupplies } = useSupplies(barId, { enabled: !skipSupplies && !!session });
 
-    const { data: consignments = [], isLoading: isLoadingConsignments } = useConsignments(barId);
-    const { data: categories = [], isLoading: isLoadingCategories } = useCategories(barId);
+    const { data: consignments = [], isLoading: isLoadingConsignments } = useConsignments(barId, { enabled: !!session });
+    const { data: categories = [], isLoading: isLoadingCategories } = useCategories(barId, { enabled: !!session });
 
     // 2. Mutations
     const mutations = useStockMutations();
@@ -107,7 +109,7 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
                 .filter((op: any) => op.type === 'CREATE_SALE')
                 .map((op: any) => op.payload);
         },
-        enabled: !!barId,
+        enabled: !!barId && !!session,
         staleTime: 5000,
     });
 
@@ -126,7 +128,7 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
             if (error) throw error;
             return data || [];
         },
-        enabled: !!barId,
+        enabled: !!barId && !!session,
         staleTime: 30000,
     });
 
@@ -329,33 +331,39 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
         });
     }, [barId, session, mutations]);
 
-    const processSaleValidation = useCallback((
+    const processSaleValidation = useCallback(async (
         saleItems: Array<{ product: { id: string; name: string }; quantity: number }>,
-        onSuccess: () => void,
-        onError: (message: string) => void
+        options: { saleId?: string; onSuccess: () => void; onError: (msg: string) => void }
     ) => {
         for (const item of saleItems) {
             const stockInfo = getProductStockInfo(item.product.id);
             if (!stockInfo) {
-                onError(`Produit ${item.product.name} introuvable`);
+                options.onError(`Produit ${item.product.name} introuvable`);
                 return false;
             }
             if (stockInfo.availableStock < item.quantity) {
-                onError(`Stock insuffisant pour ${item.product.name} (disponible: ${stockInfo.availableStock})`);
+                options.onError(`Stock insuffisant pour ${item.product.name} (disponible: ${stockInfo.availableStock})`);
                 return false;
             }
         }
 
-        return mutations.validateSale.mutateAsync(saleItems).then(() => {
-            onSuccess();
-            return true;
-        }).catch((error: any) => {
-            onError(error.message || 'Erreur lors de la validation');
-            throw error;
-        });
+        // 🛡️ Expert Fix: Validate the sale using saleId (required by mutation)
+        if (!options.saleId) {
+            throw new Error('ID de la vente manquant pour la validation');
+        }
 
-        return true;
-    }, [getProductStockInfo, mutations]);
+        return mutations.validateSale.mutateAsync({
+            id: options.saleId,
+            validatedBy: session?.userId || ''
+        }).then(() => {
+            showNotification('success', 'Stock validé et vente confirmée');
+            options.onSuccess(); // Keep original onSuccess for external logic
+        })
+            .catch((error: any) => {
+                options.onError(error.message || 'Erreur lors de la validation');
+                throw error;
+            });
+    }, [getProductStockInfo, mutations, session, showNotification]);
     // Fin du bloc logique
 
     return {

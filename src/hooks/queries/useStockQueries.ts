@@ -68,13 +68,14 @@ export const stockKeys = {
     categories: (barId: string) => [...stockKeys.all, 'categories', barId] as const,
 };
 
-export const useProducts = (barId: string | undefined) => {
+export const useProducts = (barId: string | undefined, options: { enabled?: boolean } = {}) => {
+    const { enabled = true } = options;
     // 🔧 PHASE 1-2: SmartSync branché - Hybride Broadcast + Realtime + Polling adaptatif
     const smartSync = useSmartSync({
         table: 'bar_products',
         event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
         barId: barId || undefined,
-        enabled: !!barId,
+        enabled: !!barId && enabled,
         staleTime: CACHE_STRATEGY.products.staleTime,
         refetchInterval: REALTIME_FALLBACK_INTERVALS.products,
         queryKeysToInvalidate: [stockKeys.products(barId || '')], // 🚀 FIX: Invalidate specific stock keys
@@ -89,7 +90,7 @@ export const useProducts = (barId: string | undefined) => {
             const dbProducts = await ProductsService.getBarProducts(barId);
             return mapProducts(dbProducts);
         },
-        enabled: !!barId,
+        enabled: !!barId && enabled,
         staleTime: CACHE_STRATEGY.products.staleTime,
         gcTime: CACHE_STRATEGY.products.gcTime,
         networkMode: 'always', // 🛡️ CRITIQUE: Permet l'accès au cache stock offline
@@ -172,13 +173,14 @@ const isValidConsignmentStatus = (status: string): status is Consignment['status
     return ['active', 'claimed', 'forfeited', 'expired'].includes(status);
 };
 
-export const useConsignments = (barId: string | undefined) => {
+export const useConsignments = (barId: string | undefined, options: { enabled?: boolean } = {}) => {
+    const { enabled = true } = options;
     // 🔧 PHASE 1-2: SmartSync pour consignations
     const smartSync = useSmartSync({
         table: 'consignments',
         event: '*', // INSERT, UPDATE, DELETE (pour claim/forfeit)
         barId: barId || undefined,
-        enabled: !!barId,
+        enabled: !!barId && enabled,
         staleTime: CACHE_STRATEGY.products.staleTime,
         refetchInterval: REALTIME_FALLBACK_INTERVALS.consignments,
         queryKeysToInvalidate: [
@@ -230,7 +232,7 @@ export const useConsignments = (barId: string | undefined) => {
             });
         },
         {
-            enabled: !!barId,
+            enabled: !!barId && enabled,
             staleTime: CACHE_STRATEGY.products.staleTime,
             gcTime: CACHE_STRATEGY.products.gcTime,
             networkMode: 'always', // 🛡️ CRITIQUE
@@ -239,8 +241,9 @@ export const useConsignments = (barId: string | undefined) => {
     );
 };
 
-export const useCategories = (barId: string | undefined) => {
-    const isEnabled = !!barId;
+export const useCategories = (barId: string | undefined, options: { enabled?: boolean } = {}) => {
+    const { enabled = true } = options;
+    const isEnabled = !!barId && enabled;
 
     // 🚀 UI Consistency: Realtime Categories
     const smartSync = useSmartSync({
