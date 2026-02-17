@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { Product } from '../types';
 import { getErrorMessage } from '../utils/errorHandler';
@@ -71,12 +70,14 @@ export function useInventoryHistory({ barId, products }: UseInventoryHistoryProp
             throw new Error(`Erreur chargement ajustements: ${getErrorMessage(adjustmentsError)}`);
         }
 
-        // 4. Retours (Returns) - Uniquement ceux remis en stock
+        // 4. Retours (Returns) - Uniquement ceux qui ont RÉELLEMENT impacté le stock
+        // ✅ FIX CRITIQUE: Le trigger auto_restock s'active si status IN ('approved', 'restocked')
+        // La présence de restocked_at est la SEULE preuve fiable que le stock a été incrémenté.
         const { data: returns, error: returnsError } = await supabase
             .from('returns')
             .select('id, product_id, quantity_returned, restocked_at')
             .eq('bar_id', barId)
-            .eq('status', 'restocked')
+            .not('restocked_at', 'is', null) // ✅ Inversion de tout ce qui a touché au stock
             .gte('restocked_at', targetISO)
             .lte('restocked_at', nowISO);
 
@@ -101,7 +102,7 @@ export function useInventoryHistory({ barId, products }: UseInventoryHistoryProp
         }
 
         return {
-            sales: (sales || []) as SaleRowMinimal[],
+            sales: (sales || []) as unknown as SaleRowMinimal[],
             supplies: (supplies || []) as SupplyRowMinimal[],
             adjustments: (adjustments || []) as StockAdjustmentRowMinimal[],
             returns: (returns || []) as ReturnRowMinimal[],
