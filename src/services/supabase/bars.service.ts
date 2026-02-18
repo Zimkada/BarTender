@@ -8,14 +8,6 @@ type BarRow = Database['public']['Tables']['bars']['Row'];
 type BarUpdate = Database['public']['Tables']['bars']['Update'];
 type BarMemberInsert = Database['public']['Tables']['bar_members']['Insert'];
 
-import { z } from 'zod';
-
-const AddMemberResultSchema = z.object({
-  success: z.boolean(),
-  message: z.string().optional(),
-  error: z.string().optional(),
-});
-
 /**
  * ✅ Type-safe interface pour la vue SQL admin_bars_list
  * La vue matérialisée admin_bars_list n'est pas dans les types générés Supabase

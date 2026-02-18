@@ -17,6 +17,7 @@ import { Alert } from '../components/ui/Alert';
 import { ServerMappingsManager } from '../components/ServerMappingsManager';
 import { ServerMappingsService } from '../services/supabase/server-mappings.service';
 import { BarsService } from '../services/supabase/bars.service';
+import { getErrorMessage } from '../utils/errorHandler';
 import { FEATURES } from '../config/features';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
 import { OnboardingBreadcrumb } from '../components/onboarding/ui/OnboardingBreadcrumb';
@@ -98,7 +99,7 @@ export default function TeamManagementPage() {
       // Auto-append domain if username is provided instead of email
       let emailToUse = existingEmail;
       if (emailToUse && !emailToUse.includes('@')) {
-        emailToUse = `${emailToUse} @bartender.app`;
+        emailToUse = `${emailToUse}@bartender.app`;
       }
 
       const result = await BarsService.addMemberExisting(
@@ -111,6 +112,7 @@ export default function TeamManagementPage() {
       if (result.success) {
         setSuccess(result.message || 'Membre ajouté avec succès !');
         await refreshBars();
+        queryClient.invalidateQueries({ queryKey: barMembersKeys.list(currentBar!.id) });
         setTimeout(() => {
           setPageTab('members');
           setSuccess('');
@@ -120,8 +122,8 @@ export default function TeamManagementPage() {
       } else {
         setError(result.error || "Erreur lors de l'ajout");
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (error) {
+      setError(getErrorMessage(error));
     }
   };
 
@@ -157,8 +159,8 @@ export default function TeamManagementPage() {
       } else {
         setError(result.error || 'Erreur lors de la suppression');
       }
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors de la suppression');
+    } catch (error) {
+      setError(getErrorMessage(error));
     }
   };
 
@@ -178,8 +180,8 @@ export default function TeamManagementPage() {
       } else {
         setError(result.error || 'Erreur lors du changement de rôle');
       }
-    } catch (err: any) {
-      setError(err.message || 'Erreur lors du changement de rôle');
+    } catch (error) {
+      setError(getErrorMessage(error));
     }
   };
 
@@ -287,20 +289,21 @@ export default function TeamManagementPage() {
         setSuccess('');
       }, 4000);
 
-    } catch (err: any) {
-      console.error('Error creating user:', err);
+    } catch (error) {
+      console.error('Error creating user:', error);
+      const errMsg = getErrorMessage(error);
       let errorMessage = 'Erreur lors de la création de l\'utilisateur';
 
-      if (err.message.includes('duplicate') || err.message.includes('already exists')) {
+      if (errMsg.includes('duplicate') || errMsg.includes('already exists')) {
         errorMessage = '❌ Ce nom d\'utilisateur ou cet email existe déjà.';
-      } else if (err.message.includes('Invalid login credentials')) {
+      } else if (errMsg.includes('Invalid login credentials')) {
         errorMessage = '❌ Identifiants invalides. Veuillez réessayer.';
-      } else if (err.message.includes('Email not confirmed')) {
+      } else if (errMsg.includes('Email not confirmed')) {
         errorMessage = '❌ L\'email n\'a pas été confirmé. Contactez l\'administrateur.';
-      } else if (err.message.includes('permission')) {
+      } else if (errMsg.includes('permission')) {
         errorMessage = '❌ Vous n\'avez pas les permissions nécessaires.';
-      } else if (err.message) {
-        errorMessage = `❌ ${err.message} `;
+      } else if (errMsg) {
+        errorMessage = `❌ ${errMsg}`;
       }
 
       setError(errorMessage);
