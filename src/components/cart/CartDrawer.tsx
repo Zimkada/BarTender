@@ -11,6 +11,7 @@ import type { TicketWithSummary } from '../../hooks/queries/useTickets';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { formatTicketInfo } from '../../utils/formatTicketInfo';
 import { useAuth } from '../../context/AuthContext';
+import { toast } from 'react-hot-toast';
 // useBarContext removed
 // ServerMappingsService removed as resolution is now synchronous via props
 
@@ -30,6 +31,7 @@ interface CartDrawerProps {
     ticketsWithSummary?: TicketWithSummary[];
     onCreateBon?: (serverId: string | null, tableNumber?: number, customerName?: string) => Promise<string | null>;
     isLoading?: boolean;
+    maxStockLookup?: (productId: string) => number; // 🛡️ Fix Force Sale
 }
 
 export function CartDrawer({
@@ -47,7 +49,8 @@ export function CartDrawer({
     serverMappings = [],
     ticketsWithSummary = [],
     onCreateBon,
-    isLoading = false
+    isLoading = false,
+    maxStockLookup // 🛡️ Fix Force Sale
 }: CartDrawerProps) {
     const { isMobile } = useViewport();
     const { formatPrice } = useCurrencyFormatter();
@@ -115,7 +118,7 @@ export function CartDrawer({
 
     const handleCheckout = async () => {
         if (isSimplifiedMode && !selectedServer) {
-            alert('Veuillez sélectionner le serveur qui a effectué la vente');
+            toast.error('Veuillez sélectionner le serveur qui a effectué la vente');
             return;
         }
         await onCheckout(isSimplifiedMode ? selectedServer : undefined, paymentMethod, selectedBon || undefined);
@@ -198,6 +201,7 @@ export function CartDrawer({
                                 onRemoveItem={onRemoveItem}
                                 variant={isMobile ? 'mobile' : 'desktop'}
                                 showTotalReductions={true}
+                                maxStockLookup={maxStockLookup} // 🛡️ Fix Force Sale
                             />
 
                             {items.length === 0 && (

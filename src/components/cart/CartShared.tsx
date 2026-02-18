@@ -9,6 +9,7 @@ interface CartSharedProps {
     onRemoveItem: (productId: string) => void;
     variant?: 'mobile' | 'desktop';
     showTotalReductions?: boolean;
+    maxStockLookup?: (productId: string) => number; // 🛡️ Fix Force Sale
 }
 
 const PROMO_TYPE_LABELS: Record<string, string> = {
@@ -24,6 +25,7 @@ export function CartShared({
     onRemoveItem,
     variant = 'mobile',
     showTotalReductions = false,
+    maxStockLookup
 }: CartSharedProps) {
     const { formatPrice } = useCurrencyFormatter();
     const isMobile = variant === 'mobile';
@@ -35,80 +37,94 @@ export function CartShared({
     return (
         <div className="space-y-2 pb-2">
             <AnimatePresence mode="popLayout">
-                {items.map((item) => (
-                    <motion.div
-                        key={item.product.id}
-                        layout
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95, x: 20 }}
-                        className="relative group mb-2"
-                    >
-                        <div className="flex items-stretch gap-2">
-                            {/* MAIN CONTENT: Product + Qty (Bordured) */}
-                            <div className="flex-1 p-1.5 flex items-center gap-2 bg-white rounded-2xl border-2 border-brand-primary shadow-sm overflow-hidden">
-                                {/* 1. Thumbnail (Small) */}
-                                <div className="w-9 h-9 rounded-xl bg-brand-subtle/50 flex items-center justify-center flex-shrink-0 border border-brand-primary/10">
-                                    {item.product.image ? (
-                                        <img
-                                            src={item.product.image}
-                                            className="w-6 h-6 object-contain mix-blend-multiply"
-                                            alt=""
-                                        />
-                                    ) : (
-                                        <Package size={14} className="text-brand-primary/30" />
-                                    )}
-                                </div>
+                {items.map((item) => {
+                    const maxQty = maxStockLookup ? maxStockLookup(item.product.id) : Infinity;
+                    const isMaxReached = item.quantity >= maxQty;
 
-                                {/* 2. Info (Middle) */}
-                                <div className="flex-1 min-w-0 pr-1">
-                                    <h3 className="font-black text-[10px] text-gray-900 uppercase tracking-tight truncate leading-tight">
-                                        {item.product.name}
-                                    </h3>
-                                    <div className="flex items-center gap-1.5">
-                                        <span className="text-[8px] font-black text-gray-900 font-mono leading-none">
-                                            {formatPrice(item.total_price)}
+                    return (
+                        <motion.div
+                            key={item.product.id}
+                            layout
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95, x: 20 }}
+                            className="relative group mb-2"
+                        >
+                            <div className="flex items-stretch gap-2">
+                                {/* MAIN CONTENT: Product + Qty (Bordured) */}
+                                <div className={`flex-1 p-1.5 flex items-center gap-2 bg-white rounded-2xl border-2 ${isMaxReached ? 'border-orange-200' : 'border-brand-primary'} shadow-sm overflow-hidden transition-colors duration-300`}>
+                                    {/* 1. Thumbnail (Small) */}
+                                    <div className="w-9 h-9 rounded-xl bg-brand-subtle/50 flex items-center justify-center flex-shrink-0 border border-brand-primary/10">
+                                        {item.product.image ? (
+                                            <img
+                                                src={item.product.image}
+                                                className="w-6 h-6 object-contain mix-blend-multiply"
+                                                alt=""
+                                            />
+                                        ) : (
+                                            <Package size={14} className="text-brand-primary/30" />
+                                        )}
+                                    </div>
+
+                                    {/* 2. Info (Middle) */}
+                                    <div className="flex-1 min-w-0 pr-1">
+                                        <h3 className="font-black text-[10px] text-gray-900 uppercase tracking-tight truncate leading-tight">
+                                            {item.product.name}
+                                        </h3>
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-[8px] font-black text-gray-900 font-mono leading-none">
+                                                {formatPrice(item.total_price)}
+                                            </span>
+                                            <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest leading-none">
+                                                {item.product.volume}
+                                            </span>
+                                            {isMaxReached && (
+                                                <span className="bg-orange-100 text-orange-600 text-[6px] font-bold px-1 rounded uppercase">
+                                                    Max
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* 3. Controls (Compact Right) */}
+                                    <div className="flex items-center bg-gray-50 rounded-lg p-0.5 gap-1.5 border border-gray-100 ml-auto">
+                                        <button
+                                            onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
+                                            className="w-6 h-6 rounded-md bg-white border border-brand-subtle flex items-center justify-center text-brand-primary active:scale-90 transition-transform"
+                                        >
+                                            <Minus size={12} strokeWidth={3} />
+                                        </button>
+
+                                        <span className={`text-[11px] font-black font-mono w-4 text-center ${isMaxReached ? 'text-orange-600' : 'text-gray-900'}`}>
+                                            {item.quantity}
                                         </span>
-                                        <span className="text-[7px] font-black text-gray-400 uppercase tracking-widest leading-none">
-                                            {item.product.volume}
-                                        </span>
+
+                                        <button
+                                            onClick={() => !isMaxReached && onUpdateQuantity(item.product.id, item.quantity + 1)}
+                                            disabled={isMaxReached}
+                                            className={`w-6 h-6 rounded-md flex items-center justify-center text-white transition-all shadow-sm ${isMaxReached
+                                                ? 'bg-gray-300 cursor-not-allowed opacity-50'
+                                                : 'bg-brand-primary active:scale-90'
+                                                }`}
+                                            style={{ background: isMaxReached ? undefined : 'var(--brand-gradient)' }}
+                                        >
+                                            <Plus size={12} strokeWidth={3} />
+                                        </button>
                                     </div>
                                 </div>
 
-                                {/* 3. Controls (Compact Right) */}
-                                <div className="flex items-center bg-gray-50 rounded-lg p-0.5 gap-1.5 border border-gray-100 ml-auto">
-                                    <button
-                                        onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
-                                        className="w-6 h-6 rounded-md bg-white border border-brand-subtle flex items-center justify-center text-brand-primary active:scale-90 transition-transform"
-                                    >
-                                        <Minus size={12} strokeWidth={3} />
-                                    </button>
-
-                                    <span className="text-[11px] font-black text-gray-900 font-mono w-4 text-center">
-                                        {item.quantity}
-                                    </span>
-
-                                    <button
-                                        onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                                        className="w-6 h-6 rounded-md bg-brand-primary flex items-center justify-center text-white active:scale-90 transition-transform shadow-sm"
-                                        style={{ background: 'var(--brand-gradient)' }}
-                                    >
-                                        <Plus size={12} strokeWidth={3} />
-                                    </button>
-                                </div>
+                                {/* 4. Delete Button - ISOLATED (Outside Main Border) */}
+                                <button
+                                    onClick={() => onRemoveItem(item.product.id)}
+                                    className="w-10 flex items-center justify-center bg-red-50 hover:bg-red-100 rounded-2xl border-2 border-transparent text-red-500 active:scale-90 transition-all flex-shrink-0"
+                                    aria-label="Supprimer"
+                                >
+                                    <Trash2 size={18} strokeWidth={2.5} />
+                                </button>
                             </div>
-
-                            {/* 4. Delete Button - ISOLATED (Outside Main Border) */}
-                            <button
-                                onClick={() => onRemoveItem(item.product.id)}
-                                className="w-10 flex items-center justify-center bg-red-50 hover:bg-red-100 rounded-2xl border-2 border-transparent text-red-500 active:scale-90 transition-all flex-shrink-0"
-                                aria-label="Supprimer"
-                            >
-                                <Trash2 size={18} strokeWidth={2.5} />
-                            </button>
-                        </div>
-                    </motion.div>
-                ))}
+                        </motion.div>
+                    );
+                })}
             </AnimatePresence>
 
             {/* Total Reductions Badge */}
@@ -132,3 +148,4 @@ export function CartShared({
         </div>
     );
 }
+

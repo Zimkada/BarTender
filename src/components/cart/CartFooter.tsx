@@ -462,9 +462,7 @@ export function CartFooter({
                 </EnhancedButton>
 
                 <button
-                    onClick={() => {
-                        if (confirm('Vider le panier ?')) onClear();
-                    }}
+                    onClick={onClear}
                     disabled={!hasItems}
                     className="w-12 h-12 flex items-center justify-center bg-white border border-red-50 text-red-300 hover:text-red-500 rounded-xl hover:bg-red-50 active:scale-95 disabled:opacity-20 transition-all"
                 >

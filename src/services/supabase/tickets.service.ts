@@ -94,7 +94,7 @@ export class TicketsService {
       }
 
       return data as TicketRow;
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -102,7 +102,13 @@ export class TicketsService {
   /**
    * Fermer un bon (open → paid) via RPC pay_ticket (Resilience Pro)
    */
-  static async payTicket(ticketId: string, paidBy: string, paymentMethod: string, barId?: string): Promise<TicketRow> {
+  static async payTicket(
+    ticketId: string,
+    paidBy: string,
+    paymentMethod: string,
+    barId?: string,
+    existingTicket?: Partial<TicketRow> // 🛡️ Fix Bug #8 : Injection données existantes
+  ): Promise<TicketRow> {
     const idempotencyKey = generateUUID();
 
     if (!networkManager.isOnline() && barId) {
@@ -115,8 +121,16 @@ export class TicketsService {
         idempotency_key: idempotencyKey
       }, barId, paidBy);
 
-      // Return a partial for the UI to show success
-      return { id: ticketId, status: 'paid', paid_by: paidBy, payment_method: paymentMethod } as any;
+      // 🛡️ Fix Bug #8 : Reconstruire un objet complet pour l'UI, avec date locale
+      const now = new Date().toISOString();
+      return {
+        ...existingTicket, // Fusionner les données connues (numéro, dates création, etc.)
+        id: ticketId,
+        status: 'paid',
+        paid_by: paidBy,
+        paid_at: now, // 🛡️ Exigence PM : Date locale pour le reçu immédiat
+        payment_method: paymentMethod
+      } as TicketRow;
     }
 
     try {
@@ -131,7 +145,7 @@ export class TicketsService {
       }
 
       return data as TicketRow;
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }
@@ -151,7 +165,7 @@ export class TicketsService {
       if (error) throw new Error('Erreur lors de la récupération des bons');
 
       return (data || []) as TicketRow[];
-    } catch (error: any) {
+    } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
   }

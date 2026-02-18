@@ -537,6 +537,9 @@ class OfflineQueue {
       this.db.close();
       this.db = null;
     }
+    // 🛡️ Fix Bug #14: Reset initPromise pour éviter que close() durant initDB()
+    // laisse une connexion zombie s'ouvrir après coup
+    this.initPromise = null;
   }
 }
 
@@ -551,9 +554,12 @@ if (typeof window !== 'undefined') {
   if ((window as any)[globalKey]) {
     // console.warn('[OfflineQueue] Closing zombie instance from HMR');
     try {
-      // Tentative de fermeture si la méthode existe (dépend de l'état interne)
-      // Note: OfflineQueue n'expose pas close() publiquement, 
-      // mais on compte sur le garbage collection et la fermeture via onversionchange si nécessaire
+      // 🛡️ Fix Bug #14: Fermeture explicite pour éviter les "version change blocked"
+      const oldInstance = (window as any)[globalKey] as OfflineQueue;
+      if (oldInstance && typeof oldInstance.close === 'function') {
+        oldInstance.close();
+        console.log('[OfflineQueue] 🧟 Zombie instance closed successfully');
+      }
     } catch (e) {
       console.error('[OfflineQueue] Failed to close zombie:', e);
     }

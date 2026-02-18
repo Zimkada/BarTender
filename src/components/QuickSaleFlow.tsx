@@ -23,6 +23,8 @@ import { TicketsService } from '../services/supabase/tickets.service';
 import { CartShared } from './cart/CartShared';
 import { CartFooter } from './cart/CartFooter';
 import { SelectOption } from './ui/Select';
+import { generateUUID } from '../utils/crypto'; // 🛡️ Fix Bug #11
+import { ConfirmationModal } from './common/ConfirmationModal'; // 🛡️ Fix Bug #3
 
 
 interface QuickSaleFlowProps {
@@ -44,6 +46,9 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // UX State
+  const [showClearCartConfirm, setShowClearCartConfirm] = useState(false); // 🛡️ Fix Bug #3
 
   // Desktop Specific State (Simplified Mode)
   const [selectedServerDesktop, setSelectedServerDesktop] = useState('');
@@ -140,12 +145,12 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
         )) || undefined;
 
         if (!serverId) {
-          alert(`Serveur inconnu: ${serverNameToCheck}`);
+          toast.error(`Serveur inconnu: ${serverNameToCheck}`); // 🛡️ Fix Bug #2
           return;
         }
       } catch (e) {
         console.error(e);
-        alert('Erreur lors de la résolution du serveur');
+        toast.error('Erreur lors de la résolution du serveur'); // 🛡️ Fix Bug #2
         return;
       }
     }
@@ -170,7 +175,8 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
         paymentMethod,
         serverId,
         status: (currentSession.role === 'serveur') ? 'pending' : 'validated',
-        notes: isSimplifiedMode ? `Serveur: ${assignedServerName}` : undefined
+        notes: isSimplifiedMode ? `Serveur: ${assignedServerName}` : undefined,
+        idempotencyKey: generateUUID() // 🛡️ Fix Bug #11 : Clé stable pour déduction stock optimiste
       });
 
       // 4. Success & Reset
@@ -190,7 +196,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
 
     } catch (error) {
       console.error(error);
-      alert(error instanceof Error ? error.message : 'Erreur vente');
+      toast.error(error instanceof Error ? error.message : 'Erreur vente'); // 🛡️ Fix Bug #2
     }
   }, [cart, items, currentSession, currentBar, isSimplifiedMode, createSale, clearCart, isMobile]);
 
@@ -225,7 +231,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
       if (e.key === 'Escape') {
         if (searchTerm) setSearchTerm('');
         else if (cart.length > 0) {
-          if (confirm('Vider le panier ?')) clearCart();
+          if (!showClearCartConfirm) setShowClearCartConfirm(true); // 🛡️ Fix Bug #3
         } else {
           onClose();
         }
@@ -236,7 +242,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, searchTerm, cart, handleCheckout, selectedServerDesktop, paymentMethodDesktop]);
+  }, [isOpen, onClose, searchTerm, cart, handleCheckout, selectedServerDesktop, paymentMethodDesktop, showClearCartConfirm]);
 
 
   if (!isOpen) return null;
@@ -348,7 +354,10 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                       <span className="bg-brand-primary/10 text-brand-primary text-xs px-2 py-0.5 rounded-full">{totalItems}</span>
                     </h3>
                     {cart.length > 0 && (
-                      <button onClick={() => { if (confirm('Vider ?')) clearCart() }} className="text-red-400 hover:text-red-600 p-1">
+                      <button
+                        onClick={() => setShowClearCartConfirm(true)} // 🛡️ Fix Bug #3
+                        className="text-red-400 hover:text-red-600 p-1"
+                      >
                         <Trash2 size={18} />
                       </button>
                     )}
@@ -362,6 +371,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                       onRemoveItem={removeFromCart}
                       variant="desktop"
                       showTotalReductions={true}
+                      maxStockLookup={(id) => getProductStockInfo(id)?.availableStock ?? Infinity} // 🛡️ Fix Force Sale
                     />
                     {items.length === 0 && (
                       <div className="h-40 flex flex-col items-center justify-center text-gray-400 text-sm">
@@ -394,7 +404,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                       onCreateBon={handleCreateBon}
 
                       onCheckout={() => handleCheckout(selectedServerDesktop, paymentMethodDesktop)}
-                      onClear={clearCart}
+                      onClear={() => setShowClearCartConfirm(true)}
                       isLoading={createSale.isPending}
                       showSuccess={showSuccessDesktop}
                       hasItems={cart.length > 0}
@@ -438,15 +448,30 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                   total={total}
                   onUpdateQuantity={updateQuantity}
                   onRemoveItem={removeFromCart}
-                  onClear={clearCart}
+                  onClear={() => setShowClearCartConfirm(true)}
                   onCheckout={handleCheckout}
                   isSimplifiedMode={isSimplifiedMode}
                   serverNames={serverNames}
                   currentServerName={currentSession?.userName}
                   isLoading={createSale.isPending}
+                  maxStockLookup={(id) => getProductStockInfo(id)?.availableStock ?? Infinity} // 🛡️ Fix Force Sale
                 />
               </>
             )}
+
+            {/* 🛡️ Fix Bug #3 : Confirmation Modal Integration */}
+            <ConfirmationModal
+              isOpen={showClearCartConfirm}
+              onClose={() => setShowClearCartConfirm(false)}
+              onConfirm={() => {
+                clearCart();
+                setShowClearCartConfirm(false);
+              }}
+              title="Vider le panier ?"
+              message="Êtes-vous sûr de vouloir supprimer tous les articles du panier ? Cette action est irréversible."
+              confirmLabel="Vider"
+              isDestructive={true}
+            />
 
           </motion.div>
         </motion.div>

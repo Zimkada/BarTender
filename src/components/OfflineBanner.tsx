@@ -17,15 +17,33 @@ export const OfflineBanner: React.FC = () => {
     // Track if we've just reconnected to show a success toast
     const [wasOffline, setWasOffline] = useState(false);
 
+    // Track pending items for sync notification
+    const maxPendingCountRef = React.useRef(0);
+
+    useEffect(() => {
+        if (isOffline) {
+            // Keep track of the peak pending count while offline
+            maxPendingCountRef.current = Math.max(maxPendingCountRef.current, pendingCount);
+        } else {
+            // Reset when online
+            maxPendingCountRef.current = 0;
+        }
+    }, [isOffline, pendingCount]);
+
     useEffect(() => {
         const unsubscribe = networkManager.subscribe(() => {
             const offline = networkManager.shouldShowOfflineBanner();
             setIsOffline(offline);
 
             if (!offline && wasOffline) {
+                const count = maxPendingCountRef.current;
+                const message = count > 0
+                    ? `Connexion rétablie • ${count} ${count > 1 ? 'éléments synchronisés' : 'élément synchronisé'}`
+                    : "Connexion rétablie • Synchronisé";
+
                 toast.success(
-                    "Connexion rétablie • Synchronisé",
-                    { icon: '🟢', style: { background: '#1a1a1a', color: '#fff' } }
+                    message,
+                    { icon: '🟢', style: { background: '#1a1a1a', color: '#fff' }, duration: 4000 }
                 );
             }
             setWasOffline(offline);

@@ -90,6 +90,16 @@ const validateAndNormalizeSaleItems = (items: unknown[]): Record<string, unknown
     return validItems;
 };
 
+interface CreateSaleVariables extends Partial<Sale> {
+    items: SaleItem[];
+    // Champs étendus pour la mutation
+    customerName?: string;
+    customerPhone?: string;
+    notes?: string;
+    sourceReturnId?: string;
+    idempotencyKey?: string;
+}
+
 export const useSalesMutations = (barId: string) => {
     const queryClient = useQueryClient();
     const { currentSession } = useAuth();
@@ -113,8 +123,9 @@ export const useSalesMutations = (barId: string) => {
         );
     };
 
-    const createSale = useMutation<Sale, unknown, Partial<Sale> & { items: SaleItem[] }, unknown>({
-        mutationFn: async (saleData: Partial<Sale> & { items: SaleItem[] }) => {
+    const createSale = useMutation<Sale, unknown, CreateSaleVariables, unknown>({
+        mutationKey: ['create-sale', barId],
+        mutationFn: async (saleData: CreateSaleVariables) => {
             console.log('[useSalesMutations] mutationFn triggered', saleData);
 
             // 1. Préparer les données
@@ -142,14 +153,7 @@ export const useSalesMutations = (barId: string) => {
                 ? (currentSession?.userId || null)
                 : null;
 
-            // ✅ Type-safe sale payload construction
-            const saleDataExtended = saleData as Partial<Sale> & {
-                items: SaleItem[];
-                customerName?: string;
-                customerPhone?: string;
-                notes?: string;
-            };
-
+            // ✅ Type-safe sale payload construction using strict interface
             const salePayload = {
                 bar_id: barId,
                 items: itemsFormatted as unknown as SaleItem[],
@@ -159,20 +163,18 @@ export const useSalesMutations = (barId: string) => {
                 ticket_id: saleData.ticketId || undefined,
                 validated_by: validatedByValue || undefined,
                 status: finalStatus as 'pending' | 'validated',
-                customer_name: saleDataExtended.customerName,
-                customer_phone: saleDataExtended.customerPhone,
-                notes: saleDataExtended.notes,
+                customer_name: saleData.customerName,
+                customer_phone: saleData.customerPhone,
+                notes: saleData.notes,
                 business_date: formattedBusinessDate,
-                source_return_id: (saleData as any).sourceReturnId || undefined,
-                idempotency_key: (saleData as any).idempotencyKey || undefined // 🛡️ Fix : Toujours passer la clé si fournie
+                source_return_id: saleData.sourceReturnId,
+                idempotency_key: saleData.idempotencyKey // 🛡️ Fix Bug #11 : Clé maintenant typée et transmise
             };
 
             console.log('[useSalesMutations] payload prepared for SalesService:', {
                 ...salePayload,
                 items_count: salePayload.items.length
             });
-
-            console.log('[useSalesMutations] payload prepared', salePayload);
 
             if (!salePayload.sold_by) {
                 console.error('[useSalesMutations] No user ID found for sale');
@@ -183,13 +185,18 @@ export const useSalesMutations = (barId: string) => {
                 setTimeout(() => reject(new Error('GLOBAL_MUTATION_TIMEOUT')), 15000)
             );
 
-            console.log('[useSalesMutations] calling SalesService.createSale with 15s safety race', { canWorkOffline: !!role });
+            // 🛡️ Fix Risque #4: canWorkOffline Logic Check
+            // Seuls les Managers/Admins peuvent forcer le mode offline globalement.
+            // En mode simplifié, on suppose que l'appareil est configuré pour (souvent tablette gérant).
+            const canWorkOffline = isManagerOrAdmin || isSimplifiedMode;
+
+            console.log('[useSalesMutations] calling SalesService.createSale with 15s safety race', { canWorkOffline });
 
             const savedSaleRow = await Promise.race([
                 SalesService.createSale(
                     salePayload,
                     {
-                        canWorkOffline: !!role,
+                        canWorkOffline: canWorkOffline,
                         userId: currentSession?.userId || ''
                     }
                 ),
@@ -202,7 +209,9 @@ export const useSalesMutations = (barId: string) => {
 
             if (isOptimistic) {
                 console.log('[useSalesMutations] optimistic sale detected, showing toast');
-                if (role === 'serveur') {
+                if (role === 'serveur' && !isSimplifiedMode) {
+                    // Cas normal serveur offline (non autorisé sans Simplified Mode) -> Devrait théoriquement fail avant si !canWorkOffline
+                    // Mais si offlineQueue est utilisé:
                     toast.error(
                         "⚠️ Signal réseau faible. Vente mise en attente locale.\nATTENTION : Le gérant ne recevra cette demande qu'après synchronisation automatique.",
                         {
@@ -256,6 +265,8 @@ export const useSalesMutations = (barId: string) => {
             }
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
+            // 🛡️ Fix Bug #11: La vente n'est plus pending → la retirer du cache server-pending-sales
+            queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock', barId] });
         },
     });
 
@@ -270,6 +281,8 @@ export const useSalesMutations = (barId: string) => {
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
+            // 🛡️ Fix Bug #11: La vente n'est plus pending → la retirer du cache server-pending-sales
+            queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock', barId] });
         },
     });
 
@@ -285,6 +298,8 @@ export const useSalesMutations = (barId: string) => {
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
+            // 🛡️ Fix Bug #11: Une vente pending peut être annulée → la retirer du cache server-pending-sales
+            queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock', barId] });
         },
     });
 

@@ -41,6 +41,7 @@ export interface CreateSaleData {
   business_date?: string;
   ticket_id?: string;
   source_return_id?: string;
+  idempotency_key?: string;
 }
 
 export interface OfflineSale {
@@ -100,7 +101,7 @@ export class SalesService {
     const status = data.status || 'pending';
     const { shouldShowBanner: isOffline } = networkManager.getDecision();
 
-    const idempotencyKey = generateUUID();
+    const idempotencyKey = data.idempotency_key ?? generateUUID();
 
     try {
       if (isOffline && options?.canWorkOffline) {

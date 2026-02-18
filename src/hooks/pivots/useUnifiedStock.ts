@@ -5,7 +5,7 @@
  */
 
 import { useMemo, useEffect, useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutationState } from '@tanstack/react-query'; // 🛡️ Fix Bug #11
 import { useAuth } from '../../context/AuthContext';
 import { useProducts, useSupplies, useConsignments, useCategories } from '../queries/useStockQueries';
 import { useStockMutations } from '../mutations/useStockMutations';
@@ -57,6 +57,18 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
 
     // 2. Mutations
     const mutations = useStockMutations();
+
+    // 🛡️ Expert Fix Bug #11: Capture In-Flight Mutations (Optimistic Stock)
+    // On doit matcher l'interface CreateSaleVariables définie dans useSalesMutations
+    type InFlightSaleVars = {
+        items: Array<{ product_id?: string; productId?: string; quantity: number }>;
+        idempotencyKey?: string;
+    } | undefined;
+
+    const inFlightMutations = useMutationState({
+        filters: { mutationKey: ['create-sale', barId], status: 'pending' },
+        select: (mutation) => mutation.state.variables as InFlightSaleVars
+    });
 
     // ===== MUTATIONS WRAPPERS (Compatibilité & Audit) =====
 
@@ -179,7 +191,7 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
             }
         });
 
-        // Track used inventory keys to avoid double-counting (offline vs synced)
+        // Track used inventory keys to avoid double-counting (offline vs synced vs mutating)
         const accountedIdempotencyKeys = new Set<string>();
 
         // 1. Deduct Offline Sales
@@ -196,7 +208,26 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
             });
         });
 
-        // 2. Deduct Server Pending Sales (The missing gap)
+        // 2. Deduct In-Flight Mutations (Optimistic)
+        // 🛡️ Anti-Double Counting Strategy: Only deduct if NOT already in offlineSales
+        inFlightMutations.forEach((mutationPayload) => {
+            if (!mutationPayload?.items) return;
+
+            // Si la clé est déjà comptée (donc présente dans offlineSales), on ignore la mutation
+            if (mutationPayload.idempotencyKey && accountedIdempotencyKeys.has(mutationPayload.idempotencyKey)) {
+                return;
+            }
+
+            // Sinon, c'est une vraie "in-flight" mutation (entre le clic et l'écriture IDB/réseau)
+            mutationPayload.items.forEach((item) => {
+                const pid = item.product_id || item.productId;
+                if (pid && infoMap[pid]) {
+                    infoMap[pid].availableStock -= item.quantity;
+                }
+            });
+        });
+
+        // 3. Deduct Server Pending Sales (The missing gap)
         serverPendingSales.forEach((sale: any) => {
             // Avoid double counting if it's still in the offline queue (unlikely but possible during sync)
             if (sale.idempotency_key && accountedIdempotencyKeys.has(sale.idempotency_key)) return;
@@ -214,7 +245,7 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
         });
 
         return infoMap;
-    }, [stockHash]);
+    }, [stockHash, inFlightMutations]); // ⚡ dependency on mutations triggers re-calc
 
     // 4. Helpers (Memoized)
     const getProductStockInfo = useCallback((productId: string) => {
@@ -270,7 +301,6 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
             quantity: consignment.quantity,
             claimedBy: session.userId
         });
-        return true;
     }, [consignments, session, mutations]);
 
     const forfeitConsignment = useCallback((consignmentId: string) => {
@@ -282,7 +312,6 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
             productId: consignment.productId,
             quantity: consignment.quantity
         });
-        return true;
     }, [consignments, mutations]);
 
     const checkAndExpireConsignments = useCallback(() => {
