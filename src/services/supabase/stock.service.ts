@@ -1,5 +1,28 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
+import { ADJUSTMENT_REASONS } from '../../types';
+
+const CONSIGNMENT_STATUS_FR: Record<string, string> = {
+    active: 'Active',
+    claimed: 'Réclamée',
+    forfeited: 'Abandonnée',
+    expired: 'Expirée',
+};
+
+const RETURN_REASON_FR: Record<string, string> = {
+    exchange: 'Échange',
+    defective: 'Produit défectueux',
+    wrong_item: 'Mauvais produit',
+    customer_change: 'Client a changé d\'avis',
+    other: 'Autre',
+};
+
+const RETURN_STATUS_FR: Record<string, string> = {
+    pending: 'En attente',
+    approved: 'Approuvé',
+    rejected: 'Rejeté',
+    restocked: 'Remis en stock',
+};
 
 type Supply = Database['public']['Tables']['supplies']['Row'];
 type SupplyInsert = Database['public']['Tables']['supplies']['Insert'];
@@ -367,42 +390,46 @@ export class StockService {
                     type: 'consignment' as const,
                     date: new Date(c.created_at || ''),
                     delta: -c.quantity,
-                    label: `Consignation (${c.status})`,
+                    label: `Consignation (${CONSIGNMENT_STATUS_FR[c.status] || c.status})`,
                     user: c.users?.name || 'Inconnu',
                     details: c.customer_name || 'Client',
                     price: 0,
-                    notes: c.status
+                    notes: CONSIGNMENT_STATUS_FR[c.status] || c.status
                 })),
 
                 // Adjustments
-                ...(adjustments.data as JoinedAdjustment[] || []).map(a => ({
-                    id: a.id,
-                    type: 'adjustment' as const,
-                    date: new Date(a.adjusted_at || ''),
-                    delta: a.delta,
-                    label: `Ajustement (${a.reason})`,
-                    user: a.users?.name || 'Inconnu',
-                    details: a.reason,
-                    price: 0,
-                    notes: a.notes
-                })),
+                ...(adjustments.data as JoinedAdjustment[] || []).map(a => {
+                    const reasonLabel = ADJUSTMENT_REASONS[a.reason as keyof typeof ADJUSTMENT_REASONS]?.label || a.reason;
+                    return {
+                        id: a.id,
+                        type: 'adjustment' as const,
+                        date: new Date(a.adjusted_at || ''),
+                        delta: a.delta,
+                        label: `Ajustement — ${reasonLabel}`,
+                        user: a.users?.name || 'Inconnu',
+                        details: reasonLabel,
+                        price: 0,
+                        notes: a.notes
+                    };
+                }),
 
                 // Returns
                 ...(returns.data as JoinedReturn[] || []).map(r => {
                     // Seuls les retours approuvés/restockés augmentent le stock réellement
                     // Mais on affiche tout pour traçabilité. Le delta est 0 si pas de remise en stock.
                     const isEffectiveRestock = (r.status === 'approved' || r.status === 'restocked') && (r.auto_restock || r.manual_restock_required === false);
+                    const reasonFr = RETURN_REASON_FR[r.reason] || r.reason;
 
                     return {
                         id: r.id,
                         type: 'return' as const,
                         date: new Date(r.returned_at || ''),
                         delta: isEffectiveRestock ? r.quantity_returned : 0,
-                        label: r.reason === 'exchange' ? 'Échange (Retour)' : `Retour (${r.reason})`,
+                        label: r.reason === 'exchange' ? 'Échange (Retour)' : `Retour — ${reasonFr}`,
                         user: r.users?.name || 'Inconnu',
                         details: r.reason === 'exchange' ? 'Produit retourné pour échange' : (r.notes || 'Retour client'),
                         price: r.refund_amount / (r.quantity_returned || 1),
-                        notes: `Statut: ${r.status}`,
+                        notes: `Statut : ${RETURN_STATUS_FR[r.status] || r.status}`,
                         source_id: r.sale_id
                     };
                 })
