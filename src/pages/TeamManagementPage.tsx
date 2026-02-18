@@ -66,24 +66,20 @@ export default function TeamManagementPage() {
   const [loadingCandidates, setLoadingCandidates] = useState(false);
 
   // Load candidates when switching to 'add' tab and 'existing' mode
+  // isMounted guard: prevents state update on unmounted component
   React.useEffect(() => {
-    if (pageTab === 'add' && activeTab === 'existing' && currentBar) {
-      loadCandidates();
-    }
-  }, [pageTab, activeTab, currentBar]);
+    if (pageTab !== 'add' || activeTab !== 'existing' || !currentBar) return;
 
-  const loadCandidates = async () => {
-    if (!currentBar) return;
+    let isMounted = true;
     setLoadingCandidates(true);
-    try {
-      const data = await BarsService.getStaffCandidates(currentBar.id);
-      setCandidates(data);
-    } catch (err) {
-      console.error('Error loading candidates:', err);
-    } finally {
-      setLoadingCandidates(false);
-    }
-  };
+
+    BarsService.getStaffCandidates(currentBar.id)
+      .then(data => { if (isMounted) setCandidates(data); })
+      .catch(err => { if (isMounted) console.error('Error loading candidates:', getErrorMessage(err)); })
+      .finally(() => { if (isMounted) setLoadingCandidates(false); });
+
+    return () => { isMounted = false; };
+  }, [pageTab, activeTab, currentBar?.id]);
 
   const handleAddExistingUser = async (e: React.FormEvent) => {
     e.preventDefault();

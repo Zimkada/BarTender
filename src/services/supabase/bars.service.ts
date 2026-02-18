@@ -627,6 +627,10 @@ export class BarsService {
     role: UserRole,
     assignedByUserId: string
   ): Promise<{ success: boolean; memberId?: string; error?: string }> {
+    if (role !== 'gerant' && role !== 'serveur') {
+      return { success: false, error: `Rôle invalide: seuls 'gérant' et 'serveur' peuvent être assignés` };
+    }
+
     try {
       const { data, error } = await supabase.rpc('add_bar_member_v2', {
         p_bar_id: barId,
