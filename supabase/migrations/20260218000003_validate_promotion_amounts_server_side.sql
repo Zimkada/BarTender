@@ -300,7 +300,7 @@ Audit: All discounts recorded in promotion_applications with correct amounts.
 -- =====================================================
 DO $do$
 BEGIN
-    RAISE NOTICE $$
+    RAISE NOTICE FORMAT($$
     ╔════════════════════════════════════════════════════════════╗
     ║    CRITICAL SECURITY FIX: Server-Side Promotion Validation  ║
     ╚════════════════════════════════════════════════════════════╝
@@ -328,7 +328,7 @@ BEGIN
        Before: Unlimited fraud potential
        After: Zero fraud potential (DB validates all amounts)
        Recovery: 100% accurate audit trail for any disputes
-    $$;
+    $$);
 END $do$;
 
 COMMIT;
