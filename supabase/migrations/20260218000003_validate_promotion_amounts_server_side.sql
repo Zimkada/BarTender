@@ -299,8 +299,10 @@ Audit: All discounts recorded in promotion_applications with correct amounts.
 -- VERIFICATION
 -- =====================================================
 DO $do$
+DECLARE
+    v_msg TEXT;
 BEGIN
-    RAISE NOTICE FORMAT($$
+    v_msg := $$
     ╔════════════════════════════════════════════════════════════╗
     ║    CRITICAL SECURITY FIX: Server-Side Promotion Validation  ║
     ╚════════════════════════════════════════════════════════════╝
@@ -328,7 +330,8 @@ BEGIN
        Before: Unlimited fraud potential
        After: Zero fraud potential (DB validates all amounts)
        Recovery: 100% accurate audit trail for any disputes
-    $$);
+    $$;
+    RAISE NOTICE '%', v_msg;
 END $do$;
 
 COMMIT;
