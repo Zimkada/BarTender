@@ -84,6 +84,42 @@ export class StockService {
         }
     }
 
+    /**
+     * Retourne le dernier approvisionnement par produit pour un bar donné.
+     * Utilisé pour pré-remplir les valeurs par défaut du brouillon de commande.
+     */
+    static async getLastSupplyPerProduct(barId: string): Promise<Record<string, {
+        supplier: string;
+        lotSize: number;
+        lotPrice: number;
+        unitPrice: number;
+    }>> {
+        try {
+            const { data, error } = await supabase
+                .from('supplies')
+                .select('product_id, supplier_name, quantity, total_cost, unit_cost')
+                .eq('bar_id', barId)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            const result: Record<string, { supplier: string; lotSize: number; lotPrice: number; unitPrice: number }> = {};
+            for (const row of (data || [])) {
+                if (!result[row.product_id]) {
+                    result[row.product_id] = {
+                        supplier: row.supplier_name || '',
+                        lotSize: row.quantity,
+                        lotPrice: row.total_cost,
+                        unitPrice: row.unit_cost,
+                    };
+                }
+            }
+            return result;
+        } catch (error) {
+            throw new Error(handleSupabaseError(error));
+        }
+    }
+
     static async createSupply(data: SupplyInsert): Promise<Supply> {
         try {
             const { data: newSupply, error } = await supabase

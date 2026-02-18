@@ -295,3 +295,24 @@ export const useLowStockProducts = (barId: string | undefined) => {
         count: lowStockProducts.length
     };
 };
+
+export interface LastSupplyDefaults {
+    supplier: string;
+    lotSize: number;
+    lotPrice: number;
+    unitPrice: number;
+}
+
+/**
+ * Retourne un dictionnaire { productId → derniers paramètres d'approvisionnement }
+ * pour pré-remplir le brouillon de commande avec les valeurs du dernier lot connu.
+ */
+export const useLastSuppliesMap = (barId: string | undefined) => {
+    return useQuery<Record<string, LastSupplyDefaults>>({
+        queryKey: ['last-supplies-map', barId],
+        queryFn: () => StockService.getLastSupplyPerProduct(barId!),
+        enabled: !!barId,
+        staleTime: 5 * 60 * 1000, // 5 min — données stables
+        gcTime: 10 * 60 * 1000,
+    });
+};

@@ -15,6 +15,7 @@ import { useBarContext } from '../../../context/BarContext';
 import { useFeedback } from '../../../hooks/useFeedback';
 import { useUnifiedStock } from '../../../hooks/pivots/useUnifiedStock';
 import { useOrderDraft } from '../../../hooks/useOrderDraft'; // Nouveau Hook
+import { useLastSuppliesMap } from '../../../hooks/queries/useStockQueries';
 import { ForecastingService, ProductSalesStats } from '../../../services/supabase/forecasting.service';
 import { BackButton } from '../../ui/BackButton';
 import { Button } from '../../ui/Button'; // Design System
@@ -48,6 +49,7 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
 
     // Draft System Interconnection
     const { items: draftItems, addItem, updateItem, removeItem, totals } = useOrderDraft();
+    const { data: lastSupplies } = useLastSuppliesMap(currentBar?.id);
 
     const [alerts, setAlerts] = useState<StockAlert[]>([]);
     const [productStats, setProductStats] = useState<ProductSalesStats[]>([]);
@@ -117,13 +119,18 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
         // const increment = product.packSize || 1; // Par défaut 1, ou taille du pack si connue
 
         if (currentQty === 0) {
-            // Premier ajout : utiliser la suggestion si dispo, sinon 1
+            // Premier ajout : pré-remplir avec le dernier approvisionnement connu
+            const pid = product.productId || product.product_id;
+            const lastSupply = lastSupplies?.[pid];
             addItem({
-                productId: product.productId || product.product_id,
+                productId: pid,
                 productName: product.productName || product.product_name,
                 productVolume: product.product_volume,
                 quantity: suggestion || 1,
-                unitPrice: product.cost_price || 0 // Initialisation avec le prix de revient
+                unitPrice: lastSupply?.unitPrice ?? product.cost_price ?? 0,
+                lotSize: lastSupply?.lotSize,
+                lotPrice: lastSupply?.lotPrice,
+                supplier: lastSupply?.supplier,
             });
         } else {
             updateItem(product.productId || product.product_id, { quantity: currentQty + 1 });
