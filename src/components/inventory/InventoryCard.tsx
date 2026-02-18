@@ -1,10 +1,12 @@
-import { Edit, BarChart3, Trash2, History } from 'lucide-react'; // ✨ Import History
+import { Edit, BarChart3, Trash2, History, AlertTriangle, ShieldAlert, Info } from 'lucide-react';
 import { Product, ProductStockInfo } from '../../types';
 import { Button } from '../ui/Button';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
+import { ProductWithAnomaly } from '../../hooks/useInventoryFilter';
+import { cn } from '../../lib/utils';
 
 interface InventoryCardProps {
-    product: Product;
+    product: ProductWithAnomaly; // ✨ Use enriched type
     stockInfo: ProductStockInfo | null;
     avgCost: number;
     margin: number;
@@ -12,7 +14,7 @@ interface InventoryCardProps {
     onEdit: (product: Product) => void;
     onAdjust: (product: Product) => void;
     onDelete: (product: Product) => void;
-    onHistory: (product: Product) => void; // ✨ New Prop
+    onHistory: (product: Product) => void;
 }
 
 export function InventoryCard({
@@ -24,22 +26,45 @@ export function InventoryCard({
     onEdit,
     onAdjust,
     onDelete,
-    onHistory // ✨ Destructure
+    onHistory
 }: InventoryCardProps) {
     const { formatPrice } = useCurrencyFormatter();
     const currentStock = stockInfo?.physicalStock ?? 0;
     const availableStock = stockInfo?.availableStock ?? product.stock;
     const isLowStock = availableStock <= product.alertThreshold;
 
+    const anomaly = product.anomaly; // ✨ Anomaly info
+
     return (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:border-amber-200 transition-colors">
-            <div className="p-4 relative"> {/* Relative for absolute positioning */}
+        <div className={cn(
+            "bg-white rounded-xl border shadow-sm overflow-hidden transition-all duration-200",
+            anomaly ? (
+                anomaly.severity === 'red' ? "border-red-300 bg-red-50/10 shadow-red-50" :
+                    anomaly.severity === 'orange' ? "border-orange-300 bg-orange-50/10" :
+                        "border-yellow-300 bg-yellow-50/10"
+            ) : "border-gray-200 hover:border-amber-200"
+        )}>
+            <div className="p-4 relative">
                 <div className="flex justify-between items-start mb-3">
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                             <h2 className="font-bold text-gray-900 truncate">{product.name}</h2>
                         </div>
-                        <p className="text-sm text-gray-500">{product.volume || 'Format non spécifié'}</p>
+                        {/* ✨ Diagnostic d'Anomalie */}
+                        {anomaly && (
+                            <div className={cn(
+                                "flex items-center gap-1 mt-1 font-bold text-[10px] uppercase tracking-wide",
+                                anomaly.severity === 'red' ? "text-red-600" :
+                                    anomaly.severity === 'orange' ? "text-orange-600" :
+                                        "text-amber-600"
+                            )}>
+                                {anomaly.severity === 'red' ? <ShieldAlert className="w-3 h-3" /> :
+                                    anomaly.severity === 'orange' ? <AlertTriangle className="w-3 h-3" /> :
+                                        <Info className="w-3 h-3" />}
+                                <span>{anomaly.label}</span>
+                            </div>
+                        )}
+                        <p className="text-sm text-gray-500 mt-1">{product.volume || 'Format non spécifié'}</p>
                         <span className="inline-block mt-2 px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-bold rounded uppercase tracking-wider">
                             {categoryName}
                         </span>

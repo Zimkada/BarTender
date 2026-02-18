@@ -1,15 +1,21 @@
 import { useMemo } from 'react';
-import { Product, Category, ProductStockInfo } from '../types';
+import { Product, Category, ProductStockInfo, BarSettings } from '../types';
 import { sortProducts, SortMode } from '../utils/productSorting';
 import { searchProducts } from '../utils/productFilters';
+import { detectProductAnomaly, findDuplicateAnomaly, ProductAnomaly } from '../utils/anomalyDetection';
 
 interface UseInventoryFilterProps {
     products: Product[];
     categories: Category[];
     searchTerm: string;
     sortMode: SortMode;
-    showSuspiciousOnly?: boolean; // ✨ Nouveau filtre
+    showAnomaliesOnly?: boolean;
+    barSettings?: BarSettings;
     getProductStockInfo: (id: string) => ProductStockInfo | null;
+}
+
+export interface ProductWithAnomaly extends Product {
+    anomaly: ProductAnomaly | null;
 }
 
 export function useInventoryFilter({
@@ -17,36 +23,46 @@ export function useInventoryFilter({
     categories,
     searchTerm,
     sortMode,
-    showSuspiciousOnly = false,
+    showAnomaliesOnly = false,
+    barSettings,
     getProductStockInfo
 }: UseInventoryFilterProps) {
 
+    // 1. Calcul enrichi avec les anomalies
+    const productsWithAnomalies = useMemo(() => {
+        return products.map(p => {
+            const stockInfo = getProductStockInfo(p.id);
+
+            // On cherche d'abord les anomalies de données/stock
+            let anomaly = detectProductAnomaly(p, stockInfo, barSettings);
+
+            // Si aucune anomalie critique/compta, on cherche les doublons
+            if (!anomaly) {
+                anomaly = findDuplicateAnomaly(p, products);
+            }
+
+            return { ...p, anomaly };
+        });
+    }, [products, getProductStockInfo, barSettings]);
+
     const filteredProducts = useMemo(() => {
-        let result = products;
+        let result = productsWithAnomalies;
 
         // 1. Filtre Recherche
         if (searchTerm.trim()) {
-            result = searchProducts(result, searchTerm);
+            result = searchProducts(result, searchTerm) as ProductWithAnomaly[];
         }
 
-        // 2. Filtre Suspicious (Anomalies)
-        if (showSuspiciousOnly) {
-            result = result.filter(p => {
-                const stockInfo = getProductStockInfo(p.id);
-                if (!stockInfo) return false;
-
-                // CRITÈRE D'ANOMALIE :
-                // - Stock physique négatif (Impossible)
-                // - Stock disponible négatif (Vente à découvert)
-                return stockInfo.physicalStock < 0 || stockInfo.availableStock < 0;
-            });
+        // 2. Filtre Anomalies
+        if (showAnomaliesOnly) {
+            result = result.filter(p => !!p.anomaly);
         }
 
         return result;
-    }, [products, searchTerm, showSuspiciousOnly, getProductStockInfo]);
+    }, [productsWithAnomalies, searchTerm, showAnomaliesOnly]);
 
     const sortedProducts = useMemo(
-        () => sortProducts(filteredProducts, sortMode, categories),
+        () => sortProducts(filteredProducts, sortMode, categories) as ProductWithAnomaly[],
         [filteredProducts, sortMode, categories]
     );
 
@@ -60,8 +76,6 @@ export function useInventoryFilter({
     );
 
     const categoryStats = useMemo(() => {
-        // Stats basées sur l'ensemble des produits (ou filtrés ? standard = global)
-        // Ici on garde les stats globales pour l'onglet stats
         return categories.map(cat => {
             const catProducts = products.filter(p => p.categoryId === cat.id);
             const catAlerts = catProducts.filter(p => {
@@ -83,10 +97,6 @@ export function useInventoryFilter({
         sortedProducts,
         lowStockProducts,
         categoryStats,
-        // On retourne le compte de suspects pour info éventuelle
-        suspiciousCount: products.filter(p => {
-            const info = getProductStockInfo(p.id);
-            return info && (info.physicalStock < 0 || info.availableStock < 0);
-        }).length
+        anomalyCount: productsWithAnomalies.filter(p => !!p.anomaly).length
     };
 }

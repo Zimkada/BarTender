@@ -2,16 +2,17 @@ import { Package } from 'lucide-react';
 import { Product, Category, ProductStockInfo } from '../../types';
 import { InventoryCard } from './InventoryCard';
 import { EmptyState } from '../common/EmptyState';
+import { ProductWithAnomaly } from '../../hooks/useInventoryFilter';
 
 interface InventoryListProps {
-    products: Product[];
+    products: ProductWithAnomaly[];
     categories: Category[];
     getProductStockInfo: (id: string) => ProductStockInfo | null;
     getAverageCostPerUnit: (id: string) => number;
     onEdit: (product: Product) => void;
     onAdjust: (product: Product) => void;
     onDelete: (product: Product) => void;
-    onHistory: (product: Product) => void; // ✨ New Prop
+    onHistory: (product: Product) => void;
     searchTerm: string;
 }
 
@@ -23,7 +24,7 @@ export function InventoryList({
     onEdit,
     onAdjust,
     onDelete,
-    onHistory, // ✨ Destructure
+    onHistory,
     searchTerm
 }: InventoryListProps) {
 

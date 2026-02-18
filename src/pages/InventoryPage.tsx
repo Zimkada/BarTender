@@ -72,23 +72,24 @@ export default function InventoryPage() {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [sortMode, setSortMode] = useState<SortMode>('category');
-    const [showSuspicious, setShowSuspicious] = useState(false); // ✨ State Filtre Suspects
+    const [showAnomalies, setShowAnomalies] = useState(false); // ✨ State Filtre Anomalies
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
     // ✅ Fix Lint: use any for now or imported Product if available
     const [viewingHistoryProduct, setViewingHistoryProduct] = useState<any | null>(null); // ✨ State History
 
-    // 3. Logic Hooks
     const {
         sortedProducts,
         lowStockProducts,
-        categoryStats
+        categoryStats,
+        anomalyCount // ✨ Nouveau compte d'anomalies
     } = useInventoryFilter({
         products,
         categories,
         searchTerm,
         sortMode,
-        showSuspiciousOnly: showSuspicious,
+        showAnomaliesOnly: showAnomalies,
+        barSettings: currentBar?.settings,
         getProductStockInfo
     });
 
@@ -180,13 +181,13 @@ export default function InventoryPage() {
                                             key={mode}
                                             onClick={() => {
                                                 setSortMode(mode);
-                                                setShowSuspicious(false); // ✨ Reset suspects when sorting
+                                                setShowAnomalies(false); // ✨ Reset anomalies when sorting
                                             }}
                                             variant="ghost"
                                             size="sm"
                                             className={cn(
                                                 "gap-1.5 text-xs font-semibold transition-all border",
-                                                sortMode === mode && !showSuspicious // Only active if NOT in suspicious mode
+                                                sortMode === mode && !showAnomalies // Only active if NOT in anomalies mode
                                                     ? "glass-action-button-active-2026 shadow-sm"
                                                     : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
                                             )}
@@ -196,19 +197,24 @@ export default function InventoryPage() {
                                         </Button>
                                     ))}
 
-                                    {/* ✨ Bouton Filtre Suspects (Aligné dans le groupe) */}
+                                    {/* ✨ Bouton Filtre Anomalies (Aligné dans le groupe) */}
                                     <Button
-                                        onClick={() => setShowSuspicious(!showSuspicious)}
-                                        variant={showSuspicious ? "destructive" : "outline"}
+                                        onClick={() => setShowAnomalies(!showAnomalies)}
+                                        variant={showAnomalies ? "destructive" : "outline"}
                                         size="sm"
-                                        data-guide="inventory-filter-suspicious"
+                                        data-guide="inventory-filter-anomalies"
                                         className={cn(
-                                            "gap-1.5 font-bold transition-all text-xs",
-                                            showSuspicious ? "shadow-md shadow-red-200" : "text-gray-500 hover:text-red-500 hover:border-red-300"
+                                            "gap-1.5 font-bold transition-all text-xs relative",
+                                            showAnomalies ? "shadow-md shadow-red-200" : "text-gray-500 hover:text-red-500 hover:border-red-300"
                                         )}
                                     >
-                                        <AlertCircle className={cn("w-4 h-4", showSuspicious ? "text-white" : "text-red-500")} />
-                                        <span>Suspects</span>
+                                        <AlertCircle className={cn("w-4 h-4", showAnomalies ? "text-white" : "text-red-500")} />
+                                        <span>Anomalies</span>
+                                        {anomalyCount > 0 && !showAnomalies && (
+                                            <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center border border-white shadow-sm">
+                                                {anomalyCount}
+                                            </span>
+                                        )}
                                     </Button>
                                 </div>
 
