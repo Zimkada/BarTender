@@ -14,7 +14,6 @@
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { networkManager } from '../NetworkManager';
-import { QueryClient } from '@tanstack/react-query';
 
 export type RealtimeEvent = 'INSERT' | 'UPDATE' | 'DELETE' | '*';
 
@@ -34,6 +33,7 @@ interface ChannelState {
   channel: RealtimeChannel | null;
   isConnected: boolean;
   retryCount: number;
+  subscribers: number; // ✅ Track how many components are using this channel
   lastError?: Error | unknown;
   createdAt: number;
 }
@@ -47,7 +47,6 @@ export class RealtimeService {
   private channels: Map<string, ChannelState> = new Map();
   private maxRetries: number = 5;
   private retryDelay: number = 1000;
-  private queryClient: QueryClient | null = null;
 
   private constructor() {
     // Monitor network status
@@ -63,13 +62,6 @@ export class RealtimeService {
   }
 
   /**
-   * Set QueryClient for cache invalidation
-   */
-  setQueryClient(client: QueryClient) {
-    this.queryClient = client;
-  }
-
-  /**
    * Subscribe to realtime changes on a table
    */
   subscribe(config: RealtimeConfig): string {
@@ -77,7 +69,9 @@ export class RealtimeService {
 
     // Check if already subscribed
     if (this.channels.has(channelId)) {
-      console.log(`[Realtime] Already subscribed to ${channelId}`);
+      const state = this.channels.get(channelId)!;
+      state.subscribers++; // ✅ Increment reference count
+      console.log(`[Realtime] Already subscribed to ${channelId}. Subscribers: ${state.subscribers}`);
       return channelId;
     }
 
@@ -119,6 +113,7 @@ export class RealtimeService {
         channel,
         isConnected: false,
         retryCount: 0,
+        subscribers: 1, // ✅ Start with 1 subscriber
         createdAt: Date.now(),
       });
 
@@ -141,6 +136,14 @@ export class RealtimeService {
     }
 
     try {
+      state.subscribers--; // ✅ Decrement reference count
+
+      if (state.subscribers > 0) {
+        console.log(`[Realtime] ${channelId} still has ${state.subscribers} subscribers. Holding connection.`);
+        return;
+      }
+
+      console.log(`[Realtime] No more subscribers for ${channelId}. Closing connection.`);
       await supabase.removeChannel(state.channel);
       this.channels.delete(channelId);
       console.log(`[Realtime] Unsubscribed from ${channelId}`);
