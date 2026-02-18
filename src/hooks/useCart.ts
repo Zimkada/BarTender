@@ -5,13 +5,14 @@ import { useCartLogic } from './useCartLogic';
 interface UseCartOptions {
     barId?: string;
     initialCart?: CartItem[];
+    maxStockLookup?: (productId: string) => number; // 🛡️ Fix : Validation de stock intrinsèque
 }
 
 /**
  * Hook de gestion de panier (State + Logic)
  * Peut être utilisé localement (ex: QuickSale) ou globalement.
  */
-export function useCart({ barId, initialCart = [] }: UseCartOptions = {}) {
+export function useCart({ barId, initialCart = [], maxStockLookup }: UseCartOptions = {}) {
     const [cart, setCart] = useState<CartItem[]>(initialCart);
 
     // Intégration de la logique métier (calculs, promos)
@@ -28,29 +29,49 @@ export function useCart({ barId, initialCart = [] }: UseCartOptions = {}) {
     const addToCart = useCallback((product: Product) => {
         setCart(currentCart => {
             const existingItem = currentCart.find(item => item.product.id === product.id);
+            const currentQty = existingItem ? existingItem.quantity : 0;
+            const newQty = currentQty + 1;
+
+            // 🛡️ Validation de stock intrinsèque
+            if (maxStockLookup) {
+                const availableStock = maxStockLookup(product.id);
+                if (newQty > availableStock) {
+                    return currentCart; // Bloque l'ajout
+                }
+            }
+
             if (existingItem) {
                 return currentCart.map(item =>
                     item.product.id === product.id
-                        ? { ...item, quantity: item.quantity + 1 }
+                        ? { ...item, quantity: newQty }
                         : item
                 );
             }
             return [...currentCart, { product, quantity: 1 }];
         });
-    }, []);
+    }, [maxStockLookup]);
 
     const updateQuantity = useCallback((productId: string, quantity: number) => {
         setCart(currentCart => {
             if (quantity <= 0) {
                 return currentCart.filter(item => item.product.id !== productId);
             }
+
+            // 🛡️ Validation de stock intrinsèque
+            if (maxStockLookup) {
+                const availableStock = maxStockLookup(productId);
+                if (quantity > availableStock) {
+                    return currentCart; // Bloque l'augmentation
+                }
+            }
+
             return currentCart.map(item =>
                 item.product.id === productId
                     ? { ...item, quantity }
                     : item
             );
         });
-    }, []);
+    }, [maxStockLookup]);
 
     const removeFromCart = useCallback((productId: string) => {
         setCart(currentCart => currentCart.filter(item => item.product.id !== productId));

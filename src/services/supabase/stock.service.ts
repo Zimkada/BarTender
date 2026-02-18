@@ -478,4 +478,133 @@ export class StockService {
             throw new Error(handleSupabaseError(error));
         }
     }
+
+    // =====================================================
+    // ✨ ATOMIC CONSIGNMENT RPCs (2026-02-18)
+    // =====================================================
+
+    /**
+     * ✨ Create consignment atomically (RPC)
+     * Inserts consignment + increments stock in one transaction
+     */
+    static async createConsignmentAtomic(
+        barId: string,
+        saleId: string,
+        productId: string,
+        productName: string,
+        quantity: number,
+        data: {
+            productVolume?: string;
+            totalAmount?: number;
+            customerName?: string;
+            customerPhone?: string;
+            notes?: string;
+            expiresAt?: string;
+            expirationDays?: number;
+            originalSeller?: string;
+            serverId?: string;
+            createdBy: string;
+            businessDate?: string;
+        }
+    ): Promise<Consignment> {
+        try {
+            const { data: result, error } = await supabase.rpc('create_consignment', {
+                p_bar_id: barId,
+                p_sale_id: saleId,
+                p_product_id: productId,
+                p_product_name: productName,
+                p_product_volume: data.productVolume || undefined,
+                p_quantity: quantity,
+                p_total_amount: data.totalAmount || 0,
+                p_customer_name: data.customerName || undefined,
+                p_customer_phone: data.customerPhone || undefined,
+                p_notes: data.notes || undefined,
+                p_expires_at: data.expiresAt || undefined,
+                p_expiration_days: data.expirationDays || 7,
+                p_original_seller: data.originalSeller || undefined,
+                p_server_id: data.serverId || undefined,
+                p_created_by: data.createdBy,
+                p_business_date: data.businessDate ? new Date(data.businessDate) : undefined
+            });
+
+            if (error) throw error;
+            if (result?.success === false) {
+                throw new Error(result?.error || 'Failed to create consignment');
+            }
+
+            // Fetch and return the complete consignment
+            const { data: consignment, error: fetchError } = await supabase
+                .from('consignments')
+                .select('*')
+                .eq('id', result?.consignment_id)
+                .single();
+
+            if (fetchError) throw fetchError;
+            return consignment as Consignment;
+        } catch (error) {
+            throw new Error(handleSupabaseError(error));
+        }
+    }
+
+    /**
+     * ✨ Claim consignment atomically (RPC)
+     * Updates status to claimed + decrements stock in one transaction
+     */
+    static async claimConsignmentAtomic(
+        consignmentId: string,
+        claimedBy: string
+    ): Promise<Consignment> {
+        try {
+            const { data: result, error } = await supabase.rpc('claim_consignment', {
+                p_consignment_id: consignmentId,
+                p_claimed_by: claimedBy
+            });
+
+            if (error) throw error;
+            if (result?.success === false) {
+                throw new Error(result?.error || 'Failed to claim consignment');
+            }
+
+            // Fetch and return the updated consignment
+            const { data: consignment, error: fetchError } = await supabase
+                .from('consignments')
+                .select('*')
+                .eq('id', consignmentId)
+                .single();
+
+            if (fetchError) throw fetchError;
+            return consignment as Consignment;
+        } catch (error) {
+            throw new Error(handleSupabaseError(error));
+        }
+    }
+
+    /**
+     * ✨ Forfeit consignment atomically (RPC)
+     * Updates status to forfeited
+     */
+    static async forfeitConsignmentAtomic(consignmentId: string): Promise<Consignment> {
+        try {
+            const { data: result, error } = await supabase.rpc('forfeit_consignment', {
+                p_consignment_id: consignmentId
+            });
+
+            if (error) throw error;
+            if (result?.success === false) {
+                throw new Error(result?.error || 'Failed to forfeit consignment');
+            }
+
+            // Fetch and return the updated consignment
+            const { data: consignment, error: fetchError } = await supabase
+                .from('consignments')
+                .select('*')
+                .eq('id', consignmentId)
+                .single();
+
+            if (fetchError) throw fetchError;
+            return consignment as Consignment;
+        } catch (error) {
+            throw new Error(handleSupabaseError(error));
+        }
+    }
 }

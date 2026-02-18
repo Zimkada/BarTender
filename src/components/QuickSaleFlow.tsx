@@ -105,7 +105,10 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     updateQuantity,
     removeFromCart,
     clearCart
-  } = useCart({ barId: currentBar?.id });
+  } = useCart({
+    barId: currentBar?.id,
+    maxStockLookup: (id) => getProductStockInfo(id)?.availableStock ?? Infinity
+  });
 
   // --- SEARCH & CATEGORY FILTER ---
 

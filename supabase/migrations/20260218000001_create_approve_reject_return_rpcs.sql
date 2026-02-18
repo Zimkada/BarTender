@@ -57,14 +57,19 @@ BEGIN
     IF v_return.status NOT IN ('pending', 'validated') THEN
         RAISE EXCEPTION 'Invalid transition: cannot approve return with status %', v_return.status;
     END IF;
+
     v_product_id := v_return.product_id;
     v_quantity_returned := v_return.quantity_returned;
     v_auto_restock := v_return.auto_restock;
 
     -- =====================================================
-    -- STEP 3: Determine new status
+    -- STEP 3: Determine new status (respecting valid transitions)
     -- =====================================================
+    -- pending + auto_restock=true  → restocked
+    -- pending + auto_restock=false → approved
+    -- validated (legacy)           → restocked (validated never goes to approved)
     v_new_status := CASE
+        WHEN v_return.status = 'validated' THEN 'restocked'::returns.status
         WHEN v_auto_restock THEN 'restocked'::returns.status
         ELSE 'approved'::returns.status
     END;
