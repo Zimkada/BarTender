@@ -14,6 +14,7 @@
 import { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { networkManager } from '../NetworkManager';
+import { QueryClient } from '@tanstack/react-query';
 
 export type RealtimeEvent = 'INSERT' | 'UPDATE' | 'DELETE' | '*';
 
@@ -47,6 +48,7 @@ export class RealtimeService {
   private channels: Map<string, ChannelState> = new Map();
   private maxRetries: number = 5;
   private retryDelay: number = 1000;
+  private queryClient?: QueryClient;
 
   private constructor() {
     // Monitor network status
@@ -59,6 +61,14 @@ export class RealtimeService {
       RealtimeService.instance = new RealtimeService();
     }
     return RealtimeService.instance;
+  }
+
+  /**
+   * Initialize with React Query client
+   */
+  setQueryClient(queryClient: QueryClient) {
+    this.queryClient = queryClient;
+    console.log('[Realtime] Initialized with React Query client');
   }
 
   /**
