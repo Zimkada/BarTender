@@ -560,14 +560,16 @@ export class ProductsService {
           bar_categories!fk_bar_products_local_category (*)
         `)
         .eq('bar_id', barId)
-        .eq('is_active', true)
-        .filter('stock', 'lte', 'alert_threshold');
+        .eq('is_active', true);
 
       if (error) {
         throw new Error('Erreur lors de la récupération des produits en rupture');
       }
 
-      const enrichedProducts: BarProductWithDetails[] = (data || []).map((product) => {
+      // Filtre client-side : comparaison colonne-à-colonne non supportée par PostgREST via .filter()
+      const lowStockData = (data || []).filter(p => p.stock <= (p.alert_threshold ?? 0));
+
+      const enrichedProducts: BarProductWithDetails[] = lowStockData.map((product) => {
         const prod = product as BarProduct & {
           global_products: GlobalProductRow | null;
           bar_categories: BarCategory | null;

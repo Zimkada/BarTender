@@ -334,7 +334,9 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
     ) => {
         if (!barId || !session) return null;
 
-        const totalCost = (supplyData.quantity / supplyData.lotSize) * supplyData.lotPrice;
+        const totalCost = supplyData.lotSize > 0
+            ? (supplyData.quantity / supplyData.lotSize) * supplyData.lotPrice
+            : 0;
 
         const dbSupplyData = {
             bar_id: barId,

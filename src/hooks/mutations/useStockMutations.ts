@@ -5,6 +5,7 @@ import { stockKeys } from '../queries/useStockQueries';
 import { useAuth } from '../../context/AuthContext';
 import { useBarContext } from '../../context/BarContext';
 import { broadcastService } from '../../services/broadcast/BroadcastService';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 // Helper: Centralized cache invalidation for stock queries
 const invalidateStockQuery = (
@@ -131,9 +132,10 @@ export const useStockMutations = (barId?: string) => {
                 invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
             }
         },
-        onError: (err: any) => {
+        onError: (error) => {
+            const msg = getErrorMessage(error);
             import('react-hot-toast').then(({ default: toast }) => {
-                toast.error(`Erreur mise à jour stock: ${err.message}`);
+                toast.error(`Erreur mise à jour stock: ${msg}`);
             });
         }
     });
@@ -194,9 +196,10 @@ export const useStockMutations = (barId?: string) => {
                 invalidateStockQuery(queryClient, stockKeys.supplies(barId), barId);
             }
         },
-        onError: (err: any) => {
+        onError: (error) => {
+            const msg = getErrorMessage(error);
             import('react-hot-toast').then(({ default: toast }) => {
-                toast.error(`Erreur: ${err.message}`);
+                toast.error(`Erreur: ${msg}`);
             });
         }
     });
@@ -239,8 +242,16 @@ export const useStockMutations = (barId?: string) => {
             if (data.notes) consignmentData.notes = data.notes;
 
             const newConsignment = await StockService.createConsignment(consignmentData);
-            // Increment physical stock as per clarified business logic:
-            await ProductsService.incrementStock(consignmentData.product_id, consignmentData.quantity);
+            // Increment physical stock as per clarified business logic.
+            // Rollback: delete the consignment if incrementStock fails (avoid orphaned "active" record)
+            try {
+                await ProductsService.incrementStock(consignmentData.product_id, consignmentData.quantity);
+            } catch (incrementError) {
+                await StockService.deleteConsignment(newConsignment.id).catch(() => {
+                    console.error('[useStockMutations] Rollback deleteConsignment also failed for id:', newConsignment.id);
+                });
+                throw incrementError;
+            }
             return newConsignment;
         },
         onSuccess: (newConsignment) => {
@@ -271,9 +282,10 @@ export const useStockMutations = (barId?: string) => {
                 invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
             }
         },
-        onError: (err: any) => {
+        onError: (error) => {
+            const msg = getErrorMessage(error);
             import('react-hot-toast').then(({ default: toast }) => {
-                toast.error(`Erreur: ${err.message}`);
+                toast.error(`Erreur: ${msg}`);
             });
         }
     });
@@ -347,9 +359,10 @@ export const useStockMutations = (barId?: string) => {
                 await queryClient.refetchQueries({ queryKey: stockKeys.consignments(barId) });
             }
         },
-        onError: (err: any) => {
+        onError: (error) => {
+            const msg = getErrorMessage(error);
             import('react-hot-toast').then(({ default: toast }) => {
-                toast.error(`Erreur lors de l'expiration: ${err.message}`);
+                toast.error(`Erreur lors de l'expiration: ${msg}`);
             });
         }
     });

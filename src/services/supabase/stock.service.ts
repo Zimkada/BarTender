@@ -147,6 +147,19 @@ export class StockService {
         }
     }
 
+    static async deleteConsignment(id: string): Promise<void> {
+        try {
+            const { error } = await supabase
+                .from('consignments')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+        } catch (error) {
+            throw new Error(handleSupabaseError(error));
+        }
+    }
+
     static async updateConsignmentStatus(
         id: string,
         status: 'active' | 'claimed' | 'expired' | 'forfeited',

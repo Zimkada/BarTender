@@ -9,7 +9,7 @@ import type { Sale, Return, Product, SaleItem } from '../types';
  * Calcule le montant total d'une vente
  */
 export function calculateSaleTotal(items: SaleItem[]): number {
-  return items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  return items.reduce((sum, item) => sum + item.total_price, 0);
 }
 
 /**
@@ -17,8 +17,8 @@ export function calculateSaleTotal(items: SaleItem[]): number {
  */
 export function calculateSaleCost(items: SaleItem[], products: Product[]): number {
   return items.reduce((sum, item) => {
-    const product = products.find(p => p.id === item.productId);
-    const costPrice = product?.costPrice ?? 0;
+    const product = products.find(p => p.id === item.product_id);
+    const costPrice = product?.currentAverageCost ?? 0;
     return sum + (costPrice * item.quantity);
   }, 0);
 }
@@ -113,7 +113,7 @@ export function calculateSellingPrice(costPrice: number, targetMarkupPercent: nu
  * Calcule la valeur totale du stock (quantité × prix d'achat)
  */
 export function calculateStockValue(products: Product[]): number {
-  return products.reduce((sum, p) => sum + (p.stock * (p.costPrice ?? 0)), 0);
+  return products.reduce((sum, p) => sum + (p.stock * (p.currentAverageCost ?? 0)), 0);
 }
 
 /**

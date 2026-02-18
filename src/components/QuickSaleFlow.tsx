@@ -127,7 +127,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   });
 
   // --- CHECKOUT LOGIC ---
-  const handleCheckout = useCallback(async (assignedServerName?: string, paymentMethod: PaymentMethod = 'cash') => {
+  const handleCheckout = useCallback(async (assignedServerName?: string, paymentMethod: PaymentMethod = 'cash', ticketId?: string) => {
     if (cart.length === 0 || !currentSession || !currentBar) return;
 
     // 1. Resolve Server ID (if Simplified Mode)
@@ -174,6 +174,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
         items: saleItems,
         paymentMethod,
         serverId,
+        ticketId: ticketId || undefined, // 🛡️ Fix: Liaison bon/ticket
         status: (currentSession.role === 'serveur') ? 'pending' : 'validated',
         notes: isSimplifiedMode ? `Serveur: ${assignedServerName}` : undefined,
         idempotencyKey: generateUUID() // 🛡️ Fix Bug #11 : Clé stable pour déduction stock optimiste
@@ -188,9 +189,10 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
         setIsCartDrawerOpen(false); // Close mobile drawer if open
         if (isMobile) {
           // Optional: Close main modal on mobile? No, let user continue selling.
-          // onClose(); 
+          // onClose();
         } else {
           setSelectedServerDesktop(''); // Reset server choice
+          setSelectedBonDesktop(''); // Reset bon choice
         }
       }, 1000);
 
@@ -237,7 +239,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
         }
       }
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        handleCheckout(selectedServerDesktop, paymentMethodDesktop);
+        handleCheckout(selectedServerDesktop, paymentMethodDesktop, selectedBonDesktop || undefined);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -403,7 +405,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                       onBonChange={setSelectedBonDesktop}
                       onCreateBon={handleCreateBon}
 
-                      onCheckout={() => handleCheckout(selectedServerDesktop, paymentMethodDesktop)}
+                      onCheckout={() => handleCheckout(selectedServerDesktop, paymentMethodDesktop, selectedBonDesktop || undefined)}
                       onClear={() => setShowClearCartConfirm(true)}
                       isLoading={createSale.isPending}
                       showSuccess={showSuccessDesktop}
