@@ -38,6 +38,8 @@ interface TimelineEvent {
     notes: string | null;
 }
 
+const DEFAULT_HISTORY_DAYS = 7; // Optimized for responsive loading
+
 export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistoryModalProps) {
     const { currentBar } = useBarContext();
     const { currentSession } = useAuth(); // ✨ Fix: Top level hook
@@ -45,9 +47,9 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // ✨ Date Filters (Default: Last 30 days)
+    // ✨ Date Filters (Default: Last 7 days for responsive loading)
     const [startDate, setStartDate] = useState<string>(
-        new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        new Date(Date.now() - DEFAULT_HISTORY_DAYS * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     );
     const [endDate, setEndDate] = useState<string>(
         new Date().toISOString().split('T')[0]
