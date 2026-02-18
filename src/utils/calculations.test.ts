@@ -6,7 +6,6 @@ import {
   calculateRevenue,
   calculateRefundedReturns,
   calculateNetRevenue,
-  calculateSupplyCost,
   calculateUnitCost,
   calculateAvailableStock,
   isLowStock,
@@ -252,20 +251,6 @@ describe('calculations', () => {
     });
   });
 
-  describe('calculateSupplyCost', () => {
-    it('should calculate total cost (lotPrice × lotSize)', () => {
-      const cost = calculateSupplyCost(500, 24);
-      expect(cost).toBe(12000); // 500 × 24
-    });
-
-    it('should handle zero lotSize', () => {
-      expect(calculateSupplyCost(500, 0)).toBe(0);
-    });
-
-    it('should handle zero lotPrice', () => {
-      expect(calculateSupplyCost(0, 24)).toBe(0);
-    });
-  });
 
   describe('calculateUnitCost', () => {
     it('should calculate unit cost (lotPrice / lotSize)', () => {

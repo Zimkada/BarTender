@@ -66,13 +66,6 @@ export function calculateNetRevenue(sales: Sale[], returns: Return[]): number {
 }
 
 /**
- * Calcule le coût total des approvisionnements
- */
-export function calculateSupplyCost(lotPrice: number, lotSize: number): number {
-  return lotPrice * lotSize;
-}
-
-/**
  * Calcule le prix unitaire d'un produit approvisionné
  */
 export function calculateUnitCost(lotPrice: number, lotSize: number): number {
