@@ -5,7 +5,6 @@ import {
   Package,
   Zap,
   RotateCcw,
-  TrendingUp,
   FileSpreadsheet,
   LayoutDashboard
 } from 'lucide-react';
@@ -82,13 +81,13 @@ export function MobileNavigation({ onShowQuickSale }: MobileNavigationProps) {
       color: 'text-green-600',
       roles: ['promoteur', 'gerant']
     },
-    {
+    /* {
       icon: <TrendingUp size={24} />,
       label: 'Prévisions et IA',
       path: '/forecasting',
       color: 'text-indigo-600',
       roles: ['promoteur', 'gerant']
-    },
+    }, */
     {
       icon: <RotateCcw size={24} />,
       label: 'Retours',
