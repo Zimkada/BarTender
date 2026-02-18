@@ -1,11 +1,30 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProductsService } from '../../services/supabase/products.service';
 import { StockService } from '../../services/supabase/stock.service';
+import { StockAdjustmentsService } from '../../services/supabase/stock-adjustments.service';
 import { stockKeys } from '../queries/useStockQueries';
 import { useAuth } from '../../context/AuthContext';
 import { useBarContext } from '../../context/BarContext';
 import { broadcastService } from '../../services/broadcast/BroadcastService';
 import { getErrorMessage } from '../../utils/errorHandler';
+import type { AdjustmentReason } from '../../types';
+
+// Map legacy/unknown reason strings to valid RPC enum values
+const VALID_REASONS: ReadonlyArray<AdjustmentReason> = [
+    'inventory_count', 'loss_damage', 'donation_sample', 'expiration', 'theft_report', 'other'
+];
+const LEGACY_REASON_NOTES: Record<string, string> = {
+    return_auto_restock: 'Remise en stock automatique suite à retour client',
+    return_manual_restock: 'Remise en stock manuelle suite à retour client',
+    restock: 'Remise en stock',
+    manual_decrease: 'Diminution manuelle',
+};
+const toAdjustmentReason = (reason: string): { reason: AdjustmentReason; autoNotes?: string } => {
+    if (VALID_REASONS.includes(reason as AdjustmentReason)) {
+        return { reason: reason as AdjustmentReason };
+    }
+    return { reason: 'other', autoNotes: LEGACY_REASON_NOTES[reason] ?? `Ajustement : ${reason}` };
+};
 
 // Helper: Centralized cache invalidation for stock queries
 const invalidateStockQuery = (
@@ -102,15 +121,21 @@ export const useStockMutations = (barId?: string) => {
 
     // --- STOCK ADJUSTMENT (New) ---
     const adjustStock = useMutation({
-        mutationFn: async ({ productId, delta, reason }: { productId: string; delta: number; reason: string }) => {
+        mutationFn: async ({ productId, delta, reason, notes }: { productId: string; delta: number; reason: string; notes?: string }) => {
             const barId = currentBar?.id;
             if (!barId) throw new Error("No bar selected");
 
-            if (delta > 0) {
-                return ProductsService.incrementStock(productId, delta);
-            } else {
-                return ProductsService.decrementStock(productId, Math.abs(delta));
-            }
+            const { reason: validReason, autoNotes } = toAdjustmentReason(reason);
+            // Use passed notes first, fall back to auto-generated notes for mapped reasons
+            const finalNotes = notes || autoNotes;
+
+            return StockAdjustmentsService.createAdjustment({
+                barId,
+                productId,
+                delta,
+                reason: validReason,
+                notes: finalNotes
+            });
         },
         onSuccess: (data, variables) => {
             const barId = currentBar?.id;
@@ -130,6 +155,7 @@ export const useStockMutations = (barId?: string) => {
 
             if (barId) {
                 invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
+                queryClient.invalidateQueries({ queryKey: ['stock-adjustments'] });
             }
         },
         onError: (error) => {
@@ -291,11 +317,25 @@ export const useStockMutations = (barId?: string) => {
     });
 
     const claimConsignment = useMutation({
-        mutationFn: async ({ id, productId, quantity }: { id: string; productId: string; quantity: number; claimedBy: string }) => {
+        mutationFn: async ({ id, productId, quantity, claimedBy }: { id: string; productId: string; quantity: number; claimedBy: string }) => {
+            // Step 1: Mark consignment as claimed (with claimedBy persisted)
             const consignment = await StockService.updateConsignmentStatus(id, 'claimed', {
-                claimed_at: new Date().toISOString()
+                claimed_at: new Date().toISOString(),
+                claimed_by: claimedBy  // ✅ Fix: persist who claimed
             });
-            await ProductsService.decrementStock(productId, quantity);
+            // Step 2: Decrement stock with atomic rollback
+            try {
+                await ProductsService.decrementStock(productId, quantity);
+            } catch (decrementError) {
+                // Rollback: revert consignment to 'active' if stock decrement fails
+                await StockService.updateConsignmentStatus(id, 'active', {
+                    claimed_at: null,
+                    claimed_by: null
+                }).catch(() => {
+                    console.error('[useStockMutations] Rollback claimConsignment failed for id:', id);
+                });
+                throw decrementError;
+            }
             return consignment;
         },
         onSuccess: (consignment, variables) => {
