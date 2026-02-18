@@ -378,6 +378,8 @@ export const useStockMutations = (barId?: string) => {
 
             if (barId) {
                 invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
+                // 🛡️ Fix: Retirer la vente du cache server-pending-sales pour éviter la double déduction
+                queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock', barId] });
             }
         },
     });

@@ -44,7 +44,17 @@ export function FaireLePointModal({ tickets, onClose }: FaireLePointModalProps) 
         if (!currentSession) return;
         setIsProcessingPayment(true);
         try {
-            await TicketsService.payTicket(ticketId, currentSession.userId, paymentMethod);
+            // 🛡️ Fix Bug #8 : Injection données existantes pour offline safety
+            const ticketToPay = tickets.find(t => t.id === ticketId);
+
+            await TicketsService.payTicket(
+                ticketId,
+                currentSession.userId,
+                paymentMethod,
+                currentBar?.id, // barId est requis pour le mode offline
+                ticketToPay // Injection des données
+            );
+
             setPaidIds(prev => new Set(prev).add(ticketId));
             queryClient.invalidateQueries({ queryKey: ticketKeys.open(currentBar?.id || '') });
             // Invalidate sales to update dashboard stats immediately
