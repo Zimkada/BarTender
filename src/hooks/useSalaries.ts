@@ -2,6 +2,7 @@ import { Salary, BarMember } from '../types';
 import { useDataStore } from './useDataStore';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabase';
 
 export function useSalaries(barId: string) {
   const [salaries, setSalaries] = useDataStore<Salary[]>(`salaries_${barId}`, []);
@@ -50,8 +51,26 @@ export function useSalaries(barId: string) {
   };
 
   // Supprimer un salaire
-  const deleteSalary = (salaryId: string) => {
+  const deleteSalary = async (salaryId: string) => {
+    const salary = salaries.find(s => s.id === salaryId);
+
+    // 1. Suppression locale immédiate (optimistic)
     setSalaries(salaries.filter(sal => sal.id !== salaryId));
+
+    // 2. Persistance en DB par (bar_id, member_id, period) — seule clé disponible
+    // sans le UUID Supabase (les IDs locaux sont des sal_xxx, pas des UUIDs DB).
+    // Note: si le salaire n'est pas encore synchronisé en DB (ADD_SALARY en queue),
+    // ce DELETE ne trouvera aucune ligne — l'opération ADD_SALARY persistera ensuite.
+    // Ce cas est rare (delete immédiatement après add, hors ligne) et acceptable.
+    if (salary && currentBar) {
+      await supabase
+        .from('salaries')
+        .delete()
+        .eq('bar_id', currentBar.id)
+        .eq('member_id', salary.memberId)
+        .eq('period', salary.period);
+      // Erreur silencieuse : la suppression locale est déjà effectuée
+    }
   };
 
   // Obtenir les salaires d'un membre

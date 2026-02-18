@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Users, UserPlus, User as UserIcon, Trash2, GitBranch, Phone, Clock, Mail, Search, Eye, EyeOff, AlertTriangle, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from "../context/AuthContext";
 import { useBarContext } from '../context/BarContext';
+import { barMembersKeys } from '../hooks/queries/useBarMembers';
 import { UserRole } from '../types';
 import { AuthService } from '../services/supabase/auth.service';
 import { useViewport } from '../hooks/useViewport';
@@ -34,6 +36,7 @@ export default function TeamManagementPage() {
   const { hasPermission, currentSession } = useAuth();
   const { currentBar, barMembers, refreshBars } = useBarContext();
   const { isMobile } = useViewport();
+  const queryClient = useQueryClient();
 
   // Guide ID for team management
   const teamGuideId = 'manage-team';
@@ -148,13 +151,35 @@ export default function TeamManagementPage() {
 
       if (result.success) {
         setSuccess(`${memberName} a été retiré de l'équipe`);
-        await refreshBars(); // Rafraîchir la liste des membres
+        await refreshBars();
+        queryClient.invalidateQueries({ queryKey: barMembersKeys.list(currentBar.id) });
         setTimeout(() => setSuccess(''), 3000);
       } else {
         setError(result.error || 'Erreur lors de la suppression');
       }
     } catch (err: any) {
       setError(err.message || 'Erreur lors de la suppression');
+    }
+  };
+
+  const handleChangeRole = async (member: typeof barMembers[number], newRole: 'gerant' | 'serveur') => {
+    if (!currentBar || !currentSession || member.role === newRole) return;
+    setError('');
+    try {
+      const result = await BarsService.addMember(
+        currentBar.id,
+        member.userId,
+        newRole,
+        currentSession.userId
+      );
+      if (result.success) {
+        await refreshBars();
+        queryClient.invalidateQueries({ queryKey: barMembersKeys.list(currentBar.id) });
+      } else {
+        setError(result.error || 'Erreur lors du changement de rôle');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors du changement de rôle');
     }
   };
 
@@ -435,13 +460,25 @@ export default function TeamManagementPage() {
                         <h2 className="text-lg font-bold text-gray-900 leading-tight text-center px-2">{user?.name || 'Inconnu'}</h2>
                         <p className="text-sm font-medium text-gray-400 mb-2">@{user?.username || 'unknown'}</p>
 
-                        {/* Role Badge */}
-                        <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${member.role === 'promoteur' ? 'bg-purple-100 text-purple-700' :
-                          member.role === 'gerant' ? 'bg-brand-subtle text-brand-dark' :
-                            'bg-gray-100 text-gray-600'
-                          }`}>
-                          {getRoleLabel(member.role)}
-                        </span>
+                        {/* Role Badge + inline role change (promoteur only) */}
+                        {member.isActive && member.role !== 'promoteur' && member.role !== 'super_admin' && hasPermission('canCreateManagers') ? (
+                          <select
+                            value={member.role}
+                            onChange={e => handleChangeRole(member, e.target.value as 'gerant' | 'serveur')}
+                            className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-gray-100 text-gray-600 border-0 cursor-pointer hover:bg-gray-200 transition-colors"
+                            aria-label={`Changer le rôle de ${member.user?.name}`}
+                          >
+                            <option value="serveur">{getRoleLabel('serveur')}</option>
+                            <option value="gerant">{getRoleLabel('gerant')}</option>
+                          </select>
+                        ) : (
+                          <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${member.role === 'promoteur' ? 'bg-purple-100 text-purple-700' :
+                            member.role === 'gerant' ? 'bg-brand-subtle text-brand-dark' :
+                              'bg-gray-100 text-gray-600'
+                            }`}>
+                            {getRoleLabel(member.role)}
+                          </span>
+                        )}
                       </div>
 
                       {/* Details Grid */}
