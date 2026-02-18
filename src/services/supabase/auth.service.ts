@@ -15,7 +15,9 @@ export interface AuthUser extends Omit<DbUser, 'password_hash'> {
   barName: string;
   allBarIds?: string[]; // IDs de tous les bars actifs (pour multi-bar support)
   factors?: Factor[]; // Add factors for MFA
-  has_completed_onboarding?: boolean; // ✅ Track if user has completed onboarding/training
+  has_completed_onboarding?: boolean | null; // ✅ Harmonisé avec DbUser
+  onboarding_completed_at?: string | null;
+  training_version_completed?: number | null;
 }
 
 export interface LoginCredentials {
@@ -150,7 +152,7 @@ export class AuthService {
   private static async fetchUserProfileAndMembership(userId: string): Promise<AuthUser> {
     const { data: profile, error: profileError } = await supabase
       .from('users')
-      .select('id, username, email, name, phone, avatar_url, is_active, first_login, has_completed_onboarding, created_at, updated_at, last_login_at')
+      .select('id, username, email, name, phone, avatar_url, is_active, first_login, has_completed_onboarding, onboarding_completed_at, training_version_completed, created_at, updated_at, last_login_at')
       .eq('id', userId)
       .single();
 
@@ -208,8 +210,8 @@ export class AuthService {
       is_active: profile.is_active ?? true,
       first_login: profile.first_login ?? false,
       has_completed_onboarding: profile.has_completed_onboarding ?? false,
-      onboarding_completed_at: profile.onboarding_completed_at,
-      training_version_completed: profile.training_version_completed,
+      onboarding_completed_at: profile.onboarding_completed_at || null,
+      training_version_completed: profile.training_version_completed || 0,
       created_at: profile.created_at,
       updated_at: profile.updated_at,
       last_login_at: profile.last_login_at,
@@ -831,12 +833,30 @@ export class AuthService {
   }
 
   /**
-   * Changer le mot de passe
+   * Changer le mot de passe avec re-vérification de l'identité
    */
   static async changePassword(
-    newPassword: string
+    newPassword: string,
+    currentPassword?: string
   ): Promise<void> {
     try {
+      const currentUser = this.getCurrentUser();
+      if (!currentUser) throw new Error('Utilisateur non identifié');
+
+      // 1. Re-vérification de l'identité (si currentPassword fourni)
+      // Indispensable pour la sécurité en cas de session laissée ouverte
+      if (currentPassword) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: currentUser.email,
+          password: currentPassword,
+        });
+
+        if (signInError) {
+          throw new Error('Le mot de passe actuel est incorrect');
+        }
+      }
+
+      // 2. Mise à jour vers le nouveau mot de passe
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
@@ -845,8 +865,7 @@ export class AuthService {
         throw new Error(error.message || 'Erreur lors du changement de mot de passe');
       }
 
-      // Mettre à jour first_login dans la DB via RPC
-      const currentUser = this.getCurrentUser();
+      // 3. Mettre à jour first_login dans la DB via RPC
       if (currentUser) {
         const { error: rpcError } = await supabase.rpc('complete_first_login', {
           p_user_id: currentUser.id,

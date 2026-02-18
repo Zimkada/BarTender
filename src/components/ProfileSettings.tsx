@@ -68,11 +68,11 @@ export function ProfileSettings() {
               name: data.name || '',
               phone: data.phone || '',
               email: data.email || '',
-              createdAt: new Date(data.created_at),
+              createdAt: data.created_at ? new Date(data.created_at) : new Date(),
               isActive: data.is_active ?? true,
               firstLogin: data.first_login ?? false,
               lastLoginAt: data.last_login_at ? new Date(data.last_login_at) : undefined,
-              role: data.role,
+              role: (data as any).role || 'serveur',
               hasCompletedOnboarding: data.has_completed_onboarding ?? false,
               onboardingCompletedAt: data.onboarding_completed_at ? new Date(data.onboarding_completed_at) : undefined,
               trainingVersionCompleted: data.training_version_completed ?? 0,
@@ -126,8 +126,8 @@ export function ProfileSettings() {
     setErrorMessage('');
     setSuccessMessage('');
 
-    if (newPassword.length < 4) {
-      setErrorMessage('Le mot de passe doit contenir au moins 4 caractères');
+    if (newPassword.length < 8) {
+      setErrorMessage('Le mot de passe doit contenir au moins 8 caractères (standard de sécurité)');
       return;
     }
 
@@ -136,8 +136,14 @@ export function ProfileSettings() {
       return;
     }
 
+    if (!currentPassword) {
+      setErrorMessage('Veuillez saisir votre mot de passe actuel');
+      return;
+    }
+
     try {
-      await changePassword(newPassword);
+      setLoading(true);
+      await changePassword(newPassword, currentPassword);
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -145,6 +151,8 @@ export function ProfileSettings() {
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error: any) {
       setErrorMessage(error.message || 'Erreur lors du changement');
+    } finally {
+      setLoading(false);
     }
   };
 

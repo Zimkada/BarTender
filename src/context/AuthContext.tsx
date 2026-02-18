@@ -21,7 +21,7 @@ interface AuthContextType {
   updateCurrentBar: (barId: string, barName: string, role?: UserRole) => void; // UPDATED: Support role update
   // createUser: (userData: Omit<User, 'id' | 'createdAt' | 'createdBy'>, role: UserRole) => Promise<User | null>; // Moved out of AuthContext
   // updateUser: (userId: string, updates: Partial<User>) => Promise<void>; // Moved out of AuthContext
-  changePassword: (newPassword: string) => Promise<void>;
+  changePassword: (newPassword: string, currentPassword?: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
 }
 
@@ -456,14 +456,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   //   }
   // }, [currentSession]);
 
-  const changePassword = useCallback(async (newPassword: string): Promise<void> => {
+  const changePassword = useCallback(async (newPassword: string, currentPassword?: string): Promise<void> => {
     if (!currentSession) {
       throw new Error('Session non trouvée');
     }
 
     try {
       // Changer le mot de passe via AuthService (Supabase Auth)
-      await AuthService.changePassword(newPassword);
+      await AuthService.changePassword(newPassword, currentPassword);
 
       // Mettre à jour firstLogin dans la session
       setCurrentSession({
