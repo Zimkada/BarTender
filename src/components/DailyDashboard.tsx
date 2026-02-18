@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
@@ -30,7 +31,8 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
   const { currentBar } = useBarContext();
   const { currentSession } = useAuth();
   const { formatPrice } = useCurrencyFormatter();
-  const { showSuccess, setLoading, isLoading } = useFeedback();
+  const { showSuccess, showError, setLoading, isLoading } = useFeedback();
+  const queryClient = useQueryClient();
 
   const [cashClosed, setCashClosed] = useState(false);
 
@@ -48,15 +50,18 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
   };
 
   const handleRefresh = async () => {
-    // The hook handles data freshness via React Query invalidation mostly, 
-    // but here we force a DB fetch for the stats
-    if (currentBar && analytics.todayDateStr) {
-      // The hook uses React Query with 'dailySummary' key. 
-      // Ideally we invalidate queries but here we just re-fetch the stats part manually for the indicator
-      // Or simply let React Query handle it.
-      // For the FreshnessIndicator, we pass a callback.
-      await AnalyticsService.getDailySummary(currentBar.id, analytics.todayDateStr, analytics.todayDateStr, 'day');
-      showSuccess('✅ Données actualisées avec succès');
+    if (!currentBar) return;
+    setLoading(true);
+    try {
+      // 1. Rafraîchir la vue matérialisée en DB (daily_sales_summary, etc.)
+      await AnalyticsService.refreshAllViews('manual');
+      // 2. Invalider le cache React Query pour forcer un re-fetch de la vue
+      await queryClient.invalidateQueries({ queryKey: ['dailySummary'] });
+      showSuccess('Données actualisées');
+    } catch {
+      showError('Erreur lors de l\'actualisation');
+    } finally {
+      setLoading(false);
     }
   };
 

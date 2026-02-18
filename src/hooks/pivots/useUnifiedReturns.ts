@@ -145,9 +145,12 @@ export const useUnifiedReturns = (barId: string | undefined, closingHour?: numbe
     const unifiedReturns = useMemo(() => {
         const recentlySyncedKeys = syncManager.getRecentlySyncedKeys();
 
-        // Filtrer les retours offline qui sont déjà arrivés sur le serveur
+        // Note: recentlySyncedKeys ne contient que des idempotency_key de ventes (CREATE_SALE).
+        // Les retours n'ont pas d'idempotency_key, ce filtre est donc un no-op.
+        // La déduplication réelle repose sur le fait que SyncManager marque l'opération
+        // comme 'synced' (non-pending) AVANT de dispatcher 'returns-synced', ce qui
+        // exclut le retour du prochain refetchOffline() (filtré sur status='pending').
         const filteredOffline = offlineReturns.filter(r => {
-            // Pour les returns, on n'a pas d'idempotency_key, donc on utilise l'ID
             return !recentlySyncedKeys.has(r.id);
         });
 
