@@ -243,41 +243,31 @@ export const useStockMutations = (barId?: string) => {
             if (!data.productId) throw new Error('Product ID est obligatoire');
             if (!data.quantity || data.quantity < 1) throw new Error('Quantité invalide');
 
-            const consignmentData: any = {
-                bar_id: barId,
-                sale_id: data.saleId,
-                product_id: data.productId,
-                product_name: data.productName || 'Unknown',
-                product_volume: data.productVolume || '',
-                quantity: data.quantity,
-                total_amount: data.totalAmount || 0,
-                created_at: new Date().toISOString(),
-                expires_at: data.expiresAt
-                    ? (data.expiresAt instanceof Date ? data.expiresAt.toISOString() : data.expiresAt)
-                    : new Date(Date.now() + (data.expirationDays || 7) * 24 * 60 * 60 * 1000).toISOString(),
-                status: 'active',
-                created_by: currentSession.userId,
-            };
+            const expiresAt = data.expiresAt
+                ? (data.expiresAt instanceof Date ? data.expiresAt.toISOString() : data.expiresAt)
+                : new Date(Date.now() + (data.expirationDays || 7) * 24 * 60 * 60 * 1000).toISOString();
 
-            // Add optional fields only if they have valid values
-            if (data.serverId) consignmentData.server_id = data.serverId;
-            if (data.originalSeller) consignmentData.original_seller = data.originalSeller;
-            if (data.customerName) consignmentData.customer_name = data.customerName;
-            if (data.customerPhone) consignmentData.customer_phone = data.customerPhone;
-            if (data.notes) consignmentData.notes = data.notes;
-
-            const newConsignment = await StockService.createConsignment(consignmentData);
-            // Increment physical stock as per clarified business logic.
-            // Rollback: delete the consignment if incrementStock fails (avoid orphaned "active" record)
-            try {
-                await ProductsService.incrementStock(consignmentData.product_id, consignmentData.quantity);
-            } catch (incrementError) {
-                await StockService.deleteConsignment(newConsignment.id).catch(() => {
-                    console.error('[useStockMutations] Rollback deleteConsignment also failed for id:', newConsignment.id);
-                });
-                throw incrementError;
-            }
-            return newConsignment;
+            // ✅ ATOMIC RPC: Single transaction (INSERT + INCREMENT stock)
+            return StockService.createConsignmentAtomic(
+                barId,
+                data.saleId,
+                data.productId,
+                data.productName || 'Unknown',
+                data.quantity,
+                {
+                    productVolume: data.productVolume,
+                    totalAmount: data.totalAmount,
+                    customerName: data.customerName,
+                    customerPhone: data.customerPhone,
+                    notes: data.notes,
+                    expiresAt,
+                    expirationDays: data.expirationDays,
+                    originalSeller: data.originalSeller,
+                    serverId: data.serverId,
+                    createdBy: currentSession.userId,
+                    businessDate: new Date().toISOString(),
+                }
+            );
         },
         onSuccess: (newConsignment) => {
             const barId = currentBar?.id;
@@ -317,25 +307,8 @@ export const useStockMutations = (barId?: string) => {
 
     const claimConsignment = useMutation({
         mutationFn: async ({ id, productId, quantity, claimedBy }: { id: string; productId: string; quantity: number; claimedBy: string }) => {
-            // Step 1: Mark consignment as claimed (with claimedBy persisted)
-            const consignment = await StockService.updateConsignmentStatus(id, 'claimed', {
-                claimed_at: new Date().toISOString(),
-                claimed_by: claimedBy  // ✅ Fix: persist who claimed
-            });
-            // Step 2: Decrement stock with atomic rollback
-            try {
-                await ProductsService.decrementStock(productId, quantity);
-            } catch (decrementError) {
-                // Rollback: revert consignment to 'active' if stock decrement fails
-                await StockService.updateConsignmentStatus(id, 'active', {
-                    claimed_at: null,
-                    claimed_by: null
-                }).catch(() => {
-                    console.error('[useStockMutations] Rollback claimConsignment failed for id:', id);
-                });
-                throw decrementError;
-            }
-            return consignment;
+            // ✅ ATOMIC RPC: Single transaction (UPDATE status + DECREMENT stock)
+            return StockService.claimConsignmentAtomic(id, claimedBy);
         },
         onSuccess: (consignment, variables) => {
             const barId = currentBar?.id;
@@ -369,8 +342,8 @@ export const useStockMutations = (barId?: string) => {
 
     const forfeitConsignment = useMutation({
         mutationFn: async ({ id, productId, quantity }: { id: string; productId: string; quantity: number }) => {
-            const consignment = await StockService.updateConsignmentStatus(id, 'forfeited', {});
-            return consignment;
+            // ✅ ATOMIC RPC: UPDATE status to 'forfeited'
+            return StockService.forfeitConsignmentAtomic(id);
         },
         onSuccess: async () => {
             const barId = currentBar?.id;
