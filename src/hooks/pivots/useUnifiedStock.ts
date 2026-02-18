@@ -13,6 +13,7 @@ import { offlineQueue } from '../../services/offlineQueue';
 import { syncManager } from '../../services/SyncManager';
 import { supabase } from '../../lib/supabase';
 import { calculateAvailableStock } from '../../utils/calculations';
+import { getErrorMessage } from '../../utils/errorHandler';
 import { useNotifications } from '../../components/Notifications';
 import { toDbProduct, toDbProductForCreation } from '../../utils/productMapper';
 import type { Product, ProductStockInfo, Supply, Expense } from '../../types';
@@ -390,8 +391,8 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
             showNotification('success', 'Stock validé et vente confirmée');
             options.onSuccess(); // Keep original onSuccess for external logic
         })
-            .catch((error: any) => {
-                options.onError(error.message || 'Erreur lors de la validation');
+            .catch((error) => {
+                options.onError(getErrorMessage(error) || 'Erreur lors de la validation');
                 throw error;
             });
     }, [getProductStockInfo, mutations, session, showNotification]);

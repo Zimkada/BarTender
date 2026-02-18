@@ -6,6 +6,7 @@ import { useFeedback } from './useFeedback';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { useAppContext } from '../context/AppContext';
+import { getErrorMessage } from '../utils/errorHandler';
 
 export function useInventoryActions() {
     const { currentBar } = useBarContext();
@@ -82,8 +83,8 @@ export function useInventoryActions() {
             showSuccess('Stock ajusté avec succès');
             setShowStockAdjustmentModal(false);
             setAdjustingProduct(undefined);
-        } catch (error: any) {
-            console.error('Erreur ajustement stock:', error);
+        } catch (error) {
+            console.error('Erreur ajustement stock:', getErrorMessage(error));
             showError('Erreur lors de l\'ajustement');
         }
     };
