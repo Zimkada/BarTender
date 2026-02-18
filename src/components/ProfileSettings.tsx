@@ -219,8 +219,12 @@ export function ProfileSettings() {
                         onChange={e => setEmail(e.target.value)}
                         placeholder="jean@bartender.app"
                         leftIcon={<Mail className="w-4 h-4 text-gray-400" />}
-                        className="h-12 bg-gray-50 border-gray-100 focus:bg-white transition-all"
+                        disabled={true}
+                        className="h-12 bg-gray-100 border-gray-100 cursor-not-allowed opacity-75 transition-all"
                       />
+                      <p className="text-[10px] text-gray-400 font-bold italic ml-1">
+                        Contactez un administrateur pour modifier votre email de connexion.
+                      </p>
                     </div>
                     <div className="space-y-2 col-span-1 md:col-span-2">
                       <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Téléphone</label>

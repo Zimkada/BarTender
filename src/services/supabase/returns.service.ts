@@ -213,6 +213,97 @@ export class ReturnsService {
     }
 
     /**
+     * ✨ Approuver un retour (RPC atomique)
+     * Met à jour le statut et incrémente le stock si auto_restock=true
+     */
+    static async approveReturn(returnId: string, validatedBy: string): Promise<DBReturn> {
+        try {
+            const { data, error } = await supabase.rpc('approve_return', {
+                p_return_id: returnId,
+                p_validated_by: validatedBy
+            });
+
+            if (error) throw error;
+
+            if (data?.success === false) {
+                throw new Error(data?.error || 'Failed to approve return');
+            }
+
+            // Fetch and return the updated return record
+            const { data: updated, error: fetchError } = await supabase
+                .from('returns')
+                .select('*')
+                .eq('id', returnId)
+                .single();
+
+            if (fetchError) throw fetchError;
+            return updated as DBReturn;
+        } catch (error) {
+            throw new Error(handleSupabaseError(error));
+        }
+    }
+
+    /**
+     * ✨ Rejeter un retour (RPC atomique)
+     */
+    static async rejectReturn(returnId: string, rejectedBy: string): Promise<DBReturn> {
+        try {
+            const { data, error } = await supabase.rpc('reject_return', {
+                p_return_id: returnId,
+                p_rejected_by: rejectedBy
+            });
+
+            if (error) throw error;
+
+            if (data?.success === false) {
+                throw new Error(data?.error || 'Failed to reject return');
+            }
+
+            // Fetch and return the updated return record
+            const { data: updated, error: fetchError } = await supabase
+                .from('returns')
+                .select('*')
+                .eq('id', returnId)
+                .single();
+
+            if (fetchError) throw fetchError;
+            return updated as DBReturn;
+        } catch (error) {
+            throw new Error(handleSupabaseError(error));
+        }
+    }
+
+    /**
+     * ✨ Remettre en stock manuellement un retour approuvé (RPC atomique)
+     */
+    static async manualRestockReturn(returnId: string, restockedBy: string): Promise<DBReturn> {
+        try {
+            const { data, error } = await supabase.rpc('manual_restock_return', {
+                p_return_id: returnId,
+                p_restocked_by: restockedBy
+            });
+
+            if (error) throw error;
+
+            if (data?.success === false) {
+                throw new Error(data?.error || 'Failed to restock return');
+            }
+
+            // Fetch and return the updated return record
+            const { data: updated, error: fetchError } = await supabase
+                .from('returns')
+                .select('*')
+                .eq('id', returnId)
+                .single();
+
+            if (fetchError) throw fetchError;
+            return updated as DBReturn;
+        } catch (error) {
+            throw new Error(handleSupabaseError(error));
+        }
+    }
+
+    /**
      * Supprimer un retour
      */
     static async deleteReturn(id: string): Promise<void> {

@@ -17,6 +17,8 @@ import { useBarContext } from "../context/BarContext";
 import { useAuth } from "../context/AuthContext";
 import { useCurrencyFormatter } from "../hooks/useBeninCurrency";
 import { useFeedback } from "../hooks/useFeedback";
+import { ReturnsService } from "../services/supabase/returns.service";
+import { getErrorMessage } from "../utils/errorHandler";
 import {
   User,
   Sale,
@@ -49,7 +51,7 @@ import { AnimatedCounter } from "../components/AnimatedCounter";
 export default function ReturnsPage() {
   const { addReturn, updateReturn } = useAppContext();
   const { currentBar, barMembers, operatingMode } = useBarContext();
-  const { increasePhysicalStock, consignments } = useUnifiedStock(currentBar?.id);
+  const { consignments } = useUnifiedStock(currentBar?.id);
   const { sales } = useUnifiedSales(currentBar?.id);
   const { returns, getReturnsBySale } = useUnifiedReturns(currentBar?.id, currentBar?.closingHour);
   const users = Array.isArray(barMembers)
@@ -354,7 +356,7 @@ export default function ReturnsPage() {
     return validTransitions[currentStatus]?.includes(newStatus) ?? false;
   };
 
-  const approveReturn = (returnId: string) => {
+  const approveReturn = async (returnId: string) => {
     const returnItem = returns.find((r) => r.id === returnId);
     if (!returnItem) {
       showError("Retour introuvable");
@@ -369,38 +371,35 @@ export default function ReturnsPage() {
       return;
     }
 
-    let newStatus: Return["status"] = "approved";
+    try {
+      // ✨ Call atomic RPC instead of 2 separate operations
+      const result = await ReturnsService.approveReturn(returnId, currentSession?.userId || '');
 
-    if (returnItem.autoRestock) {
-      increasePhysicalStock(
-        returnItem.productId,
-        returnItem.quantityReturned,
-        "return_auto_restock",
-      );
-      newStatus = "restocked";
-      const refundInfo = returnItem.isRefunded
-        ? ` + Remboursement ${formatPrice(returnItem.refundAmount)}`
-        : "";
-      showSuccess(
-        `Retour approuvé - ${returnItem.quantityReturned}x ${returnItem.productName} remis en stock${refundInfo}`,
-      );
-    } else {
-      const refundInfo = returnItem.isRefunded
-        ? ` - Remboursement ${formatPrice(returnItem.refundAmount)}`
-        : "";
-      showSuccess(
-        `Retour approuvé${refundInfo} - Choix de remise en stock disponible`,
-      );
+      // Show success with appropriate message
+      if (returnItem.autoRestock) {
+        const refundInfo = returnItem.isRefunded
+          ? ` + Remboursement ${formatPrice(returnItem.refundAmount)}`
+          : "";
+        showSuccess(
+          `Retour approuvé - ${returnItem.quantityReturned}x ${returnItem.productName} remis en stock${refundInfo}`,
+        );
+      } else {
+        const refundInfo = returnItem.isRefunded
+          ? ` - Remboursement ${formatPrice(returnItem.refundAmount)}`
+          : "";
+        showSuccess(
+          `Retour approuvé${refundInfo} - Choix de remise en stock disponible`,
+        );
+      }
+
+      // Update local state
+      updateReturn(returnId, result);
+    } catch (error) {
+      showError(`Erreur lors de l'approbation: ${getErrorMessage(error)}`);
     }
-
-    updateReturn(returnId, {
-      status: newStatus,
-      validatedBy: currentSession?.userId, // ✨ Traçabilité
-      restockedAt: returnItem.autoRestock ? new Date() : undefined,
-    });
   };
 
-  const manualRestock = (returnId: string) => {
+  const manualRestock = async (returnId: string) => {
     const returnItem = returns.find((r) => r.id === returnId);
     if (!returnItem) {
       showError("Retour introuvable");
@@ -415,23 +414,21 @@ export default function ReturnsPage() {
       return;
     }
 
-    increasePhysicalStock(
-      returnItem.productId,
-      returnItem.quantityReturned,
-      "return_manual_restock",
-    );
+    try {
+      // ✨ Call atomic RPC for manual restock
+      const result = await ReturnsService.manualRestockReturn(returnId, currentSession?.userId || '');
 
-    updateReturn(returnId, {
-      status: "restocked",
-      restockedAt: new Date(),
-    });
+      updateReturn(returnId, result);
 
-    showSuccess(
-      `${returnItem.quantityReturned}x ${returnItem.productName} remis en stock`,
-    );
+      showSuccess(
+        `${returnItem.quantityReturned}x ${returnItem.productName} remis en stock`,
+      );
+    } catch (error) {
+      showError(`Erreur lors de la remise en stock: ${getErrorMessage(error)}`);
+    }
   };
 
-  const rejectReturn = (returnId: string) => {
+  const rejectReturn = async (returnId: string) => {
     const returnItem = returns.find((r) => r.id === returnId);
     if (!returnItem) {
       showError("Retour introuvable");
@@ -446,11 +443,16 @@ export default function ReturnsPage() {
       return;
     }
 
-    updateReturn(returnId, {
-      status: "rejected",
-      rejectedBy: currentSession?.userId // ✨ Traçabilité
-    });
-    showSuccess("Retour rejeté");
+    try {
+      // ✨ Call atomic RPC for rejection
+      const result = await ReturnsService.rejectReturn(returnId, currentSession?.userId || '');
+
+      updateReturn(returnId, result);
+
+      showSuccess("Retour rejeté");
+    } catch (error) {
+      showError(`Erreur lors du rejet: ${getErrorMessage(error)}`);
+    }
   };
 
   const filteredReturns = filteredReturnsByFilters.filter((returnItem) => {
