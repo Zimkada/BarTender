@@ -42,7 +42,6 @@ export const useStockMutations = (barId?: string) => {
     const queryClient = useQueryClient();
     const { currentSession } = useAuth();
     const { currentBar } = useBarContext();
-    const resolvedBarId = barId || currentBar?.id;
 
     // --- PRODUCTS ---
 
@@ -376,7 +375,7 @@ export const useStockMutations = (barId?: string) => {
         onSuccess: async () => {
             const barId = currentBar?.id;
             import('react-hot-toast').then(({ default: toast }) => {
-                toast.success('Consignation abandonnée (stock réintégré)');
+                toast.success('Consignation abandonnée — article disponible à nouveau');
             });
             if (barId) {
                 invalidateStockQuery(queryClient, stockKeys.consignments(barId), barId);
