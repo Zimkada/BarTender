@@ -17,8 +17,9 @@ CREATE OR REPLACE FUNCTION public.create_consignment(
     p_sale_id UUID,
     p_product_id UUID,
     p_product_name TEXT,
-    p_product_volume TEXT DEFAULT NULL,
     p_quantity INT,
+    p_created_by UUID,
+    p_product_volume TEXT DEFAULT NULL,
     p_total_amount NUMERIC DEFAULT 0,
     p_customer_name TEXT DEFAULT NULL,
     p_customer_phone TEXT DEFAULT NULL,
@@ -27,7 +28,6 @@ CREATE OR REPLACE FUNCTION public.create_consignment(
     p_expiration_days INT DEFAULT 7,
     p_original_seller UUID DEFAULT NULL,
     p_server_id UUID DEFAULT NULL,
-    p_created_by UUID,
     p_business_date DATE DEFAULT NULL
 )
 RETURNS json
@@ -262,14 +262,14 @@ $$;
 -- =====================================================
 -- 4. Grant permissions
 -- =====================================================
-GRANT EXECUTE ON FUNCTION public.create_consignment(UUID, UUID, UUID, TEXT, TEXT, INT, NUMERIC, TEXT, TEXT, TEXT, TIMESTAMPTZ, INT, UUID, UUID, UUID, DATE) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.create_consignment(UUID, UUID, UUID, TEXT, INT, UUID, TEXT, NUMERIC, TEXT, TEXT, TEXT, TIMESTAMPTZ, INT, UUID, UUID, DATE) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.claim_consignment(UUID, UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.forfeit_consignment(UUID) TO authenticated;
 
 -- =====================================================
 -- 5. Add function comments
 -- =====================================================
-COMMENT ON FUNCTION public.create_consignment(UUID, UUID, UUID, TEXT, TEXT, INT, NUMERIC, TEXT, TEXT, TEXT, TIMESTAMPTZ, INT, UUID, UUID, UUID, DATE) IS
+COMMENT ON FUNCTION public.create_consignment(UUID, UUID, UUID, TEXT, INT, UUID, TEXT, NUMERIC, TEXT, TEXT, TEXT, TIMESTAMPTZ, INT, UUID, UUID, DATE) IS
 'Create a consignment and immediately increment stock (atomic).
 Stock is incremented to track available consigned items.
 Returns JSON with success flag and consignment details.';
