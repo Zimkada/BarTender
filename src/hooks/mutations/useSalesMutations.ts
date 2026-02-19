@@ -58,6 +58,9 @@ const validateAndNormalizeSaleItems = (items: unknown[]): Record<string, unknown
         const itemRecord = item as Record<string, unknown>;
 
         // Transform to snake_case (handles both camelCase and snake_case inputs)
+        const volumeRaw = itemRecord.product_volume || itemRecord.productVolume;
+        const volumeNumber = volumeRaw ? (typeof volumeRaw === 'string' ? parseFloat(volumeRaw) : volumeRaw) : undefined;
+
         const normalized = {
             product_id: itemRecord.product_id || itemRecord.productId,
             product_name: itemRecord.product_name || itemRecord.productName,
@@ -67,7 +70,8 @@ const validateAndNormalizeSaleItems = (items: unknown[]): Record<string, unknown
             original_unit_price: itemRecord.original_unit_price || itemRecord.originalUnitPrice,
             discount_amount: itemRecord.discount_amount || itemRecord.discountAmount,
             promotion_id: itemRecord.promotion_id || itemRecord.promotionId,
-            promotion_name: itemRecord.promotion_name || itemRecord.promotionName
+            promotion_name: itemRecord.promotion_name || itemRecord.promotionName,
+            product_volume: volumeNumber // ✨ Volume du produit (convertido a número)
         };
 
         // ✅ Validate with Zod schema

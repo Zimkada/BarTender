@@ -124,7 +124,8 @@ export function useSalesExport({
                     'Utilisateur': vendeur,
                     'Rôle': role,
                     'Statut': sale.status,
-                    'Devise': sale.currency
+                    'Devise': sale.currency,
+                    '_sortTimestamp': new Date(saleTimestamp).getTime() // ✨ Caché pour tri
                 });
             });
         });
@@ -170,15 +171,21 @@ export function useSalesExport({
                 'Bénéfice': benefice,
                 'Utilisateur': utilisateur,
                 'Rôle': role,
-                'Devise': 'XOF'
+                'Devise': 'XOF',
+                '_sortTimestamp': new Date(ret.returnedAt).getTime() // ✨ Caché pour tri
             });
         });
 
-        // Trier par date/heure décroissante
+        // ✅ Trier par date/heure décroissante (plus récent d'abord)
         exportData.sort((a, b) => {
-            const dateA = new Date(`${a.Date} ${a.Heure}`);
-            const dateB = new Date(`${b.Date} ${b.Heure}`);
-            return dateB.getTime() - dateA.getTime();
+            const timestampA = (a as any)._sortTimestamp || 0;
+            const timestampB = (b as any)._sortTimestamp || 0;
+            return timestampB - timestampA; // Décroissant (plus récent en premier)
+        });
+
+        // ✨ Supprimer le champ caché de tri avant d'exporter
+        exportData.forEach(row => {
+            delete (row as any)._sortTimestamp;
         });
 
         const fileName = `ventes_${new Date().toISOString().split('T')[0]}`;

@@ -544,14 +544,15 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       emoji: '🚨',
       title: 'Détecter les Anomalies (Filtre Suspects)',
       description:
-        'Le bouton **Suspects** est votre outil de contrôle critique. Il filtre tous les produits présentant des incohérences : stock physique négatif ou vente à découvert. Un inventaire sain ne devrait afficher aucun résultat ici. Utilisez-le quotidiennement pour corriger les erreurs de saisie.',
+        'Le bouton **Suspects** est votre outil de contrôle critique. Il filtre tous les produits présentant des incohérences : stock physique négatif, vente à découvert ou **stock dormant**. Un inventaire sain ne devrait afficher aucun résultat ici.',
       elementSelector: '[data-guide="inventory-filter-suspicious"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
-        '🔴 Stock négatif = Erreur de saisie d\'approv ou vente fantôme',
-        '⚠️ Traitez les suspects avant de fermer la caisse',
-        '🔧 Cliquez sur le produit pour ajuster le stock manuellement',
+        '🔴 Stock négatif = Erreur de saisie d\'approvisionnement',
+        '💤 **Stock Dormant** = Basé sur votre fréquence d\'approv habituelle',
+        '💡 **Détail Anomale** : Cliquez sur l\'icône (⚠️, 🛑) pour voir le diagnostic précis',
+        '🔧 Cliquez "Modifier" pour corriger les erreurs de saisie',
       ],
     },
 
@@ -580,6 +581,7 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
       tips: [
+        '📅 **Par défaut** : Affiche les 7 derniers jours (réglable)',
         '🔄 Tracabilité Totale : Voyez qui a fait quoi et quand',
         '↩️ **Retours & Échanges** : Inclus nativement pour un audit fidèle',
         '📊 Visualisez les tendances de stock au fil du temps',
@@ -688,7 +690,7 @@ export const MANAGE_INVENTORY_GUIDE: GuideTour = {
       emoji: '🤖',
       title: 'Refondation : Préparation de Commande Assistée',
       description:
-        'Ne commandez plus au hasard ! Ce module analyse vos 30 derniers jours de vente pour suggérer les quantités idéales. Il détecte automatiquement les ruptures imminentes et les produits en alerte.',
+        'Ne commandez plus au hasard ! Ce module analyse le rythme de vos **30 derniers jours de vente** pour suggérer les quantités idéales couvrant votre **fréquence de réapprovisionnement** (réglable dans vos Paramètres). Il détecte ainsi les ruptures imminentes.',
       elementSelector: '[data-guide="inventory-order-prep-btn"]',
       position: 'bottom',
       visibleFor: ['promoteur', 'gerant'],
@@ -2456,5 +2458,5 @@ export const OWNER_GUIDES: GuideTour[] = [
   MANAGE_SETTINGS_GUIDE,
   MANAGE_PROMOTIONS_GUIDE,
   PROFILE_GUIDE,
-  FORECASTING_AI_GUIDE,
+  // FORECASTING_AI_GUIDE, // Masqué à la demande de l'utilisateur
 ];

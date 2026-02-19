@@ -168,6 +168,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
       const saleItems = items.map(item => ({
         product_id: item.product.id,
         product_name: item.product.name,
+        product_volume: item.product.volume,
         quantity: item.quantity,
         unit_price: item.unit_price,
         total_price: item.total_price,
@@ -343,6 +344,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                   <ProductGrid
                     products={filteredProducts}
                     onAddToCart={handleAddToCart}
+                    cart={cart}
                   />
                   {filteredProducts.length === 0 && (
                     <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-60 mt-10">

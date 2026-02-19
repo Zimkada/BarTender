@@ -288,10 +288,10 @@ export function OrderPreparation({ onBack, onGoToFinalization }: OrderPreparatio
                                 layout
                                 key={pid}
                                 className={cn(
-                                    "p-4 rounded-2xl border transition-all relative overflow-hidden group hover:shadow-md",
+                                    "p-4 rounded-2xl border-2 transition-all relative overflow-hidden group hover:shadow-md",
                                     isSelected
-                                        ? "border-brand-primary/50 bg-brand-subtle/10"
-                                        : "border-gray-100 bg-white hover:border-brand-primary/20"
+                                        ? "border-brand-primary bg-brand-subtle/10 shadow-md"
+                                        : "border-gray-300 bg-gray-50 shadow-sm hover:border-gray-400"
                                 )}
                             >
                                 {isSelected && (

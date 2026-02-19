@@ -2,6 +2,16 @@ import { z } from 'zod';
 
 // --- Schémas de Base ---
 
+// Helper: Convert volume to number, handle NaN/invalid
+const normalizeVolume = (val: unknown) => {
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') {
+        const num = parseFloat(val);
+        return isNaN(num) ? undefined : num;
+    }
+    return undefined;
+};
+
 export const SaleItemSchema = z.object({
     product_id: z.string().uuid(),
     product_name: z.string(),
@@ -12,6 +22,7 @@ export const SaleItemSchema = z.object({
     discount_amount: z.number().min(0).optional(),
     promotion_id: z.string().uuid().optional(),
     promotion_name: z.string().optional(),
+    product_volume: z.preprocess(normalizeVolume, z.number().min(0).optional()), // ✨ Accepte string|number, convertit en number
 });
 
 // Helper to map DB casing to CamelCase

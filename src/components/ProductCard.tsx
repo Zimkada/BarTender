@@ -60,19 +60,18 @@ export function ProductCard({ product, onAddToCart, availableStock, quantityInCa
       onClick={handleAddToCart}
       className={`
         relative flex flex-col h-full
-        bg-white/60 backdrop-blur-md rounded-3xl
+        rounded-2xl
         ${showFeedback
-          ? 'border-2 border-brand-primary shadow-xl shadow-brand-subtle'
+          ? 'bg-white border-2 border-brand-primary shadow-lg shadow-brand-subtle'
           : isMaxReached
-            ? 'border-2 border-orange-200 bg-orange-50/10'
-            : 'border border-gray-200 hover:border-brand-primary/30'
+            ? 'bg-orange-50 border-2 border-orange-200 shadow-md shadow-orange-100'
+            : 'bg-gray-50 border-2 border-gray-300 shadow-sm hover:shadow-md hover:border-gray-400'
         }
-        shadow-sm hover:shadow-xl hover:shadow-brand-subtle/20
         overflow-hidden cursor-pointer select-none
         touch-manipulation
         transition-all duration-300
         ${isStockEmpty ? 'opacity-60 grayscale' : ''}
-        ${isMaxReached ? 'cursor-default' : ''}
+        ${isMaxReached ? 'cursor-default' : 'hover:bg-white'}
       `}
     >
       {/* --- STOCK BADGE HAUTE LISIBILITÉ --- */}
@@ -90,7 +89,7 @@ export function ProductCard({ product, onAddToCart, availableStock, quantityInCa
       </motion.div>
 
       {/* --- IMAGE AREA --- */}
-      <div className="aspect-square bg-gradient-to-b from-gray-50/10 to-white p-3 flex items-center justify-center relative group">
+      <div className="aspect-square bg-white/80 p-3 flex items-center justify-center relative group border-b border-gray-100">
         {isLowStock && !isStockEmpty && !isMaxReached && (
           <div className="absolute top-2 left-2 text-orange-600 animate-pulse bg-white/80 rounded-full p-0.5 shadow-sm">
             <AlertTriangle size={14} strokeWidth={3} />
@@ -132,8 +131,7 @@ export function ProductCard({ product, onAddToCart, availableStock, quantityInCa
       </div>
 
       {/* --- CONTENT AREA --- */}
-      <div className="p-3 flex flex-col flex-1 justify-between bg-white relative">
-        <div className="absolute top-0 left-3 right-3 h-[1px] bg-gray-50"></div>
+      <div className="p-3 flex flex-col flex-1 justify-between bg-white/90 relative">
 
         <div className="pt-1">
           <h3 className="font-black text-gray-900 text-[10px] sm:text-[11px] leading-tight line-clamp-2 min-h-[2.4em] uppercase tracking-tight">

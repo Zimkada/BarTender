@@ -133,7 +133,7 @@ export function OrderFinalization() {
                 <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
                     <AlertCircle className="text-gray-400" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900">Aucun produit sélectionné</h3>
+                <h3 className="text-lg font-bold text-gray-900 text-center">Aucun produit sélectionné</h3>
                 <p className="text-gray-500 text-sm text-center max-w-xs mt-2">
                     Retournez à l'onglet "Préparation" pour ajouter des produits à votre commande.
                 </p>

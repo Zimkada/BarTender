@@ -275,8 +275,9 @@ export default function SalesHistoryPage() {
 
                 {/* ==================== FILTERS AREA ==================== */}
                 <div className="bg-white border-b border-gray-200 p-4 shadow-sm z-10" data-guide="sales-filters">
-                    <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
-                        <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+                    <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center justify-between">
+                        {/* Bloc 1: Recherche + Période */}
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
                             {/* Search */}
                             <div className="relative w-full sm:w-64">
                                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -303,66 +304,67 @@ export default function SalesHistoryPage() {
                                 availableFilters={SALES_HISTORY_FILTERS}
                                 customRange={customRange}
                                 updateCustomRange={updateCustomRange}
+                                className="w-full sm:w-auto mt-2 sm:mt-0"
                                 buttonClassName="Ring-0 shadow-none border-0"
                             />
-
-                            {/* Pills de statut — visible uniquement pour les rôles avec canCancelSales */}
-                            {canCancelSales && (
-                                <div className="flex bg-white/40 backdrop-blur-md rounded-2xl p-1 gap-1.5 border border-brand-subtle shadow-sm">
-                                    {(['validated', 'rejected', 'cancelled'] as const).map((status) => {
-                                        const labels = { validated: 'Validées', rejected: 'Rejetées', cancelled: 'Annulées' };
-                                        return (
-                                            <button
-                                                key={status}
-                                                onClick={() => setStatusFilter(status)}
-                                                className={`px-3 py-2 h-10 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all flex-1 min-w-[80px] ${statusFilter === status
-                                                    ? 'glass-action-button-active-2026 shadow-md shadow-brand-subtle'
-                                                    : 'glass-action-button-2026 text-gray-400 hover:text-brand-primary'
-                                                    } `}
-                                            >
-                                                {labels[status]}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            )}
                         </div>
 
-                        {/* Export format toggle & Action (Mobile only) */}
-                        {isMobile && (
-                            <div className="flex items-center gap-3 w-full justify-between pt-2 border-t border-gray-100 mt-1">
-                                <span className="text-xs text-gray-500 font-medium whitespace-nowrap">Format:</span>
-                                <div className="flex items-center gap-2 flex-1 justify-end">
-                                    <div className="flex bg-gray-100 rounded-lg p-1">
+                        {/* Bloc 2: Statuts (Visible uniquement si canCancelSales) */}
+                        {canCancelSales && (
+                            <div className="flex bg-white/40 backdrop-blur-md rounded-2xl p-1 gap-1.5 border border-brand-subtle shadow-sm w-full lg:w-auto overflow-hidden">
+                                {(['validated', 'rejected', 'cancelled'] as const).map((status) => {
+                                    const labels = { validated: 'Validées', rejected: 'Rejetées', cancelled: 'Annulées' };
+                                    return (
                                         <button
-                                            onClick={() => setExportFormat('excel')}
-                                            className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${exportFormat === 'excel' ? 'bg-green-600 text-white shadow-md' : 'text-gray-500'} `}
+                                            key={status}
+                                            onClick={() => setStatusFilter(status)}
+                                            className={`px-4 py-2 h-10 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all sm:min-w-[95px] flex-1 lg:flex-none ${statusFilter === status
+                                                ? 'glass-action-button-active-2026 shadow-md shadow-brand-subtle'
+                                                : 'glass-action-button-2026 text-gray-400 hover:text-brand-primary'
+                                                } `}
                                         >
-                                            XLS
+                                            {labels[status]}
                                         </button>
-                                        <button
-                                            onClick={() => setExportFormat('csv')}
-                                            className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${exportFormat === 'csv' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500'} `}
-                                        >
-                                            CSV
-                                        </button>
-                                    </div>
-
-                                    <Button
-                                        onClick={() => exportSales(exportFormat)}
-                                        size="sm"
-                                        className={`h-8 px-4 flex items-center gap-2 text-xs font-bold rounded-lg shadow-sm transition-all ${filteredSales.length === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${exportFormat === 'excel'
-                                            ? 'bg-green-600 text-white hover:bg-green-700'
-                                            : 'bg-blue-600 text-white hover:bg-blue-700'
-                                            } `}
-                                    >
-                                        <Download size={14} />
-                                        Exporter
-                                    </Button>
-                                </div>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
+
+                    {/* Export format toggle & Action (Mobile only) */}
+                    {isMobile && (
+                        <div className="flex items-center gap-3 w-full justify-between pt-2 border-t border-gray-100 mt-2">
+                            <span className="text-xs text-gray-500 font-medium whitespace-nowrap">Format:</span>
+                            <div className="flex items-center gap-2 flex-1 justify-end">
+                                <div className="flex bg-gray-100 rounded-lg p-1">
+                                    <button
+                                        onClick={() => setExportFormat('excel')}
+                                        className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${exportFormat === 'excel' ? 'bg-green-600 text-white shadow-md' : 'text-gray-500'} `}
+                                    >
+                                        XLS
+                                    </button>
+                                    <button
+                                        onClick={() => setExportFormat('csv')}
+                                        className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${exportFormat === 'csv' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500'} `}
+                                    >
+                                        CSV
+                                    </button>
+                                </div>
+
+                                <Button
+                                    onClick={() => exportSales(exportFormat)}
+                                    size="sm"
+                                    className={`h-8 px-4 flex items-center gap-2 text-xs font-bold rounded-lg shadow-sm transition-all ${filteredSales.length === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${exportFormat === 'excel'
+                                        ? 'bg-green-600 text-white hover:bg-green-700'
+                                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                                        } `}
+                                >
+                                    <Download size={14} />
+                                    Exporter
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* ==================== CONTENT AREA ==================== */}
@@ -441,24 +443,26 @@ export default function SalesHistoryPage() {
             </div>
 
             {/* Détail vente */}
-            <SaleDetailModal
-                sale={selectedSale}
-                formatPrice={formatPrice}
-                onClose={() => setSelectedSale(null)}
-                canCancel={canCancelSales}
-                onCancelSale={handleCancelSale}
-                hasReturns={selectedSale ? (getReturnsBySaleFromHook(selectedSale.id).length > 0) : false}
-                hasConsignments={selectedSale ? consignments.some(c => c.saleId === selectedSale.id && ['active', 'claimed'].includes(c.status)) : false}
-                returns={selectedSale ? getReturnsBySaleFromHook(selectedSale.id) : []}
-                serverName={selectedSale ? (() => {
-                    if (selectedSale.assignedTo) return selectedSale.assignedTo;
-                    const serverId = selectedSale.serverId || selectedSale.soldBy;
-                    if (serverId) {
-                        return safeUsers.find(u => u.id === serverId)?.name;
-                    }
-                    return undefined;
-                })() : undefined}
-            />
+            {selectedSale && (
+                <SaleDetailModal
+                    sale={selectedSale}
+                    formatPrice={formatPrice}
+                    onClose={() => setSelectedSale(null)}
+                    canCancel={canCancelSales}
+                    onCancelSale={handleCancelSale}
+                    hasReturns={getReturnsBySaleFromHook(selectedSale.id).length > 0}
+                    hasConsignments={consignments.some(c => c.saleId === selectedSale.id && ['active', 'claimed'].includes(c.status))}
+                    returns={getReturnsBySaleFromHook(selectedSale.id)}
+                    serverName={(() => {
+                        if (selectedSale.assignedTo) return selectedSale.assignedTo;
+                        const serverId = selectedSale.serverId || selectedSale.soldBy;
+                        if (serverId) {
+                            return safeUsers.find(u => u.id === serverId)?.name;
+                        }
+                        return undefined;
+                    })()}
+                />
+            )}
 
             <GuideTourModal />
         </div>
