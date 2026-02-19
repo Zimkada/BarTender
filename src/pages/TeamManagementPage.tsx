@@ -16,7 +16,10 @@ import { Label } from '../components/ui/Label';
 import { Alert } from '../components/ui/Alert';
 import { ConfirmModal } from '../components/ui/Modal';
 import { RoleSwitcher } from '../components/ui/RoleSwitcher';
+import { ToastContainer } from '../components/ui/Toast';
 import { ServerMappingsManager } from '../components/ServerMappingsManager';
+import { useToast } from '../hooks/useToast';
+import { useRobustOperation } from '../hooks/useRobustOperation';
 import { ServerMappingsService } from '../services/supabase/server-mappings.service';
 import { BarsService } from '../services/supabase/bars.service';
 import { getErrorMessage } from '../utils/errorHandler';
@@ -40,6 +43,11 @@ export default function TeamManagementPage() {
   const { currentBar, barMembers, refreshBars, removeBarMember, refreshMembers } = useBarContext();
   const { isMobile } = useViewport();
   const queryClient = useQueryClient();
+  const { toasts, removeToast, loading, success, error, warning } = useToast();
+  const robustOp = useRobustOperation({
+    timeoutMs: 5000,
+    maxRetries: 2,
+  });
 
   // Guide ID for team management
   const teamGuideId = 'manage-team';
@@ -162,22 +170,33 @@ export default function TeamManagementPage() {
     if (!currentBar || !currentSession || !confirmModal.targetMember) return;
 
     setConfirmModal(prev => ({ ...prev, isLoading: true }));
+    const toastId = loading('Suppression du membre en cours...');
 
     try {
-      const result = await removeBarMember(confirmModal.targetMember.id);
+      const result = await robustOp.executeAsync(() =>
+        removeBarMember(confirmModal.targetMember!.id)
+      );
 
-      if (result.success) {
-        setSuccess(`${confirmModal.targetMember.user?.name} a été retiré de l'équipe`);
-        await refreshBars();
-        queryClient.invalidateQueries({ queryKey: barMembersKeys.list(currentBar.id) });
+      if (!result?.success) {
+        if (robustOp.timeoutWarning) {
+          warning('Connexion lente. Veuillez vérifier votre connexion.', 5000);
+        } else {
+          error(result?.error || 'Erreur lors de la suppression');
+        }
         setConfirmModal(prev => ({ ...prev, open: false }));
-        setTimeout(() => setSuccess(''), 3000);
-      } else {
-        setError(result.error || 'Erreur lors de la suppression');
-        setConfirmModal(prev => ({ ...prev, open: false }));
+        removeToast(toastId);
+        return;
       }
-    } catch (error) {
-      setError(getErrorMessage(error));
+
+      removeToast(toastId);
+      success(`${confirmModal.targetMember.user?.name} a été retiré de l'équipe`);
+      await refreshBars();
+      queryClient.invalidateQueries({ queryKey: barMembersKeys.list(currentBar.id) });
+      setConfirmModal(prev => ({ ...prev, open: false }));
+      robustOp.reset();
+    } catch (err) {
+      removeToast(toastId);
+      error(getErrorMessage(err));
       setConfirmModal(prev => ({ ...prev, open: false }));
     }
   };
@@ -203,27 +222,39 @@ export default function TeamManagementPage() {
     if (!currentBar || !currentSession || !confirmModal.targetMember || !confirmModal.newRole) return;
 
     setConfirmModal(prev => ({ ...prev, isLoading: true }));
+    const roleLabel = getRoleLabel(confirmModal.newRole);
+    const toastId = loading(`Changement du rôle en ${roleLabel}...`);
 
     try {
-      const roleLabel = getRoleLabel(confirmModal.newRole);
-      const result = await BarsService.addMember(
-        currentBar.id,
-        confirmModal.targetMember.userId,
-        confirmModal.newRole,
-        currentSession.userId
+      const result = await robustOp.executeAsync(() =>
+        BarsService.addMember(
+          currentBar.id,
+          confirmModal.targetMember!.userId,
+          confirmModal.newRole!,
+          currentSession.userId
+        )
       );
-      if (result.success) {
-        setSuccess(`Le rôle de ${confirmModal.targetMember.user?.name} a été mis à jour en ${roleLabel}`);
-        await refreshMembers(currentBar.id, true);
-        queryClient.invalidateQueries({ queryKey: barMembersKeys.list(currentBar.id) });
+
+      if (!result?.success) {
+        if (robustOp.timeoutWarning) {
+          warning('Connexion lente. Réessayez?', 5000);
+        } else {
+          error(result?.error || 'Erreur lors du changement de rôle');
+        }
         setConfirmModal(prev => ({ ...prev, open: false }));
-        setTimeout(() => setSuccess(''), 3000);
-      } else {
-        setError(result.error || 'Erreur lors du changement de rôle');
-        setConfirmModal(prev => ({ ...prev, open: false }));
+        removeToast(toastId);
+        return;
       }
-    } catch (error) {
-      setError(getErrorMessage(error));
+
+      removeToast(toastId);
+      success(`Le rôle de ${confirmModal.targetMember.user?.name} a été mis à jour en ${roleLabel}`);
+      await refreshMembers(currentBar.id, true);
+      queryClient.invalidateQueries({ queryKey: barMembersKeys.list(currentBar.id) });
+      setConfirmModal(prev => ({ ...prev, open: false }));
+      robustOp.reset();
+    } catch (err) {
+      removeToast(toastId);
+      error(getErrorMessage(err));
       setConfirmModal(prev => ({ ...prev, open: false }));
     }
   };
@@ -971,6 +1002,15 @@ export default function TeamManagementPage() {
           cancelText="Annuler"
           variant={confirmModal.action === 'removeUser' ? 'danger' : 'default'}
           isLoading={confirmModal.isLoading}
+        />
+
+        {/* Toast Notifications */}
+        <ToastContainer
+          toasts={toasts.map(t => ({
+            ...t,
+          }))}
+          onRemove={removeToast}
+          position="top-right"
         />
       </div>
     </div >
