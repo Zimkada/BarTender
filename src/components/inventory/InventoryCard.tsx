@@ -54,7 +54,7 @@ export function InventoryCard({
                             <h2 className="font-bold text-gray-900 truncate">{product.name}</h2>
                             {/* ✨ Diagnostic d'Anomalie Compact Réactif au Clic */}
                             {anomaly && (
-                                <div className="relative flex-shrink-0">
+                                <div className="flex-shrink-0">
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -72,23 +72,23 @@ export function InventoryCard({
                                                 <Info className="w-4 h-4" />}
                                     </button>
 
-                                    {/* Tooltip flottant (Affiché au clic) */}
+                                    {/* Tooltip large (Ancré à la CARTE via l'absence de relative ici) */}
                                     <AnimatePresence>
                                         {showAnomalyDetail && (
                                             <motion.div
-                                                initial={{ opacity: 0, scale: 0.9, y: 5 }}
+                                                initial={{ opacity: 0, scale: 0.95, y: 5 }}
                                                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                exit={{ opacity: 0, scale: 0.9, y: 5 }}
-                                                className="absolute right-0 bottom-full mb-2 z-[60] origin-bottom-right"
+                                                exit={{ opacity: 0, scale: 0.95, y: 5 }}
+                                                className="absolute left-4 right-4 bottom-full mb-2 z-[60]"
                                             >
-                                                <div className="bg-gray-900/95 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-2 rounded-xl shadow-2xl whitespace-nowrap flex items-center gap-2 border border-white/10">
-                                                    {anomaly.severity === 'red' ? <ShieldAlert className="w-3 h-3 text-red-400" /> :
-                                                        anomaly.severity === 'orange' ? <AlertTriangle className="w-3 h-3 text-orange-400" /> :
-                                                            <Info className="w-3 h-3 text-amber-400" />}
-                                                    {anomaly.label}
+                                                <div className="bg-gray-900/95 backdrop-blur-sm text-white text-[11px] font-bold px-4 py-2.5 rounded-xl shadow-2xl flex items-center justify-center text-center gap-2 border border-white/10 whitespace-normal leading-tight">
+                                                    {anomaly.severity === 'red' ? <ShieldAlert className="w-4 h-4 text-red-400 shrink-0" /> :
+                                                        anomaly.severity === 'orange' ? <AlertTriangle className="w-4 h-4 text-orange-400 shrink-0" /> :
+                                                            <Info className="w-4 h-4 text-amber-400 shrink-0" />}
+                                                    <span>{anomaly.label}</span>
                                                 </div>
-                                                {/* Flèche */}
-                                                <div className="w-2 h-2 bg-gray-900 rotate-45 absolute -bottom-1 right-3 border-r border-b border-white/10" />
+                                                {/* Flèche centrée sur la carte */}
+                                                <div className="w-2.5 h-2.5 bg-gray-900 rotate-45 absolute -bottom-1 left-1/2 -translate-x-1/2 border-r border-b border-white/10" />
                                             </motion.div>
                                         )}
                                     </AnimatePresence>
