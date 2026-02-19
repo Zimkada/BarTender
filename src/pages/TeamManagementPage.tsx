@@ -15,6 +15,7 @@ import { Select } from '../components/ui/Select';
 import { Label } from '../components/ui/Label';
 import { Alert } from '../components/ui/Alert';
 import { ConfirmModal } from '../components/ui/Modal';
+import { RoleSwitcher } from '../components/ui/RoleSwitcher';
 import { ServerMappingsManager } from '../components/ServerMappingsManager';
 import { ServerMappingsService } from '../services/supabase/server-mappings.service';
 import { BarsService } from '../services/supabase/bars.service';
@@ -536,18 +537,16 @@ export default function TeamManagementPage() {
                         <h2 className="text-lg font-bold text-gray-900 leading-tight text-center px-2">{user?.name || 'Inconnu'}</h2>
                         <p className="text-sm font-medium text-gray-400 mb-2">@{user?.username || 'unknown'}</p>
 
-                        {/* Role Badge + inline role change (promoteur only) */}
+                        {/* Role Badge + interactive role switch (promoteur only) */}
                         {member.isActive && member.role !== 'promoteur' && member.role !== 'super_admin' && hasPermission('canCreateManagers') ? (
-                          <select
-                            value={member.role}
-                            onChange={e => handleChangeRole(member, e.target.value as 'gerant' | 'serveur')}
-                            className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-gray-100 text-gray-600 border-0 cursor-pointer hover:bg-gray-200 transition-colors"
-                            aria-label={`Changer le rôle de ${member.user?.name}`}
-                            data-guide="team-role-select"
-                          >
-                            <option value="serveur">{getRoleLabel('serveur')}</option>
-                            <option value="gerant">{getRoleLabel('gerant')}</option>
-                          </select>
+                          <RoleSwitcher
+                            value={member.role as UserRole}
+                            onChange={(newRole) => handleChangeRole(member, newRole as 'gerant' | 'serveur')}
+                            disabled={confirmModal.isLoading}
+                            isLoading={confirmModal.isLoading && confirmModal.targetMember?.id === member.id}
+                            availableRoles={['serveur', 'gerant']}
+                            showLabel={false}
+                          />
                         ) : (
                           <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${member.role === 'promoteur' ? 'bg-purple-100 text-purple-700' :
                             member.role === 'gerant' ? 'bg-brand-subtle text-brand-dark' :
