@@ -31,6 +31,9 @@ import { useExpensesMutations } from '../hooks/mutations/useExpensesMutations';
 import { useReturnsMutations } from '../hooks/mutations/useReturnsMutations';
 import { useCategoryMutations } from '../hooks/mutations/useCategoryMutations';
 
+import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
+import { useCart } from '../hooks/useCart';
+
 import { AppContext, AppContextType } from './AppContext';
 
 const defaultSettings: AppSettings = {
@@ -105,13 +108,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         trainingVersionCompleted: member.user.trainingVersionCompleted
     })), [members]);
 
-    // --- CART STATE & LOGIC ---
-    const [cart, setCart] = useState<CartItem[]>([]);
+    // --- CART STATE & LOGIC (UNIFIED) ---
+    const { getProductStockInfo } = useUnifiedStock(barId);
+    const {
+        cart,
+        setCart,
+        addToCart: baseAddToCart,
+        updateQuantity: baseUpdateCartQuantity,
+        removeFromCart,
+        clearCart
+    } = useCart({
+        barId,
+        maxStockLookup: (id) => getProductStockInfo(id)?.availableStock ?? Infinity
+    });
 
     // 🧹 Fix: Vider le panier quand on change de bar pour éviter les mélanges
     useEffect(() => {
         setCart([]);
-    }, [currentBar?.id]);
+    }, [currentBar?.id, setCart]);
 
     const addToCart = useCallback((product: Product) => {
         // Check if server in simplified mode - prevent adding to cart
@@ -127,39 +141,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return;
         }
 
-        setCart(currentCart => {
-            const existingItem = currentCart.find(item => item.product.id === product.id);
-            if (existingItem) {
-                return currentCart.map(item =>
-                    item.product.id === product.id
-                        ? { ...item, quantity: item.quantity + 1 }
-                        : item
-                );
-            }
-            return [...currentCart, { product, quantity: 1 }];
-        });
-    }, [isSimplifiedMode, currentSession?.role]);
+        baseAddToCart(product);
+    }, [baseAddToCart, isSimplifiedMode, currentSession?.role]);
 
     const updateCartQuantity = useCallback((productId: string, quantity: number) => {
-        setCart(currentCart => {
-            if (quantity === 0) {
-                return currentCart.filter(item => item.product.id !== productId);
-            }
-            return currentCart.map(item =>
-                item.product.id === productId
-                    ? { ...item, quantity }
-                    : item
-            );
-        });
-    }, []);
-
-    const removeFromCart = useCallback((productId: string) => {
-        setCart(currentCart => currentCart.filter(item => item.product.id !== productId));
-    }, []);
-
-    const clearCart = useCallback(() => {
-        setCart([]);
-    }, []);
+        baseUpdateCartQuantity(productId, quantity);
+    }, [baseUpdateCartQuantity]);
     // --- END CART STATE & LOGIC ---
 
     // Filtrage automatique (désactivé dans AppProvider - géré par Smart Hooks)

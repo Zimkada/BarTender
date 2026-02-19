@@ -142,7 +142,7 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
             return data || [];
         },
         enabled: !!barId && !!session,
-        staleTime: 30000,
+        staleTime: 5000, // 🚀 FIX: Reduced from 30s to 5s to sync faster after validation
     });
 
     // 🚀 Réactivité : Écoute des événements typés Pilier 0
@@ -197,12 +197,29 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
 
         // 1. Deduct Offline Sales
         offlineSales.forEach((sale: any) => {
+            // Unification : On marque systématiquement les clés pour éviter les doubles décomptes
             if (sale.idempotency_key) {
-                if (recentlySyncedKeys.has(sale.idempotency_key)) return;
                 accountedIdempotencyKeys.add(sale.idempotency_key);
             }
 
             sale.items.forEach((item: any) => {
+                if (infoMap[item.product_id]) {
+                    infoMap[item.product_id].availableStock -= item.quantity;
+                }
+            });
+        });
+
+        // 🛡️ 1.5. Deduct Recently Synced Sales (The "Flash Hole" Bridge)
+        // These are sales that were just synced but might not be in serverPendingSales yet.
+        recentlySyncedKeys.forEach((synced) => {
+            // On ignore si l'opération est encore dans offlineSales (déjà déduit au point 1)
+            // Ou si elle est déjà dans accountedIdempotencyKeys
+            const key = synced.payload.idempotency_key;
+            if (!key || accountedIdempotencyKeys.has(key)) return;
+
+            accountedIdempotencyKeys.add(key);
+
+            synced.payload.items.forEach((item: any) => {
                 if (infoMap[item.product_id]) {
                     infoMap[item.product_id].availableStock -= item.quantity;
                 }
@@ -241,6 +258,7 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
             });
         });
 
+        // Final calculation
         Object.values(infoMap).forEach(info => {
             info.availableStock = calculateAvailableStock(info.availableStock, info.consignedStock);
         });

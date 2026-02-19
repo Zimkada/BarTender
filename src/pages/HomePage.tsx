@@ -13,16 +13,14 @@ import { Product } from '../types';
 import { useFilteredProducts } from '../hooks/useFilteredProducts';
 import { useCategoryManagement } from '../hooks/useCategoryManagement';
 import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
-import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
 import { ProductGridSkeleton } from '../components/skeletons';
 
 export default function HomePage() {
   // 1. Tous les hooks sont appelés inconditionnellement en haut
-  const { addToCart } = useAppContext();
+  const { addToCart, cart } = useAppContext();
   const { currentBar } = useBarContext();
   const stockManager = useUnifiedStock(currentBar?.id);
   const { categories } = stockManager;
-  const { sales, isLoading: isLoadingSales, refetch: refetchSales } = useUnifiedSales(currentBar?.id);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -137,6 +135,7 @@ export default function HomePage() {
           <ProductGrid
             products={filteredProducts}
             onAddToCart={handleAddToCart}
+            cart={cart}
             categoryName={
               selectedCategory === 'all'
                 ? undefined

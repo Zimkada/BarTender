@@ -8,6 +8,7 @@ import { ProductGridSkeleton } from './skeletons';
 interface ProductGridProps {
   products: Product[];
   onAddToCart: (product: Product) => void;
+  cart?: any[]; // ✨ Ajout : État actuel du panier
   isLoading?: boolean;
   onAddProduct?: () => void;
   categoryName?: string;
@@ -16,6 +17,7 @@ interface ProductGridProps {
 export function ProductGrid({
   products,
   onAddToCart,
+  cart = [],
   isLoading = false,
   onAddProduct,
   categoryName
@@ -39,15 +41,21 @@ export function ProductGrid({
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-5">
-      {products.map((product, index) => (
-        <ProductCard
-          key={product.id}
-          product={product}
-          availableStock={getProductStockInfo(product.id)?.availableStock}
-          onAddToCart={() => onAddToCart(product)}
-          priority={index < 4} // ✨ Optimisation LCP: Charge les 4 premières images en priorité
-        />
-      ))}
+      {products.map((product, index) => {
+        const itemInCart = cart.find(item => item.product.id === product.id);
+        const quantityInCart = itemInCart ? itemInCart.quantity : 0;
+
+        return (
+          <ProductCard
+            key={product.id}
+            product={product}
+            availableStock={getProductStockInfo(product.id)?.availableStock}
+            quantityInCart={quantityInCart}
+            onAddToCart={() => onAddToCart(product)}
+            priority={index < 4} // ✨ Optimisation LCP: Charge les 4 premières images en priorité
+          />
+        );
+      })}
     </div>
   );
 }

@@ -4,7 +4,6 @@ import { SalesService } from './sales.service';
 import { supabase } from '../../lib/supabase';
 import { networkManager } from '../NetworkManager';
 import { offlineQueue } from '../offlineQueue';
-import { ProductsService } from './products.service';
 import { auditLogger } from '../../services/AuditLogger';
 
 // Mocks
@@ -122,96 +121,85 @@ describe('SalesService', () => {
         });
     });
 
-    describe('rejectSale (Cancel)', () => {
-        it('should increment stock and update status to rejected', async () => {
-            // Mock Get Sale
-            const mockSale = {
-                id: 'sale-1',
-                items: [{ product_id: 'p1', quantity: 2 }]
-            };
+    describe('rejectSale', () => {
+        it('should call reject_sale RPC', async () => {
+            (supabase.rpc as any).mockResolvedValue({
+                data: null,
+                error: null
+            });
 
-            // Chain 1: Get Sale
-            const mockSelectChain1 = {
-                select: vi.fn().mockReturnValue({
-                    eq: vi.fn().mockReturnValue({
-                        single: vi.fn().mockResolvedValue({ data: mockSale, error: null })
-                    })
+            await SalesService.rejectSale('sale-1', 'user-1');
+
+            expect(supabase.rpc).toHaveBeenCalledWith(
+                'reject_sale',
+                expect.objectContaining({
+                    p_sale_id: 'sale-1',
+                    p_rejected_by: 'user-1'
                 })
-            };
-
-            // Chain 2: Update Sale
-            const mockUpdateChain = {
-                update: vi.fn().mockReturnValue({
-                    eq: vi.fn().mockReturnValue({
-                        eq: vi.fn().mockReturnValue({
-                            select: vi.fn().mockReturnValue({
-                                maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'sale-1', status: 'rejected' }, error: null })
-                            })
-                        })
-                    })
-                })
-            };
-
-            (supabase.from as any)
-                .mockReturnValueOnce(mockSelectChain1)
-                .mockReturnValueOnce(mockUpdateChain);
-
-            await SalesService.rejectSale('sale-1', 'admin-1');
-
-            expect(ProductsService.incrementStock).toHaveBeenCalledWith('p1', 2);
-            expect(supabase.from).toHaveBeenCalledWith('sales');
+            );
         });
     });
 
     describe('cancelSale', () => {
-        it('should check for blocking conditions (returns/consignments)', async () => {
-            // 1. Get Sale
-            const mockSale = { id: 'sale-1', items: [] };
-            const chain1 = {
+        it('should call cancel_sale RPC after fetching bar_id', async () => {
+            // 1. Mock Fetch bar_id
+            const mockSelectChain = {
                 select: vi.fn().mockReturnValue({
                     eq: vi.fn().mockReturnValue({
-                        single: vi.fn().mockResolvedValue({ data: mockSale, error: null })
+                        single: vi.fn().mockResolvedValue({ data: { bar_id: 'bar-1' }, error: null })
                     })
                 })
             };
+            (supabase.from as any).mockReturnValue(mockSelectChain);
 
-            // 2. Check Returns (Blocking)
-            const chain2 = {
+            // 2. Mock RPC Success
+            (supabase.rpc as any).mockResolvedValue({
+                data: { success: true },
+                error: null
+            });
+
+            await SalesService.cancelSale('sale-1', 'user-1', 'reason');
+
+            expect(supabase.rpc).toHaveBeenCalledWith('cancel_sale', expect.anything());
+            expect(auditLogger.log).toHaveBeenCalled();
+        });
+
+        it('should throw error if RPC returns success=false', async () => {
+            const mockSelectChain = {
                 select: vi.fn().mockReturnValue({
-                    eq: vi.fn().mockResolvedValue({ count: 1, error: null })
+                    eq: vi.fn().mockReturnValue({
+                        single: vi.fn().mockResolvedValue({ data: { bar_id: 'bar-1' }, error: null })
+                    })
                 })
             };
+            (supabase.from as any).mockReturnValue(mockSelectChain);
 
-            (supabase.from as any)
-                .mockReturnValueOnce(chain1)
-                .mockReturnValueOnce(chain2);
+            (supabase.rpc as any).mockResolvedValue({
+                data: { success: false, message: 'Blocking condition' },
+                error: null
+            });
 
-            await expect(SalesService.cancelSale('sale-1', 'admin', 'reason'))
-                .rejects.toThrow(/Impossible d'annuler cette vente car elle contient des retours/);
+            await expect(SalesService.cancelSale('sale-1', 'user-1', 'reason'))
+                .rejects.toThrow('Blocking condition');
         });
     });
 
     describe('validateSale', () => {
         it('should update status to validated and set validator', async () => {
-            const chain = {
-                update: vi.fn().mockReturnValue({
-                    eq: vi.fn().mockReturnValue({
-                        select: vi.fn().mockReturnValue({
-                            single: vi.fn().mockResolvedValue({
-                                data: { id: 'sale-1', status: 'validated', validated_by: 'user-2' },
-                                error: null
-                            })
-                        })
-                    })
+            (supabase.rpc as any).mockResolvedValue({
+                data: null,
+                error: null
+            });
+
+            await SalesService.validateSale('sale-1', 'user-2');
+
+            expect(supabase.rpc).toHaveBeenCalledWith(
+                'validate_sale',
+                expect.objectContaining({
+                    p_sale_id: 'sale-1',
+                    p_validated_by: 'user-2'
                 })
-            };
-
-            (supabase.from as any).mockReturnValue(chain);
-
-            const result = await SalesService.validateSale('sale-1', 'user-2');
-
-            expect(result.status).toBe('validated');
-            expect(result.validated_by).toBe('user-2');
+            );
         });
     });
 });

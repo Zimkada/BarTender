@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { toast } from 'react-hot-toast';
 import { Product, CartItem } from '../types';
 import { useCartLogic } from './useCartLogic';
 
@@ -36,6 +37,9 @@ export function useCart({ barId, initialCart = [], maxStockLookup }: UseCartOpti
             if (maxStockLookup) {
                 const availableStock = maxStockLookup(product.id);
                 if (newQty > availableStock) {
+                    toast.error(`Stock limité : ${availableStock} disponible(s) maximum pour ${product.name}`, {
+                        id: `stock-limit-${product.id}`, // Évite les doubles toasts
+                    });
                     return currentCart; // Bloque l'ajout
                 }
             }
@@ -61,6 +65,10 @@ export function useCart({ barId, initialCart = [], maxStockLookup }: UseCartOpti
             if (maxStockLookup) {
                 const availableStock = maxStockLookup(productId);
                 if (quantity > availableStock) {
+                    const itemName = currentCart.find(i => i.product.id === productId)?.product.name || 'produit';
+                    toast.error(`Stock insuffisant : ${availableStock} unité(s) maximum pour ${itemName}`, {
+                        id: `stock-limit-${productId}`,
+                    });
                     return currentCart; // Bloque l'augmentation
                 }
             }

@@ -10,16 +10,20 @@ interface ProductCardProps {
   product: Product;
   onAddToCart: (product: Product) => void;
   availableStock?: number;
+  quantityInCart?: number; // ✨ Ajout : Quantité déjà présente dans le panier
   priority?: boolean; // ✨ Pour l'optimisation LCP
 }
 
-export function ProductCard({ product, onAddToCart, availableStock, priority = false }: ProductCardProps) {
+export function ProductCard({ product, onAddToCart, availableStock, quantityInCart = 0, priority = false }: ProductCardProps) {
   const { formatPrice } = useCurrencyFormatter();
 
   // Priorité au stock "calculé" (disponible) s'il est fourni, sinon stock physique
   const displayStock = availableStock !== undefined ? availableStock : product.stock;
   const isLowStock = displayStock <= product.alertThreshold;
   const isStockEmpty = displayStock <= 0;
+
+  // 🛡️ Détection du stock maximum atteint dans le panier
+  const isMaxReached = quantityInCart >= displayStock && !isStockEmpty;
 
   const [showFeedback, setShowFeedback] = useState(false);
   const { itemAddedToCart } = useFeedback();
@@ -28,7 +32,7 @@ export function ProductCard({ product, onAddToCart, availableStock, priority = f
     e.stopPropagation();
     e.preventDefault();
 
-    if (isStockEmpty) return;
+    if (isStockEmpty || isMaxReached) return;
 
     if (navigator.vibrate) navigator.vibrate(10);
 
@@ -41,6 +45,7 @@ export function ProductCard({ product, onAddToCart, availableStock, priority = f
 
   const getStockStatus = () => {
     if (isStockEmpty) return { color: 'bg-red-500', label: 'Épuisé' };
+    if (isMaxReached) return { color: 'bg-orange-600', label: 'MAX' };
     if (isLowStock) return { color: 'bg-orange-400', label: displayStock };
     return { color: 'bg-emerald-500', label: displayStock };
   };
@@ -49,7 +54,7 @@ export function ProductCard({ product, onAddToCart, availableStock, priority = f
 
   return (
     <motion.div
-      whileTap={{ scale: 0.96 }}
+      whileTap={!isMaxReached ? { scale: 0.96 } : {}}
       animate={showFeedback ? { scale: [1, 1.05, 1], borderColor: 'var(--brand-primary)' } : {}}
       transition={{ duration: 0.2 }}
       onClick={handleAddToCart}
@@ -58,30 +63,37 @@ export function ProductCard({ product, onAddToCart, availableStock, priority = f
         bg-white/60 backdrop-blur-md rounded-3xl
         ${showFeedback
           ? 'border-2 border-brand-primary shadow-xl shadow-brand-subtle'
-          : 'border border-gray-200 hover:border-brand-primary/30'
+          : isMaxReached
+            ? 'border-2 border-orange-200 bg-orange-50/10'
+            : 'border border-gray-200 hover:border-brand-primary/30'
         }
         shadow-sm hover:shadow-xl hover:shadow-brand-subtle/20
         overflow-hidden cursor-pointer select-none
         touch-manipulation
         transition-all duration-300
         ${isStockEmpty ? 'opacity-60 grayscale' : ''}
+        ${isMaxReached ? 'cursor-default' : ''}
       `}
     >
       {/* --- STOCK BADGE HAUTE LISIBILITÉ --- */}
-      <div className={`
-        absolute top-2 right-2 z-10
-        ${status.color} text-white
-        text-[10px] font-black px-2.5 py-1 rounded-full
-        shadow-md bg-opacity-100 border border-white/20 active:scale-95 transition-transform
-      `}>
+      <motion.div
+        animate={isMaxReached ? { scale: [1, 1.1, 1] } : {}}
+        transition={{ repeat: isMaxReached ? Infinity : 0, duration: 2 }}
+        className={`
+          absolute top-2 right-2 z-10
+          ${status.color} text-white
+          text-[10px] font-black px-2.5 py-1 rounded-full
+          shadow-md bg-opacity-100 border border-white/20 active:scale-95 transition-transform
+        `}
+      >
         {status.label}
-      </div>
+      </motion.div>
 
       {/* --- IMAGE AREA --- */}
       <div className="aspect-square bg-gradient-to-b from-gray-50/10 to-white p-3 flex items-center justify-center relative group">
-        {isLowStock && !isStockEmpty && (
-          <div className="absolute top-2 left-2 text-orange-500 animate-pulse">
-            <AlertTriangle size={14} />
+        {isLowStock && !isStockEmpty && !isMaxReached && (
+          <div className="absolute top-2 left-2 text-orange-600 animate-pulse bg-white/80 rounded-full p-0.5 shadow-sm">
+            <AlertTriangle size={14} strokeWidth={3} />
           </div>
         )}
 
@@ -139,18 +151,18 @@ export function ProductCard({ product, onAddToCart, availableStock, priority = f
           </div>
 
           <motion.div
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
+            whileHover={!isMaxReached ? { scale: 1.1 } : {}}
+            whileTap={!isMaxReached ? { scale: 0.9 } : {}}
             className={`
               w-8 h-8 rounded-xl flex items-center justify-center
               transition-all duration-300
-              ${isStockEmpty
-                ? 'bg-gray-100 text-gray-300'
+              ${isStockEmpty || isMaxReached
+                ? 'bg-gray-100 text-gray-300 shadow-none'
                 : 'text-white shadow-md shadow-brand-subtle'
               }
             `}
             style={{
-              background: !isStockEmpty ? 'var(--brand-gradient)' : undefined
+              background: (!isStockEmpty && !isMaxReached) ? 'var(--brand-gradient)' : undefined
             }}
           >
             <Plus size={16} strokeWidth={3} />

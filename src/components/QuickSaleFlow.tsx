@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Search, Zap, X, ShoppingCart, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { PaymentMethod } from './cart/PaymentMethodSelector';
@@ -35,11 +35,29 @@ interface QuickSaleFlowProps {
 export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   // --- HOOKS & CONTEXTS ---
   const { currentBar, isSimplifiedMode } = useBarContext();
-  const { products, categories, getProductStockInfo } = useUnifiedStock(currentBar?.id);
   const { currentSession } = useAuth();
   const { isMobile } = useViewport();
   const { createSale } = useSalesMutations(currentBar?.id || '');
   const { formatPrice } = useCurrencyFormatter();
+
+  // 1. Hook de stock unifié (Source de vérité serveur + offline)
+  const { products, categories, getProductStockInfo } = useUnifiedStock(currentBar?.id);
+
+  // 2. Hook de panier (Local)
+  const {
+    cart,           // raw items
+    items,          // calculated items (with prices/promos)
+    total,
+    totalItems,
+    addToCart,
+    updateQuantity,
+    removeFromCart,
+    clearCart
+  } = useCart({
+    barId: currentBar?.id,
+    // Validation basée sur le stock unifié
+    maxStockLookup: (id) => getProductStockInfo(id)?.availableStock ?? Infinity
+  });
 
   // --- LOCAL STATE ---
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,12 +66,12 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // UX State
-  const [showClearCartConfirm, setShowClearCartConfirm] = useState(false); // 🛡️ Fix Bug #3
+  const [showClearCartConfirm, setShowClearCartConfirm] = useState(false);
 
-  // Desktop Specific State (Simplified Mode)
+  // Desktop Specific State
   const [selectedServerDesktop, setSelectedServerDesktop] = useState('');
   const [paymentMethodDesktop, setPaymentMethodDesktop] = useState<PaymentMethod>('cash');
-  const [selectedBonDesktop, setSelectedBonDesktop] = useState(''); // NEW: Bon support
+  const [selectedBonDesktop, setSelectedBonDesktop] = useState('');
   const [showSuccessDesktop, setShowSuccessDesktop] = useState(false);
 
   // --- TICKETS (BONS) ---
@@ -68,7 +86,6 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
         if (selectedServerDesktop.startsWith('Moi (')) {
           serverIdToAssign = currentSession.userId;
         } else {
-          // Résolution de l'ID pour un serveur tiers en mode simplifié
           serverIdToAssign = (await ServerMappingsService.getUserIdForServerName(
             currentBar.id,
             selectedServerDesktop
@@ -94,36 +111,24 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     }
   };
 
+  // --- STOCK DEDUCTION (REACTIVE UI) ---
+  // On déduit localement le panier du stock affiché pour une réactivité instantanée
+  const productsWithStockDeduction = useMemo(() => {
+    return products.map(product => {
+      const cartItem = cart.find(item => item.product.id === product.id);
+      const stockInfo = getProductStockInfo(product.id);
+      return {
+        ...product,
+        stock: (stockInfo?.availableStock ?? 0) - (cartItem?.quantity ?? 0)
+      };
+    });
+  }, [products, cart, getProductStockInfo]);
 
-  // --- NEW: USE CART HOOK (Local Mode) ---
-  const {
-    cart,           // raw items
-    items,          // calculated items (with prices/promos)
-    total,
-    totalItems,
-    addToCart,
-    updateQuantity,
-    removeFromCart,
-    clearCart
-  } = useCart({
-    barId: currentBar?.id,
-    maxStockLookup: (id) => getProductStockInfo(id)?.availableStock ?? Infinity
-  });
 
   // --- SEARCH & CATEGORY FILTER ---
-
-  // 1. Enrich products with stock info FIRST
-  const productsWithStock = products.map(product => {
-    const stockInfo = getProductStockInfo(product.id);
-    return {
-      ...product,
-      stock: stockInfo?.availableStock ?? 0
-    };
-  });
-
-  // 2. Filter products based on search & category
+  // 1. Use the version with cart deduction
   const filteredProducts = useFilteredProducts({
-    products: productsWithStock,
+    products: productsWithStockDeduction,
     searchQuery: searchTerm,
     selectedCategory,
     onlyInStock: false

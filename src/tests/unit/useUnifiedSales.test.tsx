@@ -15,7 +15,12 @@ import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { ReactNode } from 'react';
 import { useUnifiedSales } from '../../hooks/pivots/useUnifiedSales';
 
-// Mock the queries
+vi.mock('../../context/BarContext', () => ({
+  useBarContext: vi.fn(() => ({
+    currentBar: { id: 'bar-123', closingHour: 6, settings: { dataTier: 'lite' } },
+  })),
+}));
+
 vi.mock('../../hooks/queries/useSalesQueries', () => ({
   useSales: vi.fn(() => ({ data: [], isLoading: false })),
   salesKeys: { all: ['sales'] },
