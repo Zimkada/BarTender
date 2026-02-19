@@ -60,36 +60,37 @@ export function ProductCard({ product, onAddToCart, availableStock, quantityInCa
       onClick={handleAddToCart}
       className={`
         relative flex flex-col h-full
-        rounded-2xl
+        rounded-2xl backdrop-blur-md
         ${showFeedback
-          ? 'bg-white border-2 border-brand-primary shadow-lg shadow-brand-subtle'
+          ? 'bg-white border-2 border-brand-primary shadow-xl shadow-brand-primary/20 ring-1 ring-brand-primary/10'
           : isMaxReached
-            ? 'bg-orange-50 border-2 border-orange-200 shadow-md shadow-orange-100'
-            : 'bg-gray-50 border-2 border-gray-300 shadow-sm hover:shadow-md hover:border-gray-400'
+            ? 'bg-gradient-to-br from-orange-50 to-orange-50/50 border-2 border-orange-300 shadow-lg shadow-orange-200/30 ring-1 ring-orange-200/50'
+            : 'bg-gradient-to-br from-white via-gray-50 to-gray-100/50 border-2 border-gray-200 shadow-md shadow-gray-300/20 ring-1 ring-white/80 hover:shadow-xl hover:shadow-gray-400/30 hover:border-gray-300'
         }
         overflow-hidden cursor-pointer select-none
         touch-manipulation
-        transition-all duration-300
+        transition-all duration-300 ease-out
         ${isStockEmpty ? 'opacity-60 grayscale' : ''}
-        ${isMaxReached ? 'cursor-default' : 'hover:bg-white'}
+        ${isMaxReached ? 'cursor-default' : 'hover:scale-[1.02]'}
       `}
     >
       {/* --- STOCK BADGE HAUTE LISIBILITÉ --- */}
       <motion.div
-        animate={isMaxReached ? { scale: [1, 1.1, 1] } : {}}
+        animate={isMaxReached ? { scale: [1, 1.12, 1] } : {}}
         transition={{ repeat: isMaxReached ? Infinity : 0, duration: 2 }}
         className={`
           absolute top-2 right-2 z-10
           ${status.color} text-white
-          text-[10px] font-black px-2.5 py-1 rounded-full
-          shadow-md bg-opacity-100 border border-white/20 active:scale-95 transition-transform
+          text-[10px] font-black px-2.5 py-1.5 rounded-full
+          shadow-lg bg-opacity-95 border border-white/30 backdrop-blur-md active:scale-95 transition-all duration-200
+          ring-1 ring-white/40
         `}
       >
         {status.label}
       </motion.div>
 
       {/* --- IMAGE AREA --- */}
-      <div className="aspect-square bg-white/80 p-3 flex items-center justify-center relative group border-b border-gray-100">
+      <div className="aspect-square bg-gradient-to-br from-white/90 via-white/80 to-gray-50/50 p-3 flex items-center justify-center relative group border-b border-gray-200/60 backdrop-blur-sm">
         {isLowStock && !isStockEmpty && !isMaxReached && (
           <div className="absolute top-2 left-2 text-orange-600 animate-pulse bg-white/80 rounded-full p-0.5 shadow-sm">
             <AlertTriangle size={14} strokeWidth={3} />
@@ -131,7 +132,7 @@ export function ProductCard({ product, onAddToCart, availableStock, quantityInCa
       </div>
 
       {/* --- CONTENT AREA --- */}
-      <div className="p-3 flex flex-col flex-1 justify-between bg-white/90 relative">
+      <div className="p-3 flex flex-col flex-1 justify-between bg-gradient-to-br from-white/95 via-white/90 to-gray-50/30 relative backdrop-blur-sm">
 
         <div className="pt-1">
           <h3 className="font-black text-gray-900 text-[10px] sm:text-[11px] leading-tight line-clamp-2 min-h-[2.4em] uppercase tracking-tight">
@@ -149,19 +150,16 @@ export function ProductCard({ product, onAddToCart, availableStock, quantityInCa
           </div>
 
           <motion.div
-            whileHover={!isMaxReached ? { scale: 1.1 } : {}}
-            whileTap={!isMaxReached ? { scale: 0.9 } : {}}
+            whileHover={!isMaxReached ? { scale: 1.15, rotate: 90 } : {}}
+            whileTap={!isMaxReached ? { scale: 0.85 } : {}}
             className={`
               w-8 h-8 rounded-xl flex items-center justify-center
               transition-all duration-300
               ${isStockEmpty || isMaxReached
-                ? 'bg-gray-100 text-gray-300 shadow-none'
-                : 'text-white shadow-md shadow-brand-subtle'
+                ? 'bg-gray-200 text-gray-400 shadow-sm'
+                : 'glass-action-button-active-2026 shadow-lg hover:shadow-xl'
               }
             `}
-            style={{
-              background: (!isStockEmpty && !isMaxReached) ? 'var(--brand-gradient)' : undefined
-            }}
           >
             <Plus size={16} strokeWidth={3} />
           </motion.div>
