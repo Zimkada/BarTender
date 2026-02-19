@@ -59,8 +59,8 @@ export default function TeamManagementPage() {
   const [phone, setPhone] = useState('');
   const [selectedRole, setSelectedRole] = useState<UserRole>('serveur');
   const [showInactive, setShowInactive] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [formError, setError] = useState('');
+  const [formSuccess, setSuccess] = useState('');
 
   // Confirmation & Notification States
   const [confirmModal, setConfirmModal] = useState<{
@@ -422,29 +422,29 @@ export default function TeamManagementPage() {
 
         {/* Global Status Messages - Visible across all tabs */}
         <AnimatePresence>
-          {(error || success) && (
+          {(formError || formSuccess) && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               className="px-1"
             >
-              {error && (
+              {formError && (
                 <Alert
-                  show={!!error}
+                  show={!!formError}
                   variant="destructive"
                   className="rounded-2xl shadow-md border-red-100 mb-2"
                 >
-                  {error}
+                  {formError}
                 </Alert>
               )}
-              {success && (
+              {formSuccess && (
                 <Alert
-                  show={!!success}
+                  show={!!formSuccess}
                   variant="success"
                   className="rounded-2xl shadow-md border-green-100 whitespace-pre-line mb-2"
                 >
-                  {success}
+                  {formSuccess}
                 </Alert>
               )}
             </motion.div>
@@ -974,16 +974,16 @@ export default function TeamManagementPage() {
         )}
 
         {/* Success Alert */}
-        {success && (
-          <Alert variant="success" show={!!success} title="Succès">
-            {success}
+        {formSuccess && (
+          <Alert variant="success" show={!!formSuccess} title="Succès">
+            {formSuccess}
           </Alert>
         )}
 
         {/* Error Alert */}
-        {error && (
-          <Alert variant="destructive" show={!!error} title="Erreur">
-            {error}
+        {formError && (
+          <Alert variant="destructive" show={!!formError} title="Erreur">
+            {formError}
           </Alert>
         )}
 
