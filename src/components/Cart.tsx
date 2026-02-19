@@ -12,6 +12,7 @@ import { useCartLogic } from '../hooks/useCartLogic';
 import { CartDrawer } from './cart/CartDrawer';
 import { useTickets } from '../hooks/queries/useTickets';
 import { TicketsService } from '../services/supabase/tickets.service';
+import { useStock } from '../context/hooks/useStock';
 
 interface CartProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export function Cart({
   const { isMobile } = useViewport();
   const { currentBar, isSimplifiedMode } = useBarContext();
   const { currentSession } = useAuth();
+  const { getProductStockInfo } = useStock();
   const { serverNames, mappings } = useServerMappings(isSimplifiedMode ? currentBar?.id : undefined);
   const { tickets: ticketsWithSummary, refetchTickets } = useTickets(currentBar?.id);
 
@@ -110,8 +112,20 @@ export function Cart({
 
     setLoading('checkout', true);
     try {
+      const saleItems = calculatedItems.map(item => ({
+        product_id: item.product.id,
+        product_name: item.product.name,
+        product_volume: item.product.volume,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_price: item.total_price,
+        original_unit_price: item.original_unit_price,
+        discount_amount: item.discount_amount,
+        promotion_id: item.promotion_id
+      }));
+
       await addSale({
-        items: calculatedItems,
+        items: saleItems,
         paymentMethod,
         assignedTo,
         serverId,
@@ -179,6 +193,7 @@ export function Cart({
         ticketsWithSummary={ticketsWithSummary}
         onCreateBon={handleCreateBon}
         isLoading={isLoading('checkout')}
+        maxStockLookup={(id) => getProductStockInfo(id)?.availableStock ?? Infinity}
       />
     </>
   );
