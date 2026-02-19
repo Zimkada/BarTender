@@ -14,6 +14,7 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Label } from '../components/ui/Label';
 import { Alert } from '../components/ui/Alert';
+import { ConfirmModal } from '../components/ui/Modal';
 import { ServerMappingsManager } from '../components/ServerMappingsManager';
 import { ServerMappingsService } from '../services/supabase/server-mappings.service';
 import { BarsService } from '../services/supabase/bars.service';
@@ -35,7 +36,7 @@ export default function TeamManagementPage() {
   const onboardingTask = searchParams.get('task');
 
   const { hasPermission, currentSession } = useAuth();
-  const { currentBar, barMembers, refreshBars } = useBarContext();
+  const { currentBar, barMembers, refreshBars, removeBarMember, refreshMembers } = useBarContext();
   const { isMobile } = useViewport();
   const queryClient = useQueryClient();
 
@@ -51,6 +52,25 @@ export default function TeamManagementPage() {
   const [showInactive, setShowInactive] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Confirmation & Notification States
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+    action: 'removeUser' | 'changeRole' | null;
+    targetMember: typeof barMembers[number] | null;
+    newRole?: UserRole;
+    isLoading: boolean;
+  }>({
+    open: false,
+    title: '',
+    description: '',
+    action: null,
+    targetMember: null,
+    newRole: undefined,
+    isLoading: false,
+  });
 
   // New states for "Existing Member" feature
   // Modal states (renamed to avoid confusion if needed, but keeping for now)
@@ -123,61 +143,87 @@ export default function TeamManagementPage() {
     }
   };
 
-  const handleRemoveMember = async (memberId: string, memberName: string) => {
+  const handleRemoveMember = (member: typeof barMembers[number]) => {
     if (!currentBar || !currentSession) return;
-
-    if (!window.confirm(`Êtes-vous sûr de vouloir retirer ${memberName} de l'équipe ?`)) {
-      return;
-    }
-
     setError('');
     setSuccess('');
+    setConfirmModal({
+      open: true,
+      title: `Retirer ${member.user?.name}`,
+      description: `Êtes-vous sûr de vouloir retirer ${member.user?.name} de l'équipe ? Cette action ne peut pas être annulée.`,
+      action: 'removeUser',
+      targetMember: member,
+      isLoading: false,
+    });
+  };
+
+  const handleConfirmRemoveMember = async () => {
+    if (!currentBar || !currentSession || !confirmModal.targetMember) return;
+
+    setConfirmModal(prev => ({ ...prev, isLoading: true }));
 
     try {
-      // Trouver le membre pour obtenir son userId
-      const member = barMembers.find(m => m.id === memberId);
-      if (!member || !member.userId) {
-        setError('Membre introuvable');
-        return;
-      }
-
-      const result = await BarsService.removeMember(
-        currentBar.id,
-        member.userId, // userId, pas memberId
-        currentSession.userId // Qui fait la suppression
-      );
+      const result = await removeBarMember(confirmModal.targetMember.id);
 
       if (result.success) {
-        setSuccess(`${memberName} a été retiré de l'équipe`);
+        setSuccess(`${confirmModal.targetMember.user?.name} a été retiré de l'équipe`);
         await refreshBars();
         queryClient.invalidateQueries({ queryKey: barMembersKeys.list(currentBar.id) });
+        setConfirmModal(prev => ({ ...prev, open: false }));
         setTimeout(() => setSuccess(''), 3000);
       } else {
         setError(result.error || 'Erreur lors de la suppression');
+        setConfirmModal(prev => ({ ...prev, open: false }));
       }
     } catch (error) {
       setError(getErrorMessage(error));
+      setConfirmModal(prev => ({ ...prev, open: false }));
     }
   };
 
-  const handleChangeRole = async (member: typeof barMembers[number], newRole: 'gerant' | 'serveur') => {
+  const handleChangeRole = (member: typeof barMembers[number], newRole: 'gerant' | 'serveur') => {
     if (!currentBar || !currentSession || member.role === newRole) return;
+
+    const roleLabel = getRoleLabel(newRole);
     setError('');
+    setSuccess('');
+    setConfirmModal({
+      open: true,
+      title: `Changer le rôle`,
+      description: `Êtes-vous sûr de vouloir changer le rôle de ${member.user?.name} en ${roleLabel} ?`,
+      action: 'changeRole',
+      targetMember: member,
+      newRole: newRole as UserRole,
+      isLoading: false,
+    });
+  };
+
+  const handleConfirmChangeRole = async () => {
+    if (!currentBar || !currentSession || !confirmModal.targetMember || !confirmModal.newRole) return;
+
+    setConfirmModal(prev => ({ ...prev, isLoading: true }));
+
     try {
+      const roleLabel = getRoleLabel(confirmModal.newRole);
       const result = await BarsService.addMember(
         currentBar.id,
-        member.userId,
-        newRole,
+        confirmModal.targetMember.userId,
+        confirmModal.newRole,
         currentSession.userId
       );
       if (result.success) {
-        await refreshBars();
+        setSuccess(`Le rôle de ${confirmModal.targetMember.user?.name} a été mis à jour en ${roleLabel}`);
+        await refreshMembers(currentBar.id, true);
         queryClient.invalidateQueries({ queryKey: barMembersKeys.list(currentBar.id) });
+        setConfirmModal(prev => ({ ...prev, open: false }));
+        setTimeout(() => setSuccess(''), 3000);
       } else {
         setError(result.error || 'Erreur lors du changement de rôle');
+        setConfirmModal(prev => ({ ...prev, open: false }));
       }
     } catch (error) {
       setError(getErrorMessage(error));
+      setConfirmModal(prev => ({ ...prev, open: false }));
     }
   };
 
@@ -267,7 +313,7 @@ export default function TeamManagementPage() {
       }
 
       await new Promise(resolve => setTimeout(resolve, 200));
-      await refreshBars();
+      await refreshMembers(currentBar.id);
 
       const successMessage = selectedRole === 'gerant'
         ? `✅ Gérant "${name}" créé avec succès!\n📧 Email: ${generatedEmail} \n🔑 Mot de passe: ${password} \n\n⚠️ Communiquez ces identifiants au gérant.`
@@ -341,6 +387,37 @@ export default function TeamManagementPage() {
 
       {/* Content */}
       <div className="space-y-6">
+
+        {/* Global Status Messages - Visible across all tabs */}
+        <AnimatePresence>
+          {(error || success) && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="px-1"
+            >
+              {error && (
+                <Alert
+                  show={!!error}
+                  variant="destructive"
+                  className="rounded-2xl shadow-md border-red-100 mb-2"
+                >
+                  {error}
+                </Alert>
+              )}
+              {success && (
+                <Alert
+                  show={!!success}
+                  variant="success"
+                  className="rounded-2xl shadow-md border-green-100 whitespace-pre-line mb-2"
+                >
+                  {success}
+                </Alert>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {pageTab === 'members' && (
           <>
@@ -436,7 +513,7 @@ export default function TeamManagementPage() {
                           ((member.role === 'gerant' && hasPermission('canCreateManagers')) ||
                             (member.role === 'serveur' && hasPermission('canCreateServers'))) && (
                             <button
-                              onClick={() => member.user && handleRemoveMember(member.id, member.user.name)}
+                              onClick={() => handleRemoveMember(member)}
                               className="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                               title="Retirer de l'équipe"
                               aria-label={`Retirer ${member.user?.name || 'ce membre'} de l'équipe`}
@@ -466,6 +543,7 @@ export default function TeamManagementPage() {
                             onChange={e => handleChangeRole(member, e.target.value as 'gerant' | 'serveur')}
                             className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-gray-100 text-gray-600 border-0 cursor-pointer hover:bg-gray-200 transition-colors"
                             aria-label={`Changer le rôle de ${member.user?.name}`}
+                            data-guide="team-role-select"
                           >
                             <option value="serveur">{getRoleLabel('serveur')}</option>
                             <option value="gerant">{getRoleLabel('gerant')}</option>
@@ -804,15 +882,7 @@ export default function TeamManagementPage() {
                   </div>
                 </div>
 
-                {/* Internal Status Messages */}
-                <AnimatePresence>
-                  {(error || success) && (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="mt-4">
-                      {error && <Alert show={!!error} variant="destructive" className="rounded-2xl shadow-lg border-red-200">{error}</Alert>}
-                      {success && <Alert show={!!success} variant="success" className="rounded-2xl shadow-lg border-green-200 whitespace-pre-line">{success}</Alert>}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {/* Preview is self-contained */}
               </div>
 
               {/* Right Column: Profile Preview Ticket */}
@@ -873,6 +943,36 @@ export default function TeamManagementPage() {
           </motion.div>
         )}
 
+        {/* Success Alert */}
+        {success && (
+          <Alert variant="success" show={!!success} title="Succès">
+            {success}
+          </Alert>
+        )}
+
+        {/* Error Alert */}
+        {error && (
+          <Alert variant="destructive" show={!!error} title="Erreur">
+            {error}
+          </Alert>
+        )}
+
+        {/* Confirmation Modal */}
+        <ConfirmModal
+          open={confirmModal.open}
+          onClose={() => setConfirmModal(prev => ({ ...prev, open: false }))}
+          onConfirm={
+            confirmModal.action === 'removeUser'
+              ? handleConfirmRemoveMember
+              : handleConfirmChangeRole
+          }
+          title={confirmModal.title}
+          description={confirmModal.description}
+          confirmText={confirmModal.action === 'removeUser' ? 'Retirer' : 'Changer'}
+          cancelText="Annuler"
+          variant={confirmModal.action === 'removeUser' ? 'danger' : 'default'}
+          isLoading={confirmModal.isLoading}
+        />
       </div>
     </div >
   );
