@@ -151,9 +151,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Filtrage automatique (désactivé dans AppProvider - géré par Smart Hooks)
 
-    const initializeBarData = useCallback(() => {
-        // Plus nécessaire avec React Query qui fetch automatiquement
-    }, []);
 
     // --- CATEGORIES ---
     const addCategory = useCallback((category: Omit<Category, 'id' | 'createdAt' | 'barId'>) => {
@@ -333,32 +330,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         salesMutations.rejectSale.mutate({ id: saleId, rejectorId });
     }, [hasPermission, salesMutations]);
 
-    const getSalesByDate = useCallback((startDate: Date, endDate: Date, includePending: boolean = false) => {
-        return [];
-    }, []);
-
-    const getTodaySales = useCallback((includePending: boolean = false) => {
-        return [];
-    }, []);
-
-    /**
-     * @deprecated Utiliser useRevenueStats() à la place pour garantir la cohérence DRY (SQL/Local)
-     */
-    const getTodayTotal = useCallback(() => {
-        return 0;
-    }, []);
-
-    // --- VENTES (GÉRÉ PAR useUnifiedSales) ---
-
-    const getServerRevenue = useCallback((userId: string, startDate?: Date, endDate?: Date): number => {
-        // Cette méthode est maintenant obsolète car les statistiques sont gérées par useRevenueStats.
-        // On retourne 0 pour éviter de casser l'interface avant migration complète des appels.
-        return 0;
-    }, []);
-
-    const getServerReturns = useCallback((userId: string): Return[] => {
-        return [];
-    }, []);
 
 
     // --- RETURNS ---
@@ -544,23 +515,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addCategory,
         linkCategory,
         addCategories, updateCategory, deleteCategory,
-        getProductsByCategory: () => [], // Fallback pour compatibilité
-        getProductById: () => undefined, // Fallback pour compatibilité
-        getSuppliesByProduct: () => [],
-        getTotalCostByProduct: () => 0,
-        getAverageCostPerUnit: () => 0,
-        addSale, validateSale, rejectSale,
-        getSalesByDate: () => [],
-        getTodaySales: () => [],
-        getTodayTotal: () => 0,
-        getSalesByUser: () => [],
-        getServerRevenue: () => 0,
-        getServerReturns: () => [],
         addReturn, updateReturn, deleteReturn, provideExchange,
         addExpense, deleteExpense, addCustomExpenseCategory,
-        getPendingReturns: () => [],
         updateSettings,
-        initializeBarData,
     }), [
         settings, users,
         customExpenseCategories,
@@ -575,7 +532,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addExpense, deleteExpense, addCustomExpenseCategory,
         // updateExpense, // This was in the provided edit but not in the original code, and no instruction to add it. Keeping original.
         // addSalary, updateSalary, deleteSalary, // This line was in the provided edit but not in the original code, and no instruction to add it. Keeping original.
-        updateSettings, initializeBarData
+        updateSettings,
     ]);
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

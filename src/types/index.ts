@@ -13,6 +13,7 @@ export interface User {
   createdBy?: string;
   isActive: boolean;
   firstLogin: boolean;
+  avatarUrl?: string;
   lastLoginAt?: Date;
   role: UserRole;
   hasCompletedOnboarding?: boolean;

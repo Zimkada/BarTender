@@ -17,8 +17,8 @@ DECLARE
 BEGIN
   -- Check Super Admin
   SELECT EXISTS (
-    SELECT 1 FROM public.users 
-    WHERE id = p_user_id AND role = 'super_admin'
+    SELECT 1 FROM public.bar_members 
+    WHERE user_id = p_user_id AND role = 'super_admin' AND is_active = TRUE
   ) INTO v_is_super_admin;
   
   IF v_is_super_admin THEN 
@@ -41,18 +41,16 @@ BEGIN
   WHERE bar_id = p_bar_id AND user_id = p_user_id AND is_active = TRUE;
 
   -- Logic based on action
-  IF p_action = 'create_manager' THEN
-    -- Only Owner or Super Admin can create managers (already returned true above)
-    -- Managers cannot create other managers (unless business rule changes)
-    RETURN FALSE; 
+    -- Only Owner or Super Admin can create managers (already handled)
+    -- We also allow anyone with the 'promoteur' role in bar_members
+    RETURN v_user_role = 'promoteur'; 
   ELSIF p_action = 'create_server' THEN
     -- Managers can create servers
     RETURN v_user_role = 'gerant' OR v_user_role = 'promoteur';
   ELSIF p_action = 'remove_member' THEN
     -- Managers can remove servers, but not other managers or owner
-    IF v_user_role = 'gerant' THEN
-        -- Context separation: This check is simplified, real target check needs target_role
-        -- For a boolean check "Can this user manage members generically?", we return true for manager
+    -- Managers and Promoters can remove servers
+    IF v_user_role = 'gerant' OR v_user_role = 'promoteur' THEN
         RETURN TRUE; 
     END IF;
     RETURN FALSE;
@@ -112,7 +110,7 @@ BEGIN
   -- 5. Insert / Upsert Member
   INSERT INTO public.bar_members (bar_id, user_id, role, assigned_by, is_active, joined_at)
   VALUES (p_bar_id, p_user_id, p_role, p_assigned_by_id, TRUE, NOW())
-  ON CONFLICT (bar_id, user_id) 
+  ON CONFLICT (bar_id, user_id) WHERE user_id IS NOT NULL
   DO UPDATE SET 
     role = EXCLUDED.role, 
     is_active = TRUE,
@@ -126,24 +124,16 @@ BEGIN
     ON CONFLICT (bar_id, server_name) DO NOTHING; -- ✅ Safety: Prevent duplicate mapping error if already exists
   END IF;
 
-  -- 7. Audit Log (Direct insert to avoid circular RPC dependency issues if any)
-  INSERT INTO public.audit_logs (
-    event_type, 
-    bar_id, 
-    user_id, 
-    severity, 
-    description, 
-    metadata, 
-    created_at
-  )
-  VALUES (
+  -- 7. Audit Log (Using shared internal helper)
+  PERFORM public.internal_log_audit_event(
     'MEMBER_ADDED',
-    p_bar_id,
-    p_assigned_by_id,
     'info',
+    p_assigned_by_id,
+    p_bar_id,
     format('Ajout du membre %s (%s)', v_user_name, p_role),
     jsonb_build_object('target_user_id', p_user_id, 'role', p_role, 'member_id', v_member_id),
-    NOW()
+    p_user_id,
+    'user'
   );
 
   RETURN jsonb_build_object('success', true, 'member_id', v_member_id);
@@ -182,11 +172,14 @@ BEGIN
     IF v_target_role = 'gerant' THEN
          -- Re-verify if p_removed_by_id is Owner or Super Admin
          IF NOT EXISTS (SELECT 1 FROM public.bars WHERE id = p_bar_id AND owner_id = p_removed_by_id) 
-            AND NOT EXISTS (SELECT 1 FROM public.users WHERE id = p_removed_by_id AND role = 'super_admin') THEN
-             v_can_remove_target := FALSE;
-         ELSE
-             v_can_remove_target := TRUE;
+            AND NOT EXISTS (
+                SELECT 1 FROM public.bar_members 
+                WHERE user_id = p_removed_by_id AND role = 'super_admin' AND is_active = TRUE
+            ) THEN
+            RETURN jsonb_build_object('success', false, 'error', 'Seul le propriétaire ou un Super Admin peut retirer un gérant.');
          END IF;
+         -- If we reached here, it means p_removed_by_id is either owner or super_admin, so they can remove a manager.
+         v_can_remove_target := TRUE;
     ELSE
          -- Target is server, safe if general permission is true
          v_can_remove_target := v_can_manage;
@@ -202,15 +195,15 @@ BEGIN
     WHERE bar_id = p_bar_id AND user_id = p_user_id_to_remove;
 
     -- Audit
-    INSERT INTO public.audit_logs (event_type, bar_id, user_id, severity, description, metadata, created_at)
-    VALUES (
+    PERFORM public.internal_log_audit_event(
         'MEMBER_REMOVED',
-        p_bar_id,
-        p_removed_by_id,
         'warning',
+        p_removed_by_id,
+        p_bar_id,
         format('Suppression du membre %s', v_user_name),
         jsonb_build_object('target_user_id', p_user_id_to_remove, 'role', v_target_role),
-        NOW()
+        p_user_id_to_remove,
+        'user'
     );
 
     RETURN jsonb_build_object('success', true);

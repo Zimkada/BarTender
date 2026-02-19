@@ -79,7 +79,7 @@ export function InventoryCard({
                                                 initial={{ opacity: 0, scale: 0.9, y: 5 }}
                                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                                 exit={{ opacity: 0, scale: 0.9, y: 5 }}
-                                                className="absolute left-0 bottom-full mb-2 z-[60]"
+                                                className="absolute right-0 bottom-full mb-2 z-[60] origin-bottom-right"
                                             >
                                                 <div className="bg-gray-900/95 backdrop-blur-sm text-white text-[10px] font-bold px-3 py-2 rounded-xl shadow-2xl whitespace-nowrap flex items-center gap-2 border border-white/10">
                                                     {anomaly.severity === 'red' ? <ShieldAlert className="w-3 h-3 text-red-400" /> :
@@ -88,7 +88,7 @@ export function InventoryCard({
                                                     {anomaly.label}
                                                 </div>
                                                 {/* Flèche */}
-                                                <div className="w-2 h-2 bg-gray-900 rotate-45 absolute -bottom-1 left-3 border-r border-b border-white/10" />
+                                                <div className="w-2 h-2 bg-gray-900 rotate-45 absolute -bottom-1 right-3 border-r border-b border-white/10" />
                                             </motion.div>
                                         )}
                                     </AnimatePresence>

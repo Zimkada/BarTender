@@ -102,7 +102,7 @@ BEGIN
         -- Ici on assume que l'association directe member <-> bar suffit si le user existe.
         INSERT INTO bar_members (bar_id, user_id, role, is_active)
         VALUES (p_bar_id, p_target_user_id, p_role, true)
-        ON CONFLICT (bar_id, user_id) 
+        ON CONFLICT (bar_id, user_id) WHERE user_id IS NOT NULL
         DO UPDATE SET role = p_role, is_active = true, updated_at = NOW();
 
         PERFORM internal_log_audit_event(

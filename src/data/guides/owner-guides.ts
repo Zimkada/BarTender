@@ -1478,6 +1478,22 @@ export const MANAGE_TEAM_GUIDE: GuideTour = {
     },
 
     {
+      id: 'step-3b',
+      emoji: '🎭',
+      title: 'Changer le Rôle d\'un Membre',
+      description:
+        'Vous pouvez modifier le rôle d\'un collaborateur directement dans la liste. 1️⃣ Cliquez sur son **badge de rôle** (ex: "Serveur") → 2️⃣ Une demande de **confirmation** apparaîtra → 3️⃣ Validez, et son rôle sera mis à jour instantanément. C\'est rapide et sécurisé !',
+      elementSelector: '[data-guide="team-role-select"]',
+      position: 'bottom',
+      visibleFor: ['promoteur', 'gerant'],
+      tips: [
+        '🔐 **Confirmation** : Une étape de validation vous protège des erreurs de clic',
+        '✅ **Feedback** : Une notification verte confirme la mise à jour réussie',
+        '⚠️ Le menu n\'apparaît que si vous avez les permissions nécessaires',
+      ],
+    },
+
+    {
       id: 'step-4',
       emoji: '🚫',
       title: 'Retirer un Membre',

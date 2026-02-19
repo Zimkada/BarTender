@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useCallback, ReactNode, useState, useEffect, useMemo, useRef } from 'react';
+import React, { createContext, useContext, useCallback, ReactNode, useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Bar, BarMember, User, UserRole, BarSettings } from '../types';
 import { auditLogger } from '../services/AuditLogger';
@@ -8,21 +8,13 @@ import { ServerMappingsService } from '../services/supabase/server-mappings.serv
 import { toast } from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import type { Database, Json } from '../lib/database.types';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { OfflineStorage } from '../utils/offlineStorage';
 import { offlineQueue } from '../services/offlineQueue';
 import { networkManager } from '../services/NetworkManager';
 
 type BarUpdate = Database['public']['Tables']['bars']['Update'];
 
-/**
- * ✅ Type-safe interface for offline bar update operations
- * Prevents unsafe `as any` casts when queueing updates
- */
-interface OfflineBarUpdate {
-  barId: string;
-  updates: Partial<BarUpdate>;
-}
+
 
 
 
@@ -48,10 +40,10 @@ interface BarContextType {
   removeBarMember: (memberId: string) => Promise<{ success: boolean; error?: string }>;
   updateBarMember: (memberId: string, updates: Partial<BarMember>) => Promise<void>;
 
-  // Helpers
   isOwner: (barId: string) => boolean;
   canAccessBar: (barId: string) => boolean;
   refreshBars: () => Promise<void>;
+  refreshMembers: (barId: string, forceOnline?: boolean) => Promise<void>;
 }
 
 export const BarContext = createContext<BarContextType | undefined>(undefined);
@@ -175,7 +167,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   /* ------------------------------------------------------------------
    * REFRESH MEMBERS (OPTIMIZED)
    * ------------------------------------------------------------------ */
-  const refreshMembers = useCallback(async (targetBarId: string) => {
+  const refreshMembers = useCallback(async (targetBarId: string, forceOnline = false) => {
     if (!targetBarId || targetBarId === 'admin_global') return;
 
     try {
@@ -184,13 +176,14 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const cachedMappings = OfflineStorage.getMappings(targetBarId) || [];
       // (Pas de cache members générique dans OfflineStorage actuel, on fera avec)
 
-      // 2. Network Check
+      // 2. Network Check (forceOnline bypasse le shouldBlock après une action utilisateur explicite)
       const { shouldBlock } = networkManager.getDecision();
+      const isBlocked = !forceOnline && shouldBlock;
 
       // 3. Fetch Data (Fail-fast, pas de retry agressif 3x5s)
       const [membersResult, mappingsResult] = await Promise.allSettled([
-        shouldBlock ? Promise.reject('Offline') : AuthService.getBarMembers(targetBarId),
-        shouldBlock ? Promise.resolve(cachedMappings) : ServerMappingsService.getAllMappingsForBar(targetBarId)
+        isBlocked ? Promise.reject('Offline') : AuthService.getBarMembers(targetBarId),
+        isBlocked ? Promise.resolve(cachedMappings) : ServerMappingsService.getAllMappingsForBar(targetBarId)
       ]);
 
       // Traitement Membres
@@ -210,9 +203,11 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             email: m.email,
             phone: m.phone,
             role: m.role as UserRole,
-            // ... autres champs optionnels ...
-            createdAt: new Date(),
-            isActive: true
+            createdAt: m.created_at ? new Date(m.created_at) : new Date(),
+            isActive: m.is_active,
+            firstLogin: m.first_login ?? false,
+            avatarUrl: m.avatar_url || undefined,
+            lastLoginAt: m.last_login_at ? new Date(m.last_login_at) : undefined
           }
         } as BarMember));
         setBarMembers(membersFn);
@@ -365,7 +360,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         console.log('[BarContext] Offline update - queuing changes');
         await offlineQueue.addOperation(
           'UPDATE_BAR',
-          { barId, updates } satisfies OfflineBarUpdate,
+          { barId, updates: updates as any },
           barId,
           currentSession.userId
         );
@@ -503,7 +498,6 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         user: {
           id: m.id,
           username: m.username || '',
-          password: '',
           name: m.name,
           phone: m.phone,
           email: m.email,
@@ -512,7 +506,6 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           firstLogin: m.first_login ?? false,
           avatarUrl: m.avatar_url || undefined,
           lastLoginAt: m.last_login_at ? new Date(m.last_login_at) : undefined,
-          createdBy: undefined,
           role: m.role as UserRole
         }
       }));
@@ -585,6 +578,9 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         m.id === memberId ? { ...m, isActive: false } : m
       ));
 
+      // Force background refresh to sync other fields
+      await refreshMembers(currentBar.id);
+
       return { success: true };
     } catch (error: any) {
       console.error('[BarContext] Error removing member:', error);
@@ -630,6 +626,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     isOwner,
     canAccessBar,
     refreshBars,
+    refreshMembers
   };
 
   return (

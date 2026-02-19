@@ -2,7 +2,6 @@ import { createContext, useContext } from 'react';
 import {
   Category,
   Product,
-  Supply,
   Sale,
   AppSettings,
   Return,
@@ -32,31 +31,16 @@ export interface AppContextType {
   updateCategory: (id: string, updates: Partial<Category>) => void;
   deleteCategory: (id: string) => void;
 
-  // Produits (lecture seule - mutations via StockContext)
-  getProductsByCategory: (categoryId: string) => Product[];
-  getProductById: (id: string) => Product | undefined;
-
-  // Approvisionnements
-  getSuppliesByProduct: (productId: string) => Supply[];
-  getTotalCostByProduct: (productId: string) => number;
-  getAverageCostPerUnit: (productId: string) => number;
 
   // Ventes
   addSale: (saleData: Partial<Sale>) => Promise<Sale | null>;
   validateSale: (saleId: string, validatorId: string) => void;
   rejectSale: (saleId: string, rejectorId: string) => void;
-  getSalesByDate: (startDate: Date, endDate: Date, includePending?: boolean) => Sale[];
-  getTodaySales: (includePending?: boolean) => Sale[];
-  getTodayTotal: () => number;
-  getSalesByUser: (userId: string) => Sale[];
-  getServerRevenue: (userId: string, startDate?: Date, endDate?: Date) => number;
-  getServerReturns: (userId: string) => Return[];
 
   // Retours (État géré par useUnifiedReturns)
   addReturn: (returnData: Omit<Return, 'id' | 'barId'>) => void;
   updateReturn: (returnId: string, updates: Partial<Return>) => void;
   deleteReturn: (returnId: string) => void;
-  getPendingReturns: () => Return[];
   provideExchange: (returnData: any, swapProduct: Product, ticketId?: string) => Promise<void>;
 
   // Dépenses (État géré par useUnifiedExpenses)
@@ -65,11 +49,7 @@ export interface AppContextType {
   deleteExpense: (expenseId: string) => void;
   addCustomExpenseCategory: (name: string, icon: string, createdBy: string) => void;
 
-  // Paramètres
   updateSettings: (updates: Partial<AppSettings>) => void;
-
-  // Initialisation
-  initializeBarData: (barId: string) => void;
 }
 
 export const AppContext = createContext<AppContextType | undefined>(undefined);

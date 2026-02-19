@@ -1,12 +1,11 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database, Json } from '../../lib/database.types';
-import { Bar, BarSettings } from '../../types';
+import { Bar, BarSettings, UserRole } from '../../types';
 import { getErrorMessage } from '../../utils/errorHandler';
 
 type BarRow = Database['public']['Tables']['bars']['Row'];
 // type BarInsert = Database['public']['Tables']['bars']['Insert']; // Unused
 type BarUpdate = Database['public']['Tables']['bars']['Update'];
-type BarMemberInsert = Database['public']['Tables']['bar_members']['Insert'];
 
 /**
  * ✅ Type-safe interface pour la vue SQL admin_bars_list
@@ -590,14 +589,13 @@ export class BarsService {
     assignedByUserId: string // ✅ Added required field for audit
   ): Promise<{ success: boolean; message?: string; error?: string }> {
     try {
-      const { data, error } = await supabase
-        .rpc('add_bar_member_lookup', {
-          p_bar_id: barId,
-          p_role: role,
-          p_assigned_by_id: assignedByUserId,
-          p_user_id: identifier.userId ?? undefined,
-          p_email: identifier.email ?? undefined
-        });
+      const { data, error } = await (supabase.rpc as any)('add_bar_member_lookup', {
+        p_bar_id: barId,
+        p_role: role,
+        p_assigned_by_id: assignedByUserId,
+        p_user_id: identifier.userId ?? undefined,
+        p_email: identifier.email ?? undefined
+      });
 
       if (error) {
         throw error;
@@ -632,7 +630,7 @@ export class BarsService {
     }
 
     try {
-      const { data, error } = await supabase.rpc('add_bar_member_v2', {
+      const { data, error } = await (supabase.rpc as any)('add_bar_member_v2', {
         p_bar_id: barId,
         p_user_id: userId,
         p_role: role,
@@ -666,7 +664,7 @@ export class BarsService {
     removedByUserId: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { data, error } = await supabase.rpc('remove_bar_member_v2', {
+      const { data, error } = await (supabase.rpc as any)('remove_bar_member_v2', {
         p_bar_id: barId,
         p_user_id_to_remove: userIdToRemove,
         p_removed_by_id: removedByUserId
@@ -708,7 +706,7 @@ export class BarsService {
     action: 'create_manager' | 'create_server' | 'remove_member'
   ): Promise<boolean> {
     try {
-      const { data, error } = await supabase.rpc('check_user_can_manage_members', {
+      const { data, error } = await (supabase.rpc as any)('check_user_can_manage_members', {
         p_bar_id: barId,
         p_user_id: userId,
         p_action: action

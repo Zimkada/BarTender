@@ -9,7 +9,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUnifiedSales } from '../../hooks/pivots/useUnifiedSales';
 import { useBarContext } from '../../context/BarContext';
-import { useAppContext } from '../../context/AppContext';
+import { useUnifiedReturns } from '../../hooks/pivots/useUnifiedReturns';
 import { useAuth } from '../../context/AuthContext';
 import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { useFeedback } from '../../hooks/useFeedback';
@@ -44,9 +44,9 @@ export function CreateConsignmentForm({
     const { isMobile } = useViewport();
     const { currentBar, barMembers } = useBarContext();
     const { sales: allSales } = useUnifiedSales(currentBar?.id);
-    const { getReturnsBySale } = useAppContext(); // On garde ça pour l'instant si returns pas encore migrés partout
     const { formatPrice } = useCurrencyFormatter();
     const { currentSession: session } = useAuth();
+    const { getReturnsBySale } = useUnifiedReturns(currentBar?.id);
     const { showSuccess, showError } = useFeedback();
 
     const users = useMemo(() =>
@@ -91,7 +91,7 @@ export function CreateConsignmentForm({
                 const sDate = getBusinessDate(s, currentBar?.closingHour);
                 return sDate === currentBusinessDate;
             })
-            .sort((a, b) => new Date(b.created_at || b.createdAt).getTime() - new Date(a.created_at || a.createdAt).getTime());
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }, [allSales, currentBar?.closingHour]);
 
     const filteredSales = useMemo(() => {

@@ -5,7 +5,7 @@ import { SalesService } from '../../services/supabase/sales.service';
 import { ReturnsService } from '../../services/supabase/returns.service';
 import { TicketRow } from '../../services/supabase/tickets.service';
 import { useBarContext } from '../../context/BarContext';
-import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
+import { useBeninCurrency } from '../../hooks/useBeninCurrency';
 import { Button } from '../ui/Button';
 import { formatTicketInfo } from '../../utils/formatTicketInfo';
 import type { TicketWithSummary } from '../../hooks/queries/useTickets';
@@ -29,7 +29,7 @@ interface AggregatedItem {
 
 export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, ticket, onClose }: InvoiceModalProps) {
     const { currentBar } = useBarContext();
-    const { formatPrice } = useCurrencyFormatter();
+    const { formatPrice } = useBeninCurrency();
     const [sales, setSales] = useState<any[]>([]);
     const [returns, setReturns] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -229,7 +229,7 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
 
                                 {/* Items table */}
                                 <div>
-                                    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">
+                                    <div className="grid grid-cols-[1fr_25px_50px_70px] gap-x-2 text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">
                                         <span>Produit</span>
                                         <span className="text-right">Qté</span>
                                         <span className="text-right">P.U</span>
@@ -237,11 +237,11 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
                                     </div>
                                     <div className="space-y-1.5">
                                         {filteredItems.map((item, i) => (
-                                            <div key={i} className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 text-[11px] text-gray-800 px-1">
-                                                <span className="font-black">{item.name}</span>
-                                                <span className="text-right text-gray-500">{item.qty}</span>
-                                                <span className="text-right text-gray-500 font-mono">{formatPrice(item.unitPrice)}</span>
-                                                <span className="text-right font-black font-mono">{formatPrice(item.total)}</span>
+                                            <div key={i} className="grid grid-cols-[1fr_25px_50px_70px] gap-x-2 text-[11px] text-gray-800 px-1 items-center">
+                                                <span className="font-black truncate">{item.name}</span>
+                                                <span className="text-right text-gray-500 whitespace-nowrap">{item.qty}</span>
+                                                <span className="text-right text-gray-500 font-mono whitespace-nowrap">{formatPrice(item.unitPrice, { showSymbol: false })}</span>
+                                                <span className="text-right font-black font-mono whitespace-nowrap">{formatPrice(item.total)}</span>
                                             </div>
                                         ))}
                                     </div>
