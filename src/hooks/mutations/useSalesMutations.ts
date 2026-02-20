@@ -320,7 +320,32 @@ export const useSalesMutations = (barId: string) => {
         },
     });
 
-    return { createSale, validateSale, rejectSale, cancelSale, deleteSale };
+    const rejectMultipleSales = useMutation({
+        mutationFn: async ({ saleIds, rejectorId, reason }: { saleIds: string[]; rejectorId: string; reason?: string }) => {
+            const result = await SalesService.rejectMultipleSales(saleIds, rejectorId, reason);
+
+            if (result.failed > 0) {
+                console.error(`[useSalesMutations] ${result.failed} rejets ont échoué via RPC batch.`);
+                if (result.success === 0) {
+                    throw new Error("Tous les rejets ont échoué.");
+                }
+            }
+            return { attempted: saleIds.length, failed: result.failed, success: result.success };
+        },
+        onSuccess: (result) => {
+            if (result.failed > 0) {
+                toast.success(`${result.success} ventes rejetées, ${result.failed} échecs.`);
+            } else {
+                toast.success('Toutes les ventes orphelines ont été rejetées et le stock libéré.');
+            }
+            queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
+            queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+            queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
+            queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock', barId] });
+        },
+    });
+
+    return { createSale, validateSale, rejectSale, cancelSale, deleteSale, rejectMultipleSales };
 };
 
 const mapSaleRowToSale = (savedSaleRow: SaleRow): Sale => {

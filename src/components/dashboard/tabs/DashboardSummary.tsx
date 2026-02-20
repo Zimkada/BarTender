@@ -7,6 +7,7 @@ import { DataFreshnessIndicatorCompact } from '../../DataFreshnessIndicator';
 import { AnimatedCounter } from '../../AnimatedCounter';
 import { EnhancedButton } from '../../EnhancedButton';
 import { Bar, Product, ProductStockInfo } from '../../../types';
+import { StaleSalesCleanupBanner } from '../StaleSalesCleanupBanner';
 
 interface DashboardSummaryProps {
     // Data
@@ -59,6 +60,10 @@ export function DashboardSummary({
 
     return (
         <div className="space-y-6">
+            {!isServerRole && currentBar?.id && currentBar.id !== '00000000-0000-0000-0000-000000000000' && (
+                <StaleSalesCleanupBanner barId={currentBar.id} />
+            )}
+
             {/* Stats Grid avec design amélioré */}
             <div className="flex items-center justify-between mb-2">
                 <h2 className="text-lg font-bold text-gray-900">Indicateurs clés</h2>

@@ -251,16 +251,39 @@ export class SalesService {
     }
   }
 
-  static async rejectSale(id: string, rejectedBy: string): Promise<void> {
+  static async rejectSale(id: string, rejectedBy: string, reason?: string): Promise<void> {
     try {
       // ✅ Expert Fix: Use atomic RPC to handle both status update AND
       // conditional stock restoration (only if it was validated)
       const { error } = await supabase.rpc('reject_sale' as any, {
         p_sale_id: id,
-        p_rejected_by: rejectedBy
+        p_rejected_by: rejectedBy,
+        p_note: reason || null
       });
 
       if (error) throw error;
+    } catch (error) {
+      throw new Error(handleSupabaseError(error));
+    }
+  }
+
+  static async rejectMultipleSales(saleIds: string[], rejectedBy: string, reason?: string): Promise<{ success: number; failed: number }> {
+    try {
+      const { data, error } = await supabase.rpc('reject_multiple_sales' as any, {
+        p_sale_ids: saleIds,
+        p_rejector_id: rejectedBy,
+        p_reason: reason || null
+      });
+
+      if (error) throw error;
+
+      // RPC returns a table with success_count and failure_count, we handle the first row
+      const result = Array.isArray(data) && data.length > 0 ? data[0] : { success_count: 0, failure_count: 0 };
+
+      return {
+        success: result.success_count || 0,
+        failed: result.failure_count || 0
+      };
     } catch (error) {
       throw new Error(handleSupabaseError(error));
     }
