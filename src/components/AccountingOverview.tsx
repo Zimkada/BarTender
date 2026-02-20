@@ -3,7 +3,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   DollarSign,
   Download,
-  Plus
+  Plus,
+  FileSpreadsheet
 } from 'lucide-react';
 import { PeriodFilter } from './common/filters/PeriodFilter';
 import { Button } from './ui/Button';
@@ -38,7 +39,11 @@ import {
   analyticsKeys
 } from '../hooks/queries/useAnalyticsQueries';
 import { ACCOUNTING_FILTERS } from '../config/dateFilters';
-
+import { SyscohadaTranslator } from '../services/accounting/syscohada.service';
+import { BarAccountingConfigSchema } from '../services/accounting/syscohada.types';
+import { AccountingTransaction } from '../types';
+import { useSalaries } from '../hooks/useSalaries';
+import { getErrorMessage } from '../utils/errorHandler';
 
 export function AccountingOverview() {
   const { currentSession } = useAuth();
@@ -73,6 +78,7 @@ export function AccountingOverview() {
   const initialBalanceHook = useInitialBalance(currentBar?.id);
   const capitalContributionsHook = useCapitalContributions(currentBar?.id);
   const { returns: unifiedReturns } = useUnifiedReturns(currentBar?.id, currentBar?.closingHour);
+  const { salaries } = useSalaries(currentBar?.id ?? '');
   const { customExpenseCategories } = useAppContext();
 
   // 📈 PHASE 4: RECOVERY ANALYTICS (React Query Driven)
@@ -116,8 +122,9 @@ export function AccountingOverview() {
   // ✨ Filtrage Centralisé Local des données unifiées
   const filteredSales = useMemo(() => {
     return unifiedSales.filter(s => {
-      const rawDate = (s as any).businessDate || (s as any).business_date || (s as any).createdAt || (s as any).created_at || new Date();
-      const date = rawDate instanceof Date ? rawDate : new Date(rawDate);
+      const saleObj = s as Record<string, unknown>;
+      const rawDate = saleObj.businessDate || saleObj.business_date || saleObj.createdAt || saleObj.created_at || new Date();
+      const date = rawDate instanceof Date ? rawDate : new Date(rawDate as string | number);
       return date >= periodStart && date <= periodEnd;
     });
   }, [unifiedSales, periodStart, periodEnd]);
@@ -134,6 +141,7 @@ export function AccountingOverview() {
   }, [filteredSales]);
 
   const [viewMode, setViewMode] = useState<'tresorerie' | 'analytique'>('tresorerie');
+  const [isExporting, setIsExporting] = useState(false);
 
   // Modals state
   const [showInitialBalanceModal, setShowInitialBalanceModal] = useState(false);
@@ -275,12 +283,12 @@ export function AccountingOverview() {
       if (exp.category === 'custom' && exp.customCategoryId) key = exp.customCategoryId;
 
       if (!groups[key]) {
-        const data = (EXPENSE_CATEGORY_LABELS as any)[exp.category];
+        const data = (EXPENSE_CATEGORY_LABELS as Record<string, { label: string; icon: string }>)[exp.category];
         let label = data?.label || exp.category;
         let icon = data?.icon || '📝';
         if (exp.isSupply) { label = 'Approvisionnements'; icon = '📦'; }
         else if (exp.category === 'custom' && exp.customCategoryId) {
-          const cat = customExpenseCategories.find((c: any) => c.id === exp.customCategoryId);
+          const cat = customExpenseCategories.find((c: { id: string; name: string; icon: string }) => c.id === exp.customCategoryId);
           label = cat?.name || 'Personnalisée';
           icon = cat?.icon || '📝';
         }
@@ -334,18 +342,9 @@ export function AccountingOverview() {
     const XLSX = await import('xlsx');
     const workbook = XLSX.utils.book_new();
 
-    // ... (Re-implementing export logic based on previous file content)
-    // To save tokens/time and strictness, I will simplify or copy-paste the logic if I can.
-    // I already have the logic in the previous file view.
-    // I will include the critical parts.
-
-    // Filtrage pour export
-    const exportSales = unifiedSales.filter(sale => {
-      const saleObj = sale as any;
-      const saleDate = new Date(saleObj.businessDate || saleObj.createdAt || new Date());
-      return sale.status === 'validated' && saleDate >= periodStart && saleDate <= periodEnd;
-    });
-    const exportExpenses = unifiedExpenses.filter(e => e.date >= periodStart && e.date <= periodEnd);
+    // Filtrage pour export (data déjà filtrée par période via hooks)
+    const exportSales = filteredSales.filter(sale => sale.status === 'validated');
+    const exportExpenses = filteredExpenses;
 
     const summaryData = [
       ['RAPPORT COMPTABLE', currentBar?.name || ''],
@@ -363,13 +362,14 @@ export function AccountingOverview() {
 
     // Ventes
     const salesData = exportSales.flatMap(sale => {
-      const saleObj = sale as any;
-      const saleDate = new Date(saleObj.businessDate || saleObj.createdAt || new Date());
+      const saleObj = sale as Record<string, unknown>;
+      const rawDate = saleObj.businessDate || saleObj.business_date || saleObj.createdAt || saleObj.created_at || new Date();
+      const saleDate = rawDate instanceof Date ? rawDate : new Date(rawDate as string | number);
       return (sale.items || []).map(item => ({
         Date: saleDate.toLocaleDateString(),
         Produit: item.product_name,
         Total: item.total_price,
-        Paiement: saleObj.paymentMethod
+        Paiement: (saleObj.paymentMethod as string) || 'cash'
       }));
     });
     if (salesData.length) XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(salesData), 'Ventes');
@@ -377,13 +377,158 @@ export function AccountingOverview() {
     // Dépenses
     const expensesData = exportExpenses.map(e => ({
       Date: e.date.toLocaleDateString(),
-      Catégorie: (EXPENSE_CATEGORY_LABELS as any)[e.category]?.label || e.category,
+      Catégorie: (EXPENSE_CATEGORY_LABELS as Record<string, { label: string }>)[e.category]?.label || e.category,
       Montant: e.amount,
       Note: e.notes
     }));
     if (expensesData.length) XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(expensesData), 'Dépenses');
 
     XLSX.writeFile(workbook, `Comptabilite_${periodLabel}.xlsx`);
+  };
+
+  const handleExportSyscohada = async () => {
+    if (!currentBar) return;
+    setIsExporting(true);
+    try {
+      const transactions: AccountingTransaction[] = [];
+
+      // Ventes (filteredSales déjà filtré par période via hook serveur + filtre local)
+      const exportSales = filteredSales.filter(sale => sale.status === 'validated');
+      exportSales.forEach(sale => {
+        const saleObj = sale as Record<string, unknown>;
+        const rawCreatedAt = saleObj.createdAt || saleObj.created_at || new Date();
+        const rawBusinessDate = saleObj.businessDate || saleObj.business_date;
+        transactions.push({
+          id: sale.id,
+          barId: currentBar.id,
+          type: 'sale',
+          amount: sale.total,
+          paymentMethod: (saleObj.paymentMethod as string) || 'cash',
+          date: rawCreatedAt instanceof Date ? rawCreatedAt : new Date(rawCreatedAt as string | number),
+          businessDate: rawBusinessDate
+            ? (rawBusinessDate instanceof Date ? rawBusinessDate : new Date(rawBusinessDate as string | number))
+            : undefined,
+          description: `Ventes du service`,
+          createdBy: sale.createdBy,
+          createdAt: rawCreatedAt instanceof Date ? rawCreatedAt : new Date(rawCreatedAt as string | number)
+        });
+      });
+
+      // Dépenses (filteredExpenses déjà filtré par période — salaires exclus, traités séparément)
+      filteredExpenses.filter(e => e.category !== 'salary').forEach(e => {
+        transactions.push({
+          id: e.id,
+          barId: currentBar.id,
+          type: e.category === 'supply' ? 'supply' : 'expense',
+          amount: e.amount,
+          // Pour les catégories personnalisées, passer l'UUID (customCategoryId) afin que
+          // le mapping configMappings fonctionne (clé = UUID, pas la valeur 'custom')
+          category: e.customCategoryId || e.category,
+          date: e.date,
+          description: e.notes || `Dépense ${e.category}`,
+          createdBy: e.createdBy,
+          createdAt: e.date
+        });
+      });
+
+      // Retours
+      const exportReturns = unifiedReturns.filter(r => {
+        if (!isConfirmedReturn(r)) return false;
+        const d = new Date(r.returnedAt);
+        return d >= periodStart && d <= periodEnd;
+      });
+      exportReturns.forEach(r => {
+        const returnObj = r as Record<string, unknown>;
+        transactions.push({
+          id: r.id,
+          barId: currentBar.id,
+          type: 'return',
+          amount: r.refundAmount,
+          paymentMethod: (returnObj.originalPaymentMethod as string) || 'cash',
+          date: new Date(r.returnedAt),
+          description: `Retour ${(returnObj.reason as string) || ''}`,
+          createdBy: r.returnedBy,
+          createdAt: new Date(r.returnedAt)
+        });
+      });
+
+      // Salaires
+      const exportSalaries = salaries.filter(s => {
+        const d = new Date(s.paidAt);
+        return d >= periodStart && d <= periodEnd;
+      });
+      exportSalaries.forEach(s => {
+        const memberLabel = s.memberName || s.staffName || '';
+        transactions.push({
+          id: s.id,
+          barId: s.barId,
+          type: 'salary',
+          amount: s.amount,
+          date: new Date(s.paidAt),
+          description: `Salaire${memberLabel ? ` - ${memberLabel}` : ''} (${s.period})`,
+          createdBy: s.createdBy,
+          createdAt: new Date(s.createdAt)
+        });
+      });
+
+      // Config validée avec Zod (fail-safe: utilise les défauts si invalide)
+      const configParsed = BarAccountingConfigSchema.safeParse(currentBar.settings?.accounting ?? {});
+      const config = configParsed.success ? configParsed.data : {};
+
+      // Translate basic transactions
+      const entries = SyscohadaTranslator.translateTransactions(transactions, config);
+
+      // Capital Contributions
+      const exportContribs = capitalContributionsHook.contributions.filter(c => {
+        const d = new Date(c.date);
+        return d >= periodStart && d <= periodEnd;
+      });
+      const capitalEntries = SyscohadaTranslator.translateCapitalContributions(exportContribs);
+
+      // Initial Balance (if inside the period)
+      const initBal = initialBalanceHook.initialBalance;
+      if (initBal) {
+        const db = new Date(initBal.date);
+        if (db >= periodStart && db <= periodEnd) {
+          const initEntries = SyscohadaTranslator.translateTransactions([{
+            id: initBal.id,
+            barId: initBal.barId,
+            type: 'initial_balance',
+            amount: initBal.amount,
+            date: new Date(initBal.date),
+            description: initBal.description,
+            createdBy: initBal.createdBy,
+            createdAt: new Date(initBal.createdAt)
+          }], config);
+          entries.push(...initEntries);
+        }
+      }
+
+      // Combine and sort chronologically
+      const allEntries = [...entries, ...capitalEntries].sort((a, b) => a.date.getTime() - b.date.getTime());
+
+      // Guard: ne pas générer un fichier vide
+      if (allEntries.length === 0) {
+        alert('Aucune écriture comptable à exporter pour cette période.');
+        return;
+      }
+
+      // Generate Excel — format légal "Du JJ/MM/AAAA au JJ/MM/AAAA"
+      const formatDateFR = (d: Date) =>
+        d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      const barInfo = {
+        name: currentBar.name,
+        rccm: currentBar.settings.rccm,
+        ifu: currentBar.settings.ifu,
+        dateStr: `Du ${formatDateFR(periodStart)} au ${formatDateFR(periodEnd)}`
+      };
+
+      await SyscohadaTranslator.exportJournalExcel(allEntries, barInfo);
+    } catch (error) {
+      alert(`Erreur lors de l'export : ${getErrorMessage(error)}`);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const queryClient = useQueryClient();
@@ -411,16 +556,20 @@ export function AccountingOverview() {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportAccounting}>
-            <Download size={16} className="mr-2" />
-            Export
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+          <Button variant="outline" size="sm" onClick={handleExportSyscohada} disabled={isExporting} className="w-full sm:w-auto border-green-600 text-green-700 hover:bg-green-50 disabled:opacity-50 justify-center sm:justify-start">
+            <FileSpreadsheet size={16} className="mr-2" />
+            {isExporting ? 'Export en cours...' : 'Livre Journal'}
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowInitialBalanceModal(true)}>
+          <Button variant="outline" size="sm" onClick={handleExportAccounting} className="w-full sm:w-auto justify-center sm:justify-start">
+            <Download size={16} className="mr-2" />
+            Export Simple
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setShowInitialBalanceModal(true)} className="w-full sm:w-auto justify-center sm:justify-start">
             <DollarSign size={16} className="mr-2" />
             Solde Initial
           </Button>
-          <Button variant="default" size="sm" onClick={() => setShowCapitalContributionModal(true)} className="bg-blue-600 hover:bg-blue-700">
+          <Button variant="default" size="sm" onClick={() => setShowCapitalContributionModal(true)} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 justify-center sm:justify-start">
             <Plus size={16} className="mr-2" />
             Apport Capital
           </Button>
@@ -430,16 +579,16 @@ export function AccountingOverview() {
       {/* Controls Bar */}
       <div className="bg-white/50 backdrop-blur-sm border border-white/60 p-1.5 rounded-xl shadow-sm flex flex-col xl:flex-row gap-2 justify-between items-center">
         {/* View Mode Switcher */}
-        <div className="flex bg-white/40 backdrop-blur-md rounded-2xl p-1 gap-1.5 border border-brand-subtle shadow-sm w-full md:w-auto overflow-hidden">
+        <div className="flex bg-white/40 backdrop-blur-md rounded-2xl p-1 gap-1.5 border border-brand-subtle shadow-sm w-full md:flex-1 overflow-hidden">
           <button
             onClick={() => setViewMode('tresorerie')}
-            className={`px-4 py-2 h-10 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all sm:min-w-[120px] flex-1 md:flex-none ${viewMode === 'tresorerie' ? 'glass-action-button-active-2026 shadow-md shadow-brand-subtle text-brand-primary' : 'glass-action-button-2026 text-gray-500 hover:text-brand-primary'}`}
+            className={`px-4 py-2 h-10 md:px-6 md:h-11 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-tight transition-all sm:min-w-[120px] flex-1 ${viewMode === 'tresorerie' ? 'glass-action-button-active-2026 shadow-md shadow-brand-subtle text-brand-primary' : 'glass-action-button-2026 text-gray-500 hover:text-brand-primary'}`}
           >
             Trésorerie
           </button>
           <button
             onClick={() => setViewMode('analytique')}
-            className={`px-4 py-2 h-10 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all sm:min-w-[120px] flex-1 md:flex-none ${viewMode === 'analytique' ? 'glass-action-button-active-2026 shadow-md shadow-brand-subtle text-brand-primary' : 'glass-action-button-2026 text-gray-500 hover:text-brand-primary'}`}
+            className={`px-4 py-2 h-10 md:px-6 md:h-11 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-tight transition-all sm:min-w-[120px] flex-1 ${viewMode === 'analytique' ? 'glass-action-button-active-2026 shadow-md shadow-brand-subtle text-brand-primary' : 'glass-action-button-2026 text-gray-500 hover:text-brand-primary'}`}
           >
             Analytique
           </button>
