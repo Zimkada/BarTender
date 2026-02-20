@@ -515,6 +515,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addCategory,
         linkCategory,
         addCategories, updateCategory, deleteCategory,
+        addSale, validateSale, rejectSale,
         addReturn, updateReturn, deleteReturn, provideExchange,
         addExpense, deleteExpense, addCustomExpenseCategory,
         updateSettings,
