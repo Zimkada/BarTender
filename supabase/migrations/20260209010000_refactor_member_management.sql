@@ -41,9 +41,10 @@ BEGIN
   WHERE bar_id = p_bar_id AND user_id = p_user_id AND is_active = TRUE;
 
   -- Logic based on action
+  IF p_action = 'create_manager' THEN
     -- Only Owner or Super Admin can create managers (already handled)
     -- We also allow anyone with the 'promoteur' role in bar_members
-    RETURN v_user_role = 'promoteur'; 
+    RETURN v_user_role = 'promoteur';
   ELSIF p_action = 'create_server' THEN
     -- Managers can create servers
     RETURN v_user_role = 'gerant' OR v_user_role = 'promoteur';

@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import {
   Plus,
   TrendingDown,
-  LayoutGrid
+  LayoutGrid,
+  Receipt
 } from 'lucide-react';
 import {
   EXPENSE_CATEGORY_LABELS,
@@ -189,7 +190,7 @@ function ExpenseManagerContent() {
             variant="default"
             size="sm"
             onClick={() => setShowExpenseModal(true)}
-            className="bg-rose-600 hover:bg-rose-700 shadow-md shadow-rose-200"
+            className="bg-brand-primary hover:bg-brand-dark shadow-sm text-white"
           >
             <Plus size={18} className="mr-2" />
             Dépense
@@ -199,14 +200,14 @@ function ExpenseManagerContent() {
 
       {/* Period & Total Quick Look */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-1 bg-white/50 backdrop-blur-sm border border-white/60 p-2 rounded-2xl shadow-sm flex items-center justify-between gap-1">
+        <div className="lg:col-span-1 bg-white/40 backdrop-blur-md rounded-2xl p-1 gap-1.5 border border-brand-subtle shadow-sm flex items-center justify-between overflow-hidden">
           {(['week', 'month', 'all'] as PeriodType[]).map(type => (
             <button
               key={type}
               onClick={() => setPeriodType(type)}
-              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all uppercase tracking-wider ${periodType === type
-                ? 'bg-rose-600 text-white shadow-sm'
-                : 'text-gray-400 hover:text-gray-600'
+              className={`flex-1 py-2 px-3 h-10 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all sm:min-w-[80px] ${periodType === type
+                ? 'glass-action-button-active-2026 shadow-md shadow-brand-subtle text-brand-primary'
+                : 'glass-action-button-2026 text-gray-500 hover:text-brand-primary'
                 }`}
             >
               {type === 'week' ? 'Semaine' : type === 'month' ? 'Mois' : 'Tout'}
@@ -214,17 +215,20 @@ function ExpenseManagerContent() {
           ))}
         </div>
 
-        <div className="lg:col-span-2 bg-gradient-to-br from-rose-600 to-rose-700 text-white rounded-2xl p-4 shadow-xl flex items-center justify-between overflow-hidden relative group">
-          <div className="relative z-10">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50 mb-1">Total {periodLabel}</p>
-            <p className="text-3xl font-black tracking-tighter">
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group flex items-center justify-between overflow-hidden relative">
+          <div className="relative z-10 flex flex-col">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
+              Total {periodLabel}
+            </h3>
+            <p className="font-mono font-bold text-gray-900 tracking-tight text-3xl">
               {formatPrice(totalExpenses)}
             </p>
           </div>
-          <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center relative z-10 transition-transform group-hover:scale-110">
-            <TrendingDown className="text-rose-400" size={32} />
+          <div className="p-3 bg-red-50 text-red-600 rounded-xl group-hover:scale-110 transition-transform relative z-10">
+            <TrendingDown size={28} />
           </div>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/10 rounded-full blur-3xl -mr-16 -mt-16" />
+          {/* Decorative Background Element */}
+          <div className="absolute right-0 bottom-0 top-0 w-1/3 bg-gradient-to-l from-gray-50 to-transparent pointer-events-none opacity-50 z-0"></div>
         </div>
       </div>
 
@@ -304,5 +308,3 @@ export function ExpenseManager() {
 
   return <ExpenseManagerContent />;
 }
-
-import { Receipt } from 'lucide-react';

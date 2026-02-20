@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, Suspense, lazy } from 'react';
+import { useState, useMemo, Suspense, lazy } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   DollarSign,
@@ -23,7 +23,7 @@ import { CapitalContributionModal } from '../features/Accounting/components/Capi
 // Lazy load charts to reduce initial bundle size
 const AnalyticsCharts = lazy(() => import('./AnalyticsCharts'));
 
-import { AnalyticsService, DailySalesSummary, ExpensesSummary, SalariesSummary } from '../services/supabase/analytics.service';
+
 import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
 import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
@@ -427,16 +427,16 @@ export function AccountingOverview() {
       {/* Controls Bar */}
       <div className="bg-white/50 backdrop-blur-sm border border-white/60 p-1.5 rounded-xl shadow-sm flex flex-col md:flex-row gap-2 justify-between items-center">
         {/* View Mode Switcher */}
-        <div className="bg-gray-100/80 p-1 rounded-lg flex items-center w-full md:w-auto">
+        <div className="flex bg-white/40 backdrop-blur-md rounded-2xl p-1 gap-1.5 border border-brand-subtle shadow-sm w-full md:w-auto overflow-hidden">
           <button
             onClick={() => setViewMode('tresorerie')}
-            className={`flex-1 md:flex-none px-4 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'tresorerie' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`px-4 py-2 h-10 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all sm:min-w-[120px] flex-1 md:flex-none ${viewMode === 'tresorerie' ? 'glass-action-button-active-2026 shadow-md shadow-brand-subtle text-brand-primary' : 'glass-action-button-2026 text-gray-500 hover:text-brand-primary'}`}
           >
             Trésorerie
           </button>
           <button
             onClick={() => setViewMode('analytique')}
-            className={`flex-1 md:flex-none px-4 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'analytique' ? 'bg-white text-purple-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`px-4 py-2 h-10 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all sm:min-w-[120px] flex-1 md:flex-none ${viewMode === 'analytique' ? 'glass-action-button-active-2026 shadow-md shadow-brand-subtle text-brand-primary' : 'glass-action-button-2026 text-gray-500 hover:text-brand-primary'}`}
           >
             Analytique
           </button>
