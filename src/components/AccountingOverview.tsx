@@ -173,24 +173,27 @@ export function AccountingOverview() {
       const year = date.getFullYear();
       const monthKey = `${month} ${year}`;
 
-      const monthStat = chartStats.find(s => {
-        const sDate = new Date(s.sale_month);
-        return sDate.getFullYear() === year && sDate.getMonth() === date.getMonth();
-      });
+      const expectedMonthPrefix = `${year}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 
-      const monthExpenseStat = chartExpenses.find(e => {
-        const eDate = new Date(e.expense_month);
-        return eDate.getFullYear() === year && eDate.getMonth() === date.getMonth();
+      // Sum all daily rows that fall into this month (string prefix avoids tz bugs)
+      const monthStats = chartStats.filter(s => {
+        const dateStr = s.sale_date || s.sale_month || '';
+        return dateStr.startsWith(expectedMonthPrefix);
       });
+      // Fallback to gross_revenue if net_revenue is undefined (e.g., pending database view migration)
+      const monthRevenue = monthStats.reduce((sum, s) => sum + (Number(s.net_revenue ?? (s as any).gross_revenue ?? (s as any).total_revenue ?? 0) || 0), 0);
 
-      const monthSalaryStat = chartSalaries.find(s => {
-        const sDate = new Date(s.payment_month);
-        return sDate.getFullYear() === year && sDate.getMonth() === date.getMonth();
+      const monthExpenseStats = chartExpenses.filter(e => {
+        const dateStr = e.expense_date || e.expense_month || '';
+        return dateStr.startsWith(expectedMonthPrefix);
       });
+      const monthOperatingExpenses = monthExpenseStats.reduce((sum, e) => sum + (Number(e.operating_expenses) || 0), 0);
 
-      const monthRevenue = monthStat ? (monthStat.net_revenue || 0) : 0;
-      const monthOperatingExpenses = monthExpenseStat ? (monthExpenseStat.operating_expenses || 0) : 0;
-      const monthSalaries = monthSalaryStat ? (monthSalaryStat.total_salaries || 0) : 0;
+      const monthSalaryStats = chartSalaries.filter(s => {
+        const dateStr = s.payment_date || s.payment_month || '';
+        return dateStr.startsWith(expectedMonthPrefix);
+      });
+      const monthSalaries = monthSalaryStats.reduce((sum, s) => sum + (Number(s.total_salaries) || 0), 0);
 
       return {
         name: monthKey,

@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { Select } from './ui/Select';
 import { useTheme } from '../context/ThemeContext';
 import { ThemeService } from '../services/theme.service';
 import {
@@ -31,18 +30,29 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       <div className="bg-white/90 backdrop-blur-md p-3 rounded-xl border border-gray-100 shadow-[0_4px_20px_rgb(0,0,0,0.08)]">
         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{label}</p>
         <div className="space-y-1">
-          {payload.map((entry: any, index: number) => (
-            <div key={index} className="flex items-center gap-2">
-              <div
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: entry.color }}
-              />
-              <span className="text-sm font-medium text-gray-700">{entry.name}:</span>
-              <span className="text-sm font-bold text-gray-900">
-                {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(entry.value)}
-              </span>
-            </div>
-          ))}
+          {payload.map((entry: any, index: number) => {
+            let rawValue = entry.value;
+            if (Array.isArray(rawValue)) {
+              rawValue = rawValue[1] - rawValue[0];
+            }
+            if (rawValue === undefined || rawValue === null) {
+              rawValue = entry.payload?.[entry.dataKey];
+            }
+            const numVal = Number(rawValue) || 0;
+
+            return (
+              <div key={index} className="flex items-center gap-2">
+                <div
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: entry.color || entry.fill }}
+                />
+                <span className="text-sm font-medium text-gray-700">{entry.name}:</span>
+                <span className="text-sm font-bold text-gray-900">
+                  {new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF', maximumFractionDigits: 0 }).format(numVal)}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
@@ -50,20 +60,36 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+const RADIAN = Math.PI / 180;
+const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.45; // Put slightly inside center
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+  if (percent < 0.04) return null; // Hide text for very small slices
+
+  return (
+    <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-xs font-bold" style={{ textShadow: '0px 1px 2px rgba(0,0,0,0.3)' }}>
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+};
+
 const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => {
   const [timeRange, setTimeRange] = useState(12);
 
   const { themeConfig } = useTheme();
 
-  const { chartColors, brandPrimary } = useMemo(() => {
+  const { chartColors, brandPrimary, brandAccent } = useMemo(() => {
     const colors = ThemeService.getColors(themeConfig);
     return {
-      brandPrimary: colors.primary,
+      brandPrimary: colors.primary, // Lourd/Fort (Revenus)
+      brandAccent: colors.accent,   // Clair/Adouci (Dépenses)
       chartColors: [
-        colors.primary, // Brand Primary
-        '#3b82f6', // Bleu (Services/Eau)
-        '#f59e0b', // Amber (Dépenses)
-        '#a855f7', // Violet (Investissements)
+        colors.primary,
+        colors.secondary,
+        colors.accent,
+        '#3b82f6', // Bleu
         '#10b981', // Emeraude
         '#6b7280', // Gris
       ]
@@ -78,18 +104,23 @@ const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => 
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-end">
-        <Select
-          options={[
-            { value: '3', label: '3 derniers mois' },
-            { value: '6', label: '6 derniers mois' },
-            { value: '12', label: '12 derniers mois' },
-          ]}
-          value={timeRange.toString()}
-          onChange={(e) => setTimeRange(parseInt(e.target.value))}
-          size="sm"
-          className="w-48"
-        />
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+        <h2 className="text-lg font-bold text-gray-900">Tendances Historiques</h2>
+        <div className="flex bg-white/40 backdrop-blur-md rounded-2xl p-1 gap-1.5 border border-brand-subtle shadow-sm w-full md:w-auto overflow-hidden">
+          {[
+            { value: 3, label: '3 Mois' },
+            { value: 6, label: '6 Mois' },
+            { value: 12, label: '12 Mois' }
+          ].map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setTimeRange(opt.value)}
+              className={`px-4 py-2 h-10 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all sm:min-w-[100px] flex-1 md:flex-none ${timeRange === opt.value ? 'glass-action-button-active-2026 shadow-md shadow-brand-subtle text-brand-primary' : 'glass-action-button-2026 text-gray-500 hover:text-brand-primary'}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Évolution Solde Cumulatif */}
@@ -100,12 +131,12 @@ const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => 
             <AreaChart data={filteredData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorRevenus" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={brandPrimary} stopOpacity={0.15} />
-                  <stop offset="95%" stopColor={brandPrimary} stopOpacity={0} />
+                  <stop offset="5%" stopColor={brandPrimary} stopOpacity={0.45} />
+                  <stop offset="95%" stopColor={brandPrimary} stopOpacity={0.05} />
                 </linearGradient>
                 <linearGradient id="colorCouts" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                  <stop offset="5%" stopColor={brandAccent} stopOpacity={0.25} />
+                  <stop offset="95%" stopColor={brandAccent} stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
@@ -126,11 +157,11 @@ const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => 
               <Area
                 type="monotone"
                 dataKey="Coûts Opérationnels"
-                stroke="#f59e0b"
+                stroke={brandAccent}
                 strokeWidth={3}
                 fillOpacity={1}
                 fill="url(#colorCouts)"
-                activeDot={{ r: 6, strokeWidth: 0, fill: '#f59e0b' }}
+                activeDot={{ r: 6, strokeWidth: 0, fill: brandAccent }}
                 isAnimationActive={false}
               />
             </AreaChart>
@@ -145,6 +176,7 @@ const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => 
           <div style={{ width: '100%', height: 300 }}>
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={300}>
               <PieChart>
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
                 <Pie
                   data={expenseData}
                   cx="50%"
@@ -155,7 +187,8 @@ const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => 
                   dataKey="value"
                   isAnimationActive={false}
                   stroke="none"
-                  label={expenseData.length <= 4 ? (entry: any) => entry.name : undefined}
+                  labelLine={false}
+                  label={renderCustomizedLabel}
                 >
                   {expenseData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
@@ -180,7 +213,7 @@ const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => 
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
                 <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '12px' }} />
                 <Bar dataKey="Revenus" fill={brandPrimary} radius={[4, 4, 4, 4]} isAnimationActive={false} />
-                <Bar dataKey="Coûts Opérationnels" fill="#f59e0b" radius={[4, 4, 4, 4]} isAnimationActive={false} />
+                <Bar dataKey="Coûts Opérationnels" fill={brandAccent} radius={[4, 4, 4, 4]} isAnimationActive={false} />
               </BarChart>
             </ResponsiveContainer>
           </div>
