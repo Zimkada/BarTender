@@ -62,6 +62,14 @@ export interface BarSettings {
   serversList?: string[]; // Liste des serveurs (mode simplifié uniquement)
   consignmentExpirationDays?: number; // Nombre de jours avant expiration consignation (défaut: 7)
   supplyFrequency?: number; // Fréquence d'approvisionnement en jours (1-30, défaut: 7)
+  // Identifiants légaux (obligatoires pour l'en-tête du Livre Journal SYSCOHADA)
+  rccm?: string;  // Registre du Commerce et du Crédit Mobilier
+  ifu?: string;   // Identifiant Fiscal Unique (NINEA au Sénégal, IFU au Bénin/Burkina)
+  accounting?: {  // Configuration du module comptable
+    tvaActive?: boolean;
+    tvaRate?: number;
+    customCategoryMappings?: Record<string, string>;
+  };
   [key: string]: unknown; // Allow extra dynamic settings
 }
 
@@ -247,9 +255,14 @@ export interface AccountingTransaction {
   id: string;
   barId: string;
   type: TransactionType;
-  amount: number;       // Positif = entrée, Négatif = sortie
-  date: Date;
-  referenceId?: string; // ID de la vente/retour/approv/dépense/salaire
+  amount: number;         // Positif = entrée, Négatif = sortie
+  paymentMethod?: string; // Mode de paiement (ex: cash, mobile_money, card, credit, ticket)
+  category?: string;      // Catégorie pour les dépenses (ex: water, electricity, investment)
+  date: Date;             // Timestamp réel de l'opération
+  businessDate?: Date;    // Journée fiscale du bar (chevauche deux jours calendaires pour les bars nocturnes)
+                          // Ex: une vente à 2h du matin samedi → businessDate = vendredi
+                          // Utilisé pour le Z de Caisse. Si absent, `date` est utilisé par défaut.
+  referenceId?: string;   // ID de la vente/retour/approv/dépense/salaire
   description: string;
   createdBy: string;
   createdAt: Date;
