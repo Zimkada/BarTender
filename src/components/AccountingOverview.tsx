@@ -428,7 +428,7 @@ export function AccountingOverview() {
       </div>
 
       {/* Controls Bar */}
-      <div className="bg-white/50 backdrop-blur-sm border border-white/60 p-1.5 rounded-xl shadow-sm flex flex-col md:flex-row gap-2 justify-between items-center">
+      <div className="bg-white/50 backdrop-blur-sm border border-white/60 p-1.5 rounded-xl shadow-sm flex flex-col xl:flex-row gap-2 justify-between items-center">
         {/* View Mode Switcher */}
         <div className="flex bg-white/40 backdrop-blur-md rounded-2xl p-1 gap-1.5 border border-brand-subtle shadow-sm w-full md:w-auto overflow-hidden">
           <button
@@ -446,7 +446,7 @@ export function AccountingOverview() {
         </div>
 
         {/* Period Filter */}
-        <div className="w-full md:w-auto overflow-x-auto">
+        <div className="w-full xl:w-auto overflow-x-auto">
           <PeriodFilter
             timeRange={timeRange}
             setTimeRange={setTimeRange}

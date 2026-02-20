@@ -30,6 +30,7 @@ export type TimeRange =
 export interface TimeRangeConfig {
   value: TimeRange;
   label: string;
+  shortLabel?: string;
   description?: string;
   days?: number;  // Pour filtres glissants
   type: 'quick' | 'rolling' | 'calendar' | 'custom';

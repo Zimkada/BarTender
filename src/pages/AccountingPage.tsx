@@ -1,16 +1,17 @@
-import React, { useState, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart3, Receipt, DollarSign } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 // Lazy load heavy accounting components to reduce initial bundle size
 const AccountingOverview = lazy(() => import('../components/AccountingOverview').then(m => ({ default: m.AccountingOverview })));
+const RevenueManager = lazy(() => import('../components/RevenueManager').then(m => ({ default: m.RevenueManager })));
 const ExpenseManager = lazy(() => import('../components/ExpenseManager').then(m => ({ default: m.ExpenseManager })));
-const SalaryManager = lazy(() => import('../components/SalaryManager').then(m => ({ default: m.SalaryManager })));
+
 import { useBarContext } from '../context/BarContext';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
 
-type TabType = 'overview' | 'expenses' | 'salaries';
+type TabType = 'overview' | 'revenues' | 'expenses';
 
 /**
  * AccountingPage - Page de comptabilité
@@ -39,9 +40,9 @@ export default function AccountingPage() {
                 subtitle="Suivez vos revenus, dépenses et gérez les salaires de l'équipe."
                 icon={<DollarSign size={24} />}
                 tabs={[
-                    { id: 'overview', label: 'Pilotage', icon: BarChart3 },
+                    { id: 'overview', label: 'Vue d\'ensemble', icon: BarChart3 },
+                    { id: 'revenues', label: 'Revenus', icon: DollarSign },
                     { id: 'expenses', label: 'Dépenses', icon: Receipt },
-                    { id: 'salaries', label: 'Salaires', icon: DollarSign },
                 ]}
                 activeTab={activeTab}
                 onTabChange={(id) => setActiveTab(id as TabType)}
@@ -64,8 +65,8 @@ export default function AccountingPage() {
                         </div>
                     }>
                         {activeTab === 'overview' && <AccountingOverview />}
+                        {activeTab === 'revenues' && <RevenueManager />}
                         {activeTab === 'expenses' && <ExpenseManager />}
-                        {activeTab === 'salaries' && <SalaryManager />}
                     </Suspense>
                 </motion.div>
             </AnimatePresence>

@@ -17,7 +17,7 @@ import {
   ResponsiveContainer,
 } from './charts/RechartsWrapper';
 
-
+import { useViewport } from '../hooks/useViewport';
 
 interface AnalyticsChartsProps {
   data: any[];
@@ -77,7 +77,7 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 
 const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => {
   const [timeRange, setTimeRange] = useState(12);
-
+  const { isMobile } = useViewport();
   const { themeConfig } = useTheme();
 
   const { chartColors, brandPrimary, brandAccent } = useMemo(() => {
@@ -115,7 +115,7 @@ const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => 
             <button
               key={opt.value}
               onClick={() => setTimeRange(opt.value)}
-              className={`px-4 py-2 h-10 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all sm:min-w-[100px] flex-1 md:flex-none ${timeRange === opt.value ? 'glass-action-button-active-2026 shadow-md shadow-brand-subtle text-brand-primary' : 'glass-action-button-2026 text-gray-500 hover:text-brand-primary'}`}
+              className={`px-2 sm:px-4 py-2 h-10 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all flex-1 md:flex-none whitespace-nowrap min-w-max ${timeRange === opt.value ? 'glass-action-button-active-2026 shadow-md shadow-brand-subtle text-brand-primary' : 'glass-action-button-2026 text-gray-500 hover:text-brand-primary'}`}
             >
               {opt.label}
             </button>
@@ -143,7 +143,15 @@ const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => 
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dy={10} />
               <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
               <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(0,0,0,0.05)', strokeWidth: 2 }} />
-              <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '12px' }} />
+              <Legend
+                iconType="circle"
+                verticalAlign="bottom"
+                wrapperStyle={{
+                  paddingTop: '20px',
+                  fontSize: '11px',
+                  width: '100%'
+                }}
+              />
               <Area
                 type="monotone"
                 dataKey="Revenus"
@@ -195,7 +203,17 @@ const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => 
                   ))}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+                <Legend
+                  iconType="circle"
+                  layout="horizontal"
+                  verticalAlign="bottom"
+                  align="center"
+                  wrapperStyle={{
+                    fontSize: '12px',
+                    paddingTop: '10px',
+                    width: '100%'
+                  }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -211,7 +229,15 @@ const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => 
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#9ca3af', fontSize: 12 }} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
-                <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '12px' }} />
+                <Legend
+                  iconType="circle"
+                  verticalAlign="bottom"
+                  wrapperStyle={{
+                    paddingTop: '20px',
+                    fontSize: '12px',
+                    width: '100%'
+                  }}
+                />
                 <Bar dataKey="Revenus" fill={brandPrimary} radius={[4, 4, 4, 4]} isAnimationActive={false} />
                 <Bar dataKey="Coûts Opérationnels" fill={brandAccent} radius={[4, 4, 4, 4]} isAnimationActive={false} />
               </BarChart>

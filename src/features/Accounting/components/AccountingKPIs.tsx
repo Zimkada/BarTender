@@ -48,7 +48,7 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, data }
                         </div>
                     </div>
                     <div className="flex flex-col">
-                        <p className={`font-mono font-bold tracking-tight ${isMobile ? 'text-2xl' : 'text-3xl'} ${data.operatingProfit >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
+                        <p className={`font-mono font-bold tracking-tighter whitespace-nowrap ${isMobile ? 'text-xl' : 'text-2xl lg:text-xl xl:text-2xl'} ${data.operatingProfit >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
                             {formatPrice(data.operatingProfit)}
                         </p>
                         <div className="flex items-center mt-2">
@@ -72,7 +72,7 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, data }
                         </div>
                     </div>
                     <div className="flex flex-col">
-                        <p className={`font-mono font-bold text-gray-900 tracking-tight ${isMobile ? 'text-2xl' : 'text-3xl'}`}>
+                        <p className={`font-mono font-bold text-gray-900 tracking-tighter whitespace-nowrap ${isMobile ? 'text-xl' : 'text-2xl lg:text-xl xl:text-2xl'}`}>
                             {formatPrice(data.totalRevenue)}
                         </p>
                     </div>
@@ -91,7 +91,7 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, data }
                         </div>
                     </div>
                     <div className="flex flex-col">
-                        <p className={`font-mono font-bold text-gray-900 tracking-tight ${isMobile ? 'text-2xl' : 'text-3xl'}`}>
+                        <p className={`font-mono font-bold text-gray-900 tracking-tighter whitespace-nowrap ${isMobile ? 'text-xl' : 'text-2xl lg:text-xl xl:text-2xl'}`}>
                             {formatPrice(data.totalOperatingCosts)}
                         </p>
                     </div>
@@ -110,7 +110,7 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, data }
                         </div>
                     </div>
                     <div className="flex flex-col relative z-10">
-                        <p className={`font-mono font-bold text-gray-900 tracking-tight ${isMobile ? 'text-2xl' : 'text-3xl'}`}>
+                        <p className={`font-mono font-bold text-gray-900 tracking-tighter whitespace-nowrap ${isMobile ? 'text-xl' : 'text-2xl lg:text-xl xl:text-2xl'}`}>
                             {formatPrice(data.investments)}
                         </p>
                         <div className="flex items-center mt-2 gap-2">
@@ -148,7 +148,7 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, data }
                                 Solde début
                             </h3>
                         </div>
-                        <p className={`font-mono font-bold text-gray-900 tracking-tight ${isMobile ? 'text-2xl' : 'text-3xl'}`}>
+                        <p className={`font-mono font-bold text-gray-900 tracking-tighter whitespace-nowrap ${isMobile ? 'text-xl' : 'text-2xl lg:text-xl xl:text-2xl'}`}>
                             {formatPrice(data.previousBalance || 0)}
                         </p>
                     </div>
@@ -190,7 +190,7 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, data }
                         </h3>
                     </div>
                     <div className="flex flex-col">
-                        <p className={`font-mono font-bold text-gray-900 tracking-tight ${isMobile ? 'text-2xl' : 'text-3xl'}`}>
+                        <p className={`font-mono font-bold text-gray-900 tracking-tighter whitespace-nowrap ${isMobile ? 'text-xl' : 'text-2xl lg:text-xl xl:text-2xl'}`}>
                             +{formatPrice(data.totalRevenue)}
                         </p>
                         <p className={`mt-2 text-gray-400 font-medium uppercase tracking-widest ${isMobile ? 'text-[9px]' : 'text-[10px]'}`}>
@@ -210,7 +210,7 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, data }
                         </h3>
                     </div>
                     <div className="flex flex-col">
-                        <p className={`font-mono font-bold text-gray-900 tracking-tight ${isMobile ? 'text-2xl' : 'text-3xl'}`}>
+                        <p className={`font-mono font-bold text-gray-900 tracking-tighter whitespace-nowrap ${isMobile ? 'text-xl' : 'text-2xl lg:text-xl xl:text-2xl'}`}>
                             -{formatPrice(data.totalCosts || 0)}
                         </p>
                         <p className={`mt-2 text-gray-400 font-medium uppercase tracking-widest ${isMobile ? 'text-[9px]' : 'text-[10px]'}`}>
@@ -230,7 +230,7 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, data }
                         </h3>
                     </div>
                     <div className="flex flex-col relative z-10">
-                        <p className={`font-mono font-bold tracking-tight ${isMobile ? 'text-2xl' : 'text-3xl'} ${(data.finalBalance || 0) >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
+                        <p className={`font-mono font-bold tracking-tighter whitespace-nowrap ${isMobile ? 'text-xl' : 'text-2xl lg:text-xl xl:text-2xl'} ${(data.finalBalance || 0) >= 0 ? 'text-gray-900' : 'text-red-600'}`}>
                             {formatPrice(data.finalBalance || 0)}
                         </p>
                         <p className={`mt-2 text-gray-400 font-medium uppercase tracking-widest ${isMobile ? 'text-[9px]' : 'text-[10px]'}`}>

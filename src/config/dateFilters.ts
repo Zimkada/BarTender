@@ -12,6 +12,7 @@ export const TIME_RANGE_CONFIGS: Record<TimeRange, TimeRangeConfig> = {
   today: {
     value: 'today',
     label: "Aujourd'hui",
+    shortLabel: 'J',
     description: 'Journée en cours',
     type: 'quick',
     days: 0
@@ -19,6 +20,7 @@ export const TIME_RANGE_CONFIGS: Record<TimeRange, TimeRangeConfig> = {
   yesterday: {
     value: 'yesterday',
     label: 'Hier',
+    shortLabel: 'J-1',
     description: 'Journée précédente',
     type: 'quick',
     days: 1
@@ -28,6 +30,7 @@ export const TIME_RANGE_CONFIGS: Record<TimeRange, TimeRangeConfig> = {
   last_7days: {
     value: 'last_7days',
     label: '7 derniers jours',
+    shortLabel: '7J',
     description: 'Semaine glissante',
     type: 'rolling',
     days: 7
@@ -35,6 +38,7 @@ export const TIME_RANGE_CONFIGS: Record<TimeRange, TimeRangeConfig> = {
   last_30days: {
     value: 'last_30days',
     label: '30 derniers jours',
+    shortLabel: '30J',
     description: 'Mois glissant',
     type: 'rolling',
     days: 30
@@ -42,6 +46,7 @@ export const TIME_RANGE_CONFIGS: Record<TimeRange, TimeRangeConfig> = {
   last_90days: {
     value: 'last_90days',
     label: '3 derniers mois',
+    shortLabel: '90J',
     description: 'Trimestre glissant',
     type: 'rolling',
     days: 90
@@ -49,6 +54,7 @@ export const TIME_RANGE_CONFIGS: Record<TimeRange, TimeRangeConfig> = {
   last_365days: {
     value: 'last_365days',
     label: '12 derniers mois',
+    shortLabel: '365J',
     description: 'Année glissante',
     type: 'rolling',
     days: 365
@@ -58,18 +64,21 @@ export const TIME_RANGE_CONFIGS: Record<TimeRange, TimeRangeConfig> = {
   this_week: {
     value: 'this_week',
     label: 'Cette semaine',
+    shortLabel: '7J',
     description: 'Lundi - Dimanche en cours',
     type: 'calendar'
   },
   this_month: {
     value: 'this_month',
     label: 'Ce mois',
+    shortLabel: 'Mois',
     description: 'Mois calendaire en cours',
     type: 'calendar'
   },
   this_year: {
     value: 'this_year',
     label: 'Cette année',
+    shortLabel: 'Année',
     description: 'Année calendaire en cours',
     type: 'calendar'
   },
@@ -78,6 +87,7 @@ export const TIME_RANGE_CONFIGS: Record<TimeRange, TimeRangeConfig> = {
   custom: {
     value: 'custom',
     label: 'Personnalisée',
+    shortLabel: 'Perso',
     description: 'Choisir dates de début et fin',
     type: 'custom'
   }
@@ -119,9 +129,10 @@ export const SALES_HISTORY_FILTERS: TimeRange[] = [
  * Filtres pour accounting
  */
 export const ACCOUNTING_FILTERS: TimeRange[] = [
+  'today',
+  'yesterday',
   'this_week',
   'this_month',
-  'this_year',
   'custom'
 ];
 
