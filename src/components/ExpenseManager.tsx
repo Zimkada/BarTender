@@ -18,7 +18,7 @@ import { useSalaries } from '../hooks/useSalaries';
 import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
 import { useFeedback } from '../hooks/useFeedback';
 import { PeriodFilter } from './common/filters/PeriodFilter';
-import { ACCOUNTING_FILTERS } from '../config/dateFilters';
+import { ACCOUNTING_FILTERS, ACCOUNTING_FILTERS_MOBILE } from '../config/dateFilters';
 
 // UI Components
 import { Button } from './ui/Button';
@@ -316,8 +316,10 @@ function ExpenseManagerContent() {
             onClick={() => setShowCategoryModal(true)}
             className="border-gray-200 text-gray-600 hover:bg-gray-50 bg-white"
           >
-            <LayoutGrid size={16} className="mr-2" />
-            Catégories
+            <Plus size={16} className="md:hidden" />
+            <span className="md:hidden">Catégorie</span>
+            <LayoutGrid size={16} className="hidden md:inline mr-2" />
+            <span className="hidden md:inline">Ajouter Catégorie</span>
           </Button>
           <div className="flex bg-brand-primary p-0.5 rounded-xl shadow-sm">
             <Button
@@ -343,18 +345,22 @@ function ExpenseManagerContent() {
       </div>
 
       {/* Period & Total Quick Look */}
-      <div className="flex flex-col lg:flex-row gap-4 items-stretch">
-        <PeriodFilter
-          timeRange={timeRange}
-          setTimeRange={setTimeRange}
-          availableFilters={ACCOUNTING_FILTERS}
-          customRange={customRange}
-          updateCustomRange={updateCustomRange}
-          justify="start"
-          className="flex-none"
-        />
+      <div className="flex flex-col gap-4">
+        {/* Filters Row */}
+        <div className="flex flex-col items-start">
+          <PeriodFilter
+            timeRange={timeRange}
+            setTimeRange={setTimeRange}
+            availableFilters={ACCOUNTING_FILTERS}
+            customRange={customRange}
+            updateCustomRange={updateCustomRange}
+            justify="start"
+            className="flex-none"
+          />
+        </div>
 
-        <div className="flex-1 bg-white rounded-2xl border border-gray-100 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group flex items-center justify-between overflow-hidden relative min-h-[56px]">
+        {/* Total Row */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group flex items-center justify-between overflow-hidden relative min-h-[56px]">
           <div className="relative z-10 flex flex-col justify-center">
             <h3 className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 mb-1">
               Total {periodLabel}
