@@ -320,12 +320,16 @@ export const AnalyticsService = {
             groupBy === 'week' ? 'expense_week' : 'expense_month';
 
         // ✅ Type-safe query to materialized view
+        // Format dates to match column format (YYYY-MM-DD for day, YYYY-MM for month, etc)
+        const startStr = this.formatDate(startDate);
+        const endStr = this.formatDate(endDate);
+
         const { data, error } = await supabase
             .from('expenses_summary')
             .select('*')
             .eq('bar_id', barId)
-            .gte(dateColumn, startDate.toISOString())
-            .lte(dateColumn, endDate.toISOString())
+            .gte(dateColumn, startStr)
+            .lte(dateColumn, endStr)
             .order(dateColumn, { ascending: false });
 
         if (error) throw error;
@@ -345,12 +349,16 @@ export const AnalyticsService = {
             groupBy === 'week' ? 'payment_week' : 'payment_month';
 
         // ✅ Type-safe query to materialized view
+        // Format dates to match column format (YYYY-MM-DD for day, YYYY-MM for month, etc)
+        const startStr = this.formatDate(startDate);
+        const endStr = this.formatDate(endDate);
+
         const { data, error } = await supabase
             .from('salaries_summary')
             .select('*')
             .eq('bar_id', barId)
-            .gte(dateColumn, startDate.toISOString())
-            .lte(dateColumn, endDate.toISOString())
+            .gte(dateColumn, startStr)
+            .lte(dateColumn, endStr)
             .order(dateColumn, { ascending: false });
 
         if (error) throw error;
