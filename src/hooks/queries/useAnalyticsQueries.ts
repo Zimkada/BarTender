@@ -32,7 +32,7 @@ export const useRevenueAnalytics = (barId: string | undefined, startDate: Date, 
     });
 };
 
-export const useExpensesAnalytics = (barId: string | undefined, startDate: Date, endDate: Date, groupBy: 'month' = 'month') => {
+export const useExpensesAnalytics = (barId: string | undefined, startDate: Date, endDate: Date, groupBy: 'day' | 'week' | 'month' = 'day') => {
     return useQuery({
         queryKey: analyticsKeys.expensesSummary(barId || '', startDate, endDate, groupBy),
         queryFn: () => AnalyticsService.getExpensesSummary(barId!, startDate, endDate, groupBy),
@@ -41,7 +41,7 @@ export const useExpensesAnalytics = (barId: string | undefined, startDate: Date,
     });
 };
 
-export const useSalariesAnalytics = (barId: string | undefined, startDate: Date, endDate: Date, groupBy: 'month' = 'month') => {
+export const useSalariesAnalytics = (barId: string | undefined, startDate: Date, endDate: Date, groupBy: 'day' | 'week' | 'month' = 'day') => {
     return useQuery({
         queryKey: analyticsKeys.salariesSummary(barId || '', startDate, endDate, groupBy),
         queryFn: () => AnalyticsService.getSalariesSummary(barId!, startDate, endDate, groupBy),

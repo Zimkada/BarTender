@@ -29,7 +29,7 @@ export function isValidPaymentMethod(value: string): value is PaymentMethod {
  */
 export const PaymentMethodLabels: Record<PaymentMethod, string> = {
   cash: 'Espèces',
-  card: 'Carte bancaire',
+  card: 'Carte & Autres',
   mobile_money: 'Mobile Money',
   bank_transfer: 'Virement bancaire',
   check: 'Chèque',

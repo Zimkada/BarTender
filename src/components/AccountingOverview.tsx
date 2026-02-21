@@ -103,8 +103,8 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
 
   // KPIs via vues matérialisées — source unique de vérité pour la période sélectionnée
   const { data: currentPeriodRevenue = [] } = useDailyAnalytics(currentBar?.id, periodStart, periodEnd, 'day');
-  const { data: currentPeriodExpenses = [] } = useExpensesAnalytics(currentBar?.id, periodStart, periodEnd, 'month');
-  const { data: currentPeriodSalaries = [] } = useSalariesAnalytics(currentBar?.id, periodStart, periodEnd, 'month');
+  const { data: currentPeriodExpenses = [] } = useExpensesAnalytics(currentBar?.id, periodStart, periodEnd, 'day');
+  const { data: currentPeriodSalaries = [] } = useSalariesAnalytics(currentBar?.id, periodStart, periodEnd, 'day');
 
   // 2. Growth Analysis (Previous Period)
   const prevPeriodRange = useMemo(() => {

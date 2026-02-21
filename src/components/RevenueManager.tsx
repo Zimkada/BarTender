@@ -61,12 +61,19 @@ export function RevenueManager({ period }: RevenueManagerProps) {
     }, [dailyDataArray, searchTerm]);
 
     const totals = useMemo(() => {
-        return filteredDays.reduce((acc: any, day: any) => ({
-            revenue: acc.revenue + (day.net_revenue || day.gross_revenue || 0),
-            cash: acc.cash + (day.cash_revenue || 0),
-            mobile: acc.mobile + (day.mobile_revenue || 0),
-            card: acc.card + (day.card_revenue || 0),
-        }), { revenue: 0, cash: 0, mobile: 0, card: 0 });
+        return filteredDays.reduce((acc: any, day: any) => {
+            const dayRevenue = day.net_revenue || day.gross_revenue || 0;
+            const dayCash = day.cash_revenue || 0;
+            const dayMobile = day.mobile_revenue || 0;
+            const dayOthers = dayRevenue - dayCash - dayMobile;
+
+            return {
+                revenue: acc.revenue + dayRevenue,
+                cash: acc.cash + dayCash,
+                mobile: acc.mobile + dayMobile,
+                card: acc.card + Math.max(0, dayOthers),
+            };
+        }, { revenue: 0, cash: 0, mobile: 0, card: 0 });
     }, [filteredDays]);
 
     return (
@@ -100,7 +107,7 @@ export function RevenueManager({ period }: RevenueManagerProps) {
                     { label: 'Total Recettes', value: totals.revenue, icon: ArrowDownToLine, color: 'text-brand-primary', bg: 'bg-brand-primary/10' },
                     { label: 'Espèces', value: totals.cash, icon: HandCoins, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
                     { label: 'Mobile Money', value: totals.mobile, icon: Smartphone, color: 'text-orange-500', bg: 'bg-orange-500/10' },
-                    { label: 'Carte Bancaire', value: totals.card, icon: CreditCard, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+                    { label: 'Carte & Autres', value: totals.card, icon: CreditCard, color: 'text-blue-500', bg: 'bg-blue-500/10' },
                 ].map((kpi, idx) => (
                     <div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-4 hover:-translate-y-1 transition-transform">
                         <div className={`p-3 rounded-xl ${kpi.bg} ${kpi.color}`}>
@@ -153,7 +160,7 @@ export function RevenueManager({ period }: RevenueManagerProps) {
                                     <th className="pb-4 font-medium">Date</th>
                                     <th className="pb-4 font-medium text-center">Espèces</th>
                                     <th className="pb-4 font-medium text-center hidden sm:table-cell">Mobile Money</th>
-                                    <th className="pb-4 font-medium text-center hidden sm:table-cell">Carte Bancaire</th>
+                                    <th className="pb-4 font-medium text-center hidden sm:table-cell">Carte & Autres</th>
                                     <th className="pb-4 font-medium text-center sm:hidden">Autres moyens</th>
                                     <th className="pb-4 font-medium text-center text-brand-primary">Total Jour</th>
                                 </tr>
@@ -166,8 +173,8 @@ export function RevenueManager({ period }: RevenueManagerProps) {
                                         </td>
                                         <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center">{formatPrice(day.cash_revenue || 0, isMobile)}</td>
                                         <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center hidden sm:table-cell">{formatPrice(day.mobile_revenue || 0, isMobile)}</td>
-                                        <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center hidden sm:table-cell">{formatPrice(day.card_revenue || 0, isMobile)}</td>
-                                        <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center sm:hidden">{formatPrice((day.mobile_revenue || 0) + (day.card_revenue || 0), isMobile)}</td>
+                                        <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center hidden sm:table-cell">{formatPrice(Math.max(0, (day.net_revenue || day.gross_revenue || 0) - (day.cash_revenue || 0) - (day.mobile_revenue || 0)), isMobile)}</td>
+                                        <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center sm:hidden">{formatPrice(Math.max(0, (day.net_revenue || day.gross_revenue || 0) - (day.cash_revenue || 0)), isMobile)}</td>
                                         <td className="py-2 md:py-4 text-xs md:text-sm font-bold text-gray-900 text-center">{formatPrice(day.net_revenue || day.gross_revenue || 0, false)}</td>
                                     </tr>
                                 ))}

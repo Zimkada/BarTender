@@ -31,15 +31,16 @@
 ### ROI du passage Pro
 
 **Sans Pro (Free tier)** :
-- Refresh manuel 3x/jour = **Données obsolètes 4-8h**
-- Dashboard admin montre stats périmées
-- Risque perte visibilité sur 1000+ ventes/jour
-- **Performance perçue : Mauvaise** ❌
+- L'extension `pg_cron` n'est **pas disponible**.
+- Pour éviter que le tableau de bord n'affiche 0, on doit utiliser la **Migration 070** qui convertit les *Materialized Views* en *Normal Views* (calcul à la volée).
+- **Conséquence :** L'écriture (prise de commande) reste rapide, mais le chargement des statistiques ("Pilotage") ralentira au fur et à mesure que la base de données grandira.
+- **Performance perçue : Acceptable au début, dégradée avec le temps** ⚠️
 
 **Avec Pro ($25/mois)** :
-- Refresh auto toutes les 5 min
+- `pg_cron` est disponible !
+- On peut utiliser des *Materialized Views* pré-calculées avec un refresh automatique toutes les 5 min.
 - Latence max : **5 minutes**
-- Dashboard temps réel
+- Le chargement du dashboard est instantané en permanence, même avec 100 000 ventes.
 - Zero maintenance manuelle
 - **Performance perçue : Excellente** ✅
 

@@ -244,8 +244,8 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
   }, [salaries, periodStart, periodEnd]);
 
   // 📈 KPIs via vues matérialisées — source unique de vérité = AccountingOverview
-  const { data: periodExpenses = [] } = useExpensesAnalytics(currentBar?.id, periodStart, periodEnd, 'month');
-  const { data: periodSalaries = [] } = useSalariesAnalytics(currentBar?.id, periodStart, periodEnd, 'month');
+  const { data: periodExpenses = [] } = useExpensesAnalytics(currentBar?.id, periodStart, periodEnd, 'day');
+  const { data: periodSalaries = [] } = useSalariesAnalytics(currentBar?.id, periodStart, periodEnd, 'day');
 
   const totalExpenses = useMemo(() => {
     const opEx = periodExpenses.reduce((sum, row) => sum + (Number(row.operating_expenses) || 0), 0);

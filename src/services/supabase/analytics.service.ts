@@ -20,13 +20,11 @@ export interface DailySalesSummary {
     gross_revenue: number;
     gross_subtotal: number;
     total_discounts: number;
-    refunds_total: number;        // ✨ NOUVEAU
-    net_revenue: number;          // ✨ NOUVEAU
     total_items_sold: number;
     avg_basket_value: number;
     cash_revenue: number;
     mobile_revenue: number;
-    card_revenue: number;
+    other_revenue: number;        // Card + ticket + cheque + etc.
     active_servers: number;
     first_sale_time: string;
     last_sale_time: string;
