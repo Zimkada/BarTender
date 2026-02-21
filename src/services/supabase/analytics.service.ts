@@ -320,7 +320,8 @@ export const AnalyticsService = {
             groupBy === 'week' ? 'expense_week' : 'expense_month';
 
         // ✅ Type-safe query to materialized view
-        // Format dates to match column format (YYYY-MM-DD for day, YYYY-MM for month, etc)
+        // expense_week and expense_month are TIMESTAMP (from DATE_TRUNC), must cast to DATE for comparison
+        const dateColumnForFilter = (groupBy === 'day' ? dateColumn : `${dateColumn}::DATE`);
         const startStr = this.formatDate(startDate);
         const endStr = this.formatDate(endDate);
 
@@ -328,8 +329,8 @@ export const AnalyticsService = {
             .from('expenses_summary')
             .select('*')
             .eq('bar_id', barId)
-            .gte(dateColumn, startStr)
-            .lte(dateColumn, endStr)
+            .gte(dateColumnForFilter, startStr)
+            .lte(dateColumnForFilter, endStr)
             .order(dateColumn, { ascending: false });
 
         if (error) throw error;
@@ -349,7 +350,8 @@ export const AnalyticsService = {
             groupBy === 'week' ? 'payment_week' : 'payment_month';
 
         // ✅ Type-safe query to materialized view
-        // Format dates to match column format (YYYY-MM-DD for day, YYYY-MM for month, etc)
+        // payment_week and payment_month are TIMESTAMP (from DATE_TRUNC), must cast to DATE for comparison
+        const dateColumnForFilter = (groupBy === 'day' ? dateColumn : `${dateColumn}::DATE`);
         const startStr = this.formatDate(startDate);
         const endStr = this.formatDate(endDate);
 
@@ -357,8 +359,8 @@ export const AnalyticsService = {
             .from('salaries_summary')
             .select('*')
             .eq('bar_id', barId)
-            .gte(dateColumn, startStr)
-            .lte(dateColumn, endStr)
+            .gte(dateColumnForFilter, startStr)
+            .lte(dateColumnForFilter, endStr)
             .order(dateColumn, { ascending: false });
 
         if (error) throw error;
