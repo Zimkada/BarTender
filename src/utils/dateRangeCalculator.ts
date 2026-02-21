@@ -38,7 +38,10 @@ export function calculateDateRange(
 
   // Date de référence = Aujourd'hui (Commercial)
   const todayStr = getCurrentBusinessDateString(closeHour);
-  const referenceDate = new Date(todayStr); // Minuit pile ce jour là
+  // ⚠️ new Date("YYYY-MM-DD") parse en UTC → décalage d'1 jour en UTC+1 (Bénin)
+  // new Date(year, month, day) crée une date en heure LOCALE → correct
+  const [ry, rm, rd] = todayStr.split('-').map(Number);
+  const referenceDate = new Date(ry, rm - 1, rd);
 
   let startDate: Date;
   let endDate: Date;
@@ -126,8 +129,11 @@ export function calculateDateRange(
       if (!customRange?.start || !customRange?.end) {
         return calculateDateRange('last_30days', undefined, options);
       }
-      startDate = new Date(customRange.start);
-      endDate = new Date(customRange.end);
+      // Même fix timezone : parser en heure locale, pas UTC
+      const [sy, sm, sd] = customRange.start.split('-').map(Number);
+      const [ey, em, ed] = customRange.end.split('-').map(Number);
+      startDate = new Date(sy, sm - 1, sd);
+      endDate = new Date(ey, em - 1, ed);
       label = `Du ${formatDate(startDate)} au ${formatDate(endDate)}`;
       break;
     }

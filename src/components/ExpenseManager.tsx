@@ -234,7 +234,9 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
   // ✨ Filter Salaries — comparaison par objets Date normalisés au 1er du mois
   const filteredSalaries = useMemo(() => {
     return salaries.filter(salary => {
-      const salaryDate = new Date(`${salary.period}-01`);
+      // new Date("YYYY-MM-01") parse UTC → décalage d'1j en UTC+1, utiliser constructeur local
+      const [sy, sm] = salary.period.split('-').map(Number);
+      const salaryDate = new Date(sy, sm - 1, 1);
       const pStartNorm = new Date(periodStart.getFullYear(), periodStart.getMonth(), 1);
       const pEndNorm   = new Date(periodEnd.getFullYear(),   periodEnd.getMonth(),   1);
       return salaryDate >= pStartNorm && salaryDate <= pEndNorm;
