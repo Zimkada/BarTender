@@ -5,7 +5,7 @@ import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
 import { useDailyAnalytics } from '../hooks/queries/useAnalyticsQueries';
 import { useViewport } from '../hooks/useViewport';
 import { PeriodFilter } from './common/filters/PeriodFilter';
-import { ACCOUNTING_FILTERS } from '../config/dateFilters';
+import { ACCOUNTING_FILTERS, ACCOUNTING_FILTERS_MOBILE } from '../config/dateFilters';
 
 export function RevenueManager() {
     const { currentBar } = useBarContext();
@@ -25,6 +25,7 @@ export function RevenueManager() {
         setTimeRange,
         startDate,
         endDate,
+        periodLabel,
         customRange,
         updateCustomRange
     } = useDateRangeFilter({
@@ -103,7 +104,14 @@ export function RevenueManager() {
                             <kpi.icon size={20} />
                         </div>
                         <div>
-                            <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">{kpi.label}</p>
+                            <div className="flex flex-col gap-0.5">
+                                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">{kpi.label}</p>
+                                {periodLabel && (
+                                    <p className="text-[10px] text-gray-600 font-bold uppercase tracking-wider">
+                                        {periodLabel}
+                                    </p>
+                                )}
+                            </div>
                             <p className={`text-lg font-bold ${kpi.color === 'text-brand-primary' ? 'text-gray-900' : 'text-gray-700'}`}>
                                 {formatPrice(kpi.value)}
                             </p>
@@ -139,23 +147,25 @@ export function RevenueManager() {
                         <table className="w-full text-left">
                             <thead>
                                 <tr className="text-gray-500 text-xs uppercase tracking-wider border-b border-gray-100">
-                                    <th className="pb-3 font-medium">Date</th>
-                                    <th className="pb-3 font-medium text-center">Espèces</th>
-                                    <th className="pb-3 font-medium text-center">Mobile Money</th>
-                                    <th className="pb-3 font-medium text-center">Carte Bancaire</th>
-                                    <th className="pb-3 font-medium text-center text-brand-primary">Total Jour</th>
+                                    <th className="pb-4 font-medium">Date</th>
+                                    <th className="pb-4 font-medium text-center">Espèces</th>
+                                    <th className="pb-4 font-medium text-center hidden sm:table-cell">Mobile Money</th>
+                                    <th className="pb-4 font-medium text-center hidden sm:table-cell">Carte Bancaire</th>
+                                    <th className="pb-4 font-medium text-center sm:hidden">Autres moyens</th>
+                                    <th className="pb-4 font-medium text-center text-brand-primary">Total Jour</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
                                 {filteredDays.map((day: any, idx: number) => (
                                     <tr key={day.sale_date || idx} className="hover:bg-gray-50/50 transition-colors group">
-                                        <td className="py-4 text-sm font-medium text-gray-900">
+                                        <td className="py-2 md:py-4 text-xs md:text-sm font-medium text-gray-900">
                                             {day.sale_date?.split('-').reverse().join('-')}
                                         </td>
-                                        <td className="py-4 text-sm text-gray-600 text-center">{formatPrice(day.cash_revenue || 0, isMobile)}</td>
-                                        <td className="py-4 text-sm text-gray-600 text-center">{formatPrice(day.mobile_revenue || 0, isMobile)}</td>
-                                        <td className="py-4 text-sm text-gray-600 text-center">{formatPrice(day.card_revenue || 0, isMobile)}</td>
-                                        <td className="py-4 text-sm font-bold text-gray-900 text-center">{formatPrice(day.net_revenue || day.gross_revenue || 0, false)}</td>
+                                        <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center">{formatPrice(day.cash_revenue || 0, isMobile)}</td>
+                                        <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center hidden sm:table-cell">{formatPrice(day.mobile_revenue || 0, isMobile)}</td>
+                                        <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center hidden sm:table-cell">{formatPrice(day.card_revenue || 0, isMobile)}</td>
+                                        <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center sm:hidden">{formatPrice((day.mobile_revenue || 0) + (day.card_revenue || 0), isMobile)}</td>
+                                        <td className="py-2 md:py-4 text-xs md:text-sm font-bold text-gray-900 text-center">{formatPrice(day.net_revenue || day.gross_revenue || 0, false)}</td>
                                     </tr>
                                 ))}
                             </tbody>
