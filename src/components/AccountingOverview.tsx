@@ -65,9 +65,11 @@ export function AccountingOverview() {
 
   // ✅ Utiliser les Smart Hooks Élite pour les finances unifiées
   // 🛡️ Expert Fix: Passer les filtres de période au hook pour filtrage serveur
+  // ✨ 2025-02-21: Cohérence comptable - inclure SEULEMENT les ventes validées
   const { sales: unifiedSales } = useUnifiedSales(currentBar?.id, {
     startDate: dateToYYYYMMDD(periodStart),
-    endDate: dateToYYYYMMDD(periodEnd)
+    endDate: dateToYYYYMMDD(periodEnd),
+    status: 'validated'  // 🎯 CORRECTION: Aligner sur RevenueManager & Revenus
   });
   useUnifiedStock(currentBar?.id);
   const { expenses: unifiedExpenses } = useUnifiedExpenses(currentBar?.id, {
