@@ -38,7 +38,7 @@ interface NetworkManagerConfig {
  * Configuration par défaut
  */
 const DEFAULT_CONFIG: NetworkManagerConfig = {
-  pingUrl: `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/health`, // Supabase health endpoint (no auth required)
+  pingUrl: '/favicon.ico', // App's own favicon - always available if online, no CORS/auth issues
   checkInterval: 3000, // 3 secondes (plus réactif pour les tests)
   pingTimeout: 7000,    // 7 secondes (couvre le 95e percentile latence 2G AOF: 5-8s)
 };
