@@ -1,9 +1,9 @@
 :root {
-  /* STRICT NEUTRAL LOADER - Pure White Background */
-  /* Valeurs fixes pour éviter toute contamination par le cache */
+  /* Theme-aware loader colors */
+  /* Fallback to gray if theme not loaded yet */
   --beer-bg: hsl(0, 0%, 100%);
-  --beer-primary: hsl(0, 0%, 40%);
-  --beer-highlight: hsl(0, 0%, 50%);
+  --beer-primary: hsl(var(--brand-hue, 0), var(--brand-saturation, 0%), 45%);
+  --beer-highlight: hsl(var(--brand-hue, 0), var(--brand-saturation, 0%), 50%);
 }
 
 html,
