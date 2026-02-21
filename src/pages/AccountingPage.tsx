@@ -40,7 +40,7 @@ export default function AccountingPage() {
                 subtitle="Suivez vos revenus, dépenses et gérez les salaires de l'équipe."
                 icon={<DollarSign size={24} />}
                 tabs={[
-                    { id: 'overview', label: 'Vue d\'ensemble', icon: BarChart3 },
+                    { id: 'overview', label: 'Vue globale', icon: BarChart3 },
                     { id: 'revenues', label: 'Revenus', icon: DollarSign },
                     { id: 'expenses', label: 'Dépenses', icon: Receipt },
                 ]}
