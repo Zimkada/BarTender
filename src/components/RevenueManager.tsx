@@ -1,13 +1,17 @@
 import { useState, useMemo } from 'react';
 import { DollarSign, Search, ArrowDownToLine, HandCoins, Smartphone, CreditCard } from 'lucide-react';
 import { useBarContext } from '../context/BarContext';
-import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
 import { useDailyAnalytics } from '../hooks/queries/useAnalyticsQueries';
 import { useViewport } from '../hooks/useViewport';
 import { PeriodFilter } from './common/filters/PeriodFilter';
 import { ACCOUNTING_FILTERS, ACCOUNTING_FILTERS_MOBILE } from '../config/dateFilters';
+import type { AccountingPeriodProps } from '../types/dateFilters';
 
-export function RevenueManager() {
+interface RevenueManagerProps {
+    period: AccountingPeriodProps;
+}
+
+export function RevenueManager({ period }: RevenueManagerProps) {
     const { currentBar } = useBarContext();
     const { isMobile } = useViewport();
     const [searchTerm, setSearchTerm] = useState('');
@@ -20,6 +24,7 @@ export function RevenueManager() {
         return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'XOF' }).format(price);
     };
 
+    // Période reçue depuis AccountingPage (source unique de vérité)
     const {
         timeRange,
         setTimeRange,
@@ -28,9 +33,7 @@ export function RevenueManager() {
         periodLabel,
         customRange,
         updateCustomRange
-    } = useDateRangeFilter({
-        defaultRange: 'this_month'
-    });
+    } = period;
 
     const { data: rawDailyData, isLoading } = useDailyAnalytics(
         currentBar?.id,

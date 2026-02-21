@@ -26,8 +26,8 @@ const AnalyticsCharts = lazy(() => import('./AnalyticsCharts'));
 
 
 import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
-import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
 import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
+import type { AccountingPeriodProps } from '../types/dateFilters';
 import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { useUnifiedExpenses } from '../hooks/pivots/useUnifiedExpenses';
 import { useUnifiedReturns } from '../hooks/pivots/useUnifiedReturns';
@@ -45,12 +45,16 @@ import { AccountingTransaction } from '../types';
 import { useSalaries } from '../hooks/useSalaries';
 import { getErrorMessage } from '../utils/errorHandler';
 
-export function AccountingOverview() {
+interface AccountingOverviewProps {
+  period: AccountingPeriodProps;
+}
+
+export function AccountingOverview({ period }: AccountingOverviewProps) {
   const { currentSession } = useAuth();
   const { currentBar } = useBarContext();
   const { isMobile } = useViewport();
 
-  // ✨ Utiliser le hook de filtrage temporel
+  // Période reçue depuis AccountingPage (source unique de vérité)
   const {
     timeRange,
     setTimeRange,
@@ -59,9 +63,7 @@ export function AccountingOverview() {
     customRange,
     updateCustomRange,
     periodLabel,
-  } = useDateRangeFilter({
-    defaultRange: 'this_month'
-  });
+  } = period;
 
   // ✅ Utiliser les Smart Hooks Élite pour les finances unifiées
   // 🛡️ Expert Fix: Passer les filtres de période au hook pour filtrage serveur
@@ -98,6 +100,11 @@ export function AccountingOverview() {
   const { data: chartStats = [] } = useDailyAnalytics(currentBar?.id, chartStart, chartEnd, 'month');
   const { data: chartExpenses = [] } = useExpensesAnalytics(currentBar?.id, chartStart, chartEnd, 'month');
   const { data: chartSalaries = [] } = useSalariesAnalytics(currentBar?.id, chartStart, chartEnd, 'month');
+
+  // KPIs via vues matérialisées — source unique de vérité pour la période sélectionnée
+  const { data: currentPeriodRevenue = [] } = useDailyAnalytics(currentBar?.id, periodStart, periodEnd, 'day');
+  const { data: currentPeriodExpenses = [] } = useExpensesAnalytics(currentBar?.id, periodStart, periodEnd, 'month');
+  const { data: currentPeriodSalaries = [] } = useSalariesAnalytics(currentBar?.id, periodStart, periodEnd, 'month');
 
   // 2. Growth Analysis (Previous Period)
   const prevPeriodRange = useMemo(() => {
@@ -137,10 +144,13 @@ export function AccountingOverview() {
     });
   }, [unifiedExpenses, periodStart, periodEnd]);
 
-  // ✨ Calcul des KPIs Financiers Unifiés
+  // ✨ Calcul des KPIs Financiers — Source unique: vues matérialisées
+  // Identique à RevenueManager.totals.revenue pour cohérence parfaite
   const totalRevenue = useMemo(() => {
-    return filteredSales.reduce((sum: number, s: any) => sum + s.total, 0);
-  }, [filteredSales]);
+    return currentPeriodRevenue.reduce(
+      (sum, day) => sum + (day.net_revenue || day.gross_revenue || 0), 0
+    );
+  }, [currentPeriodRevenue]);
 
   const [viewMode, setViewMode] = useState<'tresorerie' | 'analytique'>('tresorerie');
   const [isExporting, setIsExporting] = useState(false);
@@ -149,18 +159,27 @@ export function AccountingOverview() {
   const [showInitialBalanceModal, setShowInitialBalanceModal] = useState(false);
   const [showCapitalContributionModal, setShowCapitalContributionModal] = useState(false);
 
-  // 💎 Indicateurs de Rentabilité Unifiés
+  // 💎 Indicateurs de Rentabilité — Source unique: vues matérialisées + salaires
   const investments = useMemo(() => {
-    return filteredExpenses
-      .filter(e => e.category === 'investment')
-      .reduce((sum, e) => sum + e.amount, 0);
-  }, [filteredExpenses]);
+    return currentPeriodExpenses.reduce(
+      (sum, row) => sum + (Number(row.investments) || 0), 0
+    );
+  }, [currentPeriodExpenses]);
+
+  const periodSalariesTotal = useMemo(() => {
+    return currentPeriodSalaries.reduce(
+      (sum, row) => sum + (Number(row.total_salaries) || 0), 0
+    );
+  }, [currentPeriodSalaries]);
 
   const totalOperatingCosts = useMemo(() => {
-    return filteredExpenses
-      .filter(e => e.category !== 'investment')
-      .reduce((sum, e) => sum + e.amount, 0);
-  }, [filteredExpenses]);
+    // operating_expenses = dépenses opérationnelles (hors investissements)
+    const opEx = currentPeriodExpenses.reduce(
+      (sum, row) => sum + (Number(row.operating_expenses) || 0), 0
+    );
+    // Inclure les salaires = cohérent avec l'onglet Dépenses
+    return opEx + periodSalariesTotal;
+  }, [currentPeriodExpenses, periodSalariesTotal]);
 
   const operatingProfit = totalRevenue - totalOperatingCosts;
   const operatingProfitMargin = totalRevenue > 0 ? (operatingProfit / totalRevenue) * 100 : 0;

@@ -64,3 +64,17 @@ export interface PeriodComparison {
   previous: DateRangePeriod;
   durationDays: number;
 }
+
+/**
+ * Props de période partagées entre les 3 onglets de comptabilité.
+ * Source unique de vérité propagée depuis AccountingPage.
+ */
+export interface AccountingPeriodProps {
+  timeRange: TimeRange;
+  setTimeRange: (range: TimeRange) => void;
+  startDate: Date;
+  endDate: Date;
+  periodLabel: string;
+  customRange: { start: string; end: string };
+  updateCustomRange: (field: 'start' | 'end', value: string) => void;
+}

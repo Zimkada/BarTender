@@ -15,8 +15,8 @@ import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 import { useUnifiedExpenses } from '../hooks/pivots/useUnifiedExpenses';
 import { useSalaries } from '../hooks/useSalaries';
-import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
 import { useFeedback } from '../hooks/useFeedback';
+import type { AccountingPeriodProps } from '../types/dateFilters';
 import { PeriodFilter } from './common/filters/PeriodFilter';
 import { ACCOUNTING_FILTERS, ACCOUNTING_FILTERS_MOBILE } from '../config/dateFilters';
 
@@ -42,7 +42,11 @@ interface BarMemberWithUser extends BarMember {
   user: User;
 }
 
-function ExpenseManagerContent() {
+interface ExpenseManagerProps {
+  period: AccountingPeriodProps;
+}
+
+function ExpenseManagerContent({ period }: ExpenseManagerProps) {
   const { currentSession } = useAuth();
   const { currentBar } = useBarContext();
   const { formatPrice } = useCurrencyFormatter();
@@ -95,7 +99,7 @@ function ExpenseManagerContent() {
     loadMembers();
   }, [currentBar?.id, getBarMembers]);
 
-  // Use Date Range Filter instead of local state
+  // Période reçue depuis AccountingPage (source unique de vérité)
   const {
     timeRange,
     setTimeRange,
@@ -104,9 +108,7 @@ function ExpenseManagerContent() {
     periodLabel,
     customRange,
     updateCustomRange
-  } = useDateRangeFilter({
-    defaultRange: 'this_month'
-  });
+  } = period;
 
   // Confirmation Modal
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
@@ -224,18 +226,13 @@ function ExpenseManagerContent() {
     });
   }, [unifiedExpenses, periodStart, periodEnd]);
 
-  // ✨ Filter Salaries
+  // ✨ Filter Salaries — comparaison par objets Date normalisés au 1er du mois
   const filteredSalaries = useMemo(() => {
     return salaries.filter(salary => {
-      // Paies attachées à ce mois
       const salaryDate = new Date(`${salary.period}-01`);
-      // On considère que la paie tombe dans la période si son mois correspond à un moment de la période filtrée
-      // Approximation simple pour l'instant : si le "period" est dans les mois sélectionnés
-      const sYear = salaryDate.getFullYear();
-      const sMonth = salaryDate.getMonth();
-      const pStartYear = periodStart.getFullYear();
-      const pStartMonth = periodStart.getMonth();
-      return sYear >= pStartYear && sMonth >= pStartMonth; // Simplification pour la démo
+      const pStartNorm = new Date(periodStart.getFullYear(), periodStart.getMonth(), 1);
+      const pEndNorm   = new Date(periodEnd.getFullYear(),   periodEnd.getMonth(),   1);
+      return salaryDate >= pStartNorm && salaryDate <= pEndNorm;
     });
   }, [salaries, periodStart, periodEnd]);
 
@@ -506,7 +503,7 @@ function ExpenseManagerContent() {
   );
 }
 
-export function ExpenseManager() {
+export function ExpenseManager({ period }: ExpenseManagerProps) {
   const { currentSession } = useAuth();
   const { currentBar } = useBarContext();
 
@@ -514,5 +511,5 @@ export function ExpenseManager() {
     return null;
   }
 
-  return <ExpenseManagerContent />;
+  return <ExpenseManagerContent period={period} />;
 }

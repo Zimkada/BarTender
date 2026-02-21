@@ -10,6 +10,8 @@ const ExpenseManager = lazy(() => import('../components/ExpenseManager').then(m 
 
 import { useBarContext } from '../context/BarContext';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
+import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
+import type { AccountingPeriodProps } from '../types/dateFilters';
 
 type TabType = 'overview' | 'revenues' | 'expenses';
 
@@ -22,6 +24,18 @@ export default function AccountingPage() {
     const { currentSession } = useAuth();
     const { currentBar } = useBarContext();
     const [activeTab, setActiveTab] = useState<TabType>('overview');
+
+    // SOURCE DE VÉRITÉ UNIQUE — une seule période pour les 3 onglets
+    const {
+        timeRange, setTimeRange,
+        startDate, endDate,
+        periodLabel, customRange, updateCustomRange,
+    } = useDateRangeFilter({ defaultRange: 'this_month' });
+
+    const periodProps: AccountingPeriodProps = {
+        timeRange, setTimeRange, startDate, endDate,
+        periodLabel, customRange, updateCustomRange,
+    };
 
     if (!currentBar || !currentSession) {
         return (
@@ -64,9 +78,9 @@ export default function AccountingPage() {
                             <span className="ml-3 text-gray-600">Chargement...</span>
                         </div>
                     }>
-                        {activeTab === 'overview' && <AccountingOverview />}
-                        {activeTab === 'revenues' && <RevenueManager />}
-                        {activeTab === 'expenses' && <ExpenseManager />}
+                        {activeTab === 'overview' && <AccountingOverview period={periodProps} />}
+                        {activeTab === 'revenues' && <RevenueManager period={periodProps} />}
+                        {activeTab === 'expenses' && <ExpenseManager period={periodProps} />}
                     </Suspense>
                 </motion.div>
             </AnimatePresence>
