@@ -17,6 +17,11 @@ import { useUnifiedExpenses } from '../hooks/pivots/useUnifiedExpenses';
 import { useSalaries } from '../hooks/useSalaries';
 import { useFeedback } from '../hooks/useFeedback';
 import type { AccountingPeriodProps } from '../types/dateFilters';
+import {
+  useExpensesAnalytics,
+  useSalariesAnalytics
+} from '../hooks/queries/useAnalyticsQueries';
+import { getErrorMessage } from '../utils/errorHandler';
 import { PeriodFilter } from './common/filters/PeriodFilter';
 import { ACCOUNTING_FILTERS, ACCOUNTING_FILTERS_MOBILE } from '../config/dateFilters';
 
@@ -161,8 +166,8 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
 
       showSuccess('Salaire enregistré avec succès');
       setShowSalaryModal(false);
-    } catch (error: any) {
-      showError(error.message || 'Erreur lors de l\'ajout du salaire');
+    } catch (error) {
+      showError(getErrorMessage(error) || 'Erreur lors de l\'ajout du salaire');
     }
   };
 
@@ -236,7 +241,15 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
     });
   }, [salaries, periodStart, periodEnd]);
 
-  const totalExpenses = filteredUnified.reduce((sum, e) => sum + e.amount, 0) + filteredSalaries.reduce((sum, s) => sum + s.amount, 0);
+  // 📈 KPIs via vues matérialisées — source unique de vérité = AccountingOverview
+  const { data: periodExpenses = [] } = useExpensesAnalytics(currentBar?.id, periodStart, periodEnd, 'month');
+  const { data: periodSalaries = [] } = useSalariesAnalytics(currentBar?.id, periodStart, periodEnd, 'month');
+
+  const totalExpenses = useMemo(() => {
+    const opEx = periodExpenses.reduce((sum, row) => sum + (Number(row.operating_expenses) || 0), 0);
+    const salaries = periodSalaries.reduce((sum, row) => sum + (Number(row.total_salaries) || 0), 0);
+    return opEx + salaries;
+  }, [periodExpenses, periodSalaries]);
 
   // ✨ Group by Category (Unified)
   const expensesByCategory = useMemo(() => {
@@ -418,7 +431,15 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
                               <Plus size={14} className="mr-1" /> Payer
                             </Button>
                           </div>
-                          {Object.keys(salariesByPeriod).sort().reverse().map(period => (
+                          {Object.keys(salariesByPeriod)
+                            .filter(period => {
+                              const [year, month] = period.split('-');
+                              const salaryDate = new Date(parseInt(year), parseInt(month) - 1, 1);
+                              const pStart = new Date(periodStart.getFullYear(), periodStart.getMonth(), 1);
+                              const pEnd = new Date(periodEnd.getFullYear(), periodEnd.getMonth(), 1);
+                              return salaryDate >= pStart && salaryDate <= pEnd;
+                            })
+                            .sort().reverse().map(period => (
                             <SalaryListItem
                               key={period}
                               period={period}

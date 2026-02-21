@@ -267,8 +267,10 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
       activityResult: previousRevenue - previousCosts - previousReturnsRefunds // Approximate activity result
     };
 
-    // Period Total Costs (All included for cash flow view)
-    const tCosts = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+    // Period Total Costs (All included for cash flow view) — inclure salaires pour cohérence
+    const opExCosts = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const salaryCosts = currentPeriodSalaries.reduce((sum, row) => sum + (Number(row.total_salaries) || 0), 0);
+    const tCosts = opExCosts + salaryCosts;
 
     return {
       previousBalance: prevBal,
