@@ -38,7 +38,7 @@ import {
   useSalariesAnalytics,
   analyticsKeys
 } from '../hooks/queries/useAnalyticsQueries';
-import { ACCOUNTING_FILTERS } from '../config/dateFilters';
+import { ACCOUNTING_FILTERS, ACCOUNTING_FILTERS_MOBILE } from '../config/dateFilters';
 import { SyscohadaTranslator } from '../services/accounting/syscohada.service';
 import { BarAccountingConfigSchema } from '../services/accounting/syscohada.types';
 import { AccountingTransaction } from '../types';
@@ -556,23 +556,30 @@ export function AccountingOverview() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
-          <Button variant="outline" size="sm" onClick={handleExportSyscohada} disabled={isExporting} className="w-full sm:w-auto border-green-600 text-green-700 hover:bg-green-50 disabled:opacity-50 justify-center sm:justify-start">
-            <FileSpreadsheet size={16} className="mr-2" />
-            {isExporting ? 'Export en cours...' : 'Livre Journal'}
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleExportAccounting} className="w-full sm:w-auto justify-center sm:justify-start">
-            <Download size={16} className="mr-2" />
-            Export Simple
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setShowInitialBalanceModal(true)} className="w-full sm:w-auto justify-center sm:justify-start">
-            <DollarSign size={16} className="mr-2" />
-            Solde Initial
-          </Button>
-          <Button variant="default" size="sm" onClick={() => setShowCapitalContributionModal(true)} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 justify-center sm:justify-start">
-            <Plus size={16} className="mr-2" />
-            Apport Capital
-          </Button>
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-4">
+          {/* Export Actions — Primary (filled) */}
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+            <Button variant="default" size="sm" onClick={handleExportSyscohada} disabled={isExporting} className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 justify-center sm:justify-start">
+              <FileSpreadsheet size={16} className="mr-2" />
+              {isExporting ? 'Export en cours...' : 'Livre Journal'}
+            </Button>
+            <Button variant="default" size="sm" onClick={handleExportAccounting} className="w-full sm:w-auto bg-gray-600 hover:bg-gray-700 text-white justify-center sm:justify-start">
+              <Download size={16} className="mr-2" />
+              Export Simple
+            </Button>
+          </div>
+
+          {/* Modal Actions — Secondary (outline) */}
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowInitialBalanceModal(true)} className="w-full sm:w-auto justify-center sm:justify-start">
+              <DollarSign size={16} className="mr-2" />
+              Solde Initial
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowCapitalContributionModal(true)} className="w-full sm:w-auto border-blue-600 text-blue-700 hover:bg-blue-50 justify-center sm:justify-start">
+              <Plus size={16} className="mr-2" />
+              Apport Capital
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -610,6 +617,7 @@ export function AccountingOverview() {
       {/* Main Stats KPIs */}
       <AccountingKPIs
         viewMode={viewMode}
+        periodLabel={periodLabel}
         data={{
           totalRevenue,
           totalOperatingCosts,

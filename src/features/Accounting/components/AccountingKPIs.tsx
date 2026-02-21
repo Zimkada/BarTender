@@ -5,6 +5,7 @@ import { useViewport } from '../../../hooks/useViewport';
 
 interface AccountingKPIsProps {
     viewMode: 'tresorerie' | 'analytique';
+    periodLabel?: string;
     data: {
         totalRevenue: number;
         totalOperatingCosts: number;
@@ -28,7 +29,7 @@ interface AccountingKPIsProps {
     };
 }
 
-export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, data }) => {
+export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, periodLabel, data }) => {
     const { formatPrice } = useCurrencyFormatter();
     const { isMobile } = useViewport();
 
@@ -66,9 +67,16 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, data }
                             <div className="p-2 bg-brand-primary/10 text-brand-primary rounded-lg group-hover:scale-110 transition-transform">
                                 <DollarSign size={20} />
                             </div>
-                            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                Revenus période
-                            </h3>
+                            <div className="flex flex-col gap-0.5">
+                                <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                    Revenus
+                                </h3>
+                                {periodLabel && (
+                                    <p className="text-[11px] text-gray-600 font-bold uppercase tracking-wider">
+                                        {periodLabel}
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     </div>
                     <div className="flex flex-col">
@@ -85,9 +93,16 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, data }
                             <div className="p-2 bg-amber-50 text-amber-600 rounded-lg group-hover:scale-110 transition-transform">
                                 <Receipt size={20} />
                             </div>
-                            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                Dépenses Opérationnelles
-                            </h3>
+                            <div className="flex flex-col gap-0.5">
+                                <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                    Dépenses
+                                </h3>
+                                {periodLabel && (
+                                    <p className="text-[11px] text-gray-600 font-bold uppercase tracking-wider">
+                                        {periodLabel}
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     </div>
                     <div className="flex flex-col">
@@ -185,16 +200,23 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, data }
                         <div className="p-2 bg-brand-primary/10 text-brand-primary rounded-lg group-hover:scale-110 transition-transform">
                             <DollarSign size={20} />
                         </div>
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                            Revenus
-                        </h3>
+                        <div className="flex flex-col gap-0.5">
+                            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                Revenus
+                            </h3>
+                            {periodLabel && (
+                                <p className="text-[10px] text-gray-600 font-bold uppercase tracking-wider">
+                                    {periodLabel}
+                                </p>
+                            )}
+                        </div>
                     </div>
                     <div className="flex flex-col">
                         <p className={`font-mono font-bold text-gray-900 tracking-tighter whitespace-nowrap ${isMobile ? 'text-xl' : 'text-2xl lg:text-xl xl:text-2xl'}`}>
                             +{formatPrice(data.totalRevenue)}
                         </p>
                         <p className={`mt-2 text-gray-400 font-medium uppercase tracking-widest ${isMobile ? 'text-[9px]' : 'text-[10px]'}`}>
-                            Encaissements période
+                            Encaissements
                         </p>
                     </div>
                 </div>
@@ -205,16 +227,23 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, data }
                         <div className="p-2 bg-amber-50 text-amber-600 rounded-lg group-hover:scale-110 transition-transform">
                             <Receipt size={20} />
                         </div>
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                            Dépenses
-                        </h3>
+                        <div className="flex flex-col gap-0.5">
+                            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                Dépenses
+                            </h3>
+                            {periodLabel && (
+                                <p className="text-[10px] text-gray-600 font-bold uppercase tracking-wider">
+                                    {periodLabel}
+                                </p>
+                            )}
+                        </div>
                     </div>
                     <div className="flex flex-col">
                         <p className={`font-mono font-bold text-gray-900 tracking-tighter whitespace-nowrap ${isMobile ? 'text-xl' : 'text-2xl lg:text-xl xl:text-2xl'}`}>
                             -{formatPrice(data.totalCosts || 0)}
                         </p>
                         <p className={`mt-2 text-gray-400 font-medium uppercase tracking-widest ${isMobile ? 'text-[9px]' : 'text-[10px]'}`}>
-                            Décaissements période
+                            Décaissements
                         </p>
                     </div>
                 </div>
