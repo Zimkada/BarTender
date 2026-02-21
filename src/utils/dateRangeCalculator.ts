@@ -101,6 +101,20 @@ export function calculateDateRange(
       break;
     }
 
+    case 'this_quarter': {
+      const month = referenceDate.getMonth(); // 0-11
+      const quarter = Math.floor(month / 3); // 0, 1, 2, 3
+      const startMonth = quarter * 3; // 0, 3, 6, 9
+      const endMonth = startMonth + 2; // 2, 5, 8, 11
+
+      startDate = new Date(referenceDate.getFullYear(), startMonth, 1);
+      endDate = new Date(referenceDate.getFullYear(), endMonth + 1, 0);
+
+      const quarterNum = quarter + 1;
+      label = `Q${quarterNum} ${referenceDate.getFullYear()}`;
+      break;
+    }
+
     case 'this_year': {
       startDate = new Date(referenceDate.getFullYear(), 0, 1);
       endDate = new Date(referenceDate.getFullYear(), 11, 31);

@@ -20,6 +20,7 @@ export type TimeRange =
   // Calendaire
   | 'this_week'       // Cette semaine (Lun-Dim)
   | 'this_month'      // Ce mois
+  | 'this_quarter'    // Ce trimestre
   | 'this_year'       // Cette année
   // Personnalisé
   | 'custom';

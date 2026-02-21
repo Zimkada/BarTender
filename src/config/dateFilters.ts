@@ -75,6 +75,13 @@ export const TIME_RANGE_CONFIGS: Record<TimeRange, TimeRangeConfig> = {
     description: 'Mois calendaire en cours',
     type: 'calendar'
   },
+  this_quarter: {
+    value: 'this_quarter',
+    label: 'Ce trimestre',
+    shortLabel: 'Trim.',
+    description: 'Trimestre calendaire en cours',
+    type: 'calendar'
+  },
   this_year: {
     value: 'this_year',
     label: 'Cette année',
@@ -126,13 +133,27 @@ export const SALES_HISTORY_FILTERS: TimeRange[] = [
 ];
 
 /**
- * Filtres pour accounting
+ * Filtres pour accounting - Desktop (avec trimestre)
  */
 export const ACCOUNTING_FILTERS: TimeRange[] = [
   'today',
   'yesterday',
   'this_week',
   'this_month',
+  'this_quarter',
+  'this_year',
+  'custom'
+];
+
+/**
+ * Filtres pour accounting - Mobile (sans trimestre)
+ */
+export const ACCOUNTING_FILTERS_MOBILE: TimeRange[] = [
+  'today',
+  'yesterday',
+  'this_week',
+  'this_month',
+  'this_year',
   'custom'
 ];
 
