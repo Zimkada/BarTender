@@ -21,9 +21,13 @@ interface RobustOperationState {
  * Gère: timeout, retry, détection offline, feedback utilisateur
  */
 export function useRobustOperation(options: UseRobustOperationOptions = {}) {
+  // Adaptive timeout: mobile (2G/3G AOF 5-8s latence) vs desktop
+  const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+  const defaultTimeout = isMobile ? 15000 : 10000; // 15s mobile, 10s desktop
+
   const {
-    timeoutMs = 5000,
-    maxRetries = 2,
+    timeoutMs = defaultTimeout,
+    maxRetries = 3,
     onTimeout,
     onOffline,
     onError,

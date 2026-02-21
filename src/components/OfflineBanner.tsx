@@ -1,18 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, ChevronDown, ChevronUp, Zap, RotateCw } from 'lucide-react';
 import { networkManager } from '../services/NetworkManager';
 import { offlineQueue } from '../services/offlineQueue';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
+import { useSyncStatus } from '../hooks/useSyncStatus';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
+import type { NetworkStatus } from '../types/sync';
 
 export const OfflineBanner: React.FC = () => {
     const [isOffline, setIsOffline] = useState(networkManager.shouldShowOfflineBanner());
+    const [networkStatus, setNetworkStatus] = useState<NetworkStatus>(networkManager.getStatus());
     const [pendingCount, setPendingCount] = useState(0);
     const [isExpanded, setIsExpanded] = useState(false);
     const { isSimplifiedMode, currentBar } = useBarContext();
     const { currentSession } = useAuth();
+    const { hasPending, isSyncing, forceNetworkCheck, retryAll } = useSyncStatus();
 
     // Track if we've just reconnected to show a success toast
     const [wasOffline, setWasOffline] = useState(false);
@@ -33,7 +37,9 @@ export const OfflineBanner: React.FC = () => {
     useEffect(() => {
         const unsubscribe = networkManager.subscribe(() => {
             const offline = networkManager.shouldShowOfflineBanner();
+            const status = networkManager.getStatus();
             setIsOffline(offline);
+            setNetworkStatus(status);
 
             if (!offline && wasOffline) {
                 const count = maxPendingCountRef.current;
@@ -76,6 +82,30 @@ export const OfflineBanner: React.FC = () => {
     // Managers/Promoters can work in simplified mode offline
     const isManagerRole = ['gerant', 'promoteur'].includes(role || '');
     const canWorkOffline = isSimplifiedMode && isManagerRole;
+
+    // Show unstable connection indicator (amber pill) when connection is unstable but not fully offline
+    if (networkStatus === 'unstable' && !isOffline) {
+        return (
+            <div className="fixed top-4 left-0 right-0 z-[9999] flex justify-center pointer-events-none">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="pointer-events-auto flex items-center gap-2 px-4 h-10 rounded-full bg-amber-500/90 backdrop-blur-xl border border-amber-400/30 shadow-lg"
+                >
+                    <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ repeat: Infinity, duration: 2, ease: 'linear' }}
+                    >
+                        <Zap size={14} className="text-white" />
+                    </motion.div>
+                    <span className="text-xs font-medium text-white tracking-wide">
+                        Connexion instable — Les ventes sont sauvegardées
+                    </span>
+                </motion.div>
+            </div>
+        );
+    }
 
     if (!isOffline) return null;
 
@@ -170,6 +200,32 @@ export const OfflineBanner: React.FC = () => {
                                     </>
                                 )}
                             </div>
+
+                            {/* FORCE SYNC BUTTON */}
+                            {hasPending && (
+                                <div className="mb-4">
+                                    <button
+                                        onClick={() => {
+                                            forceNetworkCheck();
+                                            retryAll();
+                                        }}
+                                        disabled={isSyncing}
+                                        className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all
+                                            ${isSyncing
+                                                ? 'bg-gray-700/50 text-gray-400 cursor-not-allowed'
+                                                : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 active:scale-95'
+                                            }`}
+                                    >
+                                        <motion.div
+                                            animate={isSyncing ? { rotate: 360 } : {}}
+                                            transition={isSyncing ? { repeat: Infinity, duration: 1.5, ease: 'linear' } : {}}
+                                        >
+                                            <RotateCw size={14} />
+                                        </motion.div>
+                                        {isSyncing ? 'Synchronisation...' : `Forcer synchro (${pendingCount})`}
+                                    </button>
+                                </div>
+                            )}
 
                             {/* QUEUE STATUS */}
                             {pendingCount > 0 && (

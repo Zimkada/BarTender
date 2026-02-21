@@ -38,9 +38,9 @@ interface NetworkManagerConfig {
  * Configuration par défaut
  */
 const DEFAULT_CONFIG: NetworkManagerConfig = {
-  pingUrl: 'https://jsonplaceholder.typicode.com/todos/1', // Reliable public API with CORS
+  pingUrl: `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/health`, // Supabase health endpoint (no auth required)
   checkInterval: 3000, // 3 secondes (plus réactif pour les tests)
-  pingTimeout: 3000,    // 3 secondes
+  pingTimeout: 7000,    // 7 secondes (couvre le 95e percentile latence 2G AOF: 5-8s)
 };
 
 /**
@@ -61,9 +61,9 @@ class NetworkManagerService {
   private checkIntervalId: number | null = null;
   private isInitialized = false;
 
-  /** Grace period avant de considérer offline (par défaut 60s) */
+  /** Grace period avant de considérer offline (par défaut 12s pour AOF) */
   private get gracePeriod(): number {
-    return this.config.gracePeriod ?? 60000;
+    return this.config.gracePeriod ?? 12000;
   }
 
   /** Timer pour transition unstable → offline */
