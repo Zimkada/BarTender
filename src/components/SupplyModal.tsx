@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { X, Package } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, Package, AlertTriangle, AlertCircle } from 'lucide-react';
 import { Product } from '../types';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
+import { useBarContext } from '../context/BarContext';
+import { useLastSuppliesMap } from '../hooks/queries/useStockQueries';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Select } from './ui/Select';
 
@@ -23,6 +25,9 @@ interface SupplyModalProps {
 
 export function SupplyModal({ isOpen, onClose, onSave, products, inline = false, initialProductId, initialQuantity }: SupplyModalProps) {
   const { formatPrice } = useCurrencyFormatter();
+  const { currentBar } = useBarContext();
+  const { data: lastSupplies } = useLastSuppliesMap(currentBar?.id);
+
   const [formData, setFormData] = useState({
     productId: '',
     quantity: '',
@@ -31,25 +36,55 @@ export function SupplyModal({ isOpen, onClose, onSave, products, inline = false,
     supplier: '',
   });
 
+  const [priceConfirmed, setPriceConfirmed] = useState(false);
+
   // 🛡️ wasOpen Ref: Ensures the form only resets when explicitly OPENED (from closed state)
   // This prevents data loss when 'products' array reference changes due to React Query refetch
   const wasOpen = React.useRef(false);
 
+  // Initialize form with last supply defaults when modal opens
   useEffect(() => {
     if (isOpen && !wasOpen.current) {
+      const productId = initialProductId || products[0]?.id || '';
+      const lastSupply = lastSupplies?.[productId];
+
       setFormData({
-        productId: initialProductId || products[0]?.id || '',
+        productId,
         quantity: initialQuantity ? initialQuantity.toString() : '',
-        lotSize: '',
-        lotPrice: '',
-        supplier: '',
+        lotSize: lastSupply?.lotSize?.toString() || '',
+        lotPrice: lastSupply?.lotPrice?.toString() || '',
+        supplier: lastSupply?.supplier || '',
       });
+      setPriceConfirmed(false);
     }
     wasOpen.current = isOpen;
-  }, [isOpen, products.length, initialProductId, initialQuantity]);
+  }, [isOpen, products.length, initialProductId, initialQuantity, lastSupplies]);
+
+  // Pre-fill form when product is selected
+  useEffect(() => {
+    if (formData.productId && lastSupplies) {
+      const lastSupply = lastSupplies[formData.productId];
+      if (lastSupply && !formData.lotPrice) {
+        // Only pre-fill if not already entered
+        setFormData(prev => ({
+          ...prev,
+          lotSize: lastSupply.lotSize?.toString() || prev.lotSize,
+          lotPrice: lastSupply.lotPrice?.toString() || prev.lotPrice,
+          supplier: lastSupply.supplier || prev.supplier,
+        }));
+        setPriceConfirmed(false);
+      }
+    }
+  }, [formData.productId, lastSupplies]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Check if price confirmation is required but not given
+    if (priceRatio > 10 && !priceConfirmed) {
+      return; // Prevent submission
+    }
+
     onSave({
       productId: formData.productId,
       quantity: parseInt(formData.quantity),
@@ -59,6 +94,16 @@ export function SupplyModal({ isOpen, onClose, onSave, products, inline = false,
     });
     onClose();
   };
+
+  // Calculate price deviation ratio
+  const lastSupply = lastSupplies?.[formData.productId];
+  const lastPrice = lastSupply?.lotPrice ?? null;
+  const currentPrice = formData.lotPrice ? parseFloat(formData.lotPrice) : null;
+
+  const priceRatio = useMemo(() => {
+    if (!lastPrice || !currentPrice || lastPrice === 0) return 1;
+    return currentPrice / lastPrice;
+  }, [lastPrice, currentPrice]);
 
   const selectedProduct = products.find(p => p.id === formData.productId);
   const totalLots = formData.quantity && formData.lotSize ?
@@ -141,6 +186,7 @@ export function SupplyModal({ isOpen, onClose, onSave, products, inline = false,
           </div>
         </div>
 
+        {/* Prix par lot avec alerte intelligente */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Prix par lot (FCFA) *
@@ -150,10 +196,71 @@ export function SupplyModal({ isOpen, onClose, onSave, products, inline = false,
             required
             min="0"
             value={formData.lotPrice}
-            onChange={(e) => setFormData({ ...formData, lotPrice: e.target.value })}
-            className="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl text-gray-800 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-subtle"
+            onChange={(e) => {
+              setFormData({ ...formData, lotPrice: e.target.value });
+              setPriceConfirmed(false);
+            }}
+            className={`w-full px-3 py-2 bg-white border rounded-xl text-gray-800 focus:outline-none focus:ring-2 transition-all ${
+              priceRatio > 10
+                ? 'border-red-500 focus:border-red-600 focus:ring-red-200'
+                : priceRatio > 2
+                  ? 'border-amber-500 focus:border-amber-600 focus:ring-amber-200'
+                  : 'border-gray-300 focus:border-brand-primary focus:ring-brand-subtle'
+            }`}
             placeholder="12000"
           />
+
+          {/* Afficher le dernier prix comme référence */}
+          {lastPrice && (
+            <p className="text-xs text-gray-500 mt-1.5">
+              📊 Dernier prix: <span className="font-semibold text-gray-700">{formatPrice(lastPrice)}</span>
+              {lastSupply?.supplier && <span className="text-gray-400"> (fournisseur: {lastSupply.supplier})</span>}
+            </p>
+          )}
+
+          {/* Alerte orange: prix modérément élevé (2x-10x) */}
+          {priceRatio > 2 && priceRatio <= 10 && currentPrice && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-2.5 flex gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg"
+            >
+              <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-800">
+                ⚠️ Ce prix ({formatPrice(currentPrice)}) est <span className="font-semibold">{priceRatio.toFixed(1)}x</span> plus élevé que le dernier approvisionnement.
+              </p>
+            </motion.div>
+          )}
+
+          {/* Alerte rouge: prix très anormal (>10x) + demande confirmation */}
+          {priceRatio > 10 && currentPrice && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-2.5 space-y-2.5"
+            >
+              <div className="flex gap-2 p-2.5 bg-red-50 border border-red-300 rounded-lg">
+                <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-red-800">
+                  🚨 <span className="font-semibold">PRIX EXTRÊMEMENT ÉLEVÉ!</span> Vous avez saisi {formatPrice(currentPrice)}, soit <span className="font-semibold">{priceRatio.toFixed(1)}x</span> le dernier prix ({formatPrice(lastPrice)}).
+                </p>
+              </div>
+
+              {/* Checkbox de confirmation obligatoire */}
+              <div className="flex items-center gap-2 p-2.5 bg-red-50 rounded-lg border border-red-200">
+                <input
+                  type="checkbox"
+                  id="priceConfirm"
+                  checked={priceConfirmed}
+                  onChange={(e) => setPriceConfirmed(e.target.checked)}
+                  className="w-4 h-4 text-red-600 border-red-300 rounded cursor-pointer"
+                />
+                <label htmlFor="priceConfirm" className="text-xs text-red-800 cursor-pointer select-none">
+                  ✓ Je confirme ce prix intentionnellement
+                </label>
+              </div>
+            </motion.div>
+          )}
         </div>
 
         <div>
@@ -197,11 +304,16 @@ export function SupplyModal({ isOpen, onClose, onSave, products, inline = false,
           </motion.button>
           <motion.button
             type="submit"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="flex-1 py-2.5 px-4 btn-brand rounded-xl font-medium"
+            whileHover={priceRatio <= 10 ? { scale: 1.02 } : {}}
+            whileTap={priceRatio <= 10 ? { scale: 0.98 } : {}}
+            disabled={priceRatio > 10 && !priceConfirmed}
+            className={`flex-1 py-2.5 px-4 rounded-xl font-medium transition-all ${
+              priceRatio > 10 && !priceConfirmed
+                ? 'btn-brand opacity-50 cursor-not-allowed'
+                : 'btn-brand'
+            }`}
           >
-            Enregistrer
+            {priceRatio > 10 && !priceConfirmed ? '⚠️ Confirmez le prix' : 'Enregistrer'}
           </motion.button>
         </div>
       </form>
