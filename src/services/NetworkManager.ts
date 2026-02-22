@@ -60,6 +60,7 @@ class NetworkManagerService {
   private config: NetworkManagerConfig;
   private checkIntervalId: number | null = null;
   private isInitialized = false;
+  private isPinging = false; // Guard: empêche les pings concurrents (checkInterval < pingTimeout)
 
   /** Grace period avant de considérer offline (par défaut 12s pour AOF) */
   private get gracePeriod(): number {
@@ -205,6 +206,9 @@ class NetworkManagerService {
    * 3. Si offline, appliquer grace period
    */
   async checkConnectivity(): Promise<void> {
+    // Guard: skip si un ping est déjà en cours (évite l'oscillation checkInterval < pingTimeout)
+    if (this.isPinging) return;
+
     // Étape 1: Vérifier navigator.onLine (instantané)
     if (!navigator.onLine) {
       // Appliquer grace period avant offline
@@ -264,6 +268,7 @@ class NetworkManagerService {
   private async pingServer(): Promise<boolean> {
     if (!this.config.pingUrl) return true;
 
+    this.isPinging = true;
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.config.pingTimeout);
@@ -279,6 +284,8 @@ class NetworkManagerService {
     } catch (error) {
       console.warn('[NetworkManager] Ping failed:', error);
       return false;
+    } finally {
+      this.isPinging = false; // Toujours libérer le guard
     }
   }
 
@@ -307,9 +314,13 @@ class NetworkManagerService {
     return this.status === 'offline';
   }
 
-  /** Doit-on bloquer les opérations réseau ? */
+  /** Doit-on bloquer les opérations réseau ?
+   * IMPORTANT: 'unstable' ne bloque PAS — connexion dégradée mais présente.
+   * On laisse les services tenter avec leurs timeouts propres.
+   * Seul 'offline' = vrai blocage (aucune connectivité confirmée).
+   */
   shouldBlockNetworkOps(): boolean {
-    return this.status === 'offline' || this.status === 'unstable';
+    return this.status === 'offline';
   }
 
   /**
