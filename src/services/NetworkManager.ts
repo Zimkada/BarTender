@@ -304,9 +304,15 @@ class NetworkManagerService {
   }
 
   /**
-   * DISTINCTION CRITIQUE (Phase 9)
-   * On ne montre la bannière que si confirmement offline.
-   * Mais on bloque les opérations si instable (pour éviter race conditions).
+   * DISTINCTION CRITIQUE: Network decision states
+   * - 'online': confirmed connectivity to server
+   * - 'unstable': connection detected but degraded (grace period active)
+   * - 'offline': no connectivity confirmed (after grace period expires)
+   *
+   * Visibility & Blocking Logic:
+   * - shouldShowOfflineBanner(): only show UI when status === 'offline'
+   * - shouldBlockNetworkOps(): only block when status === 'offline'
+   *   (unstable allows attempts with degraded performance, not a complete block)
    */
 
   /** Doit-on montrer la bannière offline ? */

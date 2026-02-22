@@ -136,7 +136,7 @@ export class SalesService {
       const timeoutPromise = new Promise((_, reject) => {
         timeoutId = setTimeout(() => {
           reject(new Error('TIMEOUT_EXCEEDED'));
-        }, 5000);
+        }, 8000); // 8s: covers 2G AOF latency (5-8s) + RPC processing time
       });
 
       try {
