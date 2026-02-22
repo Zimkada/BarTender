@@ -392,6 +392,14 @@ class OfflineQueue {
     };
   }
 
+  /**
+   * Récupère les opérations en erreur pour une barre donnée
+   * Utilisé pour afficher les opérations échouées dans l'UI (P1a)
+   */
+  async getErrorOperations(barId: string): Promise<SyncOperation[]> {
+    return this.getOperations({ barId, status: 'error' });
+  }
+
   // --- ID TRANSLATIONS (Phase 13 Blindage) ---
 
   async saveIdTranslation(tempId: string, realId: string): Promise<void> {

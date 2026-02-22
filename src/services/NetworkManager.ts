@@ -122,6 +122,8 @@ class NetworkManagerService {
 
   /**
    * Handler pour l'event window.online
+   * Called when browser detects online state — should validate immediately
+   * even if a ping is already in progress (forceImmediate=true)
    */
   private handleOnline = (): void => {
     console.log('[NetworkManager] Browser reports online');
@@ -133,8 +135,9 @@ class NetworkManagerService {
       console.log('[NetworkManager] Grace period cancelled, connection restored');
     }
 
-    // Vérifier la connectivité réelle
-    this.checkConnectivity();
+    // Vérifier la connectivité réelle IMMÉDIATEMENT (bypass isPinging guard)
+    // This ensures fast reconnection detection even if a ping is mid-flight
+    this.checkConnectivity(true);
   };
 
   /**
@@ -204,10 +207,13 @@ class NetworkManagerService {
    * 1. Vérifier navigator.onLine
    * 2. Si online, ping le server pour validation réelle
    * 3. Si offline, appliquer grace period
+   *
+   * @param forceImmediate - Si true, bypass le guard isPinging (pour les reconnexions online event)
    */
-  async checkConnectivity(): Promise<void> {
+  async checkConnectivity(forceImmediate: boolean = false): Promise<void> {
     // Guard: skip si un ping est déjà en cours (évite l'oscillation checkInterval < pingTimeout)
-    if (this.isPinging) return;
+    // Exception: online event bypass pour détection rapide de reconnexion
+    if (this.isPinging && !forceImmediate) return;
 
     // Étape 1: Vérifier navigator.onLine (instantané)
     if (!navigator.onLine) {

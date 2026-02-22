@@ -13,7 +13,9 @@ export const OfflineBanner: React.FC = () => {
     const [isOffline, setIsOffline] = useState(networkManager.shouldShowOfflineBanner());
     const [networkStatus, setNetworkStatus] = useState<NetworkStatus>(networkManager.getStatus());
     const [pendingCount, setPendingCount] = useState(0);
+    const [errorCount, setErrorCount] = useState(0);
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isRetryingErrors, setIsRetryingErrors] = useState(false);
     const { isSimplifiedMode, currentBar } = useBarContext();
     const { currentSession } = useAuth();
     const { hasPending, isSyncing, forceNetworkCheck, retryAll } = useSyncStatus();
@@ -63,7 +65,10 @@ export const OfflineBanner: React.FC = () => {
             if (currentBar?.id) {
                 try {
                     const stats = await offlineQueue.getStats(currentBar.id);
-                    if (isMounted) setPendingCount(stats.pendingCount);
+                    if (isMounted) {
+                        setPendingCount(stats.pendingCount);
+                        setErrorCount(stats.errorCount);
+                    }
                 } catch (error) {
                     console.error('[OfflineBanner] Stats error:', error);
                 }
@@ -82,6 +87,34 @@ export const OfflineBanner: React.FC = () => {
     // Managers/Promoters can work in simplified mode offline
     const isManagerRole = ['gerant', 'promoteur'].includes(role || '');
     const canWorkOffline = isSimplifiedMode && isManagerRole;
+
+    /**
+     * Réessayer les opérations en erreur
+     * Reset leur status à 'pending' pour une nouvelle tentative
+     */
+    const retryErrorOperations = async () => {
+        if (!currentBar?.id || errorCount === 0) return;
+
+        setIsRetryingErrors(true);
+        try {
+            const errorOps = await offlineQueue.getErrorOperations(currentBar.id);
+            for (const op of errorOps) {
+                await offlineQueue.resetRetries(op.id);
+            }
+            // Déclencher une synchro immédiate
+            forceNetworkCheck();
+            retryAll();
+            toast.success(
+                `${errorOps.length} ${errorOps.length > 1 ? 'opération réessayée' : 'opérations réessayées'}`,
+                { icon: '🔄', style: { background: '#1a1a1a', color: '#fff' } }
+            );
+        } catch (error) {
+            console.error('[OfflineBanner] Error retrying operations:', error);
+            toast.error('Impossible de réessayer les opérations', { style: { background: '#1a1a1a', color: '#fff' } });
+        } finally {
+            setIsRetryingErrors(false);
+        }
+    };
 
     // Show unstable connection indicator (amber pill) when connection is unstable but not fully offline
     if (networkStatus === 'unstable' && !isOffline) {
@@ -229,7 +262,7 @@ export const OfflineBanner: React.FC = () => {
 
                             {/* QUEUE STATUS */}
                             {pendingCount > 0 && (
-                                <div className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/5">
+                                <div className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/5 mb-3">
                                     <div className="flex items-center gap-2">
                                         <Clock size={14} className="text-amber-400" />
                                         <span className="text-xs font-medium text-gray-300">
@@ -239,6 +272,40 @@ export const OfflineBanner: React.FC = () => {
                                     <span className="text-sm font-bold text-white bg-white/10 px-2 py-0.5 rounded-md">
                                         {pendingCount}
                                     </span>
+                                </div>
+                            )}
+
+                            {/* ERROR OPERATIONS STATUS (P1a) */}
+                            {errorCount > 0 && (
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between bg-red-500/10 p-3 rounded-xl border border-red-500/30">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-bold text-red-400">⚠️</span>
+                                            <span className="text-xs font-medium text-red-300">
+                                                Opération(s) échouée(s)
+                                            </span>
+                                        </div>
+                                        <span className="text-sm font-bold text-white bg-red-500/20 px-2 py-0.5 rounded-md">
+                                            {errorCount}
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={retryErrorOperations}
+                                        disabled={isRetryingErrors || isSyncing}
+                                        className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm transition-all
+                                            ${isRetryingErrors || isSyncing
+                                                ? 'bg-gray-700/50 text-gray-400 cursor-not-allowed'
+                                                : 'bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 active:scale-95'
+                                            }`}
+                                    >
+                                        <motion.div
+                                            animate={isRetryingErrors ? { rotate: 360 } : {}}
+                                            transition={isRetryingErrors ? { repeat: Infinity, duration: 1.5, ease: 'linear' } : {}}
+                                        >
+                                            <RotateCw size={14} />
+                                        </motion.div>
+                                        {isRetryingErrors ? 'Réessai en cours...' : `Réessayer (${errorCount})`}
+                                    </button>
                                 </div>
                             )}
                         </motion.div>
