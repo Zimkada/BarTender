@@ -104,9 +104,15 @@ export const OfflineBanner: React.FC = () => {
             // Déclencher une synchro immédiate
             forceNetworkCheck();
             retryAll();
+            // Wording selon état réseau : online = retry immédiat, offline = mis en file
+            const isNetworkAvailable = !networkManager.shouldBlockNetworkOps();
+            const n = errorOps.length;
+            const message = isNetworkAvailable
+                ? `${n} ${n > 1 ? 'opérations réessayées' : 'opération réessayée'}`
+                : `${n} ${n > 1 ? 'opérations mises en file d\'attente' : 'opération mise en file d\'attente'}`;
             toast.success(
-                `${errorOps.length} ${errorOps.length > 1 ? 'opération réessayée' : 'opérations réessayées'}`,
-                { icon: '🔄', style: { background: '#1a1a1a', color: '#fff' } }
+                message,
+                { icon: isNetworkAvailable ? '🔄' : '⏳', style: { background: '#1a1a1a', color: '#fff' } }
             );
         } catch (error) {
             console.error('[OfflineBanner] Error retrying operations:', error);
@@ -175,9 +181,13 @@ export const OfflineBanner: React.FC = () => {
                         <span className="text-white font-bold text-sm tracking-wide">
                             {canWorkOffline ? 'Mode Hors Ligne' : 'Connexion Perdue'}
                         </span>
-                        {pendingCount > 0 && !isExpanded && (
-                            <span className="bg-white/10 px-2 py-0.5 rounded-full text-[10px] text-white/80 font-mono">
-                                {pendingCount}
+                        {(pendingCount + errorCount > 0) && !isExpanded && (
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono
+                                ${errorCount > 0
+                                    ? 'bg-red-500/25 text-red-300'
+                                    : 'bg-white/10 text-white/80'
+                                }`}>
+                                {pendingCount + errorCount}
                             </span>
                         )}
                     </div>
