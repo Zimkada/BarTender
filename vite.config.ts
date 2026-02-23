@@ -22,6 +22,10 @@ export default defineConfig({
     VitePWA({
       registerType: 'prompt', // User must accept update
       includeAssets: ['icons/*.png', 'favicon.ico'],
+      // Mode injectManifest: Workbox injectera le precache manifest dans notre SW personnalisé
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
 
       manifest: {
         name: 'BarTender - Gestion de Bar',

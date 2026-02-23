@@ -120,6 +120,12 @@ class SyncManagerService {
       }
     });
 
+    // 4. Enregistrer Background Sync API pour syncs automatiques même app fermée
+    this.registerBackgroundSync();
+
+    // 5. Écouter les messages du Service Worker (sync events)
+    this.setupServiceWorkerMessageListener();
+
     console.log('[SyncManager] Initialized');
   }
 
@@ -141,6 +147,63 @@ class SyncManagerService {
     } catch (err) {
       console.error('[SyncManager] Hydration failed:', err);
     }
+  }
+
+  /**
+   * 📱 Enregistre Background Sync API pour déclencher sync quand réseau revient
+   * Fonctionne même si l'app est fermée - le browser déclenche le sync automatiquement
+   */
+  private async registerBackgroundSync(): Promise<void> {
+    if (!('serviceWorker' in navigator) || !('sync' in (navigator.serviceWorker.controller || {}))) {
+      console.log('[SyncManager] Background Sync not supported in this browser');
+      return;
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+
+      // Vérifier que Background Sync est supporté
+      if (!('sync' in registration)) {
+        console.log('[SyncManager] Background Sync API not available');
+        return;
+      }
+
+      // Enregistrer le tag de synchronisation
+      // Le browser décenchera cet événement quand la connexion revient
+      await (registration.sync as any).register('sync-pending-operations');
+
+      console.log('[SyncManager] Background Sync registered for "sync-pending-operations"');
+    } catch (error) {
+      console.error('[SyncManager] Failed to register background sync:', error);
+    }
+  }
+
+  /**
+   * 📨 Écoute les messages du Service Worker
+   * Quand le SW reçoit un événement de sync, il notifie l'app via postMessage
+   */
+  private setupServiceWorkerMessageListener(): void {
+    if (!('serviceWorker' in navigator)) {
+      return;
+    }
+
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      const { data } = event;
+
+      // Événement de sync depuis le Service Worker (Background Sync API)
+      if (data?.type === 'SYNC_REQUEST') {
+        console.log('[SyncManager] Received sync request from Service Worker:', data.tag);
+
+        // Déclencher la synchronisation complète
+        if (!this.isSyncing) {
+          this.syncAll();
+        }
+      }
+
+      // Messages futurs peuvent être ajoutés ici
+    });
+
+    console.log('[SyncManager] Service Worker message listener ready');
   }
 
   /**
