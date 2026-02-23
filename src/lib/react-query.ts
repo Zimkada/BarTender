@@ -28,7 +28,12 @@ const retryFn = (failureCount: number, error: unknown) => {
 // Gestionnaire d'erreur global pour les requêtes
 const onError = (error: unknown) => {
   console.error('[React Query Error]', error);
-  const err = error as { status?: number; message?: string };
+  const err = error as { status?: number; message?: string; name?: string };
+
+  // Ignorer les erreurs d'annulation (AbortError = comportement normal lors de reconnexion/timeout)
+  if (err?.name === 'AbortError' || err?.message?.includes('aborted')) {
+    return; // Pas de notification pour les AbortError
+  }
 
   // On ne notifie pas les erreurs 401/403 car elles sont souvent gérées par l'auth interceptor
   if (err?.status !== 401 && err?.status !== 403) {
@@ -63,8 +68,13 @@ export const queryClient = new QueryClient({
   // Cache global pour intercepter les erreurs de mutation
   mutationCache: new MutationCache({
     onError: (error: unknown) => {
+      // Ignorer les erreurs d'annulation (AbortError = comportement normal lors de reconnexion/timeout)
+      const err = error as { message?: string; name?: string };
+      if (err?.name === 'AbortError' || err?.message?.includes('aborted')) {
+        return; // Pas de notification pour les AbortError
+      }
+
       // Notification automatique pour toutes les erreurs de mutation (écriture)
-      const err = error as { message?: string };
       const message = err?.message || 'Une erreur est survenue lors de l\'opération';
       import('react-hot-toast').then(({ default: toast }) => {
         toast.error(message);
