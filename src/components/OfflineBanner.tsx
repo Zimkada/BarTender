@@ -5,6 +5,7 @@ import { offlineQueue } from '../services/offlineQueue';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { useSyncStatus } from '../hooks/useSyncStatus';
+import { useCanWorkOffline } from '../hooks/useCanWorkOffline';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import type { NetworkStatus } from '../types/sync';
@@ -83,10 +84,8 @@ export const OfflineBanner: React.FC = () => {
         };
     }, [currentBar?.id]);
 
-    const role = currentSession?.role;
-    // Managers/Promoters can work in simplified mode offline
-    const isManagerRole = ['gerant', 'promoteur'].includes(role || '');
-    const canWorkOffline = isSimplifiedMode && isManagerRole;
+    const canWorkOffline = useCanWorkOffline();
+    const isManagerRole = ['gerant', 'promoteur', 'super_admin'].includes(currentSession?.role || '');
 
     /**
      * Réessayer les opérations en erreur

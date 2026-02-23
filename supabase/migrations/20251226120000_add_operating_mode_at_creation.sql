@@ -58,20 +58,20 @@ SET operating_mode_at_creation = COALESCE(
   (SELECT b.settings->>'operatingMode' FROM public.bars b WHERE b.id = s.bar_id),
   'full'
 )
-WHERE operating_mode_at_creation IS NULL OR operating_mode_at_creation = 'full';
+WHERE operating_mode_at_creation IS NULL;
 
 UPDATE public.consignments c
 SET operating_mode_at_creation = COALESCE(
   (SELECT b.settings->>'operatingMode' FROM public.bars b WHERE b.id = c.bar_id),
   'full'
 )
-WHERE operating_mode_at_creation IS NULL OR operating_mode_at_creation = 'full';
+WHERE operating_mode_at_creation IS NULL;
 
 UPDATE public.returns r
 SET operating_mode_at_creation = COALESCE(
   (SELECT b.settings->>'operatingMode' FROM public.bars b WHERE b.id = r.bar_id),
   'full'
 )
-WHERE operating_mode_at_creation IS NULL OR operating_mode_at_creation = 'full';
+WHERE operating_mode_at_creation IS NULL;
 
 COMMIT;

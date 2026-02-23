@@ -12,6 +12,7 @@ import { broadcastService } from '../../services/broadcast/BroadcastService';
 import { Database } from '../../lib/database.types';
 import { PaymentMethod } from '../../components/cart/PaymentMethodSelector';
 import { SaleItem } from '../../types';
+import { useCanWorkOffline } from '../../hooks/useCanWorkOffline';
 import toast from 'react-hot-toast';
 import { z } from 'zod';
 import { SaleItemSchema } from '../../utils/revenueSchemas';
@@ -109,6 +110,10 @@ export const useSalesMutations = (barId: string) => {
     const { currentSession } = useAuth();
     const { currentBar, isSimplifiedMode } = useBarContext();
 
+    // ✅ CRITICAL FIX: Call useCanWorkOffline() at top-level (React Hooks Rules)
+    // DO NOT call it inside mutationFn - that violates React hooks contract
+    const canWorkOffline = useCanWorkOffline();
+
     const isNetworkError = (error: unknown): boolean => {
         if (!(error instanceof Error)) return !navigator.onLine;
 
@@ -192,7 +197,7 @@ export const useSalesMutations = (barId: string) => {
             // 🛡️ Fix Risque #4: canWorkOffline Logic Check
             // Seuls les Managers/Admins peuvent forcer le mode offline globalement.
             // En mode simplifié, on suppose que l'appareil est configuré pour (souvent tablette gérant).
-            const canWorkOffline = isManagerOrAdmin || isSimplifiedMode;
+            // NOTE: canWorkOffline is captured from top-level hook call (NOT called here per React Hooks Rules)
 
             console.log('[useSalesMutations] calling SalesService.createSale with 15s safety race', { canWorkOffline });
 

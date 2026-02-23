@@ -80,7 +80,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // ✨ Centralized Operating Mode Logic
   const operatingMode = useMemo(() => {
-    return currentBar?.settings?.operatingMode || 'simplified';
+    return currentBar?.settings?.operatingMode || 'full';
   }, [currentBar]);
 
   const isSimplifiedMode = useMemo(() => {
