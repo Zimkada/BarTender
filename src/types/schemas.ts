@@ -80,6 +80,16 @@ export const AddExpenseSchema = z.object({
     created_by: z.string().uuid(),
 });
 
+export const AddSalarySchema = z.object({
+    bar_id: z.string().uuid(),
+    member_id: z.string().uuid(),
+    amount: z.number().positive(),
+    period: z.string(), // YYYY-MM
+    paid_at: z.string(),
+    created_by: z.string().uuid(),
+    created_at: z.string(),
+});
+
 export const AddSupplySchema = z.object({
     bar_id: z.string().uuid(),
     product_id: z.string().uuid(),
@@ -141,7 +151,7 @@ export const MutationSchemas: Record<string, z.ZodType<any>> = {
     'CREATE_RETURN': CreateReturnSchema,
     'UPDATE_RETURN': UpdateReturnSchema,
     'ADD_EXPENSE': AddExpenseSchema,
-    'ADD_SALARY': AddExpenseSchema,
+    'ADD_SALARY': AddSalarySchema,
     'ADD_SUPPLY': AddSupplySchema,
     'CREATE_PRODUCT': CreateProductSchema,
     'UPDATE_PRODUCT': UpdateProductSchema,

@@ -238,8 +238,6 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
     return filteredSalaries.reduce((sum, sal) => sum + sal.amount, 0);
   }, [filteredSalaries]);
 
-
-
   // 📈 KPIs — Unified local state approach
   // ✅ Fixes audit findings:
   //   1. Consistent data source (filteredUnified) for both total and categories

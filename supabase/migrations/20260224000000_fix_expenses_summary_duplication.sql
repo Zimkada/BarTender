@@ -112,3 +112,13 @@ $$;
 
 -- 🛡️ FIX : Appel direct sans passer par le logger (évite la contrainte check sur materialized_view_refresh_log)
 REFRESH MATERIALIZED VIEW expenses_summary_mat;
+
+-- Permissions (restaurées après DROP CASCADE)
+GRANT SELECT ON expenses_summary_mat TO authenticated;
+GRANT SELECT ON expenses_summary_mat TO service_role;
+GRANT SELECT ON expenses_summary TO authenticated;
+GRANT SELECT ON expenses_summary TO service_role;
+
+-- Accès bar_members requis par la vue expenses_summary (filtre WHERE bar_id IN (...))
+-- Existait déjà via 012_grant_table_permissions.sql — réaffirmé ici pour cohérence
+GRANT SELECT ON bar_members TO authenticated;
