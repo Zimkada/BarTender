@@ -3,30 +3,62 @@
  * Pattern utilisé par les grandes applications (Google, Meta, etc.)
  */
 
+const ERROR_TRANSLATIONS: Record<string, string> = {
+  'unauthorized: user is not a member or owner of this bar': 'Accès refusé : Vous n\'êtes pas membre ou propriétaire de ce bar',
+  'unauthorized': 'Accès non autorisé',
+  'invalid login credentials': 'Email ou mot de passe incorrect',
+  'email not confirmed': 'Veuillez confirmer votre adresse email',
+  'user already exists': 'Cet utilisateur existe déjà',
+  'network error': 'Erreur réseau, veuillez vérifier votre connexion',
+  'fetch error': 'Impossible de contacter le serveur',
+  'user not found': 'Utilisateur introuvable',
+  'invalid refresh token': 'Session expirée, veuillez vous reconnecter',
+  'refresh token not found': 'Session expirée, veuillez vous reconnecter',
+  'database error': 'Erreur de base de données',
+  'permission denied': 'Permission refusée',
+};
+
+/**
+ * Traduit un message d'erreur technique en français si une correspondance existe
+ */
+function translateError(message: string): string {
+  if (!message) return message;
+  const lowerMsg = message.toLowerCase().trim();
+
+  // Recherche exacte
+  if (ERROR_TRANSLATIONS[lowerMsg]) {
+    return ERROR_TRANSLATIONS[lowerMsg];
+  }
+
+  // Recherche partielle pour les messages contenant des patterns connus
+  for (const [key, translation] of Object.entries(ERROR_TRANSLATIONS)) {
+    if (lowerMsg.includes(key)) {
+      return translation;
+    }
+  }
+
+  return message;
+}
+
 /**
  * Extrait le message d'une erreur inconnue de manière type-safe
  */
 export function getErrorMessage(error: unknown): string {
+  let message = 'Une erreur inattendue s\'est produite';
+
   if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (typeof error === 'object' && error !== null) {
+    message = error.message;
+  } else if (typeof error === 'object' && error !== null) {
     if ('message' in error && typeof error.message === 'string') {
-      return error.message;
+      message = error.message;
+    } else if ('error' in error && typeof error.error === 'string') {
+      message = error.error;
     }
-
-    // Gestion des erreurs Supabase
-    if ('error' in error && typeof error.error === 'string') {
-      return error.error;
-    }
+  } else if (typeof error === 'string') {
+    message = error;
   }
 
-  if (typeof error === 'string') {
-    return error;
-  }
-
-  return 'Unknown error occurred';
+  return translateError(message);
 }
 
 /**

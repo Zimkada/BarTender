@@ -46,15 +46,11 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   },
 });
 
+import { getErrorMessage } from '../utils/errorHandler';
+
 /**
  * Helper pour gérer les erreurs Supabase
  */
 export function handleSupabaseError(error: unknown): string {
-  if (error && typeof error === 'object' && 'message' in error) {
-    return String((error as { message: unknown }).message);
-  }
-  if (typeof error === 'string') {
-    return error;
-  }
-  return 'Une erreur inattendue s\'est produite';
+  return getErrorMessage(error);
 }
