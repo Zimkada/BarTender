@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Save, X, Loader2, Search, Filter, LayoutGrid, List as ListIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, Loader2, Search, Filter, LayoutGrid, List as ListIcon } from 'lucide-react';
 import { ProductsService } from '../services/supabase/products.service';
 import { CategoriesService } from '../services/supabase/categories.service';
 import { GlobalProduct, GlobalCategory } from '../types';
@@ -142,7 +142,15 @@ export function GlobalProductsTab() {
             setIsModalOpen(false);
             loadData();
         } catch (error: any) {
-            showError(error.message);
+            console.error('[GlobalProductsTab] Save error:', error);
+            const msg = (error.message || '').toLowerCase();
+            if (msg.includes('unique_product') || (msg.includes('duplicate key') && msg.includes('name'))) {
+                showError('Un produit avec ce même nom, marque et volume existe déjà');
+            } else if (msg.includes('barcode') || (msg.includes('duplicate key') && msg.includes('barcode'))) {
+                showError('Ce code-barres est déjà utilisé par un autre produit');
+            } else {
+                showError(error.message || "Une erreur est survenue lors de l'enregistrement");
+            }
         }
     };
 
@@ -325,25 +333,25 @@ export function GlobalProductsTab() {
                 >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-4">
-                                                    <div>
-                                                        <Label htmlFor="productName">Nom du produit *</Label>
-                                                        <Input
-                                                            id="productName"
-                                                            type="text"
-                                                            value={formData.name}
-                                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                                            placeholder="Ex: Heineken"
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <Label htmlFor="productBrand">Marque</Label>
-                                                        <Input
-                                                            id="productBrand"
-                                                            type="text"
-                                                            value={formData.brand}
-                                                            onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                                                        />
-                                                    </div>                            <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <Label htmlFor="productName">Nom du produit *</Label>
+                                <Input
+                                    id="productName"
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    placeholder="Ex: Heineken"
+                                />
+                            </div>
+                            <div>
+                                <Label htmlFor="productBrand">Marque</Label>
+                                <Input
+                                    id="productBrand"
+                                    type="text"
+                                    value={formData.brand}
+                                    onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                                />
+                            </div>                            <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <Label htmlFor="productVolume">Volume *</Label>
                                     <Input

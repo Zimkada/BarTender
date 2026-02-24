@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+
 import { supabase } from '../lib/supabase';
 import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
@@ -44,7 +45,9 @@ import { useUnifiedSales } from './pivots/useUnifiedSales';
 import { useUnifiedReturns } from './pivots/useUnifiedReturns';
 
 export function useRevenueStats(options: { startDate?: string; endDate?: string; enabled?: boolean } = {}): RevenueStats {
+    const queryClient = useQueryClient();
     const { currentBar } = useBarContext();
+
     const { currentSession } = useAuth();
     const { sales } = useUnifiedSales(currentBar?.id);
     const { returns } = useUnifiedReturns(currentBar?.id, currentBar?.closingHour);
@@ -215,8 +218,10 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         const handleQueueUpdate = () => {
             clearTimeout(timeout);
             timeout = setTimeout(() => {
-                console.log('[useRevenueStats] Queue updated, refetching...');
-                refetchRef.current();
+                console.log('[useRevenueStats] Queue updated, invalidating stats...');
+                queryClient.invalidateQueries({ queryKey: statsKeys.all(currentBarId) });
+
+
 
                 // Re-fetch local cache for placeholder too
                 const dStart = startDate ? new Date(startDate) : undefined;
@@ -231,9 +236,11 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
         };
 
         const handleSyncCompleted = () => {
-            console.log('[useRevenueStats] Sync completed, refetching stats...');
-            refetchRef.current(); // 🛡️ Rafraîchir les stats serveur après sync
+            console.log('[useRevenueStats] Sync completed, invalidating stats...');
+            queryClient.invalidateQueries({ queryKey: statsKeys.all(currentBarId) });
         };
+
+
 
         window.addEventListener('queue-updated', handleQueueUpdate);
         window.addEventListener('sync-completed', handleSyncCompleted);

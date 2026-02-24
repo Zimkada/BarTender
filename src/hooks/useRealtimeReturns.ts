@@ -55,35 +55,40 @@ export function useRealtimeReturns(config: UseRealtimeReturnsConfig) {
     }, []);
 
     // Subscribe to all returns INSERT for this bar
-    const returnsSubscription = useRealtimeSubscription({
-        table: 'returns',
-        event: 'INSERT',
-        filter: isConfigValid ? `bar_id=eq.${barId}` : undefined,
-        enabled: Boolean(isConfigValid),
-        onMessage: handleReturnsMessage,
-        onError: handleError,
-        fallbackPollingInterval: 30000, // 30 second polling fallback
-        queryKeysToInvalidate: [
-            ['returns', barId],
-            ['stats', barId],
-        ],
-    });
+    const returnsSubscription = useRealtimeSubscription(
+        'returns',
+        'INSERT',
+        isConfigValid ? `bar_id=eq.${barId}` : undefined,
+        {
+            enabled: Boolean(isConfigValid),
+            onMessage: handleReturnsMessage,
+            onError: handleError,
+            fallbackPollingInterval: 30000,
+            queryKeysToInvalidate: [
+                ['returns', barId],
+                ['stats', barId],
+            ],
+        }
+    );
 
     // Subscribe to returns status updates (validation, rejection, restocking)
-    const statusSubscription = useRealtimeSubscription({
-        table: 'returns',
-        event: 'UPDATE',
-        filter: isConfigValid ? `bar_id=eq.${barId}` : undefined,
-        enabled: Boolean(isConfigValid),
-        onMessage: handleReturnsMessage,
-        onError: handleError,
-        fallbackPollingInterval: 30000,
-        queryKeysToInvalidate: [
-            ['returns', barId],
-            ['bar_products', barId], // Stock changes when restocked
-            ['stats', barId],
-        ],
-    });
+    const statusSubscription = useRealtimeSubscription(
+        'returns',
+        'UPDATE',
+        isConfigValid ? `bar_id=eq.${barId}` : undefined,
+        {
+            enabled: Boolean(isConfigValid),
+            onMessage: handleReturnsMessage,
+            onError: handleError,
+            fallbackPollingInterval: 30000,
+            queryKeysToInvalidate: [
+                ['returns', barId],
+                ['bar_products', barId],
+                ['stats', barId],
+            ],
+        }
+    );
+
 
     return {
         isConnected:

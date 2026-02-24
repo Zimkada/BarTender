@@ -8,11 +8,8 @@ import { useEffect, useCallback, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { realtimeService, RealtimeEvent } from '../services/realtime/RealtimeService';
 
-interface UseRealtimeSubscriptionConfig {
-  table: string;
-  event: RealtimeEvent;
+interface UseRealtimeSubscriptionOptions {
   schema?: string;
-  filter?: string | undefined;
   enabled?: boolean;
   onMessage?: (payload: unknown) => void;
   onError?: (error: unknown) => void;
@@ -20,27 +17,46 @@ interface UseRealtimeSubscriptionConfig {
   queryKeysToInvalidate?: readonly (readonly unknown[])[];
 }
 
-export function useRealtimeSubscription(config: UseRealtimeSubscriptionConfig) {
+export function useRealtimeSubscription(
+  table: string,
+  event: RealtimeEvent,
+  filter?: string,
+  options: UseRealtimeSubscriptionOptions = {}
+) {
+  const {
+    schema = 'public',
+    enabled = true,
+    onMessage,
+    onError,
+    fallbackPollingInterval,
+    queryKeysToInvalidate
+  } = options;
+
   const queryClient = useQueryClient();
   const channelIdRef = useRef<string>('');
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  // 🛡️ STABILITY FIX: Use ref for config to prevent unnecessary re-subscriptions
-  const configRef = useRef(config);
+  // 🛡️ STABILITY FIX: Use refs for callbacks to prevent unnecessary re-subscriptions
+  const onMessageRef = useRef(onMessage);
+  const onErrorRef = useRef(onError);
+  const queryKeysRef = useRef(queryKeysToInvalidate);
+
   useEffect(() => {
-    configRef.current = config;
-  }, [config]);
+    onMessageRef.current = onMessage;
+    onErrorRef.current = onError;
+    queryKeysRef.current = queryKeysToInvalidate;
+  }, [onMessage, onError, queryKeysToInvalidate]);
 
   // Enhanced message handler with React Query integration
   const handleMessage = useCallback(
     (payload: unknown) => {
-      if (configRef.current.onMessage) {
-        configRef.current.onMessage(payload);
+      if (onMessageRef.current) {
+        onMessageRef.current(payload);
       }
 
-      if (configRef.current.queryKeysToInvalidate && configRef.current.queryKeysToInvalidate.length > 0) {
-        configRef.current.queryKeysToInvalidate.forEach((key) => {
+      if (queryKeysRef.current && queryKeysRef.current.length > 0) {
+        queryKeysRef.current.forEach((key) => {
           queryClient.invalidateQueries({ queryKey: key });
         });
       }
@@ -52,34 +68,34 @@ export function useRealtimeSubscription(config: UseRealtimeSubscriptionConfig) {
   const handleError = useCallback(
     (err: unknown) => {
       const message = err instanceof Error ? err.message : String(err);
-      console.error(`[Realtime] Error in ${configRef.current.table} subscription:`, message);
+      console.error(`[Realtime] Error in ${table} subscription:`, message);
       setError(err instanceof Error ? err : new Error(message));
 
-      if (configRef.current.onError) {
-        configRef.current.onError(err);
+      if (onErrorRef.current) {
+        onErrorRef.current(err);
       }
 
-      if (configRef.current.fallbackPollingInterval && configRef.current.fallbackPollingInterval > 0) {
-        console.log(`[Realtime] Starting polling fallback for ${configRef.current.table}`);
+      if (fallbackPollingInterval && fallbackPollingInterval > 0) {
+        console.log(`[Realtime] Starting polling fallback for ${table}`);
       }
     },
-    [],
+    [table, fallbackPollingInterval],
   );
 
   // Subscribe on mount or when critical functional deps change
   useEffect(() => {
-    if (config.enabled === false || !config.filter) {
+    if (enabled === false || !filter) {
       return;
     }
 
     try {
-      console.log(`[Realtime] Subscribing to ${config.table} (${config.event}) with filter: ${config.filter}`);
+      console.log(`[Realtime] Subscribing to ${table} (${event}) with filter: ${filter}`);
 
       const id = realtimeService.subscribe({
-        table: config.table,
-        event: config.event,
-        schema: config.schema,
-        filter: config.filter,
+        table,
+        event,
+        schema,
+        filter,
         onMessage: handleMessage,
         onError: handleError,
       });
@@ -95,7 +111,7 @@ export function useRealtimeSubscription(config: UseRealtimeSubscriptionConfig) {
       return () => {
         clearInterval(checkStatus);
         if (channelIdRef.current) {
-          console.log(`[Realtime] Unsubscribing from ${config.table} (${channelIdRef.current})`);
+          console.log(`[Realtime] Unsubscribing from ${table} (${channelIdRef.current})`);
           realtimeService.unsubscribe(channelIdRef.current);
           channelIdRef.current = '';
         }
@@ -103,7 +119,7 @@ export function useRealtimeSubscription(config: UseRealtimeSubscriptionConfig) {
     } catch (err) {
       handleError(err);
     }
-  }, [config.enabled, config.table, config.event, config.schema, config.filter, handleMessage, handleError]);
+  }, [enabled, table, event, schema, filter, handleMessage, handleError]);
 
   return {
     isConnected,
@@ -111,5 +127,7 @@ export function useRealtimeSubscription(config: UseRealtimeSubscriptionConfig) {
     channelId: channelIdRef.current,
   };
 }
+
+
 
 export default useRealtimeSubscription;

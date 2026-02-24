@@ -49,41 +49,48 @@ export function useRealtimeSales(config: UseRealtimeSalesConfig) {
     });
   }, []);
 
-  const handleError = useCallback((error: Error) => {
-    console.error('[Realtime] Sales subscription error:', error.message);
+  const handleError = useCallback((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('[Realtime] Sales subscription error:', message);
     // Fallback: polling will be handled via React Query with appropriate staleTime
   }, []);
 
   // Subscribe to all sales INSERT and UPDATE for this bar
-  const salesSubscription = useRealtimeSubscription({
-    table: 'sales',
-    event: 'INSERT',
-    filter: isConfigValid ? `bar_id=eq.${barId}` : undefined,
-    enabled: isConfigValid,
-    onMessage: handleSalesMessage,
-    onError: handleError,
-    fallbackPollingInterval: 30000, // 30 second polling fallback
-    queryKeysToInvalidate: [
-      ['sales', barId],
-      ['bar_products', barId],
-      ['stats', barId],
-    ],
-  });
+  const salesSubscription = useRealtimeSubscription(
+    'sales',
+    'INSERT',
+    isConfigValid ? `bar_id=eq.${barId}` : undefined,
+    {
+      enabled: Boolean(isConfigValid),
+      onMessage: handleSalesMessage,
+      onError: handleError,
+      fallbackPollingInterval: 30000,
+      queryKeysToInvalidate: [
+        ['sales', barId],
+        ['bar_products', barId],
+        ['stats', barId],
+      ],
+    }
+  );
 
   // Subscribe to sales status updates (validation, rejection)
-  const statusSubscription = useRealtimeSubscription({
-    table: 'sales',
-    event: 'UPDATE',
-    filter: isConfigValid ? `bar_id=eq.${barId}` : undefined,
-    enabled: isConfigValid,
-    onMessage: handleSalesMessage,
-    onError: handleError,
-    fallbackPollingInterval: 30000,
-    queryKeysToInvalidate: [
-      ['sales', barId],
-      ['stats', barId],
-    ],
-  });
+  const statusSubscription = useRealtimeSubscription(
+    'sales',
+    'UPDATE',
+    isConfigValid ? `bar_id=eq.${barId}` : undefined,
+    {
+      enabled: Boolean(isConfigValid),
+      onMessage: handleSalesMessage,
+      onError: handleError,
+      fallbackPollingInterval: 30000,
+      queryKeysToInvalidate: [
+        ['sales', barId],
+        ['stats', barId],
+      ],
+    }
+  );
+
+
 
   return {
     isConnected:

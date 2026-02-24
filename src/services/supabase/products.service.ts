@@ -1,6 +1,7 @@
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
 import type { GlobalProduct as GlobalProductType } from '../../types';
+import { ProductNormalization } from '../../utils/productNormalization';
 
 type GlobalProductRow = Database['public']['Tables']['global_products']['Row'];
 type GlobalProductInsert = Database['public']['Tables']['global_products']['Insert'];
@@ -43,9 +44,10 @@ export class ProductsService {
    */
   static async createGlobalProduct(data: GlobalProductInsert): Promise<GlobalProductType> {
     try {
+      const normalizedData = ProductNormalization.normalizeGlobalProduct(data);
       const { data: newProduct, error } = await supabase
         .from('global_products')
-        .insert(data)
+        .insert(normalizedData)
         .select()
         .single();
 
@@ -161,9 +163,10 @@ export class ProductsService {
     updates: Partial<GlobalProductInsert>
   ): Promise<GlobalProductType> {
     try {
+      const normalizedUpdates = ProductNormalization.normalizeGlobalProduct(updates);
       const { data, error } = await supabase
         .from('global_products')
-        .update(updates)
+        .update(normalizedUpdates)
         .eq('id', productId)
         .select()
         .single();

@@ -9,9 +9,8 @@ import { useTeamPerformance } from '../hooks/useTeamPerformance';
 import { useBarMembers } from './queries/useBarMembers';
 import { getCurrentBusinessDateString } from '../utils/businessDateHelpers';
 import { isConfirmedReturn } from '../utils/saleHelpers'; // 🛡️ FIX P1: Import helper
-import { AnalyticsService } from '../services/supabase/analytics.service';
-import { useQuery } from '@tanstack/react-query';
 import type { Sale, SaleItem } from '../types';
+
 
 export function useDashboardAnalytics(currentBarId: string | undefined) {
     const { currentSession } = useAuth();
@@ -44,16 +43,6 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
     const isServerRole = currentSession?.role === 'serveur';
     const currentUserId = currentSession?.userId;
 
-    // 1. Fetch Daily Summary (Global stats from DB)
-    const { data: dailyStats } = useQuery({
-        queryKey: ['dailySummary', currentBarId, todayDateStr],
-        queryFn: async () => {
-            if (!currentBarId) return null;
-            const stats = await AnalyticsService.getDailySummary(currentBarId, todayDateStr, todayDateStr, 'day');
-            return stats.length > 0 ? stats[0] : null;
-        },
-        enabled: !!currentBarId && !isServerRole
-    });
 
     // 2. Local Computed Stats (Real-time)
     const todayReturns = getTodayReturns();
@@ -185,7 +174,7 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
     }, [serverFilteredSales, serverFilteredReturns]);
 
     return {
-        todayStats: dailyStats,
+        todayStats: null, // Redondant avec todayTotal, supprimé pour unification
         sales: serverFilteredSales,
         pendingSales,
         returns: serverFilteredReturns,
@@ -203,3 +192,4 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
         todayDateStr
     };
 }
+

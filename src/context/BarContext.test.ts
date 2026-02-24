@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { renderHook } from '@testing-library/react';
-import { useBarContext } from './BarContext';
-import { BarProvider } from './BarContext';
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
+import { renderHook, waitFor } from '@testing-library/react';
+import React from 'react';
+import { useBarContext, BarProvider } from './BarContext';
 import type { Bar } from '../types';
 
 // Mock dependencies
@@ -188,6 +188,96 @@ describe('BarContext - operatingMode Default Value', () => {
 
       expect(result1).toBe('full');
       expect(result2).toBe('full');
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// INTEGRATION TESTS — BarProvider renderHook
+// These tests mount the real BarProvider and verify operatingMode via the hook.
+// ---------------------------------------------------------------------------
+
+// Mock supabase (channel used for Realtime subscription in BarProvider)
+vi.mock('../lib/supabase', () => ({
+  supabase: {
+    from: vi.fn(() => ({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: null }),
+    })),
+    channel: vi.fn(() => ({
+      on: vi.fn().mockReturnThis(),
+      subscribe: vi.fn().mockReturnThis(),
+    })),
+    removeChannel: vi.fn(),
+  }
+}));
+
+vi.mock('react-hot-toast', () => ({
+  default: { success: vi.fn(), error: vi.fn() },
+  toast: { success: vi.fn(), error: vi.fn() }
+}));
+
+import { BarsService } from '../services/supabase/bars.service';
+
+describe('BarContext - Integration via BarProvider', () => {
+  const wrapper = ({ children }: { children: React.ReactNode }) =>
+    React.createElement(BarProvider, null, children);
+
+  describe('operatingMode via real hook + provider', () => {
+    it('should return operatingMode "full" when bar has no operatingMode in settings', async () => {
+      /**
+       * INTEGRATION TEST (BUG #1):
+       * Verifies BarProvider exposes operatingMode='full' when the loaded bar
+       * has settings without an explicit operatingMode.
+       * This tests the actual useMemo in BarProvider, not just the logic inline.
+       */
+      const barWithoutMode: Bar = {
+        id: 'bar-integration-1',
+        name: 'Integration Bar',
+        ownerId: 'owner-1',
+        closingHour: 6,
+        isActive: true,
+        createdAt: new Date(),
+        settings: { currency: 'XOF', currencySymbol: 'Fr' }
+      };
+
+      (BarsService.getMyBars as Mock).mockResolvedValue([barWithoutMode]);
+
+      const { result } = renderHook(() => useBarContext(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      // currentBar is the loaded bar (auto-selected as first available)
+      expect(result.current.currentBar?.id).toBe('bar-integration-1');
+      // operatingMode must be 'full' — BUG #1 fix
+      expect(result.current.operatingMode).toBe('full');
+      expect(result.current.isSimplifiedMode).toBe(false);
+    });
+
+    it('should return operatingMode "simplified" when bar has operatingMode="simplified"', async () => {
+      const barSimplified: Bar = {
+        id: 'bar-integration-2',
+        name: 'Simplified Bar',
+        ownerId: 'owner-1',
+        closingHour: 6,
+        isActive: true,
+        createdAt: new Date(),
+        settings: { currency: 'XOF', currencySymbol: 'Fr', operatingMode: 'simplified' }
+      };
+
+      (BarsService.getMyBars as Mock).mockResolvedValue([barSimplified]);
+
+      const { result } = renderHook(() => useBarContext(), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
+      expect(result.current.operatingMode).toBe('simplified');
+      expect(result.current.isSimplifiedMode).toBe(true);
     });
   });
 });

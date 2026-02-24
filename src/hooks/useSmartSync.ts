@@ -90,32 +90,32 @@ export function useSmartSync(config: UseSmartSyncConfig) {
     [queryKeysToInvalidate, table, barId]
   );
 
-  // 🛡️ STABILITY FIX: Memoize config to prevent infinite loop of unmount/remount
-  // in useRealtimeSubscription when useSmartSync re-renders
-  const realtimeConfig = useMemo(() => ({
-    table,
-    event: event,
-    filter: barId ? `bar_id=eq.${barId}` : undefined,
-    // 🛡️ FIX: Disable subscription if barId is missing (filter would be invalid)
-    // This prevents Realtime subscription errors when barId is undefined
-    enabled: enabled && broadcastSupported && !!barId,
-    queryKeysToInvalidate: keys,
-    fallbackPollingInterval: refetchInterval,
-    onMessage: (payload: any) => {
-      console.log(`[SmartSync] Realtime change detected for ${table}:`, payload.event);
-      // When Realtime message received, broadcast to other tabs
-      if (broadcastSupported) {
-        broadcast(payload.event === 'DELETE' ? 'DELETE' : payload.event, payload.new || payload.old);
-      }
-      syncStatusRef.current = 'realtime';
-    },
-    onError: (error: any) => {
-      console.warn(`[SmartSync] Realtime error for ${table}:`, error.message || error);
-      syncStatusRef.current = 'polling';
-    },
-  }), [table, event, barId, enabled, broadcastSupported, keys, refetchInterval, broadcast]);
+  const filter = barId ? `bar_id=eq.${barId}` : undefined;
+  const isRealtimeEnabled = enabled && broadcastSupported && !!barId;
 
-  const realtimeSubscription = useRealtimeSubscription(realtimeConfig);
+  const realtimeSubscription = useRealtimeSubscription(
+    table,
+    event,
+    filter,
+    {
+      enabled: isRealtimeEnabled,
+      queryKeysToInvalidate: keys,
+      fallbackPollingInterval: refetchInterval,
+      onMessage: (payload: any) => {
+        console.log(`[SmartSync] Realtime change detected for ${table}:`, payload.event);
+        // When Realtime message received, broadcast to other tabs
+        if (broadcastSupported) {
+          broadcast(payload.event === 'DELETE' ? 'DELETE' : payload.event, payload.new || payload.old);
+        }
+        syncStatusRef.current = 'realtime';
+      },
+      onError: (error: any) => {
+        console.warn(`[SmartSync] Realtime error for ${table}:`, error.message || error);
+        syncStatusRef.current = 'polling';
+      },
+    }
+  );
+
 
   // 3. Set up Local Window Event Listener (SYNC MANAGER - same tab sync)
   // 🚀 Debounce to prevent render storms from rapid SyncManager events

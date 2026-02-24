@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useCallback, ReactNode, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useCallback, ReactNode, useState, useEffect, useMemo, useRef } from 'react';
+import { getErrorMessage } from '../utils/errorHandler';
+
 import { useAuth } from '../context/AuthContext';
 import { Bar, BarMember, User, UserRole, BarSettings } from '../types';
 import { auditLogger } from '../services/AuditLogger';
@@ -238,6 +240,46 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [currentBarId, refreshMembers]);
 
+  // 🛡️ P1 FIX: Stable ref to refreshBars to prevent Realtime re-subscriptions
+  // when refreshBars identity changes (e.g. on session change).
+  // Same pattern as useRealtimeSubscription's onMessage/onError refs.
+  const refreshBarsRef = useRef(refreshBars);
+  useEffect(() => {
+    refreshBarsRef.current = refreshBars;
+  }, [refreshBars]);
+
+  // 🚀 Realtime Sync for Operating Mode (Simplified Mode switch)
+  useEffect(() => {
+    if (!currentBarId || !currentSession) return;
+
+    console.log(`[BarContext] Subscribing to realtime updates for bar: ${currentBarId}`);
+
+    const channel = supabase
+      .channel(`bar-realtime-${currentBarId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'bars',
+          filter: `id=eq.${currentBarId}`
+        },
+        (payload) => {
+          console.log('[BarContext] Realtime Update detected:', payload.new);
+          // 🛡️ Use stable ref — refreshBars identity change won't trigger re-subscription
+          refreshBarsRef.current();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log(`[BarContext] Cleaning up realtime subscription for bar: ${currentBarId}`);
+      supabase.removeChannel(channel);
+    };
+    // ✅ refreshBars retiré des deps : la ref garantit la fraîcheur sans instabilité
+  }, [currentBarId, currentSession?.userId]);
+
+
   // Helper pour obtenir les bars accessibles
   const getUserBars = useCallback(() => {
     return userBars;
@@ -415,7 +457,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.error('[BarContext] Error in updateBar flow:', error);
       throw error;
     }
-  }, [currentSession, hasPermission, bars, currentBar]);
+  }, [currentSession, hasPermission, bars]);
 
   // Helpers
   const isOwner = useCallback((barId: string) => {
@@ -582,9 +624,9 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       await refreshMembers(currentBar.id);
 
       return { success: true };
-    } catch (error: any) {
+    } catch (error) {
       console.error('[BarContext] Error removing member:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: getErrorMessage(error) };
     }
   }, [currentSession, currentBar, barMembers]);
 

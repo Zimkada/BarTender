@@ -13,13 +13,11 @@
 
 import { supabase, handleSupabaseError } from '../../lib/supabase';
 import type { Database } from '../../lib/database.types';
-import type { GlobalProduct } from '../../types';
 import type {
   LocalProductForEnrichment,
   EnrichGlobalCatalogData,
   EnrichmentResult,
-  SimilarGlobalProduct,
-  CatalogEnrichmentAuditLog
+  SimilarGlobalProduct
 } from '../../types/catalogEnrichment';
 import { ProductNormalization } from '../../utils/productNormalization';
 
@@ -146,15 +144,9 @@ export class CatalogEnrichmentService {
         throw new Error('Erreur lors de la détection de doublons');
       }
 
-      const normalized = ProductNormalization.normalizeName(name);
-
       // Filtre côté client avec similarité
       const similar = (data || [])
         .filter(product => {
-          const productNormalized = ProductNormalization.normalizeName(
-            product.name
-          );
-
           // Vérifier similarité du nom
           const nameMatch = ProductNormalization.areSimilar(name, product.name);
 
@@ -162,7 +154,7 @@ export class CatalogEnrichmentService {
           const volumeMatch =
             !volume ||
             ProductNormalization.normalizeVolume(product.volume) ===
-              ProductNormalization.normalizeVolume(volume);
+            ProductNormalization.normalizeVolume(volume);
 
           return nameMatch || volumeMatch;
         })
@@ -176,7 +168,7 @@ export class CatalogEnrichmentService {
           similarity: ProductNormalization.areSimilar(name, p.name)
             ? 'high'
             : 'medium'
-        }))
+        } as SimilarGlobalProduct))
         .slice(0, 10);
 
       return similar;
@@ -226,7 +218,7 @@ export class CatalogEnrichmentService {
 
       if (!memberData) {
         // 🔍 Log tentative d'accès non autorisé
-        await supabase
+        const { error: logError } = await supabase
           .from('audit_logs')
           .insert({
             event: 'UNAUTHORIZED_CATALOG_ENRICHMENT',
@@ -236,8 +228,9 @@ export class CatalogEnrichmentService {
             user_role: 'unknown',
             description: `Tentative d'enrichissement sans privilèges super_admin pour produit ${barProductId}`,
             metadata: { bar_product_id: barProductId }
-          })
-          .catch(console.error); // Non bloquant
+          });
+
+        if (logError) console.warn('Failed to log unauthorized enrichment:', logError);
 
         throw new Error('❌ Action réservée aux Super Admins');
       }
@@ -269,39 +262,35 @@ export class CatalogEnrichmentService {
         );
       }
 
-      // 1g. Normaliser le volume
-      const normalizedVolume = ProductNormalization.normalizeVolume(
-        enrichmentData.volume
-      );
-
       // =====================================================
       // LAYER 2 : Transaction atomique
       // =====================================================
 
       try {
+        // Préparer les données et normaliser (centralisé)
+        const productData = ProductNormalization.normalizeGlobalProduct({
+          name: enrichmentData.name,
+          category: enrichmentData.category,
+          volume: enrichmentData.volume,
+          brand: enrichmentData.brand,
+          manufacturer: enrichmentData.manufacturer,
+          official_image: enrichmentData.official_image || barProduct.local_image,
+          subcategory: enrichmentData.subcategory,
+          barcode: enrichmentData.barcode,
+          description: enrichmentData.description,
+          suggested_price_min: enrichmentData.suggested_price_min,
+          suggested_price_max: enrichmentData.suggested_price_max,
+          is_active: true,
+          source_bar_id: barProduct.bar_id,
+          source_bar_product_id: barProduct.id,
+          contributed_at: new Date().toISOString(),
+          created_by: userId
+        } as GlobalProductInsert);
+
         // Créer le produit global
         const { data: globalProductData, error: createError } = await supabase
           .from('global_products')
-          .insert({
-            name: enrichmentData.name.trim(),
-            category: enrichmentData.category,
-            volume: normalizedVolume,
-            brand: enrichmentData.brand?.trim(),
-            manufacturer: enrichmentData.manufacturer?.trim(),
-            official_image:
-              enrichmentData.official_image || barProduct.local_image,
-            subcategory: enrichmentData.subcategory?.trim(),
-            barcode: enrichmentData.barcode?.trim(),
-            description: enrichmentData.description?.trim(),
-            suggested_price_min: enrichmentData.suggested_price_min,
-            suggested_price_max: enrichmentData.suggested_price_max,
-            is_active: true,
-            // Métadonnées d'enrichissement (pas de FK, juste traçabilité)
-            source_bar_id: barProduct.bar_id,
-            source_bar_product_id: barProduct.id,
-            contributed_at: new Date().toISOString(),
-            created_by: userId
-          } as GlobalProductInsert)
+          .insert(productData)
           .select()
           .single();
 
@@ -343,8 +332,7 @@ export class CatalogEnrichmentService {
               metadata: {
                 global_product_id: newGlobalProduct.id,
                 bar_product_id: barProductId,
-                bar_id: barProduct.bar_id,
-                volume: normalizedVolume
+                bar_id: barProduct.bar_id
               }
             });
           if (auditError) {
@@ -379,7 +367,7 @@ export class CatalogEnrichmentService {
           sourceBarProduct: {
             id: updatedBarProductData.id,
             bar_id: updatedBarProductData.bar_id,
-            global_product_id: updatedBarProductData.global_product_id,
+            global_product_id: updatedBarProductData.global_product_id || '',
             is_source_of_global: updatedBarProductData.is_source_of_global ?? false
           }
         };
