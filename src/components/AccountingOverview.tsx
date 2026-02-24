@@ -104,7 +104,8 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
   // KPIs via vues matérialisées — source unique de vérité pour la période sélectionnée
   const { data: currentPeriodRevenue = [] } = useDailyAnalytics(currentBar?.id, periodStart, periodEnd, 'day');
   const { data: currentPeriodExpenses = [] } = useExpensesAnalytics(currentBar?.id, periodStart, periodEnd, 'day');
-  const { data: currentPeriodSalaries = [] } = useSalariesAnalytics(currentBar?.id, periodStart, periodEnd, 'day');
+  // 🛡️ FIX : currentPeriodSalaries supprimé — les salaires locaux (useSalaries ligne 85) sont utilisés
+  // directement pour inclure les paiements optimistic non encore syncronisés vers Supabase
 
   // 2. Growth Analysis (Previous Period)
   const prevPeriodRange = useMemo(() => {
@@ -167,10 +168,14 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
   }, [currentPeriodExpenses]);
 
   const periodSalariesTotal = useMemo(() => {
-    return currentPeriodSalaries.reduce(
-      (sum, row) => sum + (Number(row.total_salaries) || 0), 0
-    );
-  }, [currentPeriodSalaries]);
+    // 🛡️ FIX : Utiliser les salaires locaux (state) pour inclure les paiements optimistic récents
+    return salaries
+      .filter(sal => {
+        const paidAt = new Date(sal.paidAt);
+        return paidAt >= periodStart && paidAt <= periodEnd;
+      })
+      .reduce((sum, sal) => sum + sal.amount, 0);
+  }, [salaries, periodStart, periodEnd]);
 
   const totalOperatingCosts = useMemo(() => {
     // operating_expenses = dépenses opérationnelles (hors investissements)
@@ -269,7 +274,13 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
 
     // Period Total Costs (All included for cash flow view) — inclure salaires pour cohérence
     const opExCosts = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const salaryCosts = currentPeriodSalaries.reduce((sum, row) => sum + (Number(row.total_salaries) || 0), 0);
+    // 🛡️ FIX : Utiliser les salaires locaux pour inclure les paiements optimistic récents
+    const salaryCosts = salaries
+      .filter(sal => {
+        const paidAt = new Date(sal.paidAt);
+        return paidAt >= periodStart && paidAt <= periodEnd;
+      })
+      .reduce((sum, sal) => sum + sal.amount, 0);
     const tCosts = opExCosts + salaryCosts;
 
     return {
@@ -278,7 +289,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
       finalBalance: prevBal + operatingProfit - investments, // Approx: Start + (Revenue - Ops - Inv)
       totalCosts: tCosts
     };
-  }, [viewMode, unifiedExpenses, unifiedReturns, periodStart, initialBalanceHook.initialBalance, capitalContributionsHook.contributions, historicalRevenue, operatingProfit, investments, filteredExpenses]);
+  }, [viewMode, unifiedExpenses, unifiedReturns, periodStart, periodEnd, initialBalanceHook.initialBalance, capitalContributionsHook.contributions, historicalRevenue, operatingProfit, investments, filteredExpenses, salaries]);
 
   // Cash Runway Fix
   const cashRunway = useMemo(() => {
