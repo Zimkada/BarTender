@@ -20,8 +20,8 @@ BEGIN
   
   -- Create Gérant
   v_user_gerant_id := gen_random_uuid();
-  INSERT INTO auth.users (id, email) VALUES (v_user_gerant_id, 'test_multi_bar_gerant@bartender.local');
-  INSERT INTO public.users (id, full_name, role) VALUES (v_user_gerant_id, 'Test Gérant Multi-Bar', 'gerant');
+  INSERT INTO public.users (id, username, password_hash, name, phone, email, is_active)
+  VALUES (v_user_gerant_id, 'test_gerant_' || substr(v_user_gerant_id::text, 1, 8), 'hashed', 'Test Gérant Multi-Bar', '+229 60000000', 'test_multi_bar_gerant@bartender.local', true);
 
   -- Create Bar 1
   INSERT INTO public.bars (name, owner_id) VALUES ('Test Bar Alpha', v_user_gerant_id) RETURNING id INTO v_bar1_id;
@@ -30,8 +30,8 @@ BEGIN
   INSERT INTO public.bars (name, owner_id) VALUES ('Test Bar Beta', v_user_gerant_id) RETURNING id INTO v_bar2_id;
 
   -- Add Gérant to both bars
-  INSERT INTO public.bar_members (bar_id, user_id, role, is_active) VALUES (v_bar1_id, v_user_gerant_id, 'gerant', true);
-  INSERT INTO public.bar_members (bar_id, user_id, role, is_active) VALUES (v_bar2_id, v_user_gerant_id, 'gerant', true);
+  INSERT INTO public.bar_members (bar_id, user_id, role, assigned_by, is_active) VALUES (v_bar1_id, v_user_gerant_id, 'gerant', v_user_gerant_id, true);
+  INSERT INTO public.bar_members (bar_id, user_id, role, assigned_by, is_active) VALUES (v_bar2_id, v_user_gerant_id, 'gerant', v_user_gerant_id, true);
 
   -- Create a pending sale in Bar 1
   INSERT INTO public.sales (bar_id, status, total_amount, idempotency_key, created_by) 

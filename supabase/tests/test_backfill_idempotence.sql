@@ -8,6 +8,9 @@
 
 DO $$
 DECLARE
+  v_owner_id_1 UUID;
+  v_owner_id_2 UUID;
+  v_owner_id_3 UUID;
   v_bar_id_1 UUID;
   v_bar_id_2 UUID;
   v_bar_id_3 UUID;
@@ -17,19 +20,28 @@ DECLARE
   v_result TEXT;
   v_error_msg TEXT;
 BEGIN
-  -- 1. SETUP: Create three test bars with different operating_mode_at_creation values
+  -- 1. SETUP: Create test users and three test bars with different operating_mode_at_creation values
+
+  -- Create test owners
+  v_owner_id_1 := gen_random_uuid();
+  v_owner_id_2 := gen_random_uuid();
+  v_owner_id_3 := gen_random_uuid();
+
+  INSERT INTO public.users (id, username, password_hash, name, phone, is_active) VALUES (v_owner_id_1, 'owner1_' || substr(v_owner_id_1::text, 1, 8), 'hashed', 'Owner 1', '+229 10000000', true);
+  INSERT INTO public.users (id, username, password_hash, name, phone, is_active) VALUES (v_owner_id_2, 'owner2_' || substr(v_owner_id_2::text, 1, 8), 'hashed', 'Owner 2', '+229 20000000', true);
+  INSERT INTO public.users (id, username, password_hash, name, phone, is_active) VALUES (v_owner_id_3, 'owner3_' || substr(v_owner_id_3::text, 1, 8), 'hashed', 'Owner 3', '+229 30000000', true);
 
   -- Bar 1: Will have operating_mode_at_creation = NULL (should be backfilled to 'full')
   INSERT INTO public.bars (name, owner_id, operating_mode_at_creation)
-  VALUES ('Test Bar Alpha (NULL)', gen_random_uuid(), NULL) RETURNING id INTO v_bar_id_1;
+  VALUES ('Test Bar Alpha (NULL)', v_owner_id_1, NULL) RETURNING id INTO v_bar_id_1;
 
   -- Bar 2: Already has 'simplified' (should NOT be overwritten during backfill)
   INSERT INTO public.bars (name, owner_id, operating_mode_at_creation)
-  VALUES ('Test Bar Beta (simplified)', gen_random_uuid(), 'simplified') RETURNING id INTO v_bar_id_2;
+  VALUES ('Test Bar Beta (simplified)', v_owner_id_2, 'simplified') RETURNING id INTO v_bar_id_2;
 
   -- Bar 3: Already has 'full' (should NOT be overwritten during backfill)
   INSERT INTO public.bars (name, owner_id, operating_mode_at_creation)
-  VALUES ('Test Bar Gamma (full)', gen_random_uuid(), 'full') RETURNING id INTO v_bar_id_3;
+  VALUES ('Test Bar Gamma (full)', v_owner_id_3, 'full') RETURNING id INTO v_bar_id_3;
 
   -- 2. EXECUTION - FIRST RUN: Simulate the migration backfill
   -- This should only update Bar 1 (where operating_mode_at_creation IS NULL)
@@ -89,6 +101,7 @@ BEGIN
 
   -- 4. TEARDOWN: Clean up test data
   DELETE FROM public.bars WHERE id IN (v_bar_id_1, v_bar_id_2, v_bar_id_3);
+  DELETE FROM public.users WHERE id IN (v_owner_id_1, v_owner_id_2, v_owner_id_3);
 
   -- 5. REPORT
   RAISE NOTICE '=====================================================';
