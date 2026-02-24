@@ -243,8 +243,12 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
   //   1. Consistent data source (filteredUnified) for both total and categories
   //   2. Includes all expense types (investments, supplies, etc.) — not just operating_expenses
   const totalExpenses = useMemo(() => {
-    const allExpenses = filteredUnified.reduce((sum, exp) => sum + exp.amount, 0);
-    return allExpenses + filteredSalariesTotal;
+    // 🛡️ CRITICAL: Exclude salaries from filteredUnified sum (already in filteredSalariesTotal)
+    // useUnifiedExpenses includes salaries, so we must exclude them here to avoid double-counting
+    const nonSalaryExpenses = filteredUnified
+      .filter(exp => exp.category !== 'salary')
+      .reduce((sum, exp) => sum + exp.amount, 0);
+    return nonSalaryExpenses + filteredSalariesTotal;
   }, [filteredUnified, filteredSalariesTotal]);
 
   // ✨ Group by Category (Unified)
