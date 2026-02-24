@@ -5,13 +5,11 @@ import { useStockAdjustment } from './mutations/useStockAdjustment';
 import { useFeedback } from './useFeedback';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
-import { useAppContext } from '../context/AppContext';
 import { getErrorMessage } from '../utils/errorHandler';
 
 export function useInventoryActions() {
     const { currentBar } = useBarContext();
     const { currentSession } = useAuth();
-    const { addExpense } = useAppContext();
     const { showSuccess, showError } = useFeedback();
 
     // Use unified stock hook directly (Pillar 3: Toggles removed)
@@ -121,8 +119,10 @@ export function useInventoryActions() {
         supplier: string;
     }) => {
         try {
-            await (processSupply as any)(supplyData, (expenseData: any) => {
-                addExpense(expenseData);
+            await (processSupply as any)(supplyData, () => {
+                // 🛡️ FIX : On ne crée plus de dépense liée. 
+                // L'approvisionnement est déjà dans la table supplies.
+                // Le hook useUnifiedExpenses fusionne déjà les deux sources.
             });
             showSuccess('Approvisionnement effectué avec succès');
         } catch (error) {

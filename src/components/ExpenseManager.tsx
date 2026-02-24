@@ -223,7 +223,7 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
     return options;
   }, []);
 
-  // ✨ Filter Unified Expenses
+  // Filtrage local (pour l'affichage temps réel avant sync ou réactivité UI)
   const filteredUnified = useMemo(() => {
     return unifiedExpenses.filter(exp => {
       const expDate = new Date(exp.date);
@@ -231,17 +231,7 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
     });
   }, [unifiedExpenses, periodStart, periodEnd]);
 
-  // ✨ Filter Salaries — comparaison par objets Date normalisés au 1er du mois
-  const filteredSalaries = useMemo(() => {
-    return salaries.filter(salary => {
-      // new Date("YYYY-MM-01") parse UTC → décalage d'1j en UTC+1, utiliser constructeur local
-      const [sy, sm] = salary.period.split('-').map(Number);
-      const salaryDate = new Date(sy, sm - 1, 1);
-      const pStartNorm = new Date(periodStart.getFullYear(), periodStart.getMonth(), 1);
-      const pEndNorm   = new Date(periodEnd.getFullYear(),   periodEnd.getMonth(),   1);
-      return salaryDate >= pStartNorm && salaryDate <= pEndNorm;
-    });
-  }, [salaries, periodStart, periodEnd]);
+
 
   // 📈 KPIs via vues matérialisées — source unique de vérité = AccountingOverview
   const { data: periodExpenses = [] } = useExpensesAnalytics(currentBar?.id, periodStart, periodEnd, 'day');
@@ -284,23 +274,12 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
       groups[key].count += 1;
     });
 
-    // Inject Salaries Group
-    if (filteredSalaries.length > 0) {
-      const salariesTotal = filteredSalaries.reduce((sum, s) => sum + s.amount, 0);
-      groups['salaries'] = {
-        label: 'Salaires & RH',
-        icon: '👨‍💼',
-        amount: salariesTotal,
-        count: filteredSalaries.length
-      };
-    }
-
     return groups;
-  }, [filteredUnified, customCategories, filteredSalaries]);
+  }, [filteredUnified, customCategories]);
 
   // ✨ Unified Items List for Rendering
   const getItemsByCategory = (categoryKey: string) => {
-    if (categoryKey === 'salaries') return []; // TODO: Retourner les paies ici
+    if (categoryKey === 'salary') return [];
     return filteredUnified.filter(exp => {
       if (exp.isSupply && categoryKey === 'supply') return true;
       const expKey = exp.category === 'custom' && exp.customCategoryId ? exp.customCategoryId : exp.category;
@@ -412,7 +391,7 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
             Object.entries(expensesByCategory)
               .sort((a, b) => b[1].amount - a[1].amount) // Higher first
               .map(([key, data]) => {
-                if (key === 'salaries') {
+                if (key === 'salary') {
                   return (
                     <div key={key} className="bg-gray-50/50">
                       <ExpenseListItem
@@ -442,18 +421,18 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
                               return salaryDate >= pStart && salaryDate <= pEnd;
                             })
                             .sort().reverse().map(period => (
-                            <SalaryListItem
-                              key={period}
-                              period={period}
-                              data={salariesByPeriod[period]}
-                              isExpanded={expandedPeriods.has(period)}
-                              onToggle={() => togglePeriod(period)}
-                              onDelete={(id) => setSalaryToDelete(id)}
-                              getMemberName={getMemberName}
-                              getMemberRole={getMemberRole}
-                              isMobile={isMobile}
-                            />
-                          ))}
+                              <SalaryListItem
+                                key={period}
+                                period={period}
+                                data={salariesByPeriod[period]}
+                                isExpanded={expandedPeriods.has(period)}
+                                onToggle={() => togglePeriod(period)}
+                                onDelete={(id) => setSalaryToDelete(id)}
+                                getMemberName={getMemberName}
+                                getMemberRole={getMemberRole}
+                                isMobile={isMobile}
+                              />
+                            ))}
                         </div>
                       )}
                     </div>

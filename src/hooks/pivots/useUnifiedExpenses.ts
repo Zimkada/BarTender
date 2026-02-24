@@ -52,7 +52,8 @@ export function useUnifiedExpenses(barId: string | undefined, options: { startDa
             // On ne prend que ce qui impacte les finances
             return ops.filter(op =>
                 op.type === 'ADD_EXPENSE' ||
-                op.type === 'ADD_SALARY' ||
+                // 🛡️ FIX : ADD_SALARY est déjà géré de manière optimiste par le hook useSalaries
+                // op.type === 'ADD_SALARY' || 
                 op.type === 'ADD_SUPPLY'
             );
         },
@@ -97,17 +98,20 @@ export function useUnifiedExpenses(barId: string | undefined, options: { startDa
      */
     const unifiedExpenses = useMemo(() => {
         // Transform Online Expenses
-        const mappedExpenses: UnifiedExpense[] = onlineExpenses.map(e => ({
-            id: e.id,
-            amount: e.amount,
-            date: e.date,
-            category: e.category,
-            customCategoryId: e.customCategoryId,
-            notes: e.description,
-            isSupply: false,
-            isOptimistic: false,
-            createdBy: e.createdBy
-        }));
+        // 🛡️ FIX : Exclure uniquement les dépenses "supply" déjà reliées à un supply
+        const mappedExpenses: UnifiedExpense[] = onlineExpenses
+            .filter(e => !(e.category === 'supply' && e.relatedSupplyId))
+            .map(e => ({
+                id: e.id,
+                amount: e.amount,
+                date: e.date,
+                category: e.category,
+                customCategoryId: e.customCategoryId,
+                notes: e.description,
+                isSupply: false,
+                isOptimistic: false,
+                createdBy: e.createdBy
+            }));
 
         // Transform Online Supplies
         const mappedSupplies: UnifiedExpense[] = onlineSupplies.map(s => ({
@@ -128,27 +132,28 @@ export function useUnifiedExpenses(barId: string | undefined, options: { startDa
             id: s.id,
             amount: s.amount,
             date: new Date(s.paidAt),
-            category: 'salary',
+            category: 'salary', // 🛡️ FIXED : Singulier pour matcher le rendu spécial "Journal des Paies"
             notes: `Salaire : ${s.period}`,
             isSupply: false,
             isOptimistic: false,
             createdBy: s.createdBy,
-            beneficiary: s.memberName || s.staffName
+            beneficiary: s.memberId // 🛡️ FIXED : Utiliser memberId (champs memberName/staffName n'existent pas)
         }));
 
         // Transform Offline Ops
         const mappedOffline: UnifiedExpense[] = offlineOps.map(op => {
             const payload = op.payload as any;
             const isSupply = op.type === 'ADD_SUPPLY';
-            const isSalary = op.type === 'ADD_SALARY';
+            // Note: ADD_SALARY est filtré au fetch pour éviter le double optimisme 
+            // avec le hook useSalaries. 
 
             return {
                 id: op.id,
                 amount: isSupply ? (payload.lotPrice * payload.lotSize) : payload.amount,
                 date: new Date(op.timestamp),
-                category: isSupply ? 'supply' : (isSalary ? 'salary' : payload.category),
+                category: isSupply ? 'supply' : payload.category, // ADD_SALARY est filtré au fetch
                 customCategoryId: payload.customCategoryId,
-                notes: isSupply ? `${payload.productName} (Offline)` : (isSalary ? `Salaire (Offline)` : payload.notes),
+                notes: isSupply ? `${payload.productName} (Offline)` : payload.notes,
                 isSupply,
                 isOptimistic: true,
                 productName: isSupply ? payload.productName : undefined,

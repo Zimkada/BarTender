@@ -36,6 +36,7 @@ export const useExpenses = (barId: string | undefined, options?: { startDate?: s
                 barId: e.bar_id,
                 category: e.category as any,
                 customCategoryId: e.custom_category_id || undefined,
+                relatedSupplyId: e.related_supply_id || undefined,
                 amount: e.amount,
                 description: e.description || e.notes || '',
                 createdBy: e.created_by,

@@ -10,6 +10,7 @@ export const EXPENSE_CATEGORY_LABELS = {
   electricity: { label: 'Facture Électricité', icon: '⚡', color: 'yellow' },
   maintenance: { label: 'Entretien/Réparations', icon: '🔧', color: 'gray' },
   investment: { label: 'Investissement', icon: '📈', color: 'purple' },
+  salary: { label: 'Salaires & RH', icon: '👨‍💼', color: 'indigo' },
   custom: { label: 'Personnalisée', icon: '📝', color: 'purple' },
 };
 
