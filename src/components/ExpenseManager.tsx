@@ -17,9 +17,6 @@ import { useUnifiedExpenses } from '../hooks/pivots/useUnifiedExpenses';
 import { useSalaries } from '../hooks/useSalaries';
 import { useFeedback } from '../hooks/useFeedback';
 import type { AccountingPeriodProps } from '../types/dateFilters';
-import {
-  useExpensesAnalytics,
-} from '../hooks/queries/useAnalyticsQueries';
 import { getErrorMessage } from '../utils/errorHandler';
 import { PeriodFilter } from './common/filters/PeriodFilter';
 import { ACCOUNTING_FILTERS, ACCOUNTING_FILTERS_MOBILE } from '../config/dateFilters';
@@ -230,29 +227,34 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
     });
   }, [unifiedExpenses, periodStart, periodEnd]);
 
+  const filteredSalaries = useMemo(() => {
+    return salaries.filter(sal => {
+      const paidAt = new Date(sal.paidAt);
+      return paidAt >= periodStart && paidAt <= periodEnd;
+    });
+  }, [salaries, periodStart, periodEnd]);
+
+  const filteredSalariesTotal = useMemo(() => {
+    return filteredSalaries.reduce((sum, sal) => sum + sal.amount, 0);
+  }, [filteredSalaries]);
 
 
-  // 📈 KPIs — dépenses opérationnelles via vue matérialisée, salaires depuis state local
-  const { data: periodExpenses = [] } = useExpensesAnalytics(currentBar?.id, periodStart, periodEnd, 'day');
 
+  // 📈 KPIs — Unified local state approach
+  // ✅ Fixes audit findings:
+  //   1. Consistent data source (filteredUnified) for both total and categories
+  //   2. Includes all expense types (investments, supplies, etc.) — not just operating_expenses
   const totalExpenses = useMemo(() => {
-    const opEx = periodExpenses.reduce((sum, row) => sum + (Number(row.operating_expenses) || 0), 0);
-    // 🛡️ FIX : Utiliser les salaires locaux (state) et non la vue matérialisée
-    // La vue matérialisée ne contient pas les paiements optimistic récents (non encore syncronisés)
-    const localSalariesTotal = salaries
-      .filter(sal => {
-        const paidAt = new Date(sal.paidAt);
-        return paidAt >= periodStart && paidAt <= periodEnd;
-      })
-      .reduce((sum, sal) => sum + sal.amount, 0);
-    return opEx + localSalariesTotal;
-  }, [periodExpenses, salaries, periodStart, periodEnd]);
+    const allExpenses = filteredUnified.reduce((sum, exp) => sum + exp.amount, 0);
+    return allExpenses + filteredSalariesTotal;
+  }, [filteredUnified, filteredSalariesTotal]);
 
   // ✨ Group by Category (Unified)
   const expensesByCategory = useMemo(() => {
     const groups: Record<string, { label: string; icon: string; amount: number; count: number }> = {};
 
     filteredUnified.forEach(exp => {
+      if (exp.category === 'salary') return;
       let key = exp.category;
       if (exp.category === 'custom' && exp.customCategoryId) {
         key = exp.customCategoryId;
@@ -279,8 +281,18 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
       groups[key].count += 1;
     });
 
+    if (filteredSalaries.length > 0) {
+      const salaryMeta = (EXPENSE_CATEGORY_LABELS as any).salary;
+      groups['salary'] = {
+        label: salaryMeta?.label || 'Salaires & RH',
+        icon: salaryMeta?.icon || '👨‍💼',
+        amount: filteredSalariesTotal,
+        count: filteredSalaries.length
+      };
+    }
+
     return groups;
-  }, [filteredUnified, customCategories]);
+  }, [filteredUnified, customCategories, filteredSalaries, filteredSalariesTotal]);
 
   // ✨ Unified Items List for Rendering
   const getItemsByCategory = (categoryKey: string) => {
