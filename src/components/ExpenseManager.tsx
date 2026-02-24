@@ -19,7 +19,6 @@ import { useFeedback } from '../hooks/useFeedback';
 import type { AccountingPeriodProps } from '../types/dateFilters';
 import {
   useExpensesAnalytics,
-  useSalariesAnalytics
 } from '../hooks/queries/useAnalyticsQueries';
 import { getErrorMessage } from '../utils/errorHandler';
 import { PeriodFilter } from './common/filters/PeriodFilter';
@@ -233,15 +232,21 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
 
 
 
-  // 📈 KPIs via vues matérialisées — source unique de vérité = AccountingOverview
+  // 📈 KPIs — dépenses opérationnelles via vue matérialisée, salaires depuis state local
   const { data: periodExpenses = [] } = useExpensesAnalytics(currentBar?.id, periodStart, periodEnd, 'day');
-  const { data: periodSalaries = [] } = useSalariesAnalytics(currentBar?.id, periodStart, periodEnd, 'day');
 
   const totalExpenses = useMemo(() => {
     const opEx = periodExpenses.reduce((sum, row) => sum + (Number(row.operating_expenses) || 0), 0);
-    const salaries = periodSalaries.reduce((sum, row) => sum + (Number(row.total_salaries) || 0), 0);
-    return opEx + salaries;
-  }, [periodExpenses, periodSalaries]);
+    // 🛡️ FIX : Utiliser les salaires locaux (state) et non la vue matérialisée
+    // La vue matérialisée ne contient pas les paiements optimistic récents (non encore syncronisés)
+    const localSalariesTotal = salaries
+      .filter(sal => {
+        const paidAt = new Date(sal.paidAt);
+        return paidAt >= periodStart && paidAt <= periodEnd;
+      })
+      .reduce((sum, sal) => sum + sal.amount, 0);
+    return opEx + localSalariesTotal;
+  }, [periodExpenses, salaries, periodStart, periodEnd]);
 
   // ✨ Group by Category (Unified)
   const expensesByCategory = useMemo(() => {
@@ -414,11 +419,14 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
                           </div>
                           {Object.keys(salariesByPeriod)
                             .filter(period => {
-                              const [year, month] = period.split('-');
-                              const salaryDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-                              const pStart = new Date(periodStart.getFullYear(), periodStart.getMonth(), 1);
-                              const pEnd = new Date(periodEnd.getFullYear(), periodEnd.getMonth(), 1);
-                              return salaryDate >= pStart && salaryDate <= pEnd;
+                              // 🛡️ FIX : Filtrer par paidAt (date réelle de paiement)
+                              // et non par période comptable (YYYY-MM).
+                              // Cas concret : salaire de janvier payé en février doit
+                              // apparaître dans le journal "Aujourd'hui" ou "Ce mois-ci".
+                              return salariesByPeriod[period].salaries.some(sal => {
+                                const paidAt = new Date(sal.paidAt);
+                                return paidAt >= periodStart && paidAt <= periodEnd;
+                              });
                             })
                             .sort().reverse().map(period => (
                               <SalaryListItem
