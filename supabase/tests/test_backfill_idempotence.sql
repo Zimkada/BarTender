@@ -27,9 +27,9 @@ BEGIN
   v_owner_id_2 := gen_random_uuid();
   v_owner_id_3 := gen_random_uuid();
 
-  INSERT INTO public.users (id, username, password_hash, name, phone, is_active) VALUES (v_owner_id_1, 'owner1_' || substr(v_owner_id_1::text, 1, 8), 'hashed', 'Owner 1', '+229 10000000', true);
-  INSERT INTO public.users (id, username, password_hash, name, phone, is_active) VALUES (v_owner_id_2, 'owner2_' || substr(v_owner_id_2::text, 1, 8), 'hashed', 'Owner 2', '+229 20000000', true);
-  INSERT INTO public.users (id, username, password_hash, name, phone, is_active) VALUES (v_owner_id_3, 'owner3_' || substr(v_owner_id_3::text, 1, 8), 'hashed', 'Owner 3', '+229 30000000', true);
+  INSERT INTO public.users (id, username, name, phone, is_active) VALUES (v_owner_id_1, 'owner1_' || substr(v_owner_id_1::text, 1, 8), 'Owner 1', '+229 10000000', true);
+  INSERT INTO public.users (id, username, name, phone, is_active) VALUES (v_owner_id_2, 'owner2_' || substr(v_owner_id_2::text, 1, 8), 'Owner 2', '+229 20000000', true);
+  INSERT INTO public.users (id, username, name, phone, is_active) VALUES (v_owner_id_3, 'owner3_' || substr(v_owner_id_3::text, 1, 8), 'Owner 3', '+229 30000000', true);
 
   -- Bar 1: Will have operating_mode_at_creation = NULL (should be backfilled to 'full')
   INSERT INTO public.bars (name, owner_id, operating_mode_at_creation)

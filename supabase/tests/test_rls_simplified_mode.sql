@@ -20,8 +20,8 @@ BEGIN
   
   -- Create Gérant
   v_user_gerant_id := gen_random_uuid();
-  INSERT INTO public.users (id, username, password_hash, name, phone, email, is_active)
-  VALUES (v_user_gerant_id, 'test_gerant_' || substr(v_user_gerant_id::text, 1, 8), 'hashed', 'Test Gérant Multi-Bar', '+229 60000000', 'test_multi_bar_gerant@bartender.local', true);
+  INSERT INTO public.users (id, username, name, phone, email, is_active)
+  VALUES (v_user_gerant_id, 'test_gerant_' || substr(v_user_gerant_id::text, 1, 8), 'Test Gérant Multi-Bar', '+229 60000000', 'test_multi_bar_gerant@bartender.local', true);
 
   -- Create Bar 1
   INSERT INTO public.bars (name, owner_id) VALUES ('Test Bar Alpha', v_user_gerant_id) RETURNING id INTO v_bar1_id;
