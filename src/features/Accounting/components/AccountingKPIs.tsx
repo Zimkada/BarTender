@@ -36,7 +36,7 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, period
     if (viewMode === 'tresorerie') {
         return (
             <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 ${isMobile ? 'mb-4' : 'mb-6'}`}>
-                {/* Operating Profit */}
+                {/* Bénéfice opérationnel */}
                 <div className={`bg-white rounded-2xl border border-gray-100 ${isMobile ? 'p-4' : 'p-5'} shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group`}>
                     <div className="flex justify-between items-start mb-4">
                         <div className="flex items-center gap-2">
@@ -60,7 +60,7 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, period
                     </div>
                 </div>
 
-                {/* Total Revenue */}
+                {/* Revenus totaux */}
                 <div className={`bg-white rounded-2xl border border-gray-100 ${isMobile ? 'p-4' : 'p-5'} shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group`}>
                     <div className="flex justify-between items-start mb-4">
                         <div className="flex items-center gap-2">
@@ -86,7 +86,7 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, period
                     </div>
                 </div>
 
-                {/* Operating Costs */}
+                {/* Dépenses opérationnelles */}
                 <div className={`bg-white rounded-2xl border border-gray-100 ${isMobile ? 'p-4' : 'p-5'} shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group`}>
                     <div className="flex justify-between items-start mb-4">
                         <div className="flex items-center gap-2">
@@ -112,7 +112,7 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, period
                     </div>
                 </div>
 
-                {/* Investments */}
+                {/* Investissements */}
                 <div className={`bg-white rounded-2xl border border-gray-100 ${isMobile ? 'p-4' : 'p-5'} shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group relative overflow-hidden`}>
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
@@ -139,7 +139,7 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, period
                             )}
                         </div>
                     </div>
-                    {/* Decorative Background Element */}
+                    {/* Élément de fond décoratif */}
                     <div className="absolute -right-6 -bottom-6 opacity-[0.03] text-purple-600 rotate-12 pointer-events-none">
                         <TrendingUp size={100} />
                     </div>
@@ -270,7 +270,7 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, period
                 </div>
             </div>
 
-            {/* Secondary KPIs Row */}
+            {/* Ligne d'indicateurs secondaires */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between h-full">
                     <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Marge Op.</p>
@@ -291,7 +291,7 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, period
                     </p>
                 </div>
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex flex-col justify-between h-full">
-                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Cash Runway</p>
+                    <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Autonomie de trésorerie</p>
                     <p className={`text-xl font-bold mt-1 ${(data.cashRunway || 0) >= 1 ? 'text-green-600' : (data.cashRunway || 0) >= 0.5 ? 'text-amber-600' : 'text-red-600'}`}>
                         {(data.cashRunway || 0) > 60 ? '> 5 ans' : `${(data.cashRunway || 0).toFixed(1)} mois`}
                     </p>

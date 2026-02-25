@@ -60,7 +60,7 @@ export const InitialBalanceModal: React.FC<InitialBalanceModalProps> = ({
             }
         >
             <div className="space-y-5">
-                {/* Warning if balance exists */}
+                {/* Avertissement si le solde existe déjà */}
                 {existingBalance && (
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm">
                         <p className="font-semibold text-amber-800 mb-1">⚠️ Solde déjà défini</p>
@@ -99,7 +99,7 @@ export const InitialBalanceModal: React.FC<InitialBalanceModalProps> = ({
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-700">Description</Label>
+                        <Label className="text-sm font-medium text-gray-700">Description (Optionnel)</Label>
                         <Input
                             value={form.description}
                             onChange={(e) => setForm({ ...form, description: e.target.value })}

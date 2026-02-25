@@ -69,7 +69,7 @@ export const CapitalContributionModal: React.FC<CapitalContributionModalProps> =
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* ... existing content ... */}
 
-                {/* Left Col: Existing History */}
+                {/* Col Gauche: Historique récent */}
                 <div className="lg:col-span-1 bg-gray-50 rounded-xl p-4 border border-gray-100 h-fit">
                     <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Historique récent</h4>
                     {existingContributions.length === 0 ? (
@@ -89,7 +89,7 @@ export const CapitalContributionModal: React.FC<CapitalContributionModalProps> =
                     )}
                 </div>
 
-                {/* Right Col: Form */}
+                {/* Col Droite: Formulaire */}
                 <div className="lg:col-span-2 space-y-4">
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">Montant (FCFA) <span className="text-red-500">*</span></label>
@@ -138,7 +138,7 @@ export const CapitalContributionModal: React.FC<CapitalContributionModalProps> =
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">Note / Description</label>
+                        <label className="text-sm font-medium text-gray-700">Note / Détails</label>
                         <Input
                             value={form.description}
                             onChange={(e) => setForm({ ...form, description: e.target.value })}
