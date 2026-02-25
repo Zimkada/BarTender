@@ -191,15 +191,15 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       // Traitement Membres
       if (membersResult.status === 'fulfilled') {
         const membersFn = membersResult.value.map(m => ({
-          id: `${targetBarId}_${m.id}`,
-          userId: m.id,
+          id: m.id, // ✅ Use bar_members.id directly
+          userId: m.user_id, // ✅ Use user_id for user reference
           barId: targetBarId,
           role: m.role as UserRole,
           assignedBy: '',
           assignedAt: m.joined_at ? new Date(m.joined_at) : new Date(),
           isActive: m.member_is_active || false,
           user: {
-            id: m.id,
+            id: m.user_id, // ✅ User ID for user object
             username: m.username || '',
             name: m.name,
             email: m.email,
@@ -530,15 +530,15 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       const members = await AuthService.getBarMembers(barId);
       return members.map(m => ({
-        id: `${barId}_${m.id}`,
-        userId: m.id,
+        id: m.id, // ✅ Use bar_members.id directly (no composite ID needed)
+        userId: m.user_id, // ✅ Use user_id for user reference
         barId: barId,
         role: m.role as UserRole,
         assignedBy: '',
         assignedAt: m.joined_at ? new Date(m.joined_at) : new Date(),
         isActive: m.member_is_active || false,
         user: {
-          id: m.id,
+          id: m.user_id, // ✅ User ID for user object
           username: m.username || '',
           name: m.name,
           phone: m.phone,
