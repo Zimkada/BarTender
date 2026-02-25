@@ -450,6 +450,8 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
 
       // Dépenses (filteredExpenses déjà filtré par période — salaires exclus, traités séparément)
       filteredExpenses.filter(e => e.category !== 'salary').forEach(e => {
+        // Obtenir le label traduit de la catégorie, sinon utiliser le nom
+        const categoryLabel = (EXPENSE_CATEGORY_LABELS as Record<string, { label: string }>)[e.category]?.label || e.category;
         transactions.push({
           id: e.id,
           barId: currentBar.id,
@@ -459,7 +461,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
           // le mapping configMappings fonctionne (clé = UUID, pas la valeur 'custom')
           category: e.customCategoryId || e.category,
           date: e.date,
-          description: e.notes || `Dépense ${e.category}`,
+          description: e.notes || categoryLabel,
           createdBy: e.createdBy,
           createdAt: e.date
         });
