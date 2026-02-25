@@ -113,7 +113,7 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
         sales: serverFilteredSales as Sale[],
         returns: todayReturns,
         users: users,
-        barMembers: [],
+        barMembers: barMembers,
         startDate: undefined,
         endDate: undefined
     });

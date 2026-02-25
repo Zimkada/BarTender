@@ -302,7 +302,7 @@ export function ReturnsStats({ returns, returnReasons }: ReturnsStatsProps) {
                                     {stats.topReason?.reason === 'defective'
                                         ? "Un taux élevé de produits défectueux suggère un problème de stockage ou de manipulation. Un audit de la chaîne froide est conseillé."
                                         : stats.topReason?.reason === 'wrong_item'
-                                            ? "Les erreurs de saisie impactent votre inventaire. Un rappel sur le scan systématique réduirait ces écarts."
+                                            ? "Les erreurs de saisie impactent votre inventaire. Renforcez la double verification produit (commande, ticket, produit servi) pour reduire ces ecarts."
                                             : "La fréquence des retours est stable. Veillez à maintenir la rigueur actuelle sur les contrôles de caisse."}
                                 </p>
                             </>

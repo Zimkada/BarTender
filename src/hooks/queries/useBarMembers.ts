@@ -36,12 +36,10 @@ export const useBarMembers = (barId: string | undefined, options?: { refetchInte
             // Mapper le résultat du RPC vers le type attendu par le frontend
             return dbMembers.map(m => ({
                 // Propriétés de BarMember
-                // L'ID du membership doit être unique. Le RPC ne le fournit pas directement,
-                // donc nous pouvons le générer ou utiliser une combinaison.
-                // Ici, nous allons utiliser l'ID de l'utilisateur comme ID principal pour le BarMember
-                // en assumant une relation 1:1 pour la gestion des membres.
-                id: m.id, // Utiliser l'ID de l'utilisateur comme ID du membre pour simplicité
-                userId: m.id,
+                // id = bar_members.id (membership record) — utilisé pour les opérations d'équipe (retrait, rôle)
+                // userId = user_id réel — utilisé pour le matching avec sale.soldBy dans les analytics
+                id: m.id,
+                userId: m.user_id,
                 barId: barId,
                 role: m.role as UserRole, // Cast le rôle de string vers UserRole
                 assignedBy: '', // Non fourni par le RPC 'get_bar_members', peut être null ou vide
@@ -50,7 +48,7 @@ export const useBarMembers = (barId: string | undefined, options?: { refetchInte
 
                 // Propriétés de l'utilisateur imbriqué (AppUser)
                 user: {
-                    id: m.id,
+                    id: m.user_id, // UUID réel — pour le matching sale.soldBy dans useTeamPerformance
                     username: m.username || '',
                     name: m.name || '',
                     phone: m.phone || '',

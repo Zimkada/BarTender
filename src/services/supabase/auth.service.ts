@@ -895,7 +895,7 @@ export class AuthService {
   static async getBarMembers(
     barId: string,
     impersonatingUserId?: string
-  ): Promise<Array<Omit<DbUser, 'password_hash'> & { role: string; joined_at: string; member_is_active: boolean }>> {
+  ): Promise<Array<Omit<DbUser, 'password_hash'> & { role: string; joined_at: string; member_is_active: boolean; user_id: string }>> {
     try {
       // Use RPC with optional impersonating_user_id parameter
       const { data: membersData, error: rpcError } = await supabase
@@ -917,7 +917,8 @@ export class AuthService {
 
       // Map RPC results to expected format
       return members.map((member) => ({
-        id: member.id, // ✅ bar_members.id, not user_id
+        id: member.id,           // bar_members.id — ID du membership (pour les opérations d'équipe)
+        user_id: member.user_id, // UUID réel de l'utilisateur — utilisé pour le matching sale.soldBy
         username: member.username || null,
         email: member.user_email || '',
         name: member.user_name || '',
@@ -931,7 +932,7 @@ export class AuthService {
         role: member.role,
         joined_at: (member.joined_at || member.assigned_at)!, // On suppose qu'une des deux dates existe
         member_is_active: (member.member_is_active ?? member.is_active) ?? true,
-      })) as Array<Omit<DbUser, 'password_hash'> & { role: string; joined_at: string; member_is_active: boolean }>;
+      })) as Array<Omit<DbUser, 'password_hash'> & { role: string; joined_at: string; member_is_active: boolean; user_id: string }>;
 
     } catch (error) {
       console.error('AuthService getBarMembers error:', error);
