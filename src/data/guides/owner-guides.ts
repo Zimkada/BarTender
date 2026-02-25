@@ -6,6 +6,7 @@
  */
 
 import { GuideTour } from '@/types/guide';
+import { ACCOUNTING_MODULE_GUIDE } from './accounting-guides';
 
 /**
  * Guide 0: Sales Process (PREMIER GUIDE)
@@ -2474,5 +2475,6 @@ export const OWNER_GUIDES: GuideTour[] = [
   MANAGE_SETTINGS_GUIDE,
   MANAGE_PROMOTIONS_GUIDE,
   PROFILE_GUIDE,
+  ACCOUNTING_MODULE_GUIDE,
   // FORECASTING_AI_GUIDE, // Masqué à la demande de l'utilisateur
 ];

@@ -19,6 +19,7 @@ import {
   FORECASTING_AI_GUIDE,
 } from '../data/guides/owner-guides';
 import { SERVEUR_FIRST_SALE_GUIDE, SERVEUR_DASHBOARD_GUIDE, SERVEUR_HISTORY_GUIDE, SERVEUR_RETURNS_GUIDE, SERVEUR_CONSIGNMENTS_GUIDE } from '../data/guides/serveur-guides';
+import { ACCOUNTING_MODULE_GUIDE } from '../data/guides/accounting-guides';
 import { GuideTour, GuideTrigger } from '../types/guide';
 
 /**
@@ -44,6 +45,7 @@ const GUIDES_REGISTRY: Record<string, GuideTour> = {
   'serveur-history': SERVEUR_HISTORY_GUIDE,
   'serveur-returns': SERVEUR_RETURNS_GUIDE,
   'serveur-consignments': SERVEUR_CONSIGNMENTS_GUIDE,
+  'accounting-guide': ACCOUNTING_MODULE_GUIDE,
 };
 
 export const useGuideTrigger = (guideId: string) => {

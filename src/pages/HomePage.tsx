@@ -1,4 +1,3 @@
-// src/pages/HomePage.tsx
 import { useState, useMemo } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
@@ -16,9 +15,9 @@ import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { ProductGridSkeleton } from '../components/skeletons';
 
 export default function HomePage() {
-  // 1. Tous les hooks sont appelés inconditionnellement en haut
   const { addToCart, cart } = useAppContext();
   const { currentBar } = useBarContext();
+
   const stockManager = useUnifiedStock(currentBar?.id);
   const { categories } = stockManager;
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -87,13 +86,15 @@ export default function HomePage() {
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1.5">{currentBar.name}</p>
           </div>
 
-          <div className="flex items-center gap-2.5 px-4 py-2 bg-brand-subtle rounded-2xl border border-brand-subtle shadow-sm hover:shadow-md transition-all group">
-            <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-brand-primary shadow-sm group-hover:scale-110 transition-transform">
-              <ShoppingCart size={18} />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-lg font-black text-brand-dark leading-none">{stockManager.products.length}</span>
-              <span className="text-[9px] font-black text-brand-primary uppercase tracking-wider">produits</span>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 px-4 py-2 bg-brand-subtle rounded-2xl border border-brand-subtle shadow-sm hover:shadow-md transition-all group">
+              <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-brand-primary shadow-sm group-hover:scale-110 transition-transform">
+                <ShoppingCart size={18} />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-lg font-black text-brand-dark leading-none">{stockManager.products.length}</span>
+                <span className="text-[9px] font-black text-brand-primary uppercase tracking-wider">produits</span>
+              </div>
             </div>
           </div>
         </div>

@@ -53,6 +53,7 @@ export default function AccountingPage() {
                 title="Comptabilité"
                 subtitle="Suivez vos revenus, dépenses et gérez les salaires de l'équipe."
                 icon={<DollarSign size={24} />}
+                guideId="accounting-guide"
                 tabs={[
                     { id: 'overview', label: 'Vue globale', icon: BarChart3 },
                     { id: 'revenues', label: 'Revenus', icon: DollarSign },
