@@ -21,5 +21,6 @@ $$;
 GRANT EXECUTE ON FUNCTION refresh_expenses_summary() TO authenticated;
 GRANT EXECUTE ON FUNCTION refresh_expenses_summary() TO service_role;
 
--- Test it
-SELECT refresh_expenses_summary();
+-- NOTE: Ne pas appeler refresh_expenses_summary() ici.
+-- REFRESH ... CONCURRENTLY ne peut pas s'exécuter dans une transaction.
+-- Appeler manuellement via SQL Editor si un refresh immédiat est nécessaire.

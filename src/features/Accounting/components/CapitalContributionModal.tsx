@@ -7,6 +7,7 @@ import { Select } from '../../../components/ui/Select';
 import { useCurrencyFormatter } from '../../../hooks/useBeninCurrency';
 import { CapitalSource } from '../../../types';
 import { useBarContext } from '../../../context/BarContext';
+import { CAPITAL_SOURCE_LABELS } from '../../../hooks/useCapitalContributions';
 import { getCurrentBusinessDateString } from '../../../utils/businessDateHelpers';
 
 interface CapitalContributionModalProps {
@@ -82,7 +83,10 @@ export const CapitalContributionModal: React.FC<CapitalContributionModalProps> =
                                         <span className="text-xs font-bold text-gray-700">{formatPrice(c.amount)}</span>
                                         <span className="text-[10px] text-gray-400">{new Date(c.date).toLocaleDateString()}</span>
                                     </div>
-                                    <p className="text-[10px] text-gray-500 mt-1 truncate">{c.source} {c.description ? `- ${c.description}` : ''}</p>
+                                    <p className="text-[10px] text-gray-500 mt-1 truncate">
+                                        {CAPITAL_SOURCE_LABELS[c.source as CapitalSource]?.icon} {CAPITAL_SOURCE_LABELS[c.source as CapitalSource]?.label ?? c.source}
+                                        {c.description ? ` - ${c.description}` : ''}
+                                    </p>
                                 </div>
                             ))}
                         </div>

@@ -10,17 +10,17 @@ CREATE TABLE capital_contributions (
   source TEXT NOT NULL CHECK (source IN ('owner', 'partner', 'investor', 'loan', 'other')),
   source_details TEXT,
   description TEXT,
-  contribution_date DATE NOT NULL,
-  created_by UUID NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+  date DATE NOT NULL,
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  UNIQUE(bar_id, contribution_date, source)
+  UNIQUE(bar_id, date, source)
 );
 
 -- Indexes
 CREATE INDEX idx_capital_contributions_bar ON capital_contributions(bar_id);
-CREATE INDEX idx_capital_contributions_date ON capital_contributions(contribution_date);
+CREATE INDEX idx_capital_contributions_date ON capital_contributions(date);
 CREATE INDEX idx_capital_contributions_source ON capital_contributions(source);
 
 -- RLS Policy

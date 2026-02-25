@@ -12,6 +12,8 @@ import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { useAppContext } from '../context/AppContext';
 import { EXPENSE_CATEGORY_LABELS } from '../hooks/useExpenses';
+import { returnReasons } from '../config/returnReasons';
+import type { ReturnReason } from '../types';
 import { useInitialBalance } from '../hooks/useInitialBalance';
 import { useCapitalContributions } from '../hooks/useCapitalContributions';
 import { useViewport } from '../hooks/useViewport';
@@ -273,7 +275,11 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
     };
 
     // Period Total Costs (All included for cash flow view) — inclure salaires pour cohérence
-    const opExCosts = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+    // 🛡️ FIX : Exclure les salaires de opExCosts car ils sont déjà dans filteredExpenses
+    // (unifiedExpenses fusionne expenses + supplies + salaries → sans exclusion = double comptage)
+    const opExCosts = filteredExpenses
+      .filter(e => e.category !== 'salary')
+      .reduce((sum, e) => sum + e.amount, 0);
     // 🛡️ FIX : Utiliser les salaires locaux pour inclure les paiements optimistic récents
     const salaryCosts = salaries
       .filter(sal => {
@@ -482,7 +488,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
           amount: r.refundAmount,
           paymentMethod: (returnObj.originalPaymentMethod as string) || 'cash',
           date: new Date(r.returnedAt),
-          description: `Retour ${(returnObj.reason as string) || ''}`,
+          description: `Retour: ${returnReasons[returnObj.reason as ReturnReason]?.label || (returnObj.reason as string) || ''}`,
           createdBy: r.returnedBy,
           createdAt: new Date(r.returnedAt)
         });

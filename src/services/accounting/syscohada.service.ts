@@ -4,6 +4,8 @@ import {
     BarAccountingConfig,
 } from './syscohada.types';
 import { format } from 'date-fns';
+import { PaymentMethodLabels } from '../../types/payment';
+import type { PaymentMethod } from '../../types/payment';
 // xlsx est importé dynamiquement dans exportJournalExcel pour éviter de l'inclure dans le bundle principal
 
 export class SyscohadaTranslator {
@@ -92,7 +94,7 @@ export class SyscohadaTranslator {
                 journal: 'VTE',
                 piece,
                 accountCode: treasuryAccount,
-                description: `Z de Caisse - Ventes (${aggrData.paymentMethod || 'cash'})`,
+                description: `Z de Caisse - Ventes (${PaymentMethodLabels[aggrData.paymentMethod as PaymentMethod] ?? aggrData.paymentMethod ?? 'Espèces'})`,
                 debit: aggrData.amount,
                 credit: 0
             });

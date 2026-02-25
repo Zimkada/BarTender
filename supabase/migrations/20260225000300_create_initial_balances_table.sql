@@ -9,7 +9,7 @@ CREATE TABLE initial_balances (
   amount NUMERIC NOT NULL,
   date DATE NOT NULL,
   description TEXT,
-  created_by UUID NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   is_locked BOOLEAN NOT NULL DEFAULT false,
