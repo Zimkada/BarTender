@@ -335,9 +335,9 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
   }, [filteredExpenses, customExpenseCategories]);
 
   // Handlers for Modals
-  const handleInitialBalanceSubmit = (data: any) => {
+  const handleInitialBalanceSubmit = async (data: any) => {
     try {
-      initialBalanceHook.createInitialBalance({
+      await initialBalanceHook.createInitialBalance({
         barId: currentBar!.id,
         amount: parseFloat(data.amount),
         date: new Date(data.date),
@@ -350,9 +350,9 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
     }
   };
 
-  const handleCapitalContributionSubmit = (data: any) => {
+  const handleCapitalContributionSubmit = async (data: any) => {
     try {
-      capitalContributionsHook.addContribution({
+      await capitalContributionsHook.addContribution({
         barId: currentBar!.id,
         amount: parseFloat(data.amount),
         date: new Date(data.date),
