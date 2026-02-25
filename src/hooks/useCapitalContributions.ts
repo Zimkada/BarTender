@@ -52,7 +52,7 @@ export function useCapitalContributions(barId?: string) {
           .from('capital_contributions')
           .select('*')
           .eq('bar_id', barId)
-          .order('contribution_date', { ascending: false });
+          .order('date', { ascending: false });
 
         if (error) {
           console.error('❌ Erreur chargement apports de capital:', error);
@@ -67,7 +67,7 @@ export function useCapitalContributions(barId?: string) {
             source: row.source as CapitalSource,
             sourceDetails: row.source_details || undefined,
             description: row.description || undefined,
-            date: new Date(row.contribution_date),
+            date: new Date(row.date),
             createdBy: row.created_by,
             createdAt: new Date(row.created_at),
           }));
@@ -100,7 +100,7 @@ export function useCapitalContributions(barId?: string) {
               source: contribution.source,
               source_details: contribution.sourceDetails,
               description: contribution.description,
-              contribution_date: contribution.date.toISOString().split('T')[0],
+              date: contribution.date.toISOString().split('T')[0],
               created_by: currentSession.userId,
             },
           ])
@@ -119,7 +119,7 @@ export function useCapitalContributions(barId?: string) {
             source: data.source,
             sourceDetails: data.source_details,
             description: data.description,
-            date: new Date(data.contribution_date),
+            date: new Date(data.date),
             createdBy: data.created_by,
             createdAt: new Date(data.created_at),
           };
