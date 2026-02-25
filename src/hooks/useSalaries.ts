@@ -70,6 +70,10 @@ export function useSalaries(barId: string) {
 
     // 2. Enqueue pour sync (System A - Modern)
     if (currentBar && currentSession) {
+      console.log('🔍 Attempting to enqueue salary:', {
+        currentBar: currentBar?.id,
+        currentSession: currentSession?.userId,
+      });
       import('../services/offlineQueue').then(({ offlineQueue }) => {
         // ✅ Mapping type-safe : Frontend (camelCase) -> DB (snake_case)
         const payload: AddSalaryPayload = {
@@ -82,8 +86,13 @@ export function useSalaries(barId: string) {
           created_at: newSalary.createdAt.toISOString(),
         };
 
-        offlineQueue.addOperation('ADD_SALARY', payload, currentBar.id, currentSession.userId);
-      });
+        console.log('✅ Queue operation:', { type: 'ADD_SALARY', payload });
+        offlineQueue.addOperation('ADD_SALARY', payload, currentBar.id, currentSession.userId)
+          .then(() => console.log('✅ Enqueued successfully'))
+          .catch((err) => console.error('❌ Enqueue failed:', err));
+      }).catch((err) => console.error('❌ Import failed:', err));
+    } else {
+      console.log('❌ Cannot enqueue: missing context', { currentBar, currentSession });
     }
 
     return newSalary;

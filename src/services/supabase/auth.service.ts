@@ -123,6 +123,8 @@ interface BarMemberRPCResponse {
 }
 
 interface BarMemberDetailsRPCResponse {
+  id: string; // ✅ bar_members.id from RPC
+  bar_id: string; // bar_id from RPC
   user_id: string;
   username: string | null;
   user_email: string;
@@ -132,8 +134,9 @@ interface BarMemberDetailsRPCResponse {
   created_at: string;
   last_login_at: string | null;
   role: string;
-  joined_at?: string;
+  assigned_by?: string;
   assigned_at?: string;
+  joined_at?: string;
   member_is_active?: boolean;
   is_active?: boolean;
 }
@@ -914,7 +917,7 @@ export class AuthService {
 
       // Map RPC results to expected format
       return members.map((member) => ({
-        id: member.user_id,
+        id: member.id, // ✅ bar_members.id, not user_id
         username: member.username || null,
         email: member.user_email || '',
         name: member.user_name || '',
