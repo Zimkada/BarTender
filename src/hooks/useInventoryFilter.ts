@@ -95,6 +95,7 @@ export function useInventoryFilter({
 
     return {
         sortedProducts,
+        productsWithAnomalies,
         lowStockProducts,
         categoryStats,
         anomalyCount: productsWithAnomalies.filter(p => !!p.anomaly).length

@@ -80,9 +80,10 @@ export default function InventoryPage() {
 
     const {
         sortedProducts,
+        productsWithAnomalies,
         lowStockProducts,
         categoryStats,
-        anomalyCount // ✨ Nouveau compte d'anomalies
+        anomalyCount
     } = useInventoryFilter({
         products,
         categories,
@@ -285,7 +286,8 @@ export default function InventoryPage() {
                             <InventoryStats
                                 products={products}
                                 categoryStats={categoryStats}
-                                lowStockProducts={lowStockProducts}
+                                productsWithAnomalies={productsWithAnomalies}
+                                lowStockCount={lowStockProducts.length}
                                 onNavigateToOperations={() => setViewMode('operations')}
                                 formatPrice={formatPrice}
                             />
