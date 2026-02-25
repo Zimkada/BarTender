@@ -254,7 +254,21 @@ export const AnalyticsService = {
      * Rafraîchit une vue matérialisée spécifique
      */
     async refreshView(viewName: string, triggeredBy: string = 'manual'): Promise<unknown> {
-        // ✅ Type-safe RPC call
+        // ✅ Use dedicated functions for views with constraint issues
+        if (viewName === 'expenses_summary') {
+            // Use direct refresh function (avoids logging constraint violation)
+            const { data, error } = await supabase
+                .rpc('refresh_expenses_summary');
+
+            if (error) {
+                console.error(`Error refreshing view ${viewName}:`, error);
+                throw error;
+            }
+
+            return data;
+        }
+
+        // Fallback for other views (use logging function)
         const { data, error } = await supabase
             .rpc('refresh_materialized_view_with_logging', {
                 p_view_name: viewName,
