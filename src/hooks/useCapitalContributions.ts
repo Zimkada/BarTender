@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../lib/supabase';
 import type { CapitalContribution, CapitalSource } from '../types';
-
-const STORAGE_KEY_PREFIX = 'capital_contributions_';
+import { useAuth } from '../context/AuthContext';
+import { getErrorMessage } from '../utils/errorHandler';
 
 // Labels pour les sources d'apport (UI)
 export const CAPITAL_SOURCE_LABELS: Record<CapitalSource, { label: string; icon: string; description: string }> = {
@@ -34,67 +35,131 @@ export const CAPITAL_SOURCE_LABELS: Record<CapitalSource, { label: string; icon:
 
 export function useCapitalContributions(barId?: string) {
   const [contributions, setContributions] = useState<CapitalContribution[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { currentSession } = useAuth();
 
-  // Load from localStorage
+  // Load from Supabase
   useEffect(() => {
-    if (!barId) return;
+    if (!barId) {
+      setLoading(false);
+      return;
+    }
 
-    try {
-      const key = `${STORAGE_KEY_PREFIX}${barId}`;
-      const stored = localStorage.getItem(key);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        // Convert date strings back to Date objects
-        const loadedContributions = parsed.map((contrib: any) => ({
-          ...contrib,
-          date: new Date(contrib.date),
-          createdAt: new Date(contrib.createdAt),
-        }));
-        setContributions(loadedContributions);
+    const fetchContributions = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('capital_contributions')
+          .select('*')
+          .eq('bar_id', barId)
+          .order('contribution_date', { ascending: false });
+
+        if (error) {
+          console.error('❌ Erreur chargement apports de capital:', error);
+          return;
+        }
+
+        if (data) {
+          const mapped = data.map((row: any) => ({
+            id: row.id,
+            barId: row.bar_id,
+            amount: Number(row.amount),
+            source: row.source as CapitalSource,
+            sourceDetails: row.source_details || undefined,
+            description: row.description || undefined,
+            date: new Date(row.contribution_date),
+            createdBy: row.created_by,
+            createdAt: new Date(row.created_at),
+          }));
+          setContributions(mapped);
+        }
+      } catch (error) {
+        console.error('❌ Erreur chargement apports de capital:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error('❌ Erreur chargement apports de capital:', error);
-    }
-  }, [barId]);
+    };
 
-  // Save to localStorage
-  const saveToStorage = useCallback((contribs: CapitalContribution[]) => {
-    if (!barId) return;
-
-    try {
-      const key = `${STORAGE_KEY_PREFIX}${barId}`;
-      localStorage.setItem(key, JSON.stringify(contribs));
-    } catch (error) {
-      console.error('❌ Erreur sauvegarde apports de capital:', error);
-    }
+    fetchContributions();
   }, [barId]);
 
   // Add new capital contribution
-  const addContribution = useCallback((contribution: Omit<CapitalContribution, 'id' | 'createdAt'>) => {
-    const newContribution: CapitalContribution = {
-      ...contribution,
-      id: `contrib_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date(),
-    };
+  const addContribution = useCallback(
+    async (contribution: Omit<CapitalContribution, 'id' | 'createdAt' | 'createdBy'>) => {
+      if (!barId || !currentSession) {
+        throw new Error('Bar ID or session missing');
+      }
 
-    const updated = [...contributions, newContribution];
-    setContributions(updated);
-    saveToStorage(updated);
+      try {
+        const { data, error } = await supabase
+          .from('capital_contributions')
+          .insert([
+            {
+              bar_id: barId,
+              amount: contribution.amount,
+              source: contribution.source,
+              source_details: contribution.sourceDetails,
+              description: contribution.description,
+              contribution_date: contribution.date.toISOString().split('T')[0],
+              created_by: currentSession.userId,
+            },
+          ])
+          .select()
+          .single();
 
-    return newContribution;
-  }, [contributions, saveToStorage]);
+        if (error) {
+          throw new Error(getErrorMessage(error));
+        }
+
+        if (data) {
+          const newContribution: CapitalContribution = {
+            id: data.id,
+            barId: data.bar_id,
+            amount: Number(data.amount),
+            source: data.source,
+            sourceDetails: data.source_details,
+            description: data.description,
+            date: new Date(data.contribution_date),
+            createdBy: data.created_by,
+            createdAt: new Date(data.created_at),
+          };
+          setContributions([newContribution, ...contributions]);
+          return newContribution;
+        }
+      } catch (error) {
+        console.error('❌ Erreur ajout apport de capital:', error);
+        throw error;
+      }
+    },
+    [barId, currentSession, contributions]
+  );
 
   // Delete capital contribution
-  const deleteContribution = useCallback((id: string) => {
-    const updated = contributions.filter(contrib => contrib.id !== id);
-    setContributions(updated);
-    saveToStorage(updated);
-  }, [contributions, saveToStorage]);
+  const deleteContribution = useCallback(
+    async (id: string) => {
+      try {
+        const { error } = await supabase
+          .from('capital_contributions')
+          .delete()
+          .eq('id', id);
+
+        if (error) {
+          throw new Error(getErrorMessage(error));
+        }
+
+        setContributions(contributions.filter(contrib => contrib.id !== id));
+      } catch (error) {
+        console.error('❌ Erreur suppression apport de capital:', error);
+        throw error;
+      }
+    },
+    [contributions]
+  );
 
   // Get total contributions before a specific date
   const getTotalContributions = useCallback((beforeDate: Date) => {
     return contributions
-      .filter(contrib => new Date(contrib.date) <= beforeDate)
+      .filter(contrib => contrib.date <= beforeDate)
       .reduce((sum, contrib) => sum + contrib.amount, 0);
   }, [contributions]);
 
@@ -110,6 +175,7 @@ export function useCapitalContributions(barId?: string) {
 
   return {
     contributions,
+    loading,
     addContribution,
     deleteContribution,
     getTotalContributions,
