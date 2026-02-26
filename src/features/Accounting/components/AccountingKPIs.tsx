@@ -86,7 +86,7 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, period
                     </div>
                 </div>
 
-                {/* Dépenses opérationnelles */}
+                {/* Charges opérationnelles (hors investissements) */}
                 <div className={`bg-white rounded-2xl border border-gray-100 ${isMobile ? 'p-4' : 'p-5'} shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:-translate-y-1 hover:shadow-xl transition-all duration-300 group`}>
                     <div className="flex justify-between items-start mb-4">
                         <div className="flex items-center gap-2">
@@ -95,7 +95,7 @@ export const AccountingKPIs: React.FC<AccountingKPIsProps> = ({ viewMode, period
                             </div>
                             <div className="flex flex-col gap-0.5">
                                 <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                    Dépenses
+                                    Charges Opérationnelles
                                 </h3>
                                 {periodLabel && (
                                     <p className="text-[11px] text-gray-600 font-bold uppercase tracking-wider">

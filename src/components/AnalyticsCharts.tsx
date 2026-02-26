@@ -154,7 +154,8 @@ const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => 
               />
               <Area
                 type="monotone"
-                dataKey="Revenus"
+                dataKey="revenue"
+                name="Revenus"
                 stroke={brandPrimary}
                 strokeWidth={3}
                 fillOpacity={1}
@@ -164,7 +165,8 @@ const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => 
               />
               <Area
                 type="monotone"
-                dataKey="Coûts Opérationnels"
+                dataKey="operatingCosts"
+                name="Coûts Opérationnels"
                 stroke={brandAccent}
                 strokeWidth={3}
                 fillOpacity={1}
@@ -238,8 +240,8 @@ const AnalyticsCharts = ({ data, expensesByCategory }: AnalyticsChartsProps) => 
                     width: '100%'
                   }}
                 />
-                <Bar dataKey="Revenus" fill={brandPrimary} radius={[4, 4, 4, 4]} isAnimationActive={false} />
-                <Bar dataKey="Coûts Opérationnels" fill={brandAccent} radius={[4, 4, 4, 4]} isAnimationActive={false} />
+                <Bar dataKey="revenue" name="Revenus" fill={brandPrimary} radius={[4, 4, 4, 4]} isAnimationActive={false} />
+                <Bar dataKey="operatingCosts" name="Coûts Opérationnels" fill={brandAccent} radius={[4, 4, 4, 4]} isAnimationActive={false} />
               </BarChart>
             </ResponsiveContainer>
           </div>

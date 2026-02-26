@@ -43,6 +43,7 @@ import {
 import { ACCOUNTING_FILTERS, ACCOUNTING_FILTERS_MOBILE } from '../config/dateFilters';
 import { SyscohadaTranslator } from '../services/accounting/syscohada.service';
 import { BarAccountingConfigSchema } from '../services/accounting/syscohada.types';
+import { AnalyticsService } from '../services/supabase/analytics.service';
 import { AccountingTransaction } from '../types';
 import { useSalaries } from '../hooks/useSalaries';
 import { getErrorMessage } from '../utils/errorHandler';
@@ -234,8 +235,8 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
 
       return {
         name: monthKey,
-        Revenus: monthRevenue,
-        'Coûts Opérationnels': monthOperatingExpenses + monthSalaries,
+        revenue: monthRevenue,
+        operatingCosts: monthOperatingExpenses + monthSalaries,
       };
     }).reverse();
 
@@ -589,7 +590,13 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
             </h2>
             <DataFreshnessIndicatorCompact
               viewName="daily_sales_summary"
-              onRefreshComplete={() => queryClient.invalidateQueries({ queryKey: analyticsKeys.all })}
+              onRefreshComplete={async () => {
+                await Promise.allSettled([
+                  AnalyticsService.refreshView('expenses_summary', 'manual'),
+                  AnalyticsService.refreshView('salaries_summary', 'manual')
+                ]);
+                await queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
+              }}
               className="mt-1"
             />
           </div>

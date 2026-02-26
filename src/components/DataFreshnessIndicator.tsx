@@ -4,7 +4,7 @@ import { useViewFreshness, useViewRefresh } from '../hooks/useViewMonitoring';
 interface DataFreshnessIndicatorProps {
     viewName: string;
     showRefreshButton?: boolean;
-    onRefreshComplete?: () => void;
+    onRefreshComplete?: () => void | Promise<void>;
     className?: string;
 }
 
@@ -24,7 +24,7 @@ export function DataFreshnessIndicator({
         try {
             await refresh();
             await checkFreshness(); // Re-check freshness after refresh
-            onRefreshComplete?.();
+            await onRefreshComplete?.();
         } catch (error) {
             console.error('Refresh failed:', error);
         }
@@ -100,7 +100,7 @@ export function DataFreshnessIndicatorCompact({
     const handleRefresh = async () => {
         try {
             await refresh();
-            onRefreshComplete?.();
+            await onRefreshComplete?.();
         } catch (error) {
             console.error('Refresh failed:', error);
         }

@@ -254,17 +254,19 @@ export const AnalyticsService = {
      * Rafraîchit une vue matérialisée spécifique
      */
     async refreshView(viewName: string, triggeredBy: string = 'manual'): Promise<unknown> {
-        // ✅ Use dedicated functions for views with constraint issues
-        if (viewName === 'expenses_summary') {
-            // Use direct refresh function (avoids logging constraint violation)
-            const { data, error } = await supabase
-                .rpc('refresh_expenses_summary');
+        // ✅ Use dedicated SECURITY DEFINER functions to avoid logging constraint violations
+        const dedicatedRefreshFns: Record<string, string> = {
+            expenses_summary: 'refresh_expenses_summary',
+            salaries_summary: 'refresh_salaries_summary',
+        };
 
+        const dedicatedFn = dedicatedRefreshFns[viewName];
+        if (dedicatedFn) {
+            const { data, error } = await supabase.rpc(dedicatedFn);
             if (error) {
                 console.error(`Error refreshing view ${viewName}:`, error);
                 throw error;
             }
-
             return data;
         }
 
