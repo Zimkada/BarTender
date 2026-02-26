@@ -134,4 +134,50 @@ self.addEventListener('message', (event: ExtendableMessageEvent) => {
   }
 });
 
-console.log('[SW] Background Sync Service Worker loaded - BarTender v2.0');
+/**
+ * 🔔 SW Error Handler (own scope)
+ * SW runs in isolated scope and cannot directly call Sentry
+ * So we catch errors and send them to the app via postMessage
+ */
+self.addEventListener('error', (event: ErrorEvent) => {
+  console.error('[SW Error Event]', event.error);
+
+  // Send error to app for Sentry capture
+  self.clients.matchAll().then((clients) => {
+    clients.forEach((client) => {
+      client.postMessage({
+        type: 'SENTRY_ERROR',
+        error: event.error?.message || String(event.error),
+        context: {
+          filename: event.filename,
+          lineno: event.lineno,
+          colno: event.colno,
+        },
+      });
+    });
+  });
+});
+
+/**
+ * 🔔 SW Unhandled Promise Rejection Handler
+ * Captures async errors in background sync and other async operations
+ */
+self.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
+  console.error('[SW Unhandled Promise Rejection]', event.reason);
+
+  // Send error to app for Sentry capture
+  self.clients.matchAll().then((clients) => {
+    clients.forEach((client) => {
+      client.postMessage({
+        type: 'SENTRY_ERROR',
+        error: event.reason?.message || String(event.reason),
+        context: {
+          type: 'unhandledPromiseRejection',
+          promise: event.promise?.toString(),
+        },
+      });
+    });
+  });
+});
+
+console.log('[SW] Background Sync Service Worker loaded - BarTender v2.0 with Error Tracking');

@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { visualizer } from 'rollup-plugin-visualizer';
 import { VitePWA } from 'vite-plugin-pwa';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
 import path from 'path';
 
 // https://vitejs.dev/config/
@@ -26,6 +27,10 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',
+      // Prevent build error from large HTML files (stats.html)
+      injectManifest: {
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
+      },
 
       manifest: {
         name: 'BarTender - Gestion de Bar',
@@ -104,6 +109,11 @@ export default defineConfig({
           '**/*.{css,html,json}' // CSS (80 KB) + HTML + manifest ONLY
           // JS chunks sont volontairement EXCLUS du precache
         ],
+        globIgnores: [
+          '**/stats.html', // Rollup visualizer - too large for PWA cache
+        ],
+        // Increase limit to allow large HTML files (stats.html is 2.3MB)
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB instead of default 2 MB
 
         // Tous les JS chunks en runtime cache (StaleWhileRevalidate)
         runtimeCaching: [
@@ -204,12 +214,26 @@ export default defineConfig({
         type: 'module',
         navigateFallback: '/index.html'
       }
+    }),
+    // Sentry Source Maps Upload (production builds only)
+    // Requires SENTRY_AUTH_TOKEN env var or --release flag
+    sentryVitePlugin({
+      org: 'zimkada-ingenuity',
+      project: 'bartendera',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      telemetry: false,
+      debug: false,
+      release: {
+        name: `bartender@${new Date().toISOString().split('T')[0]}`,
+      }
     })
   ],
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
   build: {
+    // Source Maps for Sentry (hidden = generated but not exposed in bundle)
+    sourcemap: 'hidden',
     // Minification et optimisation
     minify: 'terser',
     terserOptions: {

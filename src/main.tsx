@@ -6,6 +6,9 @@ import { RouterProvider } from 'react-router-dom';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Toaster } from 'react-hot-toast';
 
+// Monitoring & Error Tracking
+import { initMonitoring, captureError } from './lib/monitoring';
+
 // Contexts
 import { AuthProvider } from './context/AuthContext';
 import { BarProvider } from './context/BarContext';
@@ -31,6 +34,50 @@ import './index.css';
 
 // Dev helpers
 import './utils/devHelpers';
+
+// ════════════════════════════════════════════════════════════════
+// Initialize Monitoring & Error Handlers
+// ════════════════════════════════════════════════════════════════
+
+initMonitoring();
+
+// Global error handler (runtime errors)
+window.addEventListener('error', (event: ErrorEvent) => {
+  console.error('[Window Error]', event.error);
+  captureError(event.error, {
+    filename: event.filename,
+    lineno: event.lineno,
+    colno: event.colno,
+  });
+});
+
+// Unhandled promise rejection handler (async/await errors)
+window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
+  console.error('[Unhandled Promise Rejection]', event.reason);
+  captureError(event.reason, {
+    type: 'unhandledPromiseRejection',
+  });
+  // Don't prevent default - let browser log it too for dev visibility
+});
+
+// Service Worker Error Bridge
+// SW runs in a different scope (self) and can't call Sentry directly
+// So it sends errors via postMessage, and we capture them here
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    const { type, error, context } = event.data;
+
+    if (type === 'SENTRY_ERROR') {
+      console.error('[SW Error]', error);
+      captureError(new Error(error), {
+        source: 'service-worker',
+        ...context,
+      });
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
