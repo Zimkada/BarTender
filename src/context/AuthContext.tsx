@@ -8,6 +8,7 @@ import { CacheManagerService } from '../services/cacheManager.service';
 import { OfflineStorage } from '../utils/offlineStorage';
 import { networkManager } from '../services/NetworkManager';
 import { notificationService } from '../services/NotificationService';
+import { setUserContext, clearUserContext } from '../lib/monitoring';
 
 interface AuthContextType {
   currentSession: UserSession | null;
@@ -223,6 +224,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           hasCompletedOnboarding: authUser.has_completed_onboarding ?? false
         };
         setCurrentSession(session);
+        // Set user context for error tracking (Sentry)
+        setUserContext(authUser.id, email);
 
         // Audit log removed for optimization (LOGIN_SUCCESS generates too much noise)
         // auditLogger.log({
@@ -288,6 +291,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           hasCompletedOnboarding: authUser.has_completed_onboarding ?? false
         };
         setCurrentSession(session);
+        // Set user context for error tracking (Sentry)
+        setUserContext(authUser.id);
 
         // Audit log removed for optimization (LOGIN_SUCCESS generates too much noise)
         // auditLogger.log({
@@ -352,6 +357,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } finally {
       // 💾 Nettoyer le stockage offline (bars, sélection) SYSTÉMATIQUEMENT
       OfflineStorage.clear();
+      // Clear user context from error tracking (Sentry)
+      clearUserContext();
       setCurrentSession(null);
     }
   }, [currentSession, setCurrentSession]);

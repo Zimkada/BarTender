@@ -46,6 +46,7 @@ import { BarAccountingConfigSchema } from '../services/accounting/syscohada.type
 import { AccountingTransaction } from '../types';
 import { useSalaries } from '../hooks/useSalaries';
 import { getErrorMessage } from '../utils/errorHandler';
+import toast from 'react-hot-toast';
 
 interface AccountingOverviewProps {
   period: AccountingPeriodProps;
@@ -352,7 +353,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
       });
       setShowInitialBalanceModal(false);
     } catch (error) {
-      alert((error as Error).message); // TODO: Switch to Toast later
+      toast.error((error as Error).message);
     }
   };
 
@@ -369,7 +370,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
       });
       setShowCapitalContributionModal(false);
     } catch (error) {
-      alert((error as Error).message); // TODO: Switch to Toast
+      toast.error((error as Error).message);
     }
   };
 
@@ -551,7 +552,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
 
       // Guard: ne pas générer un fichier vide
       if (allEntries.length === 0) {
-        alert('Aucune écriture comptable à exporter pour cette période.');
+        toast.error('Aucune écriture comptable à exporter pour cette période.');
         return;
       }
 
@@ -567,7 +568,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
 
       await SyscohadaTranslator.exportJournalExcel(allEntries, barInfo);
     } catch (error) {
-      alert(`Erreur lors de l'export : ${getErrorMessage(error)}`);
+      toast.error(`Erreur lors de l'export : ${getErrorMessage(error)}`);
     } finally {
       setIsExporting(false);
     }
