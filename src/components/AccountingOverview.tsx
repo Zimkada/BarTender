@@ -48,9 +48,89 @@ import { AccountingTransaction } from '../types';
 import { useSalaries } from '../hooks/useSalaries';
 import { getErrorMessage } from '../utils/errorHandler';
 import toast from 'react-hot-toast';
+import type { ExpensesSummaryRow } from '../services/supabase/analytics.types';
+import type { UnifiedExpense } from '../hooks/pivots/useUnifiedExpenses';
+import type { Salary } from '../hooks/useSalaries';
 
 interface AccountingOverviewProps {
   period: AccountingPeriodProps;
+}
+
+/**
+ * Fallback: Recalculate expense metrics from unified expenses + salaries
+ * when analytics query fails (connectivity issues, permissions, etc)
+ *
+ * Returns same schema as ExpensesSummaryRow[] for seamless substitution
+ */
+function calculateExpenseMetricsFromUnified(
+  unifiedExpenses: UnifiedExpense[],
+  salaries: Salary[],
+  startDate: Date,
+  endDate: Date
+): ExpensesSummaryRow[] {
+  // Group by date (YYYY-MM-DD)
+  const metricsByDate = new Map<string, {
+    operating_expenses: number;
+    investments: number;
+  }>();
+
+  // Process expenses
+  unifiedExpenses.forEach(exp => {
+    if (exp.date < startDate || exp.date > endDate) return;
+
+    const dateStr = exp.date.toISOString().split('T')[0]; // YYYY-MM-DD
+    const metrics = metricsByDate.get(dateStr) || { operating_expenses: 0, investments: 0 };
+
+    // Exclude salaries from expenses calculation (they're handled separately)
+    if (exp.category === 'salary') {
+      return;
+    }
+
+    // Investments
+    if (exp.category === 'investment') {
+      metrics.investments += exp.amount;
+    } else {
+      // Operating expenses (includes supplies, regular expenses, custom categories)
+      metrics.operating_expenses += exp.amount;
+    }
+
+    metricsByDate.set(dateStr, metrics);
+  });
+
+  // Process salaries (included in operating_expenses)
+  salaries.forEach(sal => {
+    const paidAt = new Date(sal.paidAt);
+    if (paidAt < startDate || paidAt > endDate) return;
+
+    const dateStr = paidAt.toISOString().split('T')[0];
+    const metrics = metricsByDate.get(dateStr) || { operating_expenses: 0, investments: 0 };
+
+    metrics.operating_expenses += sal.amount;
+    metricsByDate.set(dateStr, metrics);
+  });
+
+  // Convert to ExpensesSummaryRow[] format
+  return Array.from(metricsByDate.entries()).map(([dateStr, metrics]) => ({
+    bar_id: '',
+    expense_date: dateStr,
+    expense_week: dateStr,
+    expense_month: dateStr.substring(0, 7), // YYYY-MM
+    total_expenses: metrics.operating_expenses + metrics.investments,
+    operating_expenses: metrics.operating_expenses,
+    investments: metrics.investments,
+    water_expenses: 0,
+    electricity_expenses: 0,
+    maintenance_expenses: 0,
+    supply_expenses: 0,
+    supplies_cost: 0,
+    custom_expenses: 0,
+    expense_count: 0,
+    investment_count: metrics.investments > 0 ? 1 : 0,
+    supply_count: 0,
+    first_expense_time: dateStr,
+    last_expense_time: dateStr,
+    updated_at: new Date().toISOString()
+  })).sort((a, b) => b.expense_date.localeCompare(a.expense_date));
 }
 
 export function AccountingOverview({ period }: AccountingOverviewProps) {
@@ -102,12 +182,29 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
   const chartEnd = useMemo(() => new Date(), []);
 
   const { data: chartStats = [] } = useDailyAnalytics(currentBar?.id, chartStart, chartEnd, 'month');
-  const { data: chartExpenses = [] } = useExpensesAnalytics(currentBar?.id, chartStart, chartEnd, 'month');
+  const { data: chartExpensesRaw = [], isError: chartExpensesError } = useExpensesAnalytics(currentBar?.id, chartStart, chartEnd, 'month');
   const { data: chartSalaries = [] } = useSalariesAnalytics(currentBar?.id, chartStart, chartEnd, 'month');
 
   // KPIs via vues matérialisées — source unique de vérité pour la période sélectionnée
   const { data: currentPeriodRevenue = [] } = useDailyAnalytics(currentBar?.id, periodStart, periodEnd, 'day');
-  const { data: currentPeriodExpenses = [] } = useExpensesAnalytics(currentBar?.id, periodStart, periodEnd, 'day');
+  const { data: currentPeriodExpensesRaw = [], isError: currentExpensesError } = useExpensesAnalytics(currentBar?.id, periodStart, periodEnd, 'day');
+
+  // 🛡️ FALLBACK: Si les vues analytiques échouent, recalculer depuis les données unifiées
+  const chartExpenses = useMemo(() => {
+    if (chartExpensesError) {
+      console.warn('[Fallback] Chart expenses analytics failed, recalculating from unified data');
+      return calculateExpenseMetricsFromUnified(unifiedExpenses, salaries, chartStart, chartEnd);
+    }
+    return chartExpensesRaw;
+  }, [chartExpensesRaw, chartExpensesError, unifiedExpenses, salaries, chartStart, chartEnd]);
+
+  const currentPeriodExpenses = useMemo(() => {
+    if (currentExpensesError) {
+      console.warn('[Fallback] Current period expenses analytics failed, recalculating from unified data');
+      return calculateExpenseMetricsFromUnified(unifiedExpenses, salaries, periodStart, periodEnd);
+    }
+    return currentPeriodExpensesRaw;
+  }, [currentPeriodExpensesRaw, currentExpensesError, unifiedExpenses, salaries, periodStart, periodEnd]);
   // 🛡️ FIX : currentPeriodSalaries supprimé — les salaires locaux (useSalaries ligne 85) sont utilisés
   // directement pour inclure les paiements optimistic non encore syncronisés vers Supabase
 
