@@ -236,7 +236,7 @@ export default function PromotionsPage() {
                             <p className="text-gray-400 font-medium animate-pulse">Chargement de vos offres...</p>
                         </div>
                     ) : filteredPromotions.length === 0 ? (
-                        <div className="bg-white/60 backdrop-blur-sm rounded-[2.5rem] border-2 border-dashed border-brand-subtle p-12 sm:p-20 text-center">
+                        <div className="bg-white/60 backdrop-blur-sm rounded-[2.5rem] border-2 border-dashed border-brand-subtle p-8 sm:p-20 text-center flex flex-col items-center">
                             <div className="w-24 h-24 bg-brand-subtle rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner shadow-brand-subtle/50">
                                 <Gift size={48} className="text-brand-primary" aria-hidden="true" />
                             </div>
@@ -244,7 +244,7 @@ export default function PromotionsPage() {
                             <p className="text-gray-500 mb-10 max-w-md mx-auto">Boostez vos ventes aujourd'hui ! Créez une offre attractive pour vos clients en quelques secondes.</p>
                             <Button
                                 onClick={() => { setSelectedPromotion(null); setActiveTab('new'); }}
-                                className="px-8 py-6 h-auto rounded-2xl font-bold transition-all shadow-lg shadow-brand-subtle"
+                                className="px-6 sm:px-8 py-6 h-auto rounded-2xl font-bold transition-all shadow-lg shadow-brand-subtle w-full sm:w-auto"
                             >
                                 <Plus size={24} className="mr-2" />
                                 Créer ma première promotion
@@ -376,7 +376,8 @@ export default function PromotionsPage() {
                             loadPromotions();
                             setActiveTab('list');
                         }}
-                        initialData={selectedPromotion}
+                        onCancel={() => setActiveTab('list')}
+                        promotion={selectedPromotion}
                     />
                 </div>
             )}

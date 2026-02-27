@@ -19,7 +19,7 @@ import { useFeedback } from '../hooks/useFeedback';
 import type { AccountingPeriodProps } from '../types/dateFilters';
 import { getErrorMessage } from '../utils/errorHandler';
 import { PeriodFilter } from './common/filters/PeriodFilter';
-import { ACCOUNTING_FILTERS, ACCOUNTING_FILTERS_MOBILE } from '../config/dateFilters';
+import { ACCOUNTING_FILTERS } from '../config/dateFilters';
 
 // UI Components
 import { Button } from './ui/Button';

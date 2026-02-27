@@ -40,7 +40,7 @@ import {
   useSalariesAnalytics,
   analyticsKeys
 } from '../hooks/queries/useAnalyticsQueries';
-import { ACCOUNTING_FILTERS, ACCOUNTING_FILTERS_MOBILE } from '../config/dateFilters';
+import { ACCOUNTING_FILTERS } from '../config/dateFilters';
 import { SyscohadaTranslator } from '../services/accounting/syscohada.service';
 import { BarAccountingConfigSchema } from '../services/accounting/syscohada.types';
 import { AnalyticsService } from '../services/supabase/analytics.service';

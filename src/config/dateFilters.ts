@@ -12,7 +12,8 @@ export const TIME_RANGE_CONFIGS: Record<TimeRange, TimeRangeConfig> = {
   today: {
     value: 'today',
     label: "Aujourd'hui",
-    shortLabel: 'J',
+    shortLabel: "Auj.",
+    mediumLabel: "Aujourd'hui",
     description: 'Journée en cours',
     type: 'quick',
     days: 0
@@ -20,51 +21,57 @@ export const TIME_RANGE_CONFIGS: Record<TimeRange, TimeRangeConfig> = {
   yesterday: {
     value: 'yesterday',
     label: 'Hier',
-    shortLabel: 'J-1',
+    shortLabel: 'Hier',
+    mediumLabel: 'Hier',
     description: 'Journée précédente',
     type: 'quick',
     days: 1
   },
 
-  // Glissant (Rolling) - Recommandé pour analytics
+  // Glissant (Rolling) — fenêtres mobiles, pas liées au calendrier
   last_7days: {
     value: 'last_7days',
     label: '7 derniers jours',
-    shortLabel: '7J',
-    description: 'Semaine glissante',
+    shortLabel: '7j',
+    mediumLabel: '7 jours',
+    description: '7 jours glissants',
     type: 'rolling',
     days: 7
   },
   last_30days: {
     value: 'last_30days',
     label: '30 derniers jours',
-    shortLabel: '30J',
-    description: 'Mois glissant',
+    shortLabel: '30j',
+    mediumLabel: '30 jours',
+    description: '30 jours glissants',
     type: 'rolling',
     days: 30
   },
   last_90days: {
     value: 'last_90days',
     label: '3 derniers mois',
-    shortLabel: '90J',
-    description: 'Trimestre glissant',
+    shortLabel: '90j',
+    mediumLabel: '90 jours',
+    description: '90 jours glissants',
     type: 'rolling',
     days: 90
   },
   last_365days: {
     value: 'last_365days',
     label: '12 derniers mois',
-    shortLabel: '365J',
-    description: 'Année glissante',
+    shortLabel: '365j',
+    mediumLabel: '12 mois',
+    description: '365 jours glissants',
     type: 'rolling',
     days: 365
   },
 
-  // Calendaire
+  // Calendaire — périodes fixes (lun-dim, jan-déc, etc.)
   this_week: {
     value: 'this_week',
     label: 'Cette semaine',
-    shortLabel: '7J',
+    shortLabel: 'Semaine',
+    mediumLabel: 'Cette semaine',
     description: 'Lundi - Dimanche en cours',
     type: 'calendar'
   },
@@ -72,6 +79,7 @@ export const TIME_RANGE_CONFIGS: Record<TimeRange, TimeRangeConfig> = {
     value: 'this_month',
     label: 'Ce mois',
     shortLabel: 'Mois',
+    mediumLabel: 'Ce mois',
     description: 'Mois calendaire en cours',
     type: 'calendar'
   },
@@ -79,6 +87,7 @@ export const TIME_RANGE_CONFIGS: Record<TimeRange, TimeRangeConfig> = {
     value: 'this_quarter',
     label: 'Ce trimestre',
     shortLabel: 'Trim.',
+    mediumLabel: 'Ce trimestre',
     description: 'Trimestre calendaire en cours',
     type: 'calendar'
   },
@@ -86,6 +95,7 @@ export const TIME_RANGE_CONFIGS: Record<TimeRange, TimeRangeConfig> = {
     value: 'this_year',
     label: 'Cette année',
     shortLabel: 'Année',
+    mediumLabel: 'Cette année',
     description: 'Année calendaire en cours',
     type: 'calendar'
   },
@@ -95,6 +105,7 @@ export const TIME_RANGE_CONFIGS: Record<TimeRange, TimeRangeConfig> = {
     value: 'custom',
     label: 'Personnalisée',
     shortLabel: 'Perso',
+    mediumLabel: 'Personnalisée',
     description: 'Choisir dates de début et fin',
     type: 'custom'
   }
@@ -133,7 +144,7 @@ export const SALES_HISTORY_FILTERS: TimeRange[] = [
 ];
 
 /**
- * Filtres pour accounting - Desktop (avec trimestre)
+ * Filtres pour accounting — tous écrans (trimestre et année inclus)
  */
 export const ACCOUNTING_FILTERS: TimeRange[] = [
   'today',
@@ -141,18 +152,6 @@ export const ACCOUNTING_FILTERS: TimeRange[] = [
   'this_week',
   'this_month',
   'this_quarter',
-  'this_year',
-  'custom'
-];
-
-/**
- * Filtres pour accounting - Mobile (sans trimestre)
- */
-export const ACCOUNTING_FILTERS_MOBILE: TimeRange[] = [
-  'today',
-  'yesterday',
-  'this_week',
-  'this_month',
   'this_year',
   'custom'
 ];

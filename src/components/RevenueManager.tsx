@@ -4,7 +4,7 @@ import { useBarContext } from '../context/BarContext';
 import { useDailyAnalytics } from '../hooks/queries/useAnalyticsQueries';
 import { useViewport } from '../hooks/useViewport';
 import { PeriodFilter } from './common/filters/PeriodFilter';
-import { ACCOUNTING_FILTERS, ACCOUNTING_FILTERS_MOBILE } from '../config/dateFilters';
+import { ACCOUNTING_FILTERS } from '../config/dateFilters';
 import type { AccountingPeriodProps } from '../types/dateFilters';
 
 interface RevenueManagerProps {

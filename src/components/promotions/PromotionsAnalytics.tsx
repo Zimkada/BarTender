@@ -229,21 +229,23 @@ export function PromotionsAnalytics() {
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
                                     {stats.topPromotions.map((promo: any, index: number) => (
-                                        <tr key={index} className="hover:bg-brand-subtle transition-colors group">
+                                        <tr key={index} className={`transition-colors group ${promo.netProfit < 0 ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-brand-subtle'}`}>
                                             <td className="p-5">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center font-bold text-gray-400 group-hover:bg-brand-primary group-hover:text-white transition-all">
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold group-hover:text-white transition-all ${promo.netProfit < 0 ? 'bg-red-100 text-red-600 group-hover:bg-red-600' : 'bg-slate-50 text-gray-400 group-hover:bg-brand-primary group-hover:text-white'}`}>
                                                         {index + 1}
                                                     </div>
                                                     <div>
-                                                        <div className="font-black text-gray-900 uppercase tracking-tight">{promo.name}</div>
-                                                        <div className="text-[10px] text-gray-400 font-bold uppercase">{promo.uses} utilisations</div>
+                                                        <div className={`font-black uppercase tracking-tight ${promo.netProfit < 0 ? 'text-red-600' : 'text-gray-900'}`}>{promo.name}</div>
+                                                        <div className={`text-[10px] font-bold uppercase ${promo.netProfit < 0 ? 'text-red-400' : 'text-gray-400'}`}>
+                                                            {promo.uses} utilisations {promo.netProfit < 0 && '⚠️ Déficitaire'}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="p-5 text-center">
-                                                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full border-4 border-slate-50 font-black text-gray-900 group-hover:border-brand-subtle group-hover:text-brand-primary transition-all">
-                                                    {Math.min(99, Math.round((promo.marginPercentage + (promo.uses / 10)) * 1.5))}
+                                                <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full border-4 font-black transition-all ${promo.netProfit < 0 ? 'border-red-200 bg-red-50 text-red-600' : 'border-slate-50 text-gray-900 group-hover:border-brand-subtle group-hover:text-brand-primary'}`}>
+                                                    {promo.roi}%
                                                 </div>
                                             </td>
                                             <td className="p-5">
@@ -251,20 +253,24 @@ export function PromotionsAnalytics() {
                                                 <div className="text-[10px] text-gray-400 font-bold uppercase">Coût: {formatPrice(promo.costOfGoods || 0)}</div>
                                             </td>
                                             <td className="p-5">
-                                                <div className="font-black text-gray-900 tracking-tight">{formatPrice(promo.netProfit || 0)}</div>
-                                                <div className="flex items-center gap-1 text-[10px] font-black text-brand-primary/60 uppercase">
-                                                    ROI {Math.round((promo.netProfit / (promo.costOfGoods || 1)) * 100)}%
+                                                <div className={`font-black tracking-tight ${promo.netProfit < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                                                    {formatPrice(promo.netProfit || 0)}
+                                                </div>
+                                                <div className={`flex items-center gap-1 text-[10px] font-black uppercase ${promo.netProfit < 0 ? 'text-red-500' : 'text-brand-primary/60'}`}>
+                                                    {promo.netProfit < 0 ? '❌ Perte' : '✓ Profit'}
                                                 </div>
                                             </td>
                                             <td className="p-5">
                                                 <div className="w-32 h-2 bg-slate-100 rounded-full overflow-hidden">
                                                     <motion.div
                                                         initial={{ width: 0 }}
-                                                        animate={{ width: `${promo.marginPercentage}%` }}
-                                                        className={`h-full bg-gradient-to-r ${promo.marginPercentage >= 30 ? 'from-green-500 to-emerald-600' : 'from-brand-primary to-brand-primary-dark'} rounded-full`}
+                                                        animate={{ width: `${Math.min(100, Math.max(0, promo.marginPercentage))}%` }}
+                                                        className={`h-full bg-gradient-to-r ${promo.netProfit < 0 ? 'from-red-500 to-rose-600' : promo.marginPercentage >= 30 ? 'from-green-500 to-emerald-600' : 'from-brand-primary to-brand-primary-dark'} rounded-full`}
                                                     ></motion.div>
                                                 </div>
-                                                <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1.5">{promo.marginPercentage}% Marge</div>
+                                                <div className={`text-[10px] font-black uppercase tracking-widest mt-1.5 ${promo.netProfit < 0 ? 'text-red-600' : 'text-gray-400'}`}>
+                                                    {Math.round(promo.marginPercentage)}% Marge {promo.netProfit < 0 ? '(Perte)' : ''}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

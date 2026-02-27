@@ -31,7 +31,8 @@ export type TimeRange =
 export interface TimeRangeConfig {
   value: TimeRange;
   label: string;
-  shortLabel?: string;
+  shortLabel?: string;      // Très court (<10 chars) pour mobile très étroit
+  mediumLabel?: string;     // Moyen (10-15 chars) pour tablette
   description?: string;
   days?: number;  // Pour filtres glissants
   type: 'quick' | 'rolling' | 'calendar' | 'custom';

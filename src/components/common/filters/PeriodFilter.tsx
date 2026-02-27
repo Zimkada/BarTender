@@ -33,23 +33,42 @@ export const PeriodFilter: React.FC<PeriodFilterProps> = ({
     const { isMobile } = useViewport();
     const isCustom = timeRange === 'custom';
 
+    // Déterminer le label basé sur la taille d'écran
+    const getLabel = (filter: string) => {
+        const config = TIME_RANGE_CONFIGS[filter as any];
+        if (!config) return filter;
+
+        // Mobile très étroit (<sm): shortLabel si disponible
+        // sinon label complet
+        if (isMobile) {
+            return config.shortLabel || config.label || filter;
+        }
+
+        // Desktop: label complet
+        return config.label || filter;
+    };
+
+    // Classe d'alignement sécurisée
+    const justifyClass = justify === 'start' ? 'justify-start'
+        : justify === 'center' ? 'justify-center'
+        : justify === 'end' ? 'justify-end'
+        : 'justify-between';
+
     return (
         <div className={`space-y-3 px-1 ${className}`}>
             {/* Boutons de filtres rapides */}
-            <div className={`flex flex-wrap bg-white/40 backdrop-blur-md rounded-2xl p-1 gap-1.5 border border-brand-subtle shadow-sm overflow-hidden sm:w-auto justify-${justify}`}>
+            <div className={`flex flex-wrap bg-white/40 backdrop-blur-md rounded-2xl p-1 gap-1.5 border border-brand-subtle shadow-sm overflow-hidden sm:w-auto ${justifyClass}`}>
                 {availableFilters.map((filter) => (
                     <Button
                         key={filter}
                         onClick={() => setTimeRange(filter)}
                         variant={timeRange === filter ? "default" : "ghost"}
-                        className={`px-4 py-2 h-10 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all flex-1 sm:flex-none sm:min-w-[90px] whitespace-nowrap min-w-max ${timeRange === filter
+                        className={`px-3 sm:px-4 py-2 h-10 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all flex-1 sm:flex-none sm:min-w-[90px] whitespace-nowrap min-w-max ${timeRange === filter
                             ? 'glass-action-button-active-2026 shadow-md shadow-brand-subtle'
                             : 'glass-action-button-2026 text-gray-400 hover:text-brand-primary'
                             } ${buttonClassName}`}
                     >
-                        {isMobile && TIME_RANGE_CONFIGS[filter]?.shortLabel
-                            ? TIME_RANGE_CONFIGS[filter].shortLabel
-                            : (TIME_RANGE_CONFIGS[filter]?.label || filter)}
+                        {getLabel(filter)}
                     </Button>
                 ))}
             </div>
