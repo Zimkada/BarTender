@@ -19,6 +19,19 @@ export function useCacheWarming(enabled: boolean = true) {
     useEffect(() => {
         if (!enabled || warmingComplete) return;
 
+        // Vues matérialisées attendues — DOIT correspondre exactement à la liste dans
+        // refresh_all_materialized_views (migration 20260227000000_fix_refresh_infrastructure.sql).
+        // ⚠️ Si la liste SQL change, mettre à jour ici en même temps.
+        // salaries_summary exclu intentionnellement (vue normale, toujours fraîche).
+        const EXPECTED_VIEWS = [
+            'product_sales_stats',
+            'daily_sales_summary',
+            'expenses_summary',
+            'top_products_by_period',
+            'bar_stats_multi_period',
+            'bar_ancillary_stats',
+        ];
+
         const warmCache = async () => {
             setIsWarming(true);
             setError(null);
@@ -26,9 +39,18 @@ export function useCacheWarming(enabled: boolean = true) {
             try {
                 // Vérifier si les données sont stale avant de rafraîchir
                 const metrics = await AnalyticsService.getViewMetrics();
-                const hasStaleData = metrics.some(m => m.minutes_since_last_refresh > 60);
 
-                if (hasStaleData || metrics.length === 0) {
+                // NULL = aucun refresh réussi enregistré (failed ou table vide) → stale
+                const hasStaleMetric = metrics.some(
+                    m => m.minutes_since_last_refresh == null || Number(m.minutes_since_last_refresh) > 60
+                );
+
+                // Vue absente du log = jamais rafraîchie → stale
+                // metrics.some() ne voit pas les vues sans aucune entrée dans le log
+                const refreshedViews = new Set(metrics.map(m => m.view_name));
+                const hasMissingView = EXPECTED_VIEWS.some(v => !refreshedViews.has(v));
+
+                if (hasMissingView || hasStaleMetric || metrics.length === 0) {
                     console.log('[Cache Warming] Refreshing stale views...');
                     await AnalyticsService.refreshAllViews('app_startup');
                     console.log('[Cache Warming] ✓ Complete');

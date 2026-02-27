@@ -251,14 +251,19 @@ export const AnalyticsService = {
     },
 
     /**
-     * Rafraîchit une vue matérialisée spécifique
+     * Rafraîchit une vue matérialisée spécifique.
+     * Vérifie le statut réel dans le log après l'appel RPC :
+     * refresh_materialized_view_with_logging absorbe les erreurs internes et retourne
+     * un UUID même en cas d'échec — sans vérification du log, un échec remonte comme succès.
      */
     async refreshView(viewName: string, triggeredBy: string = 'manual'): Promise<unknown> {
-        // ✅ Use dedicated SECURITY DEFINER functions to avoid logging constraint violations
+        // Fonctions dédiées qui retournent UUID (log_id) pour vérification du statut
         const dedicatedRefreshFns: Record<string, string> = {
             expenses_summary: 'refresh_expenses_summary',
-            salaries_summary: 'refresh_salaries_summary',
+            // salaries_summary : no-op (vue normale), retourne void — pas de log à vérifier
         };
+
+        let logId: string | null = null;
 
         const dedicatedFn = dedicatedRefreshFns[viewName];
         if (dedicatedFn) {
@@ -267,22 +272,44 @@ export const AnalyticsService = {
                 console.error(`Error refreshing view ${viewName}:`, error);
                 throw error;
             }
-            return data;
+            logId = data as string | null;
+        } else {
+            // Fallback : appel direct à la fonction de logging
+            const { data, error } = await supabase
+                .rpc('refresh_materialized_view_with_logging', {
+                    p_view_name: viewName,
+                    p_triggered_by: triggeredBy
+                });
+
+            if (error) {
+                console.error(`Error refreshing view ${viewName}:`, error);
+                throw error;
+            }
+            logId = data as string | null;
         }
 
-        // Fallback for other views (use logging function)
-        const { data, error } = await supabase
-            .rpc('refresh_materialized_view_with_logging', {
-                p_view_name: viewName,
-                p_triggered_by: triggeredBy
-            });
+        // Vérification du statut réel dans le log.
+        // Sans ce check, un échec interne (REFRESH échoue, capturé par WHEN OTHERS)
+        // remonte comme succès côté app car l'appel RPC lui-même ne throw pas.
+        if (logId) {
+            const { data: logEntry, error: logReadError } = await supabase
+                .from('materialized_view_refresh_log')
+                .select('status, error_message')
+                .eq('id', logId)
+                .single();
 
-        if (error) {
-            console.error(`Error refreshing view ${viewName}:`, error);
-            throw error;
+            if (logReadError) {
+                // Lecture du log impossible (RLS, réseau) — statut inconnu.
+                // On avertit sans bloquer : l'appel RPC lui-même n'a pas échoué.
+                console.warn(`[AnalyticsService.refreshView] Cannot verify refresh status for ${viewName}:`, logReadError.message);
+            } else if (logEntry?.status === 'failed') {
+                const msg = `Refresh of ${viewName} failed: ${logEntry.error_message || 'unknown error'}`;
+                console.error(`[AnalyticsService.refreshView] ${msg}`);
+                throw new Error(msg);
+            }
         }
 
-        return data;
+        return logId;
     },
 
     /**
