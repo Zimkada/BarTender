@@ -64,10 +64,13 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Utilisateur introuvable');
   END IF;
 
-  -- FIX 8 : lire le rôle existant du membre cible
+  -- FIX 8 : lire le rôle existant du membre cible (actif OU inactif)
+  -- Ne pas filtrer sur is_active : l'UPSERT réactive aussi les lignes inactives
+  -- (DO UPDATE SET is_active = TRUE). Sans ce filtre, un gérant pourrait réactiver
+  -- un ancien promoteur/gérant inactif en serveur en contournant les guards.
   SELECT role INTO v_existing_role
   FROM public.bar_members
-  WHERE bar_id = p_bar_id AND user_id = p_user_id AND is_active = TRUE;
+  WHERE bar_id = p_bar_id AND user_id = p_user_id;
 
   IF v_existing_role IS NOT NULL THEN
 
