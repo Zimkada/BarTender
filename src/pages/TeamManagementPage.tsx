@@ -47,6 +47,14 @@ export default function TeamManagementPage() {
   const robustOp = useRobustOperation({
     timeoutMs: 5000,
     maxRetries: 2,
+    // P1: réconciliation UI si le backend réussit après expiration du timeout
+    // (ex: changement de rôle ou suppression commitée côté serveur mais UI en état d'erreur)
+    onLateSuccess: () => {
+      if (currentBar) {
+        refreshMembers(currentBar.id, true);
+        queryClient.invalidateQueries({ queryKey: barMembersKeys.list(currentBar.id) });
+      }
+    },
   });
 
   // Guide ID for team management
@@ -183,7 +191,7 @@ export default function TeamManagementPage() {
         } else {
           error(result?.error || 'Erreur lors de la suppression');
         }
-        setConfirmModal(prev => ({ ...prev, open: false }));
+        setConfirmModal(prev => ({ ...prev, open: false, isLoading: false }));
         removeToast(toastId);
         return;
       }
@@ -192,12 +200,12 @@ export default function TeamManagementPage() {
       success(`${confirmModal.targetMember.user?.name} a été retiré de l'équipe`);
       await refreshBars();
       queryClient.invalidateQueries({ queryKey: barMembersKeys.list(currentBar.id) });
-      setConfirmModal(prev => ({ ...prev, open: false }));
+      setConfirmModal(prev => ({ ...prev, open: false, isLoading: false }));
       robustOp.reset();
     } catch (err) {
       removeToast(toastId);
       error(getErrorMessage(err));
-      setConfirmModal(prev => ({ ...prev, open: false }));
+      setConfirmModal(prev => ({ ...prev, open: false, isLoading: false }));
     }
   };
 
@@ -241,7 +249,7 @@ export default function TeamManagementPage() {
         } else {
           error(result?.error || 'Erreur lors du changement de rôle');
         }
-        setConfirmModal(prev => ({ ...prev, open: false }));
+        setConfirmModal(prev => ({ ...prev, open: false, isLoading: false }));
         removeToast(toastId);
         return;
       }
@@ -250,12 +258,12 @@ export default function TeamManagementPage() {
       success(`Le rôle de ${confirmModal.targetMember.user?.name} a été mis à jour en ${roleLabel}`);
       await refreshMembers(currentBar.id, true);
       queryClient.invalidateQueries({ queryKey: barMembersKeys.list(currentBar.id) });
-      setConfirmModal(prev => ({ ...prev, open: false }));
+      setConfirmModal(prev => ({ ...prev, open: false, isLoading: false }));
       robustOp.reset();
     } catch (err) {
       removeToast(toastId);
       error(getErrorMessage(err));
-      setConfirmModal(prev => ({ ...prev, open: false }));
+      setConfirmModal(prev => ({ ...prev, open: false, isLoading: false }));
     }
   };
 
@@ -990,7 +998,7 @@ export default function TeamManagementPage() {
         {/* Confirmation Modal */}
         <ConfirmModal
           open={confirmModal.open}
-          onClose={() => setConfirmModal(prev => ({ ...prev, open: false }))}
+          onClose={() => setConfirmModal(prev => ({ ...prev, open: false, isLoading: false }))}
           onConfirm={
             confirmModal.action === 'removeUser'
               ? handleConfirmRemoveMember

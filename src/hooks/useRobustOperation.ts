@@ -6,6 +6,11 @@ interface UseRobustOperationOptions {
   onTimeout?: () => void;
   onOffline?: () => void;
   onError?: (error: Error) => void;
+  /**
+   * Appelé si l'opération backend réussit après expiration du timeout.
+   * Permet de réconcilier l'état UI (ex: refresh de liste) sans forcer un retry manuel.
+   */
+  onLateSuccess?: () => void;
 }
 
 interface RobustOperationState {
@@ -31,6 +36,7 @@ export function useRobustOperation(options: UseRobustOperationOptions = {}) {
     onTimeout,
     onOffline,
     onError,
+    onLateSuccess,
   } = options;
 
   const [state, setState] = useState<RobustOperationState>({
@@ -43,6 +49,9 @@ export function useRobustOperation(options: UseRobustOperationOptions = {}) {
 
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  // Ref pour éviter les closures périmées sur le callback de réconciliation
+  const onLateSuccessRef = useRef(onLateSuccess);
+  onLateSuccessRef.current = onLateSuccess;
 
   // Nettoyer le timeout
   const clearTimeout = useCallback(() => {
@@ -79,8 +88,11 @@ export function useRobustOperation(options: UseRobustOperationOptions = {}) {
           }, timeoutMs);
         });
 
+        // Capturer la promise avant le race pour pouvoir la suivre après timeout
+        const operationPromise = operation();
+
         // Race entre l'opération et le timeout
-        const result = await Promise.race([operation(), timeoutPromise]);
+        const result = await Promise.race([operationPromise, timeoutPromise]);
         clearTimeout();
         setState(prev => ({
           ...prev,
@@ -98,6 +110,11 @@ export function useRobustOperation(options: UseRobustOperationOptions = {}) {
         const isTimeout = errorMessage.includes('expirée') || errorMessage.includes('Timeout');
 
         if (isTimeout) {
+          // Si le backend répond finalement après le timeout, réconcilier l'état UI
+          operationPromise.then(() => {
+            onLateSuccessRef.current?.();
+          }).catch(() => { /* échec tardif ignoré, UI déjà en état d'erreur */ });
+
           onTimeout?.();
           setState(prev => ({
             ...prev,
