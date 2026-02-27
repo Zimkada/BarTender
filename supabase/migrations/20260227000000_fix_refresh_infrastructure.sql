@@ -212,11 +212,11 @@ BEGIN
   RETURN QUERY
   SELECT
     p_view_name,
-    MAX(refresh_completed_at) FILTER (WHERE status = 'success'),
-    EXTRACT(EPOCH FROM (NOW() - MAX(refresh_completed_at) FILTER (WHERE status = 'success'))) / 60,
-    EXTRACT(EPOCH FROM (NOW() - MAX(refresh_completed_at) FILTER (WHERE status = 'success'))) / 60 > 60
-  FROM materialized_view_refresh_log
-  WHERE view_name = p_view_name;
+    MAX(log.refresh_completed_at) FILTER (WHERE log.status = 'success'),
+    EXTRACT(EPOCH FROM (NOW() - MAX(log.refresh_completed_at) FILTER (WHERE log.status = 'success'))) / 60,
+    EXTRACT(EPOCH FROM (NOW() - MAX(log.refresh_completed_at) FILTER (WHERE log.status = 'success'))) / 60 > 60
+  FROM materialized_view_refresh_log log
+  WHERE log.view_name = p_view_name;
 END;
 $$;
 
