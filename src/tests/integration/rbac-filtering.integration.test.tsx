@@ -65,6 +65,14 @@ vi.mock('../../services/SyncManager', () => ({
 
 vi.mock('../../utils/businessDateHelpers', () => mockBusinessDateHelpers);
 
+vi.mock('../../context/BarContext', () => ({
+  useBarContext: vi.fn(() => ({
+    currentBar: { id: 'bar-123', name: 'Test Bar', closingHour: 6 },
+    bars: [],
+    refreshMembers: vi.fn(),
+  })),
+}));
+
 const createWrapper = () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },

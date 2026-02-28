@@ -17,101 +17,125 @@ import {
 import type { Sale, Return, Product, SaleItem } from '../types';
 
 describe('calculations', () => {
-  // Mock data
+  // Mock data — champs alignés sur les types réels (snake_case pour SaleItem)
   const mockProducts: Product[] = [
     {
       id: 'prod1',
+      barId: 'bar1',
       name: 'Heineken',
       categoryId: 'cat1',
       price: 1000,
-      costPrice: 600,
+      currentAverageCost: 600,
       stock: 50,
-      minStock: 10,
+      alertThreshold: 10,
       volume: '33cl',
-      isActive: true,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date(),
     },
     {
       id: 'prod2',
+      barId: 'bar1',
       name: 'Coca-Cola',
       categoryId: 'cat2',
       price: 500,
-      costPrice: 300,
+      currentAverageCost: 300,
       stock: 100,
-      minStock: 20,
+      alertThreshold: 20,
       volume: '33cl',
-      isActive: true,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date(),
     },
   ];
 
   const mockSaleItems: SaleItem[] = [
-    { productId: 'prod1', quantity: 2, price: 1000, productName: 'Heineken' },
-    { productId: 'prod2', quantity: 3, price: 500, productName: 'Coca-Cola' },
+    { product_id: 'prod1', product_name: 'Heineken', quantity: 2, unit_price: 1000, total_price: 2000 },
+    { product_id: 'prod2', product_name: 'Coca-Cola', quantity: 3, unit_price: 500, total_price: 1500 },
   ];
 
   const mockSales: Sale[] = [
     {
       id: 'sale1',
+      barId: 'bar1',
       items: mockSaleItems,
       total: 3500,
-      date: new Date().toISOString(),
-      processedBy: 'user1',
-      userName: 'John',
-      userRole: 'serveur',
+      currency: 'XOF',
+      status: 'validated',
+      createdBy: 'user1',
+      soldBy: 'user1',
+      createdAt: new Date().toISOString(),
+      businessDate: new Date().toISOString(),
     },
     {
       id: 'sale2',
-      items: [{ productId: 'prod1', quantity: 5, price: 1000, productName: 'Heineken' }],
+      barId: 'bar1',
+      items: [{ product_id: 'prod1', product_name: 'Heineken', quantity: 5, unit_price: 1000, total_price: 5000 }],
       total: 5000,
-      date: new Date().toISOString(),
-      processedBy: 'user2',
-      userName: 'Marie',
-      userRole: 'serveur',
+      currency: 'XOF',
+      status: 'validated',
+      createdBy: 'user2',
+      soldBy: 'user2',
+      createdAt: new Date().toISOString(),
+      businessDate: new Date().toISOString(),
     },
   ];
 
   const mockReturns: Return[] = [
     {
       id: 'ret1',
+      barId: 'bar1',
       saleId: 'sale1',
       productId: 'prod1',
-      quantity: 1,
+      productName: 'Heineken',
+      productVolume: '33cl',
+      quantitySold: 2,
+      quantityReturned: 1,
       reason: 'defective',
+      returnedBy: 'user1',
+      returnedAt: new Date(),
+      businessDate: new Date().toISOString(),
       refundAmount: 1000,
       isRefunded: true,
       autoRestock: false,
+      manualRestockRequired: false,
       status: 'approved',
-      returnedAt: new Date().toISOString(),
-      requestedBy: 'user1',
       notes: 'Produit défectueux',
     },
     {
       id: 'ret2',
+      barId: 'bar1',
       saleId: 'sale2',
       productId: 'prod2',
-      quantity: 2,
+      productName: 'Coca-Cola',
+      productVolume: '33cl',
+      quantitySold: 3,
+      quantityReturned: 2,
       reason: 'customer_change',
+      returnedBy: 'user1',
+      returnedAt: new Date(),
+      businessDate: new Date().toISOString(),
       refundAmount: 0,
       isRefunded: false,
       autoRestock: true,
+      manualRestockRequired: false,
       status: 'approved',
-      returnedAt: new Date().toISOString(),
-      requestedBy: 'user1',
       notes: 'Changement avis client',
     },
     {
       id: 'ret3',
+      barId: 'bar1',
       saleId: 'sale2',
       productId: 'prod1',
-      quantity: 1,
+      productName: 'Heineken',
+      productVolume: '33cl',
+      quantitySold: 5,
+      quantityReturned: 1,
       reason: 'wrong_item',
+      returnedBy: 'user2',
+      returnedAt: new Date(),
+      businessDate: new Date().toISOString(),
       refundAmount: 1000,
       isRefunded: true,
       autoRestock: true,
+      manualRestockRequired: false,
       status: 'rejected',
-      returnedAt: new Date().toISOString(),
-      requestedBy: 'user2',
       notes: 'Rejected return',
     },
   ];
@@ -127,7 +151,7 @@ describe('calculations', () => {
     });
 
     it('should handle single item', () => {
-      const items: SaleItem[] = [{ productId: 'prod1', quantity: 4, price: 1000, productName: 'Heineken' }];
+      const items: SaleItem[] = [{ product_id: 'prod1', product_name: 'Heineken', quantity: 4, unit_price: 1000, total_price: 4000 }];
       expect(calculateSaleTotal(items)).toBe(4000);
     });
   });
@@ -144,14 +168,14 @@ describe('calculations', () => {
 
     it('should handle missing costPrice', () => {
       const productsNoCost: Product[] = [
-        { ...mockProducts[0], costPrice: undefined },
+        { ...mockProducts[0], currentAverageCost: undefined },
       ];
-      const items: SaleItem[] = [{ productId: 'prod1', quantity: 2, price: 1000, productName: 'Heineken' }];
+      const items: SaleItem[] = [{ product_id: 'prod1', product_name: 'Heineken', quantity: 2, unit_price: 1000, total_price: 2000 }];
       expect(calculateSaleCost(items, productsNoCost)).toBe(0);
     });
 
     it('should handle unknown product', () => {
-      const items: SaleItem[] = [{ productId: 'unknown', quantity: 2, price: 1000, productName: 'Unknown' }];
+      const items: SaleItem[] = [{ product_id: 'unknown', product_name: 'Unknown', quantity: 2, unit_price: 1000, total_price: 2000 }];
       expect(calculateSaleCost(items, mockProducts)).toBe(0);
     });
   });
@@ -163,13 +187,13 @@ describe('calculations', () => {
     });
 
     it('should return total if no cost', () => {
-      const productsNoCost: Product[] = mockProducts.map(p => ({ ...p, costPrice: undefined }));
+      const productsNoCost: Product[] = mockProducts.map(p => ({ ...p, currentAverageCost: undefined }));
       const profit = calculateSaleProfit(mockSaleItems, productsNoCost);
       expect(profit).toBe(3500);
     });
 
     it('should handle zero profit', () => {
-      const items: SaleItem[] = [{ productId: 'prod1', quantity: 1, price: 600, productName: 'Heineken' }];
+      const items: SaleItem[] = [{ product_id: 'prod1', product_name: 'Heineken', quantity: 1, unit_price: 600, total_price: 600 }];
       const profit = calculateSaleProfit(items, mockProducts);
       expect(profit).toBe(0); // 600 - 600 = 0
     });
@@ -355,7 +379,7 @@ describe('calculations', () => {
 
     it('should handle missing costPrice', () => {
       const products: Product[] = [
-        { ...mockProducts[0], costPrice: undefined },
+        { ...mockProducts[0], currentAverageCost: undefined },
       ];
       expect(calculateStockValue(products)).toBe(0);
     });
@@ -381,12 +405,15 @@ describe('calculations', () => {
     it('should handle single item sale', () => {
       const sales: Sale[] = [{
         id: 'sale1',
-        items: [{ productId: 'prod1', quantity: 7, price: 1000, productName: 'Heineken' }],
+        barId: 'bar1',
+        items: [{ product_id: 'prod1', product_name: 'Heineken', quantity: 7, unit_price: 1000, total_price: 7000 }],
         total: 7000,
-        date: new Date().toISOString(),
-        processedBy: 'user1',
-        userName: 'John',
-        userRole: 'serveur',
+        currency: 'XOF',
+        status: 'validated',
+        createdBy: 'user1',
+        soldBy: 'user1',
+        createdAt: new Date().toISOString(),
+        businessDate: new Date().toISOString(),
       }];
       expect(calculateTotalItemsSold(sales)).toBe(7);
     });

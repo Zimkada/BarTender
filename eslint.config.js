@@ -7,7 +7,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
-export default tseslint.config({ ignores: ['dist', '.history/**', 'analyze.js'] }, {
+export default tseslint.config({ ignores: ['dist', 'dev-dist', '.history/**', 'analyze.js'] }, {
   extends: [js.configs.recommended, ...tseslint.configs.recommended],
   files: ['**/*.{ts,tsx}'],
   languageOptions: {
@@ -24,5 +24,9 @@ export default tseslint.config({ ignores: ['dist', '.history/**', 'analyze.js'] 
       'warn',
       { allowConstantExport: true },
     ],
+    '@typescript-eslint/no-unused-vars': ['error', {
+      argsIgnorePattern: '^_',
+      varsIgnorePattern: '^_',
+    }],
   },
 }, storybook.configs["flat/recommended"]);
