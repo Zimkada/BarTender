@@ -79,6 +79,10 @@ export function useRobustOperation(options: UseRobustOperationOptions = {}) {
         timeoutWarning: false,
       }));
 
+      // Lancer l'opération AVANT le try pour qu'elle soit accessible dans le catch
+      // (const en bloc try n'est pas visible dans catch en ES2020 — portée de bloc)
+      const operationPromise = operation();
+
       try {
         // Créer une promesse avec timeout
         const timeoutPromise = new Promise<never>((_, reject) => {
@@ -87,9 +91,6 @@ export function useRobustOperation(options: UseRobustOperationOptions = {}) {
             reject(timeoutError);
           }, timeoutMs);
         });
-
-        // Capturer la promise avant le race pour pouvoir la suivre après timeout
-        const operationPromise = operation();
 
         // Race entre l'opération et le timeout
         const result = await Promise.race([operationPromise, timeoutPromise]);
