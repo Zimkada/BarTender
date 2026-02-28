@@ -248,7 +248,13 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     refreshBarsRef.current = refreshBars;
   }, [refreshBars]);
 
-  // 🚀 Realtime Sync for Operating Mode (Simplified Mode switch)
+  // 🛡️ Stable ref pour refreshMembers — même raison que refreshBarsRef
+  const refreshMembersRef = useRef(refreshMembers);
+  useEffect(() => {
+    refreshMembersRef.current = refreshMembers;
+  }, [refreshMembers]);
+
+  // 🚀 Realtime Sync — bars (mode simplifié) + bar_members (changements de rôle)
   useEffect(() => {
     if (!currentBarId || !currentSession) return;
 
@@ -265,9 +271,21 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           filter: `id=eq.${currentBarId}`
         },
         (payload) => {
-          console.log('[BarContext] Realtime Update detected:', payload.new);
-          // 🛡️ Use stable ref — refreshBars identity change won't trigger re-subscription
+          console.log('[BarContext] Realtime bars update:', payload.new);
           refreshBarsRef.current();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'bar_members',
+          filter: `bar_id=eq.${currentBarId}`
+        },
+        (payload) => {
+          console.log('[BarContext] Realtime bar_members change:', payload.eventType);
+          refreshMembersRef.current(currentBarId, true);
         }
       )
       .subscribe();
@@ -276,7 +294,7 @@ export const BarProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.log(`[BarContext] Cleaning up realtime subscription for bar: ${currentBarId}`);
       supabase.removeChannel(channel);
     };
-    // ✅ refreshBars retiré des deps : la ref garantit la fraîcheur sans instabilité
+    // ✅ refs garantissent la fraîcheur sans instabilité de re-subscription
   }, [currentBarId, currentSession?.userId]);
 
 
