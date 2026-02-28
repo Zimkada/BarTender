@@ -240,6 +240,7 @@ export default function TeamManagementPage() {
     const toastId = loading(`Changement du rôle en ${roleLabel}...`);
 
     try {
+      console.log('[ChangeRole] START — target:', confirmModal.targetMember!.userId, '| newRole:', confirmModal.newRole);
       const result = await robustOp.executeAsync(() =>
         BarsService.addMember(
           currentBar.id,
@@ -248,6 +249,8 @@ export default function TeamManagementPage() {
           currentSession.userId
         )
       );
+
+      console.log('[ChangeRole] executeAsync returned:', result, '| timedOut:', lastOpTimedOutRef.current);
 
       if (!result?.success) {
         if (lastOpTimedOutRef.current) {
@@ -267,6 +270,7 @@ export default function TeamManagementPage() {
       setConfirmModal(prev => ({ ...prev, open: false, isLoading: false }));
       robustOp.reset();
     } catch (err) {
+      console.log('[ChangeRole] outer catch:', err);
       removeToast(toastId);
       error(getErrorMessage(err));
       setConfirmModal(prev => ({ ...prev, open: false, isLoading: false }));

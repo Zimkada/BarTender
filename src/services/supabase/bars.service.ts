@@ -637,6 +637,7 @@ export class BarsService {
         p_assigned_by_id: assignedByUserId
       });
 
+      console.log('[BarsService] addMember raw response — data:', data, '| error:', error);
       if (error) throw error;
 
       // Data is JSONB due to RETURNS JSONB
@@ -644,12 +645,13 @@ export class BarsService {
       const result = data as { success: boolean; member_id?: string; error?: string };
 
       if (!result.success) {
+        console.log('[BarsService] addMember RPC failure — result.error:', result.error);
         return { success: false, error: result.error };
       }
 
       return { success: true, memberId: result.member_id };
     } catch (error) {
-      console.error('[BarsService] addMember error:', error);
+      console.error('[BarsService] addMember catch:', error);
       return { success: false, error: getErrorMessage(error) };
     }
   }

@@ -110,11 +110,16 @@ export function useRobustOperation(options: UseRobustOperationOptions = {}) {
         // Vérifier si c'est un timeout
         const isTimeout = errorMessage.includes('expirée') || errorMessage.includes('Timeout');
 
+        console.log('[RobustOp] catch — isTimeout:', isTimeout, '| message:', errorMessage);
+
         if (isTimeout) {
           // Si le backend répond finalement après le timeout, réconcilier l'état UI
-          operationPromise.then(() => {
+          operationPromise.then((lateResult) => {
+            console.log('[RobustOp] onLateSuccess triggered — lateResult:', lateResult);
             onLateSuccessRef.current?.();
-          }).catch(() => { /* échec tardif ignoré, UI déjà en état d'erreur */ });
+          }).catch((lateErr) => {
+            console.log('[RobustOp] late operation failed:', lateErr);
+          });
 
           onTimeout?.();
           setState(prev => ({
