@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Users, UserPlus, User as UserIcon, Trash2, GitBranch, Phone, Clock, Mail, Search, Eye, EyeOff, AlertTriangle, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -44,9 +44,13 @@ export default function TeamManagementPage() {
   const { isMobile } = useViewport();
   const queryClient = useQueryClient();
   const { toasts, removeToast, loading, success, error, warning } = useToast();
+  // Ref toujours à jour : évite la closure périmée sur robustOp.timeoutWarning
+  // (robustOp est capturé au début du handler, l'état interne n'est pas encore re-rendu après await)
+  const lastOpTimedOutRef = useRef(false);
   const robustOp = useRobustOperation({
     timeoutMs: 5000,
     maxRetries: 2,
+    onTimeout: () => { lastOpTimedOutRef.current = true; },
     // P1: réconciliation UI si le backend réussit après expiration du timeout
     // (ex: changement de rôle ou suppression commitée côté serveur mais UI en état d'erreur)
     onLateSuccess: () => {
@@ -177,6 +181,7 @@ export default function TeamManagementPage() {
   const handleConfirmRemoveMember = async () => {
     if (!currentBar || !currentSession || !confirmModal.targetMember) return;
 
+    lastOpTimedOutRef.current = false;
     setConfirmModal(prev => ({ ...prev, isLoading: true }));
     const toastId = loading('Suppression du membre en cours...');
 
@@ -186,7 +191,7 @@ export default function TeamManagementPage() {
       );
 
       if (!result?.success) {
-        if (robustOp.timeoutWarning) {
+        if (lastOpTimedOutRef.current) {
           warning('Connexion lente. Veuillez vérifier votre connexion.', 5000);
         } else {
           error(result?.error || 'Erreur lors de la suppression');
@@ -229,6 +234,7 @@ export default function TeamManagementPage() {
   const handleConfirmChangeRole = async () => {
     if (!currentBar || !currentSession || !confirmModal.targetMember || !confirmModal.newRole) return;
 
+    lastOpTimedOutRef.current = false;
     setConfirmModal(prev => ({ ...prev, isLoading: true }));
     const roleLabel = getRoleLabel(confirmModal.newRole);
     const toastId = loading(`Changement du rôle en ${roleLabel}...`);
@@ -244,7 +250,7 @@ export default function TeamManagementPage() {
       );
 
       if (!result?.success) {
-        if (robustOp.timeoutWarning) {
+        if (lastOpTimedOutRef.current) {
           warning('Connexion lente. Réessayez?', 5000);
         } else {
           error(result?.error || 'Erreur lors du changement de rôle');
