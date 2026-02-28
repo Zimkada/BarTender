@@ -102,10 +102,10 @@ export function useSmartSync(config: UseSmartSyncConfig) {
       queryKeysToInvalidate: keys,
       fallbackPollingInterval: refetchInterval,
       onMessage: (payload: any) => {
-        console.log(`[SmartSync] Realtime change detected for ${table}:`, payload.event);
+        console.log(`[SmartSync] Realtime change detected for ${table}:`, payload.eventType);
         // When Realtime message received, broadcast to other tabs
         if (broadcastSupported) {
-          broadcast(payload.event === 'DELETE' ? 'DELETE' : payload.event, payload.new || payload.old);
+          broadcast(payload.eventType === 'DELETE' ? 'DELETE' : payload.eventType, payload.new || payload.old);
         }
         syncStatusRef.current = 'realtime';
       },

@@ -637,15 +637,11 @@ export class BarsService {
         p_assigned_by_id: assignedByUserId
       });
 
-      console.log('[BarsService] addMember raw response — data:', data, '| error:', error);
       if (error) throw error;
 
-      // Data is JSONB due to RETURNS JSONB
-      // Supabase JS often auto-parses, but let's be safe
       const result = data as { success: boolean; member_id?: string; error?: string };
 
       if (!result.success) {
-        console.log('[BarsService] addMember RPC failure — result.error:', result.error);
         return { success: false, error: result.error };
       }
 

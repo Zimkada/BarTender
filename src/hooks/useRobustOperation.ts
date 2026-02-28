@@ -47,8 +47,7 @@ export function useRobustOperation(options: UseRobustOperationOptions = {}) {
     retryCount: 0,
   });
 
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   // Ref pour éviter les closures périmées sur le callback de réconciliation
   const onLateSuccessRef = useRef(onLateSuccess);
   onLateSuccessRef.current = onLateSuccess;
@@ -56,7 +55,7 @@ export function useRobustOperation(options: UseRobustOperationOptions = {}) {
   // Nettoyer le timeout
   const clearTimeout = useCallback(() => {
     if (timeoutRef.current) {
-      global.clearTimeout(timeoutRef.current);
+      window.clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
   }, []);
@@ -86,7 +85,7 @@ export function useRobustOperation(options: UseRobustOperationOptions = {}) {
       try {
         // Créer une promesse avec timeout
         const timeoutPromise = new Promise<never>((_, reject) => {
-          timeoutRef.current = global.setTimeout(() => {
+          timeoutRef.current = window.setTimeout(() => {
             const timeoutError = new Error('Opération expirée. Connexion lente.');
             reject(timeoutError);
           }, timeoutMs);
@@ -110,16 +109,11 @@ export function useRobustOperation(options: UseRobustOperationOptions = {}) {
         // Vérifier si c'est un timeout
         const isTimeout = errorMessage.includes('expirée') || errorMessage.includes('Timeout');
 
-        console.log('[RobustOp] catch — isTimeout:', isTimeout, '| message:', errorMessage);
-
         if (isTimeout) {
           // Si le backend répond finalement après le timeout, réconcilier l'état UI
-          operationPromise.then((lateResult) => {
-            console.log('[RobustOp] onLateSuccess triggered — lateResult:', lateResult);
+          operationPromise.then(() => {
             onLateSuccessRef.current?.();
-          }).catch((lateErr) => {
-            console.log('[RobustOp] late operation failed:', lateErr);
-          });
+          }).catch(() => { /* ignore late failure */ });
 
           onTimeout?.();
           setState(prev => ({
@@ -163,7 +157,7 @@ export function useRobustOperation(options: UseRobustOperationOptions = {}) {
 
       // Attendre un peu avant de réessayer (backoff: 1s, 2s, etc)
       const backoffMs = 1000 * (state.retryCount + 1);
-      await new Promise(resolve => global.setTimeout(resolve, backoffMs));
+      await new Promise(resolve => window.setTimeout(resolve, backoffMs));
 
       return executeAsync(operation);
     },
