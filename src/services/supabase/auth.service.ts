@@ -1055,11 +1055,14 @@ export class AuthService {
 
   /**
    * Réinitialiser le mot de passe (envoyer email)
+   * VITE_APP_URL est prioritaire sur window.location.origin pour éviter
+   * les liens localhost dans les emails envoyés depuis l'environnement de dev.
    */
   static async resetPassword(email: string): Promise<void> {
     try {
+      const baseUrl = import.meta.env.VITE_APP_URL?.replace(/\/$/, '') || window.location.origin;
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: `${baseUrl}/auth/reset-password`,
       });
 
       if (error) {
