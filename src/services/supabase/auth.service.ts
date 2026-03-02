@@ -164,6 +164,7 @@ export class AuthService {
     }
 
     // Récupère TOUS les bars actifs de l'utilisateur (support multi-bar)
+    // ✅ FIX 2026-03-02: Include both member bars AND owned bars
     const { data: memberships, error: membershipError } = await supabase
       .from('bar_members')
       .select(`
@@ -179,12 +180,46 @@ export class AuthService {
       .eq('is_active', true)
       .order('joined_at', { ascending: false }); // Plus récent en premier
 
-    if (membershipError || !memberships || memberships.length === 0) {
+    // ✅ FIX 2026-03-02: Also fetch bars where user is the owner
+    const { data: ownedBars, error: ownedBarsError } = await supabase
+      .from('bars')
+      .select('id, name, address, phone')
+      .eq('owner_id', userId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    // Combine memberships + owned bars
+    const allActiveBars: MembershipWithBar[] = [];
+
+    // Add member bars if available
+    if (memberships && memberships.length > 0) {
+      allActiveBars.push(...(memberships as unknown as MembershipWithBar[]));
+    }
+
+    // Add owned bars (user is promoteur/owner)
+    if (ownedBars && ownedBars.length > 0) {
+      for (const bar of ownedBars) {
+        // Check if bar already in list (avoid duplicates if user is both member and owner)
+        if (!allActiveBars.some(m => m.bar_id === bar.id)) {
+          allActiveBars.push({
+            role: 'promoteur',
+            bar_id: bar.id,
+            bars: {
+              name: bar.name,
+              address: bar.address,
+              phone: bar.phone
+            }
+          } as unknown as MembershipWithBar);
+        }
+      }
+    }
+
+    if (allActiveBars.length === 0) {
       throw new Error('Aucun rôle actif trouvé pour cet utilisateur');
     }
 
     // ✅ Type-safe cast for memberships with joined bar data
-    const typedMemberships = memberships as unknown as MembershipWithBar[];
+    const typedMemberships = allActiveBars;
 
     // Sélection du bar par défaut lors de l'initialisation
     // Priorité: 1) localStorage, 2) Premier bar actif (plus récent)
