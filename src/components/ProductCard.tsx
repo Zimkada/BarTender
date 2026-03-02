@@ -90,21 +90,21 @@ export function ProductCard({ product, onAddToCart, availableStock, quantityInCa
       </motion.div>
 
       {/* --- IMAGE AREA --- */}
-      <div className="aspect-square bg-gradient-to-br from-white/90 via-white/80 to-gray-50/50 p-3 flex items-center justify-center relative group border-b border-gray-200/60 backdrop-blur-sm">
+      <div className="aspect-square bg-gradient-to-br from-white/90 via-white/80 to-gray-50/50 p-2 flex items-center justify-center relative group border-b border-gray-200/60 backdrop-blur-sm overflow-hidden">
         {isLowStock && !isStockEmpty && !isMaxReached && (
           <div className="absolute top-2 left-2 text-orange-600 animate-pulse bg-white/80 rounded-full p-0.5 shadow-sm">
             <AlertTriangle size={14} strokeWidth={3} />
           </div>
         )}
 
-        <div className="w-full h-full flex items-center justify-center transition-transform duration-500 group-hover:scale-105">
+        <div className="w-full h-full flex items-center justify-center transition-transform duration-500 group-hover:scale-105 overflow-hidden">
           {product.image ? (
             <OptimizedImage
               src={product.image}
               alt={product.name}
               width={150}
               height={150}
-              className="w-full h-full object-contain mix-blend-multiply"
+              className="w-full h-full object-contain mix-blend-multiply max-w-full max-h-full"
               priority={priority} // ✨ LCP Optimization
             />
           ) : (
