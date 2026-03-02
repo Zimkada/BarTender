@@ -225,7 +225,7 @@ export function ProfileSettings() {
                         type="email"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
-                        placeholder="jean@bartender.app"
+                        placeholder="sandra.koffi@bartender.app"
                         leftIcon={<Mail className="w-4 h-4 text-gray-400" />}
                         disabled={true}
                         className="h-12 bg-gray-100 border-gray-100 cursor-not-allowed opacity-75 transition-all"

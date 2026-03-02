@@ -811,7 +811,7 @@ export default function TeamManagementPage() {
                                   type="text"
                                   value={username}
                                   onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
-                                  placeholder="exemple: jean.dupont"
+                                  placeholder="exemple: sandra.koffi"
                                   className="h-12 bg-gray-50 border-gray-200 focus:bg-white"
                                 />
                               </div>
