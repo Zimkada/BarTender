@@ -77,37 +77,45 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   // --- TICKETS (BONS) ---
   const { tickets: ticketsWithSummary, refetchTickets } = useTickets(currentBar?.id);
 
-  const handleCreateBon = async (tableNumber?: number, customerName?: string) => {
-    if (!currentBar || !currentSession) return;
+  // Signature unifiée compatible CartDrawer — serverId déjà résolu par l'appelant
+  const handleCreateBon = async (serverId: string | null, tableNumber?: number, customerName?: string): Promise<string | null> => {
+    if (!currentBar || !currentSession) return null;
     try {
-      let serverIdToAssign: string | undefined = undefined;
-
-      if (selectedServerDesktop) {
-        if (selectedServerDesktop.startsWith('Moi (')) {
-          serverIdToAssign = currentSession.userId;
-        } else {
-          serverIdToAssign = (await ServerMappingsService.getUserIdForServerName(
-            currentBar.id,
-            selectedServerDesktop
-          )) || undefined;
-        }
-      }
-
       const ticket = await TicketsService.createTicket(
         currentBar.id,
         currentSession.userId,
         undefined,
-        serverIdToAssign,
+        serverId || undefined,
         currentBar.closingHour,
         tableNumber,
         customerName
       );
       await refetchTickets();
-      setSelectedBonDesktop(ticket.id);
-      toast.success("Nouveau bon créé !");
+      return ticket.id;
     } catch (e) {
       console.error(e);
       toast.error("Erreur lors de la création du bon");
+      return null;
+    }
+  };
+
+  // Wrapper desktop : résout le serverId depuis selectedServerDesktop avant d'appeler handleCreateBon
+  const handleCreateBonDesktop = async (tableNumber?: number, customerName?: string) => {
+    let serverIdToAssign: string | null = null;
+    if (selectedServerDesktop && currentBar) {
+      if (selectedServerDesktop.startsWith('Moi (')) {
+        serverIdToAssign = currentSession?.userId || null;
+      } else {
+        serverIdToAssign = (await ServerMappingsService.getUserIdForServerName(
+          currentBar.id,
+          selectedServerDesktop
+        )) || null;
+      }
+    }
+    const newId = await handleCreateBon(serverIdToAssign, tableNumber, customerName);
+    if (newId) {
+      setSelectedBonDesktop(newId);
+      toast.success("Nouveau bon créé !");
     }
   };
 
@@ -224,7 +232,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     if (!isMobile) searchInputRef.current?.focus();
   };
 
-  const { serverNames } = useServerMappings(isSimplifiedMode ? currentBar?.id : undefined);
+  const { serverNames, mappings } = useServerMappings(isSimplifiedMode ? currentBar?.id : undefined);
 
   // Desktop Server Options
   const serverOptions: SelectOption[] = [
@@ -413,7 +421,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                       ]}
                       selectedBon={selectedBonDesktop}
                       onBonChange={setSelectedBonDesktop}
-                      onCreateBon={handleCreateBon}
+                      onCreateBon={handleCreateBonDesktop}
 
                       onCheckout={() => handleCheckout(selectedServerDesktop, paymentMethodDesktop, selectedBonDesktop || undefined)}
                       onClear={() => setShowClearCartConfirm(true)}
@@ -464,7 +472,10 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                   onCheckout={handleCheckout}
                   isSimplifiedMode={isSimplifiedMode}
                   serverNames={serverNames}
+                  serverMappings={mappings}
                   currentServerName={currentSession?.userName}
+                  ticketsWithSummary={ticketsWithSummary}
+                  onCreateBon={handleCreateBon}
                   isLoading={createSale.isPending}
                   maxStockLookup={(id) => getProductStockInfo(id)?.availableStock ?? Infinity} // 🛡️ Fix Force Sale
                 />
