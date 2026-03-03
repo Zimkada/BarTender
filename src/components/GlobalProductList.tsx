@@ -3,7 +3,7 @@ import { Edit2, Trash2, ArrowUpDown, Package, Search, Filter, ChevronLeft, Chevr
 import { GlobalProduct } from '../types';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { EmptyProductsState } from './EmptyProductsState';
-import { OptimizedImage } from './ui/OptimizedImage';
+import { GlobalCatalogTableImage } from './GlobalCatalogTableImage';
 import { Input } from './ui/Input';
 import { Select, SelectOption } from './ui/Select';
 import { Button } from './ui/Button';
@@ -171,10 +171,9 @@ export function GlobalProductList({ products, onEdit, onDelete }: GlobalProductL
                                     <td className="px-4 py-2">
                                         <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200">
                                             {product.officialImage ? (
-                                                <OptimizedImage
+                                                <GlobalCatalogTableImage
                                                     src={product.officialImage}
                                                     alt={product.name}
-                                                    className="w-full h-full object-contain"
                                                 />
                                             ) : (
                                                 <Package size={16} className="text-gray-300" />

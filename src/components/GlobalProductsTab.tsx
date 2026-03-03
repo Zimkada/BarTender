@@ -6,7 +6,7 @@ import { GlobalProduct, GlobalCategory } from '../types';
 import { useFeedback } from '../hooks/useFeedback';
 import { ImageUpload } from './ImageUpload';
 import { GlobalProductList } from './GlobalProductList';
-import { OptimizedImage } from './ui/OptimizedImage';
+import { GlobalCatalogProductImage } from './GlobalCatalogProductImage';
 import { Textarea } from './ui/Textarea';
 import { Label } from './ui/Label';
 import { Input } from './ui/Input';
@@ -271,10 +271,9 @@ export function GlobalProductsTab() {
 
                                 <div className="aspect-square mb-2 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden relative">
                                     {product.officialImage ? (
-                                        <OptimizedImage
+                                        <GlobalCatalogProductImage
                                             src={product.officialImage}
                                             alt={product.name}
-                                            className="w-full h-full object-contain p-2"
                                         />
                                     ) : (
                                         <div className="text-gray-300 text-[10px] text-center p-2">

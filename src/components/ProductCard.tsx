@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Product } from '../types';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
-import { OptimizedImage } from './ui/OptimizedImage';
+import { ProductCardImage } from './ProductCardImage';
 
 interface ProductCardProps {
   product: Product;
@@ -99,12 +99,9 @@ export function ProductCard({ product, onAddToCart, availableStock, quantityInCa
 
         <div className="w-full h-full flex items-center justify-center transition-transform duration-500 group-hover:scale-105 overflow-hidden">
           {product.image ? (
-            <OptimizedImage
+            <ProductCardImage
               src={product.image}
               alt={product.name}
-              width={150}
-              height={150}
-              className="w-full h-full object-contain mix-blend-multiply max-w-full max-h-full"
               priority={priority} // ✨ LCP Optimization
             />
           ) : (
