@@ -65,18 +65,25 @@ export function CartFooter({
 
     // UI creation bon - 2 champs séparés
     const [isCreatingBon, setIsCreatingBon] = useState(false);
+    const [isBonSubmitting, setIsBonSubmitting] = useState(false); // ⭐ M1: protection double-clic
     const [tableNumber, setTableNumber] = useState('');
     const [customerName, setCustomerName] = useState('');
 
     const handleConfirmCreateBon = async () => {
-        await onCreateBon?.(
-            tableNumber ? parseInt(tableNumber) : undefined,
-            customerName || undefined
-        );
-        setTableNumber('');
-        setCustomerName('');
-        setIsCreatingBon(false);
-        setShowBonSelection(false);
+        if (isBonSubmitting) return;
+        setIsBonSubmitting(true);
+        try {
+            await onCreateBon?.(
+                tableNumber ? parseInt(tableNumber) : undefined,
+                customerName || undefined
+            );
+            setTableNumber('');
+            setCustomerName('');
+            setIsCreatingBon(false);
+            setShowBonSelection(false);
+        } finally {
+            setIsBonSubmitting(false);
+        }
     };
 
     // Helper: Générer les initiales (ex: "Serveur Test" -> "ST")
@@ -324,10 +331,12 @@ export function CartFooter({
 
                                         <EnhancedButton
                                             onClick={handleConfirmCreateBon}
+                                            loading={isBonSubmitting}
+                                            disabled={isBonSubmitting}
                                             variant="primary"
                                             className="w-full rounded-lg h-9 text-[10px] font-black uppercase tracking-widest"
                                         >
-                                            Créer le bon
+                                            {isBonSubmitting ? 'Création...' : 'Créer le bon'}
                                         </EnhancedButton>
                                     </div>
                                 ) : (

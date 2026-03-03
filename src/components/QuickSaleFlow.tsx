@@ -59,6 +59,9 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     maxStockLookup: (id) => getProductStockInfo(id)?.availableStock ?? Infinity
   });
 
+  // ⭐ UUID stable pour l'idempotence : généré une fois par panier, régénéré après succès
+  const saleIdempotencyKeyRef = useRef<string>(generateUUID());
+
   // --- LOCAL STATE ---
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -154,8 +157,8 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   });
 
   // --- CHECKOUT LOGIC ---
-  const handleCheckout = useCallback(async (assignedServerName?: string, paymentMethod: PaymentMethod = 'cash', ticketId?: string) => {
-    if (cart.length === 0 || !currentSession || !currentBar) return;
+  const handleCheckout = useCallback(async (assignedServerName?: string, paymentMethod: PaymentMethod = 'cash', ticketId?: string): Promise<boolean> => {
+    if (cart.length === 0 || !currentSession || !currentBar) return false;
 
     // 1. Resolve Server ID (if Simplified Mode)
     let serverId: string | undefined;
@@ -166,7 +169,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
         serverId = currentSession?.userId;
         if (!serverId) {
           toast.error('Session invalide. Reconnectez-vous.');
-          return;
+          return false;
         }
       } else {
         try {
@@ -177,12 +180,12 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
 
           if (!serverId) {
             toast.error(`Serveur inconnu: ${assignedServerName}`);
-            return;
+            return false;
           }
         } catch (e) {
           console.error(e);
           toast.error('Erreur lors de la résolution du serveur');
-          return;
+          return false;
         }
       }
     }
@@ -207,31 +210,32 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
         items: saleItems,
         paymentMethod,
         serverId,
-        ticketId: ticketId || undefined, // 🛡️ Fix: Liaison bon/ticket
+        ticketId: ticketId || undefined,
         status: (currentSession.role === 'serveur') ? 'pending' : 'validated',
         notes: isSimplifiedMode ? `Serveur: ${assignedServerName}` : undefined,
-        idempotencyKey: generateUUID() // 🛡️ Fix Bug #11 : Clé stable pour déduction stock optimiste
+        idempotencyKey: saleIdempotencyKeyRef.current // ⭐ UUID stable par panier
       });
 
       // 4. Success & Reset
-      setShowSuccessDesktop(true); // For desktop visual feedback
+      setShowSuccessDesktop(true);
       setTimeout(() => {
         setShowSuccessDesktop(false);
         clearCart();
+        saleIdempotencyKeyRef.current = generateUUID(); // ⭐ Nouveau UUID pour la prochaine vente
         setSearchTerm('');
-        setIsCartDrawerOpen(false); // Close mobile drawer if open
-        if (isMobile) {
-          // Optional: Close main modal on mobile? No, let user continue selling.
-          // onClose();
-        } else {
-          setSelectedServerDesktop(''); // Reset server choice
-          setSelectedBonDesktop(''); // Reset bon choice
+        setIsCartDrawerOpen(false);
+        if (!isMobile) {
+          setSelectedServerDesktop('');
+          setSelectedBonDesktop('');
         }
       }, 1000);
 
+      return true; // ⭐ Succès explicite — CartDrawer utilise ce signal pour son reset
+
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : 'Erreur vente'); // 🛡️ Fix Bug #2
+      toast.error(error instanceof Error ? error.message : 'Erreur vente');
+      return false; // ⭐ Échec — CartDrawer conserve server/bon pour permettre le retry
     }
   }, [cart, items, currentSession, currentBar, isSimplifiedMode, createSale, clearCart, isMobile]);
 

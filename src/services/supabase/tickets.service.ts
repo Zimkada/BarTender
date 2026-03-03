@@ -86,7 +86,8 @@ export class TicketsService {
         p_server_id: serverId || null,
         p_closing_hour: closingHour ?? 6,
         p_table_number: tableNumber || null,
-        p_customer_name: customerName || null
+        p_customer_name: customerName || null,
+        p_idempotency_key: idempotencyKey // ⭐ Protection doublon online (migration 20260303)
       }).single();
 
       if (error || !data) {

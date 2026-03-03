@@ -23,7 +23,7 @@ interface CartDrawerProps {
     onUpdateQuantity: (productId: string, quantity: number) => void;
     onRemoveItem: (productId: string) => void;
     onClear: () => void;
-    onCheckout: (serverName?: string, paymentMethod?: PaymentMethod, ticketId?: string) => Promise<void>;
+    onCheckout: (serverName?: string, paymentMethod?: PaymentMethod, ticketId?: string) => Promise<boolean | void>;
     isSimplifiedMode?: boolean;
     serverNames?: string[];
     currentServerName?: string;
@@ -121,8 +121,10 @@ export function CartDrawer({
             toast.error('Veuillez sélectionner le serveur qui a effectué la vente');
             return;
         }
-        await onCheckout(isSimplifiedMode ? selectedServer : undefined, paymentMethod, selectedBon || undefined);
-        if (!isLoading) {
+        // ⭐ Reset conditionnel : seulement si la vente a réussi (return true)
+        // false = échec → garder server/bon pour permettre le retry sans re-saisie
+        const success = await onCheckout(isSimplifiedMode ? selectedServer : undefined, paymentMethod, selectedBon || undefined);
+        if (success !== false) {
             setSelectedServer('');
             setSelectedBon('');
         }
