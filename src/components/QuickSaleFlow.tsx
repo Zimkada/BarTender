@@ -106,10 +106,21 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
       if (selectedServerDesktop.startsWith('Moi (')) {
         serverIdToAssign = currentSession?.userId || null;
       } else {
-        serverIdToAssign = (await ServerMappingsService.getUserIdForServerName(
-          currentBar.id,
-          selectedServerDesktop
-        )) || null;
+        try {
+          serverIdToAssign = (await ServerMappingsService.getUserIdForServerName(
+            currentBar.id,
+            selectedServerDesktop
+          )) || null;
+        } catch (e) {
+          console.error(e);
+          toast.error('Erreur lors de la résolution du serveur');
+          return;
+        }
+        // ⭐ En mode simplifié, un mapping manquant bloque la création (évite les bons orphelins)
+        if (isSimplifiedMode && !serverIdToAssign) {
+          toast.error(`Serveur introuvable : "${selectedServerDesktop}". Vérifiez la configuration.`);
+          return;
+        }
       }
     }
     const newId = await handleCreateBon(serverIdToAssign, tableNumber, customerName);
@@ -150,24 +161,29 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     let serverId: string | undefined;
 
     if (isSimplifiedMode && assignedServerName) {
-      try {
-        const serverNameToCheck = assignedServerName.startsWith('Moi (')
-          ? (currentSession?.userName || assignedServerName)
-          : assignedServerName;
-
-        serverId = (await ServerMappingsService.getUserIdForServerName(
-          currentBar.id,
-          serverNameToCheck
-        )) || undefined;
-
+      if (assignedServerName.startsWith('Moi (')) {
+        // ⭐ "Moi" = utilisateur connecté → ID direct, pas de mapping nécessaire
+        serverId = currentSession?.userId;
         if (!serverId) {
-          toast.error(`Serveur inconnu: ${serverNameToCheck}`); // 🛡️ Fix Bug #2
+          toast.error('Session invalide. Reconnectez-vous.');
           return;
         }
-      } catch (e) {
-        console.error(e);
-        toast.error('Erreur lors de la résolution du serveur'); // 🛡️ Fix Bug #2
-        return;
+      } else {
+        try {
+          serverId = (await ServerMappingsService.getUserIdForServerName(
+            currentBar.id,
+            assignedServerName
+          )) || undefined;
+
+          if (!serverId) {
+            toast.error(`Serveur inconnu: ${assignedServerName}`);
+            return;
+          }
+        } catch (e) {
+          console.error(e);
+          toast.error('Erreur lors de la résolution du serveur');
+          return;
+        }
       }
     }
 

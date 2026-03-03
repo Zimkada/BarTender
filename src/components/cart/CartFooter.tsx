@@ -15,7 +15,7 @@ interface CartFooterProps {
     bonOptions?: SelectOption[];
     selectedBon?: string;
     onBonChange?: (value: string) => void;
-    onCreateBon?: (tableNumber?: number, customerName?: string) => void;
+    onCreateBon?: (tableNumber?: number, customerName?: string) => Promise<void>;
     paymentMethod: PaymentMethod;
     onPaymentMethodChange: (value: PaymentMethod) => void;
     onCheckout: () => void;
@@ -68,8 +68,8 @@ export function CartFooter({
     const [tableNumber, setTableNumber] = useState('');
     const [customerName, setCustomerName] = useState('');
 
-    const handleConfirmCreateBon = () => {
-        onCreateBon(
+    const handleConfirmCreateBon = async () => {
+        await onCreateBon?.(
             tableNumber ? parseInt(tableNumber) : undefined,
             customerName || undefined
         );
