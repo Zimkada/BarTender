@@ -61,7 +61,10 @@ export function initMonitoring(): void {
       return event;
     },
 
-    allowUrls: [/^https:\/\/zimkada/, /^https:\/\/.*bartendera/], // Only capture errors from your domain
+    allowUrls: [
+      /^https:\/\/bartenderpro-africa\.com/,   // Custom domain (production)
+      /^https:\/\/bar-tender-ten\.vercel\.app/, // Vercel URL (fallback)
+    ],
   });
 
   console.log('[Monitoring] Sentry initialized for error tracking');
@@ -83,7 +86,8 @@ export function captureError(error: unknown, context?: Record<string, unknown>):
       contexts: context ? { app: context } : undefined,
     });
   } else {
-    Sentry.captureMessage(String(error), 'error', {
+    Sentry.captureMessage(String(error), {
+      level: 'error',
       contexts: context ? { app: context } : undefined,
     });
   }
