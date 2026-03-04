@@ -186,7 +186,7 @@ export default function SettingsPage() {
             setTempCloseHour(currentBar.closingHour ?? 6);
             setTempConsignmentExpirationDays(currentBar.settings?.consignmentExpirationDays ?? 7);
             setTempSupplyFrequency(currentBar.settings?.supplyFrequency ?? 7);
-            setTempOperatingMode(currentBar.settings?.operatingMode ?? 'simplified');
+            setTempOperatingMode(currentBar.settings?.operatingMode ?? 'full');
         }
     }, [currentBar?.id]); // ⚡ Retiré currentBar?.settings?.operatingMode des dépendances pour éviter le revert permanent
 
