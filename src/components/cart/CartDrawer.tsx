@@ -113,7 +113,11 @@ export function CartDrawer({
     const handleCreateBon = async (tableNumber?: number, customerName?: string) => {
         if (!onCreateBon) return;
         const newId = await onCreateBon(effectiveServerId, tableNumber, customerName);
-        if (newId) setSelectedBon(newId);
+        if (!newId) {
+            // ⭐ Propagate error so CartFooter keeps the form open (no silent close)
+            throw new Error('Création du bon échouée');
+        }
+        setSelectedBon(newId);
     };
 
     const handleCheckout = async () => {

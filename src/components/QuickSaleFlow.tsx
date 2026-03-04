@@ -284,7 +284,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, searchTerm, cart, handleCheckout, selectedServerDesktop, paymentMethodDesktop, showClearCartConfirm]);
+  }, [isOpen, onClose, searchTerm, cart, handleCheckout, selectedServerDesktop, paymentMethodDesktop, selectedBonDesktop, showClearCartConfirm]);
 
 
   if (!isOpen) return null;
