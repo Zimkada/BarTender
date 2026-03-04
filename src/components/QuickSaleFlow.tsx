@@ -25,6 +25,7 @@ import { CartFooter } from './cart/CartFooter';
 import { SelectOption } from './ui/Select';
 import { generateUUID } from '../utils/crypto'; // 🛡️ Fix Bug #11
 import { ConfirmationModal } from './common/ConfirmationModal'; // 🛡️ Fix Bug #3
+import { captureError } from '../lib/monitoring';
 
 
 interface QuickSaleFlowProps {
@@ -96,7 +97,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
       await refetchTickets();
       return ticket.id;
     } catch (e) {
-      console.error(e);
+      captureError(e, { context: 'handleCreateBon', barId: currentBar?.id });
       toast.error("Erreur lors de la création du bon");
       return null;
     }
@@ -115,7 +116,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
             selectedServerDesktop
           )) || null;
         } catch (e) {
-          console.error(e);
+          captureError(e, { context: 'handleCreateBonDesktop.resolveServer', barId: currentBar?.id, serverName: selectedServerDesktop });
           toast.error('Erreur lors de la résolution du serveur');
           return;
         }
@@ -127,10 +128,12 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
       }
     }
     const newId = await handleCreateBon(serverIdToAssign, tableNumber, customerName);
-    if (newId) {
-      setSelectedBonDesktop(newId);
-      toast.success("Nouveau bon créé !");
+    if (!newId) {
+      // ⭐ Moyen 1 : throw pour que CartFooter (catch) garde le formulaire ouvert
+      throw new Error('Création du bon échouée');
     }
+    setSelectedBonDesktop(newId);
+    toast.success("Nouveau bon créé !");
   };
 
   // --- STOCK DEDUCTION (REACTIVE UI) ---
@@ -183,7 +186,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
             return false;
           }
         } catch (e) {
-          console.error(e);
+          captureError(e, { context: 'handleCheckout.resolveServer', barId: currentBar?.id, serverName: assignedServerName });
           toast.error('Erreur lors de la résolution du serveur');
           return false;
         }
@@ -233,7 +236,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
       return true; // ⭐ Succès explicite — CartDrawer utilise ce signal pour son reset
 
     } catch (error) {
-      console.error(error);
+      captureError(error, { context: 'handleCheckout.createSale', barId: currentBar?.id });
       toast.error(error instanceof Error ? error.message : 'Erreur vente');
       return false; // ⭐ Échec — CartDrawer conserve server/bon pour permettre le retry
     }
