@@ -23,7 +23,7 @@ interface CartDrawerProps {
     onUpdateQuantity: (productId: string, quantity: number) => void;
     onRemoveItem: (productId: string) => void;
     onClear: () => void;
-    onCheckout: (serverName?: string, paymentMethod?: PaymentMethod, ticketId?: string) => Promise<boolean | void>;
+    onCheckout: (serverName?: string, paymentMethod?: PaymentMethod, ticketId?: string) => Promise<boolean>;
     isSimplifiedMode?: boolean;
     serverNames?: string[];
     currentServerName?: string;

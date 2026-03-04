@@ -70,8 +70,8 @@ export function Cart({
   };
 
   // --- CHECKOUT WRAPPER ---
-  const handleCheckout = async (assignedTo?: string, paymentMethod?: PaymentMethod, ticketId?: string) => {
-    if (items.length === 0) return;
+  const handleCheckout = async (assignedTo?: string, paymentMethod?: PaymentMethod, ticketId?: string): Promise<boolean> => {
+    if (items.length === 0) return false;
 
     let serverId: string | undefined;
 
@@ -84,7 +84,7 @@ export function Cart({
         "MODE HORS LIGNE RESTREINT\n\nVérifiez d'abord votre connexion internet.\n\nSi le problème persiste, demandez au Gérant de passer en MODE SIMPLIFIÉ.",
         { duration: 6000, icon: '🚫' }
       );
-      return;
+      return false;
     }
 
     if (isSimplifiedMode && assignedTo && currentBar?.id) {
@@ -100,12 +100,12 @@ export function Cart({
 
           if (!serverId) {
             alert(`Serveur inconnu: "${assignedTo}". Veuillez vérifier le mapping.`);
-            return;
+            return false;
           }
         } catch (error) {
           console.error(error);
           alert('Erreur lors de la résolution du serveur.');
-          return;
+          return false;
         }
       }
     }
@@ -133,8 +133,10 @@ export function Cart({
       });
       showSuccess('🎉 Vente validée !', 1000);
       onToggle();
+      return true;
     } catch (e) {
       console.error(e); // Error handled by mutation
+      return false;
     } finally {
       setLoading('checkout', false);
     }

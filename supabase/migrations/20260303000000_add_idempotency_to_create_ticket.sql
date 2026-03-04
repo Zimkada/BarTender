@@ -52,6 +52,23 @@ BEGIN
         RAISE EXCEPTION 'bar_id et created_by sont requis';
     END IF;
 
+    -- 🛡️ Auth guard : membership check + cohérence p_created_by
+    -- Bypass pour service_role (SyncManager, migrations, tests)
+    IF auth.role() <> 'service_role' THEN
+        IF NOT EXISTS (
+            SELECT 1 FROM public.bar_members
+            WHERE user_id = auth.uid()
+              AND bar_id = p_bar_id
+              AND is_active = true
+        ) THEN
+            RAISE EXCEPTION 'Access denied: not an active member of this bar';
+        END IF;
+
+        IF auth.uid() IS DISTINCT FROM p_created_by THEN
+            RAISE EXCEPTION 'Access denied: p_created_by must match authenticated user';
+        END IF;
+    END IF;
+
     -- A. Calculate Closing Interval & Business Cutoff
     v_closing_interval := (p_closing_hour || ' hours')::INTERVAL;
 
@@ -103,5 +120,5 @@ $$;
 -- Message de confirmation
 DO $$
 BEGIN
-  RAISE NOTICE '✅ create_ticket mis à jour : index composite (bar_id, idempotency_key) + check après verrou';
+  RAISE NOTICE '✅ create_ticket mis à jour : index composite (bar_id, idempotency_key) + check après verrou + auth guard';
 END $$;

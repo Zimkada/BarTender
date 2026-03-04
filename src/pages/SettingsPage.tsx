@@ -173,7 +173,7 @@ export default function SettingsPage() {
     const [tempCloseHour, setTempCloseHour] = useState(currentBar?.closingHour ?? 6);
     const [tempConsignmentExpirationDays, setTempConsignmentExpirationDays] = useState(currentBar?.settings?.consignmentExpirationDays ?? 7);
     const [tempSupplyFrequency, setTempSupplyFrequency] = useState(currentBar?.settings?.supplyFrequency ?? 7);
-    const [tempOperatingMode, setTempOperatingMode] = useState<'full' | 'simplified'>(currentBar?.settings?.operatingMode ?? 'simplified');
+    const [tempOperatingMode, setTempOperatingMode] = useState<'full' | 'simplified'>(currentBar?.settings?.operatingMode ?? 'full');
 
     // BUG #3 FIX (Ajusté) : Synchronisation UNIQUEMENT lors du changement de BarId
     // On évite de synchroniser operatingMode ici car cela écrase les choix de l'utilisateur lors de refreshBars()

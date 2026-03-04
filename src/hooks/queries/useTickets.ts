@@ -13,6 +13,19 @@ import { useUnifiedReturns } from '../pivots/useUnifiedReturns';
 
 // ===== Type-Safe Declarations =====
 
+/** Payload stocké dans la queue offline pour CREATE_TICKET — doit rester en sync avec TicketsService.createTicket */
+interface CreateTicketPayload {
+    bar_id: string;
+    created_by: string;
+    notes: string | null;
+    server_id: string | null;
+    closing_hour: number;
+    table_number: number | null;
+    customer_name: string | null;
+    idempotency_key: string;
+    temp_id: string;
+}
+
 /**
  * ✅ TicketRow enrichi avec flag optimiste pour tickets créés offline
  * Les tickets optimistes (pending sync) ont isOptimistic = true
@@ -110,7 +123,7 @@ export function useTickets(barId: string | undefined) {
                     (op.status === 'pending' || op.status === 'syncing' || op.status === 'error')
                 )
                 .map(op => {
-                    const payload = op.payload as any;
+                    const payload = op.payload as CreateTicketPayload;
                     return {
                         id: payload.temp_id,
                         bar_id: op.barId,
