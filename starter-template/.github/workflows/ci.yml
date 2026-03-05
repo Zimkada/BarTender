@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    name: Typecheck · Lint · Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ── TypeScript strict ──────────────────────────────────────────────────
+      - name: Typecheck
+        run: npm run typecheck
+
+      # ── ESLint ────────────────────────────────────────────────────────────
+      - name: Lint
+        run: npm run lint
+
+      # ── Build de production ────────────────────────────────────────────────
+      # Les variables CI sont des placeholders valides au format attendu.
+      # La validation Zod (env.ts) s'exécute au runtime navigateur, pas au build.
+      # SENTRY_AUTH_TOKEN absent → upload source maps skippé automatiquement.
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL:      https://placeholder-ci.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder-anon-key-minimum-length-ok-ci
+          VITE_APP_URL:           https://placeholder-ci.example.com
+          # VITE_SENTRY_DSN: non défini → Sentry désactivé (comportement normal)
+          # SENTRY_AUTH_TOKEN: non défini → upload source maps skippé
