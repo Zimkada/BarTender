@@ -18,9 +18,13 @@ export class VersionCheckService {
   static async initialize(): Promise<void> {
     console.log('[VersionCheckService] Initialisation');
 
-    // Charger la version actuelle
-    this.currentVersion = await this.getCurrentVersion();
-    console.log('[VersionCheckService] Version actuelle:', this.currentVersion);
+    // Charger la version actuelle (skip si offline — sera récupérée au premier check périodique)
+    if (!networkManager.getDecision().shouldBlock) {
+      this.currentVersion = await this.getCurrentVersion();
+      console.log('[VersionCheckService] Version actuelle:', this.currentVersion);
+    } else {
+      console.log('[VersionCheckService] Offline — initialisation différée');
+    }
 
     // Démarrer la vérification périodique
     this.startPeriodicCheck();
@@ -135,6 +139,10 @@ export class VersionCheckService {
    * Vérifier immédiatement (pour testing)
    */
   static async checkNow(): Promise<void> {
+    if (networkManager.getDecision().shouldBlock) {
+      console.log('[VersionCheckService] Vérification immédiate skippée (offline)');
+      return;
+    }
     console.log('[VersionCheckService] Vérification immédiate');
     await this.checkForUpdates();
   }
