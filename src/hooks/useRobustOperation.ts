@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import { networkManager } from '../services/NetworkManager';
 
 interface UseRobustOperationOptions {
   timeoutMs?: number;
@@ -63,8 +64,8 @@ export function useRobustOperation(options: UseRobustOperationOptions = {}) {
   // Exécuter une opération avec timeout et retry
   const executeAsync = useCallback(
     async <T,>(operation: () => Promise<T>): Promise<T | null> => {
-      // Vérifier la connexion réseau
-      if (!navigator.onLine) {
+      // Vérifier la connexion réseau (respecte la grace period 12s du NetworkManager)
+      if (networkManager.getDecision().shouldBlock) {
         const offlineMsg = 'Vous êtes hors ligne. Vérifiez votre connexion.';
         setState(prev => ({ ...prev, error: offlineMsg }));
         onOffline?.();
@@ -181,6 +182,6 @@ export function useRobustOperation(options: UseRobustOperationOptions = {}) {
     executeAsync,
     retryAsync,
     reset,
-    isOnline: navigator.onLine,
+    isOnline: !networkManager.getDecision().shouldBlock,
   };
 }
