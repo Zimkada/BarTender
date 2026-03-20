@@ -1133,33 +1133,42 @@ class SyncManagerService {
    * Détermine si une erreur est temporaire et mérite un retry
    */
   private shouldRetryError(error: unknown): boolean {
-    // Extraction type-safe du code et message d'erreur
+    // Extraction type-safe du code, message et status HTTP
     const errorCode = typeof error === 'object' && error !== null && 'code' in error
-      ? String(error.code)
+      ? String((error as { code: unknown }).code)
       : '';
+    const errorStatus = typeof error === 'object' && error !== null && 'status' in error
+      ? Number((error as { status: unknown }).status)
+      : 0;
     const errorMessage = getErrorMessage(error);
 
-    // Erreurs réseau temporaires
-    if (errorCode.includes('NETWORK') || errorCode.includes('TIMEOUT')) {
-      return true;
-    }
+    // --- Erreurs permanentes (ne PAS retry) ---
 
-    // Erreurs de timeout
-    if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
-      return true;
-    }
+    // Supabase PostgREST: no rows found, validation
+    if (errorCode === 'PGRST116') return false; // Query returned no rows
+    // PostgreSQL: violations de contrainte (23xxx = integrity_constraint_violation)
+    if (errorCode.startsWith('23')) return false;
+    // HTTP 4xx client errors (sauf 429 rate limit)
+    if (errorStatus >= 400 && errorStatus < 500 && errorStatus !== 429) return false;
 
-    // Erreurs de connexion
-    if (errorMessage.includes('connection') || errorMessage.includes('connect')) {
-      return true;
-    }
+    // --- Erreurs transitoires (retry) ---
 
-    // Erreurs de quota/rate limiting (temporaires)
-    if (errorCode.includes('QUOTA') || errorCode.includes('RATE_LIMIT')) {
-      return true;
-    }
+    // Supabase PostgREST: erreur générique (souvent connexion/réseau)
+    if (errorCode === 'PGRST000') return true;
+    // HTTP 5xx server errors
+    if (errorStatus >= 500) return true;
+    // HTTP 429 rate limiting
+    if (errorStatus === 429) return true;
+    // Codes génériques réseau/timeout
+    if (errorCode.includes('NETWORK') || errorCode.includes('TIMEOUT')) return true;
+    // Quota/rate limiting par code
+    if (errorCode.includes('QUOTA') || errorCode.includes('RATE_LIMIT')) return true;
+    // Messages réseau/timeout
+    if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) return true;
+    if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) return true;
+    if (errorMessage.includes('AbortError') || errorMessage.includes('aborted')) return true;
 
-    // Par défaut, ne pas retry (erreur permanente comme violation de contrainte)
+    // Par défaut, ne pas retry (erreur inconnue traitée comme permanente)
     return false;
   }
 
