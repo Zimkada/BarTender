@@ -206,19 +206,28 @@ function RootLayoutContent() {
         currentMenu={''} // Placeholder
       />
 
+      <LazyLoadErrorBoundary maxRetries={3}>
       <Suspense fallback={<LoadingFallback />}>
         {modalState.type === 'PRODUCT' && (
           <LazyProductModal
             isOpen={true}
             onClose={closeModal}
-            onSave={(productData) => {
+            onSave={async (productData) => {
               if (!currentBar) {
                 showNotification('error', 'Aucun bar sélectionné');
                 return;
               }
-              createProduct.mutate({ ...productData, barId: currentBar.id });
-              closeModal();
-              showNotification('success', `Produit "${productData.name}" ajouté`);
+              try {
+                // ✅ Attendre le résultat de la mutation avant de fermer
+                await createProduct.mutateAsync({ ...productData, barId: currentBar.id });
+                // ✅ Fermer APRÈS succès
+                closeModal();
+                // 🛡️ Pas de toast manuel — useStockMutations gère le succès
+              } catch (error) {
+                // 🛡️ Pas de toast manuel — useStockMutations gère l'erreur
+                // Le formulaire reste ouvert pour que l'utilisateur corrige
+                throw error; // Relancer pour que ProductModal sache que c'est échoué
+              }
             }}
             categories={categories}
             product={modalState.props.product}
@@ -270,6 +279,7 @@ function RootLayoutContent() {
           />
         )}
       </Suspense>
+      </LazyLoadErrorBoundary>
     </div>
   );
 }

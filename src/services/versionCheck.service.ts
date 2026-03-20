@@ -3,6 +3,8 @@
  * Détecte les nouvelles versions déployées sur Vercel et force le rechargement
  */
 
+import { networkManager } from './NetworkManager';
+
 export class VersionCheckService {
   private static readonly CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
   private static readonly VERSION_FILE = '/version.json';
@@ -63,6 +65,8 @@ export class VersionCheckService {
     console.log('[VersionCheckService] Vérification périodique démarrée (toutes les 5 min)');
 
     this.checkIntervalId = setInterval(async () => {
+      // Ne pas vérifier si hors-ligne (évite des fetch inutiles)
+      if (networkManager.getDecision().shouldBlock) return;
       await this.checkForUpdates();
     }, this.CHECK_INTERVAL);
   }

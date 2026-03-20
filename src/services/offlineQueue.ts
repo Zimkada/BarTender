@@ -63,14 +63,7 @@ class OfflineQueue {
             'Please close other tabs or this app will timeout.'
           );
 
-          // Notifier l'UI via événement global
-          window.dispatchEvent(new CustomEvent('idb-blocked', {
-            detail: {
-              database: DB_NAME,
-              version: DB_VERSION,
-              message: 'Veuillez fermer les autres onglets pour continuer'
-            }
-          }));
+          // TODO: Afficher une notification UI si nécessaire (aucun listener actif aujourd'hui)
         };
 
         request.onerror = () => {
@@ -97,10 +90,7 @@ class OfflineQueue {
             }
             this.initPromise = null;
 
-            // Informer l'utilisateur qu'un rechargement est nécessaire
-            window.dispatchEvent(new CustomEvent('idb-version-changed', {
-              detail: { message: 'Mise à jour de la base de données détectée' }
-            }));
+            // TODO: Afficher une notification de rechargement si nécessaire (aucun listener actif aujourd'hui)
           };
 
           console.log('[OfflineQueue] Database initialized');
