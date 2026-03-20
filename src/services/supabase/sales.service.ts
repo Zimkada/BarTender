@@ -83,7 +83,80 @@ export class SalesService {
   }
 
   /**
-   * Créer une nouvelle vente avec stratégie de résilience offline/online
+   * 🛡️ Retry configuration for RPC calls on slow networks (2G/3G AOF)
+   * - MAX_RPC_ATTEMPTS: 1 initial + 1 retry = 2 attempts total
+   * - RETRY_DELAY_MS: pause between attempts to let transient issues resolve
+   * - TIMEOUT_FIRST / TIMEOUT_RETRY: progressive timeout (shorter first, longer retry)
+   */
+  private static readonly MAX_RPC_ATTEMPTS = 2;
+  private static readonly RETRY_DELAY_MS = 1000;
+  private static readonly TIMEOUT_FIRST_MS = 8000;   // 8s: covers 2G AOF (5-8s)
+  private static readonly TIMEOUT_RETRY_MS = 12000;  // 12s: generous retry for degraded networks
+
+  /**
+   * Attempt a single RPC call to create_sale_idempotent with timeout.
+   * Returns the sale row on success, throws on failure.
+   */
+  private static async attemptRpcSale(
+    data: CreateSaleData,
+    status: string,
+    idempotencyKey: string,
+    timeoutMs: number
+  ): Promise<Sale> {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    const rpcPromise = supabase.rpc(
+      'create_sale_idempotent',
+      {
+        p_bar_id: data.bar_id,
+        p_items: toSupabaseJson(data.items),
+        p_payment_method: data.payment_method,
+        p_sold_by: data.sold_by,
+        p_idempotency_key: idempotencyKey,
+        p_server_id: data.server_id ?? undefined,
+        p_status: status,
+        p_customer_name: data.customer_name ?? undefined,
+        p_customer_phone: data.customer_phone ?? undefined,
+        p_notes: data.notes ?? undefined,
+        p_business_date: data.business_date ?? undefined,
+        p_ticket_id: data.ticket_id ?? undefined,
+        p_source_return_id: data.source_return_id ?? undefined
+      }
+    ).single();
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error('TIMEOUT_EXCEEDED'));
+      }, timeoutMs);
+    });
+
+    try {
+      const result = await Promise.race([rpcPromise, timeoutPromise]);
+
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+
+      // Type guard pour vérifier la structure du résultat Supabase
+      if (result && typeof result === 'object' && 'error' in result && result.error) {
+        console.error('[SalesService] RPC error detail:', result.error);
+        throw result.error;
+      }
+
+      // Extraction type-safe de data (Supabase renvoie { data, error })
+      if (result && typeof result === 'object' && 'data' in result) {
+        return result.data as Sale;
+      }
+
+      return result as Sale;
+    } catch (err) {
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+      throw err;
+    }
+  }
+
+  /**
+   * Créer une nouvelle vente avec stratégie de résilience offline/online.
+   * Utilise un retry transparent (idempotent via idempotency_key) pour
+   * absorber les micro-coupures réseau fréquentes en 2G/3G AOF.
    */
   static async createSale(
     data: CreateSaleData & { status?: 'pending' | 'validated' },
@@ -109,75 +182,63 @@ export class SalesService {
         return await this.fallbackToOfflineQueue(data, status, idempotencyKey, options);
       }
 
-      console.log('[SalesService] Attempting online RPC (create_sale_idempotent)...');
+      // 🛡️ Retry loop: attempt RPC with progressive timeout
+      // Safe thanks to idempotency_key — if 1st attempt succeeded server-side
+      // but response was lost, the 2nd attempt returns the existing sale.
+      let lastError: unknown = null;
+      const timeouts = [this.TIMEOUT_FIRST_MS, this.TIMEOUT_RETRY_MS];
 
-      // ✅ Timeout avec cleanup pour éviter les memory leaks
-      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      for (let attempt = 0; attempt < this.MAX_RPC_ATTEMPTS; attempt++) {
+        const timeoutMs = timeouts[attempt];
+        const isRetry = attempt > 0;
 
-      const rpcPromise = supabase.rpc(
-        'create_sale_idempotent',
-        {
-          p_bar_id: data.bar_id,
-          p_items: toSupabaseJson(data.items),
-          p_payment_method: data.payment_method,
-          p_sold_by: data.sold_by,
-          p_idempotency_key: idempotencyKey,
-          p_server_id: data.server_id ?? undefined,
-          p_status: status,
-          p_customer_name: data.customer_name ?? undefined,
-          p_customer_phone: data.customer_phone ?? undefined,
-          p_notes: data.notes ?? undefined,
-          p_business_date: data.business_date ?? undefined,
-          p_ticket_id: data.ticket_id ?? undefined,
-          p_source_return_id: data.source_return_id ?? undefined
-        }
-      ).single();
-
-      const timeoutPromise = new Promise((_, reject) => {
-        timeoutId = setTimeout(() => {
-          reject(new Error('TIMEOUT_EXCEEDED'));
-        }, 8000); // 8s: covers 2G AOF latency (5-8s) + RPC processing time
-      });
-
-      try {
-        const result = await Promise.race([rpcPromise, timeoutPromise]);
-        console.log('[SalesService] Race result received');
-
-        // ✅ Cleanup du timeout si la requête réussit
-        if (timeoutId !== undefined) {
-          clearTimeout(timeoutId);
+        if (isRetry) {
+          console.log(`[SalesService] Retry ${attempt}/${this.MAX_RPC_ATTEMPTS - 1} after ${this.RETRY_DELAY_MS}ms pause (timeout: ${timeoutMs}ms)`);
+          await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY_MS));
+        } else {
+          console.log(`[SalesService] Attempt ${attempt + 1}/${this.MAX_RPC_ATTEMPTS} (timeout: ${timeoutMs}ms)`);
         }
 
-        // Type guard pour vérifier la structure du résultat Supabase
-        if (result && typeof result === 'object' && 'error' in result && result.error) {
-          console.error('[SalesService] RPC error detail:', result.error);
-          throw result.error;
-        }
+        try {
+          const sale = await this.attemptRpcSale(data, status, idempotencyKey, timeoutMs);
+          console.log('[SalesService] RPC success on attempt', attempt + 1);
+          return sale;
+        } catch (err) {
+          lastError = err;
+          const errorMessage = err instanceof Error ? err.message : String(err);
+          console.warn(`[SalesService] Attempt ${attempt + 1} failed:`, errorMessage);
 
-        // Extraction type-safe de data (Supabase renvoie { data, error })
-        if (result && typeof result === 'object' && 'data' in result) {
-          return result.data as Sale;
-        }
+          // Only retry on transient errors (timeout or network)
+          const isTransient =
+            errorMessage === 'TIMEOUT_EXCEEDED' ||
+            errorMessage === 'Failed to fetch' ||
+            errorMessage.includes('AbortError') ||
+            networkManager.getDecision().shouldBlock;
 
-        return result as Sale;
-
-      } catch (err) {
-        // ✅ Cleanup du timeout en cas d'erreur
-        if (timeoutId !== undefined) {
-          clearTimeout(timeoutId);
-        }
-
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        console.warn('[SalesService] Online failure:', errorMessage);
-
-        if (errorMessage === 'TIMEOUT_EXCEEDED' || errorMessage === 'Failed to fetch' || !navigator.onLine) {
-          if (options?.canWorkOffline) {
-            console.log('[SalesService] Failing OVER to offline queue');
-            return await this.fallbackToOfflineQueue(data, status, idempotencyKey, options);
+          if (!isTransient) {
+            // Non-transient error (e.g. Access denied, validation error) → fail immediately
+            console.error('[SalesService] Non-transient error, skipping retry');
+            break;
           }
         }
-        throw err;
       }
+
+      // All attempts exhausted — try offline fallback
+      const lastErrorMessage = lastError instanceof Error ? lastError.message : String(lastError);
+      console.warn('[SalesService] All attempts exhausted. Last error:', lastErrorMessage);
+
+      const isNetworkRelated =
+        lastErrorMessage === 'TIMEOUT_EXCEEDED' ||
+        lastErrorMessage === 'Failed to fetch' ||
+        lastErrorMessage.includes('AbortError') ||
+        networkManager.getDecision().shouldBlock;
+
+      if (isNetworkRelated && options?.canWorkOffline) {
+        console.log('[SalesService] Failing OVER to offline queue after retry exhaustion');
+        return await this.fallbackToOfflineQueue(data, status, idempotencyKey, options);
+      }
+
+      throw lastError;
     } catch (error) {
       console.error('[SalesService] Global failure in createSale:', error);
       throw new Error(handleSupabaseError(error));
