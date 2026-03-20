@@ -1167,6 +1167,8 @@ class SyncManagerService {
     if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) return true;
     if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) return true;
     if (errorMessage.includes('AbortError') || errorMessage.includes('aborted')) return true;
+    // Erreurs de connexion (connection refused/reset/closed, mais pas "disconnect" qui est une action user)
+    if (/\bconnection\b/i.test(errorMessage) && !errorMessage.includes('disconnect')) return true;
 
     // Par défaut, ne pas retry (erreur inconnue traitée comme permanente)
     return false;
