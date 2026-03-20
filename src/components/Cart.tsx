@@ -13,6 +13,7 @@ import { CartDrawer } from './cart/CartDrawer';
 import { useTickets } from '../hooks/queries/useTickets';
 import { TicketsService } from '../services/supabase/tickets.service';
 import { useStock } from '../context/hooks/useStock';
+import { networkManager } from '../services/NetworkManager';
 
 interface CartProps {
   isOpen: boolean;
@@ -76,7 +77,8 @@ export function Cart({
     let serverId: string | undefined;
 
     // 🔴 BLOCKING LOGIC : SERVER OFFLINE MODE
-    const isOffline = !window.navigator.onLine;
+    // Utilise networkManager pour respecter la grace period (état "unstable" != offline)
+    const isOffline = networkManager.getDecision().shouldBlock;
     const isServer = currentSession?.role === 'serveur';
 
     if (isOffline && isServer) {
