@@ -46,6 +46,7 @@ export const useStockMutations = (barId?: string) => {
     // --- PRODUCTS ---
 
     const createProduct = useMutation({
+        meta: { suppressGlobalError: true }, // 🛡️ onError local gère le toast — évite le double toast de MutationCache
         mutationFn: async (productData: any) => {
             const barId = currentBar?.id;
             if (!barId) throw new Error("No bar selected");

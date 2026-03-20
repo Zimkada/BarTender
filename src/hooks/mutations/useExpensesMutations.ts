@@ -8,8 +8,10 @@ export const useExpensesMutations = (barId: string) => {
     const queryClient = useQueryClient();
 
     const createExpense = useMutation({
-        retry: (failureCount, error) => mutationRetryFn(failureCount, error),
-        retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
+        // ⚠️ PAS de retry automatique : createExpense n'a pas d'idempotency_key côté serveur.
+        // Un retry sur réponse perdue créerait une double dépense en comptabilité.
+        // Réactiver quand l'idempotence backend sera en place (Layer 4C).
+        retry: false,
         mutationFn: async (data: any) => {
             // Mapping App -> DB
             const expenseData = {

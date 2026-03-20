@@ -125,7 +125,7 @@ export function shouldRetryError(error: unknown): boolean {
 
 /**
  * Classification d'erreur Supabase pour retry de mutations React Query.
- * Cohérente avec SyncManager.shouldRetryError() — même logique de classification.
+ * Alignée sur SyncManager.shouldRetryError() (mêmes codes/patterns).
  *
  * Erreurs permanentes (ne PAS retry) :
  * - PGRST116 (no rows), 23xxx (PG constraints), 4xx sauf 408/429
@@ -156,8 +156,10 @@ export function mutationRetryFn(failureCount: number, error: unknown, maxRetries
   if (errorStatus >= 500) return true;
   if (errorStatus === 429 || errorStatus === 408) return true;
   if (errorCode.includes('NETWORK') || errorCode.includes('TIMEOUT')) return true;
+  if (errorCode.includes('QUOTA') || errorCode.includes('RATE_LIMIT')) return true;
   if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) return true;
   if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) return true;
+  if (errorMessage.includes('AbortError') || errorMessage.includes('aborted')) return true;
   if (/\bconnection\b/i.test(errorMessage) && !errorMessage.includes('disconnect')) return true;
 
   return false;
