@@ -1148,8 +1148,8 @@ class SyncManagerService {
     if (errorCode === 'PGRST116') return false; // Query returned no rows
     // PostgreSQL: violations de contrainte (23xxx = integrity_constraint_violation)
     if (errorCode.startsWith('23')) return false;
-    // HTTP 4xx client errors (sauf 429 rate limit)
-    if (errorStatus >= 400 && errorStatus < 500 && errorStatus !== 429) return false;
+    // HTTP 4xx client errors (sauf 408 Request Timeout et 429 Rate Limit)
+    if (errorStatus >= 400 && errorStatus < 500 && errorStatus !== 408 && errorStatus !== 429) return false;
 
     // --- Erreurs transitoires (retry) ---
 
