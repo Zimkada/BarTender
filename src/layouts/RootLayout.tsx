@@ -132,19 +132,37 @@ function RootLayoutContent() {
   }, []);
 
   // 🔄 Vision Rayons X: Rafraîchir les données au retour du réseau ou fin de synchro
+  // Invalidation ciblée pour éviter un burst de refetch sur une connexion fragile
   useEffect(() => {
-    // 1. Écouter le retour du réseau (Pour déclencher le refetch immédiat et voir les données mergées)
+    const invalidateBusinessData = () => {
+      // Données métier susceptibles d'avoir changé pendant la période offline
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      queryClient.invalidateQueries({ queryKey: ['stock'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      queryClient.invalidateQueries({ queryKey: ['returns'] });
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['tickets'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['dailySummary'] });
+      queryClient.invalidateQueries({ queryKey: ['topProducts'] });
+      queryClient.invalidateQueries({ queryKey: ['barMembers'] });
+      queryClient.invalidateQueries({ queryKey: ['stale-pending-sales'] });
+      queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-adjustments'] });
+    };
+
+    // 1. Écouter le retour du réseau
     const unsubscribeNetwork = networkManager.subscribe((status) => {
       if (status === 'online') {
-        console.log('[RootLayout] Network restored, invalidating to fetch fresh data...');
-        queryClient.invalidateQueries();
+        console.log('[RootLayout] Network restored, invalidating business data...');
+        invalidateBusinessData();
       }
     });
 
-    // 2. Écouter la fin de la synchro (Pour nettoyer la queue locale et avoir les données définitives)
+    // 2. Écouter la fin de la synchro
     const handleSyncCompleted = () => {
-      console.log('[RootLayout] Sync completed, invalidating query cache...');
-      queryClient.invalidateQueries();
+      console.log('[RootLayout] Sync completed, invalidating business data...');
+      invalidateBusinessData();
     };
 
     window.addEventListener('sync-completed', handleSyncCompleted);
