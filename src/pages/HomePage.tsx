@@ -52,7 +52,7 @@ export default function HomePage() {
     products: productsWithAvailableStock,
     searchQuery,
     selectedCategory,
-    onlyInStock: true
+    onlyInStock: false
   });
 
   // 2. Le retour anticipé est placé après tous les hooks
