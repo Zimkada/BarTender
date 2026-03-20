@@ -60,7 +60,7 @@ describe('SalesService', () => {
     describe('createSale', () => {
         it('should call RPC when online', async () => {
             // Setup Online
-            (networkManager.getDecision as any).mockReturnValue({ shouldShowBanner: false });
+            (networkManager.getDecision as any).mockReturnValue({ shouldBlock: false, shouldShowBanner: false });
 
             // Mock RPC Success
             (supabase.rpc as any).mockReturnValue({
@@ -84,7 +84,7 @@ describe('SalesService', () => {
 
         it('should fallback to offline queue when network manager validation fails', async () => {
             // Setup Offline
-            (networkManager.getDecision as any).mockReturnValue({ shouldShowBanner: true });
+            (networkManager.getDecision as any).mockReturnValue({ shouldBlock: true, shouldShowBanner: true });
 
             // Mock Queue Success
             (offlineQueue.addOperation as any).mockResolvedValue({ id: 'temp-123' });
@@ -103,7 +103,7 @@ describe('SalesService', () => {
 
         it('should try online first, then fallback to offline on network error', async () => {
             // Setup Online initially
-            (networkManager.getDecision as any).mockReturnValue({ shouldShowBanner: false });
+            (networkManager.getDecision as any).mockReturnValue({ shouldBlock: false, shouldShowBanner: false });
 
             // Mock RPC Failure (Network Error)
             (supabase.rpc as any).mockReturnValue({

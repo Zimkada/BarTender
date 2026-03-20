@@ -19,7 +19,7 @@ export class ReturnsService {
      * Créer un retour
      */
     static async createReturn(data: ReturnInsert): Promise<DBReturn> {
-        const { shouldShowBanner: isOffline } = networkManager.getDecision();
+        const { shouldBlock: isOffline } = networkManager.getDecision();
         const finalId = data.id || generateUUID();
         const returnWithId = { ...data, id: finalId };
 
@@ -47,7 +47,7 @@ export class ReturnsService {
             if (error) {
                 console.error('[ReturnsService] Supabase error creating return:', error);
                 // Si erreur réseau masquée par Supabase, on fallback quand même
-                if (error.message === 'Failed to fetch' || !navigator.onLine) {
+                if (error.message === 'Failed to fetch' || networkManager.getDecision().shouldBlock) {
                     await offlineQueue.addOperation('CREATE_RETURN', returnWithId, data.bar_id, data.returned_by || '');
                     return returnWithId as DBReturn;
                 }

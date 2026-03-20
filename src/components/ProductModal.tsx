@@ -16,7 +16,7 @@ import { BackButton } from './ui/BackButton';
 interface ProductModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (product: Omit<Product, 'id' | 'createdAt' | 'barId'>) => void;
+  onSave: (product: Omit<Product, 'id' | 'createdAt' | 'barId'>) => Promise<void> | void;
   categories: Category[];
   product?: Product;
   inline?: boolean;
@@ -130,12 +130,12 @@ export function ProductModal({ isOpen, onClose, onSave, product, inline = false 
   }
 
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      onSave({
+    try {
+      const productData = {
         name: formData.name,
         volume: formData.volume,
         price: parseFloat(formData.price),
@@ -145,10 +145,17 @@ export function ProductModal({ isOpen, onClose, onSave, product, inline = false 
         alertThreshold: parseInt(formData.alertThreshold) || 10,
         globalProductId: product?.globalProductId || (mode === 'global' ? selectedGlobalId || undefined : undefined),
         isCustomProduct: mode === 'custom' && !selectedGlobalId && !product?.globalProductId,
-      } as Omit<Product, 'id' | 'createdAt' | 'barId'>);
+      } as Omit<Product, 'id' | 'createdAt' | 'barId'>;
+
+      // ✅ Attendre le résultat réel de onSave avant de fermer
+      // Note: la fermeture est gérée par le parent (RootLayout.closeModal) après succès
+      await Promise.resolve(onSave(productData));
       setIsSubmitting(false);
-      onClose();
-    }, 500);
+    } catch (error) {
+      // ❌ Si onSave échoue, garder la fenêtre ouverte et afficher l'erreur
+      setIsSubmitting(false);
+      console.error('Erreur lors de la sauvegarde du produit:', error);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {

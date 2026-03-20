@@ -6,7 +6,7 @@ import { stockKeys } from '../queries/useStockQueries';
 import { useAuth } from '../../context/AuthContext';
 import { useBarContext } from '../../context/BarContext';
 import { broadcastService } from '../../services/broadcast/BroadcastService';
-import { getErrorMessage, mutationRetryFn } from '../../utils/errorHandler';
+import { getErrorMessage } from '../../utils/errorHandler';
 import type { AdjustmentReason } from '../../types';
 
 // Map legacy/unknown reason strings to valid RPC enum values

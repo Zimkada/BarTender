@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ExpensesService } from '../../services/supabase/expenses.service';
 import { expenseKeys } from '../queries/useExpensesQueries';
 import { AnalyticsService } from '../../services/supabase/analytics.service';
-import { mutationRetryFn } from '../../utils/errorHandler';
 
 export const useExpensesMutations = (barId: string) => {
     const queryClient = useQueryClient();
