@@ -82,7 +82,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.error('[AuthContext] Failed to initialize Supabase session:', err);
 
       // 🌐 MODE HORS LIGNE: Garder la session en cache si elle existe
-      if (!navigator.onLine) {
+      if (networkManager.getDecision().shouldBlock) {
         console.log('[AuthContext] 📵 Mode hors ligne détecté - conservation de la session en cache');
         // Ne pas effacer la session existante en mode hors ligne
       } else {
@@ -199,8 +199,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // 🔐 Login avec Supabase Auth (email + password)
   const login = useCallback(async (email: string, password: string): Promise<LoginResult> => {
-    // 🌐 Vérifier la connexion internet
-    if (!navigator.onLine) {
+    // 🌐 Vérifier la connexion internet (respecte la grace period — "unstable" ne bloque pas)
+    if (networkManager.getDecision().shouldBlock) {
       console.warn('[AuthContext] 📵 Tentative de connexion en mode hors ligne');
       return {
         error: 'Connexion internet requise pour se connecter. Veuillez vérifier votre connexion et réessayer.'
