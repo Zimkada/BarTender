@@ -435,6 +435,40 @@ class OfflineQueue {
     });
   }
 
+  /**
+   * Supprime les traductions d'IDs plus vieilles que le TTL donné.
+   * Empêche l'accumulation infinie dans IndexedDB.
+   */
+  async cleanupOldTranslations(ttlMs: number = 48 * 60 * 60 * 1000): Promise<number> {
+    const db = await this.ensureDB();
+    return new Promise((resolve, reject) => {
+      const cutoff = Date.now() - ttlMs;
+      const transaction = db.transaction([TRANSLATIONS_STORE], 'readwrite');
+      const store = transaction.objectStore(TRANSLATIONS_STORE);
+      const request = store.getAll();
+      let deletedCount = 0;
+
+      request.onsuccess = () => {
+        const results = request.result as Array<{ tempId: string; realId: string; timestamp?: number }>;
+        const toDelete = results.filter(item => !item.timestamp || item.timestamp < cutoff);
+        deletedCount = toDelete.length;
+
+        for (const item of toDelete) {
+          store.delete(item.tempId);
+        }
+
+        transaction.oncomplete = () => {
+          if (deletedCount > 0) {
+            console.log(`[OfflineQueue] Cleaned up ${deletedCount} old ID translations (TTL: ${ttlMs / 3600000}h)`);
+          }
+          resolve(deletedCount);
+        };
+        transaction.onerror = () => reject(transaction.error);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   // --- TRANSITIONAL SYNCS (Hardening Pillar 4) ---
 
   /**

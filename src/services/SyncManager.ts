@@ -384,6 +384,7 @@ class SyncManagerService {
       this.isSyncing = false;
       // Nettoyage périodique (Elite sweeper)
       offlineQueue.cleanupTransitionalSyncs(SyncManagerService.SYNC_KEYS_TTL_MS);
+      offlineQueue.cleanupOldTranslations(); // TTL 48h par défaut
     }
   }
 
