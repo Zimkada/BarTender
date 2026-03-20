@@ -164,7 +164,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const handleTokenExpired = async () => {
       // ⭐ RÉSILIENCE OFFLINE: Si on est hors-ligne, on ne déconnecte PAS.
       // On garde la session en mémoire pour permettre le travail local (Optimisme Résilient).
-      if (networkManager.getDecision().shouldShowBanner) {
+      if (networkManager.getDecision().shouldBlock) {
         console.warn('[AuthContext] Token expiré mais conservé (Mode Offline)');
         return;
       }

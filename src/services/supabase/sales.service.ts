@@ -166,13 +166,13 @@ export class SalesService {
     }
   ): Promise<Sale | OfflineSale> {
     console.log('[SalesService] entering createSale', {
-      isOffline: networkManager.getDecision().shouldShowBanner,
+      isOffline: networkManager.getDecision().shouldBlock,
       canWorkOffline: options?.canWorkOffline,
       data_sold_by: data.sold_by
     });
 
     const status = data.status || 'pending';
-    const { shouldShowBanner: isOffline } = networkManager.getDecision();
+    const { shouldBlock: isOffline } = networkManager.getDecision();
 
     const idempotencyKey = data.idempotency_key ?? generateUUID();
 
