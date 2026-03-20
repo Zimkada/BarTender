@@ -14,6 +14,13 @@ import { supabase } from '../lib/supabase';
 import { VersionCheckService } from '../services/versionCheck.service';
 import { useRoutePreload } from '../hooks/useRoutePreload';
 import { networkManager } from '../services/NetworkManager';
+import { salesKeys } from '../hooks/queries/useSalesQueries';
+import { stockKeys } from '../hooks/queries/useStockQueries';
+import { statsKeys } from '../hooks/queries/useStatsQueries';
+import { returnKeys } from '../hooks/queries/useReturnsQueries';
+import { expenseKeys } from '../hooks/queries/useExpensesQueries';
+import { ticketKeys } from '../hooks/queries/useTickets';
+import { analyticsKeys } from '../hooks/queries/useAnalyticsQueries';
 
 import { Header } from '../components/Header';
 import { MobileNavigation } from '../components/MobileNavigation';
@@ -132,22 +139,39 @@ function RootLayoutContent() {
   }, []);
 
   // 🔄 Vision Rayons X: Rafraîchir les données au retour du réseau ou fin de synchro
-  // Invalidation ciblée pour éviter un burst de refetch sur une connexion fragile
+  // Invalidation ciblée métier — exclut volontairement :
+  //   - offline-only queries (offline-sales-list, offline-returns-list, etc.)
+  //   - quasi-statique (categories, settings, feature-flags)
+  // Note: sync-completed ne porte pas de payload de types syncés,
+  //   donc on invalide le même sous-ensemble métier dans les deux cas.
   useEffect(() => {
     const invalidateBusinessData = () => {
-      // Données métier susceptibles d'avoir changé pendant la période offline
-      queryClient.invalidateQueries({ queryKey: ['sales'] });
-      queryClient.invalidateQueries({ queryKey: ['stock'] });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
-      queryClient.invalidateQueries({ queryKey: ['returns'] });
-      queryClient.invalidateQueries({ queryKey: ['expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['tickets'] });
-      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      const barId = currentBar?.id;
+      if (!barId) return; // Pas de bar actif → rien à invalider
+
+      // Ventes & stats
+      queryClient.invalidateQueries({ queryKey: salesKeys.all });
+      queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
+
+      // Stock serveur (products, supplies, consignments — PAS categories)
+      queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
+      queryClient.invalidateQueries({ queryKey: stockKeys.supplies(barId) });
+      queryClient.invalidateQueries({ queryKey: stockKeys.consignments(barId) });
+
+      // Retours, dépenses (list — PAS categories), tickets
+      queryClient.invalidateQueries({ queryKey: returnKeys.all });
+      queryClient.invalidateQueries({ queryKey: expenseKeys.list(barId) });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.all });
+
+      // Analytics & dérivés
+      queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
       queryClient.invalidateQueries({ queryKey: ['dailySummary'] });
       queryClient.invalidateQueries({ queryKey: ['topProducts'] });
       queryClient.invalidateQueries({ queryKey: ['barMembers'] });
-      queryClient.invalidateQueries({ queryKey: ['stale-pending-sales'] });
-      queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock'] });
+
+      // Clés ad hoc liées au stock/ventes
+      queryClient.invalidateQueries({ queryKey: ['stale-pending-sales', barId] });
+      queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock', barId] });
       queryClient.invalidateQueries({ queryKey: ['stock-adjustments'] });
     };
 
@@ -171,7 +195,7 @@ function RootLayoutContent() {
       unsubscribeNetwork();
       window.removeEventListener('sync-completed', handleSyncCompleted);
     };
-  }, [queryClient]);
+  }, [queryClient, currentBar?.id]);
 
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" replace />;
