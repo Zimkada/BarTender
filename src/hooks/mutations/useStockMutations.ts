@@ -6,7 +6,7 @@ import { stockKeys } from '../queries/useStockQueries';
 import { useAuth } from '../../context/AuthContext';
 import { useBarContext } from '../../context/BarContext';
 import { broadcastService } from '../../services/broadcast/BroadcastService';
-import { getErrorMessage } from '../../utils/errorHandler';
+import { getErrorMessage, mutationRetryFn } from '../../utils/errorHandler';
 import type { AdjustmentReason } from '../../types';
 
 // Map legacy/unknown reason strings to valid RPC enum values
@@ -168,6 +168,8 @@ export const useStockMutations = (barId?: string) => {
     // --- SUPPLIES (Complex Flow) ---
 
     const addSupply = useMutation({
+        retry: (failureCount, error) => mutationRetryFn(failureCount, error),
+        retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
         mutationFn: async (data: {
             bar_id: string;
             product_id: string;

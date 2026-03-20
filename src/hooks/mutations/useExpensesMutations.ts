@@ -2,11 +2,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ExpensesService } from '../../services/supabase/expenses.service';
 import { expenseKeys } from '../queries/useExpensesQueries';
 import { AnalyticsService } from '../../services/supabase/analytics.service';
+import { mutationRetryFn } from '../../utils/errorHandler';
 
 export const useExpensesMutations = (barId: string) => {
     const queryClient = useQueryClient();
 
     const createExpense = useMutation({
+        retry: (failureCount, error) => mutationRetryFn(failureCount, error),
+        retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
         mutationFn: async (data: any) => {
             // Mapping App -> DB
             const expenseData = {

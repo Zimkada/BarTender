@@ -122,3 +122,43 @@ export function shouldRetryError(error: unknown): boolean {
     message.includes('connection reset')
   );
 }
+
+/**
+ * Classification d'erreur Supabase pour retry de mutations React Query.
+ * Cohérente avec SyncManager.shouldRetryError() — même logique de classification.
+ *
+ * Erreurs permanentes (ne PAS retry) :
+ * - PGRST116 (no rows), 23xxx (PG constraints), 4xx sauf 408/429
+ *
+ * Erreurs transitoires (retry) :
+ * - PGRST000, 5xx, 429, 408, network/timeout/fetch errors
+ *
+ * @param maxRetries Nombre max de tentatives (défaut: 2)
+ */
+export function mutationRetryFn(failureCount: number, error: unknown, maxRetries = 2): boolean {
+  if (failureCount >= maxRetries) return false;
+
+  const errorCode = typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code: unknown }).code)
+    : '';
+  const errorStatus = typeof error === 'object' && error !== null && 'status' in error
+    ? Number((error as { status: unknown }).status)
+    : 0;
+  const errorMessage = getErrorMessage(error);
+
+  // --- Erreurs permanentes (ne PAS retry) ---
+  if (errorCode === 'PGRST116') return false;
+  if (errorCode.startsWith('23')) return false;
+  if (errorStatus >= 400 && errorStatus < 500 && errorStatus !== 408 && errorStatus !== 429) return false;
+
+  // --- Erreurs transitoires (retry) ---
+  if (errorCode === 'PGRST000') return true;
+  if (errorStatus >= 500) return true;
+  if (errorStatus === 429 || errorStatus === 408) return true;
+  if (errorCode.includes('NETWORK') || errorCode.includes('TIMEOUT')) return true;
+  if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) return true;
+  if (errorMessage.includes('Failed to fetch') || errorMessage.includes('NetworkError')) return true;
+  if (/\bconnection\b/i.test(errorMessage) && !errorMessage.includes('disconnect')) return true;
+
+  return false;
+}
