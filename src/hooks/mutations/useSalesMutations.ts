@@ -13,6 +13,7 @@ import { Database } from '../../lib/database.types';
 import { PaymentMethod } from '../../components/cart/PaymentMethodSelector';
 import { SaleItem } from '../../types';
 import { useCanWorkOffline } from '../../hooks/useCanWorkOffline';
+import { networkManager } from '../../services/NetworkManager';
 import toast from 'react-hot-toast';
 import { z } from 'zod';
 import { SaleItemSchema } from '../../utils/revenueSchemas';
@@ -115,7 +116,8 @@ export const useSalesMutations = (barId: string) => {
     const canWorkOffline = useCanWorkOffline();
 
     const isNetworkError = (error: unknown): boolean => {
-        if (!(error instanceof Error)) return !navigator.onLine;
+        const isOffline = networkManager.getDecision().shouldBlock;
+        if (!(error instanceof Error)) return isOffline;
 
         // ✅ Type-safe error code extraction
         const errorCode = typeof error === 'object' && error !== null && 'code' in error
@@ -123,7 +125,7 @@ export const useSalesMutations = (barId: string) => {
             : '';
 
         return (
-            !navigator.onLine ||
+            isOffline ||
             error.message === 'Failed to fetch' ||
             error.message.includes('NetworkError') ||
             error.message.includes('connection') ||
