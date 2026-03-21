@@ -212,8 +212,7 @@ export class SalesService {
           const isTransient =
             errorMessage === 'TIMEOUT_EXCEEDED' ||
             errorMessage === 'Failed to fetch' ||
-            errorMessage.includes('AbortError') ||
-            networkManager.getDecision().shouldBlock;
+            errorMessage.includes('AbortError');
 
           if (!isTransient) {
             // Non-transient error (e.g. Access denied, validation error) → fail immediately
@@ -230,8 +229,7 @@ export class SalesService {
       const isNetworkRelated =
         lastErrorMessage === 'TIMEOUT_EXCEEDED' ||
         lastErrorMessage === 'Failed to fetch' ||
-        lastErrorMessage.includes('AbortError') ||
-        networkManager.getDecision().shouldBlock;
+        lastErrorMessage.includes('AbortError');
 
       if (isNetworkRelated && options?.canWorkOffline) {
         console.log('[SalesService] Failing OVER to offline queue after retry exhaustion');
