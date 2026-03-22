@@ -579,6 +579,55 @@ if (event === 'SIGNED_IN' && session && currentUser) {
 
 ---
 
+## Build — Scripts personnalisés
+
+### Pipeline de build (`npm run build`)
+
+```
+prebuild → generate-version.cjs   (génère public/version.json)
+build    → inline-critical-css.mjs (build Vite + optimisation CSS critique)
+```
+
+### `scripts/inline-critical-css.mjs` — CSS critique inline
+
+Technique de performance pour éliminer le render-blocking CSS :
+
+1. **Build Vite** standard
+2. **Extraction CSS critique** (above-the-fold) via la lib `critical` avec Chromium headless
+3. **Inline** dans `<head>` → page visible immédiatement sans attendre le CSS
+4. **CSS restant** chargé asynchronement : `media="print" onload="this.media='all'"`
+5. **Skip automatique sur Vercel** (pas de Chromium disponible) : `if (process.env.VERCEL === '1')`
+
+```html
+<!-- Résultat dans index.html après build local -->
+<head>
+  <style type="text/css">/* CSS critique inliné ici */</style>
+  <link rel="stylesheet" href="/assets/index.css" media="print" onload="this.media='all'">
+</head>
+```
+
+> **Important** : le script skip sur Vercel — l'optimisation n'est active qu'en build local.
+> Le site fonctionne correctement sur Vercel mais sans ce gain de performance spécifique.
+
+### `scripts/generate-version.cjs` — Versioning de build
+
+Génère `public/version.json` à chaque build :
+
+```json
+{
+  "version": "1.2.3",
+  "buildTime": "2025-11-21T10:00:00.000Z",
+  "buildNumber": "local",
+  "gitCommit": "abc123"
+}
+```
+
+Utilisé par `VersionCheckService` pour détecter les nouvelles versions et déclencher le prompt de mise à jour PWA.
+
+**Règle** : ne jamais modifier `public/version.json` manuellement — il est généré automatiquement.
+
+---
+
 ## Déploiement Vercel — Règles et leçons apprises
 
 Voir `LECONS_DEPLOIEMENT.md` pour le détail complet.
