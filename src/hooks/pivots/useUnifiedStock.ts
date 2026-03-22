@@ -127,7 +127,7 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
     });
 
     // 🛡️ Expert Fix (Certification): Fetch server-side pending sales
-    // These are sales that were synced but not yet validated. 
+    // These are sales that were synced but not yet validated.
     // They must be deducted from availableStock to prevent overselling.
     const { data: serverPendingSales = [] } = useQuery({
         queryKey: ['server-pending-sales-for-stock', barId],
@@ -142,7 +142,7 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
             return data || [];
         },
         enabled: !!barId && !!session,
-        staleTime: 30000, // Compromis: moins de refetchs tout en gardant une fraîcheur acceptable multi-device
+        staleTime: 30000, // 30s: compromis fraîcheur multi-device vs fréquence refetch
     });
 
     // 🚀 Réactivité : Écoute des événements typés Pilier 0

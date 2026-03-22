@@ -61,6 +61,7 @@ class NetworkManagerService {
   private checkIntervalId: number | null = null;
   private isInitialized = false;
   private isPinging = false; // Guard: empêche les pings concurrents (checkInterval < pingTimeout)
+  private lastPingSuccessAt = 0; // Timestamp du dernier ping réussi (short-circuit)
 
   /** Grace period avant de considérer offline (par défaut 12s pour AOF) */
   private get gracePeriod(): number {
@@ -256,6 +257,12 @@ class NetworkManagerService {
     }
 
     // Étape 2: Si online selon le browser, valider avec ping
+    // Short-circuit: si le dernier ping a réussi récemment, skip le ping réseau
+    const timeSinceLastSuccess = Date.now() - this.lastPingSuccessAt;
+    if (!forceImmediate && this.status === 'online' && timeSinceLastSuccess < this.config.checkInterval) {
+      return;
+    }
+
     this.updateStatus('checking');
 
     // Si pas de pingUrl configurée (avant Supabase), supposer online
@@ -267,6 +274,7 @@ class NetworkManagerService {
     // Ping le server pour validation réelle
     const isReachable = await this.pingServer();
     if (isReachable) {
+      this.lastPingSuccessAt = Date.now();
       this.updateStatus('online');
     } else {
       // Server injoignable: appliquer grace period

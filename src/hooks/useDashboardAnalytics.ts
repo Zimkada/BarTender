@@ -4,7 +4,6 @@ import { useBarContext } from '../context/BarContext';
 import { useUnifiedStock } from './pivots/useUnifiedStock';
 import { useUnifiedSales } from './pivots/useUnifiedSales';
 import { useUnifiedReturns } from './pivots/useUnifiedReturns';
-import { useRevenueStats } from '../hooks/useRevenueStats';
 import { useTeamPerformance } from '../hooks/useTeamPerformance';
 import { useBarMembers } from './queries/useBarMembers';
 import { getCurrentBusinessDateString } from '../utils/businessDateHelpers';
@@ -102,12 +101,16 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
         });
     }, [unifiedSales, isServerRole, currentUserId]);
 
-    // 5. Hooks / Sub-queries
-    const { netRevenue: todayTotal } = useRevenueStats({
-        startDate: todayDateStr,
-        endDate: todayDateStr,
-        enabled: true
-    });
+    // 5. Revenue: calculé localement depuis les données déjà chargées (évite duplication pivot hooks via useRevenueStats)
+    const todayTotal = useMemo(() => {
+        const grossRevenue = serverFilteredSales
+            .filter((s: any) => s.status === 'validated')
+            .reduce((sum: number, s: any) => sum + (s.total || 0), 0);
+        const refundsTotal = serverFilteredReturns
+            .filter(r => r.status === 'approved' || r.status === 'restocked')
+            .reduce((sum, r) => sum + (r.refundAmount || 0), 0);
+        return grossRevenue - refundsTotal;
+    }, [serverFilteredSales, serverFilteredReturns]);
 
     const teamPerformanceData = useTeamPerformance({
         sales: serverFilteredSales as Sale[],

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { ReturnsService, type DBReturn } from '../../services/supabase/returns.service';
 import { CACHE_STRATEGY } from '../../lib/cache-strategy';
+import { useSmartSync } from '../useSmartSync';
 import type { Return } from '../../types';
 
 export const returnKeys = {
@@ -9,6 +10,19 @@ export const returnKeys = {
 };
 
 export const useReturns = (barId: string | undefined, options?: { startDate?: string; endDate?: string; refetchInterval?: number | false }) => {
+    const isEnabled = !!barId;
+
+    // SmartSync pour returns: coupe le polling quand Realtime/Broadcast est actif
+    const smartSync = useSmartSync({
+        table: 'returns',
+        event: '*',
+        barId: barId || undefined,
+        enabled: isEnabled,
+        staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
+        refetchInterval: 30000,
+        queryKeysToInvalidate: [returnKeys.list(barId || '')],
+    });
+
     return useQuery({
         queryKey: [...returnKeys.list(barId || ''), { startDate: options?.startDate, endDate: options?.endDate }],
         networkMode: 'always', // 🛡️ Fix V11.6: Accès offline aux retours
@@ -23,10 +37,12 @@ export const useReturns = (barId: string | undefined, options?: { startDate?: st
 
             return mapReturnData(dbReturns);
         },
-        enabled: !!barId,
+        enabled: isEnabled,
         staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
         gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
-        refetchInterval: options?.refetchInterval !== undefined ? options.refetchInterval : 30000, // 30s polling by default, can be overridden
+        refetchInterval: options?.refetchInterval !== undefined
+            ? options.refetchInterval
+            : (smartSync.isSynced ? false : 30000),
     });
 };
 

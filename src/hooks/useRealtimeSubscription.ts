@@ -102,10 +102,11 @@ export function useRealtimeSubscription(
 
       channelIdRef.current = id;
 
+      // Check connection status periodically (5s — status changes are rare, no need for 1s)
       const checkStatus = setInterval(() => {
         const connected = realtimeService.isConnected(channelIdRef.current);
         setIsConnected(connected);
-      }, 1000);
+      }, 5000);
 
       // 🛡️ GUARANTEED CLEANUP: Close channel when component unmounts or deps change
       return () => {

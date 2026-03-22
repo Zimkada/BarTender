@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { StockAdjustmentsService } from '../../services/supabase/stock-adjustments.service';
+import { stockKeys } from '../queries/useStockQueries';
 import { auditLogger } from '../../services/AuditLogger';
 
 export function useStockAdjustment() {
@@ -15,7 +16,6 @@ export function useStockAdjustment() {
       reason: string;
       notes?: string;
       barId: string;
-      // userId, userName, userRole, barName are resolved server-side by RPC
     }) => {
       if (!data.barId) throw new Error('Missing context: barId');
 
@@ -47,10 +47,10 @@ export function useStockAdjustment() {
 
       return adjustment;
     },
-    onSuccess: () => {
-      // Invalidate product queries to refetch updated stock
-      queryClient.invalidateQueries({ queryKey: ['bar-products'] });
-      queryClient.invalidateQueries({ queryKey: ['stock-adjustments'] });
+    onSuccess: (_data, variables) => {
+      // Invalidate product queries scoped to this bar (not cross-tenant)
+      queryClient.invalidateQueries({ queryKey: stockKeys.products(variables.barId) });
+      queryClient.invalidateQueries({ queryKey: ['stock-adjustments', variables.barId] });
     },
     onError: (error) => {
       console.error('Stock adjustment error:', error);
