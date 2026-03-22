@@ -1,19 +1,20 @@
 import { useState } from 'react';
 import { Product } from '../types';
-import { useUnifiedStock } from './pivots/useUnifiedStock';
 import { useStockAdjustment } from './mutations/useStockAdjustment';
 import { useFeedback } from './useFeedback';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { getErrorMessage } from '../utils/errorHandler';
+import { useStock } from '../context/hooks/useStock';
+import { useStockMutations } from './mutations/useStockMutations';
 
 export function useInventoryActions() {
     const { currentBar } = useBarContext();
     const { currentSession } = useAuth();
     const { showSuccess, showError } = useFeedback();
 
-    // Use unified stock hook directly (Pillar 3: Toggles removed)
-    const { addProduct, updateProduct, deleteProduct, processSupply } = useUnifiedStock(currentBar?.id);
+    const { addProduct, updateProduct, deleteProduct } = useStock();
+    const { addSupply } = useStockMutations(currentBar?.id || '');
 
     const stockAdjustmentMutation = useStockAdjustment();
 
@@ -49,7 +50,8 @@ export function useInventoryActions() {
             setEditingProduct(undefined);
         } catch (error) {
             console.error('Error saving product', error);
-            showError('Erreur lors de la sauvegarde');
+            // L'erreur est déjà affichée via toast.error dans useStockMutations
+            throw error; // Re-throw pour que le composant modal sache que l'opération a échoué
         }
     };
 
@@ -118,11 +120,17 @@ export function useInventoryActions() {
         lotPrice: number;
         supplier: string;
     }) => {
+        if (!currentBar || !currentSession) return;
+
         try {
-            await (processSupply as any)(supplyData, () => {
-                // 🛡️ FIX : On ne crée plus de dépense liée. 
-                // L'approvisionnement est déjà dans la table supplies.
-                // Le hook useUnifiedExpenses fusionne déjà les deux sources.
+            await addSupply.mutateAsync({
+                bar_id: currentBar.id,
+                product_id: supplyData.productId,
+                quantity: supplyData.quantity,
+                lot_price: supplyData.lotPrice,
+                lot_size: supplyData.lotSize,
+                supplier: supplyData.supplier,
+                created_by: currentSession.userId,
             });
             showSuccess('Approvisionnement effectué avec succès');
         } catch (error) {

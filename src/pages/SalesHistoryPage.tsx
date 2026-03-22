@@ -18,7 +18,7 @@ import { useFeedback } from '../hooks/useFeedback';
 import { DataFreshnessIndicatorCompact } from '../components/DataFreshnessIndicator';
 import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
 import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
-import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
+import { useStock } from '../context/hooks/useStock';
 import { SALES_HISTORY_FILTERS } from '../config/dateFilters';
 import { Sale, User, getPermissionsByRole } from '../types';
 import { useSalesFilters } from '../features/Sales/SalesHistory/hooks/useSalesFilters';
@@ -45,7 +45,7 @@ type ViewMode = 'list' | 'cards' | 'analytics';
  */
 export default function SalesHistoryPage() {
     const { currentBar } = useBarContext();
-    const { products, categories, consignments } = useUnifiedStock(currentBar?.id);
+    const { products, categories, consignments } = useStock();
     const { returns: unifiedReturns, getReturnsBySale: getReturnsBySaleFromHook } = useUnifiedReturns(currentBar?.id, currentBar?.closingHour);
     const { barMembers } = useBarContext();
     const { formatPrice } = useCurrencyFormatter();

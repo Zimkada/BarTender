@@ -7,7 +7,7 @@ const ProductModal = lazy(() => import('../../ProductModal').then(m => ({ defaul
 
 interface InventoryAddFormProps {
     onClose: () => void;
-    onSave: (data: any) => void;
+    onSave: (data: any) => Promise<void> | void;
     categories: Category[];
 }
 

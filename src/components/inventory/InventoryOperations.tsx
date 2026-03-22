@@ -127,8 +127,8 @@ export function InventoryOperations({
                         {mode === 'add' && (
                             <InventoryAddForm
                                 onClose={handleBack}
-                                onSave={(data) => {
-                                    onSaveProduct(data);
+                                onSave={async (data) => {
+                                    await onSaveProduct(data);
                                     handleBack();
                                 }}
                                 categories={categories}

@@ -16,7 +16,6 @@ import { ThemeProvider } from './context/ThemeContext';
 import { OnboardingProvider } from './context/OnboardingContext';
 import { GuideProvider } from './context/GuideContext';
 import { StockProvider } from './context/StockContext';
-import { StockBridgeProvider } from './context/StockBridgeProvider';
 import { AppProvider } from './context/AppProvider';
 import { ModalProvider } from './context/ModalContext';
 import { NotificationsProvider } from './components/Notifications';
@@ -91,19 +90,17 @@ createRoot(document.getElementById('root')!).render(
               <OnboardingProvider>
                 <GuideProvider>
                   <StockProvider>
-                    <StockBridgeProvider>
-                      <AppProvider>
-                        <ModalProvider>
-                          <ErrorBoundary FallbackComponent={ErrorFallback} onError={(error, info) => console.error("Caught an error:", error, info)}>
-                            <App />
-                            <RouterProvider router={router} />
-                            {/* PWA Components */}
-                            <PWAInstallPrompt />
-                            <PWAUpdatePrompt />
-                          </ErrorBoundary>
-                        </ModalProvider>
-                      </AppProvider>
-                    </StockBridgeProvider>
+                    <AppProvider>
+                      <ModalProvider>
+                        <ErrorBoundary FallbackComponent={ErrorFallback} onError={(error, info) => console.error("Caught an error:", error, info)}>
+                          <App />
+                          <RouterProvider router={router} />
+                          {/* PWA Components */}
+                          <PWAInstallPrompt />
+                          <PWAUpdatePrompt />
+                        </ErrorBoundary>
+                      </ModalProvider>
+                    </AppProvider>
                   </StockProvider>
                 </GuideProvider>
               </OnboardingProvider>

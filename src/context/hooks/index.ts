@@ -5,4 +5,3 @@
  */
 
 export { useStock } from './useStock';
-export { useStockBridge } from './useStockBridge';

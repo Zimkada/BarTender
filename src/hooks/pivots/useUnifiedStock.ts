@@ -123,7 +123,7 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
                 .map((op: any) => op.payload);
         },
         enabled: !!barId && !!session,
-        staleTime: 5000,
+        staleTime: 30000,
     });
 
     // 🛡️ Expert Fix (Certification): Fetch server-side pending sales
@@ -142,7 +142,7 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
             return data || [];
         },
         enabled: !!barId && !!session,
-        staleTime: 5000, // 🚀 FIX: Reduced from 30s to 5s to sync faster after validation
+        staleTime: 30000, // Compromis: moins de refetchs tout en gardant une fraîcheur acceptable multi-device
     });
 
     // 🚀 Réactivité : Écoute des événements typés Pilier 0
@@ -197,8 +197,13 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
 
         // 1. Deduct Offline Sales
         offlineSales.forEach((sale: any) => {
-            // Unification : On marque systématiquement les clés pour éviter les doubles décomptes
             if (sale.idempotency_key) {
+                // Skip si la vente a déjà été synchronisée (le stock DB reflète déjà cette vente).
+                // Scénario: sync terminé mais la queue offline n'a pas encore été nettoyée.
+                if (recentlySyncedKeys.has(sale.idempotency_key)) {
+                    accountedIdempotencyKeys.add(sale.idempotency_key);
+                    return;
+                }
                 accountedIdempotencyKeys.add(sale.idempotency_key);
             }
 

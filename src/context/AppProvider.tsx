@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { useBarContext } from '../context/BarContext';
 import { useCacheWarming } from '../hooks/useViewMonitoring';
 import { useAuth } from '../context/AuthContext';
@@ -30,9 +30,8 @@ import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
 import { useExpensesMutations } from '../hooks/mutations/useExpensesMutations';
 import { useReturnsMutations } from '../hooks/mutations/useReturnsMutations';
 import { useCategoryMutations } from '../hooks/mutations/useCategoryMutations';
-
-import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { useCart } from '../hooks/useCart';
+import { useStock } from './hooks/useStock';
 
 import { AppContext, AppContextType } from './AppContext';
 
@@ -109,7 +108,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     })), [members]);
 
     // --- CART STATE & LOGIC (UNIFIED) ---
-    const { getProductStockInfo } = useUnifiedStock(barId);
+    const { getProductStockInfo } = useStock();
     const {
         cart,
         setCart,
