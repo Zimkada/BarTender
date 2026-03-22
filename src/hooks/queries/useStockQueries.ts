@@ -94,7 +94,7 @@ export const useProducts = (barId: string | undefined, options: { enabled?: bool
         staleTime: CACHE_STRATEGY.products.staleTime,
         gcTime: CACHE_STRATEGY.products.gcTime,
         networkMode: 'always', // 🛡️ CRITIQUE: Permet l'accès au cache stock offline
-        refetchInterval: smartSync.isRealtimeConnected ? false : REALTIME_FALLBACK_INTERVALS.products, // 🚀 Hybride: Polling OFF si Realtime connected
+        refetchInterval: smartSync.isSynced ? false : REALTIME_FALLBACK_INTERVALS.products, // 🚀 Hybride: Polling OFF si Sync coverage active
     });
 };
 
@@ -161,7 +161,7 @@ export const useSupplies = (barId: string | undefined, options: { enabled?: bool
             staleTime: CACHE_STRATEGY.products.staleTime,
             gcTime: CACHE_STRATEGY.products.gcTime,
             networkMode: 'always', // 🛡️ CRITIQUE
-            refetchInterval: (smartSync.isRealtimeConnected || !enabled) ? false : 60000,
+            refetchInterval: (smartSync.isSynced || !enabled) ? false : REALTIME_FALLBACK_INTERVALS.supplies,
         }
     );
 };
@@ -236,7 +236,7 @@ export const useConsignments = (barId: string | undefined, options: { enabled?: 
             staleTime: CACHE_STRATEGY.products.staleTime,
             gcTime: CACHE_STRATEGY.products.gcTime,
             networkMode: 'always', // 🛡️ CRITIQUE
-            refetchInterval: smartSync.isRealtimeConnected ? false : 60000,
+            refetchInterval: smartSync.isSynced ? false : REALTIME_FALLBACK_INTERVALS.consignments,
         }
     );
 };

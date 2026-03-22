@@ -39,7 +39,7 @@ interface NetworkManagerConfig {
  */
 const DEFAULT_CONFIG: NetworkManagerConfig = {
   pingUrl: '/index.html', // App's own HTML - always served by dev/prod server, no CORS/auth issues
-  checkInterval: 3000, // 3 secondes (plus réactif pour les tests)
+  checkInterval: 15000, // 15 secondes: compromis plus léger, l'event online reste prioritaire
   pingTimeout: 7000,    // 7 secondes (couvre le 95e percentile latence 2G AOF: 5-8s)
 };
 
@@ -92,6 +92,7 @@ class NetworkManagerService {
     // Écouter les events natifs du browser
     window.addEventListener('online', this.handleOnline);
     window.addEventListener('offline', this.handleOffline);
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
 
     // Polling périodique pour validation
     this.startPeriodicCheck();
@@ -108,6 +109,7 @@ class NetworkManagerService {
 
     window.removeEventListener('online', this.handleOnline);
     window.removeEventListener('offline', this.handleOffline);
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
     this.stopPeriodicCheck();
 
     // Nettoyer le timer de grace period
@@ -163,9 +165,24 @@ class NetworkManagerService {
   };
 
   /**
+   * Réduit les pings en arrière-plan et force une vérification quand l'app redevient visible.
+   */
+  private handleVisibilityChange = (): void => {
+    if (document.hidden) {
+      this.stopPeriodicCheck();
+      return;
+    }
+
+    this.startPeriodicCheck();
+    this.checkConnectivity(true);
+  };
+
+  /**
    * Démarre le polling périodique
    */
   private startPeriodicCheck(): void {
+    if (this.checkIntervalId !== null) return;
+
     this.checkIntervalId = window.setInterval(() => {
       this.checkConnectivity();
     }, this.config.checkInterval);
