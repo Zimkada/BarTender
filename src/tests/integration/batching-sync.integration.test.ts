@@ -12,6 +12,10 @@ vi.mock('../../services/offlineQueue', () => ({
         removeOperation: vi.fn(),
         getIdTranslations: vi.fn().mockResolvedValue(new Map()),
         saveIdTranslation: vi.fn(),
+        addTransitionalSync: vi.fn(),
+        removeTransitionalSync: vi.fn(),
+        cleanupTransitionalSyncs: vi.fn(),
+        cleanupOldTranslations: vi.fn(),
     }
 }));
 

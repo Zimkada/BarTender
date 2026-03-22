@@ -40,7 +40,7 @@ describe('ProductNormalization', () => {
 
     it('should remove punctuation', () => {
       expect(ProductNormalization.normalizeName('Coca-Cola')).toBe('coca cola');
-      expect(ProductNormalization.normalizeName("L'Espresso")).toBe('lespresso');
+      expect(ProductNormalization.normalizeName("L'Espresso")).toBe('l espresso');
     });
 
     it('should normalize spaces', () => {

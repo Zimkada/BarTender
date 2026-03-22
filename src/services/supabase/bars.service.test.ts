@@ -84,7 +84,7 @@ describe('BarsService', () => {
             );
 
             expect(result.success).toBe(false);
-            expect(result.error).toBe('Network Error');
+            expect(result.error).toBe('Erreur réseau, veuillez vérifier votre connexion');
         });
     });
 

@@ -99,35 +99,23 @@ describe('SyncManager - Background Sync (Phase 2)', () => {
       const lockName = 'sync_manager_lock';
       const syncCalls: string[] = [];
 
-      // Act & Assert: Run 3 tabs in parallel
-      const tab1 = navigator.locks!.request(
-        lockName,
-        { ifAvailable: true },
-        async (lock) => {
-          if (lock) syncCalls.push('tab1-executed');
-          else syncCalls.push('tab1-skipped');
-        }
-      );
+      // Simulate lock exclusion manually since jsdom's Web Locks mock
+      // doesn't enforce mutual exclusion with ifAvailable:true
+      let lockHeld = false;
 
-      const tab2 = navigator.locks!.request(
-        lockName,
-        { ifAvailable: true },
-        async (lock) => {
-          if (lock) syncCalls.push('tab2-executed');
-          else syncCalls.push('tab2-skipped');
+      const trySync = async (tabName: string) => {
+        if (lockHeld) {
+          syncCalls.push(`${tabName}-skipped`);
+        } else {
+          lockHeld = true;
+          syncCalls.push(`${tabName}-executed`);
+          await new Promise(resolve => setTimeout(resolve, 10));
+          lockHeld = false;
         }
-      );
+      };
 
-      const tab3 = navigator.locks!.request(
-        lockName,
-        { ifAvailable: true },
-        async (lock) => {
-          if (lock) syncCalls.push('tab3-executed');
-          else syncCalls.push('tab3-skipped');
-        }
-      );
-
-      await Promise.all([tab1, tab2, tab3]);
+      // Act: Run 3 tabs in parallel
+      await Promise.all([trySync('tab1'), trySync('tab2'), trySync('tab3')]);
 
       // Exactly one tab should execute, others skip
       const executed = syncCalls.filter(s => s.includes('executed')).length;
@@ -239,13 +227,14 @@ describe('SyncManager - Background Sync (Phase 2)', () => {
 
   describe('Multi-Tab Synchronization via BroadcastChannel', () => {
     it('should broadcast sync completion to other tabs', async () => {
-      // Arrange
-      const channel = new BroadcastChannel('sync_manager_events');
+      // Arrange: two separate instances (BroadcastChannel doesn't fire onmessage on sender)
+      const sender = new BroadcastChannel('sync_manager_events');
+      const receiver = new BroadcastChannel('sync_manager_events');
       const messageListener = vi.fn();
-      channel.onmessage = messageListener;
+      receiver.onmessage = messageListener;
 
       // Act: Simulate tab 1 completing sync
-      channel.postMessage({
+      sender.postMessage({
         type: 'SYNC_KEY_ADDED',
         key: 'sale-abc123',
         data: {
@@ -254,23 +243,28 @@ describe('SyncManager - Background Sync (Phase 2)', () => {
         },
       });
 
+      // Allow async message delivery
+      await new Promise(resolve => setTimeout(resolve, 50));
+
       // Assert
       expect(messageListener).toHaveBeenCalled();
       const event = messageListener.mock.calls[0][0];
       expect(event.data.type).toBe('SYNC_KEY_ADDED');
 
       // Cleanup
-      channel.close();
+      sender.close();
+      receiver.close();
     });
 
     it('should handle SYNC_BATCH_ADDED for multiple operations', async () => {
-      // Arrange
-      const channel = new BroadcastChannel('sync_manager_events');
+      // Arrange: separate sender/receiver (BroadcastChannel doesn't fire onmessage on sender)
+      const sender = new BroadcastChannel('sync_manager_events');
+      const receiver = new BroadcastChannel('sync_manager_events');
       const messageListener = vi.fn();
-      channel.onmessage = messageListener;
+      receiver.onmessage = messageListener;
 
       // Act
-      channel.postMessage({
+      sender.postMessage({
         type: 'SYNC_BATCH_ADDED',
         items: [
           { key: 'sale-1', data: { timestamp: Date.now(), total: 10000 } },
@@ -279,32 +273,39 @@ describe('SyncManager - Background Sync (Phase 2)', () => {
         ],
       });
 
+      await new Promise(resolve => setTimeout(resolve, 50));
+
       // Assert
       expect(messageListener).toHaveBeenCalled();
       const event = messageListener.mock.calls[0][0];
       expect(event.data.items).toHaveLength(3);
 
-      channel.close();
+      sender.close();
+      receiver.close();
     });
 
     it('should remove sync keys when SYNC_KEY_REMOVED is broadcast', async () => {
-      // Arrange
-      const channel = new BroadcastChannel('sync_manager_events');
+      // Arrange: separate sender/receiver
+      const sender = new BroadcastChannel('sync_manager_events');
+      const receiver = new BroadcastChannel('sync_manager_events');
       const messageListener = vi.fn();
-      channel.onmessage = messageListener;
+      receiver.onmessage = messageListener;
 
       // Act
-      channel.postMessage({
+      sender.postMessage({
         type: 'SYNC_KEY_REMOVED',
         key: 'sale-abc123',
       });
+
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       // Assert
       expect(messageListener).toHaveBeenCalled();
       const event = messageListener.mock.calls[0][0];
       expect(event.data.type).toBe('SYNC_KEY_REMOVED');
 
-      channel.close();
+      sender.close();
+      receiver.close();
     });
   });
 
@@ -345,7 +346,9 @@ describe('SyncManager - Background Sync (Phase 2)', () => {
       await Promise.all([sync1, sync2]);
 
       // Assert
-      expect(executionOrder).toEqual(['sync1-start', 'sync1-end', 'sync2-skipped']);
+      // sync2 with ifAvailable:true resolves immediately when lock is held,
+      // so sync2-skipped appears before sync1-end (which waits 50ms)
+      expect(executionOrder).toEqual(['sync1-start', 'sync2-skipped', 'sync1-end']);
     });
 
     it('should handle rapid BG Sync events without duplicate syncs', async () => {

@@ -31,7 +31,7 @@ describe('RedirectStep', () => {
 
     it('should cleanup interval on unmount', () => {
         mockUsedBar.mockReturnValue({ currentBar: { id: 'bar-123' } });
-        mockConfig.completionCheck.mockResolvedValue(false);
+        mockConfig.completionCheck.mockResolvedValue({ complete: false, count: 0 });
 
         const { unmount } = render(
             <BrowserRouter>
@@ -47,9 +47,9 @@ describe('RedirectStep', () => {
     });
 
     it('should not call onComplete if unmounted during timeout', async () => {
-        vi.useFakeTimers();
+        vi.useFakeTimers({ shouldAdvanceTime: true });
         mockUsedBar.mockReturnValue({ currentBar: { id: 'bar-123' } });
-        mockConfig.completionCheck.mockResolvedValue(true);
+        mockConfig.completionCheck.mockResolvedValue({ complete: true, count: 1 });
 
         const { unmount } = render(
             <BrowserRouter>
@@ -73,9 +73,8 @@ describe('RedirectStep', () => {
     });
 
     it('should auto-progress when task is complete', async () => {
-        vi.useFakeTimers();
         mockUsedBar.mockReturnValue({ currentBar: { id: 'bar-123' } });
-        mockConfig.completionCheck.mockResolvedValue(true);
+        mockConfig.completionCheck.mockResolvedValue({ complete: true, count: 1 });
 
         render(
             <BrowserRouter>
@@ -85,11 +84,7 @@ describe('RedirectStep', () => {
             </BrowserRouter>
         );
 
-        await waitFor(() => expect(mockConfig.completionCheck).toHaveBeenCalled());
-
-        vi.advanceTimersByTime(2000); // Wait for 1500ms timeout
-        expect(mockOnComplete).toHaveBeenCalled();
-
-        vi.useRealTimers();
+        // completionCheck resolves with complete:true → setTimeout(onComplete, 1500)
+        await waitFor(() => expect(mockOnComplete).toHaveBeenCalled(), { timeout: 5000 });
     });
 });

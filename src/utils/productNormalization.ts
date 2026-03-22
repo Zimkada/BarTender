@@ -60,8 +60,8 @@ export class ProductNormalization {
         // Élimine les accents (é → e, ç → c, etc)
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
-        // Élimine ponctuation (-, ', ", etc)
-        .replace(/[^\w\s]/g, '')
+        // Remplace ponctuation par espace (-, ', ", etc) pour garder la séparation des mots
+        .replace(/[^\w\s]/g, ' ')
         // Normalise espaces multiples
         .replace(/\s+/g, ' ')
         .trim()
@@ -109,8 +109,8 @@ export class ProductNormalization {
    */
   static calculateSuggestedPriceRange(localPrice: number, margin: number = 0.2) {
     return {
-      min: Math.floor(localPrice * (1 - margin)),
-      max: Math.ceil(localPrice * (1 + margin))
+      min: Math.round(localPrice * (1 - margin)),
+      max: Math.round(localPrice * (1 + margin))
     };
   }
 
@@ -171,7 +171,7 @@ export const productNormalizationTests = {
       { input: 'café crème', expected: 'cafe creme' },
       { input: 'Coca  Cola', expected: 'coca cola' },
       { input: 'HEINEKEN', expected: 'heineken' },
-      { input: "L'Espresso", expected: 'lespresso' }
+      { input: "L'Espresso", expected: 'l espresso' }
     ];
 
     return tests.map(t => ({

@@ -9,6 +9,11 @@ export default mergeConfig(
       globals: true,
       environment: 'jsdom',
       setupFiles: './src/tests/setup.ts',
+      exclude: [
+        'node_modules/**',
+        'dist/**',
+        'tests/e2e/**', // Playwright tests — run via npx playwright test, not Vitest
+      ],
     },
   })
 );
