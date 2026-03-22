@@ -61,9 +61,17 @@ export const useStockMutations = (barId?: string) => {
                 invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
             }
         },
+        onError: (error) => {
+            const msg = getErrorMessage(error);
+            const isDuplicate = msg.includes('23505') || msg.toLowerCase().includes('duplicate') || msg.toLowerCase().includes('unique');
+            import('react-hot-toast').then(({ default: toast }) => {
+                toast.error(isDuplicate ? 'Ce produit est déjà dans votre inventaire.' : `Erreur création produit: ${msg}`);
+            });
+        }
     });
 
     const updateProduct = useMutation({
+        meta: { suppressGlobalError: true }, // 🛡️ onError local gère le toast
         mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
             const barId = currentBar?.id;
             if (!barId) throw new Error("No bar selected");
@@ -89,9 +97,16 @@ export const useStockMutations = (barId?: string) => {
                 invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
             }
         },
+        onError: (error) => {
+            const msg = getErrorMessage(error);
+            import('react-hot-toast').then(({ default: toast }) => {
+                toast.error(`Erreur mise à jour produit: ${msg}`);
+            });
+        }
     });
 
     const deleteProduct = useMutation({
+        meta: { suppressGlobalError: true }, // 🛡️ onError local gère le toast
         mutationFn: async (id: string) => {
             const barId = currentBar?.id;
             if (!barId) throw new Error("No bar selected");
@@ -117,6 +132,12 @@ export const useStockMutations = (barId?: string) => {
                 invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
             }
         },
+        onError: (error) => {
+            const msg = getErrorMessage(error);
+            import('react-hot-toast').then(({ default: toast }) => {
+                toast.error(`Erreur suppression produit: ${msg}`);
+            });
+        }
     });
 
     // --- STOCK ADJUSTMENT (New) ---
@@ -169,8 +190,10 @@ export const useStockMutations = (barId?: string) => {
     // --- SUPPLIES (Complex Flow) ---
 
     const addSupply = useMutation({
-        retry: (failureCount, error) => mutationRetryFn(failureCount, error),
-        retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 5000),
+        // ⚠️ PAS de retry automatique : addSupply n'a pas d'idempotency_key côté serveur.
+        // Un retry sur réponse perdue doublerait le stock et fausserait le CUMP.
+        // Réactiver quand l'idempotence backend sera en place (Layer 4C).
+        retry: false,
         mutationFn: async (data: {
             bar_id: string;
             product_id: string;

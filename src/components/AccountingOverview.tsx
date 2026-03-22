@@ -30,7 +30,6 @@ const AnalyticsCharts = lazy(() => import('./AnalyticsCharts'));
 import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
 import type { AccountingPeriodProps } from '../types/dateFilters';
-import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
 import { useUnifiedExpenses } from '../hooks/pivots/useUnifiedExpenses';
 import { useUnifiedReturns } from '../hooks/pivots/useUnifiedReturns';
 import {
@@ -157,7 +156,6 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
     endDate: dateToYYYYMMDD(periodEnd),
     status: 'validated'  // 🎯 CORRECTION: Aligner sur RevenueManager & Revenus
   });
-  useUnifiedStock(currentBar?.id);
   const { expenses: unifiedExpenses } = useUnifiedExpenses(currentBar?.id, {
     startDate: dateToYYYYMMDD(periodStart),
     endDate: dateToYYYYMMDD(periodEnd)

@@ -2,10 +2,15 @@ import React, { useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import { salesKeys } from '../hooks/queries/useSalesQueries';
+import { returnKeys } from '../hooks/queries/useReturnsQueries';
+import { expenseKeys } from '../hooks/queries/useExpensesQueries';
+import { ticketKeys } from '../hooks/queries/useTickets';
+import { analyticsKeys } from '../hooks/queries/useAnalyticsQueries';
 
 /**
  * Bouton de rafraîchissement manuel
- * Invalide toutes les queries React Query pour forcer un refetch
+ * Invalide uniquement les queries métier utiles pour forcer un refetch
  */
 export function RefreshButton() {
   const queryClient = useQueryClient();
@@ -16,8 +21,24 @@ export function RefreshButton() {
 
     setIsRefreshing(true);
     try {
-      // Invalider toutes les queries pour forcer un refetch
-      await queryClient.invalidateQueries();
+      // Rafraîchir uniquement les données métier actives.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: salesKeys.all, refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ['stats'], refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ['stock', 'products'], refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ['stock', 'supplies'], refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ['stock', 'consignments'], refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: returnKeys.all, refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: [...expenseKeys.all, 'list'], refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ticketKeys.all, refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: analyticsKeys.all, refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ['dailySummary'], refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ['topProducts'], refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ['barMembers'], refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ['stale-pending-sales'], refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock'], refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ['stock-adjustments'], refetchType: 'active' }),
+      ]);
 
       // Feedback visuel court
       setTimeout(() => setIsRefreshing(false), 1000);

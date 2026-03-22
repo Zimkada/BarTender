@@ -17,7 +17,7 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
     const { currentBar } = useBarContext();
 
     // 🚀 Smart Hooks (Elite Mission) - Complete Migration
-    const { allProductsStockInfo, consignments, products } = useUnifiedStock(currentBarId);
+    const { allProductsStockInfo, consignments, products } = useUnifiedStock(currentBarId, { skipSupplies: true });
 
     // 🛡️ Expert Fix: Force TODAY filter to avoid loading lifetime sales history
     const todayStr = useMemo(() => getCurrentBusinessDateString(currentBar?.closingHour), [currentBar?.closingHour]);

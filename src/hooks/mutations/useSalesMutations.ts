@@ -193,7 +193,7 @@ export const useSalesMutations = (barId: string) => {
             }
 
             const safetyTimeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('GLOBAL_MUTATION_TIMEOUT')), 15000)
+                setTimeout(() => reject(new Error('GLOBAL_MUTATION_TIMEOUT')), 25000)
             );
 
             // 🛡️ Fix Risque #4: canWorkOffline Logic Check

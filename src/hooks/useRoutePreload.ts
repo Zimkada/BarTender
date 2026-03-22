@@ -15,14 +15,13 @@ import { useEffect } from 'react';
  * ], isSuperAdmin);
  */
 export function useRoutePreload(
-  imports: Array<() => Promise<any>>,
+  imports: Array<() => Promise<unknown>>,
   enabled: boolean = true
 ) {
   useEffect(() => {
     if (!enabled) return;
 
-    // Attendre 1 seconde après le rendu initial pour ne pas bloquer le thread principal
-    const timeout = setTimeout(() => {
+    const preloadRoutes = () => {
       console.log(`[useRoutePreload] Préchargement de ${imports.length} routes...`);
 
       imports.forEach((importFunc, index) => {
@@ -35,8 +34,15 @@ export function useRoutePreload(
             // Ne pas bloquer si le preload échoue - ce n'est qu'une optimisation
           });
       });
-    }, 1000);
+    };
 
-    return () => clearTimeout(timeout);
+    // Laisser le navigateur choisir un moment idle. Fallback à 5s si l'API n'existe pas.
+    if ('requestIdleCallback' in window) {
+      const idleId = window.requestIdleCallback(preloadRoutes, { timeout: 5000 });
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeout = window.setTimeout(preloadRoutes, 5000);
+    return () => window.clearTimeout(timeout);
   }, [imports, enabled]);
 }

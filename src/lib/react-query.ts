@@ -67,11 +67,16 @@ export const queryClient = new QueryClient({
   },
   // Cache global pour intercepter les erreurs de mutation
   mutationCache: new MutationCache({
-    onError: (error: unknown) => {
+    onError: (error: unknown, _variables, _context, mutation) => {
       // Ignorer les erreurs d'annulation (AbortError = comportement normal lors de reconnexion/timeout)
       const err = error as { message?: string; name?: string };
       if (err?.name === 'AbortError' || err?.message?.includes('aborted')) {
-        return; // Pas de notification pour les AbortError
+        return;
+      }
+
+      // 🛡️ Skip si la mutation a son propre onError (évite le double toast)
+      if ((mutation.options.meta as { suppressGlobalError?: boolean })?.suppressGlobalError) {
+        return;
       }
 
       // Notification automatique pour toutes les erreurs de mutation (écriture)

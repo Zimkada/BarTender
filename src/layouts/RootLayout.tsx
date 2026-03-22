@@ -1,16 +1,15 @@
 import { Outlet, Navigate } from 'react-router-dom';
-import { Suspense, lazy, useState, useEffect } from 'react';
+import { Suspense, lazy, useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useBarContext } from '../context/BarContext';
 import { useAppContext } from '../context/AppContext';
-import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
+import { useStock } from '../context/hooks/useStock';
 import { ModalProvider, useModal } from '../context/ModalContext';
 import { useStockMutations } from '../hooks/mutations/useStockMutations';
 import { useNotifications } from '../components/Notifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { realtimeService } from '../services/realtime/RealtimeService';
 import { broadcastService } from '../services/broadcast/BroadcastService';
-import { supabase } from '../lib/supabase';
 import { VersionCheckService } from '../services/versionCheck.service';
 import { useRoutePreload } from '../hooks/useRoutePreload';
 import { networkManager } from '../services/NetworkManager';
@@ -45,7 +44,7 @@ const LazySupplyModal = lazy(() => import('../components/SupplyModal').then(m =>
 function RootLayoutContent() {
   const { isAuthenticated, currentSession } = useAuth();
   const { currentBar } = useBarContext();
-  const { products, categories } = useUnifiedStock(currentBar?.id);
+  const { products, categories } = useStock();
   const { addCategory, updateCategory, linkCategory } = useAppContext();
   const { addSupply, createProduct } = useStockMutations(currentBar?.id || '');
   const { showNotification } = useNotifications();
@@ -54,6 +53,7 @@ function RootLayoutContent() {
   const { modalState, openModal, closeModal } = useModal();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false); // NEW
+  const invalidationTimeoutRef = useRef<number | null>(null);
 
   // 📦 Préchargement des pages critiques pour les utilisateurs bar
   useRoutePreload([
@@ -93,39 +93,6 @@ function RootLayoutContent() {
 
   // 🎓 Redirection vers l'Onboarding / Formation : SUPPRIMÉE (Remplacée par WelcomeCard)
   // L'utilisateur n'est plus forcé, il est invité via le Dashboard.
-
-  // 🔄 Heartbeat: Vérifier la validité du token toutes les 30 secondes
-  useEffect(() => {
-    if (!isAuthenticated || !currentSession) return;
-
-    const heartbeatInterval = setInterval(async () => {
-      // ⭐ SILENCE OFFLINE: On ne veut pas déconnecter l'utilisateur s'il est hors-ligne
-      // même si le token expire (on synchronisera au retour du réseau).
-      const { shouldShowBanner: isOffline } = networkManager.getDecision();
-      if (isOffline) {
-        console.debug('[RootLayout] Heartbeat skipped (Offline mode)');
-        return;
-      }
-
-      try {
-        // Vérifier si le session Supabase est toujours valide
-        const { data: { session: supabaseSession }, error } = await supabase.auth.getSession();
-
-        if (error || !supabaseSession) {
-          console.warn('[RootLayout] ⚠️ Token expiré détecté lors du heartbeat');
-
-          // Double check internet avant de paniquer
-          if (!networkManager.getDecision().shouldShowBanner) {
-            window.dispatchEvent(new Event('token-expired'));
-          }
-        }
-      } catch (err) {
-        console.warn('[RootLayout] Erreur lors de la vérification du heartbeat:', err);
-      }
-    }, 30000); // Vérifier toutes les 30 secondes
-
-    return () => clearInterval(heartbeatInterval);
-  }, [isAuthenticated, currentSession]);
 
   useEffect(() => {
     VersionCheckService.initialize().catch(err => {
@@ -175,23 +142,39 @@ function RootLayoutContent() {
       queryClient.invalidateQueries({ queryKey: ['stock-adjustments'] });
     };
 
+    const scheduleBusinessInvalidation = (reason: 'network-restored' | 'sync-completed') => {
+      if (invalidationTimeoutRef.current !== null) {
+        window.clearTimeout(invalidationTimeoutRef.current);
+      }
+
+      invalidationTimeoutRef.current = window.setTimeout(() => {
+        console.log(`[RootLayout] Debounced business invalidation (${reason})`);
+        invalidateBusinessData();
+        invalidationTimeoutRef.current = null;
+      }, 3000);
+    };
+
     // 1. Écouter le retour du réseau
     const unsubscribeNetwork = networkManager.subscribe((status) => {
       if (status === 'online') {
-        console.log('[RootLayout] Network restored, invalidating business data...');
-        invalidateBusinessData();
+        console.log('[RootLayout] Network restored, scheduling business invalidation...');
+        scheduleBusinessInvalidation('network-restored');
       }
     });
 
     // 2. Écouter la fin de la synchro
     const handleSyncCompleted = () => {
-      console.log('[RootLayout] Sync completed, invalidating business data...');
-      invalidateBusinessData();
+      console.log('[RootLayout] Sync completed, scheduling business invalidation...');
+      scheduleBusinessInvalidation('sync-completed');
     };
 
     window.addEventListener('sync-completed', handleSyncCompleted);
 
     return () => {
+      if (invalidationTimeoutRef.current !== null) {
+        window.clearTimeout(invalidationTimeoutRef.current);
+        invalidationTimeoutRef.current = null;
+      }
       unsubscribeNetwork();
       window.removeEventListener('sync-completed', handleSyncCompleted);
     };
@@ -259,17 +242,11 @@ function RootLayoutContent() {
                 showNotification('error', 'Aucun bar sélectionné');
                 return;
               }
-              try {
-                // ✅ Attendre le résultat de la mutation avant de fermer
-                await createProduct.mutateAsync({ ...productData, barId: currentBar.id });
-                // ✅ Fermer APRÈS succès
-                closeModal();
-                // 🛡️ Pas de toast manuel — useStockMutations gère le succès
-              } catch (error) {
-                // 🛡️ Pas de toast manuel — useStockMutations gère l'erreur
-                // Le formulaire reste ouvert pour que l'utilisateur corrige
-                throw error; // Relancer pour que ProductModal sache que c'est échoué
-              }
+              // ✅ Attendre le résultat de la mutation avant de fermer
+              await createProduct.mutateAsync({ ...productData, barId: currentBar.id });
+              // ✅ Fermer APRÈS succès
+              closeModal();
+              // 🛡️ Pas de toast manuel — useStockMutations gère le succès
             }}
             categories={categories}
             product={modalState.props.product}
