@@ -36,6 +36,24 @@ vi.mock('../../context/AuthContext', () => ({
   })),
 }));
 
+vi.mock('../../context/BarContext', () => ({
+  useBarContext: vi.fn(() => ({
+    currentBar: { id: 'bar-123', closingHour: 6 },
+  })),
+}));
+
+vi.mock('../../hooks/mutations/useSalesMutations', () => ({
+  useSalesMutations: vi.fn(() => ({
+    addSaleMutation: { mutateAsync: vi.fn(), isPending: false },
+    validateSaleMutation: { mutateAsync: vi.fn(), isPending: false },
+    rejectSaleMutation: { mutateAsync: vi.fn(), isPending: false },
+  })),
+}));
+
+vi.mock('../../lib/supabase', () => ({
+  supabase: { from: vi.fn(() => ({ select: vi.fn(() => ({ eq: vi.fn(() => ({ data: [], error: null })) })) })) },
+}));
+
 vi.mock('../../services/offlineQueue', () => ({
   offlineQueue: mockOfflineQueue,
 }));
@@ -60,7 +78,6 @@ const createWrapper = () => {
 
 describe('Sales Sync Integration', () => {
   const barId = 'bar-123';
-  const closingHour = 6;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -105,7 +122,7 @@ describe('Sales Sync Integration', () => {
       mockOfflineQueue.getOperations.mockResolvedValue(offlineOperations);
 
       const { result } = renderHook(
-        () => useUnifiedSales(barId, closingHour),
+        () => useUnifiedSales(barId),
         { wrapper: createWrapper() }
       );
 
@@ -158,7 +175,7 @@ describe('Sales Sync Integration', () => {
       );
 
       const { result } = renderHook(
-        () => useUnifiedSales(barId, closingHour),
+        () => useUnifiedSales(barId),
         { wrapper: createWrapper() }
       );
 
@@ -197,7 +214,7 @@ describe('Sales Sync Integration', () => {
       mockOfflineQueue.getOperations.mockResolvedValue([]);
 
       const { result } = renderHook(
-        () => useUnifiedSales(barId, closingHour),
+        () => useUnifiedSales(barId),
         { wrapper: createWrapper() }
       );
 
@@ -237,7 +254,7 @@ describe('Sales Sync Integration', () => {
       ]);
 
       const { result } = renderHook(
-        () => useUnifiedSales(barId, closingHour),
+        () => useUnifiedSales(barId),
         { wrapper: createWrapper() }
       );
 
@@ -279,7 +296,7 @@ describe('Sales Sync Integration', () => {
       mockOfflineQueue.getOperations.mockResolvedValue([]);
 
       const { result } = renderHook(
-        () => useUnifiedSales(barId, closingHour),
+        () => useUnifiedSales(barId),
         { wrapper: createWrapper() }
       );
 
@@ -311,7 +328,7 @@ describe('Sales Sync Integration', () => {
       mockOfflineQueue.getOperations.mockResolvedValue([]);
 
       const { result } = renderHook(
-        () => useUnifiedSales(barId, closingHour),
+        () => useUnifiedSales(barId),
         { wrapper: createWrapper() }
       );
 
@@ -332,7 +349,7 @@ describe('Sales Sync Integration', () => {
       mockOfflineQueue.getOperations.mockResolvedValue([]);
 
       const { result } = renderHook(
-        () => useUnifiedSales(undefined, closingHour),
+        () => useUnifiedSales(undefined),
         { wrapper: createWrapper() }
       );
 
@@ -350,7 +367,7 @@ describe('Sales Sync Integration', () => {
       mockOfflineQueue.getOperations.mockResolvedValue([]);
 
       const { result } = renderHook(
-        () => useUnifiedSales(barId, closingHour),
+        () => useUnifiedSales(barId),
         { wrapper: createWrapper() }
       );
 
@@ -370,7 +387,7 @@ describe('Sales Sync Integration', () => {
       mockOfflineQueue.getOperations.mockResolvedValue([]);
 
       const { result } = renderHook(
-        () => useUnifiedSales(barId, closingHour),
+        () => useUnifiedSales(barId),
         { wrapper: createWrapper() }
       );
 

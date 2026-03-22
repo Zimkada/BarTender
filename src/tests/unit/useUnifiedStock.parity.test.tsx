@@ -8,6 +8,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { ReactNode } from 'react';
 import { useUnifiedStock } from '../../hooks/pivots/useUnifiedStock';
+import { NotificationsProvider } from '../../components/Notifications';
 
 const {
     mockUseProducts,
@@ -91,7 +92,9 @@ const createWrapper = () => {
         defaultOptions: { queries: { retry: false } },
     });
     return ({ children }: { children: ReactNode }) => (
-        <QueryClientProvider client={queryClient} > {children} </QueryClientProvider>
+        <QueryClientProvider client={queryClient}>
+            <NotificationsProvider>{children}</NotificationsProvider>
+        </QueryClientProvider>
     );
 };
 
@@ -128,23 +131,41 @@ describe('useUnifiedStock Parity Test', () => {
         expect(coca?.availableStock).toBe(45);
     });
 
-    it('should ignore already synced operations', async () => {
-        // Mock SyncManager to say 'key-1' is already synced
-        mockSyncManager.getRecentlySyncedKeys.mockReturnValue(new Set(['key-1']));
+    it('should not double-deduct synced operations still in offline queue', async () => {
+        // Scénario: une vente key-1 est à la fois dans offlineSales ET recentlySyncedKeys.
+        // Le stock DB n'a pas encore refetch → physicalStock = 10 (pré-sync).
+        // La vente doit être comptée UNE SEULE FOIS (via recentlySyncedKeys skip dans étape 1).
+        const testMap = new Map([
+            ['key-1', {
+                total: 11,
+                timestamp: Date.now(),
+                payload: {
+                    idempotency_key: 'key-1',
+                    items: [
+                        { product_id: 'prod-1', quantity: 2, total_price: 11 },
+                        { product_id: 'prod-2', quantity: 5, total_price: 5 }
+                    ]
+                }
+            }]
+        ]);
+        mockSyncManager.getRecentlySyncedKeys.mockReturnValue(testMap);
 
-        const { result, rerender } = renderHook(() => useUnifiedStock(barId), {
+        const { result } = renderHook(() => useUnifiedStock(barId), {
             wrapper: createWrapper(),
         });
 
+        // La queue offline a aussi key-1 (mock par défaut). Mais l'offline query est async
+        // et ne se résout pas dans ce test. recentlySyncedKeys couvre le "flash hole"
+        // → la vente est déduite via étape 1.5, résultat: 10 - 2 = 8
         await waitFor(() => {
             const heineken = result.current.getProductStockInfo('prod-1');
-            // If synced, availableStock should equal physicalStock (10) because DB is already updated (simulator scenario where DB updated but queue not cleared yet)
-            // OR in this mock scenario: physical stock is still 10 (mock), but we ignore the offline op.
-            // So expected: 10
-            return heineken?.availableStock === 10;
+            return heineken?.availableStock === 8;
         });
 
         const heineken = result.current.getProductStockInfo('prod-1');
-        expect(heineken?.availableStock).toBe(10);
+        expect(heineken?.availableStock).toBe(8);
+
+        const coca = result.current.getProductStockInfo('prod-2');
+        expect(coca?.availableStock).toBe(45);
     });
 });

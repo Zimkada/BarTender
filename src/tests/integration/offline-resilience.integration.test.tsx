@@ -16,6 +16,7 @@ import { QueryClientProvider, QueryClient } from '@tanstack/react-query';
 import { ReactNode } from 'react';
 import { useUnifiedSales } from '../../hooks/pivots/useUnifiedSales';
 import { useUnifiedStock } from '../../hooks/pivots/useUnifiedStock';
+import { NotificationsProvider } from '../../components/Notifications';
 
 const {
   mockUseSales,
@@ -79,6 +80,16 @@ vi.mock('../../context/AuthContext', () => ({
   useAuth: mockUseAuth,
 }));
 
+vi.mock('../../context/BarContext', () => ({
+  useBarContext: vi.fn(() => ({
+    currentBar: {
+      id: 'bar-123',
+      closingHour: 6,
+      settings: { dataTier: 'lite' },
+    },
+  })),
+}));
+
 vi.mock('../../services/offlineQueue', () => ({
   offlineQueue: mockOfflineQueue,
 }));
@@ -106,7 +117,9 @@ const createWrapper = () => {
     defaultOptions: { queries: { retry: false } },
   });
   return ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <NotificationsProvider>{children}</NotificationsProvider>
+    </QueryClientProvider>
   );
 };
 

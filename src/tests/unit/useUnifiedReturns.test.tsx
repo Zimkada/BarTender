@@ -27,6 +27,19 @@ vi.mock('../../context/AuthContext', () => ({
   })),
 }));
 
+vi.mock('../../context/BarContext', () => ({
+  useBarContext: vi.fn(() => ({
+    currentBar: {
+      id: 'bar-123',
+      settings: { dataTier: 'lite' },
+    },
+  })),
+}));
+
+vi.mock('../../hooks/useRealtimeReturns', () => ({
+  useRealtimeReturns: vi.fn(),
+}));
+
 vi.mock('../../services/offlineQueue', () => ({
   offlineQueue: {
     getOperations: vi.fn(() => Promise.resolve([])),
