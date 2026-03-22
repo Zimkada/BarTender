@@ -50,7 +50,7 @@ export function getCurrentBusinessDay(closeHour: number = BUSINESS_DAY_CLOSE_HOU
  * @deprecated Utilisez `filterByBusinessDateRange` dans `businessDateHelpers.ts`.
  * Filtre les ventes pour une journée commerciale donnée
  */
-export function filterSalesByBusinessDay<T extends { date: string | Date }>(
+function filterSalesByBusinessDay<T extends { date: string | Date }>(
   sales: T[],
   targetDay: Date,
   closeHour: number = BUSINESS_DAY_CLOSE_HOUR
@@ -66,7 +66,7 @@ export function filterSalesByBusinessDay<T extends { date: string | Date }>(
  * @deprecated Utilisez `dateToYYYYMMDD` dans `businessDateHelpers.ts`.
  * Convertit une date locale en format SQL compatible avec les vues matérialisées
  */
-export function getBusinessDayDateString(date: Date = new Date(), closeHour: number = BUSINESS_DAY_CLOSE_HOUR): string {
+function getBusinessDayDateString(date: Date = new Date(), closeHour: number = BUSINESS_DAY_CLOSE_HOUR): string {
   const businessDay = getBusinessDay(date, closeHour);
   const year = businessDay.getFullYear();
   const month = String(businessDay.getMonth() + 1).padStart(2, '0');

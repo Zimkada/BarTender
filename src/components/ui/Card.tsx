@@ -25,7 +25,7 @@ const cardVariants = cva('rounded-lg border transition-colors', {
 
 export interface CardProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof cardVariants> {}
+  VariantProps<typeof cardVariants> { }
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant, padding, ...props }, ref) => {
@@ -110,5 +110,4 @@ export {
   CardTitle,
   CardDescription,
   CardContent,
-  cardVariants,
 };

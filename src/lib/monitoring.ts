@@ -52,8 +52,8 @@ export function initMonitoring(): void {
         if (exception instanceof Error) {
           // Skip network errors like 404, 403
           if (exception.message?.includes('404') ||
-              exception.message?.includes('403') ||
-              exception.message?.includes('401')) {
+            exception.message?.includes('403') ||
+            exception.message?.includes('401')) {
             return null;
           }
         }
@@ -96,7 +96,7 @@ export function captureError(error: unknown, context?: Record<string, unknown>):
 /**
  * Capture a message for monitoring (warnings, info, etc.)
  */
-export function captureMessage(message: string, level: 'fatal' | 'error' | 'warning' | 'info' | 'debug' = 'info'): void {
+function captureMessage(message: string, level: 'fatal' | 'error' | 'warning' | 'info' | 'debug' = 'info'): void {
   if (!IS_PRODUCTION || !DSN) {
     console.log(`[${level.toUpperCase()}]`, message);
     return;
@@ -109,7 +109,7 @@ export function captureMessage(message: string, level: 'fatal' | 'error' | 'warn
  * Add breadcrumb for better context in error traces
  * Use this to track user actions before an error occurs
  */
-export function addBreadcrumb(message: string, data?: Record<string, unknown>): void {
+function addBreadcrumb(message: string, data?: Record<string, unknown>): void {
   if (!IS_PRODUCTION || !DSN) {
     return;
   }
