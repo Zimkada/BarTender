@@ -14,6 +14,36 @@ export type DBReturn = Database['public']['Tables']['returns']['Row'] & {
 
 type ReturnInsert = Database['public']['Tables']['returns']['Insert'];
 
+const RETURNS_LIST_SELECT = `
+    id,
+    bar_id,
+    sale_id,
+    product_id,
+    product_name,
+    product_volume,
+    quantity_sold,
+    quantity_returned,
+    reason,
+    returned_by,
+    server_id,
+    returned_at,
+    business_date,
+    refund_amount,
+    is_refunded,
+    status,
+    auto_restock,
+    manual_restock_required,
+    restocked_at,
+    notes,
+    custom_refund,
+    custom_restock,
+    original_seller,
+    operating_mode_at_creation,
+    validated_by,
+    rejected_by,
+    linked_sale_id
+`;
+
 export class ReturnsService {
     /**
      * Créer un retour
@@ -90,7 +120,7 @@ export class ReturnsService {
 
             let query = supabase
                 .from('returns')
-                .select('*')
+                .select(RETURNS_LIST_SELECT)
                 .eq('bar_id', barId)
                 .order('returned_at', { ascending: false });
 
@@ -140,7 +170,7 @@ export class ReturnsService {
         try {
             let query = supabase
                 .from('returns')
-                .select('*')
+                .select(RETURNS_LIST_SELECT)
                 .order('returned_at', { ascending: false });
 
             const formatToYYYYMMDD = (date: Date | string): string => {

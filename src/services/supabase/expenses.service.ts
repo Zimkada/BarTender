@@ -6,6 +6,20 @@ type ExpenseInsert = Database['public']['Tables']['expenses']['Insert'];
 type ExpenseCategoryCustom = Database['public']['Tables']['expense_categories_custom']['Row'];
 type ExpenseCategoryCustomInsert = Database['public']['Tables']['expense_categories_custom']['Insert'];
 
+const EXPENSES_LIST_SELECT = `
+    id,
+    bar_id,
+    amount,
+    category,
+    custom_category_id,
+    related_supply_id,
+    description,
+    notes,
+    created_by,
+    expense_date,
+    created_at
+`;
+
 export class ExpensesService {
     /**
      * Créer une dépense
@@ -32,7 +46,7 @@ export class ExpensesService {
         try {
             let query = supabase
                 .from('expenses')
-                .select('*')
+                .select(EXPENSES_LIST_SELECT)
                 .eq('bar_id', barId)
                 .order('expense_date', { ascending: false });
 

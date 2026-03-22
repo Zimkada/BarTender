@@ -69,6 +69,44 @@ export interface OfflineSale {
   isOptimistic: boolean;
 }
 
+const SALES_LIST_SELECT = `
+  id,
+  bar_id,
+  items,
+  subtotal,
+  discount_total,
+  total,
+  payment_method,
+  status,
+  created_by,
+  sold_by,
+  created_at,
+  validated_by,
+  validated_at,
+  rejected_by,
+  rejected_at,
+  business_date,
+  customer_name,
+  customer_phone,
+  notes,
+  server_id,
+  ticket_id,
+  idempotency_key,
+  source_return_id,
+  seller:users!sales_sold_by_fkey (name),
+  validator:users!sales_validated_by_fkey (name)
+`;
+
+const SALES_TICKET_SELECT = `
+  id,
+  items,
+  total,
+  payment_method,
+  created_at,
+  ticket_id,
+  idempotency_key
+`;
+
 export class SalesService {
   /**
    * Wrapper with timeout for Supabase calls
@@ -395,7 +433,7 @@ export class SalesService {
   static async getSalesByTicketId(ticketId: string): Promise<any[]> {
     const { data, error } = await supabase
       .from('sales')
-      .select('*')
+      .select(SALES_TICKET_SELECT)
       .eq('ticket_id', ticketId)
       .order('created_at', { ascending: true });
 
@@ -413,11 +451,7 @@ export class SalesService {
   }): Promise<DBSale[]> {
     let query = supabase
       .from('sales')
-      .select(`
-        *,
-        seller:users!sales_sold_by_fkey (name),
-        validator:users!sales_validated_by_fkey (name)
-      `)
+      .select(SALES_LIST_SELECT)
       .eq('bar_id', barId)
       .order('business_date', { ascending: false });
 
