@@ -276,19 +276,26 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
         return allProductsStockInfo[productId] || null;
     }, [allProductsStockInfo]);
 
-    const getAverageCostPerUnit = useCallback((productId: string): number => {
-        // 🛡️ Expert Optimization: Primary source = cached value in Product object
-        const product = products.find(p => p.id === productId);
+    // 🛡️ Maps O(1) pré-indexées pour getAverageCostPerUnit
+    const productMap = useMemo(() => new Map(products.map(p => [p.id, p])), [products]);
+    const suppliesByProductMap = useMemo(() => {
+        const map = new Map<string, typeof supplies>();
+        for (const s of supplies) {
+            const existing = map.get(s.productId);
+            if (existing) { existing.push(s); } else { map.set(s.productId, [s]); }
+        }
+        return map;
+    }, [supplies]);
 
-        // If supplies are loaded (Operations tab), the calculated value is more precise for recent changes
-        // Otherwise, use the server-cached currentAverageCost
-        const productSupplies = supplies.filter(s => s.productId === productId);
-        if (productSupplies.length === 0) return product?.currentAverageCost || 0;
+    const getAverageCostPerUnit = useCallback((productId: string): number => {
+        const product = productMap.get(productId);
+        const productSupplies = suppliesByProductMap.get(productId);
+        if (!productSupplies || productSupplies.length === 0) return product?.currentAverageCost || 0;
 
         const totalCost = productSupplies.reduce((sum, s) => sum + s.totalCost, 0);
         const totalQuantity = productSupplies.reduce((sum, s) => sum + s.quantity, 0);
         return totalQuantity > 0 ? totalCost / totalQuantity : (product?.currentAverageCost || 0);
-    }, [supplies, products]);
+    }, [productMap, suppliesByProductMap]);
 
     // ===== LOGIQUE DE CONSIGNATION =====
 

@@ -57,6 +57,11 @@ export class ExpensesService {
                 query = query.lte('expense_date', options.endDate);
             }
 
+            // 🛡️ Garde-fou egress : si aucun filtre de date, limiter à 500
+            if (!options?.startDate && !options?.endDate) {
+                query = query.limit(500);
+            }
+
             const { data, error } = await query;
             if (error) throw error;
             return data || [];

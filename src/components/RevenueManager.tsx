@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { DollarSign, Search, ArrowDownToLine, HandCoins, Smartphone, CreditCard } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { DollarSign, Search, ArrowDownToLine, HandCoins, Smartphone, CreditCard, ChevronDown } from 'lucide-react';
 import { useBarContext } from '../context/BarContext';
 import { useDailyAnalytics } from '../hooks/queries/useAnalyticsQueries';
 import { useViewport } from '../hooks/useViewport';
@@ -15,6 +15,8 @@ export function RevenueManager({ period }: RevenueManagerProps) {
     const { currentBar } = useBarContext();
     const { isMobile } = useViewport();
     const [searchTerm, setSearchTerm] = useState('');
+    const PAGE_SIZE = 100;
+    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
     // Format price inline to avoid import issues
     const formatPrice = (price: number, hideCurrency: boolean = false) => {
@@ -48,6 +50,9 @@ export function RevenueManager({ period }: RevenueManagerProps) {
             new Date(b.sale_date).getTime() - new Date(a.sale_date).getTime()
         );
     }, [rawDailyData]);
+
+    // Reset pagination quand les filtres changent
+    useEffect(() => { setVisibleCount(PAGE_SIZE); }, [searchTerm, timeRange, startDate, endDate]);
 
     const filteredDays = useMemo(() => {
         if (!searchTerm) return dailyDataArray;
@@ -166,7 +171,7 @@ export function RevenueManager({ period }: RevenueManagerProps) {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {filteredDays.map((day: any, idx: number) => (
+                                {filteredDays.slice(0, visibleCount).map((day: any, idx: number) => (
                                     <tr key={day.sale_date || idx} className="hover:bg-gray-50/50 transition-colors group">
                                         <td className="py-2 md:py-4 text-xs md:text-sm font-medium text-gray-900">
                                             {day.sale_date?.split('-').reverse().join('-')}
@@ -180,6 +185,17 @@ export function RevenueManager({ period }: RevenueManagerProps) {
                                 ))}
                             </tbody>
                         </table>
+                        {filteredDays.length > visibleCount && (
+                            <div className="flex justify-center pt-4 pb-2">
+                                <button
+                                    onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                                >
+                                    <ChevronDown size={16} />
+                                    Voir plus ({filteredDays.length - visibleCount} jours restants)
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

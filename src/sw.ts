@@ -17,10 +17,8 @@ import { ExpirationPlugin } from 'workbox-expiration';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 
 // Déclarer les types TypeScript pour les event listeners
-declare const self: ServiceWorkerGlobalScope;
+declare const self: ServiceWorkerGlobalScope & { __WB_MANIFEST: any[] };
 
-// ✨ Workbox injectera le manifest ici au build
-declare const self: any;
 const WORKBOX_MANIFEST = self.__WB_MANIFEST || [];
 
 // Configurer le precache avec le manifest injecté par Workbox
@@ -42,7 +40,7 @@ registerRoute(
   })
 );
 
-// 2. Supabase API - NetworkFirst
+// 2. Supabase API - NetworkFirst avec fallback offline
 registerRoute(
   ({ url }) => url.hostname.includes('supabase.co') && url.pathname.includes('/rest/v1/'),
   new NetworkFirst({
@@ -50,12 +48,23 @@ registerRoute(
     networkTimeoutSeconds: 10,
     plugins: [
       new ExpirationPlugin({
-        maxEntries: 200,
+        maxEntries: 100,
         maxAgeSeconds: 60 * 15 // 15 minutes
       }),
       new CacheableResponsePlugin({
-        statuses: [0, 200]
-      })
+        // 🛡️ FIX: Exclure status 0 (opaque) — cause Cache.put() network error
+        statuses: [200]
+      }),
+      {
+        // 🛡️ FIX: Fallback quand réseau ET cache échouent → JSON vide au lieu de "no-response"
+        // React Query traitera [] comme une liste vide plutôt qu'un crash
+        handlerDidError: async () => new Response('[]', {
+          status: 503,
+          headers: { 'Content-Type': 'application/json', 'X-SW-Fallback': 'offline-empty' }
+        }),
+        // Ignorer silencieusement les Cache.put() failures (réponse trop large, etc.)
+        cacheDidUpdate: async () => { /* no-op — supprime l'erreur Cache.put() */ },
+      }
     ]
   })
 );

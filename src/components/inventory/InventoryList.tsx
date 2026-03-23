@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Package } from 'lucide-react';
 import { Product, Category, ProductStockInfo } from '../../types';
 import { InventoryCard } from './InventoryCard';
@@ -38,9 +39,9 @@ export function InventoryList({
         );
     }
 
-    const getCategoryName = (categoryId: string) => {
-        return categories.find(cat => cat.id === categoryId)?.name || 'Sans catégorie';
-    };
+    // 🛡️ Map O(1) pour lookup catégorie — évite O(N×M) dans le .map() produits
+    const categoryMap = useMemo(() => new Map(categories.map(c => [c.id, c.name])), [categories]);
+    const getCategoryName = (categoryId: string) => categoryMap.get(categoryId) || 'Sans catégorie';
 
     const getMargin = (product: Product) => {
         const avgCost = getAverageCostPerUnit(product.id);

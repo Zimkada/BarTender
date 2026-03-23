@@ -137,6 +137,11 @@ export class ReturnsService {
                 query = query.lte('business_date', formatToYYYYMMDD(endDate));
             }
 
+            // 🛡️ Garde-fou egress : si aucun filtre de date, limiter à 500
+            if (!startDate && !endDate) {
+                query = query.limit(500);
+            }
+
             const { data: allReturns, error } = await query;
 
             if (error) throw error;

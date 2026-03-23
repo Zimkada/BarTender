@@ -19,15 +19,14 @@ export function ProductSelector({ isOpen, onClose, products, categories, onAddTo
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [quantities, setQuantities] = useState<Record<string, number>>({});
 
-    // Fonction helper pour obtenir le nom de catégorie
+    // 🛡️ Map O(1) pour lookup catégorie — évite O(N) dans le .map() produits
+    const categoryNameMap = useMemo(() => new Map(categories.map(c => [c.id, c.name])), [categories]);
     const getCategoryName = (categoryId: string): string => {
         if (!categoryId) return 'Sans catégorie';
         if (!categories || categories.length === 0) {
-            // Fallback si les catégories ne sont pas encore chargées
             return `Catégorie ${categoryId.substring(0, 8)}...`;
         }
-        const category = categories.find(c => c.id === categoryId);
-        return category?.name || 'Sans catégorie';
+        return categoryNameMap.get(categoryId) || 'Sans catégorie';
     };
 
     // Extraction des catégories uniques avec mapping vers noms
