@@ -113,8 +113,10 @@ persistQueryClient({
   queryClient: queryClient as any,
   persister: asyncStoragePersister,
   maxAge: CACHE_STRATEGY.salesAndStock.gcTime, // Harmonisé avec GC Time
-  // Désactiver la restoration automatique au démarrage (lazy restore)
-  // Cela évite de bloquer le thread principal pendant le chargement initial
+  // 🛡️ FIX: Invalider le cache persisté quand la structure des données change
+  // Évite "e.then is not a function" si le cache localStorage est incompatible
+  // Incrémenter ce numéro à chaque changement de structure du cache
+  buster: 'cache-v1',
   dehydrateOptions: {
     shouldDehydrateQuery: (query) => {
       // Ne persister que les queries critiques (ventes, stock)
