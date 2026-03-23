@@ -24,7 +24,6 @@ import App from './App';
 
 // PWA Components
 import { PWAInstallPrompt } from './components/PWAInstallPrompt';
-import { PWAUpdatePrompt } from './components/PWAUpdatePrompt';
 
 // Config
 import { queryClient } from './lib/react-query';
@@ -97,7 +96,6 @@ createRoot(document.getElementById('root')!).render(
                           <RouterProvider router={router} />
                           {/* PWA Components */}
                           <PWAInstallPrompt />
-                          <PWAUpdatePrompt />
                         </ErrorBoundary>
                       </ModalProvider>
                     </AppProvider>
