@@ -19,6 +19,8 @@ interface ConsignmentCardProps {
     users: UserType[];
     sales: Sale[];
     isReadOnly?: boolean;
+    /** Pre-computed seller — skips internal sales.find() + users.find() when provided */
+    precomputedSeller?: UserType;
 }
 
 export function ConsignmentCard({
@@ -27,19 +29,21 @@ export function ConsignmentCard({
     onForfeit,
     users,
     sales,
-    isReadOnly = false
+    isReadOnly = false,
+    precomputedSeller,
 }: ConsignmentCardProps) {
     const { formatPrice } = useCurrencyFormatter();
 
-    // Attribution logic
+    // Attribution logic — O(1) when precomputedSeller is provided
     const originalSeller = React.useMemo(() => {
+        if (precomputedSeller !== undefined) return precomputedSeller;
         const originalSale = sales.find(s => s.id === consignment.saleId);
         if (originalSale) {
             const serverUserId = originalSale.soldBy;
             return users.find(u => u.id === serverUserId);
         }
         return undefined;
-    }, [sales, consignment.saleId, users]);
+    }, [precomputedSeller, sales, consignment.saleId, users]);
 
     const expiresAt = new Date(consignment.expiresAt);
     const now = new Date();

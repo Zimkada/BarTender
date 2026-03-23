@@ -1,11 +1,12 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   Search,
   Filter,
   List,
   BarChart3,
   DollarSign,
-  RotateCcw
+  RotateCcw,
+  ChevronDown
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getMobileAnimationProps } from "../utils/disableAnimationsOnMobile";
@@ -57,6 +58,15 @@ export default function ReturnsPage() {
   const users = Array.isArray(barMembers)
     ? (barMembers.map((m) => m.user).filter(Boolean) as User[])
     : [];
+  // O(1) user lookup — avoids O(N×M) .find() per return card
+  const usersMap = useMemo(() => {
+    const map = new Map<string, User>();
+    for (const u of users) map.set(u.id, u);
+    return map;
+  }, [users]);
+  const getUserById = useCallback((id: string | undefined | null) => {
+    return id ? usersMap.get(id) || null : null;
+  }, [usersMap]);
   const { formatPrice } = useCurrencyFormatter();
   const { currentSession } = useAuth();
   const { showSuccess, showError } = useFeedback();
@@ -76,6 +86,8 @@ export default function ReturnsPage() {
   const showCreateReturn = activeTab === "create";
   const showStats = activeTab === "stats";
 
+  const RETURNS_PAGE_SIZE = 100;
+  const [visibleCount, setVisibleCount] = useState(RETURNS_PAGE_SIZE);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [filterStatus, setFilterStatus] = useState<
     "all" | "pending" | "approved" | "rejected"
@@ -455,14 +467,23 @@ export default function ReturnsPage() {
     }
   };
 
-  const filteredReturns = filteredReturnsByFilters.filter((returnItem) => {
+  const allFilteredReturns = useMemo(() => filteredReturnsByFilters.filter((returnItem) => {
     const matchesStatus =
       filterStatus === "all" ||
       (filterStatus === "approved"
         ? returnItem.status === "approved" || returnItem.status === "validated" || returnItem.status === "restocked"
         : returnItem.status === filterStatus);
     return matchesStatus;
-  });
+  }), [filteredReturnsByFilters, filterStatus]);
+
+  // Client pagination
+  const filteredReturns = useMemo(() => allFilteredReturns.slice(0, visibleCount), [allFilteredReturns, visibleCount]);
+  const hasMoreReturns = allFilteredReturns.length > visibleCount;
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setVisibleCount(RETURNS_PAGE_SIZE);
+  }, [searchTerm, filterStatus, timeRange, startDate, endDate]);
 
   const tabsConfig = [
     ...(canCreate
@@ -590,19 +611,14 @@ export default function ReturnsPage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-4">
-                    {filteredReturns.map((returnItem) => {
-                      const serverUser = returnItem.serverId
-                        ? users.find((u) => u.id === returnItem.serverId) || null
-                        : null;
-
-                      return (
+                    {filteredReturns.map((returnItem) => (
                         <ReturnCard
                           key={returnItem.id}
                           returnItem={returnItem as Return}
                           returnReasons={returnReasons}
-                          serverUser={serverUser}
-                          initiatorUser={users.find(u => u.id === returnItem.returnedBy) || null}
-                          validatorUser={users.find(u => u.id === ((returnItem as Return).validatedBy || (returnItem as Return).validated_by || (returnItem as Return).rejectedBy || (returnItem as Return).rejected_by)) || null}
+                          serverUser={getUserById(returnItem.serverId)}
+                          initiatorUser={getUserById(returnItem.returnedBy)}
+                          validatorUser={getUserById((returnItem as Return).validatedBy || (returnItem as Return).validated_by || (returnItem as Return).rejectedBy || (returnItem as Return).rejected_by)}
                           isReadOnly={isReadOnly}
                           isMobile={true}
                           formatPrice={formatPrice}
@@ -610,8 +626,18 @@ export default function ReturnsPage() {
                           onReject={rejectReturn}
                           onManualRestock={manualRestock}
                         />
-                      );
-                    })}
+                    ))}
+                    {hasMoreReturns && (
+                      <div className="flex justify-center py-4">
+                        <button
+                          onClick={() => setVisibleCount(c => c + RETURNS_PAGE_SIZE)}
+                          className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                        >
+                          <ChevronDown size={16} />
+                          Voir plus ({allFilteredReturns.length - visibleCount} restants)
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -661,19 +687,14 @@ export default function ReturnsPage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 gap-4">
-                    {filteredReturns.map((returnItem) => {
-                      const serverUser = returnItem.serverId
-                        ? users.find((u) => u.id === returnItem.serverId) || null
-                        : null;
-
-                      return (
+                    {filteredReturns.map((returnItem) => (
                         <ReturnCard
                           key={returnItem.id}
                           returnItem={returnItem as any}
                           returnReasons={returnReasons}
-                          serverUser={serverUser}
-                          initiatorUser={users.find(u => u.id === returnItem.returnedBy) || null}
-                          validatorUser={users.find(u => u.id === (returnItem.validatedBy || returnItem.validated_by || returnItem.rejectedBy || returnItem.rejected_by)) || null}
+                          serverUser={getUserById(returnItem.serverId)}
+                          initiatorUser={getUserById(returnItem.returnedBy)}
+                          validatorUser={getUserById(returnItem.validatedBy || returnItem.validated_by || returnItem.rejectedBy || returnItem.rejected_by)}
                           isReadOnly={isReadOnly}
                           isMobile={false}
                           formatPrice={formatPrice}
@@ -681,8 +702,18 @@ export default function ReturnsPage() {
                           onReject={rejectReturn}
                           onManualRestock={manualRestock}
                         />
-                      );
-                    })}
+                    ))}
+                    {hasMoreReturns && (
+                      <div className="flex justify-center py-4">
+                        <button
+                          onClick={() => setVisibleCount(c => c + RETURNS_PAGE_SIZE)}
+                          className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                        >
+                          <ChevronDown size={16} />
+                          Voir plus ({allFilteredReturns.length - visibleCount} restants)
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </motion.div>

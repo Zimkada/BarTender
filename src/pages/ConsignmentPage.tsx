@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   Package,
   Search,
   Clock,
   Archive,
+  ChevronDown,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUnifiedStock } from '../hooks/pivots/useUnifiedStock';
@@ -112,6 +113,22 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
     Array.isArray(barMembers) ? barMembers.map((m) => m.user).filter(Boolean) as UserType[] : [],
     [barMembers]
   );
+
+  // O(1) lookups for ConsignmentCard — avoids N × sales.find() + users.find()
+  const salesMap = useMemo(() => {
+    const map = new Map<string, typeof sales[number]>();
+    for (const s of sales) map.set(s.id, s);
+    return map;
+  }, [sales]);
+  const usersMap = useMemo(() => {
+    const map = new Map<string, UserType>();
+    for (const u of users) map.set(u.id, u);
+    return map;
+  }, [users]);
+  const getSellerForConsignment = useCallback((consignment: Consignment): UserType | undefined => {
+    const sale = consignment.saleId ? salesMap.get(consignment.saleId) : undefined;
+    return sale?.soldBy ? usersMap.get(sale.soldBy) : undefined;
+  }, [salesMap, usersMap]);
 
   const isServerRole = currentSession?.role === "serveur";
 
@@ -275,6 +292,7 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
               users={users}
               sales={sales}
               isReadOnly={isReadOnly}
+              precomputedSeller={getSellerForConsignment(consignment)}
             />
           ))}
         </div>
@@ -284,6 +302,8 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
 };
 
 // ===== TAB 3: HISTORIQUE =====
+const HISTORY_PAGE_SIZE = 100;
+
 const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
   const { currentBar } = useBarContext();
 
@@ -299,11 +319,28 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
   const { currentSession } = useAuth();
   const { formatPrice } = useCurrencyFormatter();
   const [filterStatus, setFilterStatus] = useState<"all" | "claimed" | "expired" | "forfeited">("all");
+  const [visibleCount, setVisibleCount] = useState(HISTORY_PAGE_SIZE);
 
   const users = useMemo(() =>
     Array.isArray(barMembers) ? barMembers.map((m) => m.user).filter(Boolean) as UserType[] : [],
     [barMembers]
   );
+
+  // O(1) lookups — replaces nested sales.find() + users.find() per row
+  const salesMap = useMemo(() => {
+    const map = new Map<string, typeof sales[number]>();
+    for (const s of sales) map.set(s.id, s);
+    return map;
+  }, [sales]);
+  const usersMap = useMemo(() => {
+    const map = new Map<string, UserType>();
+    for (const u of users) map.set(u.id, u);
+    return map;
+  }, [users]);
+  const getSellerForConsignment = useCallback((consignment: Consignment): UserType | undefined => {
+    const sale = consignment.saleId ? salesMap.get(consignment.saleId) : undefined;
+    return sale?.soldBy ? usersMap.get(sale.soldBy) : undefined;
+  }, [salesMap, usersMap]);
 
   const isServerRole = currentSession?.role === "serveur";
 
@@ -330,6 +367,15 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   }, [historyConsignments]);
+
+  // Client pagination
+  const paginatedHistory = useMemo(() => sortedHistory.slice(0, visibleCount), [sortedHistory, visibleCount]);
+  const hasMore = sortedHistory.length > visibleCount;
+
+  // Reset pagination when filter changes
+  React.useEffect(() => {
+    setVisibleCount(HISTORY_PAGE_SIZE);
+  }, [filterStatus]);
 
   return (
     <div className="space-y-6">
@@ -360,13 +406,8 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
         </div>
       ) : (
         <div className="space-y-3">
-          {sortedHistory.map((consignment: Consignment) => {
-            let originalSeller: UserType | undefined = undefined;
-            const originalSale = sales.find((s) => s.id === consignment.saleId);
-            if (originalSale) {
-              const serverUserId = originalSale.soldBy;
-              originalSeller = users.find((u) => u.id === serverUserId);
-            }
+          {paginatedHistory.map((consignment: Consignment) => {
+            const originalSeller = getSellerForConsignment(consignment);
 
             return (
               <div
@@ -400,6 +441,17 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
               </div>
             );
           })}
+          {hasMore && (
+            <div className="flex justify-center py-4">
+              <button
+                onClick={() => setVisibleCount(c => c + HISTORY_PAGE_SIZE)}
+                className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+              >
+                <ChevronDown size={16} />
+                Voir plus ({sortedHistory.length - visibleCount} restantes)
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
