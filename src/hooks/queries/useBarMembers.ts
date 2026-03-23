@@ -66,6 +66,6 @@ export const useBarMembers = (barId: string | undefined, options?: { refetchInte
         staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
         gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
         // 🚀 Hybride: Realtime ou polling 60s (ou valeur custom)
-        refetchInterval: smartSync.isSynced ? false : (options?.refetchInterval !== undefined ? options.refetchInterval : 60000),
+        refetchInterval: options?.refetchInterval !== undefined ? options.refetchInterval : smartSync.adaptedRefetchInterval,
     });
 };

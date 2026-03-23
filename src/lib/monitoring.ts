@@ -1,18 +1,29 @@
 /**
- * Monitoring & Error Tracking - Sentry Integration
+ * Monitoring & Error Tracking - Sentry Integration (Lazy-loaded)
  *
- * Centralizes error reporting, performance monitoring, and exception handling
- * Only active in production (VITE_SENTRY_DSN must be set)
+ * Sentry is loaded dynamically to avoid blocking the initial render.
+ * All public functions are safe to call before Sentry loads — they queue
+ * or no-op gracefully.
  */
-
-import * as Sentry from '@sentry/react';
 
 const DSN = import.meta.env.VITE_SENTRY_DSN;
 const IS_PRODUCTION = import.meta.env.PROD;
 
+// Lazy-loaded Sentry module reference
+let _Sentry: typeof import('@sentry/react') | null = null;
+let _initPromise: Promise<void> | null = null;
+
+/**
+ * Load Sentry dynamically (deferred from critical path)
+ */
+function loadSentry(): Promise<typeof import('@sentry/react')> {
+  return import('@sentry/react');
+}
+
 /**
  * Initialize Sentry for error tracking and performance monitoring
- * Only initializes if DSN is configured AND running in production
+ * Only initializes if DSN is configured AND running in production.
+ * Loads Sentry lazily to reduce initial bundle size (~30-40KB gzip saved).
  */
 export function initMonitoring(): void {
   if (!IS_PRODUCTION || !DSN) {
@@ -20,73 +31,79 @@ export function initMonitoring(): void {
     return;
   }
 
-  Sentry.init({
-    dsn: DSN,
-    environment: IS_PRODUCTION ? 'production' : 'development',
+  // Start loading Sentry asynchronously — does not block render
+  _initPromise = loadSentry().then((Sentry) => {
+    _Sentry = Sentry;
 
-    // Performance Monitoring
-    tracesSampleRate: 0.1, // 10% of transactions (users, page loads, etc.)
+    Sentry.init({
+      dsn: DSN,
+      environment: IS_PRODUCTION ? 'production' : 'development',
 
-    // Error Sampling (catch 100% of errors)
-    sampleRate: 1.0,
+      // Performance Monitoring
+      tracesSampleRate: 0.1, // 10% of transactions
 
-    // Disable Session Replay (POS app - sensitive data, no need for replays)
-    integrations: [
-      Sentry.replayIntegration({
-        maskAllText: false,
-        blockAllMedia: false,
-      }),
-    ],
-    replaysSessionSampleRate: 0, // Don't record sessions
-    replaysOnErrorSampleRate: 0, // Don't record on errors either
+      // Error Sampling (catch 100% of errors)
+      sampleRate: 1.0,
 
-    // Source maps configuration
-    // Note: source maps are uploaded by @sentry/vite-plugin during build
-    // The plugin handles everything automatically
+      // Disable Session Replay (POS app - sensitive data)
+      integrations: [
+        Sentry.replayIntegration({
+          maskAllText: false,
+          blockAllMedia: false,
+        }),
+      ],
+      replaysSessionSampleRate: 0,
+      replaysOnErrorSampleRate: 0,
 
-    // PII Scrubbing - don't send user IPs, emails, etc.
-    beforeSend(event, hint) {
-      // Don't send 4xx errors (client errors) - just development noise
-      if (event.exception) {
-        const exception = hint.originalException;
-        if (exception instanceof Error) {
-          // Skip network errors like 404, 403
-          if (exception.message?.includes('404') ||
-            exception.message?.includes('403') ||
-            exception.message?.includes('401')) {
-            return null;
+      beforeSend(event, hint) {
+        // Don't send 4xx errors (client errors) - just noise
+        if (event.exception) {
+          const exception = hint.originalException;
+          if (exception instanceof Error) {
+            if (exception.message?.includes('404') ||
+              exception.message?.includes('403') ||
+              exception.message?.includes('401')) {
+              return null;
+            }
           }
         }
-      }
-      return event;
-    },
+        return event;
+      },
 
-    allowUrls: [
-      /^https:\/\/bartenderpro-africa\.com/,   // Custom domain (production)
-      /^https:\/\/bar-tender-ten\.vercel\.app/, // Vercel URL (fallback)
-    ],
+      allowUrls: [
+        /^https:\/\/bartenderpro-africa\.com/,
+        /^https:\/\/bar-tender-ten\.vercel\.app/,
+      ],
+    });
+
+    console.log('[Monitoring] Sentry initialized for error tracking');
+  }).catch((err) => {
+    console.warn('[Monitoring] Failed to load Sentry:', err);
   });
-
-  console.log('[Monitoring] Sentry initialized for error tracking');
 }
 
 /**
  * Centralized error capture function
- * Use this instead of console.error for errors you want to track
+ * Safe to call before Sentry is loaded — errors before init are logged to console.
  */
 export function captureError(error: unknown, context?: Record<string, unknown>): void {
   if (!IS_PRODUCTION || !DSN) {
-    // In dev, just log to console
     console.error('Error:', error, context);
     return;
   }
 
+  if (!_Sentry) {
+    // Sentry not loaded yet — log to console (will be rare, only during first ~100ms)
+    console.error('[Monitoring] Error before Sentry init:', error, context);
+    return;
+  }
+
   if (error instanceof Error) {
-    Sentry.captureException(error, {
+    _Sentry.captureException(error, {
       contexts: context ? { app: context } : undefined,
     });
   } else {
-    Sentry.captureMessage(String(error), {
+    _Sentry.captureMessage(String(error), {
       level: 'error',
       contexts: context ? { app: context } : undefined,
     });
@@ -94,56 +111,35 @@ export function captureError(error: unknown, context?: Record<string, unknown>):
 }
 
 /**
- * Capture a message for monitoring (warnings, info, etc.)
- */
-function captureMessage(message: string, level: 'fatal' | 'error' | 'warning' | 'info' | 'debug' = 'info'): void {
-  if (!IS_PRODUCTION || !DSN) {
-    console.log(`[${level.toUpperCase()}]`, message);
-    return;
-  }
-
-  Sentry.captureMessage(message, level);
-}
-
-/**
- * Add breadcrumb for better context in error traces
- * Use this to track user actions before an error occurs
- */
-function addBreadcrumb(message: string, data?: Record<string, unknown>): void {
-  if (!IS_PRODUCTION || !DSN) {
-    return;
-  }
-
-  Sentry.addBreadcrumb({
-    message,
-    data,
-    level: 'info',
-    timestamp: Date.now() / 1000,
-  });
-}
-
-/**
  * Set user context for error reports
  * Call this after user logs in
  */
 export function setUserContext(userId: string, email?: string): void {
-  if (!IS_PRODUCTION || !DSN) {
+  if (!IS_PRODUCTION || !DSN) return;
+
+  // If Sentry isn't loaded yet, wait for it
+  if (!_Sentry) {
+    _initPromise?.then(() => {
+      _Sentry?.setUser({ id: userId, email });
+    });
     return;
   }
 
-  Sentry.setUser({
-    id: userId,
-    email: email,
-  });
+  _Sentry.setUser({ id: userId, email });
 }
 
 /**
  * Clear user context (on logout)
  */
 export function clearUserContext(): void {
-  if (!IS_PRODUCTION || !DSN) {
+  if (!IS_PRODUCTION || !DSN) return;
+
+  if (!_Sentry) {
+    _initPromise?.then(() => {
+      _Sentry?.setUser(null);
+    });
     return;
   }
 
-  Sentry.setUser(null);
+  _Sentry.setUser(null);
 }

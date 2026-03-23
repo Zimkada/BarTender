@@ -64,7 +64,7 @@ export const useActivePromotions = (barId: string | undefined) => {
         enabled: isEnabled,
         staleTime: CACHE_STRATEGY.promotionsAndCategories.staleTime,
         gcTime: CACHE_STRATEGY.promotionsAndCategories.gcTime,
-        refetchInterval: smartSync.isSynced ? false : 30000, // 🚀 Hybrid: Realtime or 30s polling
+        refetchInterval: smartSync.adaptedRefetchInterval, // 🚀 Hybride: adaptatif réseau (2G: off, 3G: 90s, 4G: 30s)
         placeholderData: (previousData: Promotion[] | undefined) => previousData,
     });
 };

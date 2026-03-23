@@ -42,7 +42,7 @@ export const useReturns = (barId: string | undefined, options?: { startDate?: st
         gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
         refetchInterval: options?.refetchInterval !== undefined
             ? options.refetchInterval
-            : (smartSync.isSynced ? false : 30000),
+            : smartSync.adaptedRefetchInterval, // adaptatif réseau (2G: off, 3G: 90s, 4G: 30s)
     });
 };
 

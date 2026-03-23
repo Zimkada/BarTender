@@ -47,7 +47,7 @@ export const useExpenses = (barId: string | undefined, options?: { startDate?: s
         enabled: isEnabled,
         staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
         gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
-        refetchInterval: smartSync.isSynced ? false : 60000, // 🚀 Hybride: Realtime ou polling 60s
+        refetchInterval: smartSync.adaptedRefetchInterval, // 🚀 Hybride: adaptatif réseau (2G: off, 3G: 180s, 4G: 60s)
     });
 };
 

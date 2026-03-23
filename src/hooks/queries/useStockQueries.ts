@@ -94,7 +94,7 @@ export const useProducts = (barId: string | undefined, options: { enabled?: bool
         staleTime: CACHE_STRATEGY.products.staleTime,
         gcTime: CACHE_STRATEGY.products.gcTime,
         networkMode: 'always', // 🛡️ CRITIQUE: Permet l'accès au cache stock offline
-        refetchInterval: smartSync.isSynced ? false : REALTIME_FALLBACK_INTERVALS.products, // 🚀 Hybride: Polling OFF si Sync coverage active
+        refetchInterval: smartSync.adaptedRefetchInterval, // 🚀 Hybride: adaptatif réseau (2G: off, 3G: 90s, 4G: 30s)
     });
 };
 
@@ -236,7 +236,7 @@ export const useConsignments = (barId: string | undefined, options: { enabled?: 
             staleTime: CACHE_STRATEGY.products.staleTime,
             gcTime: CACHE_STRATEGY.products.gcTime,
             networkMode: 'always', // 🛡️ CRITIQUE
-            refetchInterval: smartSync.isSynced ? false : REALTIME_FALLBACK_INTERVALS.consignments,
+            refetchInterval: smartSync.adaptedRefetchInterval,
         }
     );
 };
@@ -279,7 +279,7 @@ export const useCategories = (barId: string | undefined, options: { enabled?: bo
             enabled: isEnabled,
             staleTime: CACHE_STRATEGY.categories.staleTime,
             gcTime: CACHE_STRATEGY.categories.gcTime,
-            refetchInterval: smartSync.isSynced ? false : REALTIME_FALLBACK_INTERVALS.products,
+            refetchInterval: smartSync.adaptedRefetchInterval,
         }
     );
 };

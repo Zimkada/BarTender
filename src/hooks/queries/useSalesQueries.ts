@@ -57,7 +57,7 @@ export const useSales = (barId: string | undefined, options?: { startDate?: stri
         enabled: isEnabled,
         staleTime: CACHE_STRATEGY.salesAndStock.staleTime,
         gcTime: CACHE_STRATEGY.salesAndStock.gcTime,
-        refetchInterval: smartSync.isSynced ? false : 30000, // 🚀 Hybride: Realtime ou polling 30s
+        refetchInterval: smartSync.adaptedRefetchInterval, // 🚀 Hybride: Realtime ou polling adaptatif (2G: off, 3G: 90s, 4G: 30s)
         placeholderData: (previousData: Sale[] | undefined) => previousData, // 🛡️ Fix V12: Typage strict
     });
 };

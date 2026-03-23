@@ -1,3 +1,5 @@
+import { useCallback, useRef, useEffect, useState } from 'react';
+import { FixedSizeList as List } from 'react-window';
 import { Eye } from 'lucide-react';
 import { Sale, User } from '../../../../types';
 import { getSaleDate, isConfirmedReturn } from '../../../../utils/saleHelpers';
@@ -5,12 +7,70 @@ import { EnhancedButton } from '../../../../components/EnhancedButton';
 import { useViewport } from '../../../../hooks/useViewport';
 import { isToday } from 'date-fns';
 
+const MOBILE_ROW_HEIGHT = 73; // px per mobile row (p-4 = 32px padding + ~41px content)
+const VIRTUALIZE_THRESHOLD = 50; // Only virtualize when list is large
+
 interface SalesListViewProps {
     sales: Sale[];
     formatPrice: (price: number) => string;
     onViewDetails: (sale: Sale) => void;
     getReturnsBySale: (saleId: string) => any[];
     users?: User[];
+}
+
+/** Single mobile row — extracted for react-window rendering */
+function MobileSaleRow({ sale, formatPrice, onViewDetails, getReturnsBySale, users, style }: {
+    sale: Sale;
+    formatPrice: (price: number) => string;
+    onViewDetails: (sale: Sale) => void;
+    getReturnsBySale: (saleId: string) => any[];
+    users?: User[];
+    style?: React.CSSProperties;
+}) {
+    const saleDate = getSaleDate(sale);
+    const timeStr = new Date(sale.validatedAt || sale.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const dateStr = isToday(saleDate) ? '' : saleDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+    const itemCount = sale.items.reduce((sum, item) => sum + item.quantity, 0);
+    const seller = users?.find(u => u.id === sale.soldBy);
+    const saleReturns = getReturnsBySale(sale.id);
+    const hasReturns = saleReturns.length > 0;
+    const refundedAmount = saleReturns
+        .filter(isConfirmedReturn)
+        .reduce((sum, r) => sum + r.refundAmount, 0);
+    const netAmount = sale.total - refundedAmount;
+
+    return (
+        <div
+            style={style}
+            onClick={() => onViewDetails(sale)}
+            className="p-4 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100 transition-colors cursor-pointer border-b border-gray-100"
+        >
+            <div className="flex flex-col w-12 shrink-0">
+                <span className="text-sm font-bold text-gray-900 leading-tight">{timeStr}</span>
+                <span className="text-[10px] text-gray-400 font-mono leading-tight">#{sale.id.slice(-4)}</span>
+            </div>
+            <div className="flex-1 px-3 min-w-0">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-xs font-medium text-gray-700 truncate">{seller?.name || 'Inconnu'}</span>
+                    {hasReturns && <span className="w-1.5 h-1.5 bg-red-500 rounded-full shrink-0" />}
+                </div>
+                <div className="text-[11px] text-gray-500 truncate">
+                    {itemCount} articles • {sale.status === 'validated' ? 'Payé' : sale.status}
+                </div>
+            </div>
+            <div className="text-right shrink-0">
+                {dateStr && (
+                    <div className="text-[10px] font-bold text-gray-400 leading-tight mb-0.5">{dateStr}</div>
+                )}
+                <div className={`font-mono font-bold text-sm leading-tight ${hasReturns ? 'text-amber-600' : 'text-gray-900'}`}>
+                    {formatPrice(netAmount)}
+                </div>
+                {hasReturns && (
+                    <div className="text-[10px] text-red-500 font-medium leading-tight">-{formatPrice(refundedAmount)}</div>
+                )}
+            </div>
+        </div>
+    );
 }
 
 export function SalesListView({
@@ -21,67 +81,70 @@ export function SalesListView({
     users
 }: SalesListViewProps) {
     const { isMobile } = useViewport();
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [listHeight, setListHeight] = useState(400);
+
+    // Measure available height for virtualized list
+    useEffect(() => {
+        if (!isMobile || sales.length < VIRTUALIZE_THRESHOLD) return;
+        const updateHeight = () => {
+            if (containerRef.current) {
+                const rect = containerRef.current.getBoundingClientRect();
+                // Fill available viewport minus some bottom padding
+                setListHeight(Math.max(300, window.innerHeight - rect.top - 80));
+            }
+        };
+        updateHeight();
+        window.addEventListener('resize', updateHeight);
+        return () => window.removeEventListener('resize', updateHeight);
+    }, [isMobile, sales.length]);
+
+    const renderVirtualizedRow = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
+        const sale = sales[index];
+        return (
+            <MobileSaleRow
+                key={sale.id}
+                sale={sale}
+                formatPrice={formatPrice}
+                onViewDetails={onViewDetails}
+                getReturnsBySale={getReturnsBySale}
+                users={users}
+                style={style}
+            />
+        );
+    }, [sales, formatPrice, onViewDetails, getReturnsBySale, users]);
 
     if (isMobile) {
-        return (
-            <div className="space-y-0 divide-y divide-gray-100 border-t border-b border-gray-100 bg-white">
-                {sales.map(sale => {
-                    const saleDate = getSaleDate(sale);
-                    const timeStr = new Date(sale.validatedAt || sale.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-                    const dateStr = isToday(saleDate) ? '' : saleDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
-
-                    const itemCount = sale.items.reduce((sum, item) => sum + item.quantity, 0);
-
-                    // Seller
-                    const serverUserId = sale.soldBy;
-                    const seller = users?.find(u => u.id === serverUserId);
-
-                    const saleReturns = getReturnsBySale(sale.id);
-                    const hasReturns = saleReturns.length > 0;
-                    const refundedAmount = saleReturns
-                        .filter(isConfirmedReturn)
-                        .reduce((sum, r) => sum + r.refundAmount, 0);
-
-                    const netAmount = sale.total - refundedAmount;
-
-                    return (
-                        <div
+        // Small lists: render normally (no virtualization overhead)
+        if (sales.length < VIRTUALIZE_THRESHOLD) {
+            return (
+                <div className="space-y-0 divide-y divide-gray-100 border-t border-b border-gray-100 bg-white">
+                    {sales.map(sale => (
+                        <MobileSaleRow
                             key={sale.id}
-                            onClick={() => onViewDetails(sale)}
-                            className="p-4 flex items-center justify-between hover:bg-gray-50 active:bg-gray-100 transition-colors cursor-pointer"
-                        >
-                            {/* Left: Time & ID */}
-                            <div className="flex flex-col w-12 shrink-0">
-                                <span className="text-sm font-bold text-gray-900 leading-tight">{timeStr}</span>
-                                <span className="text-[10px] text-gray-400 font-mono leading-tight">#{sale.id.slice(-4)}</span>
-                            </div>
+                            sale={sale}
+                            formatPrice={formatPrice}
+                            onViewDetails={onViewDetails}
+                            getReturnsBySale={getReturnsBySale}
+                            users={users}
+                        />
+                    ))}
+                </div>
+            );
+        }
 
-                            {/* Middle: Details */}
-                            <div className="flex-1 px-3 min-w-0">
-                                <div className="flex items-center gap-1.5 mb-0.5">
-                                    <span className="text-xs font-medium text-gray-700 truncate">{seller?.name || 'Inconnu'}</span>
-                                    {hasReturns && <span className="w-1.5 h-1.5 bg-red-500 rounded-full shrink-0" />}
-                                </div>
-                                <div className="text-[11px] text-gray-500 truncate">
-                                    {itemCount} articles • {sale.status === 'validated' ? 'Payé' : sale.status}
-                                </div>
-                            </div>
-
-                            {/* Right: Date & Amount */}
-                            <div className="text-right shrink-0">
-                                {dateStr && (
-                                    <div className="text-[10px] font-bold text-gray-400 leading-tight mb-0.5">{dateStr}</div>
-                                )}
-                                <div className={`font-mono font-bold text-sm leading-tight ${hasReturns ? 'text-amber-600' : 'text-gray-900'}`}>
-                                    {formatPrice(netAmount)}
-                                </div>
-                                {hasReturns && (
-                                    <div className="text-[10px] text-red-500 font-medium leading-tight">-{formatPrice(refundedAmount)}</div>
-                                )}
-                            </div>
-                        </div>
-                    );
-                })}
+        // Large lists: virtualize for performance
+        return (
+            <div ref={containerRef} className="border-t border-b border-gray-100 bg-white">
+                <List
+                    height={listHeight}
+                    itemCount={sales.length}
+                    itemSize={MOBILE_ROW_HEIGHT}
+                    width="100%"
+                    overscanCount={5}
+                >
+                    {renderVirtualizedRow}
+                </List>
             </div>
         );
     }

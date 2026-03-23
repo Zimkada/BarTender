@@ -17,6 +17,7 @@ import { useRealtimeSubscription } from './useRealtimeSubscription';
 import { useBroadcastSync } from './useBroadcastSync';
 import { broadcastService } from '../services/broadcast/BroadcastService';
 import { useDebouncedCallback } from 'use-debounce';
+import { getAdaptivePollingInterval } from '../utils/networkQuality';
 
 /**
  * 🛡️ DEFENSIVE: Safe debounce with fallback
@@ -177,6 +178,12 @@ export function useSmartSync(config: UseSmartSyncConfig) {
       ? 'broadcast'
       : 'polling';
 
+  // Adaptive polling: disable on 2G, slow down on 3G, normal on 4G+
+  // When synced (Realtime/Broadcast active), polling is disabled regardless
+  const adaptedRefetchInterval = isSynced
+    ? false as const
+    : getAdaptivePollingInterval(refetchInterval);
+
   return {
     // Status indicators
     isSynced,
@@ -184,6 +191,9 @@ export function useSmartSync(config: UseSmartSyncConfig) {
     isRealtimeConnected: realtimeSubscription.isConnected,
     isBroadcastSupported: broadcastSupported,
     error: realtimeSubscription.error,
+
+    // Adaptive polling interval (accounts for network quality)
+    adaptedRefetchInterval,
 
     // Manual control
     broadcast,

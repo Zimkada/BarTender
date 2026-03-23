@@ -249,12 +249,24 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
+          // Core React — needed first, cached long-term
           'vendor-react': ['react', 'react-dom'],
+          // Routing — needed for initial navigation
+          'vendor-router': ['react-router-dom'],
+          // Animation — used widely but deferrable via HTTP/2 parallel load
           'vendor-motion': ['framer-motion'],
+          // Backend — auth + data
           'vendor-supabase': ['@supabase/supabase-js'],
-          'vendor-react-query': ['@tanstack/react-query'],
+          'vendor-react-query': ['@tanstack/react-query', '@tanstack/query-persist-client-core'],
+          // Utilities — dates, icons, UI primitives
           'vendor-date-fns': ['date-fns'],
-          // Note: xlsx and recharts are lazy loaded, so they're not in manualChunks
+          'vendor-icons': ['lucide-react'],
+          'vendor-ui': ['@radix-ui/react-checkbox', '@radix-ui/react-radio-group', '@radix-ui/react-slot', 'class-variance-authority', 'clsx', 'tailwind-merge'],
+          // Monitoring — deferred init, not needed for first paint
+          'vendor-sentry': ['@sentry/react'],
+          // Validation
+          'vendor-zod': ['zod'],
+          // Note: xlsx and recharts are lazy-loaded via page chunks
         }
       }
     },
