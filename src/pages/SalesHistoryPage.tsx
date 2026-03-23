@@ -1,11 +1,12 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
     Search,
     Download,
     ShoppingCart,
     TrendingUp,
     LayoutGrid,
-    List as ListIcon
+    List as ListIcon,
+    ChevronDown
 } from 'lucide-react';
 
 import { useBarContext } from '../context/BarContext';
@@ -37,6 +38,8 @@ import { PeriodFilter } from '../components/common/filters/PeriodFilter';
 import { GuideTourModal } from '../components/guide/GuideTourModal';
 
 type ViewMode = 'list' | 'cards' | 'analytics';
+
+const PAGE_SIZE = 100; // Client pagination: render N items at a time
 
 /**
  * SalesHistoryPage - Page d'historique des ventes
@@ -81,6 +84,7 @@ export default function SalesHistoryPage() {
         : false;
     const [statusFilter, setStatusFilter] = useState<'validated' | 'rejected' | 'cancelled' | 'all'>('validated');
     const [isTieringIgnored, setIsTieringIgnored] = useState(false);
+    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
     // ✨ NOUVEAU: Pilotage temporel centralisé (Certification Elite)
     const dateFilter = useDateRangeFilter({
@@ -163,6 +167,11 @@ export default function SalesHistoryPage() {
         if (!searchTerm) setServerSearchTerm('');
     }, [searchTerm]);
 
+    // Reset pagination when filters change
+    useEffect(() => {
+        setVisibleCount(PAGE_SIZE);
+    }, [searchTerm, statusFilter, timeRange, startDate, endDate]);
+
     // ✨ Reset ignoreTiering if timeRange changes back to short periods
     useEffect(() => {
         if (timeRange && ['today', 'yesterday', 'last_7days', 'last_30days'].includes(timeRange)) {
@@ -180,12 +189,31 @@ export default function SalesHistoryPage() {
         }
     };
 
-    // ✨ FIX: Fonction pour obtenir les retours filtrés d'une vente
-    // Utilise filteredReturns (déjà filtrés par date) au lieu de tous les retours
-    const getFilteredReturnsBySale = (saleId: string) => {
-        return filteredReturns.filter((r: any) => r.saleId === saleId);
-    };
+    // ✨ FIX: Retours filtrés indexés par saleId — O(1) lookup per row
+    const filteredReturnsBySaleMap = useMemo(() => {
+        const map = new Map<string, any[]>();
+        for (const r of filteredReturns) {
+            const saleId = (r as any).saleId;
+            if (!saleId) continue;
+            const existing = map.get(saleId);
+            if (existing) {
+                existing.push(r);
+            } else {
+                map.set(saleId, [r]);
+            }
+        }
+        return map;
+    }, [filteredReturns]);
 
+    const getFilteredReturnsBySale = useCallback((saleId: string) => {
+        return filteredReturnsBySaleMap.get(saleId) || [];
+    }, [filteredReturnsBySaleMap]);
+
+    // Client pagination: limit rendered items for list/cards views
+    const paginatedSales = useMemo(() => {
+        return filteredSales.slice(0, visibleCount);
+    }, [filteredSales, visibleCount]);
+    const hasMore = filteredSales.length > visibleCount;
 
     const tabsConfig = [
         { id: 'list', label: isMobile ? 'Tableau' : 'Tableau des ventes', icon: ListIcon },
@@ -395,22 +423,44 @@ export default function SalesHistoryPage() {
                             {viewMode === 'cards' ? (
                                 <div className="space-y-4 max-w-5xl mx-auto">
                                     <SalesCardsView
-                                        sales={filteredSales}
+                                        sales={paginatedSales}
                                         formatPrice={formatPrice}
                                         onViewDetails={setSelectedSale}
                                         getReturnsBySale={getFilteredReturnsBySale}
                                         users={safeUsers}
                                     />
+                                    {hasMore && (
+                                        <div className="flex justify-center pt-2 pb-4">
+                                            <button
+                                                onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+                                                className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                                            >
+                                                <ChevronDown size={16} />
+                                                Voir plus ({filteredSales.length - visibleCount} restantes)
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             ) : viewMode === 'list' ? (
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                                     <SalesListView
-                                        sales={filteredSales}
+                                        sales={paginatedSales}
                                         formatPrice={formatPrice}
                                         onViewDetails={setSelectedSale}
                                         getReturnsBySale={getFilteredReturnsBySale}
                                         users={safeUsers}
                                     />
+                                    {hasMore && (
+                                        <div className="flex justify-center py-4 border-t border-gray-100">
+                                            <button
+                                                onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
+                                                className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                                            >
+                                                <ChevronDown size={16} />
+                                                Voir plus ({filteredSales.length - visibleCount} restantes)
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="min-h-[500px]">

@@ -207,11 +207,26 @@ export const useUnifiedReturns = (barId: string | undefined, closingHour?: numbe
     }, [unifiedReturns, session, closingHour]);
 
     /**
-     * 📊 HELPER: Returns by Sale
+     * 📊 HELPER: Returns by Sale — O(1) lookup via pre-indexed Map
+     * Avoids O(N×M) when called per-row in sales list rendering
      */
-    const getReturnsBySale = useCallback((saleId: string) => {
-        return unifiedReturns.filter(r => r.saleId === saleId);
+    const returnsBySaleMap = useMemo(() => {
+        const map = new Map<string, typeof unifiedReturns>();
+        for (const r of unifiedReturns) {
+            if (!r.saleId) continue;
+            const existing = map.get(r.saleId);
+            if (existing) {
+                existing.push(r);
+            } else {
+                map.set(r.saleId, [r]);
+            }
+        }
+        return map;
     }, [unifiedReturns]);
+
+    const getReturnsBySale = useCallback((saleId: string) => {
+        return returnsBySaleMap.get(saleId) || [];
+    }, [returnsBySaleMap]);
 
     /**
      * 📊 HELPER: Pending Returns
