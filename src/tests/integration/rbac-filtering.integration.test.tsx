@@ -37,7 +37,10 @@ const {
   },
   mockBusinessDateHelpers: {
     getCurrentBusinessDateString: vi.fn(() => '2025-02-09'),
-    filterByBusinessDateRange: vi.fn((items) => items),
+    filterByBusinessDateRange: vi.fn((items: unknown[]) => items),
+    calculateBusinessDate: vi.fn((date: Date) => new Date(date)),
+    dateToYYYYMMDD: vi.fn((date: Date) => date.toISOString().split('T')[0]),
+    getBusinessDate: vi.fn((date: Date) => new Date(date)),
   }
 }));
 

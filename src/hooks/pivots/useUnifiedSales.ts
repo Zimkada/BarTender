@@ -58,31 +58,40 @@ export const useUnifiedSales = (
 
     // 🔴 LOGIQUE DE TIERING (Certification Sécurité & Précision)
     const salesOptions = useMemo(() => {
+        // ⭐ Fenêtre par défaut : 7 jours glissants (garde-fou egress)
+        // Utilisé quand aucun filtre plus précis n'est applicable
+        const businessDatePivotDefault = calculateBusinessDate(new Date(), closeHour);
+        businessDatePivotDefault.setDate(businessDatePivotDefault.getDate() - 7);
+        const defaultStartDate = startDate || dateToYYYYMMDD(businessDatePivotDefault);
+
         // ✨ NOUVEAU: Débrayage explicite (Certification Elite)
+        // ignoreTiering = l'utilisateur veut une période étendue → on passe les filtres UI tels quels
+        // mais on garantit au minimum que startDate est défini pour éviter un full-scan
         if (ignoreTiering) {
-            return undefined;
+            return { startDate: defaultStartDate, endDate, status, searchTerm, limit: 500 };
         }
 
         // ✨ NOUVEAU: Recherche "Backend-Failover"
         // Si on a un terme de recherche (min 3 caractères), on ignore les tiers
         if (searchTerm && searchTerm.length >= 3) {
-            return { searchTerm };
+            return { searchTerm, limit: 500 };
         }
 
         // ✨ NOUVEAU: Débrayage via UI (Période étendue)
-        // Si l'utilisateur a explicitement demandé une période au-delà du mois, on ignore le tiering par défaut
+        // Si l'utilisateur a explicitement demandé une période au-delà du mois,
+        // on passe les filtres UI + limite de sécurité
         if (timeRange && !['today', 'yesterday', 'last_7days', 'last_30days'].includes(timeRange)) {
-            return undefined;
-        }
-
-        if (!currentBar?.settings?.dataTier || currentBar.settings.dataTier === 'lite') {
-            return undefined;
+            return { startDate: defaultStartDate, endDate, status, searchTerm, limit: 500 };
         }
 
         // 🔴 CALCUL PIVOT SUR BUSINESS DATE (Fin de décalage minuit-6h)
         const businessDatePivot = calculateBusinessDate(new Date(), closeHour);
 
-        if (currentBar.settings.dataTier === 'balanced') {
+        if (!currentBar?.settings?.dataTier || currentBar.settings.dataTier === 'lite') {
+            // FIX: Prevent undefined which causes unbounded fetches.
+            // Lite tier is restricted to the last 7 days to protect egress bandwidth.
+            businessDatePivot.setDate(businessDatePivot.getDate() - 7);
+        } else if (currentBar.settings.dataTier === 'balanced') {
             // 6 mois glissants depuis la date commerciale
             businessDatePivot.setMonth(businessDatePivot.getMonth() - 6);
         } else if (currentBar.settings.dataTier === 'enterprise') {

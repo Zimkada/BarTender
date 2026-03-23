@@ -466,8 +466,17 @@ export class SalesService {
       query = query.or(`id.ilike.${term},customer_name.ilike.${term},notes.ilike.${term}`);
     }
 
-    if (options?.limit) query = query.limit(options.limit);
-    if (options?.offset) query = query.range(options.offset, options.offset + (options.limit || 50) - 1);
+    if (options?.limit) {
+      query = query.limit(options.limit);
+    } else if (!options?.startDate && !options?.endDate) {
+      // 🛡️ Garde-fou absolu : si aucun filtre de date ni limit explicite,
+      // imposer 200 enregistrements max pour éviter un full-scan accidentel
+      // ✨ NOUVEAU: Hard limit de sécurité (Protection Egress Supabase)
+      const finalLimit = options?.limit || 500;
+      query = query.limit(finalLimit);
+    }
+
+    if (options?.offset) query = query.range(options.offset, options.offset + (options?.limit || 500) - 1);
 
     const { data, error } = await query;
     if (error) throw new Error(handleSupabaseError(error));
