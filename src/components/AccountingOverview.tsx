@@ -291,7 +291,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
 
   // KPIs Extra (Growth, Server, etc)
   const { revenueGrowth, revenuePerServer, investmentRate, chartData } = useMemo(() => {
-    const prevTotalRevenue = prevPeriodStats.reduce((sum, day) => sum + (day.net_revenue || 0), 0);
+    const prevTotalRevenue = prevPeriodStats.reduce((sum, day) => sum + (day.net_revenue || day.gross_revenue || 0), 0);
     const revenueGrowth = prevTotalRevenue > 0 ? ((totalRevenue - prevTotalRevenue) / prevTotalRevenue) * 100 : 0;
 
     const serverCount = currentBar?.settings?.serversList?.length || 1;

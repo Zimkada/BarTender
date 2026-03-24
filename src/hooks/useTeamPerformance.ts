@@ -43,7 +43,10 @@ export function useTeamPerformance({
         // On suppose que les ventes passées en props sont DÉJÀ filtrées pour la période souhaitée
         // (C'est le cas dans AnalyticsView via useDateRangeFilter et DailyDashboard via getTodaySales)
 
-        sales.forEach(sale => {
+        // 🛡️ FIX: Ne compter que les ventes validées (exclure pending/rejected/cancelled)
+        const validatedSales = sales.filter(s => s.status === 'validated');
+
+        validatedSales.forEach(sale => {
             // Source of truth: soldBy is the business attribution
             const serverId = sale.soldBy;
 
@@ -89,7 +92,7 @@ export function useTeamPerformance({
         if (startDate && endDate) {
             const startDateStr = dateToYYYYMMDD(startDate);
             const endDateStr = dateToYYYYMMDD(endDate);
-            const performanceSaleIds = new Set(sales.map(s => s.id));
+            const performanceSaleIds = new Set(validatedSales.map(s => s.id));
 
             relevantReturns = returns.filter(r => {
                 if (!isConfirmedReturn(r)) return false;

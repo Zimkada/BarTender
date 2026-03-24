@@ -221,7 +221,8 @@ export const AnalyticsService = {
         const summaries = await this.getDailySummary(barId, startDate, endDate);
 
         return {
-            totalRevenue: summaries.reduce((sum, s) => sum + (s.net_revenue || 0), 0),
+            // Fallback sur gross_revenue si net_revenue absent (migration 068-070 a supprimé la colonne)
+            totalRevenue: summaries.reduce((sum, s) => sum + (s.net_revenue ?? (s as any).gross_revenue ?? 0), 0),
             totalSales: summaries.reduce((sum, s) => sum + s.validated_count, 0),
             avgBasketValue: summaries.length > 0
                 ? summaries.reduce((sum, s) => sum + s.avg_basket_value, 0) / summaries.length
