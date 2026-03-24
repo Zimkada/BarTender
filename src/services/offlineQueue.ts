@@ -5,6 +5,40 @@ import type { SyncOperation, SyncOperationStatus, MutationType } from '../types/
 import { MutationSchemas } from '../types/schemas';
 
 /**
+ * ⭐ Priorité de synchronisation par type d'opération
+ *
+ * Les opérations critiques (revenus, paiements) passent en premier
+ * quand le réseau revient sur connexion lente (2G/3G).
+ *
+ * 3 = Critique  — chiffre d'affaires, paiements (sync en premier)
+ * 2 = Normal    — opérations métier courantes
+ * 1 = Basse     — configuration, admin (peut attendre)
+ */
+const SYNC_PRIORITY: Record<MutationType, number> = {
+  // Critique : revenus et paiements — perdre une vente = perdre de l'argent
+  CREATE_SALE: 3,
+  PAY_TICKET: 3,
+  CREATE_TICKET: 3,
+
+  // Normal : opérations métier courantes
+  CREATE_RETURN: 2,
+  UPDATE_RETURN: 2,
+  ADD_EXPENSE: 2,
+  ADD_SUPPLY: 2,
+  ADD_SALARY: 2,
+  CREATE_CONSIGNMENT: 2,
+  CLAIM_CONSIGNMENT: 2,
+  FORFEIT_CONSIGNMENT: 2,
+
+  // Basse : catalogue et configuration
+  CREATE_PRODUCT: 1,
+  UPDATE_PRODUCT: 1,
+  DELETE_PRODUCT: 1,
+  UPDATE_BAR: 1,
+  CREATE_SERVER_MAPPING: 1,
+};
+
+/**
  * Configuration IndexedDB
  */
 const DB_NAME = 'bartender_offline_queue';
@@ -254,7 +288,12 @@ class OfflineQueue {
 
       request.onsuccess = () => {
         const operations = request.result as SyncOperation[];
-        operations.sort((a, b) => a.timestamp - b.timestamp);
+        // ⭐ Tri par priorité (critique d'abord) puis FIFO au sein d'une même priorité
+        operations.sort((a, b) => {
+          const priorityDiff = (SYNC_PRIORITY[b.type] ?? 2) - (SYNC_PRIORITY[a.type] ?? 2);
+          if (priorityDiff !== 0) return priorityDiff;
+          return a.timestamp - b.timestamp;
+        });
         resolve(operations);
       };
 
