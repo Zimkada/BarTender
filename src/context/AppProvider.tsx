@@ -300,12 +300,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ticketId: saleData.ticketId
         };
 
-        const result = await salesMutations.createSale.mutateAsync(newSaleData);
+        // ⭐ Clear cart IMMEDIATELY (optimistic) — l'utilisateur peut enchaîner
+        // sans attendre la réponse serveur. Si la mutation échoue, la vente
+        // est déjà dans la queue offline (visible via useUnifiedSales).
+        clearCart();
 
-        // Clear cart after successful sale creation
-        if (result) {
-            clearCart();
-        }
+        const result = await salesMutations.createSale.mutateAsync(newSaleData);
 
         return result;
     }, [hasPermission, currentBar, currentSession, salesMutations, clearCart]);
