@@ -19,7 +19,7 @@ export const OfflineBanner: React.FC = () => {
     const [isRetryingErrors, setIsRetryingErrors] = useState(false);
     const { isSimplifiedMode, currentBar } = useBarContext();
     const { currentSession } = useAuth();
-    const { hasPending, isSyncing, forceNetworkCheck, retryAll } = useSyncStatus();
+    const { hasPending, isSyncing, forceNetworkCheck, retryAll, syncProgress } = useSyncStatus();
 
     // Track if we've just reconnected to show a success toast
     const [wasOffline, setWasOffline] = useState(false);
@@ -264,7 +264,11 @@ export const OfflineBanner: React.FC = () => {
                                         >
                                             <RotateCw size={14} />
                                         </motion.div>
-                                        {isSyncing ? 'Synchronisation...' : `Forcer synchro (${pendingCount})`}
+                                        {isSyncing
+                                            ? (syncProgress
+                                                ? `Synchronisation ${syncProgress.current}/${syncProgress.total}...`
+                                                : 'Synchronisation...')
+                                            : `Forcer synchro (${pendingCount})`}
                                     </button>
                                 </div>
                             )}

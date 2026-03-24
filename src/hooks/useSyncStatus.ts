@@ -27,6 +27,9 @@ export function useSyncStatus() {
   // Liste des erreurs (pour affichage modal)
   const [errorsList, setErrorsList] = useState<SyncOperation[]>([]);
 
+  // ⭐ Sync progress tracking (X/Y operations)
+  const [syncProgress, setSyncProgress] = useState<{ current: number; total: number } | null>(null);
+
   // Flag sync en cours (dérivé des stats ou du manager)
   const isSyncing = queueStats.syncingCount > 0;
 
@@ -71,15 +74,24 @@ export function useSyncStatus() {
     };
 
     const handleSyncComplete = () => {
+      setSyncProgress(null); // Reset progress when sync completes
       updateState();
+    };
+
+    // ⭐ Listen to sync progress events
+    const handleSyncProgress = (e: Event) => {
+      const { current, total } = (e as CustomEvent<{ current: number; total: number }>).detail;
+      setSyncProgress({ current, total });
     };
 
     window.addEventListener('queue-updated', handleQueueUpdate);
     window.addEventListener('sync-completed', handleSyncComplete);
+    window.addEventListener('sync-progress', handleSyncProgress);
 
     return () => {
       window.removeEventListener('queue-updated', handleQueueUpdate);
       window.removeEventListener('sync-completed', handleSyncComplete);
+      window.removeEventListener('sync-progress', handleSyncProgress);
     };
   }, []);
 
@@ -178,6 +190,9 @@ export function useSyncStatus() {
     isOffline,
     hasErrors,
     hasPending,
+
+    // Sync progress (X/Y)
+    syncProgress,
 
     // Actions
     forceNetworkCheck,

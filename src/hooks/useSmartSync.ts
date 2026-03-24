@@ -68,7 +68,7 @@ export function useSmartSync(config: UseSmartSyncConfig) {
     event,
     barId,
     enabled = true,
-    refetchInterval = 5000,
+    refetchInterval = 30000, // ⭐ Default 30s (was 5s — too aggressive for 2G/3G)
     queryKeysToInvalidate,
   } = config;
 

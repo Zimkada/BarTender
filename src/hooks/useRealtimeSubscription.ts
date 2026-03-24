@@ -48,20 +48,42 @@ export function useRealtimeSubscription(
     queryKeysRef.current = queryKeysToInvalidate;
   }, [onMessage, onError, queryKeysToInvalidate]);
 
+  // ⭐ Throttled invalidation: max 1 invalidation per query key per second
+  // Prevents render storms from burst Realtime events (e.g., batch stock import)
+  const pendingInvalidations = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  const throttledInvalidate = useCallback(
+    (keys: readonly (readonly unknown[])[]) => {
+      keys.forEach((key) => {
+        const keyStr = JSON.stringify(key);
+        if (!pendingInvalidations.current.has(keyStr)) {
+          pendingInvalidations.current.set(
+            keyStr,
+            setTimeout(() => {
+              queryClient.invalidateQueries({ queryKey: key });
+              pendingInvalidations.current.delete(keyStr);
+            }, 1000),
+          );
+        }
+      });
+    },
+    [queryClient],
+  );
+
   // Enhanced message handler with React Query integration
   const handleMessage = useCallback(
     (payload: unknown) => {
+      // Custom handler called immediately (not throttled)
       if (onMessageRef.current) {
         onMessageRef.current(payload);
       }
 
+      // React Query invalidation is throttled to prevent burst overload
       if (queryKeysRef.current && queryKeysRef.current.length > 0) {
-        queryKeysRef.current.forEach((key) => {
-          queryClient.invalidateQueries({ queryKey: key });
-        });
+        throttledInvalidate(queryKeysRef.current);
       }
     },
-    [queryClient],
+    [throttledInvalidate],
   );
 
   // Error handler with logging
@@ -109,8 +131,12 @@ export function useRealtimeSubscription(
       }, 5000);
 
       // 🛡️ GUARANTEED CLEANUP: Close channel when component unmounts or deps change
+      const pendingTimers = pendingInvalidations.current;
       return () => {
         clearInterval(checkStatus);
+        // Clear pending throttled invalidations
+        pendingTimers.forEach((timer) => clearTimeout(timer));
+        pendingTimers.clear();
         if (channelIdRef.current) {
           console.log(`[Realtime] Unsubscribing from ${table} (${channelIdRef.current})`);
           realtimeService.unsubscribe(channelIdRef.current);

@@ -339,6 +339,8 @@ class SyncManagerService {
       }
 
       // 🚀 BATCH ENGINE (Pillar 4): Group sequential operations
+      const totalOps = pendingOps.length;
+      let completedOps = 0;
       let i = 0;
       while (i < pendingOps.length) {
         const currentOp = pendingOps[i];
@@ -363,14 +365,25 @@ class SyncManagerService {
             // Process as batch
             console.log(`[SyncManager] Batching ${batch.length} sales...`);
             await this.syncCreateSaleBatch(batch);
+            completedOps += batch.length;
             i += batch.length; // Skip processed items
+            // ⭐ Dispatch progress event for UI feedback
+            window.dispatchEvent(new CustomEvent('sync-progress', {
+              detail: { current: completedOps, total: totalOps }
+            }));
             continue;
           }
         }
 
         // Fallback: Process individually
         await this.syncOperation(currentOp);
+        completedOps++;
         i++;
+
+        // ⭐ Dispatch progress event for UI feedback
+        window.dispatchEvent(new CustomEvent('sync-progress', {
+          detail: { current: completedOps, total: totalOps }
+        }));
       }
 
       console.log('[SyncManager] Sync completed');

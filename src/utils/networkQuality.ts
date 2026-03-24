@@ -45,8 +45,8 @@ export function getNetworkQuality(): NetworkQuality {
  */
 export function getAdaptivePollingInterval(base: number): number | false {
     const quality = getNetworkQuality();
-    if (quality === '2g') return false;
-    if (quality === 'slow') return base * 3;
+    if (quality === '2g') return false; // Disable polling on 2G (too expensive)
+    if (quality === 'slow') return Math.max(base * 3, 30000); // Min 30s on 3G
     return base;
 }
 

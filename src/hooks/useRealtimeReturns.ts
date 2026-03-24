@@ -1,15 +1,13 @@
 /**
  * useRealtimeReturns.ts
  * Specialized hook for real-time returns synchronization
- * 
- * Subscribes to:
- * - New returns (INSERT)
- * - Return status changes (UPDATE) - validation, rejection, restocking
- * - Automatic stock invalidation when restocked
- * - Automatic stats invalidation when refunded
+ *
+ * ⭐ Merged into a single '*' subscription (was 2 channels: INSERT + UPDATE)
+ * to halve Supabase Realtime cost. Stock invalidation only on UPDATE (restocking).
  */
 
 import { useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRealtimeSubscription } from './useRealtimeSubscription';
 
 interface UseRealtimeReturnsConfig {
@@ -36,6 +34,7 @@ interface UseRealtimeReturnsConfig {
  */
 export function useRealtimeReturns(config: UseRealtimeReturnsConfig) {
     const { barId, enabled = true } = config;
+    const queryClient = useQueryClient();
 
     // Don't subscribe if barId is not set
     const isConfigValid = barId && enabled;
@@ -46,7 +45,12 @@ export function useRealtimeReturns(config: UseRealtimeReturnsConfig) {
             newData: payload.new?.id,
             oldData: payload.old?.id,
         });
-    }, []);
+
+        // ⭐ Invalidate stock only on UPDATE (restocking puts items back)
+        if (payload.eventType === 'UPDATE') {
+            queryClient.invalidateQueries({ queryKey: ['bar_products', barId] });
+        }
+    }, [queryClient, barId]);
 
     const handleError = useCallback((error: unknown) => {
         const message = error instanceof Error ? error.message : String(error);
@@ -54,10 +58,11 @@ export function useRealtimeReturns(config: UseRealtimeReturnsConfig) {
         // Fallback: polling will be handled via React Query with appropriate staleTime
     }, []);
 
-    // Subscribe to all returns INSERT for this bar
+    // ⭐ Single subscription for ALL return events (INSERT + UPDATE + DELETE)
+    // Halves Supabase Realtime cost (was 2 separate channels)
     const returnsSubscription = useRealtimeSubscription(
         'returns',
-        'INSERT',
+        '*',
         isConfigValid ? `bar_id=eq.${barId}` : undefined,
         {
             enabled: Boolean(isConfigValid),
@@ -70,33 +75,12 @@ export function useRealtimeReturns(config: UseRealtimeReturnsConfig) {
             ],
         }
     );
-
-    // Subscribe to returns status updates (validation, rejection, restocking)
-    const statusSubscription = useRealtimeSubscription(
-        'returns',
-        'UPDATE',
-        isConfigValid ? `bar_id=eq.${barId}` : undefined,
-        {
-            enabled: Boolean(isConfigValid),
-            onMessage: handleReturnsMessage,
-            onError: handleError,
-            fallbackPollingInterval: 30000,
-            queryKeysToInvalidate: [
-                ['returns', barId],
-                ['bar_products', barId],
-                ['stats', barId],
-            ],
-        }
-    );
-
 
     return {
-        isConnected:
-            returnsSubscription.isConnected || statusSubscription.isConnected,
-        error: returnsSubscription.error || statusSubscription.error,
+        isConnected: returnsSubscription.isConnected,
+        error: returnsSubscription.error,
         channels: {
             returns: returnsSubscription.channelId,
-            status: statusSubscription.channelId,
         },
     };
 }
