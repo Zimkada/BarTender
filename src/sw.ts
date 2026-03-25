@@ -57,13 +57,20 @@ registerRoute(
       }),
       {
         // 🛡️ FIX: Fallback quand réseau ET cache échouent → JSON vide au lieu de "no-response"
-        // React Query traitera [] comme une liste vide plutôt qu'un crash
         handlerDidError: async () => new Response('[]', {
           status: 503,
           headers: { 'Content-Type': 'application/json', 'X-SW-Fallback': 'offline-empty' }
         }),
-        // Ignorer silencieusement les Cache.put() failures (réponse trop large, etc.)
-        cacheDidUpdate: async () => { /* no-op — supprime l'erreur Cache.put() */ },
+        // 🛡️ FIX: Contrôler ce qui entre dans le cache — évite Cache.put() errors
+        // cacheWillUpdate est appelé AVANT Cache.put() — retourner null = skip cache
+        cacheWillUpdate: async ({ response }: { response: Response }) => {
+          // Skip réponses non-OK (erreurs réseau partielles)
+          if (!response.ok) return null;
+          // Skip réponses > 2MB (quota cache limité sur mobile)
+          const contentLength = response.headers.get('content-length');
+          if (contentLength && parseInt(contentLength, 10) > 2 * 1024 * 1024) return null;
+          return response;
+        },
       }
     ]
   })

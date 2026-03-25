@@ -244,13 +244,25 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
     });
   }, [unifiedExpenses, periodStart, periodEnd]);
 
-  // ✨ Calcul des KPIs Financiers — Source unique: vues matérialisées
-  // Identique à RevenueManager.totals.revenue pour cohérence parfaite
+  // ✨ Calcul des KPIs Financiers
+  // Source primaire : vue matérialisée (agrégats SQL pré-calculés).
+  // Fallback : calcul direct depuis unifiedSales si la vue est vide (pas encore rafraîchie).
+  // Aligne la Comptabilité sur la même logique que l'Historique.
   const totalRevenue = useMemo(() => {
-    return currentPeriodRevenue.reduce(
-      (sum, day) => sum + (day.net_revenue || day.gross_revenue || 0), 0
-    );
-  }, [currentPeriodRevenue]);
+    if (currentPeriodRevenue.length > 0) {
+      // ?? (nullish) et non || : net_revenue=0 est valide (jour sans ventes), ne pas fallback sur gross
+      return currentPeriodRevenue.reduce(
+        (sum, day) => sum + (day.net_revenue ?? day.gross_revenue ?? 0), 0
+      );
+    }
+    // Fallback : même calcul que AnalyticsView (raw data, toujours frais)
+    return unifiedSales.reduce((sum, sale) => {
+      if (sale.status !== 'validated') return sum;
+      const saleReturns = unifiedReturns.filter(r => r.saleId === sale.id && isConfirmedReturn(r));
+      const refunds = saleReturns.reduce((s, r) => s + (r.refundAmount || 0), 0);
+      return sum + (sale.total - refunds);
+    }, 0);
+  }, [currentPeriodRevenue, unifiedSales, unifiedReturns]);
 
   const [viewMode, setViewMode] = useState<'tresorerie' | 'analytique'>('tresorerie');
   const [isExporting, setIsExporting] = useState(false);
@@ -291,7 +303,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
 
   // KPIs Extra (Growth, Server, etc)
   const { revenueGrowth, revenuePerServer, investmentRate, chartData } = useMemo(() => {
-    const prevTotalRevenue = prevPeriodStats.reduce((sum, day) => sum + (day.net_revenue || day.gross_revenue || 0), 0);
+    const prevTotalRevenue = prevPeriodStats.reduce((sum, day) => sum + (day.net_revenue ?? day.gross_revenue ?? 0), 0);
     const revenueGrowth = prevTotalRevenue > 0 ? ((totalRevenue - prevTotalRevenue) / prevTotalRevenue) * 100 : 0;
 
     const serverCount = currentBar?.settings?.serversList?.length || 1;

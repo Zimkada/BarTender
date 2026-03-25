@@ -25,6 +25,9 @@ export interface DailySalesSummary {
     cash_revenue: number;
     mobile_revenue: number;
     other_revenue: number;        // Card + ticket + cheque + etc.
+    // Ajoutés par migration 20260324 — optionnels tant que non appliquée
+    refunds_total?: number;
+    net_revenue?: number;
     active_servers: number;
     first_sale_time: string;
     last_sale_time: string;
@@ -221,8 +224,7 @@ export const AnalyticsService = {
         const summaries = await this.getDailySummary(barId, startDate, endDate);
 
         return {
-            // Fallback sur gross_revenue si net_revenue absent (migration 068-070 a supprimé la colonne)
-            totalRevenue: summaries.reduce((sum, s) => sum + (s.net_revenue ?? (s as any).gross_revenue ?? 0), 0),
+            totalRevenue: summaries.reduce((sum, s) => sum + (s.net_revenue ?? s.gross_revenue ?? 0), 0),
             totalSales: summaries.reduce((sum, s) => sum + s.validated_count, 0),
             avgBasketValue: summaries.length > 0
                 ? summaries.reduce((sum, s) => sum + s.avg_basket_value, 0) / summaries.length

@@ -25,6 +25,10 @@ export interface DailySalesSummaryRow {
     mobile_revenue: number;
     card_revenue: number;        // Cartes bancaires
     other_revenue: number;       // Tickets + chèques + autres
+    // Ajoutés par migration 20260324 (restore net_revenue via CTE pré-agrégée)
+    // Optionnels tant que la migration n'est pas appliquée (colonnes absentes de la vue)
+    refunds_total?: number;      // Total des remboursements confirmés
+    net_revenue?: number;        // gross_revenue - refunds_total
     active_servers: number;
     first_sale_time: string;
     last_sale_time: string;

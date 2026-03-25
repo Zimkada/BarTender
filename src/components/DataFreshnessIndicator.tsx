@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { RotateCcw, Clock, AlertCircle } from 'lucide-react';
 import { useViewFreshness, useViewRefresh } from '../hooks/useViewMonitoring';
 
@@ -87,7 +88,8 @@ export function DataFreshnessIndicator({
 }
 
 /**
- * Version compacte pour les petits espaces
+ * Version compacte pour les petits espaces.
+ * Auto-refresh silencieux au montage si les données sont stale.
  */
 export function DataFreshnessIndicatorCompact({
     viewName,
@@ -96,6 +98,20 @@ export function DataFreshnessIndicatorCompact({
 }: Omit<DataFreshnessIndicatorProps, 'showRefreshButton'>) {
     const { freshness, isLoading } = useViewFreshness(viewName);
     const { refresh, isRefreshing } = useViewRefresh(viewName);
+
+    // Ref stable pour onRefreshComplete (évite boucle infinie si closure inline)
+    const onRefreshCompleteRef = useRef(onRefreshComplete);
+    useEffect(() => { onRefreshCompleteRef.current = onRefreshComplete; }, [onRefreshComplete]);
+
+    // Auto-refresh silencieux au montage si les données sont stale
+    const hasAutoRefreshed = useRef(false);
+    useEffect(() => {
+        if (!freshness?.is_stale || hasAutoRefreshed.current) return;
+        hasAutoRefreshed.current = true;
+        refresh()
+            .then(() => onRefreshCompleteRef.current?.())
+            .catch(() => {}); // Silencieux — bouton manuel toujours disponible
+    }, [freshness?.is_stale, refresh]);
 
     const handleRefresh = async () => {
         try {
@@ -113,6 +129,22 @@ export function DataFreshnessIndicatorCompact({
     const minutesOld = Math.round(freshness.minutes_old);
     const isStale = freshness.is_stale;
 
+    // Bandeau visible quand les données sont périmées
+    if (isStale && !isRefreshing) {
+        return (
+            <button
+                onClick={handleRefresh}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium
+                    bg-amber-50 text-amber-700 border border-amber-200
+                    hover:bg-amber-100 transition-all duration-200 cursor-pointer ${className}`}
+                title="Les données analytiques ne sont pas à jour. Cliquez pour actualiser."
+            >
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>Données non à jour — Actualiser</span>
+            </button>
+        );
+    }
+
     return (
         <button
             onClick={handleRefresh}
@@ -127,7 +159,7 @@ export function DataFreshnessIndicatorCompact({
             title={`Dernière mise à jour: il y a ${minutesOld} min`}
         >
             <RotateCcw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>{minutesOld < 60 ? `${minutesOld}m` : `${Math.floor(minutesOld / 60)}h`}</span>
+            <span>{isRefreshing ? 'Mise à jour...' : minutesOld < 60 ? `${minutesOld}m` : `${Math.floor(minutesOld / 60)}h`}</span>
         </button>
     );
 }
