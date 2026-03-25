@@ -166,11 +166,25 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
             let transitionRevenue = 0;
             let transitionCount = 0;
 
+            // ⭐ FIX: La déduplication doit chercher dans TOUTES les ventes indexées
+            // (tous statuts), pas seulement 'validated'. Sans ce fix, une vente
+            // rejetée/pending n'est jamais trouvée dans serverRawData → son total
+            // s'ajoute à transitionRevenue pendant jusqu'à 10s (ou 5min après refresh).
+            const syncedKeys = Array.from(recentlySyncedMap.keys());
+            const allIndexedKeys = new Set<string>();
+            if (syncedKeys.length > 0) {
+                const { data: allIndexed } = await supabase
+                    .from('sales')
+                    .select('idempotency_key')
+                    .eq('bar_id', currentBarId)
+                    .in('idempotency_key', syncedKeys);
+                (allIndexed || []).forEach((s: { idempotency_key: string | null }) => {
+                    if (s.idempotency_key) allIndexedKeys.add(s.idempotency_key);
+                });
+            }
+
             recentlySyncedMap.forEach((data, key) => {
-                // On vérifie le dédoublonnage contre serverRawData (plus fiable que AppContext)
-                const alreadyIndexed = (serverRawData as SalesSummaryRow[] | null)?.some((s) =>
-                    s.idempotency_key === key
-                );
+                const alreadyIndexed = allIndexedKeys.has(key);
                 if (!alreadyIndexed) {
                     transitionRevenue += data.total;
                     transitionCount += 1;
