@@ -112,19 +112,21 @@ class OfflineQueue {
 
           // 🛡️ CRITICAL: Détection de version obsolète
           // Ferme la connexion si un autre onglet met à jour la DB
+          // ⭐ setTimeout(0) : différer la fermeture pour laisser les transactions
+          // en cours se terminer — évite InvalidStateError sur db.transaction()
           this.db.onversionchange = () => {
             console.warn(
               '[OfflineQueue] ⚠️ Database version changed in another tab.',
               'Closing current connection to prevent corruption.'
             );
 
-            if (this.db) {
-              this.db.close();
-              this.db = null;
-            }
-            this.initPromise = null;
-
-            // TODO: Afficher une notification de rechargement si nécessaire (aucun listener actif aujourd'hui)
+            setTimeout(() => {
+              if (this.db) {
+                this.db.close();
+                this.db = null;
+              }
+              this.initPromise = null;
+            }, 0);
           };
 
           console.log('[OfflineQueue] Database initialized');

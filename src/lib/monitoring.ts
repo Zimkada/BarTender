@@ -65,6 +65,18 @@ export function initMonitoring(): void {
               exception.message?.includes('401')) {
               return null;
             }
+
+            // SW: image/storage offline → comportement attendu, pas une erreur app
+            if (exception.message?.includes('no-response') &&
+              event.contexts?.app?.source === 'service-worker') {
+              return null;
+            }
+
+            // IDB: connexion fermée par onversionchange → transitoire (autre onglet a upgradé la DB)
+            // Gardé précis : uniquement ce message exact, pas les vrais timeouts ni corruptions
+            if (exception.message === 'Failed to execute \'transaction\' on \'IDBDatabase\': The database connection is closing.') {
+              return null;
+            }
           }
         }
         return event;
