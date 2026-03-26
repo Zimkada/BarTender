@@ -117,7 +117,7 @@ BEGIN
             v_product_id := (v_item->>'product_id')::UUID;
             v_quantity := (v_item->>'quantity')::INT;
 
-            SELECT stock, name INTO v_current_stock, v_product_name
+            SELECT stock, display_name INTO v_current_stock, v_product_name
             FROM public.bar_products
             WHERE id = v_product_id AND bar_id = p_bar_id
             FOR UPDATE;
@@ -242,7 +242,7 @@ BEGIN
         v_product_id := (v_item->>'product_id')::UUID;
         v_quantity := (v_item->>'quantity')::INT;
 
-        SELECT stock, name INTO v_current_stock, v_product_name
+        SELECT stock, display_name INTO v_current_stock, v_product_name
         FROM bar_products
         WHERE id = v_product_id AND bar_id = v_bar_id
         FOR UPDATE;

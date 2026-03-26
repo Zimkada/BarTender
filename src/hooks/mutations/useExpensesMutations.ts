@@ -60,13 +60,13 @@ export const useExpensesMutations = (barId: string) => {
 
 
     const createCustomCategory = useMutation({
-        mutationFn: async (data: any) => {
+        mutationFn: async (data: { name: string; icon?: string; createdBy: string }) => {
             const categoryData = {
                 bar_id: barId,
                 name: data.name,
-                color: '#6B7280', // Default color
+                icon: data.icon,
                 is_active: true,
-                created_by: data.createdBy || ''
+                created_by: data.createdBy,
             };
             return ExpensesService.createCustomCategory(categoryData);
         },

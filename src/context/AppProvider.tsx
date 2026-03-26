@@ -501,9 +501,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, [hasPermission, expensesMutations]);
 
     const addCustomExpenseCategory = useCallback((name: string, icon: string) => {
-        if (!hasPermission('canManageInventory') || !currentBar) return;
-        expensesMutations.createCustomCategory.mutate({ name, icon });
-    }, [hasPermission, currentBar, expensesMutations]);
+        if (!hasPermission('canManageInventory') || !currentBar || !currentSession) return;
+        expensesMutations.createCustomCategory.mutate({ name, icon, createdBy: currentSession.userId });
+    }, [hasPermission, currentBar, currentSession, expensesMutations]);
 
 
     // --- SETTINGS ---
