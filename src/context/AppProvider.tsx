@@ -72,8 +72,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // AppProvider now only provides mutations + legacy methods for backward compatibility
     const customExpenseCategories = useMemo<ExpenseCategoryCustom[]>(() => [], []);
 
+    // 🛡️ Stock info — nécessaire avant salesMutations pour la vérification anti-overselling
+    const { getProductStockInfo } = useStock();
+
     // React Query: Mutations (KEPT - still needed for operations)
-    const salesMutations = useSalesMutations(barId);
+    const salesMutations = useSalesMutations(barId, {
+        stockChecker: getProductStockInfo
+    });
     const expensesMutations = useExpensesMutations(barId);
     const returnsMutations = useReturnsMutations(barId);
     const categoryMutations = useCategoryMutations(barId);
@@ -108,7 +113,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     })), [members]);
 
     // --- CART STATE & LOGIC (UNIFIED) ---
-    const { getProductStockInfo } = useStock();
     const {
         cart,
         setCart,

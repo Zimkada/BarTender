@@ -170,6 +170,22 @@ function RootLayoutContent() {
 
     window.addEventListener('sync-completed', handleSyncCompleted);
 
+    // 3. 🛡️ Anti-overselling: Écouter les rejets de sync (stock insuffisant)
+    const handleSyncRejected = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.type === 'CREATE_SALE' && detail?.reason?.includes('STOCK_ERROR')) {
+        // Extraire le message lisible après "STOCK_ERROR:"
+        const readable = detail.reason.split('STOCK_ERROR:')[1] || 'Stock insuffisant';
+        import('react-hot-toast').then(({ default: toast }) => {
+          toast.error(`Vente rejetée par le serveur : ${readable}`, {
+            duration: 8000,
+            icon: '🚫'
+          });
+        });
+      }
+    };
+    window.addEventListener('sync-rejected', handleSyncRejected);
+
     return () => {
       if (invalidationTimeoutRef.current !== null) {
         window.clearTimeout(invalidationTimeoutRef.current);
@@ -177,6 +193,7 @@ function RootLayoutContent() {
       }
       unsubscribeNetwork();
       window.removeEventListener('sync-completed', handleSyncCompleted);
+      window.removeEventListener('sync-rejected', handleSyncRejected);
     };
   }, [queryClient, currentBar?.id]);
 

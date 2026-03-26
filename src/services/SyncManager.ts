@@ -450,6 +450,16 @@ class SyncManagerService {
           // Le retry sera géré au prochain cycle de sync
         } else {
           console.error(`[SyncManager] Operation ${operation.id} failed permanently:`, result.error);
+          // 🛡️ Anti-overselling: Supprimer l'opération définitivement + notifier l'UI
+          await offlineQueue.removeOperation(operation.id);
+          window.dispatchEvent(new CustomEvent('sync-rejected', {
+            detail: {
+              operationId: operation.id,
+              type: operation.type,
+              reason: result.error,
+              barId: operation.barId
+            }
+          }));
         }
       }
     } catch (error) {
@@ -668,8 +678,9 @@ class SyncManagerService {
       if (error) {
         console.error(`[SyncManager] RPC error for operation ${operation.id}:`, error);
 
-        // Déterminer si on doit retry selon le code d'erreur
-        const shouldRetry = this.shouldRetryError(error);
+        // 🛡️ Anti-overselling: les erreurs STOCK_ERROR ne doivent JAMAIS être retentées
+        const isStockError = error.message?.includes('STOCK_ERROR');
+        const shouldRetry = isStockError ? false : this.shouldRetryError(error);
 
         return {
           success: false,

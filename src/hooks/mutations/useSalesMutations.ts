@@ -106,7 +106,9 @@ interface CreateSaleVariables extends Partial<Sale> {
     idempotencyKey?: string;
 }
 
-export const useSalesMutations = (barId: string) => {
+export const useSalesMutations = (barId: string, options?: {
+    stockChecker?: (productId: string) => { availableStock: number } | null;
+}) => {
     const queryClient = useQueryClient();
     const { currentSession } = useAuth();
     const { currentBar, isSimplifiedMode } = useBarContext();
@@ -190,6 +192,23 @@ export const useSalesMutations = (barId: string) => {
             if (!salePayload.sold_by) {
                 console.error('[useSalesMutations] No user ID found for sale');
                 throw new Error('Utilisateur non connecté');
+            }
+
+            // 🛡️ STOCK CHECK (Couche 2 — Anti-overselling)
+            // Vérification côté client avant d'envoyer au serveur ou à la queue offline.
+            // Ne remplace pas le FOR UPDATE en DB, mais offre un feedback UX immédiat.
+            if (options?.stockChecker) {
+                for (const item of itemsFormatted) {
+                    const pid = item.product_id as string;
+                    const qty = item.quantity as number;
+                    const pname = (item.product_name as string) || pid;
+                    const stockInfo = options.stockChecker(pid);
+                    if (stockInfo && stockInfo.availableStock < qty) {
+                        throw new Error(
+                            `Stock insuffisant pour "${pname}" (disponible: ${stockInfo.availableStock}, demandé: ${qty})`
+                        );
+                    }
+                }
             }
 
             const safetyTimeoutPromise = new Promise((_, reject) =>

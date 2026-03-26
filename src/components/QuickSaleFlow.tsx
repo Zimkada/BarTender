@@ -38,11 +38,15 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
   const { currentBar, isSimplifiedMode } = useBarContext();
   const { currentSession } = useAuth();
   const { isMobile } = useViewport();
-  const { createSale } = useSalesMutations(currentBar?.id || '');
   const { formatPrice } = useCurrencyFormatter();
 
   // 1. Hook de stock unifié (Source de vérité serveur + offline)
   const { products, categories, getProductStockInfo } = useUnifiedStock(currentBar?.id);
+
+  // 🛡️ Anti-overselling: passer le stockChecker pour bloquer les ventes > stock
+  const { createSale } = useSalesMutations(currentBar?.id || '', {
+    stockChecker: getProductStockInfo
+  });
 
   // 2. Hook de panier (Local)
   const {
