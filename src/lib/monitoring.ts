@@ -67,7 +67,8 @@ export function initMonitoring(): void {
             }
 
             // SW: image/storage offline → comportement attendu, pas une erreur app
-            if (exception.message?.includes('no-response') &&
+            if ((exception.message?.includes('no-response') ||
+              exception.message?.includes('Cache.put() encountered a network error')) &&
               event.contexts?.app?.source === 'service-worker') {
               return null;
             }
