@@ -42,7 +42,7 @@ export function InvoiceModal({ ticketId, ticketNumber, notes, paymentMethod, tic
             if (!isMounted) return;
             setIsLoading(true);
             Promise.all([
-                SalesService.getSalesByTicketId(ticketId),
+                SalesService.getSalesByTicketId(ticketId, currentBar?.id),
                 SalesService.getOfflineSalesByTicketId(ticketId),
                 currentBar ? ReturnsService.getReturns(currentBar.id) : Promise.resolve([])
             ])

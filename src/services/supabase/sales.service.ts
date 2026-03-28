@@ -430,12 +430,16 @@ export class SalesService {
 
   // --- Read Methods (Restored) ---
 
-  static async getSalesByTicketId(ticketId: string): Promise<any[]> {
-    const { data, error } = await supabase
+  static async getSalesByTicketId(ticketId: string, barId?: string): Promise<any[]> {
+    let query = supabase
       .from('sales')
       .select(SALES_TICKET_SELECT)
       .eq('ticket_id', ticketId)
       .order('created_at', { ascending: true });
+
+    if (barId) query = query.eq('bar_id', barId);
+
+    const { data, error } = await query;
 
     if (error) throw new Error(handleSupabaseError(error));
     return data || [];
@@ -461,9 +465,12 @@ export class SalesService {
 
     // ✨ NOUVEAU: Recherche textuelle (Failover)
     if (options?.searchTerm) {
-      const term = `%${options.searchTerm}%`;
-      // Recherche sur ID, nom du client ou notes
-      query = query.or(`id.ilike.${term},customer_name.ilike.${term},notes.ilike.${term}`);
+      // Échapper les caractères spéciaux PostgREST pour éviter filter injection
+      const sanitized = options.searchTerm.replace(/[%_,().*]/g, '');
+      if (sanitized.length > 0) {
+        const term = `%${sanitized}%`;
+        query = query.or(`id.ilike.${term},customer_name.ilike.${term},notes.ilike.${term}`);
+      }
     }
 
     if (options?.limit) {
