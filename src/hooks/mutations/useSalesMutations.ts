@@ -3,6 +3,7 @@ import { SalesService } from '../../services/supabase/sales.service';
 import { salesKeys } from '../queries/useSalesQueries';
 import { stockKeys } from '../queries/useStockQueries';
 import { statsKeys } from '../queries/useStatsQueries';
+import { analyticsKeys } from '../queries/useAnalyticsQueries';
 import { useAuth } from '../../context/AuthContext';
 import { useBarContext } from '../../context/BarContext';
 import { calculateBusinessDate, dateToYYYYMMDD } from '../../utils/businessDateHelpers';
@@ -274,6 +275,7 @@ export const useSalesMutations = (barId: string, options?: {
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
+            queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
         },
         onError: (error: unknown) => {
             console.error('[useSalesMutations] onError called', error);
@@ -295,6 +297,7 @@ export const useSalesMutations = (barId: string, options?: {
             }
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
+            queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
             // 🛡️ Fix Bug #11: La vente n'est plus pending → la retirer du cache server-pending-sales
             queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock', barId] });
         },
@@ -311,6 +314,7 @@ export const useSalesMutations = (barId: string, options?: {
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
+            queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
             // 🛡️ Fix Bug #11: La vente n'est plus pending → la retirer du cache server-pending-sales
             queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock', barId] });
         },
@@ -328,6 +332,7 @@ export const useSalesMutations = (barId: string, options?: {
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
+            queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
             // 🛡️ Fix Bug #11: Une vente pending peut être annulée → la retirer du cache server-pending-sales
             queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock', barId] });
         },
@@ -343,6 +348,7 @@ export const useSalesMutations = (barId: string, options?: {
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
+            queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
         },
     });
 
@@ -367,6 +373,7 @@ export const useSalesMutations = (barId: string, options?: {
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
+            queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
             queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock', barId] });
         },
     });
