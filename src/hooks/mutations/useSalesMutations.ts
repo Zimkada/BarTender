@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { SalesService } from '../../services/supabase/sales.service';
+import { AnalyticsService } from '../../services/supabase/analytics.service';
 import { salesKeys } from '../queries/useSalesQueries';
 import { stockKeys } from '../queries/useStockQueries';
 import { statsKeys } from '../queries/useStatsQueries';
@@ -117,6 +118,18 @@ export const useSalesMutations = (barId: string, options?: {
     // ✅ CRITICAL FIX: Call useCanWorkOffline() at top-level (React Hooks Rules)
     // DO NOT call it inside mutationFn - that violates React hooks contract
     const canWorkOffline = useCanWorkOffline();
+
+    // 🔄 Refresh ciblé de daily_sales_summary (vue matérialisée) après mutations CA.
+    // Sur free tier Supabase (pas de pg_cron), c'est le seul moyen de garder la mat view à jour.
+    // Best-effort : ne bloque pas l'UX si le refresh échoue.
+    const refreshDailySalesSummary = async () => {
+        try {
+            await AnalyticsService.refreshView('daily_sales_summary', 'post_mutation');
+        } catch (err) {
+            console.warn('[useSalesMutations] daily_sales_summary refresh failed (non-blocking):', err);
+        }
+        await queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
+    };
 
     const isNetworkError = (error: unknown): boolean => {
         const isOffline = networkManager.getDecision().shouldBlock;
@@ -259,7 +272,7 @@ export const useSalesMutations = (barId: string, options?: {
             return mapSaleRowToSale(savedSaleRow);
         },
         networkMode: 'always',
-        onSuccess: (sale) => {
+        onSuccess: async (sale) => {
             console.log('[useSalesMutations] onSuccess called', sale.id);
             const isOptimistic = sale.id?.startsWith('sync_') || Boolean(sale.isOptimistic);
 
@@ -275,7 +288,11 @@ export const useSalesMutations = (barId: string, options?: {
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
-            queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
+            if (sale.status === 'validated' && !isOptimistic) {
+                await refreshDailySalesSummary();
+            } else {
+                queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
+            }
         },
         onError: (error: unknown) => {
             console.error('[useSalesMutations] onError called', error);
@@ -289,7 +306,7 @@ export const useSalesMutations = (barId: string, options?: {
     const validateSale = useMutation({
         mutationFn: ({ id, validatorId }: { id: string; validatorId: string }) =>
             SalesService.validateSale(id, validatorId),
-        onSuccess: (_data, variables) => {
+        onSuccess: async (_data, variables) => {
             toast.success('Vente validée');
             if (broadcastService.isSupported()) {
                 broadcastService.broadcast({ event: 'UPDATE', table: 'sales', barId, data: { id: variables.id, status: 'validated' } });
@@ -297,7 +314,7 @@ export const useSalesMutations = (barId: string, options?: {
             }
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
-            queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
+            await refreshDailySalesSummary();
             // 🛡️ Fix Bug #11: La vente n'est plus pending → la retirer du cache server-pending-sales
             queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock', barId] });
         },
