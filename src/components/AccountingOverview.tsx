@@ -1,5 +1,4 @@
 import { useState, useMemo, Suspense, lazy } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import {
   DollarSign,
   Download,
@@ -27,7 +26,6 @@ import { CapitalContributionModal } from '../features/Accounting/components/Capi
 const AnalyticsCharts = lazy(() => import('./AnalyticsCharts'));
 
 
-import { DataFreshnessIndicatorCompact } from './DataFreshnessIndicator';
 import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
 import type { AccountingPeriodProps } from '../types/dateFilters';
 import { useUnifiedExpenses } from '../hooks/pivots/useUnifiedExpenses';
@@ -37,12 +35,10 @@ import {
   useRevenueAnalytics,
   useExpensesAnalytics,
   useSalariesAnalytics,
-  analyticsKeys
 } from '../hooks/queries/useAnalyticsQueries';
 import { ACCOUNTING_FILTERS } from '../config/dateFilters';
 import { SyscohadaTranslator } from '../services/accounting/syscohada.service';
 import { BarAccountingConfigSchema } from '../services/accounting/syscohada.types';
-import { AnalyticsService } from '../services/supabase/analytics.service';
 import { AccountingTransaction } from '../types';
 import { useSalaries } from '../hooks/useSalaries';
 import { getErrorMessage } from '../utils/errorHandler';
@@ -682,8 +678,6 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
     }
   };
 
-  const queryClient = useQueryClient();
-
   if (!currentBar || !currentSession) return null;
 
   return (
@@ -695,17 +689,6 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
             <h2 className={`font-bold text-gray-900 ${isMobile ? 'text-xl' : 'text-2xl'}`}>
               📊 Pilotage
             </h2>
-            <DataFreshnessIndicatorCompact
-              viewName="daily_sales_summary"
-              onRefreshComplete={async () => {
-                await Promise.allSettled([
-                  AnalyticsService.refreshView('expenses_summary', 'manual'),
-                  AnalyticsService.refreshView('salaries_summary', 'manual')
-                ]);
-                await queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
-              }}
-              className="mt-1"
-            />
           </div>
 
           <p className="text-gray-500 text-sm font-medium">

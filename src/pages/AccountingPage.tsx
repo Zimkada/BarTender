@@ -2,6 +2,7 @@ import { useState, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart3, Receipt, DollarSign } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Lazy load heavy accounting components to reduce initial bundle size
 const AccountingOverview = lazy(() => import('../components/AccountingOverview').then(m => ({ default: m.AccountingOverview })));
@@ -11,6 +12,9 @@ const ExpenseManager = lazy(() => import('../components/ExpenseManager').then(m 
 import { useBarContext } from '../context/BarContext';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
 import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
+import { DataFreshnessIndicatorCompact } from '../components/DataFreshnessIndicator';
+import { AnalyticsService } from '../services/supabase/analytics.service';
+import { analyticsKeys } from '../hooks/queries/useAnalyticsQueries';
 import type { AccountingPeriodProps } from '../types/dateFilters';
 
 type TabType = 'overview' | 'revenues' | 'expenses';
@@ -23,7 +27,22 @@ type TabType = 'overview' | 'revenues' | 'expenses';
 export default function AccountingPage() {
     const { currentSession } = useAuth();
     const { currentBar } = useBarContext();
+    const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState<TabType>('overview');
+
+    const handleRefreshAnalytics = async () => {
+        // salaries_summary est une vue normale (pas matérialisée) — pas de refresh dédié.
+        // L'indicateur de fraîcheur est basé sur daily_sales_summary (vue la plus critique).
+        // expenses_summary est la seule vue matérialisée à rafraîchir explicitement.
+        const results = await Promise.allSettled([
+            AnalyticsService.refreshView('expenses_summary', 'manual'),
+        ]);
+        const failed = results.filter(r => r.status === 'rejected');
+        await queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
+        if (failed.length > 0) {
+            throw new Error('Certaines vues n\'ont pas pu être actualisées');
+        }
+    };
 
     // SOURCE DE VÉRITÉ UNIQUE — une seule période pour les 3 onglets
     const {
@@ -62,6 +81,12 @@ export default function AccountingPage() {
                 activeTab={activeTab}
                 onTabChange={(id) => setActiveTab(id as TabType)}
                 hideSubtitleOnMobile={true}
+                actions={
+                    <DataFreshnessIndicatorCompact
+                        viewName="daily_sales_summary"
+                        onRefreshComplete={handleRefreshAnalytics}
+                    />
+                }
             />
 
             {/* Content */}
