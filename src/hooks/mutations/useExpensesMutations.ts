@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ExpensesService } from '../../services/supabase/expenses.service';
 import { expenseKeys } from '../queries/useExpensesQueries';
-import { AnalyticsService } from '../../services/supabase/analytics.service';
+import { analyticsKeys } from '../queries/useAnalyticsQueries';
 
 export const useExpensesMutations = (barId: string) => {
     const queryClient = useQueryClient();
@@ -24,37 +24,26 @@ export const useExpensesMutations = (barId: string) => {
             };
             return ExpensesService.createExpense(expenseData);
         },
-        onSuccess: async () => {
-            try {
-                // 🔄 Syncing Analytics View BEFORE invalidating cache
-                // This prevents "Race Condition" identified in certification analysis
-                await AnalyticsService.refreshView('expenses_summary');
-            } catch (e) {
-                console.error('[useExpensesMutations] Failed to refresh analytics view:', e);
-            }
-
+        onSuccess: () => {
+            // expenses_summary est une vue normale (migration 070) — pas de refresh DB nécessaire
             import('react-hot-toast').then(({ default: toast }) => {
                 toast.success('Dépense enregistrée');
             });
 
             queryClient.invalidateQueries({ queryKey: expenseKeys.list(barId) });
+            queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
         },
     });
 
     const deleteExpense = useMutation({
         mutationFn: ExpensesService.deleteExpense,
-        onSuccess: async () => {
-            try {
-                await AnalyticsService.refreshView('expenses_summary');
-            } catch (e) {
-                console.error('[useExpensesMutations] Failed to refresh analytics view:', e);
-            }
-
+        onSuccess: () => {
             import('react-hot-toast').then(({ default: toast }) => {
                 toast.success('Dépense supprimée');
             });
 
             queryClient.invalidateQueries({ queryKey: expenseKeys.list(barId) });
+            queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
         },
     });
 
