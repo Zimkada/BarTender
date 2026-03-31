@@ -6,11 +6,12 @@ import { useCurrencyFormatter } from '../../hooks/useBeninCurrency';
 import { ProductWithAnomaly } from '../../hooks/useInventoryFilter';
 import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getCostSourceLabel, type DisplayCost } from '../../utils/costResolution';
 
 interface InventoryCardProps {
-    product: ProductWithAnomaly; // ✨ Use enriched type
+    product: ProductWithAnomaly;
     stockInfo: ProductStockInfo | null;
-    avgCost: number;
+    displayCost: DisplayCost;
     margin: number;
     categoryName: string;
     onEdit: (product: Product) => void;
@@ -22,7 +23,7 @@ interface InventoryCardProps {
 export function InventoryCard({
     product,
     stockInfo,
-    avgCost,
+    displayCost,
     margin,
     categoryName,
     onEdit,
@@ -123,7 +124,10 @@ export function InventoryCard({
                     </div>
                     <div className="text-center border-x border-gray-50">
                         <div className="text-xs text-accessible-gray font-bold uppercase mb-1">Coût</div>
-                        <div className="text-xs font-bold text-gray-700">{avgCost > 0 ? formatPrice(avgCost) : '-'}</div>
+                        <div className="text-xs font-bold text-gray-700">{displayCost.cost > 0 ? formatPrice(displayCost.cost) : '-'}</div>
+                        {displayCost.source !== 'none' && displayCost.source !== 'cump' && (
+                            <div className="text-[9px] text-gray-400 mt-0.5">{getCostSourceLabel(displayCost.source)}</div>
+                        )}
                     </div>
                     <div className="text-center">
                         <div className="text-xs text-accessible-gray font-bold uppercase mb-1">Marge</div>

@@ -174,6 +174,7 @@ export default function SettingsPage() {
     const [tempConsignmentExpirationDays, setTempConsignmentExpirationDays] = useState(currentBar?.settings?.consignmentExpirationDays ?? 7);
     const [tempSupplyFrequency, setTempSupplyFrequency] = useState(currentBar?.settings?.supplyFrequency ?? 7);
     const [tempOperatingMode, setTempOperatingMode] = useState<'full' | 'simplified'>(currentBar?.settings?.operatingMode ?? 'full');
+    const [tempCostDisplayMethod, setTempCostDisplayMethod] = useState<'cump' | 'last_cost'>(currentBar?.settings?.costDisplayMethod ?? 'cump');
 
     // BUG #3 FIX (Ajusté) : Synchronisation UNIQUEMENT lors du changement de BarId
     // On évite de synchroniser operatingMode ici car cela écrase les choix de l'utilisateur lors de refreshBars()
@@ -187,6 +188,7 @@ export default function SettingsPage() {
             setTempConsignmentExpirationDays(currentBar.settings?.consignmentExpirationDays ?? 7);
             setTempSupplyFrequency(currentBar.settings?.supplyFrequency ?? 7);
             setTempOperatingMode(currentBar.settings?.operatingMode ?? 'full');
+            setTempCostDisplayMethod(currentBar.settings?.costDisplayMethod ?? 'cump');
         }
     }, [currentBar?.id]); // ⚡ Retiré currentBar?.settings?.operatingMode des dépendances pour éviter le revert permanent
 
@@ -296,6 +298,7 @@ export default function SettingsPage() {
                     consignmentExpirationDays: tempConsignmentExpirationDays,
                     supplyFrequency: tempSupplyFrequency,
                     operatingMode: tempOperatingMode,
+                    costDisplayMethod: tempCostDisplayMethod,
                 },
                 closingHour: tempCloseHour,
             });
@@ -562,6 +565,21 @@ export default function SettingsPage() {
                                             { value: '30', label: '30 jours - 1 mois' },
                                         ]}
                                         helperText="Fréquence de réapprovisionnement automatique."
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Méthode de coût (inventaire)
+                                    </label>
+                                    <Select
+                                        value={tempCostDisplayMethod}
+                                        onChange={(e) => setTempCostDisplayMethod(e.target.value as 'cump' | 'last_cost')}
+                                        options={[
+                                            { value: 'cump', label: 'Coût moyen pondéré (CUMP)' },
+                                            { value: 'last_cost', label: 'Dernier coût d\'achat' },
+                                        ]}
+                                        helperText="Méthode de calcul du coût affiché dans l'inventaire. La comptabilité utilise toujours le CUMP."
                                     />
                                 </div>
                             </div>

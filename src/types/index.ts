@@ -62,6 +62,7 @@ export interface BarSettings {
   serversList?: string[]; // Liste des serveurs (mode simplifié uniquement)
   consignmentExpirationDays?: number; // Nombre de jours avant expiration consignation (défaut: 7)
   supplyFrequency?: number; // Fréquence d'approvisionnement en jours (1-30, défaut: 7)
+  costDisplayMethod?: 'cump' | 'last_cost'; // Méthode d'affichage du coût en inventaire (défaut: 'cump')
   // Identifiants légaux (obligatoires pour l'en-tête du Livre Journal SYSCOHADA)
   rccm?: string;  // Registre du Commerce et du Crédit Mobilier
   ifu?: string;   // Identifiant Fiscal Unique (NINEA au Sénégal, IFU au Bénin/Burkina)
@@ -107,6 +108,8 @@ export interface Product {
   globalProductId?: string;
   isCustomProduct?: boolean;
   currentAverageCost?: number; // ✨ CUMP (Coût Unitaire Moyen Pondéré) - Updated when supplies arrive
+  initialUnitCost?: number; // Coût unitaire initial saisi manuellement (fallback quand aucun supply)
+  lastUnitCost?: number; // Dernier coût unitaire d'approvisionnement (UX only — cache DB)
 }
 
 export interface Supply {

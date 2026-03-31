@@ -66,8 +66,8 @@ export function detectProductAnomaly(
 
     // --- 3. ANOMALIES FINANCIÈRES & GESTION (JAUNE) ---
 
-    // Vente à perte (CUMP > Prix Vente)
-    const cost = product.currentAverageCost || 0;
+    // Vente à perte (CUMP ou coût initial > Prix Vente)
+    const cost = product.currentAverageCost || product.initialUnitCost || 0;
     if (cost > 0 && cost >= product.price) {
         return {
             type: 'PRICE_BELOW_COST',
@@ -76,7 +76,7 @@ export function detectProductAnomaly(
         };
     }
 
-    // Valeur indéterminée (Stock présent mais prix d'achat nul)
+    // Valeur indéterminée (Stock présent mais aucun coût renseigné — ni CUMP, ni initial)
     if (stockInfo.physicalStock > 0 && cost <= 0) {
         return {
             type: 'MISSING_COST',

@@ -111,7 +111,9 @@ const mapProducts = (dbProducts: BarProductWithDetails[]): Product[] => {
         image: p.display_image || undefined, // Computed by service
         alertThreshold: p.alert_threshold ?? 0,
         createdAt: new Date(p.created_at || Date.now()),
-        currentAverageCost: p.current_average_cost ?? 0, // ✨ Added CUMP field
+        currentAverageCost: p.current_average_cost ?? 0, // ✨ CUMP field
+        initialUnitCost: p.initial_unit_cost ?? 0,
+        lastUnitCost: p.last_unit_cost ?? 0,
     }));
 };
 

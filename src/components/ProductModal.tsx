@@ -38,6 +38,7 @@ export function ProductModal({ isOpen, onClose, onSave, product, inline = false 
     categoryId: '',
     image: '',
     alertThreshold: '',
+    initialUnitCost: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formTouched, setFormTouched] = useState(false);
@@ -69,6 +70,7 @@ export function ProductModal({ isOpen, onClose, onSave, product, inline = false 
           categoryId: product.categoryId,
           image: product.image || '',
           alertThreshold: product.alertThreshold.toString(),
+          initialUnitCost: product.initialUnitCost ? product.initialUnitCost.toString() : '',
         });
       } else if (justOpened) {
         // Reset uniquement à l'ouverture pour un nouveau produit
@@ -80,6 +82,7 @@ export function ProductModal({ isOpen, onClose, onSave, product, inline = false 
           categoryId: categories[0]?.id || '',
           image: '',
           alertThreshold: '10',
+          initialUnitCost: '',
         });
         setSelectedGlobalId(null);
         setStep('selection');
@@ -135,6 +138,7 @@ export function ProductModal({ isOpen, onClose, onSave, product, inline = false 
     setIsSubmitting(true);
 
     try {
+      const parsedInitialCost = parseFloat(formData.initialUnitCost);
       const productData = {
         name: formData.name,
         volume: formData.volume,
@@ -145,6 +149,9 @@ export function ProductModal({ isOpen, onClose, onSave, product, inline = false 
         alertThreshold: parseInt(formData.alertThreshold) || 10,
         globalProductId: product?.globalProductId || (mode === 'global' ? selectedGlobalId || undefined : undefined),
         isCustomProduct: mode === 'custom' && !selectedGlobalId && !product?.globalProductId,
+        // En édition : toujours envoyer initialUnitCost (même 0) pour permettre la remise à zéro
+        // En création : envoyer seulement si > 0
+        initialUnitCost: product ? (isNaN(parsedInitialCost) ? 0 : parsedInitialCost) : (parsedInitialCost > 0 ? parsedInitialCost : undefined),
       } as Omit<Product, 'id' | 'createdAt' | 'barId'>;
 
       // ✅ Attendre le résultat réel de onSave avant de fermer
@@ -378,6 +385,23 @@ export function ProductModal({ isOpen, onClose, onSave, product, inline = false 
                       placeholder="10"
                     />
                   </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="initialUnitCost">Coût unitaire initial</Label>
+                  <Input
+                    id="initialUnitCost"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={formData.initialUnitCost}
+                    onChange={(e) => handleInputChange('initialUnitCost', e.target.value)}
+                    placeholder="0"
+                    endAdornment="F"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Coût d'achat par unité (utilisé si aucun approvisionnement n'est enregistré)
+                  </p>
                 </div>
               </form>
             </div>

@@ -16,7 +16,8 @@ import { calculateAvailableStock } from '../../utils/calculations';
 import { getErrorMessage } from '../../utils/errorHandler';
 import { useNotifications } from '../../components/Notifications';
 import { toDbProduct, toDbProductForCreation } from '../../utils/productMapper';
-import type { Product, ProductStockInfo, Supply, Expense } from '../../types';
+import { getDisplayCost, type DisplayCost } from '../../utils/costResolution';
+import type { Product, ProductStockInfo, Supply, Expense, BarSettings } from '../../types';
 
 export type CreateExpenseCallback = (expense: Omit<Expense, 'id' | 'barId' | 'createdAt'>) => void;
 
@@ -297,6 +298,17 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
         return totalQuantity > 0 ? totalCost / totalQuantity : (product?.currentAverageCost || 0);
     }, [productMap, suppliesByProductMap]);
 
+    /**
+     * getDisplayCostForProduct — exposeur pratique de costResolution.ts
+     * Résout le coût à afficher en UI selon le setting du bar.
+     * NE remplace PAS getAverageCostPerUnit (qui reste pour les calculs métier).
+     */
+    const getDisplayCostForProduct = useCallback((productId: string, barSettings?: BarSettings | null): DisplayCost => {
+        const product = productMap.get(productId);
+        if (!product) return { cost: 0, source: 'none' };
+        return getDisplayCost(product, barSettings);
+    }, [productMap]);
+
     // ===== LOGIQUE DE CONSIGNATION =====
 
     const createConsignment = useCallback((data: CreateConsignmentData) => {
@@ -436,6 +448,7 @@ export const useUnifiedStock = (barId: string | undefined, options: UnifiedStock
         allProductsStockInfo,
         getProductStockInfo,
         getAverageCostPerUnit,
+        getDisplayCostForProduct,
         addProduct,
         addProducts,
         updateProduct,

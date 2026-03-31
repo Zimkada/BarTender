@@ -55,6 +55,7 @@ export default function InventoryPage() {
         categories,
         getProductStockInfo,
         getAverageCostPerUnit,
+        getDisplayCostForProduct,
         isLoading: isLoadingProducts
     } = useUnifiedStock(currentBar?.id, { skipSupplies: viewMode === 'products' });
 
@@ -241,11 +242,12 @@ export default function InventoryPage() {
                                         products={sortedProducts}
                                         categories={categories}
                                         getProductStockInfo={getProductStockInfo}
-                                        getAverageCostPerUnit={getAverageCostPerUnit}
+                                        getDisplayCostForProduct={getDisplayCostForProduct}
+                                        barSettings={currentBar?.settings}
                                         onEdit={handleEditProduct}
                                         onAdjust={handleAdjustStock}
                                         onDelete={handleDeleteClick}
-                                        onHistory={handleViewHistory} // ✨ Pass history handler
+                                        onHistory={handleViewHistory}
                                         searchTerm={searchTerm}
                                     />
                                 </div>

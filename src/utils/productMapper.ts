@@ -57,6 +57,10 @@ export function toDbProduct(
     dbUpdates.is_custom_product = updates.isCustomProduct;
   }
 
+  if (updates.initialUnitCost !== undefined) {
+    dbUpdates.initial_unit_cost = updates.initialUnitCost;
+  }
+
   // ⚠️ SECURITY: Stock modification is controlled separately
   // Never allow stock changes through this mapper for product edits
   // Stock changes must go through: sales, supplies, or dedicated adjustment endpoints
@@ -96,6 +100,8 @@ export function toFrontendProduct(dbProduct: Record<string, any>): Product {
     ...(dbProduct.global_product_id && { globalProductId: dbProduct.global_product_id }),
     ...(dbProduct.is_custom_product !== undefined && { isCustomProduct: dbProduct.is_custom_product }),
     ...(dbProduct.current_average_cost && { currentAverageCost: dbProduct.current_average_cost }),
+    ...(dbProduct.initial_unit_cost != null && { initialUnitCost: dbProduct.initial_unit_cost }),
+    ...(dbProduct.last_unit_cost != null && { lastUnitCost: dbProduct.last_unit_cost }),
   };
 }
 
@@ -128,5 +134,8 @@ export function toDbProductForCreation(
     // If globalProductId exists → false (linked), else → true (custom)
     is_custom_product: productData.isCustomProduct !== undefined ? productData.isCustomProduct : isCustom,
     volume: productData.volume || '',
+    ...(productData.initialUnitCost != null && productData.initialUnitCost > 0 && {
+      initial_unit_cost: productData.initialUnitCost,
+    }),
   };
 }
