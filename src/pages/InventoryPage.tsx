@@ -292,6 +292,7 @@ export default function InventoryPage() {
                                 lowStockCount={lowStockProducts.length}
                                 onNavigateToOperations={() => setViewMode('operations')}
                                 formatPrice={formatPrice}
+                                barSettings={currentBar?.settings}
                             />
                         </motion.div>
                     )}

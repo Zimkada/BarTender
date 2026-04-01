@@ -1,10 +1,11 @@
 import type { ElementType } from 'react';
 import { Container, LayoutGrid, AlertTriangle, Tags, Wallet, TrendingUp, ShieldAlert, AlertOctagon, Info, CheckCircle2, Wrench } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Product } from '../../types';
+import { Product, BarSettings } from '../../types';
 import { ProductWithAnomaly } from '../../hooks/useInventoryFilter';
 import { CategoryStatsList } from '../common/CategoryStatsList';
 import { Button } from '../ui/Button';
+import { getDisplayCost } from '../../utils/costResolution';
 
 interface InventoryStatsProps {
     products: Product[];
@@ -13,6 +14,7 @@ interface InventoryStatsProps {
     lowStockCount: number;
     onNavigateToOperations: () => void;
     formatPrice: (amount: number) => string;
+    barSettings?: BarSettings | null;
 }
 
 export function InventoryStats({
@@ -21,13 +23,14 @@ export function InventoryStats({
     productsWithAnomalies,
     lowStockCount,
     onNavigateToOperations,
-    formatPrice
+    formatPrice,
+    barSettings,
 }: InventoryStatsProps) {
 
     return (
         <div className="space-y-6" data-guide="inventory-stats">
             {/* Résumé Global */}
-            <InventorySummaryCards products={products} formatPrice={formatPrice} />
+            <InventorySummaryCards products={products} formatPrice={formatPrice} barSettings={barSettings} />
 
             {/* Répartition Catégories */}
             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
@@ -177,11 +180,12 @@ function SeverityPill({ count, label, icon: Icon, colorClass, iconClass }: Sever
 // Sous-composant : cartes résumé global
 // ─────────────────────────────────────────────────────────────
 
-function InventorySummaryCards({ products, formatPrice }: { products: Product[], formatPrice: (amount: number) => string }) {
+function InventorySummaryCards({ products, formatPrice, barSettings }: { products: Product[], formatPrice: (amount: number) => string, barSettings?: BarSettings | null }) {
     const stats = {
         categoriesCount: new Set(products.map(p => p.categoryId)).size,
         productsCount: products.length,
-        purchaseValue: products.reduce((acc, p) => acc + (p.stock * (p.currentAverageCost || 0)), 0),
+        // Respect costDisplayMethod : CUMP ou dernier coût selon le réglage du bar
+        purchaseValue: products.reduce((acc, p) => acc + (p.stock * (getDisplayCost(p, barSettings).cost || 0)), 0),
         saleValue: products.reduce((acc, p) => acc + (p.stock * p.price), 0),
     };
 
