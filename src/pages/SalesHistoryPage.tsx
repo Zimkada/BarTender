@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
     Search,
     Download,
@@ -162,10 +162,36 @@ export default function SalesHistoryPage() {
         statusFilter, // Pass 'all' directly to handle it inside the hook
     });
 
-    // ✨ Effacement automatique de la recherche serveur si on efface le terme
+    // ✨ Recherche unifiée : auto-failover vers serveur si 0 résultats locaux (debounce 500ms)
+    const serverSearchTimerRef = useRef<ReturnType<typeof setTimeout>>();
+    const serverSearchTermRef = useRef(serverSearchTerm);
+    serverSearchTermRef.current = serverSearchTerm;
+
     useEffect(() => {
-        if (!searchTerm) setServerSearchTerm('');
-    }, [searchTerm]);
+        clearTimeout(serverSearchTimerRef.current);
+
+        // Reset si terme effacé ou trop court
+        if (!searchTerm || searchTerm.length < 3) {
+            setServerSearchTerm('');
+            return;
+        }
+
+        // Si des résultats locaux existent, pas besoin du serveur
+        if (filteredSales.length > 0) {
+            // Reset la recherche serveur si elle était active
+            if (serverSearchTermRef.current) setServerSearchTerm('');
+            return;
+        }
+
+        // 0 résultats locaux + terme ≥ 3 chars → déclencher recherche serveur après debounce
+        if (serverSearchTermRef.current !== searchTerm) {
+            serverSearchTimerRef.current = setTimeout(() => {
+                setServerSearchTerm(searchTerm);
+            }, 500);
+        }
+
+        return () => clearTimeout(serverSearchTimerRef.current);
+    }, [searchTerm, filteredSales.length]);
 
     // Reset pagination when filters change
     useEffect(() => {
@@ -316,13 +342,12 @@ export default function SalesHistoryPage() {
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="w-full pl-9 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                                 />
-                                {searchTerm && filteredSales.length === 0 && !isLoadingSales && serverSearchTerm !== searchTerm && (
-                                    <button
-                                        onClick={() => setServerSearchTerm(searchTerm)}
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] bg-brand-primary text-white px-2 py-0.5 rounded hover:bg-brand-dark transition-all animate-pulse"
-                                    >
-                                        Serveur ?
-                                    </button>
+                                {/* Indicateur de recherche étendue (serveur) */}
+                                {searchTerm && searchTerm.length >= 3 && filteredSales.length === 0 && isLoadingSales && (
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 flex items-center gap-1">
+                                        <span className="inline-block w-3 h-3 border-2 border-gray-300 border-t-brand-primary rounded-full animate-spin" />
+                                        Recherche étendue…
+                                    </span>
                                 )}
                             </div>
                             {/* Unified Period Filter */}
