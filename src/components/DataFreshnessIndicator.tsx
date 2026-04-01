@@ -137,7 +137,7 @@ export function DataFreshnessIndicatorCompact({
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium
                     bg-amber-50 text-amber-700 border border-amber-200
                     hover:bg-amber-100 transition-all duration-200 cursor-pointer ${className}`}
-                title="Les données analytiques ne sont pas à jour. Cliquez pour actualiser."
+                title="Les graphiques et statistiques ne sont pas à jour. Cliquez ici pour actualiser — utilisez ce bouton si les montants affichés vous semblent incorrects."
             >
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 <span>Données non à jour — Actualiser</span>
@@ -152,14 +152,14 @@ export function DataFreshnessIndicatorCompact({
             className={`
         flex items-center gap-1.5 px-2 py-1 rounded-md text-xs
         transition-all duration-200
-        ${isStale ? 'text-amber-600 hover:bg-amber-50' : 'text-gray-500 hover:bg-gray-50'}
+        ${isStale ? 'text-amber-600 hover:bg-amber-50' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}
         ${isRefreshing ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}
         ${className}
       `}
-            title={`Dernière mise à jour: il y a ${minutesOld} min`}
+            title={`Actualiser les graphiques et statistiques comptables (mis à jour il y a ${minutesOld < 60 ? `${minutesOld} min` : `${Math.floor(minutesOld / 60)}h`}). Cliquez ici si les montants affichés vous semblent incorrects.`}
         >
             <RotateCcw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>{isRefreshing ? 'Mise à jour...' : minutesOld < 60 ? `${minutesOld}m` : `${Math.floor(minutesOld / 60)}h`}</span>
+            <span>{isRefreshing ? 'Mise à jour...' : 'Actualiser'}</span>
         </button>
     );
 }
