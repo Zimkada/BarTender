@@ -30,9 +30,9 @@ import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
 import type { AccountingPeriodProps } from '../types/dateFilters';
 import { useUnifiedExpenses } from '../hooks/pivots/useUnifiedExpenses';
 import { useUnifiedReturns } from '../hooks/pivots/useUnifiedReturns';
+import { useRevenueStats } from '../hooks/useRevenueStats';
 import {
   useDailyAnalytics,
-  useRevenueAnalytics,
   useExpensesAnalytics,
   useSalariesAnalytics,
 } from '../hooks/queries/useAnalyticsQueries';
@@ -179,8 +179,13 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
   const { data: chartExpensesRaw = [], isError: chartExpensesError } = useExpensesAnalytics(currentBar?.id, chartStart, chartEnd, 'month');
   const { data: chartSalaries = [] } = useSalariesAnalytics(currentBar?.id, chartStart, chartEnd, 'month');
 
-  // KPIs via vues matérialisées — source unique de vérité pour la période sélectionnée
-  const { data: currentPeriodRevenue = [] } = useDailyAnalytics(currentBar?.id, periodStart, periodEnd, 'day');
+  // 🔄 V12: Revenue via query directe (table sales) au lieu de la vue matérialisée
+  // Avantage : toujours frais, pas de dépendance au refresh de daily_sales_summary_mat
+  const currentPeriodRevenueStats = useRevenueStats({
+    startDate: dateToYYYYMMDD(periodStart),
+    endDate: dateToYYYYMMDD(periodEnd),
+  });
+
   const { data: currentPeriodExpensesRaw = [], isError: currentExpensesError } = useExpensesAnalytics(currentBar?.id, periodStart, periodEnd, 'day');
 
   // 🛡️ FALLBACK: Si les vues analytiques échouent, recalculer depuis les données unifiées
@@ -202,7 +207,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
   // 🛡️ FIX : currentPeriodSalaries supprimé — les salaires locaux (useSalaries ligne 85) sont utilisés
   // directement pour inclure les paiements optimistic non encore syncronisés vers Supabase
 
-  // 2. Growth Analysis (Previous Period)
+  // 2. Growth Analysis (Previous Period) — aussi via query directe
   const prevPeriodRange = useMemo(() => {
     const prevStart = new Date(periodStart);
     prevStart.setMonth(prevStart.getMonth() - 1);
@@ -211,7 +216,10 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
     return { start: prevStart, end: prevEnd };
   }, [periodStart]);
 
-  const { data: prevPeriodStats = [] } = useDailyAnalytics(currentBar?.id, prevPeriodRange.start, prevPeriodRange.end, 'day');
+  const prevPeriodRevenueStats = useRevenueStats({
+    startDate: dateToYYYYMMDD(prevPeriodRange.start),
+    endDate: dateToYYYYMMDD(prevPeriodRange.end),
+  });
 
   // 3. Historical Data for Balance
   const historyRange = useMemo(() => {
@@ -221,8 +229,11 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
     return { start, end };
   }, [periodStart]);
 
-  const { data: historicalRevenueData } = useRevenueAnalytics(currentBar?.id, historyRange.start, historyRange.end);
-  const historicalRevenue = historicalRevenueData?.totalRevenue || 0;
+  const historicalRevenueStats = useRevenueStats({
+    startDate: dateToYYYYMMDD(historyRange.start),
+    endDate: dateToYYYYMMDD(historyRange.end),
+  });
+  const historicalRevenue = historicalRevenueStats.netRevenue;
 
   // ✨ Filtrage Centralisé Local des données unifiées
   const filteredSales = useMemo(() => {
@@ -240,25 +251,8 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
     });
   }, [unifiedExpenses, periodStart, periodEnd]);
 
-  // ✨ Calcul des KPIs Financiers
-  // Source primaire : vue matérialisée (agrégats SQL pré-calculés).
-  // Fallback : calcul direct depuis unifiedSales si la vue est vide (pas encore rafraîchie).
-  // Aligne la Comptabilité sur la même logique que l'Historique.
-  const totalRevenue = useMemo(() => {
-    if (currentPeriodRevenue.length > 0) {
-      // ?? (nullish) et non || : net_revenue=0 est valide (jour sans ventes), ne pas fallback sur gross
-      return currentPeriodRevenue.reduce(
-        (sum, day) => sum + (day.net_revenue ?? day.gross_revenue ?? 0), 0
-      );
-    }
-    // Fallback : même calcul que AnalyticsView (raw data, toujours frais)
-    return unifiedSales.reduce((sum, sale) => {
-      if (sale.status !== 'validated') return sum;
-      const saleReturns = unifiedReturns.filter(r => r.saleId === sale.id && isConfirmedReturn(r));
-      const refunds = saleReturns.reduce((s, r) => s + (r.refundAmount || 0), 0);
-      return sum + (sale.total - refunds);
-    }, 0);
-  }, [currentPeriodRevenue, unifiedSales, unifiedReturns]);
+  // ✨ V12: Revenue directement depuis useRevenueStats (query directe, toujours frais)
+  const totalRevenue = currentPeriodRevenueStats.netRevenue;
 
   const [viewMode, setViewMode] = useState<'tresorerie' | 'analytique'>('tresorerie');
   const [isExporting, setIsExporting] = useState(false);
@@ -299,7 +293,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
 
   // KPIs Extra (Growth, Server, etc)
   const { revenueGrowth, revenuePerServer, investmentRate, chartData } = useMemo(() => {
-    const prevTotalRevenue = prevPeriodStats.reduce((sum, day) => sum + (day.net_revenue ?? day.gross_revenue ?? 0), 0);
+    const prevTotalRevenue = prevPeriodRevenueStats.netRevenue;
     const revenueGrowth = prevTotalRevenue > 0 ? ((totalRevenue - prevTotalRevenue) / prevTotalRevenue) * 100 : 0;
 
     const serverCount = currentBar?.settings?.serversList?.length || 1;
@@ -349,7 +343,7 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
       investmentRate: isFinite(investmentRate) ? investmentRate : 0,
       chartData
     };
-  }, [totalRevenue, investments, prevPeriodStats, chartStats, chartExpenses, chartSalaries, currentBar, isMobile]);
+  }, [totalRevenue, investments, prevPeriodRevenueStats.netRevenue, chartStats, chartExpenses, chartSalaries, currentBar, isMobile]);
 
   // Analytique: Balance Calculations
   const { previousBalance, previousBalanceDetails, finalBalance, totalCosts } = useMemo(() => {

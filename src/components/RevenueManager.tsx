@@ -1,18 +1,18 @@
 import { useState, useMemo, useEffect } from 'react';
 import { DollarSign, Search, ArrowDownToLine, HandCoins, Smartphone, CreditCard, ChevronDown } from 'lucide-react';
-import { useBarContext } from '../context/BarContext';
-import { useDailyAnalytics } from '../hooks/queries/useAnalyticsQueries';
+import { useRevenueStats } from '../hooks/useRevenueStats';
+import type { RevenueDayBreakdown } from '../hooks/useRevenueStats';
 import { useViewport } from '../hooks/useViewport';
 import { PeriodFilter } from './common/filters/PeriodFilter';
 import { ACCOUNTING_FILTERS } from '../config/dateFilters';
 import type { AccountingPeriodProps } from '../types/dateFilters';
+import { dateToYYYYMMDD } from '../utils/businessDateHelpers';
 
 interface RevenueManagerProps {
     period: AccountingPeriodProps;
 }
 
 export function RevenueManager({ period }: RevenueManagerProps) {
-    const { currentBar } = useBarContext();
     const { isMobile } = useViewport();
     const [searchTerm, setSearchTerm] = useState('');
     const PAGE_SIZE = 100;
@@ -37,49 +37,52 @@ export function RevenueManager({ period }: RevenueManagerProps) {
         updateCustomRange
     } = period;
 
-    const { data: rawDailyData, isLoading } = useDailyAnalytics(
-        currentBar?.id,
-        startDate,
-        endDate
-    );
-
-    // useDailyAnalytics returns an array of DailySalesSummaryRow
-    const dailyDataArray = useMemo(() => {
-        if (!rawDailyData) return [];
-        return [...rawDailyData].sort((a: any, b: any) =>
-            new Date(b.sale_date).getTime() - new Date(a.sale_date).getTime()
-        );
-    }, [rawDailyData]);
+    // 🔄 V12: Source directe (table sales) au lieu de la vue matérialisée daily_sales_summary
+    // Avantage : toujours frais, pas de dépendance au refresh de la mat view
+    const {
+        netRevenue,
+        cashRevenue,
+        mobileRevenue,
+        cardRevenue,
+        days,
+        isLoading,
+    } = useRevenueStats({
+        startDate: dateToYYYYMMDD(startDate),
+        endDate: dateToYYYYMMDD(endDate),
+    });
 
     // Reset pagination quand les filtres changent
     useEffect(() => { setVisibleCount(PAGE_SIZE); }, [searchTerm, timeRange, startDate, endDate]);
 
     const filteredDays = useMemo(() => {
-        if (!searchTerm) return dailyDataArray;
-        return dailyDataArray.filter((day: any) => {
+        if (!searchTerm) return days;
+        return days.filter((day: RevenueDayBreakdown) => {
             if (!day.sale_date) return false;
             // Convert YYYY-MM-DD to DD-MM-YYYY for intuitive searching
             const [y, m, d] = day.sale_date.split('-');
             const displayDate = `${d}-${m}-${y}`;
             return displayDate.includes(searchTerm);
         });
-    }, [dailyDataArray, searchTerm]);
+    }, [days, searchTerm]);
 
     const totals = useMemo(() => {
-        return filteredDays.reduce((acc: any, day: any) => {
-            const dayRevenue = day.net_revenue || day.gross_revenue || 0;
-            const dayCash = day.cash_revenue || 0;
-            const dayMobile = day.mobile_revenue || 0;
-            const dayOthers = dayRevenue - dayCash - dayMobile;
-
+        // Si pas de recherche active, utiliser les totaux agrégés (plus précis, inclut offline+transition)
+        if (!searchTerm) {
             return {
-                revenue: acc.revenue + dayRevenue,
-                cash: acc.cash + dayCash,
-                mobile: acc.mobile + dayMobile,
-                card: acc.card + Math.max(0, dayOthers),
+                revenue: netRevenue,
+                cash: cashRevenue,
+                mobile: mobileRevenue,
+                card: cardRevenue,
             };
-        }, { revenue: 0, cash: 0, mobile: 0, card: 0 });
-    }, [filteredDays]);
+        }
+        // Sinon, recalculer depuis les jours filtrés
+        return filteredDays.reduce((acc, day) => ({
+            revenue: acc.revenue + day.net_revenue,
+            cash: acc.cash + day.cash_revenue,
+            mobile: acc.mobile + day.mobile_revenue,
+            card: acc.card + day.card_revenue,
+        }), { revenue: 0, cash: 0, mobile: 0, card: 0 });
+    }, [searchTerm, filteredDays, netRevenue, cashRevenue, mobileRevenue, cardRevenue]);
 
     return (
         <div className="space-y-6">
@@ -171,16 +174,16 @@ export function RevenueManager({ period }: RevenueManagerProps) {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {filteredDays.slice(0, visibleCount).map((day: any, idx: number) => (
+                                {filteredDays.slice(0, visibleCount).map((day, idx) => (
                                     <tr key={day.sale_date || idx} className="hover:bg-gray-50/50 transition-colors group">
                                         <td className="py-2 md:py-4 text-xs md:text-sm font-medium text-gray-900">
                                             {day.sale_date?.split('-').reverse().join('-')}
                                         </td>
-                                        <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center">{formatPrice(day.cash_revenue || 0, isMobile)}</td>
-                                        <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center hidden sm:table-cell">{formatPrice(day.mobile_revenue || 0, isMobile)}</td>
-                                        <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center hidden sm:table-cell">{formatPrice(Math.max(0, (day.net_revenue || day.gross_revenue || 0) - (day.cash_revenue || 0) - (day.mobile_revenue || 0)), isMobile)}</td>
-                                        <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center sm:hidden">{formatPrice(Math.max(0, (day.net_revenue || day.gross_revenue || 0) - (day.cash_revenue || 0)), isMobile)}</td>
-                                        <td className="py-2 md:py-4 text-xs md:text-sm font-bold text-gray-900 text-center">{formatPrice(day.net_revenue || day.gross_revenue || 0, false)}</td>
+                                        <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center">{formatPrice(day.cash_revenue, isMobile)}</td>
+                                        <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center hidden sm:table-cell">{formatPrice(day.mobile_revenue, isMobile)}</td>
+                                        <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center hidden sm:table-cell">{formatPrice(day.card_revenue, isMobile)}</td>
+                                        <td className="py-2 md:py-4 text-xs md:text-sm text-gray-600 text-center sm:hidden">{formatPrice(day.mobile_revenue + day.card_revenue, isMobile)}</td>
+                                        <td className="py-2 md:py-4 text-xs md:text-sm font-bold text-gray-900 text-center">{formatPrice(day.net_revenue, false)}</td>
                                     </tr>
                                 ))}
                             </tbody>
