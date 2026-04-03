@@ -104,7 +104,7 @@ export const router = createBrowserRouter([
       { path: 'analytics', element: <AnalyticsPage /> },
       {
         path: 'accounting',
-        element: <ProtectedRoute permission="canViewAccounting" />,
+        element: <ProtectedRoute permission="canViewAccounting" feature="accounting" />,
         children: [
           { index: true, element: <AccountingPage /> },
         ],
@@ -119,7 +119,7 @@ export const router = createBrowserRouter([
       { path: 'profil', element: <ProfilePage /> },
       {
         path: 'forecasting',
-        element: <ProtectedRoute permission="canViewForecasting" />,
+        element: <ProtectedRoute permission="canViewForecasting" feature="forecasting" />,
         children: [
           { index: true, element: <ForecastingAIPage /> },
         ],
@@ -135,7 +135,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'promotions',
-        element: <ProtectedRoute permission="canManagePromotions" />,
+        element: <ProtectedRoute permission="canManagePromotions" feature="promotions" />,
         children: [
           { index: true, element: <PromotionsPage /> },
         ],

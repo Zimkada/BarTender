@@ -26,6 +26,7 @@ import { getErrorMessage } from '../utils/errorHandler';
 import { FEATURES } from '../config/features';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
 import { OnboardingBreadcrumb } from '../components/onboarding/ui/OnboardingBreadcrumb';
+import { usePlan } from '../hooks/usePlan';
 
 /**
  * TeamManagementPage - Page de gestion de l'équipe
@@ -60,6 +61,9 @@ export default function TeamManagementPage() {
       }
     },
   });
+
+  // 🛡️ Plan: vérification limite membres
+  const { canAddMember, memberLimitMessage, plan } = usePlan();
 
   // Guide ID for team management
   const teamGuideId = 'manage-team';
@@ -126,6 +130,12 @@ export default function TeamManagementPage() {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    // 🛡️ Plan: vérification limite membres
+    if (!canAddMember) {
+      setError(memberLimitMessage || 'Limite de membres atteinte pour ce plan.');
+      return;
+    }
 
     if (!selectedCandidateId && !existingEmail) {
       setError('Veuillez sélectionner un membre ou entrer un email');
@@ -316,6 +326,12 @@ export default function TeamManagementPage() {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    // 🛡️ Plan: vérification limite membres
+    if (!canAddMember) {
+      setError(memberLimitMessage || 'Limite de membres atteinte pour ce plan.');
+      return;
+    }
 
     // Validation
     if (!username || !password || !name || !phone) {
@@ -791,6 +807,13 @@ export default function TeamManagementPage() {
                           )}
                         </div>
                       </div>
+
+                      {/* 🛡️ Alerte limite plan */}
+                      {!canAddMember && (
+                        <Alert variant="warning" className="mb-4">
+                          {memberLimitMessage} — Plan actuel : <strong>{plan.label}</strong>
+                        </Alert>
+                      )}
 
                       {/* Form Content */}
                       <AnimatePresence mode="wait">

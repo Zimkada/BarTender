@@ -58,7 +58,8 @@ export interface BarSettings {
   // Heure de clôture déplacée au niveau Bar (closingHour)
   taxRate?: number; // Pourcentage TVA (ex: 18)
   operatingMode?: 'full' | 'simplified'; // Mode de fonctionnement : complet (avec comptes serveurs) ou simplifié (gérant attribue)
-  dataTier?: 'lite' | 'balanced' | 'enterprise'; // ✨ NOUVEAU: Stratégie de chargement des données
+  plan?: 'starter' | 'pro' | 'enterprise'; // Plan d'utilisation (contrôle membres, features, dataTier)
+  dataTier?: 'lite' | 'balanced' | 'enterprise'; // Stratégie de chargement des données (dérivé du plan)
   serversList?: string[]; // Liste des serveurs (mode simplifié uniquement)
   consignmentExpirationDays?: number; // Nombre de jours avant expiration consignation (défaut: 7)
   supplyFrequency?: number; // Fréquence d'approvisionnement en jours (1-30, défaut: 7)

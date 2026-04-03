@@ -4,6 +4,7 @@ import { useInventoryHistory } from './useInventoryHistory';
 import { dateToYYYYMMDD } from '../utils/businessDateHelpers';
 import { getErrorMessage } from '../utils/errorHandler';
 import { useFeedback } from './useFeedback';
+import { usePlan } from './usePlan';
 
 interface UseInventoryExportProps {
     barId: string;
@@ -23,12 +24,17 @@ export function useInventoryExport({
     const { calculateHistoricalStock, isCalculating } = useInventoryHistory({ barId, products });
     const [isExporting, setIsExporting] = useState(false);
     const { showSuccess, showError } = useFeedback();
+    const { hasFeature } = usePlan();
 
     const exportToExcel = async (
         mode: 'current' | 'historical',
         targetDate?: Date,
         authorName: string = 'Système'
     ) => {
+        if (!hasFeature('exports')) {
+            showError('L\'export de données n\'est pas disponible avec votre plan actuel.');
+            return;
+        }
         setIsExporting(true);
         try {
             // ✅ Lazy load XLSX library (saves ~142KB gzipped on initial bundle)

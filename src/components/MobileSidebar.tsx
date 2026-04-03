@@ -24,6 +24,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { usePlan } from '../hooks/usePlan';
+import type { FeatureKey } from '../config/plans';
 import { IconButton } from './ui/IconButton';
 import { networkManager } from '../services/NetworkManager';
 import { useNotifications } from './Notifications';
@@ -42,6 +44,8 @@ interface MenuItem {
   roles: ('super_admin' | 'promoteur' | 'gerant' | 'serveur')[];
   action?: () => void;
   path?: string;
+  /** Feature du plan requise pour afficher cet item */
+  feature?: FeatureKey;
 }
 
 export function MobileSidebar({
@@ -51,6 +55,7 @@ export function MobileSidebar({
   onShowQuickSale,
 }: MobileSidebarProps) {
   const { currentSession, logout } = useAuth();
+  const { hasFeature } = usePlan();
   const navigate = useNavigate();
   const { showNotification } = useNotifications();
 
@@ -89,14 +94,15 @@ export function MobileSidebar({
     { id: 'returns', label: 'Retours', icon: <RotateCcw size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/returns' },
     { id: 'consignments', label: 'Consignations', icon: <Archive size={20} />, roles: ['promoteur', 'gerant', 'serveur'], path: '/consignments' },
     { id: 'teamManagement', label: "Gestion de l'Équipe", icon: <Users size={20} />, roles: ['promoteur', 'gerant'], path: '/team' },
-    { id: 'promotions', label: 'Promotions', icon: <Gift size={20} />, roles: ['promoteur', 'gerant'], path: '/promotions' },
+    { id: 'promotions', label: 'Promotions', icon: <Gift size={20} />, roles: ['promoteur', 'gerant'], path: '/promotions', feature: 'promotions' },
     { id: 'settings', label: 'Paramètres', icon: <Settings size={20} />, roles: ['promoteur', 'gerant'], path: '/settings' },
     { id: 'profile', label: 'Mon Profil', icon: <User size={20} />, roles: ['super_admin', 'promoteur', 'gerant', 'serveur'], path: '/profil' },
-    { id: 'accounting', label: 'Comptabilité', icon: <DollarSign size={20} />, roles: ['promoteur'], path: '/accounting' }
+    { id: 'accounting', label: 'Comptabilité', icon: <DollarSign size={20} />, roles: ['promoteur'], path: '/accounting', feature: 'accounting' }
   ];
 
   const visibleMenus = menuItems.filter(item =>
     currentSession && item.roles.includes(currentSession.role as any)
+    && (!item.feature || hasFeature(item.feature))
   );
 
   return (

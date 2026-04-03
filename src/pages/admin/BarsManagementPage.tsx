@@ -10,6 +10,7 @@ import { Alert } from '../../components/ui/Alert';
 import { AdminService } from '../../services/supabase/admin.service';
 import { AuthService } from '../../services/supabase/auth.service';
 import { BarService } from '../../services/supabase/bar.service';
+import { PLANS, type PlanId } from '../../config/plans';
 import { BarCard } from '../../components/BarCard';
 import { AdminPanelErrorBoundary } from '../../components/AdminPanelErrorBoundary';
 import { AdminPanelSkeleton } from '../../components/AdminPanelSkeleton';
@@ -94,6 +95,29 @@ export default function BarsManagementPage() {
         // En cas d'erreur, recharger pour restaurer l'état correct
         await loadBars();
       }
+    }
+  };
+
+  const handlePlanChange = async (barId: string, newPlan: PlanId) => {
+    const bar = bars.find(b => b.id === barId);
+    if (!bar) return;
+
+    const planDef = PLANS[newPlan];
+    const updatedSettings = {
+      ...(bar.settings || {}),
+      plan: newPlan,
+      dataTier: planDef.dataTier,
+    };
+
+    try {
+      await BarService.updateBar(barId, { settings: updatedSettings as any });
+      // Mettre à jour le state local
+      setBars(prev => prev.map(b =>
+        b.id === barId ? { ...b, settings: updatedSettings } : b
+      ));
+    } catch (error) {
+      console.error('Erreur changement de plan:', error);
+      alert('Impossible de changer le plan du bar.');
     }
   };
 
@@ -212,6 +236,7 @@ export default function BarsManagementPage() {
                     bar={bar}
                     members={members}
                     onToggleStatus={toggleBarStatus}
+                    onPlanChange={handlePlanChange}
                     onClose={() => { }}
                   />
                 );

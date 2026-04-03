@@ -3,6 +3,7 @@ import { UnifiedReturn } from '../../../../hooks/pivots/useUnifiedReturns';
 import { Sale, SaleItem, Return, User, BarMember, Category, Product } from '../../../../types';
 import { getSaleDate } from '../../../../utils/saleHelpers';
 import { useNotifications } from '../../../../components/Notifications';
+import { usePlan } from '../../../../hooks/usePlan';
 
 interface UseSalesExportProps {
     filteredSales: Sale[];
@@ -34,8 +35,13 @@ export function useSalesExport({
     statusFilter
 }: UseSalesExportProps) {
     const { showNotification } = useNotifications();
+    const { hasFeature } = usePlan();
 
     const exportSales = useCallback(async (format: 'csv' | 'excel') => {
+        if (!hasFeature('exports')) {
+            showNotification('error', 'L\'export de données n\'est pas disponible avec votre plan actuel.');
+            return;
+        }
         // ✨ NOUVEAU: Certification Perfection - Fetch intégral si besoin
         let salesToExport = filteredSales;
         let finalReturnsToExport = filteredReturns;
@@ -254,7 +260,7 @@ export function useSalesExport({
             URL.revokeObjectURL(url);
             showNotification('success', 'Export CSV généré avec succès');
         }
-    }, [filteredSales, filteredReturns, sales, returns, products, categories, users, barMembers, showNotification]);
+    }, [filteredSales, filteredReturns, sales, returns, products, categories, users, barMembers, showNotification, hasFeature]);
 
     return { exportSales };
 }
