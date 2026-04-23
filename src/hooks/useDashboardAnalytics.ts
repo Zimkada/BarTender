@@ -137,6 +137,7 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
 
     const totalItems = useMemo(() => {
         return serverFilteredSales.reduce((sum: number, sale: any) => {
+            if (typeof sale.items_count === 'number') return sum + sale.items_count;
             if (!sale.items || !Array.isArray(sale.items)) return sum;
             return sum + sale.items.reduce((s: number, i: SaleItem) => s + (i.quantity || 0), 0);
         }, 0);

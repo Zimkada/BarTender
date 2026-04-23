@@ -14,6 +14,7 @@ export type DBSale = Database['public']['Tables']['sales']['Row'] & {
   source_return_id?: string;
   seller?: { name: string };
   validator?: { name: string };
+  items_count?: number; // Maintenue par trigger DB (migration 20260423)
 };
 type Sale = Database['public']['Tables']['sales']['Row'];
 type SaleItem = {
@@ -72,6 +73,7 @@ export interface OfflineSale {
 const SALES_LIST_SELECT = `
   id,
   bar_id,
+  items_count,
   items,
   subtotal,
   discount_total,

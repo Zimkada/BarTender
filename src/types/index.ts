@@ -339,6 +339,7 @@ export interface Sale {
   idempotencyKey?: string; // 🛡️ Clé anti-doublon (V11.5)
   isOptimistic?: boolean; // ⭐ Indique une vente créée hors-ligne (UI Optimiste)
   sourceReturnId?: string; // 🔄 ID du retour qui a financé cet échange (Magic Swap)
+  items_count?: number; // Somme des quantities, maintenue par trigger DB — évite items.reduce() côté client
 }
 
 // ===== TICKETS (BONS) =====

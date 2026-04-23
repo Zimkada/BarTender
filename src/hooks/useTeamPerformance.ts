@@ -75,9 +75,10 @@ export function useTeamPerformance({
             userStats[userId].revenue += (sale.total || 0);
             userStats[userId].sales += 1;
 
-            // 🛡️ Blindage Défensif (Lead Dev Pattern): 
-            // Sécuriser le calcul des items contre les données malformées (offline/cache)
-            if (sale.items && Array.isArray(sale.items)) {
+            // 🛡️ Blindage Défensif: items_count (colonne générée DB) prioritaire, fallback sur items[]
+            if (typeof sale.items_count === 'number') {
+                userStats[userId].items += sale.items_count;
+            } else if (sale.items && Array.isArray(sale.items)) {
                 userStats[userId].items += sale.items.reduce((sum, item) => sum + (item.quantity || 0), 0);
             }
         });

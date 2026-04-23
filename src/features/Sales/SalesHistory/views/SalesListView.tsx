@@ -30,7 +30,7 @@ function MobileSaleRow({ sale, formatPrice, onViewDetails, getReturnsBySale, use
     const saleDate = getSaleDate(sale);
     const timeStr = new Date(sale.validatedAt || sale.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     const dateStr = isToday(saleDate) ? '' : saleDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
-    const itemCount = sale.items.reduce((sum, item) => sum + item.quantity, 0);
+    const itemCount = sale.items_count ?? sale.items.reduce((sum, item) => sum + item.quantity, 0);
     const seller = users?.find(u => u.id === sale.soldBy);
     const saleReturns = getReturnsBySale(sale.id);
     const hasReturns = saleReturns.length > 0;
@@ -169,7 +169,7 @@ export function SalesListView({
                 </thead>
                 <tbody>
                     {sales.map(sale => {
-                        const itemCount = sale.items.reduce((sum, item) => sum + item.quantity, 0);
+                        const itemCount = sale.items_count ?? sale.items.reduce((sum, item) => sum + item.quantity, 0);
 
                         // Calculer le montant des retours remboursés
                         const saleReturns = getReturnsBySale(sale.id);

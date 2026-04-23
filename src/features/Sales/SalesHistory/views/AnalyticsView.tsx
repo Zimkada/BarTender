@@ -154,6 +154,7 @@ export function AnalyticsView({
 
     const currentItems = sales.reduce((sum, s) => {
       if (s.status !== 'validated' && !s.isOptimistic) return sum;
+      if (typeof s.items_count === 'number') return sum + s.items_count;
       return sum + s.items.reduce((itemSum, item) => itemSum + item.quantity, 0);
     }, 0);
 
@@ -168,9 +169,10 @@ export function AnalyticsView({
     const prevRevenue = prevGrossRevenue - prevRefunds;
 
     const prevCount = previousPeriodSales.length;
-    const prevItems = previousPeriodSales.reduce((sum, s) =>
-      sum + s.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0
-    );
+    const prevItems = previousPeriodSales.reduce((sum, s) => {
+      if (typeof s.items_count === 'number') return sum + s.items_count;
+      return sum + s.items.reduce((itemSum, item) => itemSum + item.quantity, 0);
+    }, 0);
 
     // 3. Calculer les variations
     const revenueChange = prevRevenue > 0 ? ((currentRevenue - prevRevenue) / prevRevenue) * 100 : (currentRevenue > 0 ? 100 : 0);

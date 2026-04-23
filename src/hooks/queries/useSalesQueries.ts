@@ -104,6 +104,7 @@ export const mapSalesData = (dbSales: DBSale[]): Sale[] => {
             ticketId: s.ticket_id || undefined,
             idempotencyKey: s.idempotency_key || undefined,
             sourceReturnId: s.source_return_id || undefined,
+            items_count: s.items_count ?? undefined,
         };
     });
 };
