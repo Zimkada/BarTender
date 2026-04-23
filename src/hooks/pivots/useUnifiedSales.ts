@@ -257,7 +257,10 @@ export const useUnifiedSales = (
         refetch: async () => {
             await syncManager.syncAll();
             refetchOffline();
-            queryClient.invalidateQueries({ queryKey: salesKeys.all });
+            if (barId) {
+                queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
+                queryClient.invalidateQueries({ queryKey: salesKeys.stats(barId) });
+            }
         }
     };
 };

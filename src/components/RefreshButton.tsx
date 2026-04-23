@@ -2,42 +2,50 @@ import React, { useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+import { useBarContext } from '../context/BarContext';
 import { salesKeys } from '../hooks/queries/useSalesQueries';
+import { statsKeys } from '../hooks/queries/useStatsQueries';
+import { stockKeys } from '../hooks/queries/useStockQueries';
 import { returnKeys } from '../hooks/queries/useReturnsQueries';
 import { expenseKeys } from '../hooks/queries/useExpensesQueries';
 import { ticketKeys } from '../hooks/queries/useTickets';
 import { analyticsKeys } from '../hooks/queries/useAnalyticsQueries';
+import { topProductsKeys } from '../hooks/queries/useTopProductsQuery';
+import { barMembersKeys } from '../hooks/queries/useBarMembers';
 
 /**
  * Bouton de rafraîchissement manuel
- * Invalide uniquement les queries métier utiles pour forcer un refetch
+ * Invalide uniquement les queries métier actives, scopées par barId
  */
 export function RefreshButton() {
   const queryClient = useQueryClient();
+  const { currentBar } = useBarContext();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = async () => {
     if (isRefreshing) return;
+    const barId = currentBar?.id;
+    if (!barId) return;
 
     setIsRefreshing(true);
     try {
-      // Rafraîchir uniquement les données métier actives.
+      // Rafraîchir uniquement les données métier actives, scopées par barId
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: salesKeys.all, refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: ['stats'], refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: ['stock', 'products'], refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: ['stock', 'supplies'], refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: ['stock', 'consignments'], refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: returnKeys.all, refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: [...expenseKeys.all, 'list'], refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: ticketKeys.all, refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: analyticsKeys.all, refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: ['dailySummary'], refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: ['topProducts'], refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: ['barMembers'], refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: ['stale-pending-sales'], refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock'], refetchType: 'active' }),
-        queryClient.invalidateQueries({ queryKey: ['stock-adjustments'], refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: salesKeys.list(barId), refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: salesKeys.stats(barId), refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: statsKeys.all(barId), refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: stockKeys.products(barId), refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: stockKeys.supplies(barId), refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: stockKeys.consignments(barId), refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: returnKeys.list(barId), refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: expenseKeys.list(barId), refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ticketKeys.open(barId), refetchType: 'active' }),
+        queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(barId) }),
+        queryClient.invalidateQueries({ queryKey: topProductsKeys.all(barId), refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: barMembersKeys.list(barId), refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ['stale-pending-sales', barId], refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock', barId], refetchType: 'active' }),
+        queryClient.invalidateQueries({ queryKey: ['stock-adjustments', barId], refetchType: 'active' }),
       ]);
 
       // Feedback visuel court

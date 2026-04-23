@@ -243,7 +243,7 @@ export const useUnifiedReturns = (barId: string | undefined, closingHour?: numbe
         isLoading: isLoadingOnline || isLoadingOffline,
         refetch: () => {
             refetchOffline();
-            queryClient.invalidateQueries({ queryKey: returnKeys.all });
+            if (barId) { queryClient.invalidateQueries({ queryKey: returnKeys.list(barId) }); }
         }
     };
 };

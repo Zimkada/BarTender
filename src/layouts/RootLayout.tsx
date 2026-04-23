@@ -20,6 +20,8 @@ import { returnKeys } from '../hooks/queries/useReturnsQueries';
 import { expenseKeys } from '../hooks/queries/useExpensesQueries';
 import { ticketKeys } from '../hooks/queries/useTickets';
 import { analyticsKeys } from '../hooks/queries/useAnalyticsQueries';
+import { topProductsKeys } from '../hooks/queries/useTopProductsQuery';
+import { barMembersKeys } from '../hooks/queries/useBarMembers';
 
 import { Header } from '../components/Header';
 import { MobileNavigation } from '../components/MobileNavigation';
@@ -116,8 +118,9 @@ function RootLayoutContent() {
       const barId = currentBar?.id;
       if (!barId) return; // Pas de bar actif → rien à invalider
 
-      // Ventes & stats
-      queryClient.invalidateQueries({ queryKey: salesKeys.all });
+      // Ventes & stats — scopé par barId
+      queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
+      queryClient.invalidateQueries({ queryKey: salesKeys.stats(barId) });
       queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
 
       // Stock serveur (products, supplies, consignments — PAS categories)
@@ -125,21 +128,20 @@ function RootLayoutContent() {
       queryClient.invalidateQueries({ queryKey: stockKeys.supplies(barId) });
       queryClient.invalidateQueries({ queryKey: stockKeys.consignments(barId) });
 
-      // Retours, dépenses (list — PAS categories), tickets
-      queryClient.invalidateQueries({ queryKey: returnKeys.all });
+      // Retours, dépenses, tickets — scopé par barId
+      queryClient.invalidateQueries({ queryKey: returnKeys.list(barId) });
       queryClient.invalidateQueries({ queryKey: expenseKeys.list(barId) });
-      queryClient.invalidateQueries({ queryKey: ticketKeys.all });
+      queryClient.invalidateQueries({ queryKey: ticketKeys.open(barId) });
 
-      // Analytics & dérivés
-      queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['dailySummary'] });
-      queryClient.invalidateQueries({ queryKey: ['topProducts'] });
-      queryClient.invalidateQueries({ queryKey: ['barMembers'] });
+      // Analytics — scopé par barId via predicate (clés = ['analytics', type, barId, ...])
+      queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(barId) });
+      queryClient.invalidateQueries({ queryKey: topProductsKeys.all(barId) });
+      queryClient.invalidateQueries({ queryKey: barMembersKeys.list(barId) });
 
       // Clés ad hoc liées au stock/ventes
       queryClient.invalidateQueries({ queryKey: ['stale-pending-sales', barId] });
       queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock', barId] });
-      queryClient.invalidateQueries({ queryKey: ['stock-adjustments'] });
+      queryClient.invalidateQueries({ queryKey: ['stock-adjustments', barId] });
     };
 
     const scheduleBusinessInvalidation = (reason: 'network-restored' | 'sync-completed') => {

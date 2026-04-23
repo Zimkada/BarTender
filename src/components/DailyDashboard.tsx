@@ -8,6 +8,7 @@ import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useFeedback } from '../hooks/useFeedback';
 import { Sale } from '../types';
 import { AnalyticsService } from '../services/supabase/analytics.service';
+import { analyticsKeys } from '../hooks/queries/useAnalyticsQueries';
 import { replaceAccents } from '../utils/stringFormatting';
 
 // Hook & Sub-components
@@ -56,7 +57,9 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
       // 1. Rafraîchir la vue matérialisée en DB (daily_sales_summary, etc.)
       await AnalyticsService.refreshAllViews('manual');
       // 2. Invalider le cache React Query pour forcer un re-fetch de la vue
-      await queryClient.invalidateQueries({ queryKey: ['dailySummary'] });
+      if (currentBar?.id) {
+        await queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(currentBar.id) });
+      }
       showSuccess('Données actualisées');
     } catch {
       showError('Erreur lors de l\'actualisation');

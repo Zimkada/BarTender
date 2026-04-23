@@ -38,7 +38,9 @@ export default function AccountingPage() {
             AnalyticsService.refreshView('expenses_summary', 'manual'),
         ]);
         const failed = results.filter(r => r.status === 'rejected');
-        await queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
+        if (currentBar?.id) {
+            await queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(currentBar.id) });
+        }
         if (failed.length > 0) {
             throw new Error('Certaines vues n\'ont pas pu être actualisées');
         }

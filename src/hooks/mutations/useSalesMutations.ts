@@ -128,7 +128,9 @@ export const useSalesMutations = (barId: string, options?: {
         } catch (err) {
             console.warn('[useSalesMutations] daily_sales_summary refresh failed (non-blocking):', err);
         }
-        await queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
+        if (barId) {
+            await queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(barId) });
+        }
     };
 
     const isNetworkError = (error: unknown): boolean => {
@@ -290,8 +292,8 @@ export const useSalesMutations = (barId: string, options?: {
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
             if (sale.status === 'validated' && !isOptimistic) {
                 await refreshDailySalesSummary();
-            } else {
-                queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
+            } else if (barId) {
+                queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(barId) });
             }
         },
         onError: (error: unknown) => {
@@ -331,7 +333,7 @@ export const useSalesMutations = (barId: string, options?: {
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
-            queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
+            if (barId) { queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(barId) }); }
             // 🛡️ Fix Bug #11: La vente n'est plus pending → la retirer du cache server-pending-sales
             queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock', barId] });
         },
@@ -349,7 +351,7 @@ export const useSalesMutations = (barId: string, options?: {
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
-            queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
+            if (barId) { queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(barId) }); }
             // 🛡️ Fix Bug #11: Une vente pending peut être annulée → la retirer du cache server-pending-sales
             queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock', barId] });
         },
@@ -365,7 +367,7 @@ export const useSalesMutations = (barId: string, options?: {
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
-            queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
+            if (barId) { queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(barId) }); }
         },
     });
 
@@ -390,7 +392,7 @@ export const useSalesMutations = (barId: string, options?: {
             queryClient.invalidateQueries({ queryKey: salesKeys.list(barId) });
             queryClient.invalidateQueries({ queryKey: stockKeys.products(barId) });
             queryClient.invalidateQueries({ queryKey: statsKeys.all(barId) });
-            queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
+            if (barId) { queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(barId) }); }
             queryClient.invalidateQueries({ queryKey: ['server-pending-sales-for-stock', barId] });
         },
     });

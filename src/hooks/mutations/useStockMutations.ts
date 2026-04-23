@@ -176,7 +176,7 @@ export const useStockMutations = (barId?: string) => {
 
             if (barId) {
                 invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
-                queryClient.invalidateQueries({ queryKey: ['stock-adjustments'] });
+                queryClient.invalidateQueries({ queryKey: ['stock-adjustments', barId] });
             }
         },
         onError: (error) => {

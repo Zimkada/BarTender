@@ -4,6 +4,11 @@ import { CACHE_STRATEGY } from '../../lib/cache-strategy';
 
 export const analyticsKeys = {
     all: ['analytics'] as const,
+    /** Predicate pour invalider toutes les analytics d'un bar spécifique.
+     *  Usage: queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(barId) })
+     */
+    barPredicate: (barId: string) => (query: { queryKey: readonly unknown[] }) =>
+        query.queryKey[0] === 'analytics' && query.queryKey[2] === barId,
     dailySummary: (barId: string, start: Date, end: Date, group: string) =>
         [...analyticsKeys.all, 'dailySummary', barId, AnalyticsService.formatDate(start), AnalyticsService.formatDate(end), group] as const,
     revenueSummary: (barId: string, start: Date, end: Date) =>

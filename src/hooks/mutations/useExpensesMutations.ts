@@ -31,7 +31,7 @@ export const useExpensesMutations = (barId: string) => {
             });
 
             queryClient.invalidateQueries({ queryKey: expenseKeys.list(barId) });
-            queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
+            if (barId) { queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(barId) }); }
         },
     });
 
@@ -43,7 +43,7 @@ export const useExpensesMutations = (barId: string) => {
             });
 
             queryClient.invalidateQueries({ queryKey: expenseKeys.list(barId) });
-            queryClient.invalidateQueries({ queryKey: analyticsKeys.all });
+            if (barId) { queryClient.invalidateQueries({ predicate: analyticsKeys.barPredicate(barId) }); }
         },
     });
 
