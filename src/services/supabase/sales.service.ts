@@ -70,7 +70,35 @@ export interface OfflineSale {
   isOptimistic: boolean;
 }
 
-const SALES_LIST_SELECT = `
+const SALES_SUMMARY_SELECT = `
+  id,
+  bar_id,
+  items_count,
+  subtotal,
+  discount_total,
+  total,
+  payment_method,
+  status,
+  created_by,
+  sold_by,
+  created_at,
+  validated_by,
+  validated_at,
+  rejected_by,
+  rejected_at,
+  business_date,
+  customer_name,
+  customer_phone,
+  notes,
+  server_id,
+  ticket_id,
+  idempotency_key,
+  source_return_id,
+  seller:users!sales_sold_by_fkey (name),
+  validator:users!sales_validated_by_fkey (name)
+`;
+
+const SALES_DETAIL_SELECT = `
   id,
   bar_id,
   items_count,
@@ -454,10 +482,15 @@ export class SalesService {
     searchTerm?: string; // ✨ NOUVEAU: Recherche textuelle
     limit?: number;
     offset?: number;
+    includeItems?: boolean;
   }): Promise<DBSale[]> {
+    const selectClause = options?.includeItems === false
+      ? SALES_SUMMARY_SELECT
+      : SALES_DETAIL_SELECT;
+
     let query = supabase
       .from('sales')
-      .select(SALES_LIST_SELECT)
+      .select(selectClause)
       .eq('bar_id', barId)
       .order('business_date', { ascending: false });
 

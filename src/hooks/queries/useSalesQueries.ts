@@ -28,7 +28,15 @@ export const salesKeys = {
     stats: (barId: string) => [...salesKeys.all, 'stats', barId] as const,
 };
 
-export const useSales = (barId: string | undefined, options?: { startDate?: string; endDate?: string; searchTerm?: string; status?: string }) => {
+export interface UseSalesOptions {
+    startDate?: string;
+    endDate?: string;
+    searchTerm?: string;
+    status?: string;
+    includeItems?: boolean;
+}
+
+export const useSales = (barId: string | undefined, options?: UseSalesOptions) => {
     const isEnabled = !!barId;
 
     // 🔧 PHASE 1-2: SmartSync pour sales (INSERT car nouvelles ventes)
@@ -69,10 +77,15 @@ export const mapSalesData = (dbSales: DBSale[]): Sale[] => {
         // 🛡️ Validation Runtime des items (Critical Path)
         // On sécurise les items mal formés qui pourraient crasher l'UI
         let items: SaleItem[] = [];
+        const rawItems = typeof s === 'object' && s !== null && 'items' in s
+            ? (s as DBSale & { items?: unknown }).items
+            : undefined;
         try {
-            // On accepte que s.items soit n'importe quoi venant de la DB (jsonb)
-            // et on le parse/valide avec Zod
-            items = DBSaleItemsSchema.parse(s.items) as unknown as SaleItem[];
+            if (Array.isArray(rawItems)) {
+                // On accepte que rawItems soit n'importe quoi venant de la DB (jsonb)
+                // et on le parse/valide avec Zod
+                items = DBSaleItemsSchema.parse(rawItems) as unknown as SaleItem[];
+            }
         } catch (e) {
             console.warn(`[mapSalesData] Invalid items for sale ${s.id}`, e);
             items = []; // Fallback safe

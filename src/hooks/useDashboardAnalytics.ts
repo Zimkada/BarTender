@@ -6,8 +6,8 @@ import { useUnifiedSales } from './pivots/useUnifiedSales';
 import { useUnifiedReturns } from './pivots/useUnifiedReturns';
 import { useTeamPerformance } from '../hooks/useTeamPerformance';
 import { useBarMembers } from './queries/useBarMembers';
+import { useTopProducts } from './queries/useTopProductsQuery';
 import { getCurrentBusinessDateString } from '../utils/businessDateHelpers';
-import { isConfirmedReturn } from '../utils/saleHelpers'; // 🛡️ FIX P1: Import helper
 import type { Sale, SaleItem } from '../types';
 
 
@@ -22,7 +22,14 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
     const todayStr = useMemo(() => getCurrentBusinessDateString(currentBar?.closingHour), [currentBar?.closingHour]);
     const { sales: unifiedSales } = useUnifiedSales(currentBarId, {
         startDate: todayStr,
-        endDate: todayStr
+        endDate: todayStr,
+        includeItems: false,
+    });
+    const { sales: pendingSalesDetailed } = useUnifiedSales(currentBarId, {
+        startDate: todayStr,
+        endDate: todayStr,
+        status: 'pending',
+        includeItems: true,
     });
 
     const { getTodayReturns } = useUnifiedReturns(currentBarId, currentBar?.closingHour);
@@ -41,6 +48,15 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
     // Role helpers
     const isServerRole = currentSession?.role === 'serveur';
     const currentUserId = currentSession?.userId;
+    const { data: topProductsServer = [] } = useTopProducts({
+        barId: currentBarId || '',
+        startDate: todayStr,
+        endDate: todayStr,
+        limit: 10,
+        sortBy: 'quantity',
+        serverId: isServerRole ? currentUserId : undefined,
+        enabled: !!currentBarId,
+    });
 
 
     // 2. Local Computed Stats (Real-time)
@@ -86,7 +102,7 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
         const TEN_MINUTES_MS = 10 * 60 * 1000;
         const now = new Date().getTime();
 
-        return (unifiedSales || []).filter(s => {
+        return (pendingSalesDetailed || []).filter(s => {
             if (s?.status !== 'pending') return false;
 
             // Managers see all
@@ -99,7 +115,7 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
             const time = new Date(s.createdAt).getTime();
             return (now - time) < TEN_MINUTES_MS;
         });
-    }, [unifiedSales, isServerRole, currentUserId]);
+    }, [pendingSalesDetailed, isServerRole, currentUserId]);
 
     // 5. Revenue: calculé localement depuis les données déjà chargées (évite duplication pivot hooks via useRevenueStats)
     const todayTotal = useMemo(() => {
@@ -143,39 +159,18 @@ export function useDashboardAnalytics(currentBarId: string | undefined) {
         }, 0);
     }, [serverFilteredSales]);
 
-    // Top produits
     const topProductsList = useMemo(() => {
-        const productMap = new Map<string, { name: string; qty: number }>();
-
-        serverFilteredSales.forEach((sale: any) => {
-            if (!sale.items || !Array.isArray(sale.items)) return;
-            sale.items.forEach((item: SaleItem) => {
-                const existing = productMap.get(item.product_id);
-                if (existing) {
-                    existing.qty += item.quantity;
-                } else {
-                    const displayName = item.product_volume
-                        ? `${item.product_name} (${item.product_volume})`
-                        : item.product_name;
-                    productMap.set(item.product_id, { name: displayName, qty: item.quantity });
-                }
-            });
-        });
-
-        const todaySaleIds = new Set(serverFilteredSales.map(s => s.id));
-        serverFilteredReturns.forEach(ret => {
-            // 🛡️ FIX P1: Utiliser isConfirmedReturn() pour inclure les échanges (reason='exchange')
-            if (!isConfirmedReturn(ret)) return;
-            if (!todaySaleIds.has(ret.saleId)) return;
-            const product = productMap.get(ret.productId);
-            if (product) product.qty -= ret.quantityReturned;
-        });
-
-        return Array.from(productMap.values())
-            .filter(p => p.qty > 0)
+        return topProductsServer
+            .map((product) => ({
+                name: product.product_volume
+                    ? `${product.product_name} (${product.product_volume})`
+                    : product.product_name,
+                qty: product.total_quantity,
+            }))
+            .filter((product) => product.qty > 0)
             .sort((a, b) => b.qty - a.qty)
             .slice(0, 5);
-    }, [serverFilteredSales, serverFilteredReturns]);
+    }, [topProductsServer]);
 
     return {
         todayStats: null, // Redondant avec todayTotal, supprimé pour unification

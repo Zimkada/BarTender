@@ -38,6 +38,7 @@ export interface UseUnifiedSalesOptions {
     endDate?: string;
     status?: string;
     ignoreTiering?: boolean;
+    includeItems?: boolean;
 }
 
 export const useUnifiedSales = (
@@ -50,7 +51,8 @@ export const useUnifiedSales = (
         startDate,
         endDate,
         status,
-        ignoreTiering = false
+        ignoreTiering = false,
+        includeItems = true,
     } = options;
     const queryClient = useQueryClient();
     const { currentBar } = useBarContext();
@@ -68,20 +70,20 @@ export const useUnifiedSales = (
         // ignoreTiering = l'utilisateur veut une période étendue → on passe les filtres UI tels quels
         // mais on garantit au minimum que startDate est défini pour éviter un full-scan
         if (ignoreTiering) {
-            return { startDate: defaultStartDate, endDate, status, searchTerm, limit: 500 };
+            return { startDate: defaultStartDate, endDate, status, searchTerm, limit: 500, includeItems };
         }
 
         // ✨ NOUVEAU: Recherche "Backend-Failover"
         // Si on a un terme de recherche (min 3 caractères), on ignore les tiers
         if (searchTerm && searchTerm.length >= 3) {
-            return { searchTerm, limit: 500 };
+            return { searchTerm, limit: 500, includeItems };
         }
 
         // ✨ NOUVEAU: Débrayage via UI (Période étendue)
         // Si l'utilisateur a explicitement demandé une période au-delà du mois,
         // on passe les filtres UI + limite de sécurité
         if (timeRange && !['today', 'yesterday', 'last_7days', 'last_30days'].includes(timeRange)) {
-            return { startDate: defaultStartDate, endDate, status, searchTerm, limit: 500 };
+            return { startDate: defaultStartDate, endDate, status, searchTerm, limit: 500, includeItems };
         }
 
         // 🔴 CALCUL PIVOT SUR BUSINESS DATE (Fin de décalage minuit-6h)
@@ -104,16 +106,17 @@ export const useUnifiedSales = (
             startDate: startDate || dateToYYYYMMDD(businessDatePivot),
             endDate,
             status,
-            searchTerm
+            searchTerm,
+            includeItems
         };
-    }, [currentBar?.settings?.dataTier, searchTerm, timeRange, closeHour, startDate, endDate, status]);
+    }, [currentBar?.settings?.dataTier, searchTerm, timeRange, closeHour, startDate, endDate, status, includeItems]);
 
     // 1. Ventes Online (via React Query) avec options de tiering
     const { data: onlineSales = [], isLoading: isLoadingOnline } = useSales(barId, salesOptions);
 
     // 2. Ventes Offline (via IndexedDB)
     const { data: offlineSales = [], refetch: refetchOffline, isLoading: isLoadingOffline } = useQuery({
-        queryKey: ['offline-sales-list', barId],
+        queryKey: ['offline-sales-list', barId, { includeItems }],
         networkMode: 'always',
         queryFn: async (): Promise<UnifiedSale[]> => {
             if (!barId) return [];
@@ -132,7 +135,7 @@ export const useUnifiedSales = (
                     const unifiedSale: UnifiedSale = {
                         id: op.id,
                         barId: payload.bar_id,
-                        items: payload.items as SaleItem[],
+                        items: includeItems ? (payload.items as SaleItem[]) : [],
                         total: subtotal,
                         currency: 'XAF',
                         status: payload.status as any,
@@ -144,6 +147,7 @@ export const useUnifiedSales = (
                         businessDate: payload.business_date || createdAt.split('T')[0], // Standardized
                         idempotency_key: payload.idempotency_key,
                         paymentMethod: payload.payment_method as any,
+                        items_count: payload.items.reduce((sum, item) => sum + (item.quantity || 0), 0),
                         isOptimistic: true
                     };
 
