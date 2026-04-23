@@ -99,7 +99,7 @@ const ActiveConsignmentsTab: React.FC<ActiveConsignmentsTabProps> = ({
   const consignmentSalesFilters = useMemo(() => {
     const start = new Date();
     start.setDate(start.getDate() - 60);
-    return { startDate: start.toISOString().split('T')[0] };
+    return { startDate: start.toISOString().split('T')[0], includeItems: false as const };
   }, []);
 
   const { sales } = useUnifiedSales(currentBar?.id, consignmentSalesFilters);
@@ -311,7 +311,7 @@ const HistoryTab: React.FC<{ stockManager: any }> = ({ stockManager }) => {
   const historySalesFilters = useMemo(() => {
     const start = new Date();
     start.setDate(start.getDate() - 60);
-    return { startDate: start.toISOString().split('T')[0] };
+    return { startDate: start.toISOString().split('T')[0], includeItems: false as const };
   }, []);
 
   const { sales } = useUnifiedSales(currentBar?.id, historySalesFilters);

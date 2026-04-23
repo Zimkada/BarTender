@@ -38,6 +38,8 @@ import {
 } from '../hooks/queries/useAnalyticsQueries';
 import { ACCOUNTING_FILTERS } from '../config/dateFilters';
 import { SyscohadaTranslator } from '../services/accounting/syscohada.service';
+import { SalesService } from '../services/supabase/sales.service';
+import { mapSalesData } from '../hooks/queries/useSalesQueries';
 import { BarAccountingConfigSchema } from '../services/accounting/syscohada.types';
 import { AccountingTransaction } from '../types';
 import { useSalaries } from '../hooks/useSalaries';
@@ -150,7 +152,8 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
   const { sales: unifiedSales } = useUnifiedSales(currentBar?.id, {
     startDate: dateToYYYYMMDD(periodStart),
     endDate: dateToYYYYMMDD(periodEnd),
-    status: 'validated'  // 🎯 CORRECTION: Aligner sur RevenueManager & Revenus
+    status: 'validated',  // 🎯 CORRECTION: Aligner sur RevenueManager & Revenus
+    includeItems: false,
   });
   const { expenses: unifiedExpenses } = useUnifiedExpenses(currentBar?.id, {
     startDate: dateToYYYYMMDD(periodStart),
@@ -481,8 +484,22 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
     const XLSX = await import('xlsx');
     const workbook = XLSX.utils.book_new();
 
-    // Filtrage pour export (data déjà filtrée par période via hooks)
-    const exportSales = filteredSales.filter(sale => sale.status === 'validated');
+    // 🛡️ Fetch détaillé on-demand (includeItems: true) pour l'export uniquement
+    // L'écran utilise includeItems: false pour la perf, mais l'export a besoin des items
+    let exportSalesDetailed = filteredSales.filter(sale => sale.status === 'validated');
+    if (currentBar?.id) {
+      try {
+        const dbSales = await SalesService.getBarSales(currentBar.id, {
+          startDate: dateToYYYYMMDD(periodStart),
+          endDate: dateToYYYYMMDD(periodEnd),
+          status: 'validated',
+          includeItems: true,
+        });
+        exportSalesDetailed = mapSalesData(dbSales);
+      } catch {
+        // Fallback sur les données summary (items vide) si le fetch échoue
+      }
+    }
     const exportExpenses = filteredExpenses;
 
     const summaryData = [
@@ -499,8 +516,8 @@ export function AccountingOverview({ period }: AccountingOverviewProps) {
     const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
     XLSX.utils.book_append_sheet(workbook, summarySheet, 'Résumé');
 
-    // Ventes
-    const salesData = exportSales.flatMap(sale => {
+    // Ventes (détaillées avec items)
+    const salesData = exportSalesDetailed.flatMap(sale => {
       const saleObj = sale as Record<string, unknown>;
       const rawDate = saleObj.businessDate || saleObj.business_date || saleObj.createdAt || saleObj.created_at || new Date();
       const saleDate = rawDate instanceof Date ? rawDate : new Date(rawDate as string | number);
