@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
     Search,
     Download,
@@ -13,6 +14,7 @@ import { useBarContext } from '../context/BarContext';
 import { useAuth } from '../context/AuthContext';
 import { useUnifiedSales } from '../hooks/pivots/useUnifiedSales';
 import { useUnifiedReturns } from '../hooks/pivots/useUnifiedReturns';
+import { mapSalesData } from '../hooks/queries/useSalesQueries';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
 import { useViewport } from '../hooks/useViewport';
 import { useFeedback } from '../hooks/useFeedback';
@@ -21,7 +23,7 @@ import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
 import { useSalesMutations } from '../hooks/mutations/useSalesMutations';
 import { useStock } from '../context/hooks/useStock';
 import { SALES_HISTORY_FILTERS } from '../config/dateFilters';
-import { Sale, User, getPermissionsByRole } from '../types';
+import { User, getPermissionsByRole } from '../types';
 import { useSalesFilters } from '../features/Sales/SalesHistory/hooks/useSalesFilters';
 import { useSalesStats } from '../features/Sales/SalesHistory/hooks/useSalesStats';
 import { useSalesExport } from '../features/Sales/SalesHistory/hooks/useSalesExport';
@@ -36,6 +38,7 @@ import { Input } from '../components/ui/Input';
 import { TabbedPageHeader } from '../components/common/PageHeader/patterns/TabbedPageHeader';
 import { PeriodFilter } from '../components/common/filters/PeriodFilter';
 import { GuideTourModal } from '../components/guide/GuideTourModal';
+import { SalesService } from '../services/supabase/sales.service';
 
 type ViewMode = 'list' | 'cards' | 'analytics';
 
@@ -75,7 +78,8 @@ export default function SalesHistoryPage() {
     }, [safeBarMembers]);
 
     const [viewMode, setViewMode] = useState<ViewMode>(isMobile ? 'cards' : 'analytics');
-    const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+    const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
     const [exportFormat, setExportFormat] = useState<'csv' | 'excel'>('excel');
     const [serverSearchTerm, setServerSearchTerm] = useState<string>(''); // ✨ NOUVEAU: Failover Search
 
@@ -95,24 +99,42 @@ export default function SalesHistoryPage() {
 
     const { timeRange, setTimeRange, startDate, endDate, updateCustomRange, customRange } = dateFilter;
 
+    const needsDetailedSalesList = viewMode !== 'list' || searchTerm.length > 0;
+
     // ✨ NOUVEAU: Ventes & Retours Unifiés (Certification Perfection)
     const {
-        sales: unifiedSales,
-        isLoading: isLoadingSales
+        sales: summarySales,
+        isLoading: isLoadingSummarySales
     } = useUnifiedSales(currentBar?.id, {
         searchTerm: serverSearchTerm,
         timeRange,
-        // ✨ HYBRID FILTERING: Pass filters to hook
         startDate: startDate?.toISOString().split('T')[0],
         endDate: endDate?.toISOString().split('T')[0],
         status: statusFilter === 'all' ? undefined : statusFilter,
-        ignoreTiering: isTieringIgnored
+        ignoreTiering: isTieringIgnored,
+        includeItems: false,
+        enabled: !needsDetailedSalesList
     });
+
+    const {
+        sales: detailedSales,
+        isLoading: isLoadingDetailedSales
+    } = useUnifiedSales(currentBar?.id, {
+        searchTerm: serverSearchTerm,
+        timeRange,
+        startDate: startDate?.toISOString().split('T')[0],
+        endDate: endDate?.toISOString().split('T')[0],
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        ignoreTiering: isTieringIgnored,
+        includeItems: true,
+        enabled: needsDetailedSalesList
+    });
+
+    const unifiedSales = needsDetailedSalesList ? detailedSales : summarySales;
+    const isLoadingSales = needsDetailedSalesList ? isLoadingDetailedSales : isLoadingSummarySales;
 
     // HOOK: Filtrage (Ventes & Retours)
     const {
-        searchTerm,
-        setSearchTerm,
         filteredSales,
         filteredReturns // ✨ MODE SWITCHING FIX: Get filtered returns from hook
     } = useSalesFilters({
@@ -121,9 +143,27 @@ export default function SalesHistoryPage() {
         currentSession,
         closeHour,
         statusFilter, // Pass 'all' directly to the hook
+        searchTerm,
+        setSearchTerm,
         externalStartDate: startDate,
         externalEndDate: endDate,
     });
+
+    const { data: selectedSaleDetail } = useQuery({
+        queryKey: ['sales', 'detail', selectedSaleId],
+        queryFn: async () => {
+            const sale = await SalesService.getSaleById(selectedSaleId!);
+            return mapSalesData([sale as any])[0] ?? null;
+        },
+        enabled: !!selectedSaleId && !needsDetailedSalesList,
+        staleTime: 60_000,
+    });
+
+    const selectedSale = useMemo(() => {
+        if (!selectedSaleId) return null;
+        const saleFromActiveData = unifiedSales.find(sale => sale.id === selectedSaleId);
+        return saleFromActiveData || selectedSaleDetail || null;
+    }, [selectedSaleId, unifiedSales, selectedSaleDetail]);
 
     // ✨ Filter metrics for servers
     const isServerRole = currentSession?.role === 'serveur';
@@ -209,7 +249,7 @@ export default function SalesHistoryPage() {
     const handleCancelSale = async (saleId: string, reason: string) => {
         try {
             await cancelSale.mutateAsync({ id: saleId, reason });
-            setSelectedSale(null);
+            setSelectedSaleId(null);
         } catch (error: any) {
             showError(error.message || 'Erreur lors de l\'annulation');
         }
@@ -450,7 +490,7 @@ export default function SalesHistoryPage() {
                                     <SalesCardsView
                                         sales={paginatedSales}
                                         formatPrice={formatPrice}
-                                        onViewDetails={setSelectedSale}
+                                        onViewDetails={(sale) => setSelectedSaleId(sale.id)}
                                         getReturnsBySale={getFilteredReturnsBySale}
                                         users={safeUsers}
                                     />
@@ -471,7 +511,7 @@ export default function SalesHistoryPage() {
                                     <SalesListView
                                         sales={paginatedSales}
                                         formatPrice={formatPrice}
-                                        onViewDetails={setSelectedSale}
+                                        onViewDetails={(sale) => setSelectedSaleId(sale.id)}
                                         getReturnsBySale={getFilteredReturnsBySale}
                                         users={safeUsers}
                                     />
@@ -522,7 +562,7 @@ export default function SalesHistoryPage() {
                 <SaleDetailModal
                     sale={selectedSale}
                     formatPrice={formatPrice}
-                    onClose={() => setSelectedSale(null)}
+                    onClose={() => setSelectedSaleId(null)}
                     canCancel={canCancelSales}
                     onCancelSale={handleCancelSale}
                     hasReturns={getReturnsBySaleFromHook(selectedSale.id).length > 0}

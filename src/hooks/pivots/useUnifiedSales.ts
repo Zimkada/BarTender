@@ -39,6 +39,7 @@ export interface UseUnifiedSalesOptions {
     status?: string;
     ignoreTiering?: boolean;
     includeItems?: boolean;
+    enabled?: boolean;
 }
 
 export const useUnifiedSales = (
@@ -53,6 +54,7 @@ export const useUnifiedSales = (
         status,
         ignoreTiering = false,
         includeItems = true,
+        enabled = true,
     } = options;
     const queryClient = useQueryClient();
     const { currentBar } = useBarContext();
@@ -112,7 +114,10 @@ export const useUnifiedSales = (
     }, [currentBar?.settings?.dataTier, searchTerm, timeRange, closeHour, startDate, endDate, status, includeItems]);
 
     // 1. Ventes Online (via React Query) avec options de tiering
-    const { data: onlineSales = [], isLoading: isLoadingOnline } = useSales(barId, salesOptions);
+    const { data: onlineSales = [], isLoading: isLoadingOnline } = useSales(barId, {
+        ...salesOptions,
+        enabled,
+    });
 
     // 2. Ventes Offline (via IndexedDB)
     const { data: offlineSales = [], refetch: refetchOffline, isLoading: isLoadingOffline } = useQuery({
@@ -154,7 +159,7 @@ export const useUnifiedSales = (
                     return unifiedSale;
                 });
         },
-        enabled: !!barId
+        enabled: !!barId && enabled
     });
 
     // 🚀 Réactivité : Écoute des événements locaux (Sync/Queue)

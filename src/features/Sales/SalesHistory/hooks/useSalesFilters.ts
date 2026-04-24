@@ -9,6 +9,8 @@ interface UseSalesFiltersProps {
     currentSession: any;
     closeHour: number;
     statusFilter?: 'validated' | 'rejected' | 'cancelled' | 'all';
+    searchTerm?: string;
+    setSearchTerm?: (value: string) => void;
     // ✨ NOUVEAU: Contrôle externe
     externalStartDate: Date;
     externalEndDate: Date;
@@ -20,10 +22,14 @@ export function useSalesFilters({
     currentSession,
     closeHour,
     statusFilter,
+    searchTerm: controlledSearchTerm,
+    setSearchTerm: controlledSetSearchTerm,
     externalStartDate,
     externalEndDate
 }: UseSalesFiltersProps) {
-    const [searchTerm, setSearchTerm] = useState('');
+    const [internalSearchTerm, setInternalSearchTerm] = useState('');
+    const searchTerm = controlledSearchTerm ?? internalSearchTerm;
+    const setSearchTerm = controlledSetSearchTerm ?? setInternalSearchTerm;
 
     // 2. Filtrage des ventes
     const filteredSales = useMemo(() => {

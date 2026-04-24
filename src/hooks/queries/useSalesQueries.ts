@@ -34,10 +34,11 @@ export interface UseSalesOptions {
     searchTerm?: string;
     status?: string;
     includeItems?: boolean;
+    enabled?: boolean;
 }
 
 export const useSales = (barId: string | undefined, options?: UseSalesOptions) => {
-    const isEnabled = !!barId;
+    const isEnabled = !!barId && (options?.enabled ?? true);
 
     // 🔧 PHASE 1-2: SmartSync pour sales (INSERT car nouvelles ventes)
     const smartSync = useSmartSync({

@@ -33,7 +33,10 @@ export default function AnalyticsPage() {
     };
   }, []);
 
-  const { sales } = useUnifiedSales(currentBar?.id, analyticsFilters);
+  const { sales } = useUnifiedSales(currentBar?.id, {
+    ...analyticsFilters,
+    includeItems: false,
+  });
   const { expenses } = useUnifiedExpenses(currentBar?.id, analyticsFilters);
 
   // Générer les données pour les graphiques (12 derniers mois)

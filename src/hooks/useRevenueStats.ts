@@ -222,7 +222,7 @@ export function useRevenueStats(options: { startDate?: string; endDate?: string;
     const queryClient = useQueryClient();
     const { currentBar, operatingMode } = useBarContext();
     const { currentSession } = useAuth();
-    const { sales } = useUnifiedSales(currentBar?.id);
+    const { sales } = useUnifiedSales(currentBar?.id, { includeItems: false });
     const { returns } = useUnifiedReturns(currentBar?.id, currentBar?.closingHour);
 
     const currentBarId = currentBar?.id || '';
