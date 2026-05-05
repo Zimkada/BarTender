@@ -350,7 +350,7 @@ export default function SalesHistoryPage() {
                         <div className="flex items-center gap-2 text-[11px] text-brand-primary font-medium">
                             <TrendingUp size={14} />
                             <span>
-                                Affichage optimisé ({currentBar.settings.dataTier.toUpperCase()}) :
+                                Affichage optimisé :
                                 {currentBar.settings.dataTier === 'balanced' ? ' 6 derniers mois' : ' 30 derniers jours'} chargés.
                             </span>
                         </div>
