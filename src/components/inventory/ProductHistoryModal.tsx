@@ -5,6 +5,8 @@ import { useAuth } from '../../context/AuthContext';
 import { StockService } from '../../services/supabase/stock.service';
 import { Product } from '../../types';
 import { Spinner } from '../ui/Spinner';
+import { ConfirmationModal } from '../common/ConfirmationModal';
+import { useStockMutations } from '../../hooks/mutations/useStockMutations';
 import {
     History,
     TrendingDown,
@@ -15,7 +17,8 @@ import {
     Truck,
     User,
     Calendar,
-    RotateCcw
+    RotateCcw,
+    Undo2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -36,16 +39,23 @@ interface TimelineEvent {
     details: string;
     price: number | null;
     notes: string | null;
+    // supply-specific
+    supplyReversed?: boolean;
+    supplyReversalOf?: string | null;
 }
 
 const DEFAULT_HISTORY_DAYS = 7; // Optimized for responsive loading
 
 export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistoryModalProps) {
     const { currentBar } = useBarContext();
-    const { currentSession } = useAuth(); // ✨ Fix: Top level hook
+    const { currentSession } = useAuth();
+    // Promoteur uniquement — aligné avec le RPC serveur (get_user_role = 'promoteur').
+    const canManageSupplies = currentSession?.role === 'promoteur' || currentSession?.role === 'super_admin';
+    const { reverseSupply } = useStockMutations(currentBar?.id);
     const [history, setHistory] = useState<TimelineEvent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [supplyToReverse, setSupplyToReverse] = useState<TimelineEvent | null>(null);
 
     // ✨ Date Filters (Default: Last 7 days for responsive loading)
     const [startDate, setStartDate] = useState<string>(
@@ -215,6 +225,24 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
                                             "{event.notes}"
                                         </div>
                                     )}
+
+                                    {event.type === 'supply' && canManageSupplies && (
+                                        <div className="mt-2 flex justify-end">
+                                            {event.supplyReversed ? (
+                                                <span className="text-[9px] bg-gray-100 text-gray-400 px-2 py-1 rounded-full font-black uppercase tracking-wider">
+                                                    Annulé
+                                                </span>
+                                            ) : (
+                                                <button
+                                                    onClick={() => setSupplyToReverse(event)}
+                                                    className="flex items-center gap-1 text-xs text-rose-500 hover:text-rose-700 hover:bg-rose-50 px-2 py-1 rounded-lg transition-all"
+                                                >
+                                                    <Undo2 size={12} />
+                                                    Annuler cet appro
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ))}
@@ -222,5 +250,26 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
                 )}
             </div>
         </Modal>
+
+        <ConfirmationModal
+            isOpen={!!supplyToReverse}
+            onClose={() => setSupplyToReverse(null)}
+            onConfirm={() => {
+                if (!supplyToReverse) return;
+                reverseSupply.mutate(
+                    { supplyId: supplyToReverse.id, productId: product.id },
+                    {
+                        onSettled: () => setSupplyToReverse(null),
+                        onSuccess: () => loadHistory(),
+                    }
+                );
+            }}
+            title="Annuler l'approvisionnement"
+            message={`Cette action va créer une écriture d'annulation pour "${product.name}" (${supplyToReverse?.delta ?? ''} unités). Le stock et la comptabilité seront corrigés automatiquement.`}
+            confirmLabel={reverseSupply.isPending ? 'Annulation…' : "Confirmer l'annulation"}
+            cancelLabel="Garder"
+            isDestructive={true}
+            isLoading={reverseSupply.isPending}
+        />
     );
 }

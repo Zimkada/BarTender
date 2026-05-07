@@ -125,6 +125,10 @@ export interface Supply {
   totalCost: number;
   createdBy: string; // Qui a enregistré l'approv
   productName?: string; // ✨ Pour l'affichage
+  reversalOfId?: string | null; // Si non null, cette ligne est un reverse
+  reversedAt?: Date | null;     // Si non null, cette ligne a été reversée
+  notes?: string | null;
+  supplierPhone?: string | null;
 }
 
 // ===== CATALOGUE GLOBAL =====

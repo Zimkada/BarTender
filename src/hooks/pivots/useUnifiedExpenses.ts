@@ -25,6 +25,11 @@ export interface UnifiedExpense {
     quantity?: number;
     createdBy: string;
     beneficiary?: string;
+    // ✨ Reverse-supply support — uniquement pour isSupply=true
+    supplyProductId?: string;
+    supplySupplier?: string;
+    supplySupplierPhone?: string | null;
+    supplyReversed?: boolean; // L'original a été annulé : pas de bouton "Annuler"
 }
 
 /**
@@ -114,18 +119,28 @@ export function useUnifiedExpenses(barId: string | undefined, options: { startDa
             }));
 
         // Transform Online Supplies
-        const mappedSupplies: UnifiedExpense[] = onlineSupplies.map(s => ({
-            id: s.id,
-            amount: s.totalCost,
-            date: new Date(s.date),
-            category: 'supply',
-            notes: `${s.productName} (${s.quantity} unités)`,
-            isSupply: true,
-            isOptimistic: false,
-            productName: s.productName,
-            quantity: s.quantity,
-            createdBy: s.createdBy
-        }));
+        // ⚠️ On exclut les lignes reverse (reversalOfId !== null) :
+        //   le total comptable est déjà juste car expenses_summary les compte
+        //   en négatif, mais les afficher en double dans la liste serait
+        //   trompeur pour l'utilisateur.
+        const mappedSupplies: UnifiedExpense[] = onlineSupplies
+            .filter(s => !s.reversalOfId)
+            .map(s => ({
+                id: s.id,
+                amount: s.totalCost,
+                date: new Date(s.date),
+                category: 'supply',
+                notes: s.notes || `${s.productName} (${s.quantity} unités)`,
+                isSupply: true,
+                isOptimistic: false,
+                productName: s.productName,
+                quantity: s.quantity,
+                createdBy: s.createdBy,
+                supplyProductId: s.productId,
+                supplySupplier: s.supplier,
+                supplySupplierPhone: s.supplierPhone ?? null,
+                supplyReversed: !!s.reversedAt,
+            }));
 
         // Transform Online Salaries
         const mappedSalaries: UnifiedExpense[] = onlineSalaries.map(s => ({

@@ -14,9 +14,7 @@ import type { Database } from '../../lib/database.types';
  */
 type SupplyRow = Database['public']['Tables']['supplies']['Row'];
 type SupplyWithProduct = SupplyRow & {
-    bar_product?: {
-        display_name: string;
-    } | null;
+    bar_product?: { display_name: string } | null;
 };
 
 /**
@@ -156,6 +154,10 @@ export const useSupplies = (barId: string | undefined, options: { enabled?: bool
                     totalCost: s.total_cost,
                     createdBy: s.supplied_by,
                     productName: s.bar_product?.display_name || 'Produit inconnu',
+                    reversalOfId: s.reversal_of_id ?? null,
+                    reversedAt: s.reversed_at ? new Date(s.reversed_at) : null,
+                    notes: s.notes ?? null,
+                    supplierPhone: s.supplier_phone ?? null,
                 }));
         },
         {

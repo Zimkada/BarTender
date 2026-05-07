@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Trash2, ChevronDown, ChevronUp, Undo2, Pencil } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCurrencyFormatter } from '../../../hooks/useBeninCurrency';
 import { UnifiedExpense } from '../../../hooks/pivots/useUnifiedExpenses';
@@ -17,6 +17,9 @@ interface ExpenseListItemProps {
     isExpanded: boolean;
     onToggle: () => void;
     onDelete: (id: string) => void;
+    onReverseSupply?: (item: UnifiedExpense) => void;
+    onEditSupplyMetadata?: (item: UnifiedExpense) => void;
+    canManageSupplies?: boolean; // Promoteur uniquement
     isMobile: boolean;
 }
 
@@ -27,6 +30,9 @@ export const ExpenseListItem: React.FC<ExpenseListItemProps> = ({
     isExpanded,
     onToggle,
     onDelete,
+    onReverseSupply,
+    onEditSupplyMetadata,
+    canManageSupplies = false,
     isMobile
 }) => {
     const { formatPrice } = useCurrencyFormatter();
@@ -121,6 +127,32 @@ export const ExpenseListItem: React.FC<ExpenseListItemProps> = ({
                                             >
                                                 <Trash2 size={18} />
                                             </button>
+                                        )}
+
+                                        {item.isSupply && !item.isOptimistic && canManageSupplies && (
+                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                                                <button
+                                                    onClick={() => onEditSupplyMetadata?.(item)}
+                                                    title="Modifier les infos"
+                                                    className="p-2.5 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                                                >
+                                                    <Pencil size={16} />
+                                                </button>
+                                                {!item.supplyReversed && (
+                                                    <button
+                                                        onClick={() => onReverseSupply?.(item)}
+                                                        title="Annuler l'approvisionnement"
+                                                        className="p-2.5 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                                                    >
+                                                        <Undo2 size={16} />
+                                                    </button>
+                                                )}
+                                                {item.supplyReversed && (
+                                                    <span className="text-[9px] bg-gray-100 text-gray-400 px-2 py-1 rounded-full font-black uppercase tracking-wider">
+                                                        Annulé
+                                                    </span>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 ))}

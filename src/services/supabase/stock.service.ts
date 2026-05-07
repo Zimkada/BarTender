@@ -156,6 +156,79 @@ export class StockService {
         }
     }
 
+    /**
+     * Annule un approvisionnement en créant une ligne miroir négative.
+     * Promoteur uniquement. Échoue si le stock courant est inférieur à la
+     * quantité de l'approvisionnement (ventes intermédiaires).
+     */
+    static async reverseSupply(supplyId: string): Promise<{
+        reverseSupplyId: string;
+        originalId: string;
+        quantityReversed: number;
+        unitCost: number;
+    }> {
+        try {
+            const { data, error } = await supabase.rpc('reverse_supply', {
+                p_supply_id: supplyId,
+            });
+
+            if (error) throw error;
+
+            const result = data as {
+                success?: boolean;
+                reverse_supply_id?: string;
+                original_id?: string;
+                quantity_reversed?: number;
+                unit_cost?: number;
+            } | null;
+
+            if (!result?.success || !result.reverse_supply_id || !result.original_id) {
+                throw new Error('Annulation de l\'approvisionnement échouée');
+            }
+
+            return {
+                reverseSupplyId: result.reverse_supply_id,
+                originalId: result.original_id,
+                quantityReversed: result.quantity_reversed ?? 0,
+                unitCost: result.unit_cost ?? 0,
+            };
+        } catch (error) {
+            throw new Error(handleSupabaseError(error));
+        }
+    }
+
+    /**
+     * Met à jour les champs cosmétiques d'un approvisionnement (fournisseur,
+     * téléphone, notes). Pas d'impact stock/CUMP/compta. Promoteur uniquement.
+     * Les champs `undefined` sont ignorés (le RPC garde la valeur existante).
+     */
+    static async updateSupplyMetadata(
+        supplyId: string,
+        updates: {
+            supplierName?: string;
+            supplierPhone?: string;
+            notes?: string;
+        }
+    ): Promise<void> {
+        try {
+            const { data, error } = await supabase.rpc('update_supply_metadata', {
+                p_supply_id: supplyId,
+                p_supplier_name: updates.supplierName || undefined,
+                p_supplier_phone: updates.supplierPhone || undefined,
+                p_notes: updates.notes || undefined,
+            });
+
+            if (error) throw error;
+
+            const result = data as { success?: boolean } | null;
+            if (!result?.success) {
+                throw new Error('Mise à jour de l\'approvisionnement échouée');
+            }
+        } catch (error) {
+            throw new Error(handleSupabaseError(error));
+        }
+    }
+
     // =====================================================
     // CONSIGNATIONS (CONSIGNMENTS)
     // =====================================================
@@ -407,18 +480,23 @@ export class StockService {
                         }];
                     }),
 
-                // Supplies
-                ...(supplies.data as Supply[] || []).map(s => ({
-                    id: s.id,
-                    type: 'supply' as const,
-                    date: new Date(s.created_at || ''),
-                    delta: s.quantity,
-                    label: 'Approvisionnement',
-                    user: s.supplied_by || 'Admin', // String column, no join
-                    details: s.supplier_name || 'Fournisseur Inconnu',
-                    price: s.unit_cost,
-                    notes: `Total: ${s.total_cost}`
-                })),
+                // Supplies — les lignes reverse (reversal_of_id non null) sont exclues
+                // pour ne pas afficher deux fois le même mouvement dans la timeline.
+                ...(supplies.data as Supply[] || [])
+                    .filter(s => !(s as any).reversal_of_id)
+                    .map(s => ({
+                        id: s.id,
+                        type: 'supply' as const,
+                        date: new Date(s.created_at || ''),
+                        delta: s.quantity,
+                        label: (s as any).reversed_at ? 'Approvisionnement (annulé)' : 'Approvisionnement',
+                        user: s.supplied_by || 'Admin',
+                        details: s.supplier_name || 'Fournisseur Inconnu',
+                        price: s.unit_cost,
+                        notes: `Total: ${s.total_cost}`,
+                        supplyReversed: !!(s as any).reversed_at,
+                        supplyReversalOf: null,
+                    })),
 
                 // Consignments
                 ...(consignments.data as JoinedConsignment[] || []).map(c => ({

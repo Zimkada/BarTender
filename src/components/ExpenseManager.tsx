@@ -31,6 +31,9 @@ import { ExpenseFormModal } from '../features/Accounting/components/ExpenseFormM
 import { CategoryFormModal } from '../features/Accounting/components/CategoryFormModal';
 import { SalaryListItem } from '../features/Accounting/components/SalaryListItem';
 import { SalaryFormModal } from '../features/Accounting/components/SalaryFormModal';
+import { EditSupplyMetadataModal } from '../features/Accounting/components/EditSupplyMetadataModal';
+import { useStockMutations } from '../hooks/mutations/useStockMutations';
+import type { UnifiedExpense } from '../hooks/pivots/useUnifiedExpenses';
 import { getCurrentPeriod } from '../utils/accounting';
 import {
   formatDate,
@@ -70,11 +73,20 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
     deleteExpense,
   } = useAppContext();
 
+  const { reverseSupply, updateSupplyMetadata } = useStockMutations(currentBar?.id);
+  // Promoteur uniquement — le RPC serveur rejette aussi les gérants,
+  // mais on aligne l'UI pour éviter une action vouée à échouer.
+  const canManageSupplies = currentSession?.role === 'promoteur' || currentSession?.role === 'super_admin';
+
   // State
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showSalaryModal, setShowSalaryModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+
+  // Supply reverse / edit state
+  const [supplyToReverse, setSupplyToReverse] = useState<UnifiedExpense | null>(null);
+  const [supplyToEdit, setSupplyToEdit] = useState<UnifiedExpense | null>(null);
 
   // Salaries State
   const [selectedPeriod, setSelectedPeriod] = useState(getCurrentPeriod());
@@ -113,6 +125,22 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
 
   // Confirmation Modal
   const [expenseToDelete, setExpenseToDelete] = useState<string | null>(null);
+
+  const handleConfirmReverseSupply = () => {
+    if (!supplyToReverse || !supplyToReverse.supplyProductId) return;
+    reverseSupply.mutate(
+      { supplyId: supplyToReverse.id, productId: supplyToReverse.supplyProductId },
+      { onSettled: () => setSupplyToReverse(null) }
+    );
+  };
+
+  const handleSubmitEditSupply = (updates: { supplierName: string; supplierPhone: string; notes: string }) => {
+    if (!supplyToEdit) return;
+    updateSupplyMetadata.mutate(
+      { supplyId: supplyToEdit.id, updates },
+      { onSettled: () => setSupplyToEdit(null) }
+    );
+  };
 
   const handleAddExpense = (data: any) => {
     try {
@@ -470,6 +498,9 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
                     isExpanded={expandedCategories.has(key)}
                     onToggle={() => toggleCategory(key)}
                     onDelete={(id) => setExpenseToDelete(id)}
+                    onReverseSupply={setSupplyToReverse}
+                    onEditSupplyMetadata={setSupplyToEdit}
+                    canManageSupplies={canManageSupplies}
                     isMobile={isMobile}
                   />
                 );
@@ -523,6 +554,33 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
         confirmLabel="Supprimer"
         isDestructive={true}
       />
+
+      <ConfirmationModal
+        isOpen={!!supplyToReverse}
+        onClose={() => setSupplyToReverse(null)}
+        onConfirm={handleConfirmReverseSupply}
+        title="Annuler l'approvisionnement"
+        message={`Cette action va créer une écriture d'annulation pour "${supplyToReverse?.productName ?? 'cet approvisionnement'}" (${supplyToReverse?.quantity ?? ''} unités). Le stock et la comptabilité seront corrigés automatiquement. L'opération originale reste visible dans l'historique.`}
+        confirmLabel={reverseSupply.isPending ? 'Annulation…' : 'Confirmer l\'annulation'}
+        cancelLabel="Garder"
+        isDestructive={true}
+        isLoading={reverseSupply.isPending}
+      />
+
+      {supplyToEdit && (
+        <EditSupplyMetadataModal
+          open={!!supplyToEdit}
+          onClose={() => setSupplyToEdit(null)}
+          onSubmit={handleSubmitEditSupply}
+          isLoading={updateSupplyMetadata.isPending}
+          initial={{
+            supplierName: supplyToEdit.supplySupplier ?? '',
+            supplierPhone: supplyToEdit.supplySupplierPhone ?? '',
+            notes: supplyToEdit.notes ?? '',
+            productName: supplyToEdit.productName,
+          }}
+        />
+      )}
     </div>
   );
 }

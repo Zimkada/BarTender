@@ -255,6 +255,82 @@ export const useStockMutations = (barId?: string) => {
         }
     });
 
+    const reverseSupply = useMutation({
+        meta: { suppressGlobalError: true }, // onError local gère le toast
+        retry: false, // Idempotent côté serveur via reversed_at — pas de besoin de retry auto
+        mutationFn: async ({ supplyId }: { supplyId: string; productId: string }) => {
+            // productId n'est pas envoyé au RPC (le serveur le résout lui-même),
+            // mais est utilisé dans onSuccess pour le broadcast bar_products.
+            return StockService.reverseSupply(supplyId);
+        },
+        onSuccess: (_data, variables) => {
+            const barId = currentBar?.id;
+            import('react-hot-toast').then(({ default: toast }) => {
+                toast.success('Approvisionnement annulé');
+            });
+
+            if (barId && broadcastService.isSupported()) {
+                broadcastService.broadcast({
+                    event: 'INSERT',
+                    table: 'supplies',
+                    barId,
+                    data: { reversal_of_id: variables.supplyId },
+                });
+                broadcastService.broadcast({
+                    event: 'UPDATE',
+                    table: 'bar_products',
+                    barId,
+                    data: { id: variables.productId },
+                });
+            }
+
+            if (barId) {
+                invalidateStockQuery(queryClient, stockKeys.products(barId), barId);
+                invalidateStockQuery(queryClient, stockKeys.supplies(barId), barId);
+            }
+        },
+        onError: (error) => {
+            const msg = getErrorMessage(error);
+            import('react-hot-toast').then(({ default: toast }) => {
+                toast.error(`Erreur annulation: ${msg}`);
+            });
+        }
+    });
+
+    const updateSupplyMetadata = useMutation({
+        meta: { suppressGlobalError: true },
+        mutationFn: async ({ supplyId, updates }: {
+            supplyId: string;
+            updates: { supplierName?: string; supplierPhone?: string; notes?: string };
+        }) => {
+            await StockService.updateSupplyMetadata(supplyId, updates);
+        },
+        onSuccess: () => {
+            const barId = currentBar?.id;
+            import('react-hot-toast').then(({ default: toast }) => {
+                toast.success('Approvisionnement mis à jour');
+            });
+
+            if (barId && broadcastService.isSupported()) {
+                broadcastService.broadcast({
+                    event: 'UPDATE',
+                    table: 'supplies',
+                    barId,
+                });
+            }
+
+            if (barId) {
+                invalidateStockQuery(queryClient, stockKeys.supplies(barId), barId);
+            }
+        },
+        onError: (error) => {
+            const msg = getErrorMessage(error);
+            import('react-hot-toast').then(({ default: toast }) => {
+                toast.error(`Erreur mise à jour: ${msg}`);
+            });
+        }
+    });
+
     // --- CONSIGNMENTS ---
 
     const createConsignment = useMutation({
@@ -441,6 +517,8 @@ export const useStockMutations = (barId?: string) => {
         deleteProduct,
         adjustStock, // ✅ EXPORTED
         addSupply,
+        reverseSupply,
+        updateSupplyMetadata,
         createConsignment,
         claimConsignment,
         forfeitConsignment,
