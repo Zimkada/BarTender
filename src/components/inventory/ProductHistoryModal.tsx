@@ -112,6 +112,7 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
     };
 
     return (
+        <>
         <Modal
             open={isOpen}
             onClose={onClose}
@@ -271,5 +272,6 @@ export function ProductHistoryModal({ isOpen, onClose, product }: ProductHistory
             isDestructive={true}
             isLoading={reverseSupply.isPending}
         />
+        </>
     );
 }
