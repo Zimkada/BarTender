@@ -20,6 +20,8 @@ interface InventoryOperationsProps {
     onSaveProduct: (data: any) => Promise<void> | void;
     onSupply: (data: any) => Promise<void> | void;
     isProductImportEnabled: boolean;
+    initialMode?: OperationMode;
+    onOrderSaved?: () => void;
 }
 
 type OperationMode = 'menu' | 'add' | 'supply' | 'import' | 'order-prep' | 'order-finalize';
@@ -30,9 +32,11 @@ export function InventoryOperations({
     products,
     onSaveProduct,
     onSupply,
-    isProductImportEnabled
+    isProductImportEnabled,
+    initialMode = 'menu',
+    onOrderSaved,
 }: InventoryOperationsProps) {
-    const [mode, setMode] = useState<OperationMode>('menu');
+    const [mode, setMode] = useState<OperationMode>(initialMode);
     const [supplyInitialData, setSupplyInitialData] = useState<{ productId?: string; quantity?: number } | undefined>(undefined);
 
     const handleBack = () => {
@@ -155,7 +159,10 @@ export function InventoryOperations({
                                     <BackButton onClick={() => setMode('order-prep')} />
                                     <h2 className="text-lg font-bold text-gray-900">Finalisation Commande</h2>
                                 </div>
-                                <OrderFinalization />
+                                <OrderFinalization onOrderSaved={() => {
+                                    onOrderSaved?.();
+                                    handleBack();
+                                }} />
                             </div>
                         )}
                         {mode === 'import' && (

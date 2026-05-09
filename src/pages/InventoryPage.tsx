@@ -1,6 +1,6 @@
 import { useState, Suspense, lazy, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Package, BarChart3, Zap, AlertCircle } from 'lucide-react';
+import { Package, BarChart3, Zap, AlertCircle, ClipboardList } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Product } from '../types';
 
@@ -25,16 +25,16 @@ import { InventoryList } from '../components/inventory/InventoryList';
 import { InventoryExportModal } from '../components/inventory/InventoryExportModal';
 import { InventoryOperations } from '../components/inventory/InventoryOperations';
 import { InventoryStats } from '../components/inventory/InventoryStats';
+import { PurchaseOrdersTab } from '../components/inventory/PurchaseOrdersTab';
 import { OnboardingBreadcrumb } from '../components/onboarding/ui/OnboardingBreadcrumb';
 import { ProductGridSkeleton } from '../components/skeletons';
-import { Button } from '../components/ui/Button'; // ✨ Import Button
+import { Button } from '../components/ui/Button';
 import { cn } from '../lib/utils';
 // Lazy load
 const ProductModal = lazy(() => import('../components/ProductModal').then(m => ({ default: m.ProductModal })));
-// ✨ Lazy load History Modal
 import { ProductHistoryModal } from '../components/inventory/ProductHistoryModal';
 
-type ViewMode = 'products' | 'operations' | 'stats';
+type ViewMode = 'products' | 'operations' | 'stats' | 'orders';
 type SortMode = 'category' | 'alphabetical' | 'stock';
 
 export default function InventoryPage() {
@@ -125,8 +125,9 @@ export default function InventoryPage() {
 
     const tabsConfig = [
         { id: 'products', label: isMobile ? 'Produits' : 'Mes Produits', icon: Package },
-        { id: 'operations', label: 'Opérations', icon: Zap },
-        { id: 'stats', label: 'Statistiques', icon: BarChart3 }
+        { id: 'operations', label: isMobile ? 'Ops' : 'Opérations', icon: Zap },
+        { id: 'orders', label: isMobile ? 'Commandes' : 'Commandes', icon: ClipboardList },
+        { id: 'stats', label: isMobile ? 'Stats' : 'Statistiques', icon: BarChart3 },
     ];
 
     return (
@@ -272,6 +273,22 @@ export default function InventoryPage() {
                                 onSaveProduct={handleSaveProduct}
                                 onSupply={handleSupply}
                                 isProductImportEnabled={isProductImportEnabled}
+                                onOrderSaved={() => setViewMode('orders')}
+                            />
+                        </motion.div>
+                    )}
+
+                    {/* ONGLET COMMANDES */}
+                    {viewMode === 'orders' && currentBar && (
+                        <motion.div
+                            key="orders-view"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                        >
+                            <PurchaseOrdersTab
+                                barId={currentBar.id}
+                                onNewOrder={() => setViewMode('operations')}
                             />
                         </motion.div>
                     )}

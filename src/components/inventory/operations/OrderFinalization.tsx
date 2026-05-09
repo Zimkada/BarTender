@@ -2,6 +2,10 @@ import { useState, useMemo } from 'react';
 import { useOrderDraft } from '../../../hooks/useOrderDraft';
 import { useCurrencyFormatter } from '../../../hooks/useBeninCurrency';
 import { useViewport } from '../../../hooks/useViewport';
+import { useBarContext } from '../../../context/BarContext';
+import { useAuth } from '../../../context/AuthContext';
+import { usePurchaseOrdersMutations } from '../../../hooks/mutations/usePurchaseOrdersMutations';
+import { useFeedback } from '../../../hooks/useFeedback';
 import { Button } from '../../ui/Button';
 import {
     Trash2,
@@ -10,20 +14,31 @@ import {
     ChevronDown,
     ChevronUp,
     AlertCircle,
-    Search
+    Search,
+    Save,
+    CheckCircle2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../../lib/utils';
 import { replaceAccents } from '../../../utils/stringFormatting';
 
-export function OrderFinalization() {
+interface OrderFinalizationProps {
+    onOrderSaved?: () => void;
+}
+
+export function OrderFinalization({ onOrderSaved }: OrderFinalizationProps) {
     const { items, updateItem, removeItem, clearDraft, totals } = useOrderDraft();
     const { formatPrice } = useCurrencyFormatter();
     const { isMobile } = useViewport();
+    const { currentBar } = useBarContext();
+    const { currentSession } = useAuth();
+    const { showSuccess, showError } = useFeedback();
+    const { createOrder } = usePurchaseOrdersMutations(currentBar?.id);
 
     // Local State
     const [searchTerm, setSearchTerm] = useState('');
     const [expandedItems, setExpandedItems] = useState<string[]>([]); // Mobile only
+    const [savedOrderId, setSavedOrderId] = useState<string | null>(null);
 
     // Filtrage
     const filteredItems = useMemo(() => {
@@ -73,6 +88,22 @@ export function OrderFinalization() {
 
         const url = `https://wa.me/?text=${encodeURIComponent(replaceAccents(msg))}`;
         window.open(url, '_blank');
+    };
+
+    const handleSaveOrder = async () => {
+        if (!currentBar || !currentSession || items.length === 0) return;
+        try {
+            const order = await createOrder.mutateAsync({
+                items,
+                createdBy: currentSession.userId,
+            });
+            setSavedOrderId(order.id);
+            showSuccess('Commande enregistrée ! Vous pouvez la retrouver dans l\'onglet Commandes.');
+            clearDraft();
+            onOrderSaved?.();
+        } catch {
+            showError('Impossible d\'enregistrer la commande.');
+        }
     };
 
     const exportExcel = async () => {
@@ -156,7 +187,7 @@ export function OrderFinalization() {
                     />
                 </div>
 
-                <div className="hidden sm:flex gap-2 w-full sm:w-auto">
+                <div className="hidden sm:flex gap-2 w-full sm:w-auto flex-wrap">
                     <Button
                         onClick={() => {
                             if (window.confirm("Êtes-vous sûr de vouloir vider la commande ?")) {
@@ -185,6 +216,23 @@ export function OrderFinalization() {
                         <MessageCircle className="w-4 h-4" />
                         <span className="hidden sm:inline">WhatsApp</span>
                     </Button>
+                    {!savedOrderId && (
+                        <Button
+                            onClick={handleSaveOrder}
+                            disabled={createOrder.isPending || items.length === 0}
+                            className="flex-1 sm:flex-none gap-2 text-white border-none hover:opacity-90 transition-opacity font-bold"
+                            style={{ backgroundColor: '#6366F1', backgroundImage: 'none' }}
+                        >
+                            <Save className="w-4 h-4" />
+                            {createOrder.isPending ? 'Enregistrement…' : 'Enregistrer & Commander'}
+                        </Button>
+                    )}
+                    {savedOrderId && (
+                        <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm font-bold">
+                            <CheckCircle2 className="w-4 h-4" />
+                            Commande sauvegardée
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -413,33 +461,51 @@ export function OrderFinalization() {
                         <span className="text-sm text-gray-500 font-medium">{totals.itemsCount} articles</span>
                         <span className="text-xl font-black text-brand-primary">{formatPrice(totals.totalCost)}</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                        <Button
-                            className="w-full text-white border-none hover:opacity-90 transition-opacity"
-                            style={{ backgroundColor: '#EF4444', backgroundImage: 'none' }}
-                            onClick={() => {
-                                if (window.confirm("Vider la commande ?")) {
-                                    clearDraft();
-                                }
-                            }}
-                        >
-                            <Trash2 className="w-5 h-5" />
-                        </Button>
-                        <Button
-                            className="w-full text-white border-none hover:opacity-90 transition-opacity"
-                            style={{ backgroundColor: '#1D6F42', backgroundImage: 'none' }}
-                            onClick={exportExcel}
-                        >
-                            Excel
-                        </Button>
-                        <Button
-                            className="w-full text-white border-none hover:opacity-90 transition-opacity"
-                            style={{ backgroundColor: '#25D366', backgroundImage: 'none' }}
-                            onClick={exportWhatsApp}
-                        >
-                            WhatsApp
-                        </Button>
-                    </div>
+                    {savedOrderId ? (
+                        <div className="flex items-center justify-center gap-2 py-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm font-bold">
+                            <CheckCircle2 className="w-4 h-4" />
+                            Commande sauvegardée
+                        </div>
+                    ) : (
+                        <>
+                            <Button
+                                onClick={handleSaveOrder}
+                                disabled={createOrder.isPending}
+                                className="w-full gap-2 text-white border-none font-bold mb-2"
+                                style={{ backgroundColor: '#6366F1', backgroundImage: 'none' }}
+                            >
+                                <Save className="w-4 h-4" />
+                                {createOrder.isPending ? 'Enregistrement…' : 'Enregistrer & Commander'}
+                            </Button>
+                            <div className="grid grid-cols-3 gap-2">
+                                <Button
+                                    className="w-full text-white border-none hover:opacity-90 transition-opacity"
+                                    style={{ backgroundColor: '#EF4444', backgroundImage: 'none' }}
+                                    onClick={() => {
+                                        if (window.confirm("Vider la commande ?")) {
+                                            clearDraft();
+                                        }
+                                    }}
+                                >
+                                    <Trash2 className="w-5 h-5" />
+                                </Button>
+                                <Button
+                                    className="w-full text-white border-none hover:opacity-90 transition-opacity"
+                                    style={{ backgroundColor: '#1D6F42', backgroundImage: 'none' }}
+                                    onClick={exportExcel}
+                                >
+                                    Excel
+                                </Button>
+                                <Button
+                                    className="w-full text-white border-none hover:opacity-90 transition-opacity"
+                                    style={{ backgroundColor: '#25D366', backgroundImage: 'none' }}
+                                    onClick={exportWhatsApp}
+                                >
+                                    WhatsApp
+                                </Button>
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
         </div>

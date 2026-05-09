@@ -996,5 +996,57 @@ export interface BarEvent {
   createdAt: Date;
   updatedAt: Date;
 }
+// ===== PURCHASE ORDERS (BONS DE COMMANDE) =====
+
+export type PurchaseOrderStatus =
+  | 'draft'
+  | 'ordered'
+  | 'partially_received'
+  | 'received'
+  | 'cancelled';
+
+export interface PurchaseOrderItem {
+  id: string;
+  purchaseOrderId: string;
+  productId: string;
+  productName: string;
+  productVolume: string;
+  supplierName: string | null;
+  supplierPhone: string | null;
+  quantity: number;
+  lotSize: number;
+  lotPrice: number;
+  unitPrice: number;
+  receivedQuantity: number | null;
+  createdAt: Date;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  barId: string;
+  createdBy: string;
+  status: PurchaseOrderStatus;
+  notes: string | null;
+  orderedAt: Date | null;
+  receivedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  items: PurchaseOrderItem[];
+}
+
+export interface PurchaseOrderSummary {
+  id: string;
+  barId: string;
+  createdBy: string;
+  status: PurchaseOrderStatus;
+  notes: string | null;
+  orderedAt: Date | null;
+  receivedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  itemsCount: number;
+  totalCost: number;
+}
+
 // ===== DATE FILTERS (FILTRES TEMPORELS) =====
 export * from './dateFilters';
