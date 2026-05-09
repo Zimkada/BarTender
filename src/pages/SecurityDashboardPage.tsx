@@ -26,7 +26,7 @@ import {
   ActiveRefreshAlert,
   BarHealthStatus,
 } from '../services/supabase/security.service';
-import { LoadingFallback } from '../components/LoadingFallback';
+import { RouteLoadingFallback } from '../components/LoadingFallback';
 import { Alert } from '../components/ui/Alert';
 import { exportToCSV } from '../utils/exportToCSV';
 import { exportToExcel } from '../utils/exportToExcel';
@@ -226,7 +226,7 @@ export default function SecurityDashboardPage() {
   };
 
   if (loading) {
-    return <LoadingFallback />;
+    return <RouteLoadingFallback label="Chargement du monitoring securite..." />;
   }
 
   // Calculate summary stats

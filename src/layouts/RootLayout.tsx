@@ -31,7 +31,7 @@ import { Cart } from '../components/Cart';
 const LazyGuideButton = lazy(() => import('../components/guide/GuideButton').then(m => ({ default: m.GuideButton })));
 const LazyGuideTourModal = lazy(() => import('../components/guide/GuideTourModal').then(m => ({ default: m.GuideTourModal })));
 const LazyOnboardingBanner = lazy(() => import('../components/onboarding/OnboardingBanner').then(m => ({ default: m.OnboardingBanner })));
-import { LoadingFallback } from '../components/LoadingFallback';
+import { LoadingFallback, RouteLoadingFallback } from '../components/LoadingFallback';
 import { LazyLoadErrorBoundary } from '../components/LazyLoadErrorBoundary';
 // import { UserManagement } from '../components/UserManagement'; // Removed
 import { UpdateNotification } from '../components/UpdateNotification';
@@ -225,7 +225,7 @@ function RootLayoutContent() {
       />
       <main className="container mx-auto px-3 md:px-4 py-4 md:py-6">
         <LazyLoadErrorBoundary maxRetries={3}>
-          <Suspense fallback={<LoadingFallback />}>
+          <Suspense fallback={<RouteLoadingFallback label="Chargement de la page..." />}>
             <Outlet />
           </Suspense>
         </LazyLoadErrorBoundary>

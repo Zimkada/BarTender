@@ -3,7 +3,7 @@ import { Outlet, Navigate, useNavigate } from 'react-router-dom';
 import { createContext, useContext, useState, useEffect, Suspense } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
-import { LoadingFallback } from '../components/LoadingFallback';
+import { RouteLoadingFallback } from '../components/LoadingFallback';
 import { LazyLoadErrorBoundary } from '../components/LazyLoadErrorBoundary';
 
 // 1. Création du contexte de navigation
@@ -74,7 +74,7 @@ export function AuthLayout() {
       {/* 4. Fournir le contexte aux composants enfants (Outlet) */}
       <AuthNavContext.Provider value={navValue}>
         <LazyLoadErrorBoundary maxRetries={3}>
-          <Suspense fallback={<LoadingFallback />}>
+          <Suspense fallback={<RouteLoadingFallback label="Chargement de l'espace de connexion..." />}>
             <Outlet />
           </Suspense>
         </LazyLoadErrorBoundary>

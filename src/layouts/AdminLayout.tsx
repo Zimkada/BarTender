@@ -2,7 +2,7 @@
 import { Link, Outlet, Navigate, useLocation } from 'react-router-dom';
 import { Suspense, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LoadingFallback } from '../components/LoadingFallback';
+import { RouteLoadingFallback } from '../components/LoadingFallback';
 import { LazyLoadErrorBoundary } from '../components/LazyLoadErrorBoundary';
 import { useRoutePreload } from '../hooks/useRoutePreload';
 import {
@@ -15,7 +15,8 @@ import {
   Menu,
   X,
   ShieldCheck,
-  Shield
+  Shield,
+  Bell
 } from 'lucide-react';
 
 const adminNavItems = [
@@ -24,8 +25,7 @@ const adminNavItems = [
   { path: '/admin/users', label: 'Utilisateurs', icon: Users },
   { path: '/admin/catalog', label: 'Catalogue Global', icon: Package },
   { path: '/admin/audit-logs', label: 'Audit Logs', icon: FileText },
-  // DISABLED: Not relevant for Super Admin workflow (promoters handle their own issues)
-  // { path: '/admin/notifications', label: 'Notifications', icon: Bell },
+  { path: '/admin/notifications', label: 'Notifications', icon: Bell },
   { path: '/admin/security', label: 'Sécurité & Monitoring', icon: Shield },
 ];
 
@@ -41,7 +41,7 @@ function AdminLayoutContent() {
     () => import('../pages/admin/UsersManagementPage'),
     () => import('../pages/GlobalCatalogPage'),
     () => import('../pages/AuditLogsPage'),
-    // () => import('../pages/AdminNotificationsPage'), // DISABLED
+    () => import('../pages/AdminNotificationsPage'),
     () => import('../pages/SecurityDashboardPage'),
   ], isSuperAdmin);
 
@@ -164,7 +164,7 @@ function AdminLayoutContent() {
         {/* Main Content */}
         <main className="flex-1 p-4 lg:p-8 min-h-screen">
           <LazyLoadErrorBoundary maxRetries={3}>
-            <Suspense fallback={<LoadingFallback />}>
+            <Suspense fallback={<RouteLoadingFallback label="Chargement de la page admin..." />}>
               <Outlet />
             </Suspense>
           </LazyLoadErrorBoundary>

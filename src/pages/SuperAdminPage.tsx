@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AdminService, DashboardStats } from '../services/supabase/admin.service';
-import { LoadingFallback } from '../components/LoadingFallback';
+import { RouteLoadingFallback } from '../components/LoadingFallback';
 import { Alert } from '../components/ui/Alert';
 import { DashboardStatCard } from '../components/DashboardStatCard';
 import { useDateRangeFilter } from '../hooks/useDateRangeFilter';
@@ -69,7 +69,7 @@ export default function SuperAdminPage() {
   }, [loadStats]);
 
   if (loading) {
-    return <LoadingFallback />;
+    return <RouteLoadingFallback label="Chargement du dashboard admin..." />;
   }
 
   const suspendedBarsCount = stats.bars_count - stats.active_bars_count;

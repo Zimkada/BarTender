@@ -5,7 +5,7 @@ import { ArrowLeft, Package, User, Calendar, CreditCard, Clock, CheckCircle, XCi
 import { SalesService } from '../services/supabase/sales.service';
 import { useBarContext } from '../context/BarContext';
 import { useCurrencyFormatter } from '../hooks/useBeninCurrency';
-import { LoadingFallback } from '../components/LoadingFallback';
+import { RouteLoadingFallback } from '../components/LoadingFallback';
 import { Button } from '../components/ui/Button';
 import { Alert } from '../components/ui/Alert';
 
@@ -26,7 +26,7 @@ export default function SaleDetailsPage() {
   });
 
   if (isLoading) {
-    return <LoadingFallback />;
+    return <RouteLoadingFallback label="Chargement du detail de vente..." />;
   }
 
   if (error || !sale) {
