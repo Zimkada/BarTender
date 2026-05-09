@@ -99,6 +99,7 @@ export class StockService {
                 .from('supplies')
                 .select('product_id, supplier_name, quantity, total_cost, unit_cost')
                 .eq('bar_id', barId)
+                .is('reversal_of_id', null)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;

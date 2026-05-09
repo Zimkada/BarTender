@@ -250,7 +250,7 @@ export const useStockMutations = (barId?: string) => {
         onError: (error) => {
             const msg = getErrorMessage(error);
             import('react-hot-toast').then(({ default: toast }) => {
-                toast.error(`Erreur: ${msg}`);
+                toast.error(`Impossible d'enregistrer l'approvisionnement : ${msg}`);
             });
         }
     });
@@ -266,7 +266,7 @@ export const useStockMutations = (barId?: string) => {
         onSuccess: (_data, variables) => {
             const barId = currentBar?.id;
             import('react-hot-toast').then(({ default: toast }) => {
-                toast.success('Approvisionnement annulé');
+                toast.success('Approvisionnement annulé — stock et comptabilité corrigés.');
             });
 
             if (barId && broadcastService.isSupported()) {
@@ -291,8 +291,26 @@ export const useStockMutations = (barId?: string) => {
         },
         onError: (error) => {
             const msg = getErrorMessage(error);
+            // Traduire les messages RPC anglais en messages lisibles
+            let friendlyMsg: string;
+            if (msg.includes('current stock') && msg.includes('lower than supply quantity')) {
+                const match = msg.match(/current stock \((\d+)\).*supply quantity \((\d+)\)/);
+                if (match) {
+                    friendlyMsg = `Stock insuffisant pour annuler : stock actuel ${match[1]} unité(s), approvisionnement de ${match[2]} unité(s). Des ventes ont déjà consommé ce stock.`;
+                } else {
+                    friendlyMsg = 'Stock insuffisant — des ventes ont déjà consommé ce stock. Impossible d\'annuler.';
+                }
+            } else if (msg.includes('already reversed')) {
+                friendlyMsg = 'Cet approvisionnement a déjà été annulé.';
+            } else if (msg.includes('Cannot reverse a reversal')) {
+                friendlyMsg = 'Impossible d\'annuler une écriture d\'annulation.';
+            } else if (msg.includes('Permission denied')) {
+                friendlyMsg = 'Action réservée au promoteur.';
+            } else {
+                friendlyMsg = `Impossible d'annuler l'approvisionnement : ${msg}`;
+            }
             import('react-hot-toast').then(({ default: toast }) => {
-                toast.error(`Erreur annulation: ${msg}`);
+                toast.error(friendlyMsg, { duration: 6000 });
             });
         }
     });
@@ -308,7 +326,7 @@ export const useStockMutations = (barId?: string) => {
         onSuccess: () => {
             const barId = currentBar?.id;
             import('react-hot-toast').then(({ default: toast }) => {
-                toast.success('Approvisionnement mis à jour');
+                toast.success('Informations fournisseur mises à jour.');
             });
 
             if (barId && broadcastService.isSupported()) {
@@ -325,8 +343,18 @@ export const useStockMutations = (barId?: string) => {
         },
         onError: (error) => {
             const msg = getErrorMessage(error);
+            let friendlyMsg: string;
+            if (msg.includes('Cannot edit a reversed')) {
+                friendlyMsg = 'Impossible de modifier un approvisionnement annulé.';
+            } else if (msg.includes('Cannot edit a reversal entry')) {
+                friendlyMsg = 'Les écritures d\'annulation ne sont pas modifiables.';
+            } else if (msg.includes('Permission denied')) {
+                friendlyMsg = 'Action réservée au promoteur.';
+            } else {
+                friendlyMsg = `Impossible de mettre à jour les informations : ${msg}`;
+            }
             import('react-hot-toast').then(({ default: toast }) => {
-                toast.error(`Erreur mise à jour: ${msg}`);
+                toast.error(friendlyMsg);
             });
         }
     });

@@ -131,13 +131,15 @@ export const ExpenseListItem: React.FC<ExpenseListItemProps> = ({
 
                                         {item.isSupply && !item.isOptimistic && canManageSupplies && (
                                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                                <button
-                                                    onClick={() => onEditSupplyMetadata?.(item)}
-                                                    title="Modifier les infos"
-                                                    className="p-2.5 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
-                                                >
-                                                    <Pencil size={16} />
-                                                </button>
+                                                {!item.supplyReversed && (
+                                                    <button
+                                                        onClick={() => onEditSupplyMetadata?.(item)}
+                                                        title="Modifier les infos"
+                                                        className="p-2.5 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                                                    >
+                                                        <Pencil size={16} />
+                                                    </button>
+                                                )}
                                                 {!item.supplyReversed && (
                                                     <button
                                                         onClick={() => onReverseSupply?.(item)}
