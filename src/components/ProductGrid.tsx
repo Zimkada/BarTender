@@ -8,24 +8,38 @@ import { ProductGridSkeleton } from './skeletons';
 interface ProductGridProps {
   products: Product[];
   onAddToCart: (product: Product) => void;
-  cart?: any[]; // ✨ Ajout : État actuel du panier
+  cart?: any[];
   isLoading?: boolean;
+  isStockLoading?: boolean;
+  getAvailableStock?: (productId: string) => number | undefined;
   onAddProduct?: () => void;
   categoryName?: string;
 }
 
-export function ProductGrid({
+function ProductGridWithStockFallback(props: ProductGridProps) {
+  const { currentBar } = useBarContext();
+  const { getProductStockInfo, isLoading: isLoadingStock } = useUnifiedStock(currentBar?.id);
+
+  return (
+    <ProductGridContent
+      {...props}
+      isStockLoading={isLoadingStock}
+      getAvailableStock={(productId) => getProductStockInfo(productId)?.availableStock}
+    />
+  );
+}
+
+function ProductGridContent({
   products,
   onAddToCart,
   cart = [],
   isLoading = false,
+  isStockLoading = false,
+  getAvailableStock,
   onAddProduct,
   categoryName
 }: ProductGridProps) {
-  const { currentBar } = useBarContext();
-  const { getProductStockInfo, isLoading: isLoadingStock } = useUnifiedStock(currentBar?.id);
-
-  if (isLoading || isLoadingStock) {
+  if (isLoading || isStockLoading) {
     return <ProductGridSkeleton count={10} />;
   }
 
@@ -49,13 +63,21 @@ export function ProductGrid({
           <ProductCard
             key={product.id}
             product={product}
-            availableStock={getProductStockInfo(product.id)?.availableStock}
+            availableStock={getAvailableStock?.(product.id)}
             quantityInCart={quantityInCart}
             onAddToCart={() => onAddToCart(product)}
-            priority={index < 4} // ✨ Optimisation LCP: Charge les 4 premières images en priorité
+            priority={index < 4}
           />
         );
       })}
     </div>
   );
+}
+
+export function ProductGrid(props: ProductGridProps) {
+  if (props.getAvailableStock) {
+    return <ProductGridContent {...props} />;
+  }
+
+  return <ProductGridWithStockFallback {...props} />;
 }

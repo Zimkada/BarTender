@@ -136,6 +136,7 @@ export default function HomePage() {
             products={filteredProducts}
             onAddToCart={handleAddToCart}
             cart={cart}
+            getAvailableStock={(productId) => getProductStockInfo(productId)?.availableStock}
             categoryName={
               selectedCategory === 'all'
                 ? undefined

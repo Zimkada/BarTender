@@ -135,6 +135,7 @@ export function SwapProductSelector({
                         products={filteredProducts}
                         onAddToCart={onSelect}
                         isLoading={isLoading}
+                        getAvailableStock={(productId) => getProductStockInfo(productId)?.availableStock}
                     />
                 )}
             </div>

@@ -153,6 +153,10 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
     });
   }, [products, cart, getProductStockInfo]);
 
+  const availableStockByProductId = useMemo(() => {
+    return new Map(productsWithStockDeduction.map(product => [product.id, product.stock]));
+  }, [productsWithStockDeduction]);
+
 
   // --- SEARCH & CATEGORY FILTER ---
   // 1. Use the version with cart deduction
@@ -380,6 +384,7 @@ export function QuickSaleFlow({ isOpen, onClose }: QuickSaleFlowProps) {
                     products={filteredProducts}
                     onAddToCart={handleAddToCart}
                     cart={cart}
+                    getAvailableStock={(productId) => availableStockByProductId.get(productId)}
                   />
                   {filteredProducts.length === 0 && (
                     <div className="h-full flex flex-col items-center justify-center text-gray-400 opacity-60 mt-10">
