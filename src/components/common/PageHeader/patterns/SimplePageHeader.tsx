@@ -10,6 +10,7 @@ export interface SimplePageHeaderProps {
     mobileTopRightContent?: React.ReactNode;
     guideId?: string;
     onBack?: () => void;
+    showBack?: boolean;
     className?: string; // Pour surcharge éventuelle
 }
 
@@ -22,13 +23,14 @@ export function SimplePageHeader({
     mobileTopRightContent,
     guideId,
     onBack,
+    showBack = false,
     className
 }: SimplePageHeaderProps) {
     return (
         <PageHeader className={className}>
             <PageHeader.Top>
                 <PageHeader.Left>
-                    <PageHeader.Back onClick={onBack} />
+                    {(showBack || onBack) && <PageHeader.Back onClick={onBack} />}
                     {icon && <PageHeader.Icon>{icon}</PageHeader.Icon>}
                     <div className="flex-1 min-w-0">
                         <PageHeader.Title>{title}</PageHeader.Title>

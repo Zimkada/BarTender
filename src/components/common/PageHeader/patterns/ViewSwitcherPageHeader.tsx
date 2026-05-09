@@ -12,6 +12,7 @@ export interface ViewSwitcherPageHeaderProps {
     actions?: React.ReactNode; // Actions additionnelles (ex: Guide est géré via guideId)
     guideId?: string;
     onBack?: () => void;
+    showBack?: boolean;
 }
 
 export function ViewSwitcherPageHeader({
@@ -22,7 +23,8 @@ export function ViewSwitcherPageHeader({
     onViewChange,
     actions,
     guideId,
-    onBack
+    onBack,
+    showBack = false
 }: ViewSwitcherPageHeaderProps) {
 
     const ViewToggle = (
@@ -49,7 +51,7 @@ export function ViewSwitcherPageHeader({
         <PageHeader>
             <PageHeader.Top>
                 <PageHeader.Left>
-                    <PageHeader.Back onClick={onBack} />
+                    {(showBack || onBack) && <PageHeader.Back onClick={onBack} />}
                     {icon && <PageHeader.Icon>{icon}</PageHeader.Icon>}
                     <div className="flex-1 min-w-0">
                         <PageHeader.Title>{title}</PageHeader.Title>

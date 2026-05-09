@@ -19,6 +19,7 @@ export interface TabbedPageHeaderProps {
     mobileTopRightContent?: React.ReactNode;
     guideId?: string;
     onBack?: () => void;
+    showBack?: boolean;
     hideSubtitleOnMobile?: boolean;
 }
 
@@ -33,13 +34,14 @@ export function TabbedPageHeader({
     mobileTopRightContent,
     guideId,
     onBack,
+    showBack = false,
     hideSubtitleOnMobile
 }: TabbedPageHeaderProps) {
     return (
         <PageHeader>
             <PageHeader.Top>
                 <PageHeader.Left>
-                    <PageHeader.Back onClick={onBack} />
+                    {(showBack || onBack) && <PageHeader.Back onClick={onBack} />}
                     {icon && <PageHeader.Icon>{icon}</PageHeader.Icon>}
                     <div className="flex-1 min-w-0">
                         <PageHeader.Title>{title}</PageHeader.Title>
