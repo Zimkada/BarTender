@@ -19,8 +19,6 @@ const SaleDetailsPage = lazyWithRetry(() => import('../pages/SaleDetailsPage'));
 const ForecastingAIPage = lazyWithRetry(() => import('../pages/ForecastingAIPage'));
 const ReturnsPage = lazyWithRetry(() => import('../pages/ReturnsPage'));
 const ConsignmentPage = lazyWithRetry(() => import('../pages/ConsignmentPage'));
-// DISABLED: Not relevant for Super Admin workflow
-// const AdminNotificationsPage = lazyWithRetry(() => import('../pages/AdminNotificationsPage'));
 const AnalyticsPage = lazyWithRetry(() => import('../pages/AnalyticsPage'));
 const TeamPage = lazyWithRetry(() => import('../pages/TeamManagementPage'));
 const PromotionsPage = lazyWithRetry(() => import('../pages/PromotionsPage'));
@@ -49,6 +47,7 @@ const UsersManagementPage = lazyWithRetry(() => import('../pages/admin/UsersMana
 const GlobalCatalogPage = lazyWithRetry(() => import('../pages/GlobalCatalogPage'));
 const AuditLogsPage = lazyWithRetry(() => import('../pages/AuditLogsPage'));
 const SecurityDashboardPage = lazyWithRetry(() => import('../pages/SecurityDashboardPage'));
+const AdminNotificationsPage = lazyWithRetry(() => import('../pages/AdminNotificationsPage'));
 
 export const router = createBrowserRouter([
   // =====================
@@ -68,7 +67,7 @@ export const router = createBrowserRouter([
       { path: 'users', element: <UsersManagementPage /> },
       { path: 'catalog', element: <GlobalCatalogPage /> },
       { path: 'audit-logs', element: <AuditLogsPage /> },
-      // { path: 'notifications', element: <AdminNotificationsPage /> }, // DISABLED
+      { path: 'notifications', element: <AdminNotificationsPage /> },
       { path: 'security', element: <SecurityDashboardPage /> },
     ],
   },
