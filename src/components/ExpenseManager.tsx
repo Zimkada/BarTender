@@ -271,10 +271,10 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
   //   1. Consistent data source (filteredUnified) for both total and categories
   //   2. Includes all expense types (investments, supplies, etc.) — not just operating_expenses
   const totalExpenses = useMemo(() => {
-    // 🛡️ CRITICAL: Exclude salaries from filteredUnified sum (already in filteredSalariesTotal)
-    // useUnifiedExpenses includes salaries, so we must exclude them here to avoid double-counting
+    // 🛡️ CRITICAL: Exclude salaries (already in filteredSalariesTotal) and reversed supplies
+    // Reversed supplies stay in the list for audit trail but must not count toward the total
     const nonSalaryExpenses = filteredUnified
-      .filter(exp => exp.category !== 'salary')
+      .filter(exp => exp.category !== 'salary' && !exp.supplyReversed)
       .reduce((sum, exp) => sum + exp.amount, 0);
     return nonSalaryExpenses + filteredSalariesTotal;
   }, [filteredUnified, filteredSalariesTotal]);
@@ -307,7 +307,10 @@ function ExpenseManagerContent({ period }: ExpenseManagerProps) {
         groups[key] = { label, icon, amount: 0, count: 0 };
       }
 
-      groups[key].amount += exp.amount;
+      // Reversed supplies stay in the list (audit trail) but don't add to the group amount
+      if (!exp.supplyReversed) {
+        groups[key].amount += exp.amount;
+      }
       groups[key].count += 1;
     });
 
