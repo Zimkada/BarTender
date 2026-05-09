@@ -32,20 +32,26 @@ export function OrderReceptionModal({ isOpen, onClose, order, barId }: OrderRece
     const { data: fullOrder, isLoading } = usePurchaseOrder(isOpen ? order.id : undefined);
     const { convertToSupplies } = usePurchaseOrdersMutations(barId);
 
-    // receivedQty keyed by item id
+    // receivedQty keyed by item id — reset when order changes
     const [receivedQty, setReceivedQty] = useState<Record<string, number>>({});
     const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
-    // Pre-fill with ordered quantities when order loads
+    // Reset state when switching to a different order
     useEffect(() => {
-        if (fullOrder) {
+        setReceivedQty({});
+        setExpandedItems([]);
+    }, [order.id]);
+
+    // Pre-fill with ordered quantities when order loads or changes
+    useEffect(() => {
+        if (fullOrder && fullOrder.id === order.id) {
             const initial: Record<string, number> = {};
             fullOrder.items.forEach(item => {
                 initial[item.id] = item.receivedQuantity ?? item.quantity;
             });
             setReceivedQty(initial);
         }
-    }, [fullOrder]);
+    }, [fullOrder, order.id]);
 
     const toggleExpand = (id: string) => {
         setExpandedItems(prev =>

@@ -48,6 +48,7 @@ export default function InventoryPage() {
 
     // 2. Local View State
     const [viewMode, setViewMode] = useState<ViewMode>(initialTab || 'products');
+    const [operationsInitialMode, setOperationsInitialMode] = useState<'menu' | 'order-prep'>('menu');
 
     // 🛡️ Expert Fix: Active le "Lite Mode" quand on est dans l'onglet Produits
     const {
@@ -273,7 +274,11 @@ export default function InventoryPage() {
                                 onSaveProduct={handleSaveProduct}
                                 onSupply={handleSupply}
                                 isProductImportEnabled={isProductImportEnabled}
-                                onOrderSaved={() => setViewMode('orders')}
+                                initialMode={operationsInitialMode}
+                                onOrderSaved={() => {
+                                    setOperationsInitialMode('menu');
+                                    setViewMode('orders');
+                                }}
                             />
                         </motion.div>
                     )}
@@ -288,7 +293,10 @@ export default function InventoryPage() {
                         >
                             <PurchaseOrdersTab
                                 barId={currentBar.id}
-                                onNewOrder={() => setViewMode('operations')}
+                                onNewOrder={() => {
+                                    setOperationsInitialMode('order-prep');
+                                    setViewMode('operations');
+                                }}
                             />
                         </motion.div>
                     )}

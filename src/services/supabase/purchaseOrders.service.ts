@@ -132,8 +132,14 @@ export class PurchaseOrdersService {
 
         if (orderError) throw orderError;
 
-        // 2. Insert items
-        const itemsPayload = params.items.map(i => ({
+        // 2. Insert items (DB CHECK requires quantity > 0)
+        const validItems = params.items.filter(i => i.quantity > 0);
+        if (validItems.length === 0) {
+            await supabase.from('purchase_orders').delete().eq('id', orderRow.id);
+            throw new Error('Aucun article avec quantité > 0');
+        }
+
+        const itemsPayload = validItems.map(i => ({
             purchase_order_id: orderRow.id,
             product_id: i.productId,
             quantity: i.quantity,

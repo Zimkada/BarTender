@@ -208,7 +208,8 @@ export function PurchaseOrdersTab({ barId, onNewOrder }: PurchaseOrdersTabProps)
                     <div className="space-y-3">
                         {displayed.map(order => {
                             const cfg = STATUS_CONFIG[order.status];
-                            const canReceive = canManage && (order.status === 'ordered' || order.status === 'partially_received');
+                            // RPC convert_purchase_order_to_supplies n'accepte que 'draft' | 'ordered'
+                            const canReceive = canManage && order.status === 'ordered';
                             const canSendToSupplier = canManage && order.status === 'draft';
                             const canCancel = canManage && (order.status === 'draft' || order.status === 'ordered');
 
