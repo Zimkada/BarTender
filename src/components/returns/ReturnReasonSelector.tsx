@@ -83,7 +83,7 @@ export function ReturnReasonSelector({
 
                         <div className="flex-grow min-w-0">
                             <div className="flex items-center justify-between mb-0.5 sm:mb-1">
-                                <h4 className={`font-black text-xs sm:text-sm leading-tight uppercase tracking-tight ${isSelected ? "" : "text-gray-800"}`}>
+                                <h4 className={`text-body-sm font-semibold leading-tight ${isSelected ? "" : "text-gray-800"}`}>
                                     {config.label}
                                 </h4>
                                 {isSelected && (
@@ -97,20 +97,20 @@ export function ReturnReasonSelector({
                             </div>
 
                             {/* Hide description on mobile to keep 'Menu' feel */}
-                            <p className="hidden sm:block text-[10px] text-gray-500 leading-tight line-clamp-2">
+                            <p className="hidden sm:block text-caption text-gray-500 leading-tight line-clamp-2">
                                 {config.description}
                             </p>
 
                             {/* Mobile Impact Badges - Compact */}
                             <div className="flex flex-wrap gap-1 mt-1 sm:hidden">
                                 {config.autoRestock && (
-                                    <span className="text-[8px] bg-green-100/50 text-green-700 px-1 py-0.5 rounded font-bold">
-                                        +STOCK
+                                    <span className="text-[10px] bg-green-50 text-green-700 px-1.5 py-0.5 rounded-full font-medium border border-green-100">
+                                        + Stock
                                     </span>
                                 )}
                                 {config.autoRefund && (
-                                    <span className="text-[8px] bg-sky-100/50 text-sky-700 px-1 py-0.5 rounded font-bold">
-                                        💰REMBOURSE
+                                    <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded-full font-medium border border-blue-100">
+                                        Remboursé
                                     </span>
                                 )}
                             </div>
@@ -119,18 +119,18 @@ export function ReturnReasonSelector({
                         {/* Desktop Impact Badges */}
                         <div className="hidden sm:flex flex-wrap gap-1 mt-auto pt-1">
                             {config.autoRestock && (
-                                <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider">
-                                    + STOCK
+                                <span className="text-caption bg-green-50 text-green-700 px-2 py-0.5 rounded-full font-medium border border-green-100">
+                                    + Stock
                                 </span>
                             )}
                             {config.autoRefund && (
-                                <span className="text-[9px] bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider">
-                                    💰 REMBOURSEMENT
+                                <span className="text-caption bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium border border-blue-100">
+                                    Remboursement
                                 </span>
                             )}
                             {key === "other" && (
-                                <span className="text-[9px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider">
-                                    MANUEL
+                                <span className="text-caption bg-gray-50 text-gray-600 px-2 py-0.5 rounded-full font-medium border border-gray-100">
+                                    Manuel
                                 </span>
                             )}
                         </div>
