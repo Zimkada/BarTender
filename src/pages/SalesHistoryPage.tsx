@@ -294,9 +294,9 @@ export default function SalesHistoryPage() {
                     title={isMobile ? 'Historique' : 'Historique des ventes'}
                     subtitle={
                         <span>
-                            Consultez l'historique détaillé de vos transactions et analysez la performance de votre établissement.
+                            Consultez et analysez vos transactions.
                             {!isMobile && (
-                                <span className="ml-2 text-brand-primary font-bold">
+                                <span className="ml-2 text-brand-primary font-semibold tabular-nums">
                                     • {isLoadingStats ? '...' : stats.totalItems} ventes
                                 </span>
                             )}
@@ -312,17 +312,25 @@ export default function SalesHistoryPage() {
                     actions={
                         !isMobile && (
                             <div className="flex items-center gap-2">
-                                {/* Export format toggle (Tablets/Desktop) */}
-                                <div className="flex bg-white/10 rounded-lg p-1 border border-white/20">
+                                {/* Toggle format export — segmented control */}
+                                <div
+                                    role="radiogroup"
+                                    aria-label="Format d'export"
+                                    className="flex p-0.5 bg-gray-100 rounded-full border border-gray-200"
+                                >
                                     <button
+                                        role="radio"
+                                        aria-checked={exportFormat === 'excel'}
                                         onClick={() => setExportFormat('excel')}
-                                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${exportFormat === 'excel' ? 'bg-green-600 text-white shadow-sm' : 'text-amber-900 hover:bg-white/10 hover:text-amber-950'}`}
+                                        className={`px-3 py-1.5 rounded-full text-caption transition-all ${exportFormat === 'excel' ? 'bg-white text-brand-primary shadow-sm font-semibold' : 'text-gray-600 hover:text-gray-900 font-medium'}`}
                                     >
                                         Excel
                                     </button>
                                     <button
+                                        role="radio"
+                                        aria-checked={exportFormat === 'csv'}
                                         onClick={() => setExportFormat('csv')}
-                                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${exportFormat === 'csv' ? 'bg-blue-600 text-white shadow-sm' : 'text-amber-900 hover:bg-white/10 hover:text-amber-950'}`}
+                                        className={`px-3 py-1.5 rounded-full text-caption transition-all ${exportFormat === 'csv' ? 'bg-white text-brand-primary shadow-sm font-semibold' : 'text-gray-600 hover:text-gray-900 font-medium'}`}
                                     >
                                         CSV
                                     </button>
@@ -332,23 +340,22 @@ export default function SalesHistoryPage() {
                                     onClick={() => exportSales(exportFormat)}
                                     title={`Exporter (${exportFormat.toUpperCase()})`}
                                     size="sm"
-                                    className={`h-10 transition-all flex items-center justify-center gap-2 font-semibold ${filteredSales.length === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${exportFormat === 'excel'
-                                        ? 'bg-green-600 text-white hover:bg-green-700 shadow-sm'
-                                        : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
-                                        } w-40`}
+                                    variant="default"
+                                    disabled={filteredSales.length === 0}
+                                    className="gap-1.5"
                                 >
-                                    <Download size={18} />
-                                    <span className="whitespace-nowrap">Exporter ({exportFormat.toUpperCase()})</span>
+                                    <Download size={16} />
+                                    Exporter
                                 </Button>
                             </div>
                         )
                     }
                 />
 
-                {/* ✨ SIGNALÉTIQUE DATA TIERS (Certification Perfection) */}
+                {/* Signalétique data tier */}
                 {currentBar?.settings?.dataTier && currentBar.settings.dataTier !== 'lite' && (
-                    <div className="bg-brand-primary/5 border-b border-brand-primary/10 px-4 py-2 flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-[11px] text-brand-primary font-medium">
+                    <div className="bg-brand-subtle border-b border-brand-primary/10 px-4 py-2 flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-caption text-brand-primary font-medium">
                             <TrendingUp size={14} />
                             <span>
                                 Affichage optimisé :
@@ -361,7 +368,7 @@ export default function SalesHistoryPage() {
                                 setTimeRange('last_365days');
                                 showSuccess('Chargement de l\'historique étendu...');
                             }}
-                            className="text-[10px] bg-brand-primary text-white px-2 py-0.5 rounded hover:bg-brand-dark transition-colors font-bold uppercase"
+                            className="text-caption bg-brand-primary text-white px-3 py-1 rounded-md hover:opacity-90 transition-opacity font-medium"
                         >
                             Voir plus
                         </button>
@@ -403,19 +410,26 @@ export default function SalesHistoryPage() {
                             />
                         </div>
 
-                        {/* Bloc 2: Statuts (Visible uniquement si canCancelSales) */}
+                        {/* Bloc 2: Statuts — segmented control */}
                         {canCancelSales && (
-                            <div className="flex bg-white/40 backdrop-blur-md rounded-2xl p-1 gap-1.5 border border-brand-subtle shadow-sm w-full lg:w-auto overflow-hidden">
+                            <div
+                                role="radiogroup"
+                                aria-label="Filtre par statut"
+                                className="flex p-0.5 bg-gray-100 rounded-full border border-gray-200 w-full lg:w-auto"
+                            >
                                 {(['validated', 'rejected', 'cancelled'] as const).map((status) => {
                                     const labels = { validated: 'Validées', rejected: 'Rejetées', cancelled: 'Annulées' };
+                                    const isActive = statusFilter === status;
                                     return (
                                         <button
                                             key={status}
+                                            role="radio"
+                                            aria-checked={isActive}
                                             onClick={() => setStatusFilter(status)}
-                                            className={`px-4 py-2 h-10 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all sm:min-w-[95px] flex-1 lg:flex-none ${statusFilter === status
-                                                ? 'glass-action-button-active-2026 shadow-md shadow-brand-subtle'
-                                                : 'glass-action-button-2026 text-gray-400 hover:text-brand-primary'
-                                                } `}
+                                            className={`flex-1 lg:flex-none lg:min-w-[100px] px-3 py-1.5 rounded-full text-caption transition-all ${isActive
+                                                ? 'bg-white text-brand-primary shadow-sm font-semibold'
+                                                : 'text-gray-600 hover:text-gray-900 font-medium'
+                                                }`}
                                         >
                                             {labels[status]}
                                         </button>
@@ -425,38 +439,43 @@ export default function SalesHistoryPage() {
                         )}
                     </div>
 
-                    {/* Export format toggle & Action (Mobile only) */}
+                    {/* Export format toggle & Action (mobile) */}
                     {isMobile && (
-                        <div className="flex items-center gap-3 w-full justify-between pt-2 border-t border-gray-100 mt-2">
-                            <span className="text-xs text-gray-500 font-medium whitespace-nowrap">Format:</span>
-                            <div className="flex items-center gap-2 flex-1 justify-end">
-                                <div className="flex bg-gray-100 rounded-lg p-1">
-                                    <button
-                                        onClick={() => setExportFormat('excel')}
-                                        className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${exportFormat === 'excel' ? 'bg-green-600 text-white shadow-md' : 'text-gray-500'} `}
-                                    >
-                                        XLS
-                                    </button>
-                                    <button
-                                        onClick={() => setExportFormat('csv')}
-                                        className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${exportFormat === 'csv' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-500'} `}
-                                    >
-                                        CSV
-                                    </button>
-                                </div>
-
-                                <Button
-                                    onClick={() => exportSales(exportFormat)}
-                                    size="sm"
-                                    className={`h-8 px-4 flex items-center gap-2 text-xs font-bold rounded-lg shadow-sm transition-all ${filteredSales.length === 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${exportFormat === 'excel'
-                                        ? 'bg-green-600 text-white hover:bg-green-700'
-                                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                                        } `}
+                        <div className="flex items-center gap-2 w-full pt-2 border-t border-gray-100 mt-2">
+                            <span className="text-caption text-gray-500 whitespace-nowrap">Format</span>
+                            <div
+                                role="radiogroup"
+                                aria-label="Format d'export"
+                                className="flex p-0.5 bg-gray-100 rounded-full border border-gray-200"
+                            >
+                                <button
+                                    role="radio"
+                                    aria-checked={exportFormat === 'excel'}
+                                    onClick={() => setExportFormat('excel')}
+                                    className={`px-3 py-1 rounded-full text-caption transition-all ${exportFormat === 'excel' ? 'bg-white text-brand-primary shadow-sm font-semibold' : 'text-gray-600 font-medium'}`}
                                 >
-                                    <Download size={14} />
-                                    Exporter
-                                </Button>
+                                    XLS
+                                </button>
+                                <button
+                                    role="radio"
+                                    aria-checked={exportFormat === 'csv'}
+                                    onClick={() => setExportFormat('csv')}
+                                    className={`px-3 py-1 rounded-full text-caption transition-all ${exportFormat === 'csv' ? 'bg-white text-brand-primary shadow-sm font-semibold' : 'text-gray-600 font-medium'}`}
+                                >
+                                    CSV
+                                </button>
                             </div>
+
+                            <Button
+                                onClick={() => exportSales(exportFormat)}
+                                size="sm"
+                                variant="default"
+                                disabled={filteredSales.length === 0}
+                                className="ml-auto gap-1.5"
+                            >
+                                <Download size={14} />
+                                Exporter
+                            </Button>
                         </div>
                     )}
                 </div>
@@ -471,14 +490,14 @@ export default function SalesHistoryPage() {
                     </div>
 
                     {filteredSales.length === 0 ? (
-                        <div className="text-center py-20 bg-white rounded-xl border border-gray-200 shadow-sm">
+                        <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
                             <ShoppingCart size={48} className="text-gray-300 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-600 mb-2">
+                            <h3 className="text-h3 text-gray-700 mb-2">
                                 {statusFilter === 'cancelled' ? 'Aucune vente annulée'
                                     : statusFilter === 'rejected' ? 'Aucune vente rejetée'
                                         : 'Aucune vente trouvée'}
                             </h3>
-                            <p className="text-gray-500">
+                            <p className="text-body-sm text-gray-500">
                                 {statusFilter === 'validated'
                                     ? 'Ajustez vos filtres ou changez la période'
                                     : `Aucune vente ${statusFilter === 'cancelled' ? 'annulée' : 'rejetée'} sur cette période`}
@@ -499,10 +518,10 @@ export default function SalesHistoryPage() {
                                         <div className="flex justify-center pt-2 pb-4">
                                             <button
                                                 onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
-                                                className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                                                className="flex items-center gap-2 px-5 py-2 bg-white border border-gray-200 rounded-full text-body-sm font-medium text-gray-700 hover:border-brand-primary/40 hover:bg-brand-subtle hover:text-brand-primary transition-colors"
                                             >
                                                 <ChevronDown size={16} />
-                                                Voir plus ({filteredSales.length - visibleCount} restantes)
+                                                Voir plus <span className="tabular-nums">({filteredSales.length - visibleCount} restantes)</span>
                                             </button>
                                         </div>
                                     )}
@@ -520,10 +539,10 @@ export default function SalesHistoryPage() {
                                         <div className="flex justify-center py-4 border-t border-gray-100">
                                             <button
                                                 onClick={() => setVisibleCount(c => c + PAGE_SIZE)}
-                                                className="flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+                                                className="flex items-center gap-2 px-5 py-2 bg-white border border-gray-200 rounded-full text-body-sm font-medium text-gray-700 hover:border-brand-primary/40 hover:bg-brand-subtle hover:text-brand-primary transition-colors"
                                             >
                                                 <ChevronDown size={16} />
-                                                Voir plus ({filteredSales.length - visibleCount} restantes)
+                                                Voir plus <span className="tabular-nums">({filteredSales.length - visibleCount} restantes)</span>
                                             </button>
                                         </div>
                                     )}
