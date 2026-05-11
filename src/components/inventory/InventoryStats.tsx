@@ -34,7 +34,7 @@ export function InventoryStats({
 
             {/* Répartition Catégories */}
             <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                <h2 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <h2 className="text-h3 text-gray-900 mb-4 flex items-center gap-2">
                     <LayoutGrid size={18} className="text-brand-primary" />
                     Répartition par catégorie
                 </h2>
@@ -76,8 +76,8 @@ function AttentionPanel({ productsWithAnomalies, lowStockCount, onNavigateToOper
         return (
             <div className="bg-brand-subtle p-6 rounded-2xl border border-brand-primary/20 text-center">
                 <CheckCircle2 className="mx-auto text-brand-primary mb-2" size={32} />
-                <h3 className="font-bold text-gray-900">Inventaire en parfaite santé</h3>
-                <p className="text-sm text-gray-500 mt-1">Aucune anomalie détectée sur vos produits.</p>
+                <h3 className="text-h3 text-gray-900">Inventaire en parfaite santé</h3>
+                <p className="text-body-sm text-gray-500 mt-1">Aucune anomalie détectée sur vos produits.</p>
             </div>
         );
     }
@@ -103,7 +103,7 @@ function AttentionPanel({ productsWithAnomalies, lowStockCount, onNavigateToOper
             {/* En-tête */}
             <div>
                 <AlertTriangle className={`mx-auto ${iconClass} mb-2`} size={32} />
-                <h3 className="font-bold text-gray-900 text-lg">
+                <h3 className="text-h3 text-gray-900">
                     {totalCount} produit{totalCount > 1 ? 's' : ''} nécessite{totalCount > 1 ? 'nt' : ''} votre attention
                 </h3>
             </div>
@@ -135,15 +135,15 @@ function AttentionPanel({ productsWithAnomalies, lowStockCount, onNavigateToOper
 
             {/* Contexte stock bas → opérations (seulement si pertinent) */}
             {lowStockCount > 0 && (
-                <p className="text-sm text-gray-600 flex items-center justify-center gap-1.5">
+                <p className="text-body-sm text-gray-600 flex items-center justify-center gap-1.5">
                     <Wrench size={14} className="text-gray-400 shrink-0" />
                     Dont{' '}
-                    <span className="font-semibold text-gray-800">{lowStockCount}</span>
+                    <span className="font-semibold text-gray-800 tabular-nums">{lowStockCount}</span>
                     {' '}en stock bas à réapprovisionner
                 </p>
             )}
 
-            <Button onClick={onNavigateToOperations} className="font-bold px-8">
+            <Button onClick={onNavigateToOperations} className="px-8">
                 Aller aux opérations
             </Button>
         </div>
@@ -168,10 +168,10 @@ function SeverityPill({ count, label, icon: Icon, colorClass, iconClass }: Sever
     const dimClass = count === 0 ? 'opacity-40' : '';
 
     return (
-        <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border font-bold ${colorClass} ${dimClass}`}>
+        <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border ${colorClass} ${dimClass}`}>
             <Icon size={14} className={iconClass} />
-            <span className="text-base font-black leading-none">{count}</span>
-            <span className="text-xs">{label}</span>
+            <span className="text-body-sm font-semibold tabular-nums leading-none">{count}</span>
+            <span className="text-caption font-medium">{label}</span>
         </div>
     );
 }
@@ -190,55 +190,30 @@ function InventorySummaryCards({ products, formatPrice, barSettings }: { product
     };
 
     const cards = [
-        {
-            label: "Catégories",
-            value: stats.categoriesCount,
-            icon: Tags,
-            color: "bg-purple-50 text-purple-600",
-            delay: 0
-        },
-        {
-            label: "Produits",
-            value: stats.productsCount,
-            icon: Container,
-            color: "bg-blue-50 text-blue-600",
-            delay: 0.1
-        },
-        {
-            label: "Valeur Achat Stock Actuel",
-            value: formatPrice(stats.purchaseValue),
-            icon: Wallet,
-            color: "bg-emerald-50 text-emerald-600",
-            delay: 0.2
-        },
-        {
-            label: "Valeur Vente Stock Actuel",
-            value: formatPrice(stats.saleValue),
-            icon: TrendingUp,
-            color: "bg-brand-subtle text-brand-dark",
-            delay: 0.3
-        }
+        { label: "Catégories", value: stats.categoriesCount, icon: Tags },
+        { label: "Produits", value: stats.productsCount, icon: Container },
+        { label: "Valeur d'achat", value: formatPrice(stats.purchaseValue), icon: Wallet },
+        { label: "Valeur de vente", value: formatPrice(stats.saleValue), icon: TrendingUp },
     ];
 
     return (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {cards.map((card, idx) => (
                 <motion.div
                     key={idx}
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: card.delay }}
-                    whileTap={{ scale: 0.98 }}
-                    className="p-4 rounded-2xl border border-gray-100 shadow-sm bg-white flex flex-col items-center justify-center text-center gap-2"
+                    transition={{ duration: 0.2, delay: idx * 0.04 }}
+                    className="p-4 rounded-2xl border border-gray-100 shadow-sm bg-white flex flex-col items-start gap-3"
                 >
-                    <div className={`w-10 h-10 rounded-full ${card.color} flex items-center justify-center mb-1`}>
-                        <card.icon size={20} />
+                    <div className="w-9 h-9 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center">
+                        <card.icon size={18} />
                     </div>
-                    <div>
-                        <div className="text-xl font-black text-gray-900 leading-tight">
+                    <div className="min-w-0 w-full">
+                        <div className="text-h2 text-gray-900 leading-tight tabular-nums truncate">
                             {card.value}
                         </div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mt-1">
+                        <div className="text-micro text-gray-500 mt-1">
                             {card.label}
                         </div>
                     </div>
