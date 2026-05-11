@@ -160,8 +160,8 @@ export function ProfileSettings() {
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-      <div className={`animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${theme.border}`}></div>
-      <p className="text-gray-500 font-medium animate-pulse">Chargement de votre profil...</p>
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary"></div>
+      <p className="text-body-sm text-gray-500">Chargement de votre profil...</p>
     </div>
   );
 
@@ -178,6 +178,7 @@ export function ProfileSettings() {
         ]}
         activeTab={activeTab}
         onTabChange={(id) => setActiveTab(id as 'info' | 'password' | 'training')}
+        showBack={false}
         guideId="my-profile"
       />
 
@@ -187,40 +188,41 @@ export function ProfileSettings() {
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="bg-white rounded-3xl p-6 md:p-10 border border-gray-100 shadow-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="bg-white rounded-2xl p-6 md:p-8 border border-gray-100 shadow-sm"
             >
               {successMessage && (
-                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-2xl flex items-center gap-3 text-green-800 animate-in fade-in slide-in-from-top-2">
-                  <CheckCircle className="w-5 h-5 flex-shrink-0" />
-                  <p className="text-sm font-bold">{successMessage}</p>
+                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3 text-green-800">
+                  <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                  <p className="text-body-sm font-medium">{successMessage}</p>
                 </div>
               )}
 
               {errorMessage && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center gap-3 text-red-800 animate-in fade-in slide-in-from-top-2">
-                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                  <p className="text-sm font-bold">{errorMessage}</p>
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-800">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <p className="text-body-sm font-medium">{errorMessage}</p>
                 </div>
               )}
 
               {activeTab === 'info' ? (
-                <div className="space-y-8">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Nom Complet</label>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="space-y-1.5">
+                      <label className="text-caption font-medium text-gray-500 ml-0.5">Nom complet</label>
                       <Input
                         type="text"
                         value={name}
                         onChange={e => setName(e.target.value)}
                         placeholder="Sandra KOFFI"
-                        className="h-12 text-lg font-bold bg-gray-50 border-gray-100 focus:bg-white transition-all"
+                        className="h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Email</label>
+                    <div className="space-y-1.5">
+                      <label className="text-caption font-medium text-gray-500 ml-0.5">Email</label>
                       <Input
                         type="email"
                         value={email}
@@ -228,107 +230,107 @@ export function ProfileSettings() {
                         placeholder="sandra.koffi@bartender.app"
                         leftIcon={<Mail className="w-4 h-4 text-gray-400" />}
                         disabled={true}
-                        className="h-12 bg-gray-100 border-gray-100 cursor-not-allowed opacity-75 transition-all"
+                        className="h-11 bg-gray-100 border-gray-200 cursor-not-allowed opacity-60"
                       />
-                      <p className="text-[10px] text-gray-400 font-bold italic ml-1">
-                        Contactez un administrateur pour modifier votre email de connexion.
+                      <p className="text-caption text-gray-400 ml-0.5">
+                        Contactez un administrateur pour modifier votre email.
                       </p>
                     </div>
-                    <div className="space-y-2 col-span-1 md:col-span-2">
-                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Téléphone</label>
+                    <div className="space-y-1.5 col-span-1 md:col-span-2">
+                      <label className="text-caption font-medium text-gray-500 ml-0.5">Téléphone</label>
                       <Input
                         type="tel"
                         value={phone}
                         onChange={e => setPhone(e.target.value)}
                         placeholder="01 02 03 04 05"
                         leftIcon={<Phone className="w-4 h-4 text-gray-400" />}
-                        className="h-12 bg-gray-50 border-gray-100 focus:bg-white transition-all"
+                        className="h-11 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                       />
                     </div>
                   </div>
 
-                  <div className="pt-4">
+                  <div className="pt-2">
                     <button
                       onClick={handleSaveInfo}
                       disabled={loading}
-                      className={`w-full h-14 ${theme.button} text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-brand-subtle transition-all active:scale-[0.98] hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-3`}
+                      className="btn-brand w-full h-12 rounded-xl text-body-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
                     >
-                      <Save size={20} />
+                      <Save size={18} />
                       Sauvegarder les modifications
                     </button>
                   </div>
                 </div>
               ) : activeTab === 'password' ? (
-                <div className="space-y-8">
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Mot de passe actuel</label>
+                <div className="space-y-6">
+                  <div className="space-y-1.5">
+                    <label className="text-caption font-medium text-gray-500 ml-0.5">Mot de passe actuel</label>
                     <Input
                       type={showCurrentPassword ? 'text' : 'password'}
                       value={currentPassword}
                       onChange={e => setCurrentPassword(e.target.value)}
                       placeholder="••••••••"
                       rightIcon={
-                        <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="text-gray-400">
-                          {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                          {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                         </button>
                       }
-                      className="h-12 bg-gray-50 border-gray-100 focus:bg-white"
+                      className="h-11 bg-gray-50 border-gray-200 focus:bg-white"
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Nouveau mot de passe</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div className="space-y-1.5">
+                      <label className="text-caption font-medium text-gray-500 ml-0.5">Nouveau mot de passe</label>
                       <Input
                         type={showNewPassword ? 'text' : 'password'}
                         value={newPassword}
                         onChange={e => setNewPassword(e.target.value)}
                         placeholder="••••••••"
                         rightIcon={
-                          <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="text-gray-400">
-                            {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                            {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                           </button>
                         }
-                        className="h-12 bg-gray-50 border-gray-100 focus:bg-white"
+                        className="h-11 bg-gray-50 border-gray-200 focus:bg-white"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1">Confirmer</label>
+                    <div className="space-y-1.5">
+                      <label className="text-caption font-medium text-gray-500 ml-0.5">Confirmer le mot de passe</label>
                       <Input
                         type={showConfirmPassword ? 'text' : 'password'}
                         value={confirmPassword}
                         onChange={e => setConfirmPassword(e.target.value)}
                         placeholder="••••••••"
                         rightIcon={
-                          <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="text-gray-400">
-                            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                            {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                           </button>
                         }
-                        className="h-12 bg-gray-50 border-gray-100 focus:bg-white"
+                        className="h-11 bg-gray-50 border-gray-200 focus:bg-white"
                       />
                     </div>
                   </div>
 
-                  <div className="bg-blue-50/50 p-5 rounded-2xl border border-blue-100 border-dashed">
-                    <p className="text-xs text-blue-900 font-bold mb-3 flex items-center gap-2">
-                      <Shield size={14} className="text-blue-500" />
-                      Conseils sécurité
+                  <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                    <p className="text-caption font-semibold text-gray-700 mb-2.5 flex items-center gap-1.5">
+                      <Shield size={13} className="text-brand-primary" />
+                      Conseils de sécurité
                     </p>
-                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] text-blue-700 font-bold uppercase tracking-wide opacity-80">
-                      <li className="flex items-center gap-2">✓ Min. 8 caractères</li>
-                      <li className="flex items-center gap-2">✓ Majuscules & Minuscules</li>
-                      <li className="flex items-center gap-2">✓ Chiffres & Signes</li>
-                      <li className="flex items-center gap-2">✓ Différent du précédent</li>
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-caption text-gray-500">
+                      <li className="flex items-center gap-1.5"><span className="text-brand-primary">✓</span> Min. 8 caractères</li>
+                      <li className="flex items-center gap-1.5"><span className="text-brand-primary">✓</span> Majuscules & minuscules</li>
+                      <li className="flex items-center gap-1.5"><span className="text-brand-primary">✓</span> Chiffres & symboles</li>
+                      <li className="flex items-center gap-1.5"><span className="text-brand-primary">✓</span> Différent du précédent</li>
                     </ul>
                   </div>
 
-                  <div className="pt-4">
+                  <div className="pt-2">
                     <button
                       onClick={handleChangePassword}
                       disabled={!newPassword || newPassword !== confirmPassword}
-                      className={`w-full h-14 ${theme.button} text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-brand-subtle transition-all active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 hover:shadow-xl hover:-translate-y-0.5 flex items-center justify-center gap-3`}
+                      className="btn-brand w-full h-12 rounded-xl text-body-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <Lock size={20} />
+                      <Lock size={18} />
                       Mettre à jour le mot de passe
                     </button>
                   </div>
@@ -340,78 +342,78 @@ export function ProfileSettings() {
           </AnimatePresence>
         </div>
 
-        {/* Right Column: User ID Card Ticket */}
+        {/* Right Column: User ID Card */}
         <div className="lg:col-span-1">
-          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden border border-slate-700 shadow-2xl flex flex-col min-h-[500px]">
-            {/* Cutouts for Ticket Effect */}
-            <div className="absolute top-1/2 -left-6 w-12 h-12 bg-gray-50 rounded-full -translate-y-1/2" />
-            <div className="absolute top-1/2 -right-6 w-12 h-12 bg-gray-50 rounded-full -translate-y-1/2" />
+          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-3xl p-6 text-white relative overflow-hidden border border-slate-700/50 shadow-xl flex flex-col min-h-[460px]">
+            {/* Ticket cutouts */}
+            <div className="absolute top-1/2 -left-5 w-10 h-10 bg-gray-50 rounded-full -translate-y-1/2" />
+            <div className="absolute top-1/2 -right-5 w-10 h-10 bg-gray-50 rounded-full -translate-y-1/2" />
 
-            {/* Avatar Section */}
-            <div className="text-center mb-10 relative z-10">
-              <div className={`w-28 h-28 mx-auto rounded-3xl ${theme.avatar} p-1 mb-6 rotate-3 shadow-2xl transition-transform hover:rotate-0`}>
-                <div className="w-full h-full bg-slate-800 rounded-[1.4rem] flex items-center justify-center border border-white/10 group overflow-hidden shadow-inner">
-                  <span className="text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-t from-white to-white/50 group-hover:scale-110 transition-transform">
+            {/* Avatar */}
+            <div className="text-center mb-8 relative z-10">
+              <div className={`w-24 h-24 mx-auto rounded-2xl ${theme.avatar} p-0.5 mb-4 shadow-xl`}>
+                <div className="w-full h-full bg-slate-800 rounded-[14px] flex items-center justify-center border border-white/10">
+                  <span className="text-4xl font-bold text-white/90">
                     {name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '??'}
                   </span>
                 </div>
               </div>
-              <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full ${theme.badge} text-[10px] font-black uppercase tracking-[0.2em] shadow-lg border border-slate-700/50`}>
-                <Shield size={12} />
+              <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${theme.badge} text-micro font-semibold border border-slate-700/50`}>
+                <Shield size={11} />
                 {currentSession?.role?.replace('_', ' ')}
               </div>
             </div>
 
-            {/* Stats / Details */}
-            <div className="space-y-6 flex-1 relative z-10">
-              <div className="space-y-1">
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Identifiant Système</p>
-                <p className="text-lg font-black font-mono text-white/90">@{currentUser?.username}</p>
+            {/* Details */}
+            <div className="space-y-5 flex-1 relative z-10">
+              <div className="space-y-0.5">
+                <p className="text-micro text-slate-500">Identifiant système</p>
+                <p className="text-body-sm font-semibold font-mono text-white/90">@{currentUser?.username}</p>
               </div>
 
-              <div className="h-px bg-white/10 border-t border-dashed border-white/20 my-6" />
+              <div className="border-t border-dashed border-white/15" />
 
-              <div className="grid grid-cols-1 gap-5">
-                <div className="flex items-center gap-4 group">
-                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors border border-white/10">
-                    <Calendar size={18} className="text-slate-400 group-hover:text-white" />
+              <div className="grid grid-cols-1 gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 flex-shrink-0">
+                    <Calendar size={16} className="text-slate-400" />
                   </div>
                   <div>
-                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Membre depuis</p>
-                    <p className="text-sm font-bold text-white/80">{currentUser?.createdAt.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</p>
+                    <p className="text-micro text-slate-500">Membre depuis</p>
+                    <p className="text-body-sm font-medium text-white/80">{currentUser?.createdAt.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 group">
-                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-white/10 transition-colors border border-white/10">
-                    <Zap size={18} className="text-slate-400 group-hover:text-white" />
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 flex-shrink-0">
+                    <Zap size={16} className="text-slate-400" />
                   </div>
                   <div>
-                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Dernier accès</p>
-                    <p className="text-sm font-bold text-white/80">
+                    <p className="text-micro text-slate-500">Dernier accès</p>
+                    <p className="text-body-sm font-medium text-white/80">
                       {currentUser?.lastLoginAt ? new Date(currentUser.lastLoginAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Maintenant'}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 group">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center group-hover:bg-white/10 transition-colors border ${currentUser?.hasCompletedOnboarding ? 'bg-green-500/20 border-green-500/30' : 'bg-white/5 border-white/10'}`}>
-                    <GraduationCap size={18} className={currentUser?.hasCompletedOnboarding ? 'text-green-400 group-hover:text-green-300' : 'text-slate-400 group-hover:text-white'} />
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center border flex-shrink-0 ${currentUser?.hasCompletedOnboarding ? 'bg-emerald-500/15 border-emerald-500/25' : 'bg-white/5 border-white/10'}`}>
+                    <GraduationCap size={16} className={currentUser?.hasCompletedOnboarding ? 'text-emerald-400' : 'text-slate-400'} />
                   </div>
                   <div>
-                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Certification Formation</p>
-                    <p className={`text-sm font-bold ${currentUser?.hasCompletedOnboarding ? 'text-green-400' : theme.text}`}>
+                    <p className="text-micro text-slate-500">Formation</p>
+                    <p className={`text-body-sm font-medium ${currentUser?.hasCompletedOnboarding ? 'text-emerald-400' : 'text-white/60'}`}>
                       {currentUser?.hasCompletedOnboarding ? (
                         <>
-                          ✓ Certifié
+                          Certifié
                           {currentUser?.onboardingCompletedAt && (
-                            <span className="text-[10px] text-slate-400 ml-2">
-                              (v{currentUser?.trainingVersionCompleted || 1})
+                            <span className="text-caption text-slate-500 ml-1.5">
+                              v{currentUser?.trainingVersionCompleted || 1}
                             </span>
                           )}
                         </>
                       ) : (
-                        '⏳ En attente'
+                        'En attente'
                       )}
                     </p>
                   </div>
@@ -419,10 +421,10 @@ export function ProfileSettings() {
               </div>
             </div>
 
-            {/* Bottom Branding / Info */}
-            <div className="mt-10 pt-6 border-t border-white/10 text-center relative z-10">
-              <p className="text-[9px] font-bold text-slate-600 uppercase tracking-[0.3em]">BarTender Digital ID</p>
-              <div className="flex justify-center gap-1 mt-3">
+            {/* Bottom branding */}
+            <div className="mt-6 pt-5 border-t border-white/10 text-center relative z-10">
+              <p className="text-micro text-slate-600">BarTender Digital ID</p>
+              <div className="flex justify-center gap-1 mt-2.5">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <div key={i} className={`h-1 rounded-full ${i % 3 === 0 ? 'w-4 bg-brand-primary' : 'w-2 bg-slate-700'}`} />)}
               </div>
             </div>
