@@ -315,15 +315,15 @@ export default function SettingsPage() {
         );
     }
 
-    // SCURITÉ : Interdire l'accès aux serveurs même avec URL directe
+    // Sécurité : interdire l'accès aux serveurs même avec URL directe
     if (currentSession.role === 'serveur') {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-4 px-4">
                 <div className="p-4 bg-red-50 rounded-full">
                     <ShieldCheck size={48} className="text-red-500" />
                 </div>
-                <h2 className="text-xl font-bold text-gray-900">Accès non autorisé</h2>
-                <p className="text-gray-500 max-w-md">
+                <h2 className="text-h2 text-gray-900">Accès non autorisé</h2>
+                <p className="text-body-sm text-gray-500 max-w-md">
                     L'accès aux paramètres est réservé aux gérants et aux propriétaires.
                     Veuillez contacter votre administrateur si nécessaire.
                 </p>
@@ -335,11 +335,10 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-brand-subtle to-brand-subtle">
-            {/* Header Standardisé - Full Width */}
+        <div className="min-h-screen bg-brand-subtle">
             <TabbedPageHeader
                 title="Paramètres"
-                subtitle="Personnalisez votre établissement, configurez le mode de fonctionnement et sécurisez votre compte."
+                subtitle="Personnalisez votre établissement et sécurisez votre compte."
                 icon={<SettingsIcon size={24} />}
                 tabs={tabs}
                 activeTab={activeTab}
@@ -356,23 +355,23 @@ export default function SettingsPage() {
                     {activeTab === 'security' && isPromoteur && (
                         <div className="space-y-6">
                             <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
-                                <div className="p-2 bg-purple-100 text-purple-600 rounded-lg">
-                                    <ShieldCheck size={24} />
+                                <div className="w-10 h-10 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center flex-shrink-0">
+                                    <ShieldCheck size={20} />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-bold text-gray-900">Authentification à deux facteurs (2FA)</h3>
-                                    <p className="text-sm text-gray-500">Sécurisez l'accès à votre compte.</p>
+                                    <h3 className="text-h3 text-gray-900">Authentification à deux facteurs (2FA)</h3>
+                                    <p className="text-body-sm text-gray-500">Sécurisez l'accès à votre compte.</p>
                                 </div>
                             </div>
 
                             {isMfaEnabled ? (
                                 <Alert variant="success" className="border-green-200 bg-green-50">
                                     <div className="space-y-4">
-                                        <div className="flex items-center gap-2 text-green-800 font-bold">
+                                        <div className="flex items-center gap-2 text-green-800 font-semibold">
                                             <CheckCircle size={20} />
                                             <span>La protection 2FA est active</span>
                                         </div>
-                                        <p className="text-sm text-green-700">Votre compte est sécurisé par application d'authentification.</p>
+                                        <p className="text-body-sm text-green-700">Votre compte est sécurisé par application d'authentification.</p>
                                         <Button
                                             onClick={handleUnenrollMfa}
                                             disabled={mfaLoading}
@@ -386,13 +385,13 @@ export default function SettingsPage() {
                             ) : (
                                 <div className="space-y-6">
                                     {mfaStep === 'idle' && (
-                                        <div className="bg-gray-50 rounded-xl p-6 border border-gray-100 text-center space-y-4">
+                                        <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 text-center space-y-4">
                                             <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto shadow-sm">
                                                 <AlertCircle size={32} className="text-gray-400" />
                                             </div>
                                             <div className="space-y-2">
-                                                <h4 className="font-medium text-gray-900">La 2FA n'est pas activée</h4>
-                                                <p className="text-sm text-gray-500 max-w-sm mx-auto">
+                                                <h4 className="text-h3 text-gray-900">La 2FA n'est pas activée</h4>
+                                                <p className="text-body-sm text-gray-500 max-w-sm mx-auto">
                                                     Protégez votre compte contre les accès non autorisés en activant la double authentification.
                                                 </p>
                                             </div>
@@ -407,31 +406,31 @@ export default function SettingsPage() {
                                     )}
 
                                     {mfaStep === 'verify' && (
-                                        <div className="bg-white border rounded-xl p-6 space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                                        <div className="bg-white border border-gray-200 rounded-2xl p-6 space-y-6 animate-in fade-in slide-in-from-bottom-4">
                                             <div className="text-center space-y-4">
-                                                <h4 className="font-bold text-lg">1. Scannez le QR Code</h4>
+                                                <h4 className="text-h3 text-gray-900">1. Scannez le QR Code</h4>
                                                 {qrCodeSvg && (
                                                     <div className="bg-white p-4 rounded-lg border inline-block mx-auto">
                                                         <div dangerouslySetInnerHTML={{ __html: qrCodeSvg }} className="w-48 h-48" />
                                                     </div>
                                                 )}
                                                 {mfaSecret && (
-                                                    <div className="text-xs text-center space-y-1">
+                                                    <div className="text-caption text-center space-y-1">
                                                         <p className="text-gray-500">Impossible de scanner ? Entrez ce code :</p>
-                                                        <code className="bg-gray-100 px-2 py-1 rounded font-mono select-all">{mfaSecret}</code>
+                                                        <code className="bg-gray-100 px-2 py-1 rounded font-mono select-all tabular-nums">{mfaSecret}</code>
                                                     </div>
                                                 )}
                                             </div>
 
-                                            <div className="border-t pt-6 space-y-4">
-                                                <h4 className="font-bold text-center">2. Entrez le code de validation</h4>
+                                            <div className="border-t border-gray-100 pt-6 space-y-4">
+                                                <h4 className="text-h3 text-gray-900 text-center">2. Entrez le code de validation</h4>
                                                 <Input
                                                     type="text"
                                                     value={verifyCode}
                                                     onChange={(e) => setVerifyCode(e.target.value)}
                                                     placeholder="000 000"
                                                     maxLength={6}
-                                                    className="text-center text-2xl tracking-[0.5em] font-mono h-14"
+                                                    className="text-center text-2xl tracking-[0.5em] font-mono tabular-nums h-14"
                                                 />
                                                 <div className="flex gap-3 pt-2">
                                                     <Button
@@ -521,7 +520,7 @@ export default function SettingsPage() {
                             {/* Section Heures & Délais */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                                    <label className="text-body-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                                         <Clock size={16} className="text-brand-primary" />
                                         Heure de clôture journalière
                                     </label>
@@ -537,7 +536,7 @@ export default function SettingsPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-body-sm font-medium text-gray-700 mb-2">
                                         Expiration des consignations
                                     </label>
                                     <Select
@@ -553,7 +552,7 @@ export default function SettingsPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-body-sm font-medium text-gray-700 mb-2">
                                         Fréquence approvisionnement
                                     </label>
                                     <Select
@@ -569,7 +568,7 @@ export default function SettingsPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-body-sm font-medium text-gray-700 mb-2">
                                         Méthode de coût (inventaire)
                                     </label>
                                     <Select
@@ -588,9 +587,9 @@ export default function SettingsPage() {
 
                             {/* Section Devise */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                                <label className="text-body-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
                                     <DollarSign size={16} className="text-brand-primary" />
-                                    Devise Principale
+                                    Devise principale
                                 </label>
                                 <RadioGroup
                                     value={tempSettings.currency}
@@ -610,14 +609,14 @@ export default function SettingsPage() {
                                         <label
                                             key={currency.code}
                                             className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer border transition-all ${tempSettings.currency === currency.code
-                                                ? 'bg-brand-subtle border-brand-primary shadow-sm ring-1 ring-brand-primary'
-                                                : 'bg-white border-gray-200 hover:bg-gray-50'
+                                                ? 'bg-brand-subtle border-brand-primary shadow-sm'
+                                                : 'bg-white border-gray-200 hover:border-brand-primary/40 hover:bg-brand-subtle'
                                                 }`}
                                         >
                                             <RadioGroupItem value={currency.code} id={currency.code} />
                                             <div>
-                                                <div className="font-bold text-sm text-gray-800">{currency.code}</div>
-                                                <div className="text-xs text-gray-500">{currency.name}</div>
+                                                <div className="text-body-sm font-semibold text-gray-800">{currency.code}</div>
+                                                <div className="text-caption text-gray-500">{currency.name}</div>
                                             </div>
                                         </label>
                                     ))}
@@ -626,33 +625,33 @@ export default function SettingsPage() {
 
                             <hr className="border-gray-100" />
 
-                            {/* Section Mode Opérationnel */}
+                            {/* Section Mode opérationnel */}
                             <div>
-                                <label className="block text-lg font-bold text-gray-900 mb-4">Mode de fonctionnement</label>
+                                <label className="block text-h3 text-gray-900 mb-4">Mode de fonctionnement</label>
                                 <RadioGroup
                                     value={tempOperatingMode}
                                     onValueChange={(value: 'full' | 'simplified') => setTempOperatingMode(value)}
-                                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                                    className="grid grid-cols-1 md:grid-cols-2 gap-3"
                                 >
-                                    <label className={`flex gap-4 p-4 rounded-xl cursor-pointer border-2 transition-all ${tempOperatingMode === 'full'
-                                        ? 'bg-brand-subtle border-brand-primary shadow-md'
-                                        : 'bg-white border-gray-100 hover:border-gray-200'
+                                    <label className={`flex gap-4 p-4 rounded-xl cursor-pointer border transition-all ${tempOperatingMode === 'full'
+                                        ? 'bg-brand-subtle border-brand-primary shadow-sm'
+                                        : 'bg-white border-gray-200 hover:border-brand-primary/40 hover:bg-brand-subtle'
                                         }`}>
                                         <RadioGroupItem value="full" className="mt-1" />
                                         <div className="space-y-1">
-                                            <div className="font-bold text-gray-900">Mode Complet</div>
-                                            <p className="text-sm text-gray-600">Chaque serveur a son propre compte et gère ses tables. Idéal pour les grands établissements structurés.</p>
+                                            <div className="text-body font-semibold text-gray-900">Mode complet</div>
+                                            <p className="text-body-sm text-gray-600">Chaque serveur a son propre compte et gère ses tables. Idéal pour les grands établissements structurés.</p>
                                         </div>
                                     </label>
 
-                                    <label className={`flex gap-4 p-4 rounded-xl cursor-pointer border-2 transition-all ${tempOperatingMode === 'simplified'
-                                        ? 'bg-brand-subtle border-brand-primary shadow-md'
-                                        : 'bg-white border-gray-100 hover:border-gray-200'
+                                    <label className={`flex gap-4 p-4 rounded-xl cursor-pointer border transition-all ${tempOperatingMode === 'simplified'
+                                        ? 'bg-brand-subtle border-brand-primary shadow-sm'
+                                        : 'bg-white border-gray-200 hover:border-brand-primary/40 hover:bg-brand-subtle'
                                         }`}>
                                         <RadioGroupItem value="simplified" className="mt-1" />
                                         <div className="space-y-1">
-                                            <div className="font-bold text-gray-900">Mode Simplifié</div>
-                                            <p className="text-sm text-gray-600">Le gérant centralise les commandes et sélectionne le serveur. Idéal pour les maquis et petits bars.</p>
+                                            <div className="text-body font-semibold text-gray-900">Mode simplifié</div>
+                                            <p className="text-body-sm text-gray-600">Le gérant centralise les commandes et sélectionne le serveur. Idéal pour les maquis et petits bars.</p>
                                         </div>
                                     </label>
                                 </RadioGroup>
@@ -662,7 +661,7 @@ export default function SettingsPage() {
                                 <div className="bg-gray-50 rounded-xl p-3 md:p-6 border border-gray-200 animate-in fade-in zoom-in-95 duration-300">
                                     <div className="flex items-center gap-2 mb-4">
                                         <GitBranch size={20} className="text-brand-primary" />
-                                        <h4 className="font-bold text-gray-900">Configuration du Mode Switching</h4>
+                                        <h4 className="text-h3 text-gray-900">Configuration du mode switching</h4>
                                     </div>
                                     <ServerMappingsManager
                                         barId={currentBar.id}
@@ -675,8 +674,8 @@ export default function SettingsPage() {
                     )}
                 </Card>
 
-                {/* Footer Actions - Z-index élevé pour visibilité mobile */}
-                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-200 md:static md:bg-transparent md:border-0 md:p-0 z-50">
+                {/* Footer Actions — sticky en mobile */}
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-gray-200 md:static md:bg-transparent md:border-0 md:p-0 z-50">
                     <div className="max-w-7xl mx-auto flex flex-col-reverse sm:flex-row gap-3">
                         <Button
                             onClick={() => navigate(-1)}
@@ -690,7 +689,7 @@ export default function SettingsPage() {
                             onClick={handleSave}
                             variant="default"
                             size="lg"
-                            className="w-full sm:flex-1 font-bold shadow-brand h-12"
+                            className="w-full sm:flex-1 h-12"
                         >
                             Enregistrer les modifications
                         </Button>
