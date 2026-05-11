@@ -528,6 +528,7 @@ export default function ReturnsPage() {
             ? "serveur-returns"
             : "manage-returns"
         }
+        showBack={false}
       />
 
       {/* Filters Area (Visible in List and Stats modes) */}

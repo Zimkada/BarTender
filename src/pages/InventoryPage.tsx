@@ -153,6 +153,7 @@ export default function InventoryPage() {
                 activeTab={viewMode}
                 onTabChange={(id) => setViewMode(id as ViewMode)}
                 guideId={inventoryGuideId}
+                showBack={false}
             />
 
             <main className="container mx-auto px-4 py-4 pb-24">

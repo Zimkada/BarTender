@@ -122,64 +122,35 @@
     inset 0 1px 0 hsla(0, 0%, 100%, 0.3);
 }
 
-/* Effet Shimmer de luxe */
+/* Subtle gloss highlight — static, no infinite animation
+   Replaces the previous infinite shimmer to save battery and reduce visual noise. */
 .liquid-gold-header::after {
   content: "";
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(45deg,
-      transparent 45%,
-      hsla(0, 0%, 100%, 0.08) 50%,
-      transparent 55%);
-  animation: shimmer-header 8s infinite linear;
+  inset: 0;
+  background: linear-gradient(180deg,
+      hsla(0, 0%, 100%, 0.08) 0%,
+      transparent 40%);
   pointer-events: none;
 }
 
-@keyframes shimmer-header {
-  0% {
-    transform: translateX(-30%) translateY(-30%);
-  }
-
-  100% {
-    transform: translateX(30%) translateY(30%);
-  }
-}
-
-/* 🏔️ PageHeader - Ombres harmonisées avec brand */
+/* 🏔️ PageHeader - Plat moderne avec accent brand discret */
 .glass-page-header {
-  background: linear-gradient(135deg,
-      hsla(0, 0%, 100%, 0.95) 0%,
-      hsla(var(--brand-hue), var(--brand-saturation), 98%, 0.85) 100%);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: hsla(0, 0%, 100%, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--brand-border);
-  border-top: 6px solid hsl(var(--brand-hue), var(--brand-saturation), 45%);
-  border-radius: 2rem;
-  box-shadow:
-    0 25px 50px -12px hsla(var(--brand-hue), var(--brand-saturation), 30%, 0.15),
-    0 10px 20px -10px hsla(var(--brand-hue), var(--brand-saturation), 40%, 0.1);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-top: 3px solid hsl(var(--brand-hue), var(--brand-saturation), 50%);
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px hsla(var(--brand-hue), var(--brand-saturation), 30%, 0.06),
+              0 4px 12px hsla(var(--brand-hue), var(--brand-saturation), 30%, 0.04);
 }
 
-.glass-page-header:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 35px 70px -25px hsla(var(--brand-hue), var(--brand-saturation), 30%, 0.25),
-    0 15px 30px -10px hsla(var(--brand-hue), var(--brand-saturation), 40%, 0.15);
-}
-
-/* 🎯 PageHeader Icon */
+/* 🎯 PageHeader Icon - Plat moderne */
 .glass-page-icon {
   background: var(--brand-gradient);
   color: white;
-  box-shadow:
-    0 10px 25px -5px var(--brand-shadow),
-    inset 0 2px 4px hsla(0, 0%, 100%, 0.3);
-  border: 1px solid hsla(0, 0%, 100%, 0.2);
-  transform: scale(1.05);
+  box-shadow: 0 4px 10px -2px var(--brand-shadow-light);
 }
 
 /* 🌫️ Boutons Glassmorphism */
@@ -302,4 +273,18 @@
 /* 🎨 Selection aux couleurs de la marque */
 ::selection {
   background: hsla(var(--brand-hue), var(--brand-saturation), 50%, 0.3);
+}
+
+/* ♿ Respect du préréglage système "reduce motion"
+   Désactive animations infinies et transitions agressives.
+   Critique pour accessibilité (vestibulaire) et batterie mobile. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

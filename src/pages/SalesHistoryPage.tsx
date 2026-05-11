@@ -308,6 +308,7 @@ export default function SalesHistoryPage() {
                     activeTab={viewMode}
                     onTabChange={(id) => setViewMode(id as ViewMode)}
                     guideId={historyGuideId}
+                    showBack={false}
                     actions={
                         !isMobile && (
                             <div className="flex items-center gap-2">

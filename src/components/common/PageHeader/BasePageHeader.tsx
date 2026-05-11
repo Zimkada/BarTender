@@ -52,20 +52,20 @@ const Left: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 /** Heading element - auto-truncated for long titles */
 const Title: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <div className="flex-1 min-w-0">
-        <h1 className="text-lg sm:text-2xl font-bold truncate tracking-tight">{children}</h1>
+        <h1 className="text-h3 sm:text-h2 text-gray-900 truncate">{children}</h1>
     </div>
 );
 
 /** Icon container - typically for page context icon */
 const Icon: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => (
-    <div className={`flex items-center justify-center glass-page-icon w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex-shrink-0 ${className || ''}`}>
+    <div className={`flex items-center justify-center glass-page-icon w-9 h-9 sm:w-11 sm:h-11 rounded-xl flex-shrink-0 ${className || ''}`}>
         {children}
     </div>
 );
 
-/** Subtitle/description text - hidden on mobile by default */
+/** Subtitle/description text */
 const Description: React.FC<{ children: React.ReactNode, className?: string }> = ({ children, className }) => (
-    <div className={`text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1 font-medium ${className || ''}`}>
+    <div className={`text-body-sm text-gray-500 mt-0.5 ${className || ''}`}>
         {children}
     </div>
 );

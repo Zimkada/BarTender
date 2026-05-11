@@ -34,7 +34,7 @@ export function TabbedPageHeader({
     mobileTopRightContent,
     guideId,
     onBack,
-    showBack = false,
+    showBack = true,
     hideSubtitleOnMobile
 }: TabbedPageHeaderProps) {
     return (
@@ -86,8 +86,8 @@ export function TabbedPageHeader({
                                 key={tab.id}
                                 onClick={() => onTabChange(tab.id)}
                                 variant="ghost"
-                                className={`flex-1 py-1.5 sm:py-2 px-2.5 sm:px-4 font-bold text-xs sm:text-sm transition-all whitespace-nowrap uppercase tracking-widest rounded-lg ${isActive
-                                    ? 'glass-action-button-active-2026'
+                                className={`flex-1 py-1.5 sm:py-2 px-3 sm:px-4 text-caption sm:text-body-sm font-medium transition-all whitespace-nowrap rounded-lg ${isActive
+                                    ? 'glass-action-button-active-2026 font-semibold'
                                     : 'glass-action-button-2026 opacity-80'
                                     }`}
                             >

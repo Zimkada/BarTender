@@ -3,17 +3,17 @@ import { Category } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Card } from './ui/Card';
 import { useCategoryContextMenu } from '../hooks/useCategoryContextMenu';
 import { CategoryContextMenu } from './CategoryContextMenu';
 
-// Styles pour les boutons de catégorie
-// Utilise la classe CSS glass-action-button-active-2026 qui utilise var(--brand-gradient)
+// Filter chips — style moderne 2026 (Linear/Spotify/Stripe)
+// Capitalisation naturelle, poids medium, états clairs sans uppercase
 const getButtonClasses = (isSelected: boolean) => {
+    const base = 'px-3.5 py-1.5 rounded-full text-caption transition-all duration-150 border';
     if (isSelected) {
-        return 'glass-action-button-active-2026 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all duration-200';
+        return `${base} bg-brand-primary text-white border-brand-primary shadow-sm font-semibold`;
     }
-    return 'glass-action-button-2026 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all duration-200 opacity-70';
+    return `${base} bg-white text-gray-700 border-gray-200 hover:border-brand-primary/40 hover:bg-brand-subtle font-medium`;
 };
 
 interface CategoryFilterProps {
@@ -53,22 +53,16 @@ export function CategoryFilter({
 
     return (
         <>
-            <Card variant="elevated" padding="sm" className="border-brand-subtle bg-white/40 backdrop-blur-md overflow-hidden relative">
-                <div className="absolute -top-10 -left-10 w-24 h-24 bg-brand-primary/5 blur-3xl rounded-full"></div>
-                <div className="flex flex-col mb-4 relative z-10">
-                    <h3 className="text-sm font-black text-gray-900 uppercase tracking-tighter leading-none">Nos</h3>
-                    <h4 className="text-sm font-black text-brand-primary uppercase tracking-tighter leading-tight">Catégories</h4>
-                </div>
+            <div className="space-y-2">
+                <p className="text-micro text-gray-500 uppercase">Catégories</p>
                 <div className="flex flex-wrap gap-2">
-                    {/* All categories button */}
                     <button
                         onClick={() => onSelectCategory('all')}
                         className={getButtonClasses(selectedCategory === 'all')}
                     >
-                        Tout ({totalProducts})
+                        Tout <span className="opacity-60 ml-0.5">({totalProducts})</span>
                     </button>
 
-                    {/* Individual category buttons */}
                     {categories.map((category) => (
                         <button
                             key={category.id}
@@ -80,38 +74,23 @@ export function CategoryFilter({
                             onContextMenu={(e) => handleContextMenu(e, category)}
                             className={getButtonClasses(selectedCategory === category.id)}
                         >
-                            {category.name} ({productCounts[category.id] || 0})
+                            {category.name} <span className="opacity-60 ml-0.5">({productCounts[category.id] || 0})</span>
                         </button>
                     ))}
 
-                    {/* Add Category Button */}
                     {onAddCategory && hasPermission('canAddProducts') && (
-                        <>
-                            {/* Mobile: Icon-only button */}
-                            <motion.button
-                                onClick={onAddCategory}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="glass-action-button-active-2026 block sm:hidden flex items-center justify-center w-10 h-10 rounded-lg"
-                                title="Ajouter une catégorie"
-                            >
-                                <Plus size={20} />
-                            </motion.button>
-
-                            {/* Desktop: Text button */}
-                            <motion.button
-                                onClick={onAddCategory}
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                className="glass-action-button-active-2026 hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight"
-                            >
-                                <Plus size={16} />
-                                Nouveau
-                            </motion.button>
-                        </>
+                        <motion.button
+                            onClick={onAddCategory}
+                            whileTap={{ scale: 0.96 }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption border border-dashed border-gray-300 text-gray-500 hover:text-brand-primary hover:border-brand-primary/40 transition-colors"
+                            title="Ajouter une catégorie"
+                        >
+                            <Plus size={14} />
+                            <span className="hidden sm:inline">Nouvelle</span>
+                        </motion.button>
                     )}
                 </div>
-            </Card>
+            </div>
 
             <CategoryContextMenu
                 contextMenu={contextMenu}

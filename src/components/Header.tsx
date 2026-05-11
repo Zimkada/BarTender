@@ -165,49 +165,49 @@ export function Header({
                 </div>
               </div>
 
-              {/* Ligne 2: Unified Pill Layout (TOUS les rôles sauf super_admin) */}
-              <div className="glass-button-2026 rounded-xl flex items-center shadow-xl border-white/40 mb-2">
-                {/* Partie Gauche: Nom du bar (60%) */}
-                <div className="flex-[1.5] border-r border-white/20 px-3 py-2.5">
+              {/* Ligne 2: Bar name + CA du jour */}
+              <div className="glass-button-2026 rounded-xl flex items-center mb-2">
+                {/* Partie Gauche: Nom du bar */}
+                <div className="flex-[1.5] border-r border-white/15 px-3 py-2.5 min-w-0">
                   {currentSession?.role === 'promoteur' ? (
                     <BarSelector onCreateNew={onShowCreateBar} variant="transparent" />
                   ) : (
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       <img
                         src="/icons/icon-48x48.png"
                         alt="BarTender"
                         className="w-5 h-5 flex-shrink-0 rounded"
                       />
-                      <span className="text-sm font-medium text-white truncate">
+                      <span className="text-body-sm font-semibold text-white truncate">
                         <AnimatedBarName text={currentBar?.name || 'BarTender'} />
                       </span>
                     </div>
                   )}
                 </div>
 
-                {/* Partie Droite: Ventes du jour (40%) */}
-                <div className="flex-1 flex flex-col items-center justify-center py-2">
-                  <p className="text-white/80 text-[9px] font-bold uppercase tracking-wider mb-0.5">
+                {/* Partie Droite: Ventes du jour */}
+                <div className="flex-1 flex flex-col items-center justify-center py-2 px-2">
+                  <p className="text-micro text-white/70 mb-0.5">
                     Ventes jour
                   </p>
                   <AnimatedCounter
                     value={todayTotal}
-                    className="text-white text-sm font-black"
+                    className="text-white text-body-sm font-semibold tabular-nums"
                     suffix=" FCFA"
                   />
                 </div>
               </div>
 
-              {/* Ligne 3: Rôle + Nom utilisateur (centré) */}
-              <div className="flex items-center justify-center gap-2 mb-1 w-full opacity-90">
+              {/* Ligne 3: Rôle + Nom utilisateur */}
+              <div className="flex items-center justify-center gap-2 mb-1 w-full">
                 <div className="flex items-center gap-1.5">
                   {getRoleIcon()}
-                  <span className="text-white text-[10px] uppercase tracking-wider font-bold">{getRoleLabel()}</span>
+                  <span className="text-white/90 text-caption font-medium">{getRoleLabel()}</span>
                 </div>
                 {currentSession?.userName && (
                   <>
-                    <span className="text-white/40 text-[10px]">•</span>
-                    <span className="text-white text-xs font-medium">
+                    <span className="text-white/40 text-caption">•</span>
+                    <span className="text-white/95 text-caption font-medium">
                       {currentSession.userName}
                     </span>
                   </>

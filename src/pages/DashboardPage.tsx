@@ -60,6 +60,7 @@ export default function DashboardPage() {
         activeTab={viewMode}
         onTabChange={(id) => setViewMode(id as DashboardViewMode)}
         guideId={tourId}
+        showBack={false}
       />
 
       <main className="max-w-7xl mx-auto px-4 py-6">

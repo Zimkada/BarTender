@@ -7,7 +7,6 @@ import { CategoryFilter } from '../components/CategoryFilter';
 import { SearchBar } from '../components/common/SearchBar';
 import { CategoryModal } from '../components/CategoryModal';
 import { ConfirmModal } from '../components/ui/Modal';
-import { Card } from '../components/ui/Card';
 import { Product } from '../types';
 import { useFilteredProducts } from '../hooks/useFilteredProducts';
 import { useCategoryManagement } from '../hooks/useCategoryManagement';
@@ -58,8 +57,8 @@ export default function HomePage() {
   if (!currentBar) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[calc(100vh-100px)] text-gray-800 p-4">
-        <h1 className="text-3xl font-bold text-brand-dark mb-4">Bienvenue sur BarTender !</h1>
-        <p className="text-lg text-gray-600">Sélectionnez un bar pour commencer.</p>
+        <h1 className="text-display text-brand-dark mb-3">Bienvenue sur BarTender</h1>
+        <p className="text-body text-gray-600">Sélectionnez un bar pour commencer.</p>
       </div>
     );
   }
@@ -71,43 +70,32 @@ export default function HomePage() {
   // 3. Le reste du rendu du composant
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-4">
-      {/* Header Premium */}
-      <Card variant="elevated" padding="default" className="border-brand-subtle bg-white/40 backdrop-blur-md overflow-hidden relative">
-        {/* Subtle background glow */}
-        <div className="absolute -top-10 -right-10 w-32 h-32 bg-brand-primary/10 blur-3xl rounded-full"></div>
-
-        <div className="flex items-center justify-between mb-6 relative z-10">
-          <div>
-            <div className="flex flex-col">
-              <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter leading-none">Vente</h2>
-              <h3 className="text-2xl font-black text-brand-primary uppercase tracking-tighter leading-tight">Rapide</h3>
-            </div>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1.5">{currentBar.name}</p>
+      {/* Header — typographie 2026, hiérarchie claire */}
+      <div className="space-y-4">
+        <div className="flex items-end justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-micro text-gray-500 uppercase mb-1">{currentBar.name}</p>
+            <h1 className="text-h1 text-gray-900">
+              Vente <span className="text-brand-primary">rapide</span>
+            </h1>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2.5 px-4 py-2 bg-brand-subtle rounded-2xl border border-brand-subtle shadow-sm hover:shadow-md transition-all group">
-              <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-brand-primary shadow-sm group-hover:scale-110 transition-transform">
-                <ShoppingCart size={18} />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-lg font-black text-brand-dark leading-none">{products.length}</span>
-                <span className="text-[9px] font-black text-brand-primary uppercase tracking-wider">produits</span>
-              </div>
-            </div>
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-brand-subtle rounded-full border border-brand-subtle flex-shrink-0">
+            <ShoppingCart size={14} className="text-brand-primary" />
+            <span className="text-caption text-brand-dark">
+              <span className="font-semibold">{products.length}</span>
+              <span className="text-gray-500 ml-1">produits</span>
+            </span>
           </div>
         </div>
 
-        {/* Search Premium */}
-        <div className="relative z-10">
-          <SearchBar
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Rechercher un produit..."
-            className="w-full bg-white/60 focus-within:bg-white transition-all border-brand-subtle shadow-inner"
-          />
-        </div>
-      </Card>
+        <SearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Rechercher un produit..."
+          className="w-full"
+        />
+      </div>
 
       {/* Category Filter */}
       <CategoryFilter
@@ -123,13 +111,13 @@ export default function HomePage() {
         }, {})}
       />
 
-      {/* Product Grid */}
-      <Card variant="elevated" padding="default" className="border-brand-subtle min-h-[600px]">
+      {/* Product Grid — plate, sans encadrement (aération) */}
+      <div className="min-h-[600px]">
         {isLoading ? (
           <ProductGridSkeleton count={12} />
         ) : products.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-gray-400">
-            <p className="text-lg font-medium">Aucun produit trouvé</p>
+            <p className="text-body">Aucun produit trouvé</p>
           </div>
         ) : (
           <ProductGrid
@@ -144,7 +132,7 @@ export default function HomePage() {
             }
           />
         )}
-      </Card>
+      </div>
 
       {/* Category Modal for Add/Edit */}
       <CategoryModal

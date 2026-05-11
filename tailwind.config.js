@@ -12,6 +12,19 @@ export default {
       // xl/2xl: SUPPRIMÉS (grands écrans inutiles)
     },
     extend: {
+      // Échelle typographique 2026 — paires (taille, line-height + letter-spacing)
+      // Hiérarchie claire : display > h1 > h2 > h3 > body > caption > micro
+      // Règle : uppercase + tracking-wide réservé aux "micro" (10-11px) uniquement
+      fontSize: {
+        'micro':   ['0.6875rem', { lineHeight: '1rem',    letterSpacing: '0.08em',   fontWeight: '600' }], // 11px - labels uppercase
+        'caption': ['0.8125rem', { lineHeight: '1.25rem', letterSpacing: '0',        fontWeight: '500' }], // 13px - métadonnées
+        'body-sm': ['0.875rem',  { lineHeight: '1.375rem',letterSpacing: '0',        fontWeight: '400' }], // 14px
+        'body':    ['0.9375rem', { lineHeight: '1.5rem',  letterSpacing: '0',        fontWeight: '400' }], // 15px - texte principal
+        'h3':      ['1.125rem',  { lineHeight: '1.5rem',  letterSpacing: '-0.005em', fontWeight: '600' }], // 18px
+        'h2':      ['1.375rem',  { lineHeight: '1.75rem', letterSpacing: '-0.01em',  fontWeight: '600' }], // 22px
+        'h1':      ['1.75rem',   { lineHeight: '2.125rem',letterSpacing: '-0.02em',  fontWeight: '600' }], // 28px
+        'display': ['2.25rem',   { lineHeight: '2.5rem',  letterSpacing: '-0.025em', fontWeight: '600' }], // 36px
+      },
       // Spacing safe-area pour Android notch/gesture bar
       spacing: {
         'safe-top': 'env(safe-area-inset-top)',
