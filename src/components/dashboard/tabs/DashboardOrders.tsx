@@ -73,12 +73,12 @@ export function DashboardOrders({
 
     if (sales.length === 0) {
         return (
-            <div className="bg-white/40 backdrop-blur-md rounded-[2.5rem] p-12 text-center border-2 border-brand-primary/20 shadow-xl shadow-brand-subtle/5">
-                <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-emerald-100/50">
-                    <CheckCircle2 size={40} strokeWidth={1.5} />
+            <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-sm">
+                <div className="w-16 h-16 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 size={32} strokeWidth={1.5} />
                 </div>
-                <h3 className="text-xl font-black text-brand-dark uppercase tracking-tight mb-2">Tout est ordonné !</h3>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-relaxed max-w-[240px] mx-auto opacity-80">
+                <h3 className="text-h3 text-gray-900 mb-2">Tout est à jour</h3>
+                <p className="text-body-sm text-gray-500 max-w-sm mx-auto">
                     Aucune vente en attente. Votre flux de service est parfaitement synchronisé.
                 </p>
             </div>
@@ -86,63 +86,62 @@ export function DashboardOrders({
     }
 
     return (
-        <div className="bg-white/40 backdrop-blur-md rounded-[2.5rem] p-5 sm:p-7 border-2 border-brand-primary shadow-2xl shadow-brand-subtle/10 overflow-hidden" data-guide="pending-sales">
-            {/* Header Expert - Centered Hero Layout */}
-            <div className="flex flex-col items-center text-center gap-4 mb-10">
-                <div className="flex flex-col items-center">
-                    <h3 className="font-black text-brand-dark text-2xl uppercase tracking-tighter mb-1">
-                        Commandes en attente
-                    </h3>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] opacity-80">
-                        {sales.length} TRANSACTION{sales.length > 1 ? 'S' : ''} À VALIDER
+        <div className="bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-sm" data-guide="pending-sales">
+            {/* Header — titre + compteur + bulk action */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+                <div>
+                    <h3 className="text-h3 text-gray-900">Commandes en attente</h3>
+                    <p className="text-body-sm text-gray-500 mt-0.5 tabular-nums">
+                        {sales.length} transaction{sales.length > 1 ? 's' : ''} à valider
                     </p>
                 </div>
 
                 {showBulkValidation && (
-                    <div className="flex items-center justify-center w-full">
-                        <EnhancedButton
-                            onClick={() => onValidateAll(sales)}
-                            size="md"
-                            variant="secondary"
-                            icon={<CheckCheck size={16} className="text-gray-900 group-hover:text-white" />}
-                            className="w-auto px-10 py-2.5 rounded-2xl border-2 border-gray-100 bg-gray-50 text-gray-900 shadow-md hover:shadow-lg hover:border-brand-primary hover:bg-brand-primary hover:text-white font-black uppercase tracking-widest text-[9px] transition-all whitespace-nowrap flex flex-row items-center justify-center flex-nowrap"
-                        >
-                            Tout Valider ({sales.length})
-                        </EnhancedButton>
-                    </div>
+                    <EnhancedButton
+                        onClick={() => onValidateAll(sales)}
+                        size="sm"
+                        variant="secondary"
+                        icon={<CheckCheck size={16} />}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-900 hover:border-brand-primary hover:bg-brand-subtle hover:text-brand-primary text-body-sm font-semibold transition-colors whitespace-nowrap"
+                    >
+                        Tout valider ({sales.length})
+                    </EnhancedButton>
                 )}
             </div>
 
-            {/* List Optimized for Expert View */}
-            <div className="space-y-8 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+            {/* Liste des ventes groupées par serveur */}
+            <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2 scrollbar-premium">
                 {sortedServerIds.map(serverId => {
                     const serverSales = salesByServer[serverId];
                     const server = users.find(u => u.id === serverId);
 
                     return (
-                        <div key={serverId} className="relative">
-                            {/* Server Identification Row */}
-                            <div className="flex justify-between items-center mb-4 sticky top-0 z-20 bg-white/10 backdrop-blur-sm py-1">
+                        <div key={serverId}>
+                            {/* En-tête serveur — sticky */}
+                            <div className="flex justify-between items-center mb-3 sticky top-0 z-20 bg-white py-2 -mx-1 px-1">
                                 <div className="flex items-center gap-2.5">
-                                    <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center text-white border-2 border-white shadow-sm">
+                                    <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center text-white">
                                         <User size={14} />
                                     </div>
-                                    <h4 className="font-black text-xs text-gray-900 uppercase tracking-tight">
-                                        {server?.name || 'Collaborateur Inconnu'}
+                                    <h4 className="text-body-sm font-semibold text-gray-900">
+                                        {server?.name || 'Collaborateur inconnu'}
                                     </h4>
+                                    <span className="text-caption text-gray-400 tabular-nums">
+                                        {serverSales.length}
+                                    </span>
                                 </div>
                                 {showBulkValidation && (
                                     <button
                                         onClick={() => onValidateAll(serverSales)}
-                                        className="px-4 py-1.5 rounded-xl border-2 border-gray-100 bg-gray-50 text-brand-dark hover:border-brand-primary hover:bg-brand-primary hover:text-white font-black uppercase tracking-widest text-[9px] transition-all shadow-sm whitespace-nowrap"
+                                        className="px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 hover:border-brand-primary hover:bg-brand-subtle hover:text-brand-primary text-caption font-medium transition-colors whitespace-nowrap"
                                     >
-                                        Valider Lot ({serverSales.length})
+                                        Valider lot ({serverSales.length})
                                     </button>
                                 )}
                             </div>
 
-                            {/* Individual Order Cards */}
-                            <div className="space-y-3 pl-2 border-l-2 border-brand-subtle/10 ml-1">
+                            {/* Cards individuelles */}
+                            <div className="space-y-2 pl-3 border-l-2 border-gray-100 ml-3">
                                 {serverSales.map((sale, idx) => {
                                     const isExpanded = expandedSales.has(sale.id);
                                     const totalItems = sale.items_count ?? sale.items.reduce((sum: number, item: any) => sum + item.quantity, 0);
@@ -152,36 +151,34 @@ export function DashboardOrders({
                                     return (
                                         <motion.div
                                             key={sale.id}
-                                            initial={{ opacity: 0, x: -10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: idx * 0.05 }}
-                                            className="bg-white/80 rounded-2xl border border-brand-subtle/30 shadow-sm overflow-hidden group hover:shadow-md transition-all"
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            transition={{ duration: 0.15, delay: idx * 0.03 }}
+                                            className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all overflow-hidden"
                                         >
-                                            <div className="p-2 sm:p-3 bg-gradient-to-r from-transparent to-brand-subtle/5">
+                                            <div className="p-3">
                                                 <div className="flex items-center justify-between gap-2">
-                                                    {/* Info Bloc - Ultra Compract */}
+                                                    {/* Info bloc — heure + prix + détails */}
                                                     <div className="flex items-center gap-3 flex-1 min-w-0">
                                                         <div className="flex flex-col flex-shrink-0">
-                                                            <span className="text-[8px] font-bold text-gray-400 font-mono leading-none mb-0.5">
+                                                            <span className="text-micro text-gray-400 leading-none mb-1 tabular-nums">
                                                                 {new Date(sale.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                             </span>
-                                                            <p className="font-black text-sm text-gray-900 font-mono tracking-tighter leading-none">
+                                                            <p className="text-body font-semibold text-gray-900 tabular-nums leading-none">
                                                                 {formatPrice(sale.total).replace(/[\s]?FCFA/g, '')}
                                                             </p>
                                                         </div>
 
                                                         <button
                                                             onClick={() => toggleExpanded(sale.id)}
-                                                            className="flex items-center gap-1.5 text-[9px] font-black text-gray-900 hover:text-brand-primary uppercase tracking-widest transition-all px-3 py-1.5 rounded-xl bg-brand-primary/10 hover:bg-brand-primary/20"
+                                                            className="flex items-center gap-1.5 text-caption font-medium text-gray-700 hover:text-brand-primary transition-colors px-2.5 py-1 rounded-lg bg-gray-50 hover:bg-brand-subtle"
                                                         >
-                                                            <span>DÉTAILS ({totalItems})</span>
-                                                            <div className="flex-shrink-0">
-                                                                {isExpanded ? <ChevronUp size={12} strokeWidth={3} /> : <ChevronDown size={12} strokeWidth={3} />}
-                                                            </div>
+                                                            <span>Détails ({totalItems})</span>
+                                                            {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                                                         </button>
                                                     </div>
 
-                                                    {/* Actions - Ultra Compact cercles */}
+                                                    {/* Actions — boutons cercles */}
                                                     {(canValidate || canCancel) && (
                                                         <div className="flex items-center gap-2 flex-shrink-0">
                                                             {canValidate && (
@@ -189,10 +186,11 @@ export function DashboardOrders({
                                                                     onClick={() => onValidate(sale.id)}
                                                                     variant="success"
                                                                     size="sm"
-                                                                    className="w-9 h-9 !p-0 rounded-full shadow-lg shadow-emerald-500/20 active:scale-90 transition-all flex items-center justify-center"
+                                                                    className="w-9 h-9 !p-0 rounded-full shadow-sm active:scale-90 transition-transform flex items-center justify-center"
                                                                     loading={processingId === sale.id}
                                                                     disabled={!!processingId}
-                                                                    icon={<Check size={16} strokeWidth={3} />}
+                                                                    icon={<Check size={16} strokeWidth={2.5} />}
+                                                                    aria-label="Valider la vente"
                                                                 >
                                                                     {''}
                                                                 </EnhancedButton>
@@ -205,7 +203,8 @@ export function DashboardOrders({
                                                                     className="w-9 h-9 !p-0 bg-red-50 text-red-500 rounded-full hover:bg-red-500 hover:text-white active:scale-90 transition-all flex items-center justify-center border border-red-100"
                                                                     loading={processingId === sale.id}
                                                                     disabled={!!processingId}
-                                                                    icon={<X size={16} strokeWidth={3} />}
+                                                                    icon={<X size={16} strokeWidth={2.5} />}
+                                                                    aria-label="Annuler la vente"
                                                                 >
                                                                     {''}
                                                                 </EnhancedButton>
@@ -221,33 +220,30 @@ export function DashboardOrders({
                                                         initial={{ height: 0, opacity: 0 }}
                                                         animate={{ height: 'auto', opacity: 1 }}
                                                         exit={{ height: 0, opacity: 0 }}
-                                                        transition={{ duration: 0.3, ease: "easeOut" }}
-                                                        className="border-t border-brand-subtle/10 bg-brand-subtle/5 backdrop-blur-sm"
+                                                        transition={{ duration: 0.2, ease: "easeOut" }}
+                                                        className="border-t border-gray-100 bg-gray-50/50"
                                                     >
-                                                        <div className="p-4 space-y-3">
-                                                            <div className="flex items-center gap-2 mb-1">
-                                                                <div className="w-1 h-3 bg-brand-primary rounded-full" />
-                                                                <p className="text-[9px] font-black text-brand-dark uppercase tracking-widest">
-                                                                    Articles ({sale.items.length})
-                                                                </p>
-                                                            </div>
-                                                            <div className="space-y-2">
+                                                        <div className="p-3 space-y-2">
+                                                            <p className="text-micro text-gray-500">
+                                                                Articles ({sale.items.length})
+                                                            </p>
+                                                            <div className="space-y-1.5">
                                                                 {sale.items.map((item: SaleItem, index: number) => (
-                                                                    <div key={index} className="flex items-center justify-between group/item">
-                                                                        <div className="flex items-center gap-3">
-                                                                            <span className="w-5 h-5 flex items-center justify-center bg-white rounded-md text-[10px] font-black text-brand-primary border border-brand-subtle/20 shadow-sm">
+                                                                    <div key={index} className="flex items-center justify-between gap-2">
+                                                                        <div className="flex items-center gap-2 min-w-0">
+                                                                            <span className="w-6 h-6 flex items-center justify-center bg-white rounded-md text-caption font-semibold text-brand-primary border border-gray-200 tabular-nums flex-shrink-0">
                                                                                 {item.quantity}
                                                                             </span>
-                                                                            <span className="text-[11px] font-bold text-gray-700 uppercase tracking-tight">
+                                                                            <span className="text-caption font-medium text-gray-800 truncate">
                                                                                 {item.product_name}
                                                                             </span>
                                                                             {item.product_volume && (
-                                                                                <span className="text-[9px] font-black text-gray-400 border border-gray-100 px-1.5 py-0.5 rounded uppercase">
+                                                                                <span className="text-[10px] text-gray-400 border border-gray-200 px-1.5 py-0.5 rounded flex-shrink-0">
                                                                                     {item.product_volume}
                                                                                 </span>
                                                                             )}
                                                                         </div>
-                                                                        <span className="font-bold text-[11px] text-gray-900 font-mono tracking-tighter">
+                                                                        <span className="text-caption font-semibold text-gray-900 tabular-nums flex-shrink-0">
                                                                             {formatPrice(item.total_price)}
                                                                         </span>
                                                                     </div>

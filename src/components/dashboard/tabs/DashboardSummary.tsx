@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import {
-    TrendingUp, DollarSign, ShoppingCart, Package, Share, Lock,
+    TrendingUp, DollarSign, ShoppingCart, Package, Lock,
     AlertTriangle, RotateCcw, Archive, MessageCircle
 } from 'lucide-react';
 import { DataFreshnessIndicatorCompact } from '../../DataFreshnessIndicator';
@@ -64,9 +64,9 @@ export function DashboardSummary({
                 <StaleSalesCleanupBanner barId={currentBar.id} />
             )}
 
-            {/* Stats Grid avec design amélioré */}
-            <div className="flex items-center justify-between mb-2">
-                <h2 className="text-lg font-bold text-gray-900">Indicateurs clés</h2>
+            {/* Header section */}
+            <div className="flex items-center justify-between">
+                <h2 className="text-h3 text-gray-900">Indicateurs clés</h2>
                 {currentBar?.id && currentBar.id !== '00000000-0000-0000-0000-000000000000' && (
                     <DataFreshnessIndicatorCompact
                         viewName="daily_sales_summary"
@@ -75,121 +75,124 @@ export function DashboardSummary({
                 )}
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4" data-guide="revenue-stats">
-                <div className="bg-white rounded-[2rem] p-4 shadow-sm border-2 border-brand-primary/60 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="p-2 bg-green-50 rounded-lg text-green-600">
-                            <DollarSign size={20} />
+            {/* KPI Grid — cards plates avec accent brand uniforme, hors-norme = sémantique */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3" data-guide="revenue-stats">
+                {/* Revenus — KPI principal, légèrement accentué */}
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-brand-primary/30 hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="w-9 h-9 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center">
+                            <DollarSign size={18} />
                         </div>
-                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Revenus</span>
+                        <span className="text-micro text-gray-500">Revenus</span>
                     </div>
-                    <AnimatedCounter value={todayTotal} className="text-xl font-black text-gray-900" />
-                    <p className="text-[10px] text-gray-500 font-medium truncate mt-1">{formatPrice(todayTotal)} net</p>
+                    <AnimatedCounter value={todayTotal} className="text-h2 font-semibold text-gray-900 tabular-nums" />
+                    <p className="text-caption text-gray-500 truncate mt-1 tabular-nums">{formatPrice(todayTotal)} net</p>
                 </div>
 
-                <div className="bg-white rounded-[2rem] p-4 shadow-sm border-2 border-brand-primary/60 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
-                            <ShoppingCart size={20} />
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="w-9 h-9 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center">
+                            <ShoppingCart size={18} />
                         </div>
-                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Ventes</span>
+                        <span className="text-micro text-gray-500">Ventes</span>
                     </div>
-                    <AnimatedCounter value={salesCount} className="text-xl font-black text-gray-900" />
-                    <p className="text-[10px] text-gray-500 font-medium mt-1">{pendingSalesCount} en attente</p>
+                    <AnimatedCounter value={salesCount} className="text-h2 font-semibold text-gray-900 tabular-nums" />
+                    <p className="text-caption text-gray-500 mt-1 tabular-nums">{pendingSalesCount} en attente</p>
                 </div>
 
-                <div className="bg-white rounded-[2rem] p-4 shadow-sm border-2 border-brand-primary/60 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="p-2 bg-purple-50 rounded-lg text-purple-600">
-                            <Package size={20} />
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="w-9 h-9 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center">
+                            <Package size={18} />
                         </div>
-                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Articles</span>
+                        <span className="text-micro text-gray-500">Articles</span>
                     </div>
-                    <AnimatedCounter value={totalItems} className="text-xl font-black text-gray-900" />
-                    <p className="text-[10px] text-gray-500 font-medium mt-1">Total vendus</p>
+                    <AnimatedCounter value={totalItems} className="text-h2 font-semibold text-gray-900 tabular-nums" />
+                    <p className="text-caption text-gray-500 mt-1">Total vendus</p>
                 </div>
 
-                <div className="bg-white rounded-[2rem] p-4 shadow-sm border-2 border-red-500/60 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="p-2 bg-red-50 rounded-lg text-red-600">
-                            <AlertTriangle size={20} />
+                {/* Alertes — sémantique rouge préservée (signal universel) */}
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-red-200 hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="w-9 h-9 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
+                            <AlertTriangle size={18} />
                         </div>
-                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Alertes</span>
+                        <span className="text-micro text-gray-500">Alertes</span>
                     </div>
-                    <div className="text-xl font-black text-red-600">{lowStockProducts.length}</div>
-                    <p className="text-[10px] text-gray-500 font-medium mt-1">Stock critique</p>
+                    <div className="text-h2 font-semibold text-red-600 tabular-nums">{lowStockProducts.length}</div>
+                    <p className="text-caption text-gray-500 mt-1">Stock critique</p>
                 </div>
 
-                <div className="bg-white rounded-[2rem] p-4 shadow-sm border-2 border-brand-primary/60 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="p-2 bg-orange-50 rounded-lg text-orange-600">
-                            <RotateCcw size={20} />
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="w-9 h-9 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center">
+                            <RotateCcw size={18} />
                         </div>
-                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Retours</span>
+                        <span className="text-micro text-gray-500">Retours</span>
                     </div>
-                    <AnimatedCounter value={returnsCount} className="text-xl font-black text-gray-900" />
-                    <p className="text-[10px] text-gray-500 font-medium mt-1">{pendingReturnsCount} en attente</p>
+                    <AnimatedCounter value={returnsCount} className="text-h2 font-semibold text-gray-900 tabular-nums" />
+                    <p className="text-caption text-gray-500 mt-1 tabular-nums">{pendingReturnsCount} en attente</p>
                 </div>
 
-                <div className="bg-white rounded-[2rem] p-4 shadow-sm border-2 border-brand-primary/60 hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
-                            <Archive size={20} />
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="w-9 h-9 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center">
+                            <Archive size={18} />
                         </div>
-                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Consign.</span>
+                        <span className="text-micro text-gray-500">Consign.</span>
                     </div>
-                    <div className="text-xl font-black text-gray-900">{consignmentsCount}</div>
-                    <p className="text-[10px] text-gray-500 font-medium mt-1">Fiches actives</p>
+                    <div className="text-h2 font-semibold text-gray-900 tabular-nums">{consignmentsCount}</div>
+                    <p className="text-caption text-gray-500 mt-1">Fiches actives</p>
                 </div>
             </div>
 
-            {/* Insights Intégrés - Design Premium */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white rounded-[2rem] p-6 shadow-xl shadow-brand-subtle/5 border-2 border-brand-primary">
+            {/* Insights — 2 panneaux compagnons (top produits + stock à surveiller) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-amber-50 rounded-lg text-amber-600">
-                            <TrendingUp size={20} />
+                        <div className="w-9 h-9 rounded-lg bg-brand-subtle text-brand-primary flex items-center justify-center">
+                            <TrendingUp size={18} />
                         </div>
-                        <h3 className="font-bold text-gray-900">Top produits vendus</h3>
+                        <h3 className="text-h3 text-gray-900">Top produits vendus</h3>
                     </div>
                     {topProductsList.length > 0 ? (
-                        <div className="space-y-3">
+                        <div className="space-y-2.5">
                             {topProductsList.map((p, i) => (
-                                <div key={i} className="flex justify-between items-center group">
-                                    <div className="flex items-center gap-3">
-                                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-50 text-amber-600 text-[10px] font-bold">
+                                <div key={i} className="flex justify-between items-center py-1">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <span className="flex items-center justify-center w-6 h-6 rounded-full bg-brand-subtle text-brand-primary text-caption font-semibold flex-shrink-0">
                                             {i + 1}
                                         </span>
-                                        <span className="text-sm text-gray-700 group-hover:text-amber-600 transition-colors">{p.name}</span>
+                                        <span className="text-body-sm text-gray-700 truncate">{p.name}</span>
                                     </div>
-                                    <span className="text-sm font-black text-gray-900">
-                                        {p.qty} <span className="text-[10px] text-gray-400 font-medium">unités</span>
+                                    <span className="text-body-sm font-semibold text-gray-900 tabular-nums flex-shrink-0 ml-2">
+                                        {p.qty} <span className="text-caption text-gray-400 font-normal">unités</span>
                                     </span>
                                 </div>
                             ))}
                         </div>
                     ) : (
                         <div className="py-8 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                            <p className="text-sm text-gray-400">Aucune vente enregistrée pour le moment</p>
+                            <p className="text-body-sm text-gray-400">Aucune vente enregistrée pour le moment</p>
                         </div>
                     )}
                 </div>
 
-                <div className="bg-white rounded-[2rem] p-6 shadow-xl shadow-red-500/5 border-2 border-red-500/80">
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-red-50 rounded-lg text-red-600">
-                            <AlertTriangle size={20} />
+                        <div className="w-9 h-9 rounded-lg bg-red-50 text-red-600 flex items-center justify-center">
+                            <AlertTriangle size={18} />
                         </div>
-                        <h3 className="font-bold text-gray-900">Points de vigilance stock</h3>
+                        <h3 className="text-h3 text-gray-900">Points de vigilance stock</h3>
                     </div>
                     {lowStockProducts.length > 0 ? (
-                        <div className="space-y-3">
+                        <div className="space-y-2.5">
                             {lowStockProducts.slice(0, 5).map(p => (
-                                <div key={p.id} className="flex justify-between items-center group">
-                                    <span className="text-sm text-gray-700 group-hover:text-red-600 transition-colors">{p.name}</span>
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs text-gray-400">Restant :</span>
-                                        <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-600 text-xs font-black">
+                                <div key={p.id} className="flex justify-between items-center py-1">
+                                    <span className="text-body-sm text-gray-700 truncate min-w-0">{p.name}</span>
+                                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                        <span className="text-caption text-gray-400">Restant</span>
+                                        <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-600 text-caption font-semibold tabular-nums">
                                             {allProductsStockInfo[p.id]?.availableStock ?? p.stock}
                                         </span>
                                     </div>
@@ -198,37 +201,34 @@ export function DashboardSummary({
                             {lowStockProducts.length > 5 && (
                                 <button
                                     onClick={() => navigate('/inventory')}
-                                    className="w-full mt-2 text-xs text-red-400 hover:text-red-600 font-medium transition-colors"
+                                    className="w-full mt-2 text-caption text-red-500 hover:text-red-700 font-medium transition-colors"
                                 >
-                                    Voir les {lowStockProducts.length - 5} autres alertes...
+                                    Voir les {lowStockProducts.length - 5} autres alertes →
                                 </button>
                             )}
                         </div>
                     ) : (
                         <div className="py-8 text-center bg-green-50 rounded-xl border border-dashed border-green-200">
-                            <p className="text-sm text-green-600 font-medium">✅ Tous vos stocks sont au-dessus des seuils</p>
+                            <p className="text-body-sm text-green-700 font-medium">Tous vos stocks sont au-dessus des seuils ✓</p>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* Actions rapides - Vision 2026 Premium */}
-            <div className="bg-white/60 backdrop-blur-md rounded-[2.5rem] p-6 border-2 border-brand-primary shadow-xl shadow-brand-subtle/10 flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
-                {/* Background Decoration */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-brand-primary/5 rounded-full -mr-16 -mt-16 blur-3xl pointer-events-none" />
-
-                <div className="relative z-10 text-center md:text-left">
-                    <h4 className="text-xl font-black text-brand-dark uppercase tracking-tighter mb-1">Actions de fin de journée</h4>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest opacity-80">Rapport de vente & Clôture sécurisée</p>
+            {/* Actions de fin de journée */}
+            <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <h4 className="text-h3 text-gray-900">Actions de fin de journée</h4>
+                    <p className="text-body-sm text-gray-500 mt-0.5">Rapport de vente et clôture sécurisée</p>
                 </div>
 
-                <div className="flex flex-row gap-2 sm:gap-3 w-full md:w-auto relative z-10">
+                <div className="flex flex-row gap-2 w-full sm:w-auto">
                     <EnhancedButton
                         onClick={onExportWhatsApp}
                         variant="success"
-                        className="flex-1 md:flex-none flex items-center justify-center gap-1 sm:gap-1.5 px-3 sm:px-8 py-3 sm:py-4 text-white rounded-2xl font-black shadow-lg shadow-emerald-500/20 active:scale-95 transition-all border-none uppercase tracking-wider sm:tracking-widest text-[8px] sm:text-[10px]"
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-5 py-2.5 text-white rounded-lg text-body-sm font-semibold shadow-sm active:scale-[0.98] transition-all"
                     >
-                        <MessageCircle size={14} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2.5} />
+                        <MessageCircle size={16} />
                         WhatsApp
                     </EnhancedButton>
 
@@ -238,14 +238,14 @@ export function DashboardSummary({
                                 onClick={onCloseCash}
                                 loading={isClosingCash}
                                 variant="danger"
-                                className="flex-1 md:flex-none flex items-center justify-center gap-1 sm:gap-1.5 px-3 sm:px-8 py-3 sm:py-4 text-white rounded-2xl font-black shadow-lg shadow-red-500/20 active:scale-95 transition-all border-none uppercase tracking-wider sm:tracking-widest text-[8px] sm:text-[10px]"
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-5 py-2.5 text-white rounded-lg text-body-sm font-semibold shadow-sm active:scale-[0.98] transition-all"
                             >
-                                <Lock size={14} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2.5} />
+                                <Lock size={16} />
                                 Fermer caisse
                             </EnhancedButton>
                         ) : (
-                            <div className="flex-1 md:flex-none flex items-center justify-center gap-1 sm:gap-1.5 px-3 sm:px-8 py-3 sm:py-4 bg-gray-100 text-gray-400 rounded-2xl font-black border-2 border-gray-200/50 uppercase tracking-wider sm:tracking-widest text-[8px] sm:text-[10px] cursor-not-allowed">
-                                <Lock size={14} className="sm:w-[18px] sm:h-[18px]" strokeWidth={2.5} />
+                            <div className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-5 py-2.5 bg-gray-100 text-gray-400 rounded-lg text-body-sm font-medium border border-gray-200 cursor-not-allowed">
+                                <Lock size={16} />
                                 Caisse fermée
                             </div>
                         )

@@ -120,9 +120,10 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
       {activeView === 'summary' && (
         <motion.div
           key="summary"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
         >
           <DashboardSummary
             currentBar={currentBar}
@@ -151,9 +152,10 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
       {activeView === 'orders' && (
         <motion.div
           key="orders"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
         >
           <DashboardOrders
             sales={analytics.pendingSales}
@@ -173,9 +175,10 @@ export function DailyDashboard({ activeView = 'summary' }: DailyDashboardProps) 
       {activeView === 'performance' && (
         <motion.div
           key="performance"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
         >
           <DashboardPerformance
             teamPerformanceData={analytics.teamPerformanceData}
