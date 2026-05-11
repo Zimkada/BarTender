@@ -1,6 +1,6 @@
 import { useState, Suspense, lazy, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Package, BarChart3, Zap, AlertCircle, ClipboardList } from 'lucide-react';
+import { Package, BarChart3, Zap, AlertCircle, ClipboardList, Folder, ArrowDownAZ, TrendingDown, Download } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Product } from '../types';
 
@@ -125,10 +125,10 @@ export default function InventoryPage() {
     const inventoryGuideId = currentSession?.role === 'gerant' ? 'manager-inventory' : 'manage-inventory';
 
     const tabsConfig = [
-        { id: 'products', label: isMobile ? 'Produits' : 'Mes Produits', icon: Package },
-        { id: 'operations', label: isMobile ? 'Ops' : 'Opérations', icon: Zap },
-        { id: 'orders', label: isMobile ? 'Commandes' : 'Commandes', icon: ClipboardList },
-        { id: 'stats', label: isMobile ? 'Stats' : 'Statistiques', icon: BarChart3 },
+        { id: 'products', label: 'Produits', icon: Package },
+        { id: 'operations', label: 'Opérations', icon: Zap },
+        { id: 'orders', label: 'Commandes', icon: ClipboardList },
+        { id: 'stats', label: 'Statistiques', icon: BarChart3 },
     ];
 
     return (
@@ -146,7 +146,7 @@ export default function InventoryPage() {
             {/* Header */}
             <TabbedPageHeader
                 title="Inventaire"
-                subtitle="Gestion globale du catalogue, suivi des stocks en temps réel et alertes de réapprovisionnement."
+                subtitle="Catalogue, stocks et réapprovisionnement."
                 icon={<Package size={24} />}
                 tabs={tabsConfig}
                 hideSubtitleOnMobile={true}
@@ -162,78 +162,99 @@ export default function InventoryPage() {
                     {viewMode === 'products' && (
                         <motion.div
                             key="products-view"
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
                             className="space-y-4"
                             data-guide="inventory-products"
                         >
-                            {/* Toolbar (Search & Sort) */}
-                            <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-3">
-                                <SearchBar
-                                    value={searchTerm}
-                                    onChange={setSearchTerm}
-                                    placeholder="Rechercher un produit..."
-                                    className="flex-1"
-                                />
-                                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide sm:pb-0">
-                                    {[
-                                        { mode: 'category' as SortMode, icon: '📁', label: isMobile ? 'Cat' : 'Catégorie' },
-                                        { mode: 'alphabetical' as SortMode, icon: '🔤', label: 'Nom' },
-                                        { mode: 'stock' as SortMode, icon: '⚠️', label: 'Stock' }
-                                    ].map(({ mode, icon, label }) => (
-                                        <Button
-                                            key={mode}
-                                            onClick={() => {
-                                                setSortMode(mode);
-                                                setShowAnomalies(false); // ✨ Reset anomalies when sorting
-                                            }}
-                                            variant="ghost"
-                                            size="sm"
-                                            className={cn(
-                                                "gap-1.5 text-xs font-semibold transition-all border",
-                                                sortMode === mode && !showAnomalies // Only active if NOT in anomalies mode
-                                                    ? "glass-action-button-active-2026 shadow-sm"
-                                                    : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
-                                            )}
-                                        >
-                                            <span>{icon}</span>
-                                            <span>{label}</span>
-                                        </Button>
-                                    ))}
-
-                                    {/* ✨ Bouton Filtre Anomalies (Aligné dans le groupe) */}
+                            {/* Toolbar — search + export, puis tri/filtre */}
+                            <div className="space-y-3">
+                                {/* Ligne 1 : recherche + bouton Exporter sur la même ligne */}
+                                <div className="flex items-center gap-2">
+                                    <SearchBar
+                                        value={searchTerm}
+                                        onChange={setSearchTerm}
+                                        placeholder={isMobile ? "Rechercher..." : "Rechercher un produit..."}
+                                        className="flex-1 min-w-0"
+                                    />
                                     <Button
-                                        onClick={() => setShowAnomalies(!showAnomalies)}
-                                        variant={showAnomalies ? "destructive" : "outline"}
+                                        onClick={() => setIsExportModalOpen(true)}
+                                        data-guide="inventory-export-btn"
+                                        variant="outline"
                                         size="sm"
-                                        data-guide="inventory-filter-anomalies"
-                                        className={cn(
-                                            "gap-1.5 font-bold transition-all text-xs relative",
-                                            showAnomalies ? "shadow-md shadow-red-200" : "text-gray-500 hover:text-red-500 hover:border-red-300"
-                                        )}
+                                        className="gap-1.5 flex-shrink-0"
                                     >
-                                        <AlertCircle className={cn("w-4 h-4", showAnomalies ? "text-white" : "text-red-500")} />
-                                        <span>Anomalies</span>
-                                        {anomalyCount > 0 && !showAnomalies && (
-                                            <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center border border-white shadow-sm">
-                                                {anomalyCount}
-                                            </span>
-                                        )}
+                                        <Download size={16} />
+                                        <span>Exporter</span>
                                     </Button>
                                 </div>
 
-                                {/* Séparateur Actions */}
-                                <div className="w-px h-8 bg-gray-200 hidden sm:block" />
+                                {/* Ligne 2 : Trier + Filtrer */}
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-micro text-gray-500 uppercase">Trier</span>
+                                        <div
+                                            role="radiogroup"
+                                            aria-label="Mode de tri"
+                                            className="inline-flex items-center p-0.5 bg-gray-100 rounded-full border border-gray-200"
+                                        >
+                                            {[
+                                                { mode: 'category' as SortMode, Icon: Folder, label: 'Catégorie' },
+                                                { mode: 'alphabetical' as SortMode, Icon: ArrowDownAZ, label: 'Nom' },
+                                                { mode: 'stock' as SortMode, Icon: TrendingDown, label: 'Stock' }
+                                            ].map(({ mode, Icon, label }) => {
+                                                const isActive = sortMode === mode && !showAnomalies;
+                                                return (
+                                                    <button
+                                                        key={mode}
+                                                        role="radio"
+                                                        aria-checked={isActive}
+                                                        onClick={() => {
+                                                            setSortMode(mode);
+                                                            setShowAnomalies(false);
+                                                        }}
+                                                        className={cn(
+                                                            "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption transition-all",
+                                                            isActive
+                                                                ? "bg-white text-brand-primary shadow-sm font-semibold"
+                                                                : "text-gray-600 hover:text-gray-900 font-medium"
+                                                        )}
+                                                    >
+                                                        <Icon size={14} />
+                                                        <span>{label}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
 
-                                <Button
-                                    onClick={() => setIsExportModalOpen(true)}
-                                    data-guide="inventory-export-btn"
-                                    className="bg-gray-900 text-white hover:bg-gray-800 shadow-sm gap-2"
-                                >
-                                    <Zap className="w-4 h-4 text-amber-500" />
-                                    <span>Export Inventaire</span>
-                                </Button>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-micro text-gray-500 uppercase">Filtrer</span>
+                                        <button
+                                            onClick={() => setShowAnomalies(!showAnomalies)}
+                                            data-guide="inventory-filter-anomalies"
+                                            className={cn(
+                                                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-caption transition-all border",
+                                                showAnomalies
+                                                    ? "bg-red-500 text-white border-red-500 font-semibold"
+                                                    : "bg-white text-gray-700 border-gray-200 hover:border-red-300 hover:bg-red-50 font-medium"
+                                            )}
+                                        >
+                                            <AlertCircle size={14} className={showAnomalies ? 'text-white' : 'text-red-500'} />
+                                            <span>Anomalies</span>
+                                            {anomalyCount > 0 && (
+                                                <span className={cn(
+                                                    "ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-semibold tabular-nums",
+                                                    showAnomalies ? "bg-white/25" : "bg-red-100 text-red-700"
+                                                )}>
+                                                    {anomalyCount}
+                                                </span>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Liste Produits */}
@@ -262,9 +283,10 @@ export default function InventoryPage() {
                     {viewMode === 'operations' && (
                         <motion.div
                             key="operations-view"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
                             data-guide="inventory-operations"
                         >
                             <InventoryOperations
@@ -288,9 +310,10 @@ export default function InventoryPage() {
                     {viewMode === 'orders' && currentBar && (
                         <motion.div
                             key="orders-view"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: -20 }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
                         >
                             <PurchaseOrdersTab
                                 barId={currentBar.id}
@@ -306,9 +329,10 @@ export default function InventoryPage() {
                     {viewMode === 'stats' && (
                         <motion.div
                             key="stats-view"
-                            initial={{ opacity: 0, scale: 0.98 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.98 }}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
                             data-guide="inventory-stats"
                         >
                             <InventoryStats
