@@ -439,6 +439,7 @@ export default function TeamManagementPage() {
           { id: 'add', label: isMobile ? 'Ajouter' : 'Recrutement', icon: UserPlus },
           ...(FEATURES.ENABLE_SWITCHING_MODE ? [{ id: 'mappings', label: isMobile ? 'Nom sur vente' : "Nom d'affichage sur vente", icon: GitBranch }] : [])
         ]}
+        showBack={false}
         activeTab={pageTab}
         onTabChange={(id) => {
           setPageTab(id as 'members' | 'mappings' | 'add');
@@ -454,9 +455,10 @@ export default function TeamManagementPage() {
         <AnimatePresence>
           {(formError || formSuccess) && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
               className="px-1"
             >
               {formError && (
@@ -493,46 +495,46 @@ export default function TeamManagementPage() {
                   placeholder="Rechercher un membre..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 pr-3 py-2 text-sm rounded-md border border-gray-300 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)] w-full"
+                  className="pl-9 pr-3 py-2 text-body-sm rounded-xl border border-gray-200 focus:ring-[var(--brand-primary)] focus:border-[var(--brand-primary)] w-full"
                   aria-label="Rechercher un membre de l'équipe"
                 />
               </div>
 
               {/* Compact Stats Strip */}
-              <div className="flex items-center gap-4 text-sm font-medium text-gray-600 w-full md:w-auto justify-between md:justify-start">
-                <div className="flex items-center gap-1">
+              <div className="flex items-center gap-4 text-caption text-gray-500 w-full md:w-auto justify-between md:justify-start">
+                <div className="flex items-center gap-1.5">
                   <UserIcon className="h-4 w-4 text-brand-primary" aria-hidden="true" />
-                  <span>Gérants: <span className="font-bold text-gray-800">{managersCount}</span></span>
+                  <span>Gérants : <span className="font-semibold text-gray-700 tabular-nums">{managersCount}</span></span>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <Users className="h-4 w-4 text-brand-primary" aria-hidden="true" />
-                  <span>Serveurs: <span className="font-bold text-gray-800">{serversCount}</span></span>
+                  <span>Serveurs : <span className="font-semibold text-gray-700 tabular-nums">{serversCount}</span></span>
                 </div>
                 {inactiveCount > 0 && (
                   <Button
                     onClick={() => setShowInactive(!showInactive)}
                     variant="ghost"
                     size="sm"
-                    className={`flex items-center gap-2 text-gray-600 hover:bg-gray-100 ${showInactive ? 'bg-gray-100 text-brand-dark' : ''}`}
+                    className={`flex items-center gap-2 text-gray-500 hover:bg-gray-100 ${showInactive ? 'bg-gray-100 text-brand-primary' : ''}`}
                     title={showInactive ? "Masquer les inactifs" : "Inclure les inactifs"}
                     aria-label={showInactive ? "Masquer les membres inactifs" : "Afficher les membres inactifs"}
                   >
-                    {showInactive ? <Eye size={16} className="text-brand-dark" /> : <EyeOff size={16} className="text-gray-400" />}
-                    <span className="text-xs font-medium">
+                    {showInactive ? <Eye size={15} className="text-brand-primary" /> : <EyeOff size={15} className="text-gray-400" />}
+                    <span className="text-caption font-medium">
                       {showInactive ? 'Masquer inactifs' : `Inactifs (${inactiveCount})`}
                     </span>
                   </Button>
                 )}
               </div>
 
-              {/* Add Member Button - Moved to Smart Toolbar */}
-              <div className="w-full md:w-auto mt-4 md:mt-0">
+              {/* Add Member Button */}
+              <div className="w-full md:w-auto">
                 <Button
                   onClick={() => setPageTab('add')}
-                  className="w-full md:w-auto flex items-center justify-center gap-2 shadow-md shadow-brand-subtle transition-all active:scale-95"
+                  className="w-full md:w-auto flex items-center justify-center gap-2"
                 >
-                  <UserPlus size={16} />
-                  <span className="font-medium">Ajouter</span>
+                  <UserPlus size={15} />
+                  <span>Ajouter</span>
                 </Button>
               </div>
             </div>
@@ -552,25 +554,25 @@ export default function TeamManagementPage() {
                     <motion.div
                       key={member.id}
                       layout
-                      initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.9, y: -20 }}
-                      transition={{ duration: 0.2, delay: index * 0.05 }}
-                      className={`group relative bg-white rounded-3xl p-6 border-2 transition-all hover:-translate-y-1 hover:shadow-xl ${!member.isActive
-                        ? 'border-gray-100 bg-gray-50/50 opacity-75'
-                        : 'border-gray-100 hover:border-brand-subtle shadow-sm'
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15, delay: index * 0.03 }}
+                      className={`group relative bg-white rounded-2xl p-5 border transition-all hover:shadow-md ${!member.isActive
+                        ? 'border-gray-100 bg-gray-50/50 opacity-70'
+                        : 'border-gray-100 shadow-sm'
                         }`}
                     >
                       {/* Status Dot */}
-                      <div className="absolute top-6 left-6 flex items-center gap-2">
-                        <span className={`w-2.5 h-2.5 rounded-full ${member.isActive ? (isRecentLogin ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-gray-300') : 'bg-red-400'}`}></span>
-                        <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">
+                      <div className="absolute top-5 left-5 flex items-center gap-1.5">
+                        <span className={`w-2 h-2 rounded-full ${member.isActive ? (isRecentLogin ? 'bg-green-500' : 'bg-gray-300') : 'bg-red-400'}`}></span>
+                        <span className="text-micro text-gray-400">
                           {!member.isActive ? 'Inactif' : (isRecentLogin ? 'Actif récemment' : 'Hors ligne')}
                         </span>
                       </div>
 
                       {/* Actions Menu (Top Right) */}
-                      <div className="absolute top-5 right-5">
+                      <div className="absolute top-4 right-4">
                         {member.isActive && member.role !== 'promoteur' && member.role !== 'super_admin' &&
                           ((member.role === 'gerant' && hasPermission('canCreateManagers')) ||
                             (member.role === 'serveur' && hasPermission('canCreateServers'))) && (
@@ -580,25 +582,25 @@ export default function TeamManagementPage() {
                               title="Retirer de l'équipe"
                               aria-label={`Retirer ${member.user?.name || 'ce membre'} de l'équipe`}
                             >
-                              <Trash2 size={18} />
+                              <Trash2 size={16} />
                             </button>
                           )}
                       </div>
 
                       {/* Avatar Section */}
-                      <div className="mt-8 mb-6 flex flex-col items-center">
-                        <div className={`w-20 h-20 rounded-2xl flex items-center justify-center text-2xl font-black mb-4 shadow-lg rotate-3 transition-transform group-hover:rotate-0 ${member.role === 'promoteur' ? 'bg-purple-100 text-purple-600' :
+                      <div className="mt-7 mb-5 flex flex-col items-center">
+                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-h3 font-semibold mb-3 ${member.role === 'promoteur' ? 'bg-brand-subtle text-brand-primary' :
                           member.role === 'gerant' ? 'bg-brand-subtle text-brand-dark' :
-                            'bg-blue-100 text-blue-600'
+                            'bg-gray-100 text-gray-500'
                           }`}
                           aria-hidden="true"
                         >
                           {initials}
                         </div>
-                        <h2 className="text-lg font-bold text-gray-900 leading-tight text-center px-2">{user?.name || 'Inconnu'}</h2>
-                        <p className="text-sm font-medium text-gray-400 mb-2">@{user?.username || 'unknown'}</p>
+                        <h2 className="text-body font-semibold text-gray-900 leading-tight text-center px-2">{user?.name || 'Inconnu'}</h2>
+                        <p className="text-caption text-gray-400 mb-2">@{user?.username || 'unknown'}</p>
 
-                        {/* Role Badge + interactive role switch (promoteur only) */}
+                        {/* Role Badge + interactive role switch */}
                         {member.isActive && member.role !== 'promoteur' && member.role !== 'super_admin' && hasPermission('canCreateManagers') ? (
                           <RoleSwitcher
                             value={member.role as UserRole}
@@ -609,7 +611,7 @@ export default function TeamManagementPage() {
                             showLabel={false}
                           />
                         ) : (
-                          <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${member.role === 'promoteur' ? 'bg-purple-100 text-purple-700' :
+                          <span className={`px-3 py-1 rounded-full text-micro font-semibold ${member.role === 'promoteur' ? 'bg-brand-subtle text-brand-primary' :
                             member.role === 'gerant' ? 'bg-brand-subtle text-brand-dark' :
                               'bg-gray-100 text-gray-600'
                             }`}>
@@ -619,30 +621,30 @@ export default function TeamManagementPage() {
                       </div>
 
                       {/* Details Grid */}
-                      <div className="space-y-3 pt-6 border-t border-dashed border-gray-100">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
-                            <Phone size={14} className="text-gray-400" />
+                      <div className="space-y-2.5 pt-4 border-t border-dashed border-gray-100">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
+                            <Phone size={13} className="text-gray-400" />
                           </div>
-                          <span className="text-xs font-semibold text-gray-600">{user?.phone || 'Non renseigné'}</span>
+                          <span className="text-caption text-gray-600">{user?.phone || 'Non renseigné'}</span>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
-                            <Mail size={14} className="text-gray-400" />
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
+                            <Mail size={13} className="text-gray-400" />
                           </div>
-                          <span className="text-xs font-semibold text-gray-600 truncate max-w-[180px]" title={user?.email}>
+                          <span className="text-caption text-gray-600 truncate max-w-[180px]" title={user?.email}>
                             {user?.email || 'Pas d\'email'}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
-                            <Clock size={14} className="text-gray-400" aria-hidden="true" />
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
+                            <Clock size={13} className="text-gray-400" aria-hidden="true" />
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-[10px] text-gray-400 uppercase font-bold">Dernière connexion</span>
-                            <span className="text-xs font-bold text-gray-700">
+                            <span className="text-micro text-gray-400">Dernière connexion</span>
+                            <span className="text-caption font-medium text-gray-700">
                               {user?.lastLoginAt
                                 ? new Date(user.lastLoginAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
                                 : 'Jamais'}
@@ -682,9 +684,10 @@ export default function TeamManagementPage() {
         {pageTab === 'add' && (
           <motion.div
             key="add-member-flow"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
             className="space-y-6"
           >
             {/* 📘 ONBOARDING / HELP PANEL */}
@@ -695,9 +698,9 @@ export default function TeamManagementPage() {
               >
                 <div className="flex items-center gap-3">
                   <div className="bg-brand-subtle p-2 rounded-lg">
-                    <AlertTriangle className="w-5 h-5 text-brand-dark" />
+                    <AlertTriangle className="w-4 h-4 text-brand-primary" />
                   </div>
-                  <p className="font-bold text-[var(--brand-text)]">Processus de recrutement</p>
+                  <p className="text-body-sm font-semibold text-gray-800">Processus de recrutement</p>
                 </div>
                 {isInfoExpanded ? (
                   <ChevronDown className="w-5 h-5 text-brand-primary" />
@@ -716,16 +719,16 @@ export default function TeamManagementPage() {
                     <div className="px-5 pb-5 pt-1 border-t border-brand-subtle">
                       <div className="space-y-3">
                         <div className="flex items-start gap-3">
-                          <span className="bg-brand-subtle text-brand-dark w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">1</span>
-                          <p className="text-sm text-[var(--brand-text)]">Choisissez si vous créez un nouveau compte ou si vous réutilisez un membre existant.</p>
+                          <span className="bg-brand-subtle text-brand-primary w-6 h-6 rounded-full flex items-center justify-center text-micro font-semibold shrink-0 mt-0.5">1</span>
+                          <p className="text-body-sm text-gray-600">Choisissez si vous créez un nouveau compte ou si vous réutilisez un membre existant.</p>
                         </div>
                         <div className="flex items-start gap-3">
-                          <span className="bg-brand-subtle text-brand-dark w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">2</span>
-                          <p className="text-sm text-[var(--brand-text)]">Attribuez le rôle (Gérant ou Serveur) selon les besoins du bar.</p>
+                          <span className="bg-brand-subtle text-brand-primary w-6 h-6 rounded-full flex items-center justify-center text-micro font-semibold shrink-0 mt-0.5">2</span>
+                          <p className="text-body-sm text-gray-600">Attribuez le rôle (Gérant ou Serveur) selon les besoins du bar.</p>
                         </div>
                         <div className="flex items-start gap-3">
-                          <span className="bg-brand-subtle text-brand-dark w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">3</span>
-                          <p className="text-sm text-[var(--brand-text)]">Partagez les identifiants générés en toute sécurité avec le nouveau membre.</p>
+                          <span className="bg-brand-subtle text-brand-primary w-6 h-6 rounded-full flex items-center justify-center text-micro font-semibold shrink-0 mt-0.5">3</span>
+                          <p className="text-body-sm text-gray-600">Partagez les identifiants générés en toute sécurité avec le nouveau membre.</p>
                         </div>
                       </div>
                     </div>
@@ -739,68 +742,70 @@ export default function TeamManagementPage() {
               <div className="lg:col-span-2 space-y-6">
                 <div className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm">
                   {/* Step 1: Mode Selection */}
-                  <div className="flex flex-col gap-6">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-bold text-gray-800">1. Quel type d'ajout ?</h3>
-                    </div>
+                  <div className="flex flex-col gap-5">
+                    <h3 className="text-h3 text-gray-900">1. Type d'ajout</h3>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <button
                         onClick={() => setActiveTab('new')}
-                        className={`p-6 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 text-center ${activeTab === 'new'
-                          ? 'bg-brand-subtle border-brand-primary shadow-lg shadow-brand-subtle'
+                        className={`p-5 rounded-xl border transition-all flex flex-col items-center gap-2.5 text-center ${activeTab === 'new'
+                          ? 'bg-brand-subtle border-brand-primary shadow-sm'
                           : 'bg-white border-gray-100 hover:border-brand-subtle'}`}
                       >
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${activeTab === 'new' ? 'bg-brand-primary text-white' : 'bg-gray-100 text-gray-400'}`}>
-                          <UserIcon size={24} />
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeTab === 'new' ? 'bg-brand-primary text-white' : 'bg-gray-100 text-gray-400'}`}>
+                          <UserIcon size={20} />
                         </div>
                         <div>
-                          <p className="font-bold text-gray-900">Nouveau Compte</p>
-                          <p className="text-xs text-gray-500 mt-1">Créer des identifiants de zéro pour un nouvel employé</p>
+                          <p className="text-body-sm font-semibold text-gray-900">Nouveau compte</p>
+                          <p className="text-caption text-gray-500 mt-0.5">Créer des identifiants pour un nouvel employé</p>
                         </div>
                       </button>
 
                       <button
                         onClick={() => setActiveTab('existing')}
-                        className={`p-6 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 text-center ${activeTab === 'existing'
-                          ? 'bg-brand-subtle border-brand-primary shadow-lg shadow-brand-subtle'
+                        className={`p-5 rounded-xl border transition-all flex flex-col items-center gap-2.5 text-center ${activeTab === 'existing'
+                          ? 'bg-brand-subtle border-brand-primary shadow-sm'
                           : 'bg-white border-gray-100 hover:border-brand-subtle'}`}
                       >
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${activeTab === 'existing' ? 'bg-brand-primary text-white' : 'bg-gray-100 text-gray-400'}`}>
-                          <UserPlus size={24} />
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activeTab === 'existing' ? 'bg-brand-primary text-white' : 'bg-gray-100 text-gray-400'}`}>
+                          <UserPlus size={20} />
                         </div>
                         <div>
-                          <p className="font-bold text-gray-900">Membre Existant</p>
-                          <p className="text-xs text-gray-500 mt-1">Importer un membre de votre équipe d'un autre bar</p>
+                          <p className="text-body-sm font-semibold text-gray-900">Membre existant</p>
+                          <p className="text-caption text-gray-500 mt-0.5">Importer un membre d'un autre bar</p>
                         </div>
                       </button>
                     </div>
 
-                    <div className="h-px bg-gray-100 my-2" />
+                    <div className="h-px bg-gray-100" />
 
-                    <div className="space-y-6">
-                      <h3 className="text-lg font-bold text-gray-800">2. Détails & Rôle</h3>
+                    <div className="space-y-5">
+                      <h3 className="text-h3 text-gray-900">2. Détails & rôle</h3>
 
-                      {/* Common: Role Selection */}
-                      <div className="space-y-3">
-                        <Label className="font-bold text-gray-700">Rôle à attribuer</Label>
-                        <div className="flex bg-gray-50 p-1.5 rounded-2xl border border-gray-200">
+                      {/* Role segmented control */}
+                      <div className="space-y-2">
+                        <Label className="text-caption font-medium text-gray-500">Rôle à attribuer</Label>
+                        <div className="flex bg-gray-100 p-0.5 rounded-full border border-gray-200" role="radiogroup" aria-label="Rôle">
                           {hasPermission('canCreateManagers') && (
                             <button
+                              role="radio"
+                              aria-checked={selectedRole === 'gerant'}
                               onClick={() => setSelectedRole('gerant')}
-                              className={`flex-1 py-3 px-4 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${selectedRole === 'gerant'
-                                ? 'btn-brand shadow-lg shadow-brand-subtle'
-                                : 'text-gray-500 hover:bg-gray-100'}`}
+                              className={`flex-1 py-2 px-4 rounded-full text-body-sm font-medium transition-all ${selectedRole === 'gerant'
+                                ? 'bg-white text-brand-primary shadow-sm font-semibold'
+                                : 'text-gray-500 hover:text-gray-700'}`}
                             >
                               Gérant
                             </button>
                           )}
                           {hasPermission('canCreateServers') && (
                             <button
+                              role="radio"
+                              aria-checked={selectedRole === 'serveur'}
                               onClick={() => setSelectedRole('serveur')}
-                              className={`flex-1 py-3 px-4 rounded-xl text-sm font-black uppercase tracking-wider transition-all ${selectedRole === 'serveur'
-                                ? 'btn-brand shadow-lg shadow-brand-subtle'
-                                : 'text-gray-500 hover:bg-gray-100'}`}
+                              className={`flex-1 py-2 px-4 rounded-full text-body-sm font-medium transition-all ${selectedRole === 'serveur'
+                                ? 'bg-white text-brand-primary shadow-sm font-semibold'
+                                : 'text-gray-500 hover:text-gray-700'}`}
                             >
                               Serveur
                             </button>
@@ -820,63 +825,64 @@ export default function TeamManagementPage() {
                         {activeTab === 'new' ? (
                           <motion.form
                             key="new-form"
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className="space-y-6"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="space-y-5"
                             onSubmit={handleAddUser}
                           >
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              <div className="space-y-2">
-                                <Label htmlFor="username" className="font-bold text-gray-700">Identifiant de connexion *</Label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-1.5">
+                                <Label htmlFor="username" className="text-caption font-medium text-gray-500">Identifiant de connexion *</Label>
                                 <Input
                                   id="username"
                                   type="text"
                                   value={username}
                                   onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
                                   placeholder="exemple: sandra.koffi"
-                                  className="h-12 bg-gray-50 border-gray-200 focus:bg-white"
+                                  className="h-11 bg-gray-50 border-gray-200 focus:bg-white"
                                 />
                               </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="password" className="font-bold text-gray-700">Mot de passe temporaire *</Label>
+                              <div className="space-y-1.5">
+                                <Label htmlFor="password" className="text-caption font-medium text-gray-500">Mot de passe temporaire *</Label>
                                 <Input
                                   id="password"
                                   type="text"
                                   value={password}
                                   onChange={(e) => setPassword(e.target.value)}
                                   placeholder="Min. 8 caractères"
-                                  className="h-12 bg-gray-50 border-gray-200 focus:bg-white"
+                                  className="h-11 bg-gray-50 border-gray-200 focus:bg-white"
                                 />
                               </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="name" className="font-bold text-gray-700">Nom & Prénom *</Label>
+                              <div className="space-y-1.5">
+                                <Label htmlFor="name" className="text-caption font-medium text-gray-500">Nom & prénom *</Label>
                                 <Input
                                   id="name"
                                   type="text"
                                   value={name}
                                   onChange={(e) => setName(e.target.value)}
                                   placeholder="Sandra KOFFI"
-                                  className="h-12 bg-gray-50 border-gray-200 focus:bg-white text-lg font-medium"
+                                  className="h-11 bg-gray-50 border-gray-200 focus:bg-white"
                                 />
                               </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="phone" className="font-bold text-gray-700">Téléphone *</Label>
+                              <div className="space-y-1.5">
+                                <Label htmlFor="phone" className="text-caption font-medium text-gray-500">Téléphone *</Label>
                                 <Input
                                   id="phone"
                                   type="tel"
                                   value={phone}
                                   onChange={(e) => setPhone(e.target.value)}
                                   placeholder="+229 00 00 00 00"
-                                  className="h-12 bg-gray-50 border-gray-200 focus:bg-white"
+                                  className="h-11 bg-gray-50 border-gray-200 focus:bg-white"
                                 />
                               </div>
                             </div>
 
-                            <div className="pt-2">
+                            <div className="pt-1">
                               <Button
                                 type="submit"
-                                className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-brand-subtle"
+                                className="w-full h-11 rounded-xl font-semibold"
                               >
                                 Créer le compte
                               </Button>
@@ -885,16 +891,17 @@ export default function TeamManagementPage() {
                         ) : (
                           <motion.form
                             key="existing-form"
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className="space-y-6"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="space-y-5"
                             onSubmit={handleAddExistingUser}
                           >
-                            <div className="space-y-2">
-                              <Label className="font-bold text-gray-700">Importer de mon équipe (Autre Bar)</Label>
+                            <div className="space-y-1.5">
+                              <Label className="text-caption font-medium text-gray-500">Importer depuis un autre bar</Label>
                               {loadingCandidates ? (
-                                <div className="h-12 animate-pulse bg-gray-100 rounded-xl" />
+                                <div className="h-11 animate-pulse bg-gray-100 rounded-xl" />
                               ) : (
                                 <Select
                                   value={selectedCandidateId}
@@ -907,19 +914,19 @@ export default function TeamManagementPage() {
                                     value: c.id,
                                     label: `${c.name} (${c.role} chez ${c.sourceBarName})`
                                   }))}
-                                  className="h-12 border-gray-200 focus:border-[var(--brand-primary)]"
+                                  className="h-11 border-gray-200 focus:border-[var(--brand-primary)]"
                                 />
                               )}
                             </div>
 
-                            <div className="flex items-center gap-4 my-2">
+                            <div className="flex items-center gap-3">
                               <div className="h-px bg-gray-100 flex-1" />
-                              <span className="text-xs font-black text-gray-300 uppercase tracking-widest">OU</span>
+                              <span className="text-caption text-gray-400">ou</span>
                               <div className="h-px bg-gray-100 flex-1" />
                             </div>
 
-                            <div className="space-y-2">
-                              <Label htmlFor="existing-email" className="font-bold text-gray-700">Rechercher par Email / Identifiant</Label>
+                            <div className="space-y-1.5">
+                              <Label htmlFor="existing-email" className="text-caption font-medium text-gray-500">Rechercher par email / identifiant</Label>
                               <Input
                                 id="existing-email"
                                 type="text"
@@ -929,15 +936,15 @@ export default function TeamManagementPage() {
                                   setExistingEmail(e.target.value.trim());
                                   if (e.target.value) setSelectedCandidateId('');
                                 }}
-                                className="h-12 bg-gray-50 border-gray-200 focus:bg-white"
+                                className="h-11 bg-gray-50 border-gray-200 focus:bg-white"
                               />
                             </div>
 
-                            <div className="pt-2">
+                            <div className="pt-1">
                               <Button
                                 type="submit"
                                 disabled={!selectedCandidateId && !existingEmail}
-                                className="w-full h-14 rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-brand-subtle"
+                                className="w-full h-11 rounded-xl font-semibold"
                               >
                                 Ajouter à l'équipe
                               </Button>
@@ -952,54 +959,54 @@ export default function TeamManagementPage() {
                 {/* Preview is self-contained */}
               </div>
 
-              {/* Right Column: Profile Preview Ticket */}
+              {/* Right Column: Profile Preview */}
               <div className="lg:col-span-1">
-                <div className="bg-[#FFF9E5] rounded-3xl p-6 border-2 border-dashed border-brand-primary/30 relative overflow-hidden h-full flex flex-col min-h-[400px]">
+                <div className="bg-brand-subtle/50 rounded-2xl p-5 border border-dashed border-brand-primary/25 relative overflow-hidden h-full flex flex-col min-h-[360px]">
                   {/* Cutouts */}
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-gray-50 rounded-full" />
-                  <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-gray-50 rounded-full" />
+                  <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 w-7 h-7 bg-gray-50 rounded-full" />
+                  <div className="absolute -bottom-3.5 left-1/2 -translate-x-1/2 w-7 h-7 bg-gray-50 rounded-full" />
 
-                  <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center mx-auto mb-4 border border-brand-primary">
-                      <UserIcon size={32} className="text-brand-primary" />
+                  <div className="text-center mb-5">
+                    <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center mx-auto mb-3 border border-brand-primary/20">
+                      <UserIcon size={22} className="text-brand-primary" />
                     </div>
-                    <h4 className="font-black text-brand-dark opacity-80 uppercase tracking-widest text-sm">Aperçu Profil</h4>
+                    <p className="text-micro text-brand-primary font-semibold">Aperçu profil</p>
                   </div>
 
-                  <div className="space-y-5 flex-1">
-                    <div className="bg-white/50 p-4 rounded-2xl">
-                      <p className="text-[10px] font-black text-brand-primary uppercase mb-1">Nom Complet</p>
-                      <p className="font-black text-brand-dark text-lg leading-tight">{name || (selectedCandidateId ? candidates.find(c => c.id === selectedCandidateId)?.name : 'Nouveau Membre')}</p>
+                  <div className="space-y-3 flex-1">
+                    <div className="bg-white/60 p-3 rounded-xl">
+                      <p className="text-micro text-brand-primary mb-1">Nom complet</p>
+                      <p className="text-body-sm font-semibold text-gray-900 leading-tight">{name || (selectedCandidateId ? candidates.find(c => c.id === selectedCandidateId)?.name : 'Nouveau membre')}</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-white/50 p-4 rounded-2xl">
-                        <p className="text-[10px] font-black text-brand-primary uppercase mb-1">Rôle</p>
-                        <p className="font-black text-brand-dark uppercase text-xs">{selectedRole}</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-white/60 p-3 rounded-xl">
+                        <p className="text-micro text-brand-primary mb-1">Rôle</p>
+                        <p className="text-caption font-semibold text-gray-700">{selectedRole === 'gerant' ? 'Gérant' : 'Serveur'}</p>
                       </div>
-                      <div className="bg-white/50 p-4 rounded-2xl">
-                        <p className="text-[10px] font-black text-brand-primary uppercase mb-1">Identifiant</p>
-                        <p className="font-black text-brand-dark text-xs truncate">{username || (existingEmail ? existingEmail.split('@')[0] : '---')}</p>
+                      <div className="bg-white/60 p-3 rounded-xl">
+                        <p className="text-micro text-brand-primary mb-1">Identifiant</p>
+                        <p className="text-caption font-medium text-gray-700 truncate">{username || (existingEmail ? existingEmail.split('@')[0] : '---')}</p>
                       </div>
                     </div>
 
-                    <div className="bg-[var(--brand-primary-dark)] text-white p-5 rounded-2xl shadow-xl text-center transition-colors duration-300">
-                      <p className="text-[10px] font-black uppercase opacity-60 mb-2 tracking-widest leading-none">Accès Bar</p>
-                      <p className="font-black text-base text-white">{currentBar.name}</p>
+                    <div className="bg-brand-primary text-white p-4 rounded-xl text-center">
+                      <p className="text-micro opacity-70 mb-1">Accès bar</p>
+                      <p className="text-body-sm font-semibold">{currentBar.name}</p>
                     </div>
 
-                    <div className="px-2 text-center pt-4">
-                      <div className="flex items-center justify-center gap-2 text-brand-dark opacity-60 text-xs font-medium italic">
-                        <Info size={14} />
-                        <span>L'employé pourra se connecter dès validation</span>
+                    <div className="text-center pt-2">
+                      <div className="flex items-center justify-center gap-1.5 text-gray-400">
+                        <Info size={13} />
+                        <span className="text-caption">Connexion possible dès validation</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-8">
+                  <div className="mt-5">
                     <button
                       onClick={() => setPageTab('members')}
-                      className="w-full py-3 text-brand-dark opacity-50 font-black text-xs uppercase hover:opacity-100 transition-all font-black text-xs uppercase hover:opacity-100 transition-all"
+                      className="w-full py-2.5 text-caption text-gray-400 hover:text-gray-600 font-medium transition-colors"
                     >
                       Abandonner
                     </button>
